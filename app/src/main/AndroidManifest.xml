@@ -112,6 +112,11 @@
             android:exported="false"
             android:label="@string/edit_text_keyboard_layout" />
         <activity
+            android:name=".ui.main.settings.behavior.dialog.TextKeyboardLayoutProfilePickerActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:theme="@style/Theme.TransparentOverlayActivity" />
+        <activity
             android:name=".ui.main.settings.behavior.ButtonsCustomizerActivity"
             android:exported="false"
             android:label="@string/edit_buttons" />

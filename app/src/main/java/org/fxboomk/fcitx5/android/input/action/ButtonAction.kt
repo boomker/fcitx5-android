@@ -4,6 +4,7 @@
  */
 package org.fxboomk.fcitx5.android.input.action
 
+import android.content.Intent
 import android.content.Context
 import android.view.KeyEvent
 import android.view.View
@@ -26,6 +27,9 @@ import org.fxboomk.fcitx5.android.input.keyboard.LangSwitchBehavior
 import org.fxboomk.fcitx5.android.input.status.StatusAreaWindow
 import org.fxboomk.fcitx5.android.input.wm.InputWindowManager
 import org.fxboomk.fcitx5.android.ui.main.settings.SettingsRoute
+import org.fxboomk.fcitx5.android.ui.main.settings.behavior.FontsetEditorActivity
+import org.fxboomk.fcitx5.android.ui.main.settings.behavior.TextKeyboardLayoutEditorActivity
+import org.fxboomk.fcitx5.android.ui.main.settings.behavior.dialog.TextKeyboardLayoutProfilePickerActivity
 import org.fxboomk.fcitx5.android.utils.AppUtil
 import org.fxboomk.fcitx5.android.utils.buildDocumentsProviderIntent
 import org.fxboomk.fcitx5.android.utils.switchToNextIME
@@ -128,7 +132,6 @@ sealed class ButtonAction {
             SettingsAdvancedAction,
             SettingsDeveloperAction,
             SettingsAboutAction,
-            SettingsLicenseAction
         )
 
         /**
@@ -660,5 +663,62 @@ data object SettingsLicenseAction : ButtonAction() {
         onActionComplete: (() -> Unit)?
     ) {
         AppUtil.launchMainToRoute(context, SettingsRoute.License)
+    }
+}
+
+data object EditTextKeyboardLayoutAction : ButtonAction() {
+    override val id = "edit_text_keyboard_layout"
+    override val defaultIcon = R.drawable.ic_baseline_keyboard_24
+    override val defaultLabelRes = R.string.edit_text_keyboard_layout
+
+    override fun execute(
+        context: Context,
+        service: FcitxInputMethodService,
+        fcitx: FcitxConnection,
+        windowManager: InputWindowManager,
+        view: View?,
+        onActionComplete: (() -> Unit)?
+    ) {
+        context.startActivity(Intent(context, TextKeyboardLayoutEditorActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        })
+    }
+}
+
+data object TextKeyboardLayoutFileSelectAction : ButtonAction() {
+    override val id = "text_keyboard_layout_file_select"
+    override val defaultIcon = R.drawable.ic_baseline_library_books_24
+    override val defaultLabelRes = R.string.text_keyboard_layout_file_select_title
+
+    override fun execute(
+        context: Context,
+        service: FcitxInputMethodService,
+        fcitx: FcitxConnection,
+        windowManager: InputWindowManager,
+        view: View?,
+        onActionComplete: (() -> Unit)?
+    ) {
+        context.startActivity(Intent(context, TextKeyboardLayoutProfilePickerActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        })
+    }
+}
+
+data object EditFontsetAction : ButtonAction() {
+    override val id = "edit_fontset"
+    override val defaultIcon = R.drawable.ic_baseline_text_format_24
+    override val defaultLabelRes = R.string.edit_fontset
+
+    override fun execute(
+        context: Context,
+        service: FcitxInputMethodService,
+        fcitx: FcitxConnection,
+        windowManager: InputWindowManager,
+        view: View?,
+        onActionComplete: (() -> Unit)?
+    ) {
+        context.startActivity(Intent(context, FontsetEditorActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        })
     }
 }

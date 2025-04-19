@@ -1264,7 +1264,10 @@ class MacroEditorActivity : AppCompatActivity() {
                 "settings_advanced",
                 "settings_developer",
                 "settings_about",
-                "settings_license"
+                "settings_license",
+                "edit_text_keyboard_layout",
+                "text_keyboard_layout_file_select",
+                "edit_fontset"
             )
             val actionLabels = arrayOf(
                 getString(R.string.theme),
@@ -1289,7 +1292,10 @@ class MacroEditorActivity : AppCompatActivity() {
                 getString(R.string.advanced),
                 getString(R.string.developer),
                 getString(R.string.about),
-                getString(R.string.license)
+                getString(R.string.license),
+                getString(R.string.edit_text_keyboard_layout),
+                getString(R.string.text_keyboard_layout_file_select_title),
+                getString(R.string.edit_fontset)
             )
             AlertDialog.Builder(this@MacroEditorActivity)
                 .setTitle(R.string.macro_editor_app_picker_title)
@@ -1325,6 +1331,9 @@ class MacroEditorActivity : AppCompatActivity() {
                 "settings_developer" -> getString(R.string.developer)
                 "settings_about" -> getString(R.string.about)
                 "settings_license" -> getString(R.string.license)
+                "edit_text_keyboard_layout" -> getString(R.string.edit_text_keyboard_layout)
+                "text_keyboard_layout_file_select" -> getString(R.string.text_keyboard_layout_file_select_title)
+                "edit_fontset" -> getString(R.string.edit_fontset)
                 else -> actionId
             }
         }
