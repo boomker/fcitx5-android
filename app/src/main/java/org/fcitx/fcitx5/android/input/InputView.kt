@@ -1093,6 +1093,7 @@ class InputView(
     private val keyboardBottomPadding = keyboardPrefs.keyboardBottomPadding
     private val keyboardBottomPaddingLandscape = keyboardPrefs.keyboardBottomPaddingLandscape
     private val splitKeyboardUseLandscapeLayout = keyboardPrefs.splitKeyboardUseLandscapeLayout
+    private val textKeyboardLayoutProfile = keyboardPrefs.textKeyboardLayoutProfile
 
     private val keyboardSizePrefs = listOf(
         keyboardHeightPercent,
@@ -1101,6 +1102,7 @@ class InputView(
         keyboardSidePaddingLandscape,
         keyboardBottomPadding,
         keyboardBottomPaddingLandscape,
+        textKeyboardLayoutProfile,
         keyboardPrefs.splitKeyboardEnabled,
         keyboardPrefs.splitKeyboardThreshold,
         keyboardPrefs.splitKeyboardGapPercent,
@@ -1910,7 +1912,8 @@ class InputView(
             // Refresh keyboard layout when split keyboard settings change
             if (key == keyboardPrefs.splitKeyboardEnabled.key ||
                 key == keyboardPrefs.splitKeyboardThreshold.key ||
-                key == keyboardPrefs.splitKeyboardGapPercent.key) {
+                key == keyboardPrefs.splitKeyboardGapPercent.key ||
+                key == textKeyboardLayoutProfile.key) {
                 (windowManager.getEssentialWindow(KeyboardWindow) as? KeyboardWindow)?.refreshAllKeyboards()
             }
         }
