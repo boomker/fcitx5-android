@@ -115,7 +115,8 @@ class TextKeyboard(
                 )
                 "LayoutSwitchKey" -> LayoutSwitchKey(
                     displayText = key.label ?: "?123",
-                    to = key.subLabel ?: ""
+                    to = key.subLabel ?: "",
+                    percentWidth = key.weight ?: 0.15f
                 )
                 "CommaKey" -> CommaKey(
                     percentWidth = key.weight ?: 0.1f,
@@ -132,8 +133,12 @@ class TextKeyboard(
                     percentWidth = key.weight ?: 0.1f,
                     variant = KeyDef.Appearance.Variant.Alternative
                 )
-                "ReturnKey" -> ReturnKey()
-                "BackspaceKey" -> BackspaceKey()
+                "ReturnKey" -> ReturnKey(
+                    percentWidth = key.weight ?: 0.15f
+                )
+                "BackspaceKey" -> BackspaceKey(
+                    percentWidth = key.weight ?: 0.15f
+                )
                 else -> SpaceKey() // Fallback
             }
         }
