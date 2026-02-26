@@ -96,11 +96,13 @@ class AlphabetDigitKey(
     )
 }
 
-class CapsKey : KeyDef(
+class CapsKey(
+    percentWidth: Float = 0.15f
+) : KeyDef(
     Appearance.Image(
         src = R.drawable.ic_capslock_none,
         viewId = R.id.button_caps,
-        percentWidth = 0.15f,
+        percentWidth = percentWidth,
         variant = Variant.Alternative
     ),
     setOf(
@@ -195,11 +197,14 @@ class CommaKey(
     )
 )
 
-class LanguageKey : KeyDef(
+class LanguageKey(
+    percentWidth: Float = 0.1f
+) : KeyDef(
     Appearance.Image(
         src = R.drawable.ic_baseline_language_24,
         variant = Variant.AltForeground,
-        viewId = R.id.button_lang
+        viewId = R.id.button_lang,
+        percentWidth = percentWidth
     ),
     setOf(
         Behavior.Press(KeyAction.LangSwitchAction),
@@ -207,11 +212,13 @@ class LanguageKey : KeyDef(
     )
 )
 
-class SpaceKey : KeyDef(
+class SpaceKey(
+    percentWidth: Float = 0f
+) : KeyDef(
     Appearance.Text(
         displayText = " ",
         textSize = 13f,
-        percentWidth = 0f,
+        percentWidth = percentWidth,
         border = Border.Special,
         viewId = R.id.button_space,
         soundEffect = InputFeedbacks.SoundEffect.SpaceBar

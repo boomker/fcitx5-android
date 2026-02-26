@@ -42,8 +42,8 @@ object DisplayTextResolver {
         subModeLabel: String
     ): String? {
         // 直接匹配子模式标签
-        return map[subModeLabel]?.jsonPrimitive?.content
-            ?: map[""]?.jsonPrimitive?.content
+        return map[subModeLabel]?.takeIf { it is JsonPrimitive && it !is JsonNull }?.jsonPrimitive?.content
+            ?: map[""]?.takeIf { it is JsonPrimitive && it !is JsonNull }?.jsonPrimitive?.content
     }
 }
 
@@ -51,7 +51,7 @@ object DisplayTextResolver {
 class TextKeyboard(
     context: Context,
     theme: Theme
-) : BaseKeyboard(context, theme, ::Layout) {
+) : BaseKeyboard(context, theme, ::getLayout) {
 
     enum class CapsState { None, Once, Lock }
 
@@ -70,6 +70,7 @@ class TextKeyboard(
             val subLabel: String? = null,
             val weight: Float? = null
         )
+
         var cachedLayoutJsonMap: Map<String, List<List<KeyJson>>>? = null
 
         val textLayoutJsonMap: Map<String, List<List<KeyJson>>>?
@@ -95,10 +96,66 @@ class TextKeyboard(
 
         private fun getTextLayoutJsonForIme(displayName: String): List<List<KeyJson>>? {
             val map = textLayoutJsonMap ?: return null
-            return map[displayName] ?: null
+            return map[displayName]
         }
 
-        val Layout: List<List<KeyDef>> = listOf(
+        private fun createKeyDef(key: KeyJson): KeyDef {
+            return when (key.type) {
+                "AlphabetKey" -> AlphabetKey(
+                    character = key.main ?: "",
+                    punctuation = key.alt ?: "",
+                    displayText = DisplayTextResolver.resolve(
+                        key.displayText,
+                        ime?.subMode?.label ?: "",
+                        key.main ?: ""
+                    )
+                )
+                "CapsKey" -> CapsKey(
+                    percentWidth = key.weight ?: 0.15f
+                )
+                "LayoutSwitchKey" -> LayoutSwitchKey(
+                    displayText = key.label ?: "?123",
+                    to = key.subLabel ?: ""
+                )
+                "CommaKey" -> CommaKey(
+                    percentWidth = key.weight ?: 0.1f,
+                    variant = KeyDef.Appearance.Variant.Alternative
+                )
+                "LanguageKey" -> LanguageKey(
+                    percentWidth = key.weight ?: 0.1f
+                )
+                "SpaceKey" -> SpaceKey(
+                    percentWidth = key.weight ?: 0f
+                )
+                "SymbolKey" -> SymbolKey(
+                    symbol = key.label ?: ".",
+                    percentWidth = key.weight ?: 0.1f,
+                    variant = KeyDef.Appearance.Variant.Alternative
+                )
+                "ReturnKey" -> ReturnKey()
+                "BackspaceKey" -> BackspaceKey()
+                else -> SpaceKey() // Fallback
+            }
+        }
+
+        fun getLayout(): List<List<KeyDef>> {
+            val imeName = ime?.uniqueName
+            if (imeName != null) {
+                val map = textLayoutJsonMap
+                if (map != null) {
+                    // Try uniqueName first, then displayName
+                    val layoutJson = map[imeName] ?: map[ime?.displayName]
+                    if (layoutJson != null) {
+                         return layoutJson.map { row ->
+                            row.map { createKeyDef(it) }
+                        }
+                    }
+                }
+            }
+            return DefaultLayout
+        }
+
+        val DefaultLayout: List<List<KeyDef>> = listOf(
             listOf(
                 AlphabetKey("Q", "1"),
                 AlphabetKey("W", "2"),
@@ -144,12 +201,18 @@ class TextKeyboard(
         )
     }
 
-    val caps: ImageKeyView by lazy { findViewById(R.id.button_caps) }
-    val backspace: ImageKeyView by lazy { findViewById(R.id.button_backspace) }
-    val quickphrase: ImageKeyView by lazy { findViewById(R.id.button_quickphrase) }
-    val lang: ImageKeyView by lazy { findViewById(R.id.button_lang) }
-    val space: TextKeyView by lazy { findViewById(R.id.button_space) }
-    val `return`: ImageKeyView by lazy { findViewById(R.id.button_return) }
+    val caps: ImageKeyView?
+        get() = findViewById(R.id.button_caps)
+    val backspace: ImageKeyView?
+        get() = findViewById(R.id.button_backspace)
+    val quickphrase: ImageKeyView?
+        get() = findViewById(R.id.button_quickphrase)
+    val lang: ImageKeyView?
+        get() = findViewById(R.id.button_lang)
+    val space: TextKeyView?
+        get() = findViewById(R.id.button_space)
+    val `return`: ImageKeyView?
+        get() = findViewById(R.id.button_return)
 
     private val showLangSwitchKey = AppPrefs.getInstance().keyboard.showLangSwitchKey
 
@@ -163,9 +226,8 @@ class TextKeyboard(
     init {
     }
 
-    private val textKeys: List<TextKeyView> by lazy {
-        allViews.filterIsInstance(TextKeyView::class.java).toList()
-    }
+    private val textKeys: List<TextKeyView>
+        get() = allViews.filterIsInstance(TextKeyView::class.java).toList()
 
     private var capsState: CapsState = CapsState.None
 
@@ -228,7 +290,7 @@ class TextKeyboard(
     }
 
     override fun onReturnDrawableUpdate(returnDrawable: Int) {
-        `return`.img.imageResource = returnDrawable
+        `return`?.img?.imageResource = returnDrawable
     }
 
     override fun onPunctuationUpdate(mapping: Map<String, String>) {
@@ -239,8 +301,9 @@ class TextKeyboard(
     override fun onInputMethodUpdate(ime: InputMethodEntry) {
         // update ime of companion object ime
         TextKeyboard.ime = ime
+        reloadLayout()
         updateAlphabetKeys()
-        space.mainText.text = buildString {
+        space?.mainText?.text = buildString {
             append(ime.displayName)
             ime.subMode.run { label.ifEmpty { name.ifEmpty { null } } }?.let { append(" ($it)") }
         }
@@ -288,7 +351,7 @@ class TextKeyboard(
     }
 
     private fun updateCapsButtonIcon() {
-        caps.img.apply {
+        caps?.img?.apply {
             imageResource = when (capsState) {
                 CapsState.None -> R.drawable.ic_capslock_none
                 CapsState.Once -> R.drawable.ic_capslock_once
@@ -298,43 +361,33 @@ class TextKeyboard(
     }
 
     private fun updateLangSwitchKey(visible: Boolean) {
-        lang.visibility = if (visible) View.VISIBLE else View.GONE
+        lang?.visibility = if (visible) View.VISIBLE else View.GONE
     }
 
     private fun updateAlphabetKeys() {
-        val layoutJson = getTextLayoutJsonForIme(ime?.uniqueName ?: "default")
-        if (layoutJson != null) {
-            textKeys.forEach {
-                if (it.def !is KeyDef.Appearance.AltText) return@forEach
-                val keyJson = layoutJson.flatten().find { key -> key.main == it.def.character }
-                val displayText = if (keyJson != null ) {
-                  DisplayTextResolver.resolve(
-                    keyJson.displayText,
-                    ime?.subMode?.label ?: "",
-                    keyJson.main ?: ""
-                  )
+        textKeys.forEach {
+            val keyDef = it.def
+            if (keyDef is KeyDef.Appearance.AltText) {
+                it.mainText.text = if (keepLettersUppercase) {
+                    keyDef.character.uppercase()
                 } else {
-                  it.def.character
-                }
-                // val displayText = keyJson?.displayText ?: keyJson?.main ?: it.def.character
-
-                it.mainText.text = displayText?.let { str ->
-                    if (keepLettersUppercase) {
-                      keyJson?.main?.uppercase() ?: str.uppercase()
-                    } else {
-                      when(capsState) {
-                        CapsState.None -> displayText.lowercase() ?: keyJson?.main?.lowercase() ?: str.lowercase()
-                        else -> keyJson?.main?.uppercase() ?: str.uppercase()
-                      }
+                    when (capsState) {
+                        CapsState.None -> keyDef.displayText.lowercase()
+                        else -> keyDef.character.uppercase()
                     }
-                } ?: it.def.character
-            }
-        } else {
-            textKeys.forEach {
-                if (it.def !is KeyDef.Appearance.AltText) return
-                it.mainText.text = it.def.displayText.let { str ->
-                    if (str.length != 1 || !str[0].isLetter()) return@forEach
-                    if (keepLettersUppercase) str.uppercase() else transformAlphabet(str)
+                }
+            } else if (keyDef is KeyDef.Appearance.Text) {
+                // handle other text keys if necessary, but mainly AlphabetKey is AltText
+                val str = keyDef.displayText
+                if (str.length == 1 && str[0].isLetter()) {
+                     it.mainText.text = if (keepLettersUppercase) {
+                        str.uppercase()
+                    } else {
+                        when (capsState) {
+                            CapsState.None -> str.lowercase()
+                            else -> str.uppercase()
+                        }
+                    }
                 }
             }
         }

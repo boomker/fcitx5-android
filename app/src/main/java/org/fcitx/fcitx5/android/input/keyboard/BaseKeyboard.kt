@@ -80,7 +80,7 @@ abstract class BaseKeyboard(
     private val disabledSwipeThreshold = dp(800f)
 
     private val bounds = Rect()
-    private val keyRows: List<ConstraintLayout>
+    private lateinit var keyRows: List<ConstraintLayout>
 
     /**
      * HashMap of [PointerId (Int)][MotionEvent.getPointerId] to [KeyView]
@@ -89,6 +89,14 @@ abstract class BaseKeyboard(
 
     init {
         isMotionEventSplittingEnabled = true
+        reloadLayout()
+        spaceSwipeMoveCursor.registerOnChangeListener(spaceSwipeChangeListener)
+    }
+
+    protected open fun reloadLayout() {
+        removeAllViews()
+        spaceKeys.clear()
+        touchTarget.clear()
         keyRows = keyLayout.map { row ->
             val keyViews = row.map(::createKeyView)
             constraintLayout Row@{
@@ -143,7 +151,6 @@ abstract class BaseKeyboard(
                 centerHorizontally()
             })
         }
-        spaceSwipeMoveCursor.registerOnChangeListener(spaceSwipeChangeListener)
     }
 
     private fun createKeyView(def: KeyDef): KeyView {
