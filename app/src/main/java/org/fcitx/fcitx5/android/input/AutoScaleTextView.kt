@@ -97,6 +97,12 @@ class AutoScaleTextView @JvmOverloads constructor(
         setFontTypeFace("font")
     }
 
+    override fun setTextSize(unit: Int, size: Float) {
+        super.setTextSize(unit, size)
+        needsMeasureText = true
+        needsCalculateTransform = true
+    }
+
     override fun setText(charSequence: CharSequence?, bufferType: BufferType) {
         // setText can be called in super constructor
         if (!::text.isInitialized || charSequence == null || !text.contentEquals(charSequence)) {

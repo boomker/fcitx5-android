@@ -603,12 +603,8 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
              outInsets.contentTopInsets = inputView.height
              outInsets.visibleTopInsets = inputView.height
              
-             if (inputView.isDraggingOrResizing) {
-                 outInsets.touchableInsets = Insets.TOUCHABLE_INSETS_FRAME
-             } else {
-                 outInsets.touchableInsets = Insets.TOUCHABLE_INSETS_REGION
-                 inputView.getFloatingKeyboardRegion(outInsets.touchableRegion)
-             }
+             outInsets.touchableInsets = Insets.TOUCHABLE_INSETS_REGION
+             inputView.getFloatingKeyboardRegion(outInsets.touchableRegion)
              return
         }
 

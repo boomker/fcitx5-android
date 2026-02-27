@@ -7,11 +7,13 @@ package org.fcitx.fcitx5.android.input
 
 import android.annotation.SuppressLint
 import android.content.res.Configuration
+import android.graphics.drawable.ColorDrawable
+import android.graphics.Outline
 import android.os.Build
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewOutlineProvider
 import android.view.WindowInsets
-import android.graphics.drawable.ColorDrawable
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InlineSuggestionsResponse
 import android.widget.ImageView
@@ -159,19 +161,17 @@ class InputView(
     private var lastTouchX = 0f
     private var lastTouchY = 0f
 
-    var isDraggingOrResizing = false
-        private set
+    private val floatingCornerRadiusPx: Int
+        get() = dp(10)
 
-    private fun startDragOrResize() {
-        isDraggingOrResizing = true
-        // Trigger insets update
-        service.window.window?.decorView?.requestLayout()
-    }
-    
-    private fun stopDragOrResize() {
-        isDraggingOrResizing = false
-        // Trigger insets update
-        service.window.window?.decorView?.requestLayout()
+    private val keyboardOutlineProvider = object : ViewOutlineProvider() {
+        override fun getOutline(view: View, outline: Outline) {
+            val width = view.width
+            val height = view.height
+            if (width <= 0 || height <= 0) return
+            val radius = if (isFloating) floatingCornerRadiusPx.toFloat() else 0f
+            outline.setRoundRect(0, 0, width, height, radius)
+        }
     }
 
     private fun toggleFloatingMode() {
@@ -179,7 +179,6 @@ class InputView(
         isFloating = !isFloating
         updateFloatingState()
         updateKeyboardSize() // Add this to refresh padding/height based on new state
-        // service.setFullscreenMode(isFloating) // Removed
         service.updateFullscreenMode()
         // Force layout update
         requestLayout()
@@ -279,6 +278,7 @@ class InputView(
         keyboardView.layoutParams = params
         
         // Request layout to apply changes to self and children
+        keyboardView.invalidateOutline()
         requestLayout()
     }
 
@@ -331,19 +331,8 @@ class InputView(
     val keyboardView: View
 
     override fun onTouchEvent(event: MotionEvent?): Boolean {
-        if (isFloating) {
-            // In floating mode, we only want to consume events if they hit the keyboardView
-            // Otherwise return false to let them pass through (if the window allows it)
-            // But since this is the root view of the IMS, returning false here might not pass it to the app
-            // unless the window flags are set correctly.
-            // For now, let's just ensure we don't consume events blindly.
-            return super.onTouchEvent(event)
-        }
         return super.onTouchEvent(event)
     }
-
-    private val resizeHandleRight = null
-    private val resizeHandleBottom = null
 
     init {
         // MUST call before any operation
@@ -404,6 +393,12 @@ class InputView(
             })
         }
 
+        keyboardView.clipToOutline = true
+        keyboardView.outlineProvider = keyboardOutlineProvider
+        keyboardView.addOnLayoutChangeListener { view, _, _, _, _, _, _, _, _ ->
+            view.invalidateOutline()
+        }
+
         updateKeyboardSize()
 
         add(preedit.ui.root, lParams(matchParent, wrapContent) {
@@ -419,7 +414,6 @@ class InputView(
             centerVertically()
             centerHorizontally()
         })
-        
         keyboardPrefs.registerOnChangeListener(onKeyboardSizeChangeListener)
 
         kawaiiBar.onFloatingToggleListener = {
@@ -429,73 +423,12 @@ class InputView(
         kawaiiBar.view.setOnTouchListener { v, event ->
             if (!isFloating) return@setOnTouchListener false
             
-            // Allow child views (buttons) to consume touch if they want.
-            // But if we return false for DOWN, we won't get subsequent events.
-            // If we return true for DOWN, we consume it.
-            // We want dragging to work if user drags on empty space.
-            // But kawaiiBar is full of buttons usually?
-            // Actually, kawaiiBar has buttons. If user drags on a button, button consumes click.
-            // If user drags, button might consume DOWN, then MOVE?
-            // Buttons usually consume DOWN and UP.
-            
-            // However, the previous implementation worked:
-            /*
-                MotionEvent.ACTION_DOWN -> {
-                    lastTouchX = event.rawX
-                    lastTouchY = event.rawY
-                    v.performClick()
-                    true
-                }
-            */
-            // It returned true for DOWN. This means buttons might NOT work if they are behind listener?
-            // No, listener is on container. Buttons are children.
-            // Dispatch order: specific child -> container listener -> container onTouchEvent.
-            // If listener is on container (v), and returns true, does it steal from children?
-            // No, listener on v is called "before the view's onTouchEvent".
-            // It doesn't affect child dispatch.
-            // BUT if child consumes event, listener on parent v won't get it?
-            // No, parent v's onInterceptTouchEvent is called. Then child dispatch.
-            // Listener is on v.
-            
-            // Wait, v is kawaiiBar.view (the container).
-            // If I touch a button inside v:
-            // 1. v.dispatchTouchEvent() called.
-            // 2. v.onInterceptTouchEvent() called (default false).
-            // 3. child.dispatchTouchEvent() called.
-            // 4. child.onTouchEvent() called. If true, handled.
-            // 5. If child returns false, v.onTouchEvent() called.
-            // 6. v.mOnTouchListener.onTouch() called before v.onTouchEvent().
-            
-            // So if child handles it, listener on v is NOT called?
-            // Correct.
-            
-            // So if I drag on a button, dragging won't happen.
-            // But if I drag on empty space, dragging happens.
-            
-            // The user says "dragging stopped working".
-            // Maybe previously I could drag on buttons?
-            // If so, I need to intercept.
-            
-            // But wait, previous code was just setOnTouchListener on v.
-            // So it only worked on empty space.
-            // This is fine.
-            
-            // Why did it stop working?
-            // Maybe something else is consuming events?
-            
-            // I will add requestDisallowInterceptTouchEvent just in case.
-            
             v.parent?.requestDisallowInterceptTouchEvent(true)
             
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
                     lastTouchX = event.rawX
                     lastTouchY = event.rawY
-                    // v.performClick() // Why was this here? Maybe for accessibility?
-                    // It triggers onClick listener on v.
-                    // v doesn't seem to have onClick listener set.
-                    // I will remove it or keep it?
-                    // Previous code had it. I will keep it but maybe it's harmless.
                     v.performClick()
                     true
                 }
