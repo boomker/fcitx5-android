@@ -186,6 +186,10 @@ class InputView(
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     v.parent?.requestDisallowInterceptTouchEvent(false)
                     v.isPressed = false
+                    // Width is already saved via delegate property set in ACTION_MOVE
+                    // Also save position as resizing might have moved handlers
+                    floatingX = keyboardView.translationX.toInt()
+                    floatingY = keyboardView.translationY.toInt()
                     true
                 }
                 else -> false
@@ -218,6 +222,10 @@ class InputView(
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     v.parent?.requestDisallowInterceptTouchEvent(false)
                     v.isPressed = false
+                    // Height is already saved via delegate property set in ACTION_MOVE
+                    // Also save position as resizing might have moved handlers
+                    floatingX = keyboardView.translationX.toInt()
+                    floatingY = keyboardView.translationY.toInt()
                     true
                 }
                 else -> false
@@ -299,8 +307,13 @@ class InputView(
         }
     }
 
-    private var floatingWidthPx = 0
-    private var floatingHeightPx = 0
+    // Persistent storage for floating state
+    private val internalPrefs = AppPrefs.getInstance().internal
+    private var floatingWidthPx by internalPrefs.floatingKeyboardWidth
+    private var floatingHeightPx by internalPrefs.floatingKeyboardHeight
+    private var floatingX by internalPrefs.floatingKeyboardX
+    private var floatingY by internalPrefs.floatingKeyboardY
+    
     private var floatingResizeStartWidth = 0
     private var floatingResizeStartHeight = 0
     private var lastResizeTouchX = 0f
@@ -310,7 +323,7 @@ class InputView(
         get() = dp(180).coerceAtMost(resources.displayMetrics.widthPixels)
 
     private val maxFloatingWidthPx: Int
-        get() = (resources.displayMetrics.widthPixels - dp(48)).coerceAtLeast(minFloatingWidthPx)
+        get() = resources.displayMetrics.widthPixels.coerceAtLeast(minFloatingWidthPx)
 
     private val minFloatingHeightPx: Int
         get() = dp(180).coerceAtMost(resources.displayMetrics.heightPixels)
@@ -423,7 +436,10 @@ class InputView(
             layoutParams?.height = matchParent
 
             // In floating mode, we rely on translation.
-            if (keyboardView.translationX == 0f && keyboardView.translationY == 0f) {
+            if (floatingX != -1 && floatingY != -1) {
+                keyboardView.translationX = floatingX.toFloat()
+                keyboardView.translationY = floatingY.toFloat()
+            } else if (keyboardView.translationX == 0f && keyboardView.translationY == 0f) {
                 keyboardView.translationX = (resources.displayMetrics.widthPixels * 0.1).toFloat()
                 // Start a bit lower than center to avoid covering input field immediately if possible
                 keyboardView.translationY = (resources.displayMetrics.heightPixels * 0.6).toFloat()
@@ -660,6 +676,9 @@ class InputView(
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                      v.parent?.requestDisallowInterceptTouchEvent(false)
                      keyboardWindow.updateBounds() // Ensure bounds are correct after drag
+                     // Save position
+                     floatingX = keyboardView.translationX.toInt()
+                     floatingY = keyboardView.translationY.toInt()
                      true
                 }
                 else -> false

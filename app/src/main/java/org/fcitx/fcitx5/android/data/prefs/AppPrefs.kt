@@ -35,6 +35,10 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
         val pid = int("pid", 0)
         val editorInfoInspector = bool("editor_info_inspector", false)
         val needNotifications = bool("need_notifications", true)
+        val floatingKeyboardWidth = int("floating_keyboard_width", 0)
+        val floatingKeyboardHeight = int("floating_keyboard_height", 0)
+        val floatingKeyboardX = int("floating_keyboard_x", -1)
+        val floatingKeyboardY = int("floating_keyboard_y", -1)
     }
 
     inner class Advanced : ManagedPreferenceCategory(R.string.advanced, sharedPreferences) {
@@ -400,7 +404,11 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
                 internal.editorInfoInspector,
                 advanced.ignoreSystemCursor,
                 advanced.disableAnimation,
-                advanced.vivoKeypressWorkaround
+                advanced.vivoKeypressWorkaround,
+                internal.floatingKeyboardWidth,
+                internal.floatingKeyboardHeight,
+                internal.floatingKeyboardX,
+                internal.floatingKeyboardY
             ).forEach {
                 it.putValueTo(this@edit)
             }
