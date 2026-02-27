@@ -76,9 +76,28 @@ class AutoScaleTextView @JvmOverloads constructor(
                         .let { json ->
                             json.keys().asSequence().associateTo(mutableMapOf()) { key ->
                                 key to runCatching {
-                                    File(fontsDir, json.getString(key))
-                                    .takeIf { it.exists() }
-                                    ?.let { Typeface.createFromFile(it) }
+                                    val fontPaths = json.getString(key).split(",").map { it.trim() }
+                                    if (android.os.Build.VERSION.SDK_INT >= 29) {
+                                        var builder: android.graphics.Typeface.CustomFallbackBuilder? = null
+                                        val validPaths = fontPaths.filter { File(fontsDir, it).exists() }
+                                        if (validPaths.isNotEmpty()) {
+                                            val firstFont = android.graphics.fonts.Font.Builder(File(fontsDir, validPaths[0])).build()
+                                            val firstFamily = android.graphics.fonts.FontFamily.Builder(firstFont).build()
+                                            builder = android.graphics.Typeface.CustomFallbackBuilder(firstFamily)
+                                            
+                                            for (i in 1 until validPaths.size) {
+                                                val font = android.graphics.fonts.Font.Builder(File(fontsDir, validPaths[i])).build()
+                                                val family = android.graphics.fonts.FontFamily.Builder(font).build()
+                                                builder.addCustomFallback(family)
+                                            }
+                                            builder.build()
+                                        } else {
+                                            null
+                                        }
+                                    } else {
+                                        fontPaths.firstOrNull { File(fontsDir, it).exists() }
+                                            ?.let { Typeface.createFromFile(File(fontsDir, it)) }
+                                    }
                                 }.getOrNull()
                             }
                         } as MutableMap<String, Typeface?> // 确保返回可变Map
