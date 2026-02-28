@@ -168,6 +168,10 @@ class PickerWindow(
         pickerLayout.embeddedKeyboard.also {
             it.onReturnDrawableUpdate(returnKeyDrawable.resourceId)
             it.keyActionListener = keyActionListener
+            it.onAttach()
+            it.reapplyTextScale()
+            it.requestLayout()
+            it.invalidate()
         }
         if (isEmoji) {
             hideUnsupportedEmojisPrefs.registerOnChangeListener(initDataListener!!)
@@ -177,7 +181,10 @@ class PickerWindow(
 
     override fun onDetached() {
         popup.dismissAll()
-        pickerLayout.embeddedKeyboard.keyActionListener = null
+        pickerLayout.embeddedKeyboard.also {
+            it.onDetach()
+            it.keyActionListener = null
+        }
         if (isEmoji) {
             hideUnsupportedEmojisPrefs.unregisterOnChangeListener(initDataListener!!)
             defaultEmojiSkinTonePrefs.unregisterOnChangeListener(refreshPagesListener)

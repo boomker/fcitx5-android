@@ -171,6 +171,10 @@ abstract class BaseKeyboard(
         }
     }
 
+    fun reapplyTextScale() {
+        setTextScale(currentTextScale)
+    }
+
     private fun createKeyView(def: KeyDef): KeyView {
         return when (def.appearance) {
             is KeyDef.Appearance.AltText -> AltTextKeyView(context, theme, def.appearance)

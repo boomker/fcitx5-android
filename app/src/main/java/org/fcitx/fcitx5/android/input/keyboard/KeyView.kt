@@ -263,8 +263,9 @@ open class TextKeyView(ctx: Context, theme: Theme, def: KeyDef.Appearance.Text) 
         isClickable = false
         isFocusable = false
         background = null
+        scaleMode = AutoScaleTextView.Mode.Proportional
         text = def.displayText
-        setTextSize(TypedValue.COMPLEX_UNIT_DIP, def.textSize)
+        setTextSize(TypedValue.COMPLEX_UNIT_SP, def.textSize)
         textDirection = View.TEXT_DIRECTION_FIRST_STRONG_LTR
         // keep original typeface, apply textStyle only
         setFontTypeFace("key_main_font")
@@ -288,7 +289,8 @@ open class TextKeyView(ctx: Context, theme: Theme, def: KeyDef.Appearance.Text) 
 
     override fun setTextScale(scale: Float) {
         if (def is KeyDef.Appearance.Text) {
-            mainText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, def.textSize * scale)
+            mainText.setTextSize(TypedValue.COMPLEX_UNIT_SP, def.textSize * scale)
+            mainText.requestLayout()
         }
     }
 }
@@ -300,7 +302,7 @@ class AltTextKeyView(ctx: Context, theme: Theme, def: KeyDef.Appearance.AltText)
         isClickable = false
         isFocusable = false
         // TODO hardcoded alt text size
-        setTextSize(TypedValue.COMPLEX_UNIT_DIP, 10.666667f)
+        setTextSize(TypedValue.COMPLEX_UNIT_SP, 10.666667f)
         setFontTypeFace("key_alt_font")
         setTypeface(typeface, Typeface.BOLD)
         text = def.altText
@@ -323,7 +325,8 @@ class AltTextKeyView(ctx: Context, theme: Theme, def: KeyDef.Appearance.AltText)
     override fun setTextScale(scale: Float) {
         super.setTextScale(scale)
         // TODO hardcoded alt text size: 10.666667f
-        altText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 10.666667f * scale)
+        altText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10.666667f * scale)
+        altText.requestLayout()
     }
 
     private fun applyTopRightAltTextPosition() {

@@ -192,13 +192,27 @@ class AutoScaleTextView @JvmOverloads constructor(
         val contentHeight = viewHeight - paddingTop - paddingBottom
         measureTextBounds()
         val textWidth = textBounds.width()
+        val rawFontHeight = fontMetrics.bottom - fontMetrics.top
         val leftAlignOffset = (paddingLeft - textBounds.left).toFloat()
         val centerAlignOffset =
             paddingLeft.toFloat() + (contentWidth - textWidth) / 2.0f - textBounds.left.toFloat()
 
+        val widthScaleLimit = if (textWidth > 0 && contentWidth > 0) {
+            contentWidth.toFloat() / textWidth.toFloat()
+        } else {
+            1.0f
+        }
+        val heightScaleLimit = if (rawFontHeight > 0f && contentHeight > 0) {
+            contentHeight.toFloat() / rawFontHeight
+        } else {
+            1.0f
+        }
+        val shouldScaleByWidth = textWidth > contentWidth
+        val shouldScaleByHeight = rawFontHeight > contentHeight
+
         @SuppressLint("RtlHardcoded")
         val shouldAlignLeft = gravity and Gravity.HORIZONTAL_GRAVITY_MASK == Gravity.LEFT
-        if (textWidth > contentWidth) {
+        if (shouldScaleByWidth || (scaleMode == Mode.Proportional && shouldScaleByHeight)) {
             when (scaleMode) {
                 Mode.None -> {
                     textScaleX = 1.0f
@@ -206,12 +220,12 @@ class AutoScaleTextView @JvmOverloads constructor(
                     translateX = if (shouldAlignLeft) leftAlignOffset else centerAlignOffset
                 }
                 Mode.Horizontal -> {
-                    textScaleX = contentWidth.toFloat() / textWidth.toFloat()
+                    textScaleX = widthScaleLimit
                     textScaleY = 1.0f
                     translateX = leftAlignOffset
                 }
                 Mode.Proportional -> {
-                    val textScale = contentWidth.toFloat() / textWidth.toFloat()
+                    val textScale = min(1.0f, min(widthScaleLimit, heightScaleLimit))
                     textScaleX = textScale
                     textScaleY = textScale
                     translateX = leftAlignOffset
