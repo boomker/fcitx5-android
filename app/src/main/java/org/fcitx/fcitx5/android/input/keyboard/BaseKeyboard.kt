@@ -156,11 +156,17 @@ abstract class BaseKeyboard(
     private var currentTextScale = 1.0f
 
     fun setTextScale(scale: Float) {
-        if (currentTextScale == scale) return
+        val scaleChanged = currentTextScale != scale
         currentTextScale = scale
         keyRows.forEach { row ->
             row.children.forEach { child ->
-                (child as? KeyView)?.setTextScale(scale)
+                (child as? KeyView)?.let { keyView ->
+                    keyView.setTextScale(scale)
+                    if (!scaleChanged) {
+                        keyView.requestLayout()
+                        keyView.invalidate()
+                    }
+                }
             }
         }
     }
