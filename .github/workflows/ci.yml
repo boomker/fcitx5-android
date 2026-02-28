@@ -114,14 +114,20 @@ jobs:
           name: app-${{ matrix.os }}-${{ matrix.abi }}-with-plugins
           path: app/build/outputs/apk/release/*.apk
 
-      # create nightly release
+      # compute short sha for tagging nightly releases
+      - name: Compute short SHA
+        shell: bash
+        run: |
+          echo "SHORT_SHA=$(echo $GITHUB_SHA | cut -c1-8)" >> $GITHUB_ENV
+
+      # create nightly release (tagged with short sha)
       - name: Create Nightly release
         uses: 'marvinpinto/action-automatic-releases@latest'
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          automatic_release_tag: latest
+          automatic_release_tag: ${{ env.SHORT_SHA }}
           prerelease: true
-          title: "Nightly Build"
+          title: "Nightly Build ${{ env.SHORT_SHA }}"
           files: |
             app/build/outputs/apk/release/*.apk
 
