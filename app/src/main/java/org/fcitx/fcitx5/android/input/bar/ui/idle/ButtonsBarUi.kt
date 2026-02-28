@@ -18,6 +18,12 @@ import splitties.views.dsl.core.view
 
 class ButtonsBarUi(override val ctx: Context, private val theme: Theme) : Ui {
 
+    @DrawableRes
+    private val floatingOffIcon = R.drawable.ic_floating_toggle_24
+
+    @DrawableRes
+    private val floatingOnIcon = R.drawable.ic_baseline_keyboard_24
+
     override val root = view(::FlexboxLayout) {
         alignItems = AlignItems.CENTER
         justifyContent = JustifyContent.SPACE_AROUND
@@ -40,8 +46,12 @@ class ButtonsBarUi(override val ctx: Context, private val theme: Theme) : Ui {
         contentDescription = ctx.getString(R.string.text_editing)
     }
 
-    val floatingButton = toolButton(R.drawable.ic_baseline_drag_handle_24).apply {
+    val floatingButton = toolButton(floatingOffIcon).apply {
         contentDescription = "Floating Keyboard"
+    }
+
+    fun setFloatingState(isFloating: Boolean) {
+        floatingButton.setIcon(if (isFloating) floatingOnIcon else floatingOffIcon)
     }
 
     val clipboardButton = toolButton(R.drawable.ic_clipboard).apply {

@@ -449,6 +449,7 @@ class InputView(
     private fun toggleFloatingMode() {
         popup.dismissAll()
         isFloating = !isFloating
+        kawaiiBar.setFloatingState(isFloating)
         updateFloatingState()
         updateFloatingHandlesVisibility()
         updateKeyboardSize() // Add this to refresh padding/height based on new state
@@ -718,6 +719,7 @@ class InputView(
         })
         keyboardPrefs.registerOnChangeListener(onKeyboardSizeChangeListener)
         updateFloatingHandlesVisibility()
+        kawaiiBar.setFloatingState(isFloating)
 
         kawaiiBar.onFloatingToggleListener = {
             toggleFloatingMode()

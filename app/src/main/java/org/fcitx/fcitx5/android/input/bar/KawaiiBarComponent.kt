@@ -92,6 +92,10 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
 
     var onFloatingToggleListener: (() -> Unit)? = null
 
+    fun setFloatingState(isFloating: Boolean) {
+        idleUi.buttonsUi.setFloatingState(isFloating)
+    }
+
     private val prefs = AppPrefs.getInstance()
 
     private val clipboardSuggestion = prefs.clipboard.clipboardSuggestion
