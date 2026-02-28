@@ -1,0 +1,91 @@
+{
+  "rime": [
+    [
+      {"type": "AlphabetKey", "main": "Q", "alt": "1", "displayText": { "倉頡五代": "手" }},
+      {"type": "AlphabetKey", "main": "W", "alt": "2", "displayText": { "倉頡五代": "田" }},
+      {"type": "AlphabetKey", "main": "E", "alt": "3", "displayText": { "倉頡五代": "水" }},
+      {"type": "AlphabetKey", "main": "R", "alt": "4", "displayText": { "倉頡五代": "口" }},
+      {"type": "AlphabetKey", "main": "T", "alt": "5", "displayText": { "倉頡五代": "廿" }},
+      {"type": "AlphabetKey", "main": "Y", "alt": "6", "displayText": { "倉頡五代": "卜" }},
+      {"type": "AlphabetKey", "main": "U", "alt": "7", "displayText": { "倉頡五代": "山" }},
+      {"type": "AlphabetKey", "main": "I", "alt": "8", "displayText": { "倉頡五代": "戈" }},
+      {"type": "AlphabetKey", "main": "O", "alt": "9", "displayText": { "倉頡五代": "人" }},
+      {"type": "AlphabetKey", "main": "P", "alt": "0", "displayText": { "倉頡五代": "心" }}
+    ],
+    [
+      {"type": "AlphabetKey", "main": "A", "alt": "@", "displayText": { "倉頡五代": "日" }},
+      {"type": "AlphabetKey", "main": "S", "alt": "*", "displayText": { "倉頡五代": "尸" }},
+      {"type": "AlphabetKey", "main": "D", "alt": "+", "displayText": { "倉頡五代": "木" }},
+      {"type": "AlphabetKey", "main": "F", "alt": "-", "displayText": { "倉頡五代": "火" }},
+      {"type": "AlphabetKey", "main": "G", "alt": "=", "displayText": { "倉頡五代": "土"}},
+      {"type": "AlphabetKey", "main": "H", "alt": "/", "displayText": { "倉頡五代": "竹" }},
+      {"type": "AlphabetKey", "main": "J", "alt": "#", "displayText": { "倉頡五代": "十" }},
+      {"type": "AlphabetKey", "main": "K", "alt": "(", "displayText": { "倉頡五代": "大" }},
+      {"type": "AlphabetKey", "main": "L", "alt": ")", "displayText": { "倉頡五代": "中" }},
+      {"type": "AlphabetKey", "main": ";", "alt": ":"}
+    ],
+    [
+      {"type": "CapsKey", "weight": 0.15},
+      {"type": "AlphabetKey", "main": "Z", "alt": "'", "displayText": { "倉頡五代": "符" }},
+      {"type": "AlphabetKey", "main": "X", "alt": "<", "displayText": { "倉頡五代": "難" }},
+      {"type": "AlphabetKey", "main": "C", "alt": "\"", "displayText": { "倉頡五代": "金" }},
+      {"type": "AlphabetKey", "main": "V", "alt": "?", "displayText": { "倉頡五代": "女" }},
+      {"type": "AlphabetKey", "main": "B", "alt": "!", "displayText": { "倉頡五代": "月" }},
+      {"type": "AlphabetKey", "main": "N", "alt": "~", "displayText": { "倉頡五代": "弓" }},
+      {"type": "AlphabetKey", "main": "M", "alt": "\\", "displayText": { "倉頡五代": "一" }},
+      {"type": "BackspaceKey", "weight": 0.15}
+    ],
+    [
+      {"type": "LayoutSwitchKey", "label": "?123", "subLabel": ""},
+      {"type": "CommaKey", "weight": 0.1},
+      {"type": "LanguageKey"},
+      {"type": "SpaceKey"},
+      {"type": "SymbolKey", "label": ".", "weight": 0.1},
+      {"type": "ReturnKey"}
+    ]
+  ],
+  "pinyin": [
+    [
+      {"type": "AlphabetKey", "main": "Q", "alt": "1"},
+      {"type": "AlphabetKey", "main": "W", "alt": "2"},
+      {"type": "AlphabetKey", "main": "E", "alt": "3"},
+      {"type": "AlphabetKey", "main": "R", "alt": "4"},
+      {"type": "AlphabetKey", "main": "T", "alt": "5"},
+      {"type": "AlphabetKey", "main": "Y", "alt": "6"},
+      {"type": "AlphabetKey", "main": "U", "alt": "7"},
+      {"type": "AlphabetKey", "main": "I", "alt": "8"},
+      {"type": "AlphabetKey", "main": "O", "alt": "9"},
+      {"type": "AlphabetKey", "main": "P", "alt": "0"}
+    ],
+    [
+      {"type": "AlphabetKey", "main": "A", "alt": "@"},
+      {"type": "AlphabetKey", "main": "S", "alt": "*"},
+      {"type": "AlphabetKey", "main": "D", "alt": "+"},
+      {"type": "AlphabetKey", "main": "F", "alt": "-"},
+      {"type": "AlphabetKey", "main": "G", "alt": "="},
+      {"type": "AlphabetKey", "main": "H", "alt": "/"},
+      {"type": "AlphabetKey", "main": "J", "alt": "#"},
+      {"type": "AlphabetKey", "main": "K", "alt": "("},
+      {"type": "AlphabetKey", "main": "L", "alt": ")"}
+    ],
+    [
+      {"type": "CapsKey"},
+      {"type": "AlphabetKey", "main": "Z", "alt": "'"},
+      {"type": "AlphabetKey", "main": "X", "alt": ":"},
+      {"type": "AlphabetKey", "main": "C", "alt": "\""},
+      {"type": "AlphabetKey", "main": "V", "alt": "?"},
+      {"type": "AlphabetKey", "main": "B", "alt": "!"},
+      {"type": "AlphabetKey", "main": "N", "alt": "~"},
+      {"type": "AlphabetKey", "main": "M", "alt": "\\"},
+      {"type": "BackspaceKey"}
+    ],
+    [
+      {"type": "LayoutSwitchKey", "label": "?123", "subLabel": ""},
+      {"type": "CommaKey", "weight": 0.1},
+      {"type": "LanguageKey"},
+      {"type": "SpaceKey"},
+      {"type": "SymbolKey", "label": ".", "weight": 0.1},
+      {"type": "ReturnKey"}
+    ]
+  ]
+}

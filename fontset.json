@@ -1,0 +1,8 @@
+{
+  "cand_font": "LXGWWenKai-Regular.ttf", // 候选字体
+  "font": "segoepr.ttf",  // AutoScaleTextView 字体，如果其他没有设置这个设置了就全部都这个了
+  "preedit_font": "mononoki-Regular.ttf", // 编码字体
+  "popup_key_font": "mononoki-Regular.ttf", // 弹出按键字体
+  //"key_main_font": "Love-is-free-2.ttf", // 按键主字体
+  "key_alt_font": "mononoki-Regular.ttf" // 按键alt字体，就是符号
+}
