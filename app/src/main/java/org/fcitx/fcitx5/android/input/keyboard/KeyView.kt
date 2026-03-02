@@ -17,6 +17,7 @@ import android.graphics.drawable.InsetDrawable
 import android.graphics.drawable.RippleDrawable
 import android.graphics.drawable.StateListDrawable
 import android.util.TypedValue
+import android.view.Gravity
 import android.view.View
 import android.widget.ImageView
 import androidx.annotation.ColorInt
@@ -281,9 +282,18 @@ open class TextKeyView(ctx: Context, theme: Theme, def: KeyDef.Appearance.Text) 
 
     init {
         appearanceView.apply {
-            add(mainText, lParams(wrapContent, wrapContent) {
-                centerInParent()
-            })
+            if (def.viewId == R.id.button_space) {
+                mainText.gravity = Gravity.CENTER
+                val insetPadding = dp(10)
+                mainText.setPadding(insetPadding, 0, insetPadding, 0)
+                add(mainText, lParams(matchParent, wrapContent) {
+                    centerInParent()
+                })
+            } else {
+                add(mainText, lParams(wrapContent, wrapContent) {
+                    centerInParent()
+                })
+            }
         }
     }
 

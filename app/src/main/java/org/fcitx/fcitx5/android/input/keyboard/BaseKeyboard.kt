@@ -241,7 +241,7 @@ abstract class BaseKeyboard(
 
             // Keep at least part of side capacity for flexible keys (e.g. Space)
             // to avoid "space key too tiny" when gap is large.
-            val minFlexShare = 0.30f
+            val minFlexShare = (0.30f + (gap - 0.20f) * 0.80f).coerceIn(0.30f, 0.55f)
             val targetFlex = maxOf(
                 sideCapacity * minFlexShare,
                 (sideCapacity - fixedSum).coerceAtLeast(0f)
