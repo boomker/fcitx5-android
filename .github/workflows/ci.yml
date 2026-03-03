@@ -40,9 +40,16 @@ jobs:
           git remote add upstream https://github.com/fcitx5-android/fcitx5-android.git || true
           git fetch upstream --tags
 
-      - name: Remove latest tag to avoid confusion
+      - name: Remove non-semver local tags to avoid confusion
         run: |
-          git tag -d latest || true
+          # keep tags like 0.1.2 or v0.1.2 but delete others (nightly/latest/short-sha)
+          git for-each-ref --format='%(refname:strip=2)' refs/tags | while read tag; do
+              # allow v1.2 or v1.2.3.4 etc: one or more dot-separated numeric segments
+              # use POSIX-compatible groups for bash (no (?: ) non-capturing groups)
+              if [[ ! "$tag" =~ ^v?[0-9]+(\.[0-9]+)+(-.*)?$ ]]; then
+              git tag -d "$tag" || true
+            fi
+          done
 
       #- name: Regenerate symlinks pointing to submodule (Windows)
       #  if: ${{ matrix.os == 'windows-2022' }}
