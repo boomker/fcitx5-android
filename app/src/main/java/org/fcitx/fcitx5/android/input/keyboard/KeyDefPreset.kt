@@ -127,6 +127,23 @@ class LayoutSwitchKey(
     ),
     setOf(
         Behavior.Press(KeyAction.LayoutSwitchAction(to))
+    ),
+    arrayOf(
+       Popup.Menu(
+        // PickerWindow symbols or numberkeyboard switch
+        arrayOf(
+            Popup.Menu.Item(
+                "Symbols",
+                R.drawable.ic_baseline_emoji_symbols_24,
+                KeyAction.LayoutSwitchAction(PickerWindow.Key.Symbol.name)
+            ),
+            Popup.Menu.Item(
+                "NumPad",
+                R.drawable.ic_number_pad,
+                KeyAction.LayoutSwitchAction(NumberKeyboard.Name)
+            )
+        )
+       ) 
     )
 )
 
