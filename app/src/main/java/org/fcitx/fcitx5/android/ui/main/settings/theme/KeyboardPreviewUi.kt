@@ -22,6 +22,7 @@ import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.data.theme.ThemeManager
 import org.fcitx.fcitx5.android.data.theme.ThemePrefs.NavbarBackground
 import org.fcitx.fcitx5.android.input.keyboard.TextKeyboard
+import org.fcitx.fcitx5.android.core.InputMethodEntry
 import org.fcitx.fcitx5.android.utils.navbarFrameHeight
 import splitties.dimensions.dp
 import splitties.views.backgroundColor
@@ -185,14 +186,21 @@ class KeyboardPreviewUi(override val ctx: Context, val theme: Theme) : Ui {
             fakeInputView.removeView(fakeKeyboardWindow)
         }
         fakeKawaiiBar.backgroundColor = if (keyBorder) Color.TRANSPARENT else theme.barColor
-        fakeKeyboardWindow = TextKeyboard(ctx, theme).also {
-            it.onAttach()
-        }
+        fakeKeyboardWindow = TextKeyboard(ctx, theme)
         fakeInputView.apply {
             add(fakeKeyboardWindow, lParams(matchConstraints, keyboardHeight) {
                 below(fakeKawaiiBar)
                 centerHorizontally(keyboardSidePaddingPx)
             })
+        }
+        // ensure onAttach() runs after the view is attached and measured
+        fakeKeyboardWindow.post {
+            fakeKeyboardWindow.onAttach()
+            // provide a default IME so space label and displayText resolution run
+            fakeKeyboardWindow.onInputMethodUpdate(InputMethodEntry("Preview"))
+            fakeKeyboardWindow.setTextScale(1.0f)
+            fakeKeyboardWindow.requestLayout()
+            fakeKeyboardWindow.invalidate()
         }
     }
 }
