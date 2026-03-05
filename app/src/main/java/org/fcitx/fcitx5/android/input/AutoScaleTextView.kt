@@ -21,6 +21,7 @@ import kotlin.math.roundToInt
 import org.json.JSONObject
 import java.io.File
 import android.graphics.Typeface
+import java.lang.ref.WeakReference
 import org.fcitx.fcitx5.android.utils.appContext
 
 @SuppressLint("AppCompatCustomView")
@@ -61,6 +62,35 @@ class AutoScaleTextView @JvmOverloads constructor(
     companion object {
         private var cachedFontTypefaceMap: MutableMap<String, Typeface?>? = null
         private var lastModified = 0L
+        private val attachedViews = mutableListOf<WeakReference<AutoScaleTextView>>()
+
+        @Synchronized
+        private fun registerView(view: AutoScaleTextView) {
+            attachedViews.removeAll { it.get() == null || it.get() === view }
+            attachedViews.add(WeakReference(view))
+        }
+
+        @Synchronized
+        private fun unregisterView(view: AutoScaleTextView) {
+            attachedViews.removeAll { it.get() == null || it.get() === view }
+        }
+
+        fun clearFontCache() {
+            cachedFontTypefaceMap = null
+            lastModified = 0L
+        }
+
+        @Synchronized
+        fun refreshAllFontTypeFaces() {
+            val living = attachedViews.mapNotNull { it.get() }
+            attachedViews.removeAll { it.get() == null }
+            living.forEach { view ->
+                view.setFontTypeFace(view.fontTypeFaceKey)
+                view.requestLayout()
+                view.invalidate()
+            }
+        }
+
         val fontTypefaceMap: MutableMap<String, Typeface?>
             @Synchronized
             get() {
@@ -109,11 +139,24 @@ class AutoScaleTextView @JvmOverloads constructor(
     }
 
     fun setFontTypeFace(key: String) {
+        fontTypeFaceKey = key
         setTypeface(fontTypefaceMap[key] ?: Typeface.DEFAULT)
     }
 
+    private var fontTypeFaceKey: String = "font"
+
     init {
         setFontTypeFace("font")
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        registerView(this)
+    }
+
+    override fun onDetachedFromWindow() {
+        unregisterView(this)
+        super.onDetachedFromWindow()
     }
 
     override fun setTextSize(unit: Int, size: Float) {

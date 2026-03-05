@@ -17,6 +17,7 @@ import android.view.View
 import android.view.ViewConfiguration
 import android.widget.TextView
 import androidx.core.graphics.withSave
+import java.lang.ref.WeakReference
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.max
@@ -29,6 +30,32 @@ class CandidateAutoScaleTextView @JvmOverloads constructor(
     context: Context,
     attributeSet: AttributeSet? = null
 ) : TextView(context, attributeSet) {
+
+    companion object {
+        private val attachedViews = mutableListOf<WeakReference<CandidateAutoScaleTextView>>()
+
+        @Synchronized
+        private fun registerView(view: CandidateAutoScaleTextView) {
+            attachedViews.removeAll { it.get() == null || it.get() === view }
+            attachedViews.add(WeakReference(view))
+        }
+
+        @Synchronized
+        private fun unregisterView(view: CandidateAutoScaleTextView) {
+            attachedViews.removeAll { it.get() == null || it.get() === view }
+        }
+
+        @Synchronized
+        fun refreshAllFontTypeFaces() {
+            val living = attachedViews.mapNotNull { it.get() }
+            attachedViews.removeAll { it.get() == null }
+            living.forEach { view ->
+                view.setFontTypeFace(view.fontTypeFaceKey)
+                view.requestLayout()
+                view.invalidate()
+            }
+        }
+    }
 
     var scaleMode = AutoScaleTextView.Mode.None
 
@@ -70,6 +97,16 @@ class CandidateAutoScaleTextView @JvmOverloads constructor(
 
     override fun getText(): CharSequence {
         return if (::text.isInitialized) text else super.getText()
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        registerView(this)
+    }
+
+    override fun onDetachedFromWindow() {
+        unregisterView(this)
+        super.onDetachedFromWindow()
     }
 
     override fun setTextSize(unit: Int, size: Float) {
