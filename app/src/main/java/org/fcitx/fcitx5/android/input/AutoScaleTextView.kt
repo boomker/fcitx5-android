@@ -18,11 +18,9 @@ import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
-import org.json.JSONObject
-import java.io.File
 import android.graphics.Typeface
 import java.lang.ref.WeakReference
-import org.fcitx.fcitx5.android.utils.appContext
+import org.fcitx.fcitx5.android.input.font.FontProviders
 
 @SuppressLint("AppCompatCustomView")
 class AutoScaleTextView @JvmOverloads constructor(
@@ -60,8 +58,6 @@ class AutoScaleTextView @JvmOverloads constructor(
     private var textScaleY = 1.0f
 
     companion object {
-        private var cachedFontTypefaceMap: MutableMap<String, Typeface?>? = null
-        private var lastModified = 0L
         private val attachedViews = mutableListOf<WeakReference<AutoScaleTextView>>()
 
         @Synchronized
@@ -76,8 +72,7 @@ class AutoScaleTextView @JvmOverloads constructor(
         }
 
         fun clearFontCache() {
-            cachedFontTypefaceMap = null
-            lastModified = 0L
+            FontProviders.clearCache()
         }
 
         @Synchronized
@@ -93,49 +88,7 @@ class AutoScaleTextView @JvmOverloads constructor(
 
         val fontTypefaceMap: MutableMap<String, Typeface?>
             @Synchronized
-            get() {
-                val fontsDir = File(appContext.getExternalFilesDir(null), "fonts")
-                val jsonFile = File(fontsDir, "fontset.json")
-                if (!jsonFile.exists()) {
-                    cachedFontTypefaceMap = null
-                    return mutableMapOf() // 返回空Map而非null
-                }
-                if (cachedFontTypefaceMap == null || lastModified != jsonFile.lastModified()) {
-                    cachedFontTypefaceMap = runCatching {
-                        JSONObject(jsonFile.readText().replace(Regex("//.*?\\n"), ""))
-                        .let { json ->
-                            json.keys().asSequence().associateTo(mutableMapOf()) { key ->
-                                key to runCatching {
-                                    val fontPaths = json.getString(key).split(",").map { it.trim() }
-                                    if (android.os.Build.VERSION.SDK_INT >= 29) {
-                                        var builder: android.graphics.Typeface.CustomFallbackBuilder? = null
-                                        val validPaths = fontPaths.filter { File(fontsDir, it).exists() }
-                                        if (validPaths.isNotEmpty()) {
-                                            val firstFont = android.graphics.fonts.Font.Builder(File(fontsDir, validPaths[0])).build()
-                                            val firstFamily = android.graphics.fonts.FontFamily.Builder(firstFont).build()
-                                            builder = android.graphics.Typeface.CustomFallbackBuilder(firstFamily)
-                                            
-                                            for (i in 1 until validPaths.size) {
-                                                val font = android.graphics.fonts.Font.Builder(File(fontsDir, validPaths[i])).build()
-                                                val family = android.graphics.fonts.FontFamily.Builder(font).build()
-                                                builder.addCustomFallback(family)
-                                            }
-                                            builder.build()
-                                        } else {
-                                            null
-                                        }
-                                    } else {
-                                        fontPaths.firstOrNull { File(fontsDir, it).exists() }
-                                            ?.let { Typeface.createFromFile(File(fontsDir, it)) }
-                                    }
-                                }.getOrNull()
-                            }
-                        } as MutableMap<String, Typeface?> // 确保返回可变Map
-                    }.getOrElse { mutableMapOf() }
-                    lastModified = jsonFile.lastModified()
-                }
-                return cachedFontTypefaceMap ?: mutableMapOf()
-            }
+                get() = FontProviders.fontTypefaceMap
     }
 
     fun setFontTypeFace(key: String) {

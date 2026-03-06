@@ -400,7 +400,7 @@ class InputView(
     private fun switchOneHandSide() {
         oneHandOnRight = !oneHandOnRight
         saveOneHandSide(oneHandOnRight)
-        if (!isOneHanded || isFloating) return
+        if (!isDockedOneHandMode) return
         updateKeyboardSize()
         syncOneHandHandleUi(bringToFront = true)
         syncKeyboardBoundsAfterLayout()
@@ -408,7 +408,7 @@ class InputView(
     }
 
     private fun applyOneHandWidth() {
-        if (!isOneHanded || isFloating) return
+        if (!isDockedOneHandMode) return
         updateKeyboardSize()
         updateOneHandHandlePosition()
         syncKeyboardBoundsAfterLayout()
@@ -423,7 +423,7 @@ class InputView(
         }
         lastOneHandGapRefreshAt = now
         val keyboard = windowManager.getEssentialWindow(KeyboardWindow) as? KeyboardWindow ?: return
-        if (!isOneHanded || isFloating) {
+        if (!isDockedOneHandMode) {
             keyboard.setHorizontalGapScale(1f)
             return
         }
@@ -435,11 +435,11 @@ class InputView(
     private val oneHandHandle = view(::View) {
         visibility = GONE
         setOnClickListener {
-            if (!isOneHanded || isFloating) return@setOnClickListener
+            if (!isDockedOneHandMode) return@setOnClickListener
             switchOneHandSide()
         }
         setOnTouchListener { v, event ->
-            if (!isOneHanded || isFloating) return@setOnTouchListener false
+            if (!isDockedOneHandMode) return@setOnTouchListener false
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
                     oneHandResizeStartWidth = resolveOneHandWidth()
@@ -585,6 +585,9 @@ class InputView(
     private val isLandscapeOrientation: Boolean
         get() = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
+    private val isDockedOneHandMode: Boolean
+        get() = isOneHanded && !isFloating
+
     private val isEffectiveFloating: Boolean
         get() = isFloating
 
@@ -626,7 +629,7 @@ class InputView(
         val stored = getStoredOneHandSide()
         if (!forceRefresh && stored == oneHandOnRight) return
         oneHandOnRight = stored
-        if (isOneHanded && !isFloating) {
+        if (isDockedOneHandMode) {
             updateKeyboardSize()
             syncOneHandHandleUi(bringToFront = true)
             syncKeyboardBoundsAfterLayout()
@@ -1162,7 +1165,7 @@ class InputView(
         bottomPaddingSpace.updateLayoutParams {
             height = keyboardBottomPaddingPx
         }
-        if (isOneHanded && !isFloating) {
+        if (isDockedOneHandMode) {
             val containerWidth = keyboardView.width.takeIf { it > 0 } ?: resources.displayMetrics.widthPixels
             val oneHandWidth = resolveOneHandWidth().coerceAtMost(containerWidth)
             val remaining = (containerWidth - oneHandWidth).coerceAtLeast(0)

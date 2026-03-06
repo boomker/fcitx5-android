@@ -9,6 +9,7 @@ import android.content.Context
 import android.view.View
 import androidx.annotation.Keep
 import androidx.core.view.allViews
+import java.lang.ref.WeakReference
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.core.InputMethodEntry
 import org.fcitx.fcitx5.android.core.KeyState
@@ -18,9 +19,7 @@ import org.fcitx.fcitx5.android.data.prefs.ManagedPreference
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.input.popup.PopupAction
 import splitties.views.imageResource
-import java.io.File
 import kotlinx.serialization.json.*
-import org.fcitx.fcitx5.android.utils.appContext
 import kotlinx.serialization.Serializable
 
 object DisplayTextResolver {
@@ -59,6 +58,41 @@ class TextKeyboard(
         const val Name = "Text"
         private var lastModified = 0L
         var ime: InputMethodEntry? = null
+        private var listenerRegistered = false
+        private val attachedKeyboards = mutableListOf<WeakReference<TextKeyboard>>()
+
+        @Synchronized
+        private fun ensureListenerRegistered() {
+            if (listenerRegistered) return
+            org.fcitx.fcitx5.android.input.config.ConfigProviders.addTextKeyboardLayoutListener {
+                onTextLayoutFileChanged()
+            }
+            listenerRegistered = true
+        }
+
+        @Synchronized
+        private fun registerKeyboard(keyboard: TextKeyboard) {
+            attachedKeyboards.removeAll { it.get() == null || it.get() === keyboard }
+            attachedKeyboards.add(WeakReference(keyboard))
+            ensureListenerRegistered()
+        }
+
+        @Synchronized
+        private fun unregisterKeyboard(keyboard: TextKeyboard) {
+            attachedKeyboards.removeAll { it.get() == null || it.get() === keyboard }
+        }
+
+        @Synchronized
+        private fun onTextLayoutFileChanged() {
+            cachedLayoutJsonMap = null
+            lastModified = 0L
+            val living = attachedKeyboards.mapNotNull { it.get() }
+            attachedKeyboards.removeAll { it.get() == null }
+            living.forEach { keyboard ->
+                keyboard.refreshStyle()
+                ime?.let { keyboard.updateSpaceLabel(it) }
+            }
+        }
 
         @Serializable
         data class KeyJson(
@@ -76,20 +110,14 @@ class TextKeyboard(
         val textLayoutJsonMap: Map<String, List<List<KeyJson>>>?
             @Synchronized
             get() {
-                val file = File(appContext.getExternalFilesDir(null), "config/TextKeyboardLayout.json")
-                if (!file.exists()) {
+                val snapshot = org.fcitx.fcitx5.android.input.config.ConfigProviders
+                    .readTextKeyboardLayout<Map<String, List<List<KeyJson>>>>() ?: run {
                     cachedLayoutJsonMap = null
                     return null
                 }
-                if (cachedLayoutJsonMap == null || file.lastModified() != lastModified) {
-                    try {
-                        lastModified = file.lastModified()
-                        val json = file.readText()
-                        cachedLayoutJsonMap = Json.decodeFromString<Map<String, List<List<KeyJson>>>>(json)
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                        cachedLayoutJsonMap = null
-                    }
+                if (cachedLayoutJsonMap == null || snapshot.lastModified != lastModified) {
+                    lastModified = snapshot.lastModified
+                    cachedLayoutJsonMap = snapshot.value
                 }
                 return cachedLayoutJsonMap
             }
@@ -302,8 +330,15 @@ class TextKeyboard(
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
+        registerKeyboard(this)
         updateLangSwitchKey(showLangSwitchKey.getValue())
         showLangSwitchKey.registerOnChangeListener(showLangSwitchKeyListener)
+    }
+
+    override fun onDetachedFromWindow() {
+        unregisterKeyboard(this)
+        showLangSwitchKey.unregisterOnChangeListener(showLangSwitchKeyListener)
+        super.onDetachedFromWindow()
     }
 
     override fun onReturnDrawableUpdate(returnDrawable: Int) {

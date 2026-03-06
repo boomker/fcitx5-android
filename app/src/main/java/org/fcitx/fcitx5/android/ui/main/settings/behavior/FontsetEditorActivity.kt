@@ -5,7 +5,6 @@
 package org.fcitx.fcitx5.android.ui.main.settings.behavior
 
 import android.app.AlertDialog
-import android.content.Context
 import android.graphics.Typeface
 import android.graphics.fonts.Font
 import android.graphics.fonts.FontFamily
@@ -38,9 +37,8 @@ import splitties.views.dsl.core.add
 import splitties.views.dsl.core.matchParent
 import splitties.views.dsl.core.wrapContent
 import org.fcitx.fcitx5.android.utils.toast
-import org.fcitx.fcitx5.android.utils.appContext
-import org.json.JSONObject
 import java.io.File
+import org.fcitx.fcitx5.android.daemon.FcitxDaemon
 
 class FontsetEditorActivity : AppCompatActivity() {
 
@@ -62,8 +60,13 @@ class FontsetEditorActivity : AppCompatActivity() {
         }
     }
 
-    private val fontsDir by lazy { File(appContext.getExternalFilesDir(null), "fonts") }
-    private val fontsetFile by lazy { File(fontsDir, "fontset.json") }
+    private val fontsetFile by lazy {
+        org.fcitx.fcitx5.android.input.config.ConfigProviders.provider.fontsetFile()
+            ?: File(File(filesDir, "fonts"), "fontset.json")
+    }
+    private val fontsDir by lazy {
+        fontsetFile.parentFile ?: File(filesDir, "fonts")
+    }
 
     private val entries = listOf(
         FontEntry("font", R.string.fontset_entry_font, "Aa 中文 123"),
@@ -168,7 +171,15 @@ class FontsetEditorActivity : AppCompatActivity() {
             ?.sorted()
             .orEmpty()
 
-        val parsed = parseFontset(fontsetFile, this)
+        val parsed = org.fcitx.fcitx5.android.input.config.ConfigProviders
+            .readFontsetPathMapSnapshot()
+            .fold(
+                onSuccess = { it?.value ?: emptyMap() },
+                onFailure = {
+                    toast(it)
+                    emptyMap()
+                }
+            )
         entries.forEach { entry ->
             selectedFonts[entry.key] = parsed[entry.key]?.toMutableList() ?: mutableListOf()
         }
@@ -379,27 +390,20 @@ class FontsetEditorActivity : AppCompatActivity() {
     }
 
     private fun saveFontset() {
-        val json = JSONObject()
-        var nonEmptyCount = 0
-        entries.forEach { entry ->
-            val selected = selectedFonts[entry.key].orEmpty()
-            if (selected.isNotEmpty()) {
-                json.put(entry.key, selected.joinToString(","))
-                nonEmptyCount++
-            }
-        }
-        if (nonEmptyCount == 0) {
-            toast(getString(R.string.fontset_empty_warn))
-            return
-        }
-        runCatching {
-            if (!fontsDir.exists()) fontsDir.mkdirs()
-            fontsetFile.writeText(json.toString(2) + "\n")
-            AutoScaleTextView.clearFontCache()
+        val nonEmptyMap = entries
+            .associate { entry -> entry.key to selectedFonts[entry.key].orEmpty() }
+            .filterValues { it.isNotEmpty() }
+        // allow saving empty fontset (means use system default fonts)
+        org.fcitx.fcitx5.android.input.config.ConfigProviders.provider.writeFontsetPathMap(nonEmptyMap)
+            .onSuccess { file ->
+            org.fcitx.fcitx5.android.input.font.FontProviders.clearCache()
             AutoScaleTextView.refreshAllFontTypeFaces()
             CandidateAutoScaleTextView.refreshAllFontTypeFaces()
-        }.onSuccess {
-            toast(getString(R.string.fontset_saved_at, fontsetFile.absolutePath))
+            // notify fcitx to reload config so input windows (keyboard) refresh style
+            FcitxDaemon.getFirstConnectionOrNull()?.runIfReady {
+                reloadConfig()
+            }
+            toast(getString(R.string.fontset_saved_at, file.absolutePath))
             finish()
         }.onFailure {
             toast(it)
@@ -429,22 +433,5 @@ class FontsetEditorActivity : AppCompatActivity() {
 
     companion object {
         private const val MENU_SAVE_ID = 1001
-
-        fun parseFontset(file: File, context: Context): Map<String, List<String>> {
-            if (!file.exists()) return emptyMap()
-            return runCatching {
-                val cleaned = file.readText().replace(Regex("//.*?\\n"), "")
-                val json = JSONObject(cleaned)
-                json.keys().asSequence().associateWith { key ->
-                    json.optString(key)
-                        .split(",")
-                        .map { it.trim() }
-                        .filter { it.isNotEmpty() }
-                }
-            }.getOrElse {
-                context.toast(it)
-                emptyMap()
-            }
-        }
     }
 }

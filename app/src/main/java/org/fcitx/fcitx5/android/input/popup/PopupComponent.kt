@@ -29,12 +29,15 @@ import splitties.views.dsl.core.add
 import splitties.views.dsl.core.frameLayout
 import splitties.views.dsl.core.lParams
 import java.util.LinkedList
-import kotlinx.serialization.json.Json
-import org.fcitx.fcitx5.android.utils.appContext
-import java.io.File
 
 class PopupComponent :
     UniqueComponent<PopupComponent>(), Dependent, ManagedHandler by managedHandler() {
+
+    init {
+        org.fcitx.fcitx5.android.input.config.ConfigProviders.addPopupPresetListener {
+            invalidatePopupPresetCache()
+        }
+    }
 
     private val service by manager.inputMethodService()
     private val context by manager.context()
@@ -70,24 +73,23 @@ class PopupComponent :
     companion object {
         private var lastModified = 0L
         private var cachedPopupPreset: Map<String, Array<String>>? = null
+
+        @Synchronized
+        private fun invalidatePopupPresetCache() {
+            cachedPopupPreset = null
+            lastModified = 0L
+        }
+
         val popupPresetJson: Map<String, Array<String>>?
             @Synchronized
             get() {
-                var file = File(appContext.getExternalFilesDir(null), "config/PopupPreset.json")
-                if (!file.exists()) {
+                val snapshot = org.fcitx.fcitx5.android.input.config.ConfigProviders.readPopupPreset<Map<String, List<String>>>() ?: run {
                     cachedPopupPreset = null
                     return null
                 }
-                if (cachedPopupPreset == null || file.lastModified() != lastModified) {
-                    try {
-                        lastModified = file.lastModified()
-                        val json = file.readText()
-                        cachedPopupPreset = Json.decodeFromString<Map<String, List<String>>>(json)
-                            .mapValues { it.value.toTypedArray() }
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                        cachedPopupPreset = null
-                    }
+                if (cachedPopupPreset == null || snapshot.lastModified != lastModified) {
+                    lastModified = snapshot.lastModified
+                    cachedPopupPreset = snapshot.value.mapValues { it.value.toTypedArray() }
                 }
                 return cachedPopupPreset
             }
