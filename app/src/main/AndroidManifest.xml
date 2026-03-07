@@ -67,6 +67,10 @@
             android:exported="false"
             android:label="@string/edit_fontset" />
         <activity
+            android:name=".ui.main.settings.behavior.PopupEditorActivity"
+            android:exported="false"
+            android:label="@string/edit_popup_preset" />
+        <activity
             android:name=".ui.main.CropImageActivity"
             android:exported="false" />
         <activity

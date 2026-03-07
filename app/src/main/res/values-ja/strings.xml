@@ -255,4 +255,19 @@
     <string name="flip_horizontally">左右反転</string>
     <string name="flip_vertically">上下反転</string>
     <string name="crop">切り取り</string>
-    </resources>
+    <string name="edit_popup_preset">ポップアッププリセットを編集</string>
+    <string name="edit_popup_preset_summary">ポップアップキーマッピングを編集 (キー -&gt; ポップアップ候補)</string>
+    <string name="popup_editor_hint">アイテムをタップして編集、長押しして削除。</string>
+    <string name="popup_editor_add_mapping">マッピングを追加</string>
+    <string name="popup_editor_key">キー</string>
+    <string name="popup_editor_key_input_hint">キーラベルを入力（例：q）</string>
+    <string name="popup_editor_values">ポップアップ候補</string>
+    <string name="popup_editor_hint_click_edit_long_press_delete">タップして編集、長押しして削除</string>
+    <string name="popup_editor_key_empty">キーは空にできません</string>
+    <string name="popup_editor_key_exists">キーは既に存在します：%1$s</string>
+    <string name="popup_editor_delete_confirm">マッピング "%1$s" を削除しますか？</string>
+    <string name="popup_editor_delete_candidate_confirm">候補 "%1$s" を削除しますか？</string>
+    <string name="popup_editor_add_candidate">候補を追加</string>
+    <string name="popup_editor_add_candidate_button">追加</string>
+    <string name="popup_editor_candidate_input_hint">候補値を入力</string>
+</resources>

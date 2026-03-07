@@ -317,4 +317,19 @@
     <string name="emoji_skin_tone_type_6">🏿 Type-6</string>
     <string name="hide_unsupported_emojis">Скрыть неподдерживаемые эмодзи</string>
     <string name="key_border_stroke">Включить обводку для границы клавиши</string>
+    <string name="edit_popup_preset">Редактировать предустановку всплывающих окон</string>
+    <string name="edit_popup_preset_summary">Редактировать сопоставление клавиш всплывающих окон (клавиша -&gt; кандидаты всплывающих окон)</string>
+    <string name="popup_editor_hint">Нажмите на элемент, чтобы редактировать. Долгое нажатие для удаления.</string>
+    <string name="popup_editor_add_mapping">Добавить сопоставление</string>
+    <string name="popup_editor_key">Клавиша</string>
+    <string name="popup_editor_key_input_hint">Введите метку клавиши, например: q</string>
+    <string name="popup_editor_values">Кандидаты всплывающих окон</string>
+    <string name="popup_editor_hint_click_edit_long_press_delete">нажмите для редактирования, долгое нажатие для удаления</string>
+    <string name="popup_editor_key_empty">Клавиша не может быть пустой</string>
+    <string name="popup_editor_key_exists">Клавиша уже существует: %1$s</string>
+    <string name="popup_editor_delete_confirm">Удалить сопоставление "%1$s"?</string>
+    <string name="popup_editor_delete_candidate_confirm">Удалить кандидата "%1$s"?</string>
+    <string name="popup_editor_add_candidate">Добавить кандидата</string>
+    <string name="popup_editor_add_candidate_button">Добавить</string>
+    <string name="popup_editor_candidate_input_hint">Введите значение кандидата</string>
 </resources>

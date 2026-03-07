@@ -92,4 +92,19 @@
     <string name="quickphrase_phrase">구문</string>
     <string name="reload_config">구성 새로고침</string>
     <string name="input_method_options">입력기 옵션</string>
-    </resources>
+    <string name="edit_popup_preset">팝업 프리셋 편집</string>
+    <string name="edit_popup_preset_summary">팝업 키 매핑 편집 (키 -&gt; 팝업 후보)</string>
+    <string name="popup_editor_hint">항목을 탭하여 편집하고 길게 눌러 삭제합니다.</string>
+    <string name="popup_editor_add_mapping">매핑 추가</string>
+    <string name="popup_editor_key">키</string>
+    <string name="popup_editor_key_input_hint">키 레이블을 입력하세요 (예: q)</string>
+    <string name="popup_editor_values">팝업 후보</string>
+    <string name="popup_editor_hint_click_edit_long_press_delete">탭하여 편집, 길게 눌러 삭제</string>
+    <string name="popup_editor_key_empty">키는 비워둘 수 없습니다</string>
+    <string name="popup_editor_key_exists">키가 이미 존재합니다: %1$s</string>
+    <string name="popup_editor_delete_confirm">매핑 "%1$s" 을 (를) 삭제하시겠습니까?</string>
+    <string name="popup_editor_delete_candidate_confirm">후보 "%1$s" 을 (를) 삭제하시겠습니까?</string>
+    <string name="popup_editor_add_candidate">후보 추가</string>
+    <string name="popup_editor_add_candidate_button">추가</string>
+    <string name="popup_editor_candidate_input_hint">후보 값 입력</string>
+</resources>

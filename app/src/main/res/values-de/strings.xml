@@ -162,4 +162,19 @@
     <string name="following_system_settings">Wie Systemeinstellungen</string>
     <string name="button_sound">Ton bei Tastendruck</string>
     <string name="button_sound_volume">Ton Tastendruck Lautstärke</string>
-    </resources>
+    <string name="edit_popup_preset">Popup-Voreinstellung bearbeiten</string>
+    <string name="edit_popup_preset_summary">Popup-Tastenzuordnung bearbeiten (Taste -&gt; Popup-Kandidaten)</string>
+    <string name="popup_editor_hint">Tippen Sie auf ein Element zum Bearbeiten. Lange drücken zum Löschen.</string>
+    <string name="popup_editor_add_mapping">Zuordnung hinzufügen</string>
+    <string name="popup_editor_key">Taste</string>
+    <string name="popup_editor_key_input_hint">Geben Sie ein Tastenlabel ein, z. B. q</string>
+    <string name="popup_editor_values">Popup-Kandidaten</string>
+    <string name="popup_editor_hint_click_edit_long_press_delete">Tippen zum Bearbeiten, lange drücken zum Löschen</string>
+    <string name="popup_editor_key_empty">Taste darf nicht leer sein</string>
+    <string name="popup_editor_key_exists">Taste existiert bereits: %1$s</string>
+    <string name="popup_editor_delete_confirm">Zuordnung "%1$s" löschen?</string>
+    <string name="popup_editor_delete_candidate_confirm">Kandidat "%1$s" löschen?</string>
+    <string name="popup_editor_add_candidate">Kandidat hinzufügen</string>
+    <string name="popup_editor_add_candidate_button">Hinzufügen</string>
+    <string name="popup_editor_candidate_input_hint">Kandidatenwert eingeben</string>
+</resources>
