@@ -1106,11 +1106,10 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             if (alphabetDisplayTextRowBindings.isEmpty()) return
             alphabetDisplayTextModeItems.clear()
             alphabetDisplayTextRowBindings.forEach { binding ->
+                val modeText = binding.modeEdit.text?.toString().orEmpty()
+                val valueText = binding.valueEdit.text?.toString().orEmpty()
                 alphabetDisplayTextModeItems.add(
-                    DisplayTextItem(
-                        binding.modeEdit.text.toString(),
-                        binding.valueEdit.text.toString()
-                    )
+                    DisplayTextItem(modeText, valueText)
                 )
             }
         }
@@ -1244,9 +1243,24 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                                 textSize = DIALOG_CONTENT_TEXT_SIZE_SP
                                 setPadding(dp(8), dp(4), dp(8), dp(4))
                                 setOnClickListener {
-                                    captureModeSpecificFromUi()
-                                    if (index in alphabetDisplayTextModeItems.indices) {
-                                        alphabetDisplayTextModeItems.removeAt(index)
+                                    // Capture current UI data and delete the current item
+                                    // Use modeEdit and valueEdit references to get current values directly
+                                    val currentMode = modeEdit.text.toString()
+                                    val currentValue = valueEdit.text.toString()
+                                    // Find the item to remove based on current UI values
+                                    val positionToRemove = alphabetDisplayTextModeItems.indexOfFirst { item ->
+                                        item.mode == currentMode && item.value == currentValue
+                                    }
+                                    if (positionToRemove >= 0) {
+                                        alphabetDisplayTextModeItems.removeAt(positionToRemove)
+                                    } else {
+                                        // Fallback: find first item with matching mode
+                                        val fallbackPosition = alphabetDisplayTextModeItems.indexOfFirst { item ->
+                                            item.mode == currentMode
+                                        }
+                                        if (fallbackPosition >= 0) {
+                                            alphabetDisplayTextModeItems.removeAt(fallbackPosition)
+                                        }
                                     }
                                     if (alphabetDisplayTextModeItems.isEmpty()) {
                                         alphabetDisplayTextModeSpecific = false
