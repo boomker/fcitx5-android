@@ -220,7 +220,8 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
     private var originalEntries: Map<String, List<List<Map<String, Any?>>>> = emptyMap()
     private var currentLayout: String? = null
     private var previewSubModeLabel: String? = null
-    
+    private var saveMenuItem: MenuItem? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, true)
@@ -251,8 +252,9 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        val item = menu.add(Menu.NONE, MENU_SAVE_ID, Menu.NONE, "${getString(R.string.save)}")
-        item.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS or MenuItem.SHOW_AS_ACTION_WITH_TEXT)
+        saveMenuItem = menu.add(Menu.NONE, MENU_SAVE_ID, Menu.NONE, "${getString(R.string.save)}")
+        saveMenuItem?.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS or MenuItem.SHOW_AS_ACTION_WITH_TEXT)
+        updateSaveButtonState()
         return true
     }
 
@@ -271,7 +273,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
     private fun loadState() {
         // Try to load from existing TextKeyboardLayout.json file first
         val file = ConfigProviders.provider.textKeyboardLayoutFile()
-        
+
         // Get IMEs for spinner display
         allImesFromJson = runCatching {
             fcitxConnection.runImmediately { enabledIme() }
@@ -362,7 +364,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                 row.map { key -> key.toMutableMap() }.toMutableList()
             }.toMutableList()
         }
-        
+
         // Ensure at least one layout exists (default from TextKeyboard.kt)
         if (entries.isEmpty()) {
             val defaultLayout = readDefaultPresetFromTextKeyboardKt()
@@ -372,7 +374,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                 }.toMutableList()
             }
         }
-        
+
         originalEntries = normalizedEntries()
         currentLayout = entries.keys.firstOrNull()
     }
@@ -444,13 +446,13 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         // Build display list showing both uniqueName and displayName
         val displayItems = mutableListOf<String>()
         val layoutNameMap = mutableMapOf<String, String>() // display -> actual key
-        
+
         entries.keys.forEach { layoutName ->
             // Find if this layoutName matches any IME's uniqueName or displayName
             val matchingIme = allImesFromJson.find { 
                 it.uniqueName == layoutName || it.displayName == layoutName 
             }
-            
+
             if (matchingIme != null) {
                 // Show both names if they are different
                 // Format: displayName (uniqueName)
@@ -467,7 +469,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                 layoutNameMap[layoutName] = layoutName
             }
         }
-        
+
         val adapter = ArrayAdapter(
             this,
             android.R.layout.simple_spinner_item,
@@ -475,13 +477,13 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         )
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         layoutSpinner.adapter = adapter
-        
+
         // Set selection based on current layout
         currentLayout?.let {
             val displayPos = displayItems.indexOfFirst { item -> layoutNameMap[item] == it }
             if (displayPos >= 0) layoutSpinner.setSelection(displayPos)
         }
-        
+
         layoutSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 val displayItem = displayItems.getOrNull(position)
@@ -689,13 +691,13 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
 
     private fun confirmDeleteCurrentLayout() {
         val layoutName = currentLayout ?: return
-        
+
         AlertDialog.Builder(this)
             .setTitle(R.string.delete)
             .setMessage(getString(R.string.text_keyboard_layout_delete_layout_confirm, layoutName))
             .setPositiveButton(R.string.delete) { _, _ ->
                 entries.remove(layoutName)
-                
+
                 // If no layouts left, load default from TextKeyboard.kt
                 if (entries.isEmpty()) {
                     val defaultLayout = readDefaultPresetFromTextKeyboardKt()
@@ -708,16 +710,17 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                 } else {
                     currentLayout = entries.keys.firstOrNull()
                 }
-                
+
                 buildSpinner()
                 buildSubModeSpinner()
                 buildRows()
                 updatePreview()
+                updateSaveButtonState() // Update save button state
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
     }
-    
+
     // Cache IMEs from JSON for spinner display
     private var allImesFromJson: Array<InputMethodEntry> = emptyArray()
 
@@ -729,7 +732,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
     private fun buildRows() {
         val layoutName = currentLayout ?: return
         val rows = entries[layoutName] ?: return
-        
+
         // Update the mutable reference for drag callback
         currentRowsRef = rows
 
@@ -810,6 +813,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                     // Refresh adapter after drag ends to ensure correct position and preview
                     rowsAdapter?.notifyDataSetChanged()
                     updatePreview()
+                    updateSaveButtonState() // Update save button state
                 }
             })
             rowTouchHelper?.attachToRecyclerView(rowsRecyclerView)
@@ -822,7 +826,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         } else {
             rowsAdapter?.updateRows(rows)
         }
-        
+
         // Force RecyclerView to re-measure
         rowsRecyclerView.requestLayout()
     }
@@ -974,7 +978,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
 
             // Delete row button
             holder.deleteButton.setOnClickListener { confirmDeleteRow(position) }
-            
+
             // Setup drag handle for row reordering
             holder.dragHandle.setOnLongClickListener {
                 rowsRecyclerView.findViewHolderForAdapterPosition(position)?.let { viewHolder ->
@@ -982,7 +986,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                 }
                 true
             }
-            
+
             // Add touch feedback for drag handle
             holder.dragHandle.setOnTouchListener { v, event ->
                 when (event.action) {
@@ -1336,7 +1340,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                     }
 
                     renderDisplayTextEditor()
-                    
+
                     alphabetMainEdit = mainEdit.second
                     alphabetAltEdit = altEdit.second
                 }
@@ -1462,6 +1466,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                 }
                 buildRows()
                 updatePreview()
+                updateSaveButtonState() // Update save button state
                 dialog.dismiss()
             }
         }
@@ -1508,7 +1513,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         val row = entries[layoutName] ?: return
         val key = row.getOrNull(rowIndex)?.getOrNull(keyIndex)
         val keyLabel = key?.let { buildKeyLabel(it) } ?: "?"
-        
+
         val dialog = AlertDialog.Builder(this)
             .setTitle(R.string.delete)
             .setMessage(getString(R.string.text_keyboard_layout_delete_key_confirm_with_label, keyLabel))
@@ -1517,6 +1522,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                     row[rowIndex].removeAt(keyIndex)
                     buildRows()
                     updatePreview()
+                    updateSaveButtonState() // Update save button state
                 }
             }
             .setNegativeButton(android.R.string.cancel, null)
@@ -1536,6 +1542,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                     row.removeAt(rowIndex)
                     buildRows()
                     updatePreview()
+                    updateSaveButtonState() // Update save button state
                 }
             }
             .setNegativeButton(android.R.string.cancel, null)
@@ -1549,7 +1556,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         val row = entries[layoutName]?.get(rowIndex) ?: return
         val key = row.getOrNull(keyIndex)
         val keyLabel = key?.let { buildKeyLabel(it) } ?: "?"
-        
+
         val canMoveLeft = keyIndex > 0
         val canMoveRight = keyIndex < row.size - 1
 
@@ -1580,6 +1587,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                         row[keyIndex - 1] = temp
                         buildRows()
                         updatePreview()
+                        updateSaveButtonState() // Update save button state
                     }
                     optionIds.getOrNull(which) == R.string.text_keyboard_layout_move_right && canMoveRight -> {
                         val temp = row[keyIndex]
@@ -1587,6 +1595,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                         row[keyIndex + 1] = temp
                         buildRows()
                         updatePreview()
+                        updateSaveButtonState() // Update save button state
                     }
                     optionIds.getOrNull(which) == R.string.delete -> {
                         confirmDeleteKey(rowIndex, keyIndex)
@@ -1690,13 +1699,13 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         // Also include "default" from TextKeyboard.kt if not in entries
         val displayItems = mutableListOf<String>()
         val nameToKeyMap = mutableMapOf<String, String>() // display -> actual key
-        
+
         // Add existing layouts from entries (for copying)
         entries.keys.filter { it != originalLayoutName }.sorted().forEach { layoutName ->
             val matchingIme = allImes.find { ime: InputMethodEntry ->
                 ime.uniqueName == layoutName || ime.displayName == layoutName 
             }
-            
+
             if (matchingIme != null && matchingIme.uniqueName != matchingIme.displayName) {
                 val displayItem = "${matchingIme.displayName} (${matchingIme.uniqueName})"
                 displayItems.add(displayItem)
@@ -1706,13 +1715,13 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                 nameToKeyMap[layoutName] = layoutName
             }
         }
-        
+
         // Always include "default" for copying (from entries or TextKeyboard.kt)
         if ("default" != originalLayoutName && "default" !in displayItems) {
             displayItems.add("default")
             nameToKeyMap["default"] = "default"
         }
-        
+
         displayItems.sort()
 
         // Show selectable names in spinner
@@ -1721,7 +1730,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         val copySpinner = Spinner(this)
         copySpinner.adapter = copyAdapter
         container.addView(copySpinner)
-        
+
         // Auto-fill name when selecting
         if (displayItems.isNotEmpty()) {
             copySpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
@@ -1749,7 +1758,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                     showToast(getString(R.string.text_keyboard_layout_name_empty))
                     return@setOnClickListener
                 }
-                
+
                 // Check for duplicates (both uniqueName and displayName)
                 val selectedKey = nameToKeyMap.entries.find { it.value == newName }?.key ?: newName
                 val isDuplicate = entries.any { (key, _) -> 
@@ -1759,7 +1768,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                         (ime.displayName == key || ime.uniqueName == key)
                     })
                 }
-                
+
                 if (isDuplicate && newName != originalLayoutName) {
                     showToast(getString(R.string.text_keyboard_layout_layout_exists_for_input_method))
                     return@setOnClickListener
@@ -1781,19 +1790,19 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                     if (selectedPos >= 0 && selectedPos < displayItems.size) {
                         val selectedDisplay = displayItems[selectedPos]
                         val selectedKey = nameToKeyMap[selectedDisplay] ?: selectedDisplay
-                        
+
                         var sourceLayout: List<List<MutableMap<String, Any?>>>? = null
-                        
+
                         // Try to get from entries first
                         sourceLayout = entries[selectedKey]
-                        
+
                         // If copying "default" and not in entries, load from TextKeyboard.kt
                         if (sourceLayout == null && selectedKey == "default") {
                             sourceLayout = readDefaultPresetFromTextKeyboardKt()["default"]?.map { row ->
                                 row.map { key -> key.toMutableMap() }.toMutableList()
                             }?.toMutableList()
                         }
-                        
+
                         if (sourceLayout != null) {
                             // Copy the layout content
                             entries[newName] = sourceLayout.map { row ->
@@ -1815,6 +1824,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                 buildSubModeSpinner()
                 buildRows()
                 updatePreview()
+                updateSaveButtonState() // Update save button state
                 dialog.dismiss()
             }
         }
@@ -1854,16 +1864,16 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             override fun writeFontsetPathMap(pathMap: Map<String, List<String>>): Result<File> =
                 provider.writeFontsetPathMap(pathMap)
         }
-        
+
         ConfigProviders.provider = tempProvider
         TextKeyboard.cachedLayoutJsonMap = null
-        
+
         try {
             val theme = ThemeManager.activeTheme
-            
+
             // Set preview container background color to match theme
             previewKeyboardContainer.setBackgroundColor(theme.barColor)
-            
+
             previewKeyboard = TextKeyboard(this, theme).apply {
                 // Calculate keyboard height based on user settings
                 val displayMetrics = resources.displayMetrics
@@ -1934,6 +1944,10 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
     }
 
     private fun saveLayout() {
+        if (!hasChanges()) {
+            return
+        }
+
         val file = layoutFile ?: run {
             showToast(getString(R.string.cannot_resolve_text_keyboard_layout))
             return
@@ -1958,7 +1972,10 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         // Notify provider watcher
         ConfigProviders.ensureWatching()
         showToast(getString(R.string.text_keyboard_layout_saved_at, file.absolutePath))
-        finish()
+        // Update original entries to reflect current state, so button becomes inactive
+        originalEntries = normalizedEntries()
+        // Update save button state
+        updateSaveButtonState()
     }
 
     private fun convertToJsonProperty(value: Any?): JsonElement = when (value) {
@@ -2033,6 +2050,22 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             }
 
     private fun hasChanges(): Boolean = normalizedEntries() != originalEntries
+
+    private fun updateSaveButtonState() {
+        saveMenuItem?.let { menuItem ->
+            if (hasChanges()) {
+                // Use active color when there are changes
+                menuItem.isEnabled = true
+                // Set title color to accent color
+                menuItem.title = getString(R.string.save)
+            } else {
+                // Use inactive color when there are no changes
+                menuItem.isEnabled = false
+                // Set title color to secondary text color
+                menuItem.title = getString(R.string.save)
+            }
+        }
+    }
 
     private object SubModeMenuResolver {
         fun extractLabels(

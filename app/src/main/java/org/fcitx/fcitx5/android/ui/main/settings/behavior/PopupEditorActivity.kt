@@ -87,6 +87,8 @@ class PopupEditorActivity : AppCompatActivity() {
     private val entries: MutableMap<String, MutableList<String>> = linkedMapOf()
     private var originalEntries: Map<String, List<String>> = emptyMap()
 
+    private var saveMenuItem: MenuItem? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, true)
@@ -108,8 +110,9 @@ class PopupEditorActivity : AppCompatActivity() {
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        val item = menu.add(Menu.NONE, MENU_SAVE_ID, Menu.NONE, "${getString(R.string.save)}")
-        item.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS or MenuItem.SHOW_AS_ACTION_WITH_TEXT)
+        saveMenuItem = menu.add(Menu.NONE, MENU_SAVE_ID, Menu.NONE, "${getString(R.string.save)}")
+        saveMenuItem?.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS or MenuItem.SHOW_AS_ACTION_WITH_TEXT)
+        updateSaveButtonState()
         return true
     }
 
@@ -188,7 +191,7 @@ class PopupEditorActivity : AppCompatActivity() {
                 text = key
                 textSize = 14f
                 setTypeface(null, android.graphics.Typeface.BOLD)
-                setPadding(dp(12), dp(5), dp(12), dp(5))
+                setPadding(dp(10), dp(5), dp(10), dp(5))  // Same padding as candidate chip
                 gravity = android.view.Gravity.CENTER
                 background = android.graphics.drawable.GradientDrawable().apply {
                     setColor(styledColor(android.R.attr.colorPrimary))
@@ -197,13 +200,7 @@ class PopupEditorActivity : AppCompatActivity() {
                 }
             }
 
-            val horizontalScrollView = android.widget.HorizontalScrollView(this).apply {
-                isFillViewport = false
-                isHorizontalScrollBarEnabled = true
-            }
-
-            val candidatesContainer = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
+            val candidatesFlow = FlowLayout(this).apply {
                 setPadding(dp(8), 0, 0, 0)
             }
 
@@ -224,27 +221,25 @@ class PopupEditorActivity : AppCompatActivity() {
                         true
                     }
                 }
-                candidatesContainer.addView(candidateChip, LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    LinearLayout.LayoutParams.MATCH_PARENT
+                candidatesFlow.addView(candidateChip, ViewGroup.MarginLayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
                 ).apply {
-                    setMarginEnd(dp(6))
-                    gravity = android.view.Gravity.CENTER_VERTICAL
+                    leftMargin = dp(4)
+                    topMargin = dp(4)
+                    rightMargin = dp(4)
+                    bottomMargin = dp(4)
                 })
             }
 
-            horizontalScrollView.addView(candidatesContainer, LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.MATCH_PARENT
-            ))
-
             rowLayout.addView(keyBadge, LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.MATCH_PARENT
+                LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply {
                 gravity = android.view.Gravity.CENTER_VERTICAL
+                setMargins(0, dp(4), dp(8), dp(4))
             })
-            rowLayout.addView(horizontalScrollView, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT).apply {
+            rowLayout.addView(candidatesFlow, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
                 weight = 1f
                 gravity = android.view.Gravity.CENTER_VERTICAL
             })
@@ -287,14 +282,14 @@ class PopupEditorActivity : AppCompatActivity() {
             textSize = 13f
             setTextColor(styledColor(android.R.attr.textColorSecondary))
         }
-        
+
         // Key edit as a chip with border
         val keyEditContainer = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
         }
-        
+
         var currentKeyValue = currentKey
-        
+
         val keyEdit = TextView(this@PopupEditorActivity).apply {
             text = currentKeyValue.ifEmpty { getString(R.string.popup_editor_key_input_hint) }
             textSize = 16f
@@ -326,7 +321,7 @@ class PopupEditorActivity : AppCompatActivity() {
                     .show()
             }
         }
-        
+
         keyEditContainer.addView(keyEdit, LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.WRAP_CONTENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
@@ -481,6 +476,7 @@ class PopupEditorActivity : AppCompatActivity() {
                 }
                 entries[newKey] = values
                 buildRows()
+                updateSaveButtonState() // Update save button state
                 dialog.dismiss()
             }
         }
@@ -494,6 +490,7 @@ class PopupEditorActivity : AppCompatActivity() {
             .setPositiveButton(R.string.delete) { _, _ ->
                 entries.remove(key)
                 buildRows()
+                updateSaveButtonState() // Update save button state
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
@@ -501,7 +498,6 @@ class PopupEditorActivity : AppCompatActivity() {
 
     private fun savePopupPreset() {
         if (!hasChanges()) {
-            finish()
             return
         }
 
@@ -510,7 +506,7 @@ class PopupEditorActivity : AppCompatActivity() {
             return
         }
         file.parentFile?.mkdirs()
-        
+
         val jsonElement = JsonObject(entries.toSortedMap().mapValues { (_, v) ->
             JsonArray(v.map { JsonPrimitive(it) })
         })
@@ -519,7 +515,10 @@ class PopupEditorActivity : AppCompatActivity() {
         // notify provider watcher
         ConfigProviders.ensureWatching()
         showToast(getString(R.string.popup_preset_saved_at, file.absolutePath))
-        finish()
+        // Update original entries to reflect current state, so button becomes inactive
+        originalEntries = normalizedEntries()
+        // Update save button state
+        updateSaveButtonState()
     }
 
     private fun showToast(message: String) {
@@ -532,6 +531,22 @@ class PopupEditorActivity : AppCompatActivity() {
             .mapValues { (_, value) -> value.toList() }
 
     private fun hasChanges(): Boolean = normalizedEntries() != originalEntries
+
+    private fun updateSaveButtonState() {
+        saveMenuItem?.let { menuItem ->
+            if (hasChanges()) {
+                // Use active color when there are changes
+                menuItem.isEnabled = true
+                // Set title color to accent color
+                menuItem.title = getString(R.string.save)
+            } else {
+                // Use inactive color when there are no changes
+                menuItem.isEnabled = false
+                // Set title color to secondary text color
+                menuItem.title = getString(R.string.save)
+            }
+        }
+    }
 
     companion object {
         private const val MENU_SAVE_ID = 2001
