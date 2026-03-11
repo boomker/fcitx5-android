@@ -781,6 +781,20 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                 0
             ) {
                 override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean {
+                    // Check if either the current or target ViewHolder contains a DraggableFlowLayout that is currently dragging
+                    // Cast the ViewHolder to RowViewHolder to access the keysFlow field
+                    if (viewHolder is RowViewHolder && target is RowViewHolder) {
+                        val currentKeysFlow = viewHolder.keysFlow
+                        val targetKeysFlow = target.keysFlow
+                        
+                        if ((currentKeysFlow is DraggableFlowLayout && currentKeysFlow.isDragging) ||
+                            (targetKeysFlow is DraggableFlowLayout && targetKeysFlow.isDragging)) {
+                            // If either row has a flow layout that's currently dragging keys,
+                            // don't allow row move to prevent conflicts
+                            return false
+                        }
+                    }
+                    
                     val fromPosition = viewHolder.bindingAdapterPosition
                     val toPosition = target.bindingAdapterPosition
                     if (fromPosition < 0 || toPosition < 0 || fromPosition >= currentRowsRef.size || toPosition >= currentRowsRef.size) return false
@@ -814,6 +828,25 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                     rowsAdapter?.notifyDataSetChanged()
                     updatePreview()
                     updateSaveButtonState() // Update save button state
+                }
+                
+                // Override to check if touch is on draggable flow layout
+                override fun canDropOver(recyclerView: RecyclerView, current: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean {
+                    // Check if the target ViewHolder contains a DraggableFlowLayout that is currently dragging
+                    if (target is RowViewHolder) {
+                        val keysFlow = target.keysFlow
+                        if (keysFlow is DraggableFlowLayout && keysFlow.isDragging) {
+                            // If the target row has a flow layout that's currently dragging keys,
+                            // don't allow row drop to prevent conflicts
+                            return false
+                        }
+                    }
+                    return super.canDropOver(recyclerView, current, target)
+                }
+                
+                // Disable long press drag - only allow manual start via drag handle
+                override fun isLongPressDragEnabled(): Boolean {
+                    return false
                 }
             })
             rowTouchHelper?.attachToRecyclerView(rowsRecyclerView)
@@ -897,7 +930,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                 }
             }
 
-            val keysFlow = FlowLayout(this@TextKeyboardLayoutEditorActivity).apply {
+            val keysFlow = DraggableFlowLayout(this@TextKeyboardLayoutEditorActivity).apply {
                 setPadding(0, dp(4), 0, dp(4))
             }
             keysFlowContainer.addView(keysFlow)
@@ -924,7 +957,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             val row = rows[position]
             holder.keysFlow.removeAllViews()
 
-            // Add keys - short click to edit, long press to delete
+            // Add keys - short click to edit, with drag support (directly on the key)
             row.forEachIndexed { keyIndex, key ->
                 val keyChip = TextView(this@TextKeyboardLayoutEditorActivity).apply {
                     text = buildKeyLabel(key)
@@ -938,11 +971,11 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                     }
                     setOnClickListener { openKeyEditor(position, keyIndex) }
                     setOnLongClickListener {
-                        // Show move/delete menu on long press
-                        showKeyMoveMenu(position, keyIndex)
+                        confirmDeleteKey(position, keyIndex)
                         true
                     }
                 }
+                
                 holder.keysFlow.addView(keyChip, ViewGroup.MarginLayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT
@@ -951,6 +984,31 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                     bottomMargin = dp(4)
                     topMargin = dp(4)
                 })
+
+                if (holder.keysFlow is DraggableFlowLayout) {
+                    val dragListener = object : DraggableFlowLayout.OnDragListener {
+                        override fun onDragStarted(view: View, position: Int) {
+                        }
+
+                        override fun onDragPositionChanged(from: Int, to: Int) {
+                            val layoutName = currentLayout ?: return
+                            val rows = entries[layoutName] ?: return
+                            val currentRow = rows[position]
+
+                            if (from >= 0 && from < currentRow.size && to >= 0 && to < currentRow.size) {
+                                val item = currentRow.removeAt(from)
+                                currentRow.add(to, item)
+                                updateSaveButtonState()
+                            }
+                        }
+
+                        override fun onDragEnded(view: View, position: Int) {
+                            buildRows()
+                            updatePreview()
+                        }
+                    }
+                    holder.keysFlow.onDragListener = dragListener
+                }
             }
 
             // Add button (same style as other keys)
@@ -978,13 +1036,35 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
 
             // Delete row button
             holder.deleteButton.setOnClickListener { confirmDeleteRow(position) }
-
-            // Setup drag handle for row reordering
-            holder.dragHandle.setOnLongClickListener {
-                rowsRecyclerView.findViewHolderForAdapterPosition(position)?.let { viewHolder ->
-                    rowTouchHelper?.startDrag(viewHolder)
+            var downOnKeyChip = false
+            val startRowDragIfAllowed: () -> Boolean = {
+                if (holder.keysFlow is DraggableFlowLayout && holder.keysFlow.isDragging) {
+                    false
+                } else {
+                    rowsRecyclerView.findViewHolderForAdapterPosition(position)?.let { viewHolder ->
+                        rowTouchHelper?.startDrag(viewHolder)
+                        true
+                    } ?: false
                 }
-                true
+            }
+
+            // Setup drag handle for row reordering - only if not dragging a key
+            holder.dragHandle.setOnLongClickListener {
+                startRowDragIfAllowed()
+            }
+            
+            // Keep key drag behavior, but allow row drag when long-press starts in keysFlow blank area.
+            holder.keysFlow.setOnTouchListener { _, event ->
+                when (event.action) {
+                    android.view.MotionEvent.ACTION_DOWN -> {
+                        downOnKeyChip = holder.keysFlow.isTouchOnAnyChild(event.x, event.y)
+                        rowsRecyclerView.stopNestedScroll()
+                    }
+                }
+                false // Return false to allow other touch handlers to process the event
+            }
+            holder.keysFlow.setOnLongClickListener {
+                if (downOnKeyChip) false else startRowDragIfAllowed()
             }
 
             // Add touch feedback for drag handle
@@ -1008,9 +1088,20 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
     private data class RowViewHolder(
         val container: LinearLayout,
         val dragHandle: TextView,
-        val keysFlow: FlowLayout,
+        val keysFlow: ViewGroup,  // Changed to ViewGroup to support both FlowLayout and DraggableFlowLayout
         val deleteButton: TextView
     ) : RecyclerView.ViewHolder(container)
+
+    private fun ViewGroup.isTouchOnAnyChild(x: Float, y: Float): Boolean {
+        for (i in 0 until childCount) {
+            val child = getChildAt(i)
+            if (child.visibility != View.VISIBLE) continue
+            if (x >= child.left && x < child.right && y >= child.top && y < child.bottom) {
+                return true
+            }
+        }
+        return false
+    }
 
     private fun buildKeyLabel(key: Map<String, Any?>): String {
         val type = key["type"] as? String ?: "?"
@@ -1551,62 +1642,6 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         dialog.show()
     }
 
-    private fun showKeyMoveMenu(rowIndex: Int, keyIndex: Int) {
-        val layoutName = currentLayout ?: return
-        val row = entries[layoutName]?.get(rowIndex) ?: return
-        val key = row.getOrNull(keyIndex)
-        val keyLabel = key?.let { buildKeyLabel(it) } ?: "?"
-
-        val canMoveLeft = keyIndex > 0
-        val canMoveRight = keyIndex < row.size - 1
-
-        val optionIds = mutableListOf<Int>()
-        if (canMoveLeft) optionIds.add(R.string.text_keyboard_layout_move_left)
-        if (canMoveRight) optionIds.add(R.string.text_keyboard_layout_move_right)
-        optionIds.add(R.string.delete)
-        val options = optionIds.map { getString(it) }
-        val optionAdapter = object : ArrayAdapter<String>(
-            this,
-            android.R.layout.simple_list_item_1,
-            options
-        ) {
-            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
-                val view = super.getView(position, convertView, parent)
-                (view as? TextView)?.textSize = DIALOG_CONTENT_TEXT_SIZE_SP
-                return view
-            }
-        }
-
-        val dialog = AlertDialog.Builder(this)
-            .setTitle(getString(R.string.text_keyboard_layout_key_title, keyLabel))
-            .setAdapter(optionAdapter) { _, which ->
-                when {
-                    optionIds.getOrNull(which) == R.string.text_keyboard_layout_move_left && canMoveLeft -> {
-                        val temp = row[keyIndex]
-                        row[keyIndex] = row[keyIndex - 1]
-                        row[keyIndex - 1] = temp
-                        buildRows()
-                        updatePreview()
-                        updateSaveButtonState() // Update save button state
-                    }
-                    optionIds.getOrNull(which) == R.string.text_keyboard_layout_move_right && canMoveRight -> {
-                        val temp = row[keyIndex]
-                        row[keyIndex] = row[keyIndex + 1]
-                        row[keyIndex + 1] = temp
-                        buildRows()
-                        updatePreview()
-                        updateSaveButtonState() // Update save button state
-                    }
-                    optionIds.getOrNull(which) == R.string.delete -> {
-                        confirmDeleteKey(rowIndex, keyIndex)
-                    }
-                }
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-            .create()
-        dialog.setOnShowListener { styleDialogTypography(dialog) }
-        dialog.show()
-    }
 
     private fun addRow() {
         val layoutName = currentLayout ?: return

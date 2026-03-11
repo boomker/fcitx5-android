@@ -34,6 +34,9 @@ import kotlinx.serialization.json.*
 import kotlinx.serialization.encodeToString
 import java.io.File
 
+// Import the draggable flow layout
+import org.fcitx.fcitx5.android.ui.main.settings.behavior.DraggableFlowLayout
+
 private val prettyJson = Json { prettyPrint = true }
 
 class PopupEditorActivity : AppCompatActivity() {
@@ -86,7 +89,6 @@ class PopupEditorActivity : AppCompatActivity() {
 
     private val entries: MutableMap<String, MutableList<String>> = linkedMapOf()
     private var originalEntries: Map<String, List<String>> = emptyMap()
-
     private var saveMenuItem: MenuItem? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -334,12 +336,11 @@ class PopupEditorActivity : AppCompatActivity() {
             setTextColor(styledColor(android.R.attr.textColorSecondary))
         }
 
-        // Flow layout for candidate chips (auto wrap)
         val candidatesScroll = android.widget.ScrollView(this).apply {
             isFillViewport = false
         }
 
-        val candidatesFlow = FlowLayout(this)
+        val candidatesFlow = DraggableFlowLayout(this)
 
         candidatesScroll.addView(candidatesFlow, android.widget.LinearLayout.LayoutParams(
             android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
@@ -351,16 +352,14 @@ class PopupEditorActivity : AppCompatActivity() {
         container.addView(valueLabel)
         container.addView(candidatesScroll)
 
-        // Rebuild candidates UI
         fun doRebuildCandidates() {
             candidatesFlow.removeAllViews()
             values.forEachIndexed { index, value ->
                 val candidateChip = TextView(this@PopupEditorActivity).apply {
                     text = value
                     textSize = 14f
-                    setPadding(dp(12), dp(8), dp(12), dp(8))
+                    setPadding(dp(10), dp(5), dp(10), dp(5))
                     gravity = android.view.Gravity.CENTER
-                    // Add border effect using drawable
                     background = android.graphics.drawable.GradientDrawable().apply {
                         setColor(styledColor(android.R.attr.colorButtonNormal))
                         setStroke(dp(1), styledColor(android.R.attr.colorControlNormal))
@@ -399,6 +398,7 @@ class PopupEditorActivity : AppCompatActivity() {
                         true
                     }
                 }
+
                 candidatesFlow.addView(candidateChip, ViewGroup.MarginLayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT
@@ -409,11 +409,28 @@ class PopupEditorActivity : AppCompatActivity() {
                     bottomMargin = dp(4)
                 })
             }
-            // Add button
+
+            candidatesFlow.onDragListener = object : DraggableFlowLayout.OnDragListener {
+                override fun onDragStarted(view: View, position: Int) {
+                }
+
+                override fun onDragPositionChanged(from: Int, to: Int) {
+                    if (from >= 0 && from < values.size && to >= 0 && to < values.size) {
+                        val item = values.removeAt(from)
+                        values.add(to, item)
+                        updateSaveButtonState()
+                    }
+                }
+
+                override fun onDragEnded(view: View, position: Int) {
+                    doRebuildCandidates()
+                }
+            }
+
             val addChip = TextView(this@PopupEditorActivity).apply {
                 text = getString(R.string.popup_editor_add_candidate_button)
-                textSize = 16f
-                setPadding(dp(12), dp(8), dp(12), dp(8))
+                textSize = 14f
+                setPadding(dp(12), dp(5), dp(12), dp(5))
                 gravity = android.view.Gravity.CENTER
                 background = android.graphics.drawable.GradientDrawable().apply {
                     setColor(styledColor(android.R.attr.colorPrimary))
@@ -421,7 +438,6 @@ class PopupEditorActivity : AppCompatActivity() {
                     cornerRadius = dp(4).toFloat()
                 }
                 setOnClickListener {
-                    // Add candidate
                     val edit = EditText(this@PopupEditorActivity).apply {
                         hint = getString(R.string.popup_editor_candidate_input_hint)
                     }
@@ -476,7 +492,7 @@ class PopupEditorActivity : AppCompatActivity() {
                 }
                 entries[newKey] = values
                 buildRows()
-                updateSaveButtonState() // Update save button state
+                updateSaveButtonState()
                 dialog.dismiss()
             }
         }
@@ -490,7 +506,7 @@ class PopupEditorActivity : AppCompatActivity() {
             .setPositiveButton(R.string.delete) { _, _ ->
                 entries.remove(key)
                 buildRows()
-                updateSaveButtonState() // Update save button state
+                updateSaveButtonState()
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()

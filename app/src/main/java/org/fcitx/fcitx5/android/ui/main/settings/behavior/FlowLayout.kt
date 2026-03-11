@@ -9,7 +9,7 @@ import android.util.AttributeSet
 import android.view.View
 import android.view.ViewGroup
 
-class FlowLayout @JvmOverloads constructor(
+open class FlowLayout @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
