@@ -218,6 +218,8 @@
     <string name="text_keyboard_layout_key_label_lang">Lang</string>
     <string name="text_keyboard_layout_key_label_space">Space</string>
     <string name="text_keyboard_layout_key_label_enter">Enter</string>
+    <string name="text_keyboard_layout_alphabet_key_main_required">Hauptzeichen darf nicht leer sein</string>
+    <string name="text_keyboard_layout_alphabet_key_alt_required">Alternatives Zeichen (Satzzeichen) darf nicht leer sein</string>
     <string name="cannot_resolve_text_keyboard_layout">Datei für Texttastatur-Layout kann nicht ermittelt werden</string>
     <string name="text_keyboard_layout_saved_at">TextKeyboardLayout.json gespeichert unter: %1$s</string>
 

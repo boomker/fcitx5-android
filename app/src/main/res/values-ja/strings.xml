@@ -310,6 +310,8 @@
     <string name="text_keyboard_layout_key_label_lang">Lang</string>
     <string name="text_keyboard_layout_key_label_space">Space</string>
     <string name="text_keyboard_layout_key_label_enter">Enter</string>
+    <string name="text_keyboard_layout_alphabet_key_main_required">メイン文字は空にできません</string>
+    <string name="text_keyboard_layout_alphabet_key_alt_required">代替文字（記号）は空にできません</string>
     <string name="cannot_resolve_text_keyboard_layout">テキストキーボードレイアウトファイルを解決できません</string>
     <string name="text_keyboard_layout_saved_at">TextKeyboardLayout.json を保存しました：%1$s</string>
 

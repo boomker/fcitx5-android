@@ -1499,6 +1499,28 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
 
         dialog.setOnShowListener {
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                // Validate AlphabetKey fields
+                if (selectedType == "AlphabetKey") {
+                    val main = alphabetMainEdit?.text.toString().trim()
+                    val alt = alphabetAltEdit?.text.toString().trim()
+                    if (main.isEmpty()) {
+                        Toast.makeText(
+                            this,
+                            R.string.text_keyboard_layout_alphabet_key_main_required,
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        return@setOnClickListener
+                    }
+                    if (alt.isEmpty()) {
+                        Toast.makeText(
+                            this,
+                            R.string.text_keyboard_layout_alphabet_key_alt_required,
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        return@setOnClickListener
+                    }
+                }
+
                 val newKey = mutableMapOf<String, Any?>()
                 newKey["type"] = selectedType
 
@@ -1506,8 +1528,8 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                     "AlphabetKey" -> {
                         val main = alphabetMainEdit?.text.toString()
                         val alt = alphabetAltEdit?.text.toString()
-                        if (main.isNotEmpty()) newKey["main"] = main
-                        if (alt.isNotEmpty()) newKey["alt"] = alt
+                        newKey["main"] = main
+                        newKey["alt"] = alt
 
                         if (alphabetDisplayTextModeSpecific) {
                             captureModeSpecificFromUi()

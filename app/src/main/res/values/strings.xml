@@ -439,6 +439,8 @@
     <string name="text_keyboard_layout_key_label_lang">Lang</string>
     <string name="text_keyboard_layout_key_label_space">Space</string>
     <string name="text_keyboard_layout_key_label_enter">Enter</string>
+    <string name="text_keyboard_layout_alphabet_key_main_required">Main character must not be empty</string>
+    <string name="text_keyboard_layout_alphabet_key_alt_required">Alt character must not be empty</string>
     <string name="cannot_resolve_text_keyboard_layout">Unable to resolve text keyboard layout file</string>
     <string name="text_keyboard_layout_saved_at">TextKeyboardLayout.json saved at: %1$s</string>
 </resources>

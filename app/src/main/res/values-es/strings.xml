@@ -173,6 +173,8 @@
     <string name="text_keyboard_layout_key_label_lang">Lang</string>
     <string name="text_keyboard_layout_key_label_space">Space</string>
     <string name="text_keyboard_layout_key_label_enter">Enter</string>
+    <string name="text_keyboard_layout_alphabet_key_main_required">El carácter principal no debe estar vacío</string>
+    <string name="text_keyboard_layout_alphabet_key_alt_required">El carácter alternativo (puntuación) no debe estar vacío</string>
     <string name="cannot_resolve_text_keyboard_layout">No se puede localizar el archivo de distribución del teclado de texto</string>
     <string name="text_keyboard_layout_saved_at">TextKeyboardLayout.json guardado en: %1$s</string>
 

@@ -439,6 +439,8 @@
     <string name="text_keyboard_layout_key_label_lang">Lang</string>
     <string name="text_keyboard_layout_key_label_space">Space</string>
     <string name="text_keyboard_layout_key_label_enter">Enter</string>
+    <string name="text_keyboard_layout_alphabet_key_main_required">主字符不能为空</string>
+    <string name="text_keyboard_layout_alphabet_key_alt_required">副字符（标点）不能为空</string>
     <string name="cannot_resolve_text_keyboard_layout">无法定位文本键盘布局文件</string>
     <string name="text_keyboard_layout_saved_at">TextKeyboardLayout.json 已保存到：%1$s</string>
 </resources>
