@@ -12,6 +12,7 @@
     <string name="advanced">Расширенное</string>
     <string name="ignore_sys_cursor">Игнорировать позицию системного курсора</string>
     <string name="hide_key_config">Скрыть конфигурации горячих клавиш</string>
+    <string name="toolbar_manually_toggled">Панель инструментов переключается вручную</string>
     <string name="allow_original_plugins">Разрешить оригинальные плагины Fcitx5</string>
     <string name="allow_original_plugins_summary">Включить для подключения плагинов от оригинального Fcitx5 Android (release и debug). Не устанавливайте одновременно оригинальные и fx плагины с одинаковой функциональностью.</string>
     <string name="_not_available_">(Недоступно)</string>

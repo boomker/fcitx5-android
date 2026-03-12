@@ -113,7 +113,6 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
     private var isInlineSuggestionPresent: Boolean = false
     private var isCapabilityFlagsPassword: Boolean = false
     private var isKeyboardLayoutNumber: Boolean = false
-    private var isToolbarManuallyToggled: Boolean = false
 
     @Keep
     private val onClipboardUpdateListener =
@@ -179,10 +178,10 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
              * state matrix:
              *                               expandToolbarByDefault
              *                          |   \   |    true |   false
-             * isToolbarManuallyToggled |  true |   Empty | Toolbar
+             * toolbarManuallyToggled   |  true |   Empty | Toolbar
              *                          | false | Toolbar |   Empty
              */
-            expandToolbarByDefault == isToolbarManuallyToggled -> IdleUi.State.Empty
+            expandToolbarByDefault == prefs.keyboard.toolbarManuallyToggled.getValue() -> IdleUi.State.Empty
             else -> IdleUi.State.Toolbar
         }
         if (newState == idleUi.currentState) return
@@ -212,15 +211,15 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
             menuButton.setOnClickListener {
                 when (idleUi.currentState) {
                     IdleUi.State.Empty -> {
-                        isToolbarManuallyToggled = !expandToolbarByDefault
+                        prefs.keyboard.toolbarManuallyToggled.setValue(!expandToolbarByDefault)
                         evalIdleUiState(fromUser = true)
                     }
                     IdleUi.State.Toolbar -> {
-                        isToolbarManuallyToggled = expandToolbarByDefault
+                        prefs.keyboard.toolbarManuallyToggled.setValue(expandToolbarByDefault)
                         evalIdleUiState(fromUser = true)
                     }
                     else -> {
-                        isToolbarManuallyToggled = !expandToolbarByDefault
+                        prefs.keyboard.toolbarManuallyToggled.setValue(!expandToolbarByDefault)
                         idleUi.updateState(IdleUi.State.Toolbar, fromUser = true)
                     }
                 }

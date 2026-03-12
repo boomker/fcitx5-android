@@ -12,6 +12,7 @@
     <string name="advanced">Avanzado</string>
     <string name="ignore_sys_cursor">Ignorar posición del cursor del sistema</string>
     <string name="hide_key_config">Ocultar configuraciones de atajos</string>
+    <string name="toolbar_manually_toggled">Barra de herramientas alternada manualmente</string>
     <string name="allow_original_plugins">Permitir plugins originales de Fcitx5</string>
     <string name="allow_original_plugins_summary">Habilitar para permitir que plugins de Fcitx5 Android original (release y debug) se conecten. No instalar tanto plugins originales como fx con la misma funcionalidad.</string>
     <string name="_not_available_">(No disponible)</string>

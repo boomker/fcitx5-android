@@ -127,6 +127,7 @@
     <string name="punctuation_pos_top_right">右上</string>
     <string name="punctuation_pos_none">無</string>
     <string name="expand_toolbar_by_default">預設展開工具列</string>
+    <string name="toolbar_manually_toggled">工具列手動切換狀態</string>
     <string name="popup_on_key_press">按鍵時彈出顯示字元</string>
     <string name="disable_animation">停用動畫</string>
     <string name="import_from_file">從檔案匯入…</string>
