@@ -12,6 +12,8 @@
     <string name="advanced">高级</string>
     <string name="ignore_sys_cursor">忽略系统光标位置</string>
     <string name="hide_key_config">隐藏快捷键配置</string>
+    <string name="allow_original_plugins">允许原版 Fcitx5 插件</string>
+    <string name="allow_original_plugins_summary">启用后允许原版 Fcitx5 Android（发布版和调试版）的插件连接。请勿同时安装功能相同的原版和 fx 插件。</string>
     <string name="_not_available_">（不可用）</string>
     <string name="button_haptic_feedback">按键时振动</string>
     <string name="button_up_haptic_feedback">按键松开时振动</string>

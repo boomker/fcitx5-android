@@ -90,16 +90,31 @@ object DataManager {
 
         val pm = appContext.packageManager
 
-        val pluginPackages = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        // Query both current app's plugins and original Fcitx5 Android plugins
+        val pluginPackages = mutableSetOf<String>()
+        
+        // Query for current app's plugins
+        val currentPluginIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             pm.queryIntentActivities(
                 Intent(PLUGIN_INTENT),
                 PackageManager.ResolveInfoFlags.of(PackageManager.MATCH_ALL.toLong())
             )
         } else {
             pm.queryIntentActivities(Intent(PLUGIN_INTENT), PackageManager.MATCH_ALL)
-        }.map {
-            it.activityInfo.packageName
-        }
+        }.map { it.activityInfo.packageName }
+        
+        // Query for original Fcitx5 Android plugins
+        val originalPluginIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            pm.queryIntentActivities(
+                Intent("org.fcitx.fcitx5.android.plugin.MANIFEST"),
+                PackageManager.ResolveInfoFlags.of(PackageManager.MATCH_ALL.toLong())
+            )
+        } else {
+            pm.queryIntentActivities(Intent("org.fcitx.fcitx5.android.plugin.MANIFEST"), PackageManager.MATCH_ALL)
+        }.map { it.activityInfo.packageName }
+        
+        pluginPackages.addAll(currentPluginIntent)
+        pluginPackages.addAll(originalPluginIntent)
 
         Timber.d("Detected plugin packages: ${pluginPackages.joinToString()}")
 

@@ -58,6 +58,12 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
         val ignoreSystemWindowInsets = switch(
             R.string.ignore_system_window_insets, "ignore_system_window_insets", false
         )
+        val allowOriginalPlugins = switch(
+            R.string.allow_original_plugins,
+            "allow_original_plugins",
+            false,
+            R.string.allow_original_plugins_summary
+        )
     }
 
     inner class Keyboard : ManagedPreferenceCategory(R.string.virtual_keyboard, sharedPreferences) {

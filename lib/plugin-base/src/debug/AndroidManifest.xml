@@ -7,6 +7,8 @@
     </queries>
 
     <queries>
+        <package android:name="${mainApplicationId}" />
+        <!-- Compatibility: also query original Fcitx5 Android debug package -->
         <package android:name="org.fcitx.fcitx5.android.debug" />
     </queries>
 
@@ -20,6 +22,10 @@
             <intent-filter tools:node="remove">
                 <action android:name="org.fcitx.fcitx5.android.plugin.MANIFEST" />
             </intent-filter>
+            <intent-filter>
+                <action android:name="${mainApplicationId}.plugin.MANIFEST" />
+            </intent-filter>
+            <!-- Compatibility with original Fcitx5 Android debug -->
             <intent-filter>
                 <action android:name="org.fcitx.fcitx5.android.debug.plugin.MANIFEST" />
             </intent-filter>

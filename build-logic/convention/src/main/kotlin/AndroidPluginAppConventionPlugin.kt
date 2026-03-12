@@ -14,21 +14,29 @@ import org.gradle.kotlin.dsl.configure
 class AndroidPluginAppConventionPlugin : Plugin<Project> {
 
     override fun apply(target: Project) {
+        val mainApplicationId = target.findProperty("mainApplicationId")?.toString()
+            ?: target.findProperty("applicationId")?.toString()
+            ?: "org.fcitx.fcitx5.android"
+
         target.extensions.configure<BaseAppModuleExtension> {
             buildTypes {
                 release {
-                    buildConfigField("String", "MAIN_APPLICATION_ID", "\"org.fcitx.fcitx5.android\"")
+                    buildConfigField("String", "MAIN_APPLICATION_ID", "\"$mainApplicationId\"")
                     addManifestPlaceholders(
                         mapOf(
-                            "mainApplicationId" to "org.fcitx.fcitx5.android",
+                            "mainApplicationId" to mainApplicationId,
                         )
                     )
                 }
                 debug {
-                    buildConfigField("String", "MAIN_APPLICATION_ID", "\"org.fcitx.fcitx5.android.debug\"")
+                    // For debug, use the same application ID unless specified otherwise
+                    val debugMainApplicationId = target.findProperty("mainApplicationId")?.toString()
+                        ?: target.findProperty("applicationId")?.toString()?.let { "${it}.debug" }
+                        ?: "org.fcitx.fcitx5.android.debug"
+                    buildConfigField("String", "MAIN_APPLICATION_ID", "\"$debugMainApplicationId\"")
                     addManifestPlaceholders(
                         mapOf(
-                            "mainApplicationId" to "org.fcitx.fcitx5.android.debug",
+                            "mainApplicationId" to debugMainApplicationId,
                         )
                     )
                 }

@@ -21,6 +21,10 @@
         <intent>
             <action android:name="${applicationId}.plugin.MANIFEST" />
         </intent>
+        <!-- Compatibility with original Fcitx5 Android plugins -->
+        <intent>
+            <action android:name="org.fcitx.fcitx5.android.plugin.MANIFEST" />
+        </intent>
         <intent>
             <action android:name="android.view.InputMethod" />
         </intent>
@@ -150,11 +154,17 @@
 
         <service
             android:name=".FcitxRemoteService"
-            android:exported="true"
-            android:permission="${applicationId}.permission.IPC"
-            tools:ignore="SystemPermissionTypo">
+            android:exported="true">
             <intent-filter>
                 <action android:name="${applicationId}.IPC" />
+            </intent-filter>
+            <!-- Compatibility with original Fcitx5 Android plugins -->
+            <intent-filter>
+                <action android:name="org.fcitx.fcitx5.android.IPC" />
+            </intent-filter>
+            <!-- Compatibility with original Fcitx5 Android debug plugins -->
+            <intent-filter>
+                <action android:name="org.fcitx.fcitx5.android.debug.IPC" />
             </intent-filter>
         </service>
 

@@ -12,6 +12,8 @@
     <string name="advanced">고급</string>
     <string name="ignore_sys_cursor">시스템 커서 위치 무시</string>
     <string name="hide_key_config">단축키 구성 숨김</string>
+    <string name="allow_original_plugins">원본 Fcitx5 플러그인 허용</string>
+    <string name="allow_original_plugins_summary">원본 Fcitx5 Android(릴리스 및 디버그) 의 플러그인 연결을 허용합니다. 동일한 기능의 원본 플러그인과 fx 플러그인을 모두 설치하지 마십시오.</string>
     <string name="_not_available_">(사용할 수 없음)</string>
     <string name="add">추가</string>
     <string name="edit">편집</string>
