@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name_release">Fcitx5</string>
-    <string name="app_name_debug">Fcitx5 (Debug)</string>
+    <string name="app_name_release">Fcitx5.fx</string>
+    <string name="app_name_debug">Fcitx5.fx (Debug)</string>
     <string name="save">Save</string>
     <string name="input_methods">Input Methods</string>
     <string name="add_input_method">Add Input Method</string>
@@ -278,7 +278,7 @@
     <string name="import_user_data">Import user data</string>
     <string name="exception_user_data_filename">The filename extension of %1$s does not indicate fcitx5-android user data</string>
     <string name="exception_user_data_metadata">Unable to find metadata of user data</string>
-    <string name="exception_user_data_package_name_mismatch">User data does not match current application</string>
+    <string name="exception_user_data_package_name_mismatch">User data does not match current application (found: %1$s)</string>
     <string name="user_data_imported">User data on %1$s has been imported, restarting…</string>
     <string name="confirm_import_user_data">Import user data would override local settings and input history, and requires restarting the App for changes to take effect. Proceed?</string>
     <string name="restart_channel">App restart</string>
