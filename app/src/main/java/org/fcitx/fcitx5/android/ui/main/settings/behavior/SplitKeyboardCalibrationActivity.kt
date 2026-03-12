@@ -26,6 +26,7 @@ import androidx.core.view.updatePadding
 import androidx.core.view.WindowCompat
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
+import org.fcitx.fcitx5.android.data.prefs.SplitKeyboardStateManager
 import org.fcitx.fcitx5.android.data.theme.ThemeManager
 import org.fcitx.fcitx5.android.core.InputMethodEntry
 import org.fcitx.fcitx5.android.input.keyboard.TextKeyboard
@@ -57,6 +58,7 @@ class SplitKeyboardCalibrationActivity : AppCompatActivity() {
     private lateinit var gapValueText: TextView
     private lateinit var deviceInfoText: TextView
 
+    private val splitKeyboardManager by lazy { SplitKeyboardStateManager.getInstance() }
     private val prefs by lazy { AppPrefs.getInstance() }
     private val keyboardPrefs by lazy { prefs.keyboard }
 
@@ -131,6 +133,8 @@ class SplitKeyboardCalibrationActivity : AppCompatActivity() {
                 shouldEnforceLowercaseAfterRotation = true
                 lastOrientation = orientation
             }
+            // Refresh device info cache for foldable inner/outer screen switch
+            splitKeyboardManager.refreshDeviceInfo()
             refreshCurrentKeyboardWidth()
             updatePreview()
             updateDeviceInfo()

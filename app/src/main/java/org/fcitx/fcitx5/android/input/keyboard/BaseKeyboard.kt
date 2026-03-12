@@ -693,6 +693,9 @@ abstract class BaseKeyboard(
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        // Refresh device info cache for foldable inner/outer screen switch
+        splitKeyboardManager.refreshDeviceInfo()
+        
         val currentSplit = splitKeyboardManager.shouldUseSplitKeyboard()
         if (currentSplit != lastSplitLandscapeState) {
             reloadLayout()

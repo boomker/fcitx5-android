@@ -6,6 +6,7 @@ package org.fcitx.fcitx5.android.data.prefs
 
 import android.content.Context
 import android.content.res.Configuration
+import android.util.Log
 import org.fcitx.fcitx5.android.utils.DeviceInfoCollector
 import org.fcitx.fcitx5.android.utils.DeviceType
 
@@ -21,6 +22,7 @@ class SplitKeyboardStateManager private constructor(private val context: Context
 
     private var cachedDeviceInfo: DeviceInfoCollector.DeviceInfo? = null
     private var lastOrientation: Int = Configuration.ORIENTATION_UNDEFINED
+    private var lastSmallestWidthDp: Int = 0
 
     /**
      * Listener for split keyboard state changes.
@@ -47,21 +49,54 @@ class SplitKeyboardStateManager private constructor(private val context: Context
 
     /**
      * Get current device info (cached).
+     * 
+     * Cache is refreshed when:
+     * 1. Cache is null (first access)
+     * 2. Screen orientation changed (portrait ↔ landscape)
+     * 3. Smallest width changed (foldable inner/outer screen switch)
      */
-    fun getDeviceInfo(): DeviceInfoCollector.DeviceInfo {
-        if (cachedDeviceInfo == null || orientationChanged()) {
+    fun getDeviceInfo(refresh: Boolean = false): DeviceInfoCollector.DeviceInfo {
+        if (refresh || shouldRefreshCache()) {
             cachedDeviceInfo = DeviceInfoCollector.collect(context)
             lastOrientation = context.resources.configuration.orientation
+            lastSmallestWidthDp = context.resources.configuration.smallestScreenWidthDp
+            Log.d(TAG, "Device info refreshed: orientation=$lastOrientation, smallestWidth=$lastSmallestWidthDp")
         }
         return cachedDeviceInfo!!
     }
 
     /**
-     * Check if orientation has changed since last cache.
+     * Check if cache should be refreshed.
+     * 
+     * Cache refresh is triggered when:
+     * 1. Orientation changed (portrait ↔ landscape)
+     * 2. Smallest width changed (foldable inner/outer screen switch)
      */
-    private fun orientationChanged(): Boolean {
+    private fun shouldRefreshCache(): Boolean {
         val currentOrientation = context.resources.configuration.orientation
-        return currentOrientation != lastOrientation
+        val currentSmallestWidth = context.resources.configuration.smallestScreenWidthDp
+        
+        val orientationChanged = currentOrientation != lastOrientation
+        val screenConfigChanged = currentSmallestWidth != lastSmallestWidthDp
+        
+        if (orientationChanged) {
+            Log.d(TAG, "Orientation changed: $lastOrientation → $currentOrientation")
+        }
+        if (screenConfigChanged) {
+            Log.d(TAG, "Smallest width changed: $lastSmallestWidthDp → $currentSmallestWidth")
+        }
+        
+        return orientationChanged || screenConfigChanged
+    }
+
+    /**
+     * Manually refresh device info cache.
+     * 
+     * Call this when you detect a foldable screen state change (inner/outer screen switch).
+     */
+    fun refreshDeviceInfo() {
+        Log.d(TAG, "Manual device info refresh requested")
+        getDeviceInfo(refresh = true)
     }
 
     /**
@@ -141,6 +176,8 @@ class SplitKeyboardStateManager private constructor(private val context: Context
      * Companion object for singleton access.
      */
     companion object {
+        private const val TAG = "SplitKeyboardState"
+        
         @Volatile
         private var instance: SplitKeyboardStateManager? = null
 
