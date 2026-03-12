@@ -312,4 +312,41 @@
     <string name="text_keyboard_layout_key_label_enter">Enter</string>
     <string name="cannot_resolve_text_keyboard_layout">テキストキーボードレイアウトファイルを解決できません</string>
     <string name="text_keyboard_layout_saved_at">TextKeyboardLayout.json を保存しました：%1$s</string>
+
+    <!-- Split keyboard calibration -->
+    <string name="split_keyboard_device_info">📱 デバイス情報</string>
+    <string name="split_keyboard_threshold_label">分割閾値 (dp)</string>
+    <string name="split_keyboard_gap_label">間隙 (%)</string>
+    <string name="split_keyboard_auto_calibrate">自動キャリブレーション</string>
+    <string name="split_keyboard_reset">リセット</string>
+    <string name="split_keyboard_apply">適用</string>
+    <string name="split_keyboard_preview_load_failed">プレビューの読み込みに失敗：%1$s</string>
+    <string name="split_keyboard_info_type">タイプ</string>
+    <string name="split_keyboard_info_orientation">向き</string>
+    <string name="split_keyboard_info_min_width">最小幅</string>
+    <string name="split_keyboard_info_keyboard_width">キーボード幅</string>
+    <string name="split_keyboard_info_split">分割</string>
+    <string name="split_keyboard_info_threshold">閾値</string>
+    <string name="split_keyboard_info_gap">間隙</string>
+    <string name="split_keyboard_info_recommended">推奨</string>
+    <string name="split_keyboard_info_multi_screen">マルチスクリーン</string>
+    <string name="split_keyboard_orientation_portrait">縦向き</string>
+    <string name="split_keyboard_orientation_landscape">横向き</string>
+    <string name="split_keyboard_split_yes">はい</string>
+    <string name="split_keyboard_split_no">いいえ</string>
+    <string name="split_keyboard_device_type_tablet">タブレット</string>
+    <string name="split_keyboard_device_type_foldable">折りたたみ式</string>
+    <string name="split_keyboard_device_type_large_phone">大画面スマホ</string>
+    <string name="split_keyboard_device_type_small_phone">小画面スマホ</string>
+    <string name="split_keyboard_device_type_phone">標準スマホ</string>
+    <string name="split_keyboard_recommend_reason_tablet">タブレット推奨値</string>
+    <string name="split_keyboard_recommend_reason_foldable_multi">折りたたみ式マルチスクリーン（最小 %1$ddp）</string>
+    <string name="split_keyboard_recommend_reason_foldable">折りたたみ式推奨値</string>
+    <string name="split_keyboard_recommend_reason_large_phone">大画面スマホ推奨値</string>
+    <string name="split_keyboard_recommend_reason_small_phone">小画面スマホ推奨値</string>
+    <string name="split_keyboard_recommend_reason_phone">標準スマホ推奨値</string>
+    <string name="split_keyboard_auto_calibrate_toast">適用済み：%1$ddp、間隙 %2$d%% (%3$s)</string>
+    <string name="split_keyboard_reset_toast">デフォルト値にリセットしました</string>
+    <string name="split_keyboard_apply_toast">保存済み：閾値 %1$ddp、間隙 %2$d%%%3$s</string>
+    <string name="split_keyboard_apply_note_disabled">（注：分割キーボードは無効です）</string>
 </resources>

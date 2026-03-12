@@ -43,6 +43,10 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
         val floatingKeyboardYLandscape = int("floating_keyboard_y_landscape", -1)
         val oneHandOnRightPortrait = bool("one_hand_on_right_portrait", true)
         val oneHandOnRightLandscape = bool("one_hand_on_right_landscape", true)
+
+        // Settings initialization flag
+        val settingsInitialized = bool("settings_initialized", false)
+        val splitKeyboardMigrated = bool("split_keyboard_migrated", false)
     }
 
     inner class Advanced : ManagedPreferenceCategory(R.string.advanced, sharedPreferences) {
@@ -253,11 +257,25 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
             keyboardBottomPaddingLandscape = secondary
         }
 
-        val splitKeyboardLandscape = switch(
-            R.string.split_keyboard_landscape,
-            "split_keyboard_landscape",
-            false
+        // ===== Split keyboard settings (refactored) =====
+        val splitKeyboardEnabled = switch(
+            R.string.split_keyboard_enabled,
+            "split_keyboard_enabled",
+            true,  // Default enabled; may be adjusted based on device type on first install
+            R.string.split_keyboard_enabled_summary
         )
+
+        val splitKeyboardThreshold = int(
+            R.string.split_keyboard_threshold,
+            "split_keyboard_threshold",
+            470,  // Default value; intelligently set based on device type on first install
+            350,
+            700,
+            "dp",
+            R.string.split_keyboard_threshold_summary
+        ) {
+            splitKeyboardEnabled.getValue()
+        }
 
         val splitKeyboardGapPercent = int(
             R.string.split_keyboard_gap_percent,
@@ -267,7 +285,7 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
             60,
             "%"
         ) {
-            splitKeyboardLandscape.getValue()
+            splitKeyboardEnabled.getValue()
         }
 
         val horizontalCandidateStyle = enumList(

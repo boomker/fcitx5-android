@@ -164,8 +164,53 @@
     <string name="keyboard_bottom_padding">键盘底部边距</string>
     <string name="keyboard_side_padding">键盘两侧边距</string>
     <string name="clipboard_suggestion">显示剪贴板提示</string>
-    <string name="split_keyboard_landscape">横屏时分体键盘</string>
+    
+    <!-- Split keyboard settings (refactored) -->
+    <string name="split_keyboard_enabled">启用自动分体键盘</string>
+    <string name="split_keyboard_enabled_summary">根据键盘宽度自动启用分体键盘。关闭后始终使用完整键盘。</string>
+    <string name="split_keyboard_threshold">分体键盘阈值</string>
+    <string name="split_keyboard_threshold_summary">当键盘宽度超过设定值时自动启用分体键盘</string>
+
     <string name="split_keyboard_gap_percent">分体中缝宽度</string>
+
+    <!-- Split keyboard calibration -->
+    <string name="split_keyboard_calibration_title">分体键盘校准</string>
+    <string name="split_keyboard_calibration_summary">可视化预览和调节分体键盘设置，支持自动推荐和折叠屏适配</string>
+    <string name="split_keyboard_device_info">📱 设备信息</string>
+    <string name="split_keyboard_threshold_label">分体阈值 (dp)</string>
+    <string name="split_keyboard_gap_label">中缝间隙 (%)</string>
+    <string name="split_keyboard_auto_calibrate">自动校准</string>
+    <string name="split_keyboard_reset">重置</string>
+    <string name="split_keyboard_apply">应用设置</string>
+    <string name="split_keyboard_preview_load_failed">预览加载失败：%1$s</string>
+    <string name="split_keyboard_info_type">类型</string>
+    <string name="split_keyboard_info_orientation">方向</string>
+    <string name="split_keyboard_info_min_width">最小宽度</string>
+    <string name="split_keyboard_info_keyboard_width">当前键盘宽度</string>
+    <string name="split_keyboard_info_split">分体</string>
+    <string name="split_keyboard_info_threshold">当前阈值</string>
+    <string name="split_keyboard_info_gap">中缝</string>
+    <string name="split_keyboard_info_recommended">推荐阈值</string>
+    <string name="split_keyboard_info_multi_screen">多屏</string>
+    <string name="split_keyboard_orientation_portrait">竖屏</string>
+    <string name="split_keyboard_orientation_landscape">横屏</string>
+    <string name="split_keyboard_split_yes">是</string>
+    <string name="split_keyboard_split_no">否</string>
+    <string name="split_keyboard_device_type_tablet">平板设备</string>
+    <string name="split_keyboard_device_type_foldable">折叠屏</string>
+    <string name="split_keyboard_device_type_large_phone">大屏手机</string>
+    <string name="split_keyboard_device_type_small_phone">小屏手机</string>
+    <string name="split_keyboard_device_type_phone">标准手机</string>
+    <string name="split_keyboard_recommend_reason_tablet">平板设备建议值</string>
+    <string name="split_keyboard_recommend_reason_foldable_multi">折叠屏多屏适配（最小 %1$ddp）</string>
+    <string name="split_keyboard_recommend_reason_foldable">折叠屏建议值</string>
+    <string name="split_keyboard_recommend_reason_large_phone">大屏手机建议值</string>
+    <string name="split_keyboard_recommend_reason_small_phone">小屏手机建议值</string>
+    <string name="split_keyboard_recommend_reason_phone">标准手机建议值</string>
+    <string name="split_keyboard_auto_calibrate_toast">✅ 已应用推荐值：%1$ddp，间隙 %2$d%%（%3$s）</string>
+    <string name="split_keyboard_reset_toast">已重置为默认值</string>
+    <string name="split_keyboard_apply_toast">✅ 设置已保存：阈值 %1$ddp，间隙 %2$d%%%3$s</string>
+    <string name="split_keyboard_apply_note_disabled">（注意：分体开关当前关闭）</string>
     <string name="disable_addon_warn_title">禁用附加组件</string>
     <string name="disable_addon_warn_name">禁用%1$s将同时：</string>
     <string name="disable_addon_warn_dep">禁用%1$s</string>

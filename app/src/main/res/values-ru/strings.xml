@@ -374,4 +374,41 @@
     <string name="text_keyboard_layout_key_label_enter">Enter</string>
     <string name="cannot_resolve_text_keyboard_layout">Не удалось определить файл раскладки текстовой клавиатуры</string>
     <string name="text_keyboard_layout_saved_at">TextKeyboardLayout.json сохранён в: %1$s</string>
+
+    <!-- Split keyboard calibration -->
+    <string name="split_keyboard_device_info">📱 Информация об устройстве</string>
+    <string name="split_keyboard_threshold_label">Порог разделения (dp)</string>
+    <string name="split_keyboard_gap_label">Зазор (%)</string>
+    <string name="split_keyboard_auto_calibrate">Автокалибровка</string>
+    <string name="split_keyboard_reset">Сброс</string>
+    <string name="split_keyboard_apply">Применить</string>
+    <string name="split_keyboard_preview_load_failed">Ошибка загрузки предпросмотра: %1$s</string>
+    <string name="split_keyboard_info_type">Тип</string>
+    <string name="split_keyboard_info_orientation">Ориентация</string>
+    <string name="split_keyboard_info_min_width">Мин. ширина</string>
+    <string name="split_keyboard_info_keyboard_width">Ширина клавиатуры</string>
+    <string name="split_keyboard_info_split">Разделено</string>
+    <string name="split_keyboard_info_threshold">Порог</string>
+    <string name="split_keyboard_info_gap">Зазор</string>
+    <string name="split_keyboard_info_recommended">Рекомендуется</string>
+    <string name="split_keyboard_info_multi_screen">Несколько экранов</string>
+    <string name="split_keyboard_orientation_portrait">Портретная</string>
+    <string name="split_keyboard_orientation_landscape">Альбомная</string>
+    <string name="split_keyboard_split_yes">Да</string>
+    <string name="split_keyboard_split_no">Нет</string>
+    <string name="split_keyboard_device_type_tablet">Планшет</string>
+    <string name="split_keyboard_device_type_foldable">Складной</string>
+    <string name="split_keyboard_device_type_large_phone">Большой телефон</string>
+    <string name="split_keyboard_device_type_small_phone">Маленький телефон</string>
+    <string name="split_keyboard_device_type_phone">Стандартный телефон</string>
+    <string name="split_keyboard_recommend_reason_tablet">Рекомендация для планшета</string>
+    <string name="split_keyboard_recommend_reason_foldable_multi">Складной с несколькими экранами (мин. %1$ddp)</string>
+    <string name="split_keyboard_recommend_reason_foldable">Рекомендация для складного</string>
+    <string name="split_keyboard_recommend_reason_large_phone">Рекомендация для большого телефона</string>
+    <string name="split_keyboard_recommend_reason_small_phone">Рекомендация для маленького телефона</string>
+    <string name="split_keyboard_recommend_reason_phone">Рекомендация для стандартного телефона</string>
+    <string name="split_keyboard_auto_calibrate_toast">Применено: %1$ddp, зазор %2$d%% (%3$s)</string>
+    <string name="split_keyboard_reset_toast">Сброшено к значениям по умолчанию</string>
+    <string name="split_keyboard_apply_toast">Сохранено: порог %1$ddp, зазор %2$d%%%3$s</string>
+    <string name="split_keyboard_apply_note_disabled"> (Примечание: Разделённая клавиатура отключена)</string>
 </resources>

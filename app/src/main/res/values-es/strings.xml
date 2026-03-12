@@ -175,4 +175,41 @@
     <string name="text_keyboard_layout_key_label_enter">Enter</string>
     <string name="cannot_resolve_text_keyboard_layout">No se puede localizar el archivo de distribución del teclado de texto</string>
     <string name="text_keyboard_layout_saved_at">TextKeyboardLayout.json guardado en: %1$s</string>
+
+    <!-- Split keyboard calibration -->
+    <string name="split_keyboard_device_info">📱 Información del dispositivo</string>
+    <string name="split_keyboard_threshold_label">Umbral de división (dp)</string>
+    <string name="split_keyboard_gap_label">Brecha (%)</string>
+    <string name="split_keyboard_auto_calibrate">Calibrar automáticamente</string>
+    <string name="split_keyboard_reset">Restablecer</string>
+    <string name="split_keyboard_apply">Aplicar</string>
+    <string name="split_keyboard_preview_load_failed">Error al cargar la vista previa: %1$s</string>
+    <string name="split_keyboard_info_type">Tipo</string>
+    <string name="split_keyboard_info_orientation">Orientación</string>
+    <string name="split_keyboard_info_min_width">Ancho mín.</string>
+    <string name="split_keyboard_info_keyboard_width">Ancho del teclado</string>
+    <string name="split_keyboard_info_split">Dividido</string>
+    <string name="split_keyboard_info_threshold">Umbral</string>
+    <string name="split_keyboard_info_gap">Brecha</string>
+    <string name="split_keyboard_info_recommended">Recomendado</string>
+    <string name="split_keyboard_info_multi_screen">Múltiples pantallas</string>
+    <string name="split_keyboard_orientation_portrait">Vertical</string>
+    <string name="split_keyboard_orientation_landscape">Horizontal</string>
+    <string name="split_keyboard_split_yes">Sí</string>
+    <string name="split_keyboard_split_no">No</string>
+    <string name="split_keyboard_device_type_tablet">Tableta</string>
+    <string name="split_keyboard_device_type_foldable">Plegable</string>
+    <string name="split_keyboard_device_type_large_phone">Teléfono grande</string>
+    <string name="split_keyboard_device_type_small_phone">Teléfono pequeño</string>
+    <string name="split_keyboard_device_type_phone">Teléfono estándar</string>
+    <string name="split_keyboard_recommend_reason_tablet">Recomendación para tableta</string>
+    <string name="split_keyboard_recommend_reason_foldable_multi">Plegable con múltiples pantallas (mín. %1$ddp)</string>
+    <string name="split_keyboard_recommend_reason_foldable">Recomendación para plegable</string>
+    <string name="split_keyboard_recommend_reason_large_phone">Recomendación para teléfono grande</string>
+    <string name="split_keyboard_recommend_reason_small_phone">Recomendación para teléfono pequeño</string>
+    <string name="split_keyboard_recommend_reason_phone">Recomendación para teléfono estándar</string>
+    <string name="split_keyboard_auto_calibrate_toast">Aplicado: %1$ddp, Brecha %2$d%% (%3$s)</string>
+    <string name="split_keyboard_reset_toast">Restablecido a los valores predeterminados</string>
+    <string name="split_keyboard_apply_toast">Guardado: Umbral %1$ddp, Brecha %2$d%%%3$s</string>
+    <string name="split_keyboard_apply_note_disabled"> (Nota: El teclado dividido está desactivado)</string>
 </resources>

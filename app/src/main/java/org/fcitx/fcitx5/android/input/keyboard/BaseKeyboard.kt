@@ -23,12 +23,14 @@ import org.fcitx.fcitx5.android.core.KeySym
 import org.fcitx.fcitx5.android.data.InputFeedbacks
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.data.prefs.ManagedPreference
+import org.fcitx.fcitx5.android.data.prefs.SplitKeyboardStateManager
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.input.font.FontProviders
 import org.fcitx.fcitx5.android.input.keyboard.CustomGestureView.GestureType
 import org.fcitx.fcitx5.android.input.keyboard.CustomGestureView.OnGestureListener
 import org.fcitx.fcitx5.android.input.popup.PopupAction
 import org.fcitx.fcitx5.android.input.popup.PopupActionListener
+import org.fcitx.fcitx5.android.utils.DeviceInfoCollector
 import splitties.dimensions.dp
 import splitties.views.dsl.constraintlayout.above
 import splitties.views.dsl.constraintlayout.below
@@ -58,12 +60,11 @@ abstract class BaseKeyboard(
     var keyActionListener: KeyActionListener? = null
 
     private val prefs = AppPrefs.getInstance()
+    private val splitKeyboardManager = SplitKeyboardStateManager.getInstance()
 
     private val popupOnKeyPress by prefs.keyboard.popupOnKeyPress
     private val expandKeypressArea by prefs.keyboard.expandKeypressArea
     private val swipeSymbolDirection by prefs.keyboard.swipeSymbolDirection
-    private val splitKeyboardLandscape = prefs.keyboard.splitKeyboardLandscape
-    private val splitKeyboardGapPercent = prefs.keyboard.splitKeyboardGapPercent
 
     private val spaceSwipeMoveCursor = prefs.keyboard.spaceSwipeMoveCursor
     private val spaceKeys = mutableListOf<KeyView>()
@@ -92,21 +93,12 @@ abstract class BaseKeyboard(
     private var lastSplitLandscapeState = false
 
     @Keep
-    private val splitKeyboardLandscapeListener = ManagedPreference.OnChangeListener<Boolean> { _, _ ->
+    private val splitStateChangeListener = SplitKeyboardStateManager.OnSplitStateChangeListener { shouldSplit ->
+        lastSplitLandscapeState = shouldSplit
         reloadLayout()
         reapplyTextScale()
         requestLayout()
         updateBounds()
-    }
-
-    @Keep
-    private val splitKeyboardGapPercentListener = ManagedPreference.OnChangeListener<Int> { _, _ ->
-        if (shouldUseSplitLandscapeLayout()) {
-            reloadLayout()
-            reapplyTextScale()
-            requestLayout()
-            updateBounds()
-        }
     }
 
     /**
@@ -118,19 +110,18 @@ abstract class BaseKeyboard(
         isMotionEventSplittingEnabled = true
         reloadLayout()
         spaceSwipeMoveCursor.registerOnChangeListener(spaceSwipeChangeListener)
-        splitKeyboardLandscape.registerOnChangeListener(splitKeyboardLandscapeListener)
-        splitKeyboardGapPercent.registerOnChangeListener(splitKeyboardGapPercentListener)
+        splitKeyboardManager.registerListener(splitStateChangeListener)
     }
 
     protected open fun reloadLayout() {
         removeAllViews()
         spaceKeys.clear()
         touchTarget.clear()
-        val splitLandscape = shouldUseSplitLandscapeLayout()
-        lastSplitLandscapeState = splitLandscape
+        val splitKeyboard = splitKeyboardManager.shouldUseSplitKeyboard()
+        lastSplitLandscapeState = splitKeyboard
         keyRows = keyLayout.map { row ->
             val keyViews = row.map(::createKeyView)
-            if (splitLandscape) {
+            if (splitKeyboard) {
                 buildSplitRow(row, keyViews)
             } else {
                 buildRegularRow(row, keyViews)
@@ -147,13 +138,8 @@ abstract class BaseKeyboard(
         }
     }
 
-    private fun shouldUseSplitLandscapeLayout(): Boolean {
-        val isLandscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-        return isLandscape && splitKeyboardLandscape.getValue()
-    }
-
     private fun splitGapPercent(): Float {
-        return (splitKeyboardGapPercent.getValue().coerceIn(5, 60) / 100f)
+        return splitKeyboardManager.getSplitGapPercent()
     }
 
     private fun resolveRowWidths(row: List<KeyDef>): List<Float> {
@@ -707,7 +693,7 @@ abstract class BaseKeyboard(
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
-        val currentSplit = shouldUseSplitLandscapeLayout()
+        val currentSplit = splitKeyboardManager.shouldUseSplitKeyboard()
         if (currentSplit != lastSplitLandscapeState) {
             reloadLayout()
             reapplyTextScale()

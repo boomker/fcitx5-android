@@ -164,8 +164,53 @@
     <string name="keyboard_bottom_padding">Keyboard bottom padding</string>
     <string name="keyboard_side_padding">Keyboard side padding</string>
     <string name="clipboard_suggestion">Show clipboard suggestions</string>
-    <string name="split_keyboard_landscape">Split keyboard in landscape</string>
+    
+    <!-- Split keyboard settings (refactored) -->
+    <string name="split_keyboard_enabled">Enable auto split keyboard</string>
+    <string name="split_keyboard_enabled_summary">Automatically enable split keyboard based on keyboard width. When disabled, always use full keyboard.</string>
+    <string name="split_keyboard_threshold">Split keyboard threshold</string>
+    <string name="split_keyboard_threshold_summary">Enable split keyboard when keyboard width exceeds this value</string>
+
     <string name="split_keyboard_gap_percent">Split keyboard center gap</string>
+
+    <!-- Split keyboard calibration -->
+    <string name="split_keyboard_calibration_title">Split Keyboard Calibration</string>
+    <string name="split_keyboard_calibration_summary">Visualize and adjust split keyboard settings with real-time preview and auto-recommendation</string>
+    <string name="split_keyboard_device_info">📱 Device Info</string>
+    <string name="split_keyboard_threshold_label">Split Threshold (dp)</string>
+    <string name="split_keyboard_gap_label">Gap (%)</string>
+    <string name="split_keyboard_auto_calibrate">Auto Calibrate</string>
+    <string name="split_keyboard_reset">Reset</string>
+    <string name="split_keyboard_apply">Apply</string>
+    <string name="split_keyboard_preview_load_failed">Preview load failed: %1$s</string>
+    <string name="split_keyboard_info_type">Type</string>
+    <string name="split_keyboard_info_orientation">Orientation</string>
+    <string name="split_keyboard_info_min_width">Min Width</string>
+    <string name="split_keyboard_info_keyboard_width">Keyboard Width</string>
+    <string name="split_keyboard_info_split">Split</string>
+    <string name="split_keyboard_info_threshold">Threshold</string>
+    <string name="split_keyboard_info_gap">Gap</string>
+    <string name="split_keyboard_info_recommended">Recommended</string>
+    <string name="split_keyboard_info_multi_screen">Multi-screen</string>
+    <string name="split_keyboard_orientation_portrait">Portrait</string>
+    <string name="split_keyboard_orientation_landscape">Landscape</string>
+    <string name="split_keyboard_split_yes">Yes</string>
+    <string name="split_keyboard_split_no">No</string>
+    <string name="split_keyboard_device_type_tablet">Tablet</string>
+    <string name="split_keyboard_device_type_foldable">Foldable</string>
+    <string name="split_keyboard_device_type_large_phone">Large phone</string>
+    <string name="split_keyboard_device_type_small_phone">Small phone</string>
+    <string name="split_keyboard_device_type_phone">Standard phone</string>
+    <string name="split_keyboard_recommend_reason_tablet">Tablet</string>
+    <string name="split_keyboard_recommend_reason_foldable_multi">Foldable multi-screen (min %1$ddp)</string>
+    <string name="split_keyboard_recommend_reason_foldable">Foldable</string>
+    <string name="split_keyboard_recommend_reason_large_phone">Large phone</string>
+    <string name="split_keyboard_recommend_reason_small_phone">Small phone</string>
+    <string name="split_keyboard_recommend_reason_phone">Standard phone</string>
+    <string name="split_keyboard_auto_calibrate_toast">Applied: %1$ddp, Gap %2$d%% (%3$s)</string>
+    <string name="split_keyboard_reset_toast">Reset to defaults</string>
+    <string name="split_keyboard_apply_toast">Saved: Threshold %1$ddp, Gap %2$d%%%3$s</string>
+    <string name="split_keyboard_apply_note_disabled"> (Note: Split keyboard is disabled)</string>
     <string name="disable_addon_warn_title">Disable Addon</string>
     <string name="disable_addon_warn_name">Disabling %1$s will also:</string>
     <string name="disable_addon_warn_dep">Disable %1$s</string>

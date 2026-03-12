@@ -757,7 +757,6 @@ class InputView(
     private val keyboardSidePaddingLandscape = keyboardPrefs.keyboardSidePaddingLandscape
     private val keyboardBottomPadding = keyboardPrefs.keyboardBottomPadding
     private val keyboardBottomPaddingLandscape = keyboardPrefs.keyboardBottomPaddingLandscape
-    private val splitKeyboardLandscape = keyboardPrefs.splitKeyboardLandscape
 
     private val keyboardSizePrefs = listOf(
         keyboardHeightPercent,
@@ -766,7 +765,6 @@ class InputView(
         keyboardSidePaddingLandscape,
         keyboardBottomPadding,
         keyboardBottomPaddingLandscape,
-        splitKeyboardLandscape,
     )
 
     var isFloating = false

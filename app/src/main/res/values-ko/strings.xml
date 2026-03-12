@@ -149,4 +149,41 @@
     <string name="text_keyboard_layout_key_label_enter">Enter</string>
     <string name="cannot_resolve_text_keyboard_layout">텍스트 키보드 레이아웃 파일을 찾을 수 없습니다</string>
     <string name="text_keyboard_layout_saved_at">TextKeyboardLayout.json 저장 위치: %1$s</string>
+
+    <!-- Split keyboard calibration -->
+    <string name="split_keyboard_device_info">📱 장치 정보</string>
+    <string name="split_keyboard_threshold_label">분할 임계값 (dp)</string>
+    <string name="split_keyboard_gap_label">간격 (%)</string>
+    <string name="split_keyboard_auto_calibrate">자동 보정</string>
+    <string name="split_keyboard_reset">재설정</string>
+    <string name="split_keyboard_apply">적용</string>
+    <string name="split_keyboard_preview_load_failed">미리보기 로드 실패: %1$s</string>
+    <string name="split_keyboard_info_type">유형</string>
+    <string name="split_keyboard_info_orientation">방향</string>
+    <string name="split_keyboard_info_min_width">최소 너비</string>
+    <string name="split_keyboard_info_keyboard_width">키보드 너비</string>
+    <string name="split_keyboard_info_split">분할</string>
+    <string name="split_keyboard_info_threshold">임계값</string>
+    <string name="split_keyboard_info_gap">간격</string>
+    <string name="split_keyboard_info_recommended">권장</string>
+    <string name="split_keyboard_info_multi_screen">멀티 스크린</string>
+    <string name="split_keyboard_orientation_portrait">세로</string>
+    <string name="split_keyboard_orientation_landscape">가로</string>
+    <string name="split_keyboard_split_yes">예</string>
+    <string name="split_keyboard_split_no">아니오</string>
+    <string name="split_keyboard_device_type_tablet">태블릿</string>
+    <string name="split_keyboard_device_type_foldable">폴더블</string>
+    <string name="split_keyboard_device_type_large_phone">대형 폰</string>
+    <string name="split_keyboard_device_type_small_phone">소형 폰</string>
+    <string name="split_keyboard_device_type_phone">표준 폰</string>
+    <string name="split_keyboard_recommend_reason_tablet">태블릿 권장값</string>
+    <string name="split_keyboard_recommend_reason_foldable_multi">폴더블 멀티 스크린 (최소 %1$ddp)</string>
+    <string name="split_keyboard_recommend_reason_foldable">폴더블 권장값</string>
+    <string name="split_keyboard_recommend_reason_large_phone">대형 폰 권장값</string>
+    <string name="split_keyboard_recommend_reason_small_phone">소형 폰 권장값</string>
+    <string name="split_keyboard_recommend_reason_phone">표준 폰 권장값</string>
+    <string name="split_keyboard_auto_calibrate_toast">적용됨: %1$ddp, 간격 %2$d%% (%3$s)</string>
+    <string name="split_keyboard_reset_toast">기본값으로 재설정됨</string>
+    <string name="split_keyboard_apply_toast">저장됨: 임계값 %1$ddp, 간격 %2$d%%%3$s</string>
+    <string name="split_keyboard_apply_note_disabled"> (참고: 분할 키보드가 비활성화됨)</string>
 </resources>

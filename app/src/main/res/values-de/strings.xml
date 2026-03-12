@@ -220,4 +220,41 @@
     <string name="text_keyboard_layout_key_label_enter">Enter</string>
     <string name="cannot_resolve_text_keyboard_layout">Datei für Texttastatur-Layout kann nicht ermittelt werden</string>
     <string name="text_keyboard_layout_saved_at">TextKeyboardLayout.json gespeichert unter: %1$s</string>
+
+    <!-- Split keyboard calibration -->
+    <string name="split_keyboard_device_info">📱 Geräteinfo</string>
+    <string name="split_keyboard_threshold_label">Trenn-Schwellenwert (dp)</string>
+    <string name="split_keyboard_gap_label">Lücke (%)</string>
+    <string name="split_keyboard_auto_calibrate">Automatisch kalibrieren</string>
+    <string name="split_keyboard_reset">Zurücksetzen</string>
+    <string name="split_keyboard_apply">Anwenden</string>
+    <string name="split_keyboard_preview_load_failed">Vorschau fehlgeschlagen: %1$s</string>
+    <string name="split_keyboard_info_type">Typ</string>
+    <string name="split_keyboard_info_orientation">Ausrichtung</string>
+    <string name="split_keyboard_info_min_width">Min. Breite</string>
+    <string name="split_keyboard_info_keyboard_width">Tastaturbreite</string>
+    <string name="split_keyboard_info_split">Geteilt</string>
+    <string name="split_keyboard_info_threshold">Schwellenwert</string>
+    <string name="split_keyboard_info_gap">Lücke</string>
+    <string name="split_keyboard_info_recommended">Empfohlen</string>
+    <string name="split_keyboard_info_multi_screen">Mehrere Bildschirme</string>
+    <string name="split_keyboard_orientation_portrait">Hochformat</string>
+    <string name="split_keyboard_orientation_landscape">Querformat</string>
+    <string name="split_keyboard_split_yes">Ja</string>
+    <string name="split_keyboard_split_no">Nein</string>
+    <string name="split_keyboard_device_type_tablet">Tablet</string>
+    <string name="split_keyboard_device_type_foldable">Faltbar</string>
+    <string name="split_keyboard_device_type_large_phone">Großes Telefon</string>
+    <string name="split_keyboard_device_type_small_phone">Kleines Telefon</string>
+    <string name="split_keyboard_device_type_phone">Standard-Telefon</string>
+    <string name="split_keyboard_recommend_reason_tablet">Tablet-Empfehlung</string>
+    <string name="split_keyboard_recommend_reason_foldable_multi">Faltbar mit mehreren Bildschirmen (min. %1$ddp)</string>
+    <string name="split_keyboard_recommend_reason_foldable">Faltbar-Empfehlung</string>
+    <string name="split_keyboard_recommend_reason_large_phone">Großes Telefon-Empfehlung</string>
+    <string name="split_keyboard_recommend_reason_small_phone">Kleines Telefon-Empfehlung</string>
+    <string name="split_keyboard_recommend_reason_phone">Standard-Telefon-Empfehlung</string>
+    <string name="split_keyboard_auto_calibrate_toast">Angewendet: %1$ddp, Lücke %2$d%% (%3$s)</string>
+    <string name="split_keyboard_reset_toast">Auf Standardwerte zurückgesetzt</string>
+    <string name="split_keyboard_apply_toast">Gespeichert: Schwellenwert %1$ddp, Lücke %2$d%%%3$s</string>
+    <string name="split_keyboard_apply_note_disabled"> (Hinweis: Geteilte Tastatur ist deaktiviert)</string>
 </resources>

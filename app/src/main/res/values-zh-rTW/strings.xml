@@ -377,8 +377,53 @@
     <string name="text_keyboard_layout_key_label_enter">Enter</string>
     <string name="cannot_resolve_text_keyboard_layout">無法定位文字鍵盤佈局檔案</string>
     <string name="text_keyboard_layout_saved_at">TextKeyboardLayout.json 已儲存至：%1$s</string>
-    <string name="split_keyboard_landscape">橫屏分離鍵盤</string>
+    
+    <!-- Split keyboard settings (refactored) -->
+    <string name="split_keyboard_enabled">啟用自動分體鍵盤</string>
+    <string name="split_keyboard_enabled_summary">根據鍵盤寬度自動啟用分體鍵盤。關閉後始終使用完整鍵盤。</string>
+    <string name="split_keyboard_threshold">分體鍵盤閾值</string>
+    <string name="split_keyboard_threshold_summary">當鍵盤寬度超過設定值時自動啟用分體鍵盤</string>
+
     <string name="split_keyboard_gap_percent">分離鍵盤中心間隙</string>
+
+    <!-- Split keyboard calibration -->
+    <string name="split_keyboard_calibration_title">分體鍵盤校準</string>
+    <string name="split_keyboard_calibration_summary">可視化預覽和調節分體鍵盤設置，支援自動推薦和摺疊屏適配</string>
+    <string name="split_keyboard_device_info">📱 裝置資訊</string>
+    <string name="split_keyboard_threshold_label">分體閾值 (dp)</string>
+    <string name="split_keyboard_gap_label">中縫間隙 (%)</string>
+    <string name="split_keyboard_auto_calibrate">自動校準</string>
+    <string name="split_keyboard_reset">重置</string>
+    <string name="split_keyboard_apply">套用設定</string>
+    <string name="split_keyboard_preview_load_failed">預覽載入失敗：%1$s</string>
+    <string name="split_keyboard_info_type">類型</string>
+    <string name="split_keyboard_info_orientation">方向</string>
+    <string name="split_keyboard_info_min_width">最小寬度</string>
+    <string name="split_keyboard_info_keyboard_width">目前鍵盤寬度</string>
+    <string name="split_keyboard_info_split">分體</string>
+    <string name="split_keyboard_info_threshold">目前閾值</string>
+    <string name="split_keyboard_info_gap">中縫</string>
+    <string name="split_keyboard_info_recommended">建議閾值</string>
+    <string name="split_keyboard_info_multi_screen">多螢幕</string>
+    <string name="split_keyboard_orientation_portrait">縱向</string>
+    <string name="split_keyboard_orientation_landscape">橫向</string>
+    <string name="split_keyboard_split_yes">是</string>
+    <string name="split_keyboard_split_no">否</string>
+    <string name="split_keyboard_device_type_tablet">平板裝置</string>
+    <string name="split_keyboard_device_type_foldable">摺疊螢幕</string>
+    <string name="split_keyboard_device_type_large_phone">大螢幕手機</string>
+    <string name="split_keyboard_device_type_small_phone">小螢幕手機</string>
+    <string name="split_keyboard_device_type_phone">標準手機</string>
+    <string name="split_keyboard_recommend_reason_tablet">平板裝置建議值</string>
+    <string name="split_keyboard_recommend_reason_foldable_multi">摺疊螢幕多螢幕適配（最小 %1$ddp）</string>
+    <string name="split_keyboard_recommend_reason_foldable">摺疊螢幕建議值</string>
+    <string name="split_keyboard_recommend_reason_large_phone">大螢幕手機建議值</string>
+    <string name="split_keyboard_recommend_reason_small_phone">小螢幕手機建議值</string>
+    <string name="split_keyboard_recommend_reason_phone">標準手機建議值</string>
+    <string name="split_keyboard_auto_calibrate_toast">✅ 已套用建議值：%1$ddp，間隙 %2$d%%（%3$s）</string>
+    <string name="split_keyboard_reset_toast">已重設為預設值</string>
+    <string name="split_keyboard_apply_toast">✅ 設定已儲存：閾值 %1$ddp，間隙 %2$d%%%3$s</string>
+    <string name="split_keyboard_apply_note_disabled">（注意：分體開關目前關閉）</string>
     <string name="fontset_editor_hint">點選每個項目從 fonts 目錄選擇一個或多個字體。多個字體按順序用作回退。</string>
     <string name="fontset_not_set">未設定（使用預設）</string>
     <string name="no_fonts_found">fonts/ 目錄中沒有字體檔案</string>
