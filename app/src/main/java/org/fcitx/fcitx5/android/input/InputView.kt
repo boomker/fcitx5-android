@@ -30,6 +30,7 @@ import org.fcitx.fcitx5.android.core.FcitxEvent
 import org.fcitx.fcitx5.android.daemon.FcitxConnection
 import org.fcitx.fcitx5.android.daemon.launchOnReady
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
+import org.fcitx.fcitx5.android.data.prefs.SplitKeyboardStateManager
 import org.fcitx.fcitx5.android.data.prefs.ManagedPreferenceProvider
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.data.theme.ThemeManager
@@ -308,7 +309,7 @@ class InputView(
                         val newPadding = (adjustingResizeStartBottomPadding + deltaPadding).coerceIn(0, 100)
                         val currentPadding = resolveKeyboardBottomPadding()
                         if (newPadding != currentPadding) {
-                            if (isLandscapeOrientation) {
+                            if (isLayoutLandscape) {
                                 keyboardPrefs.keyboardBottomPaddingLandscape.setValue(newPadding)
                             } else {
                                 keyboardPrefs.keyboardBottomPadding.setValue(newPadding)
@@ -407,7 +408,7 @@ class InputView(
                     val currentPercent = resolveKeyboardHeightPercent()
                     // Only update if value changed significantly
                     if (kotlin.math.abs(newPercent - currentPercent) >= 1) {
-                        if (isLandscapeOrientation) {
+                        if (isLayoutLandscape) {
                             keyboardPrefs.keyboardHeightPercentLandscape.setValue(newPercent)
                         } else {
                             keyboardPrefs.keyboardHeightPercent.setValue(newPercent)
@@ -448,7 +449,7 @@ class InputView(
                     val newPadding = (adjustingResizeStartSidePadding + deltaPadding).coerceIn(0, 200)
                     val currentPadding = resolveKeyboardSidePadding()
                     if (newPadding != currentPadding) {
-                        if (isLandscapeOrientation) {
+                        if (isLayoutLandscape) {
                             keyboardPrefs.keyboardSidePaddingLandscape.setValue(newPadding)
                         } else {
                             keyboardPrefs.keyboardSidePadding.setValue(newPadding)
@@ -489,7 +490,7 @@ class InputView(
                     val newPadding = (adjustingResizeStartSidePadding + deltaPadding).coerceIn(0, 200)
                     val currentPadding = resolveKeyboardSidePadding()
                     if (newPadding != currentPadding) {
-                        if (isLandscapeOrientation) {
+                        if (isLayoutLandscape) {
                             keyboardPrefs.keyboardSidePaddingLandscape.setValue(newPadding)
                         } else {
                             keyboardPrefs.keyboardSidePadding.setValue(newPadding)
@@ -536,7 +537,7 @@ class InputView(
     private var adjustingStartKeyboardTop = 0
 
     private fun resolveKeyboardHeightPercent(): Int {
-        return if (isLandscapeOrientation) {
+        return if (isLayoutLandscape) {
             keyboardPrefs.keyboardHeightPercentLandscape.getValue()
         } else {
             keyboardPrefs.keyboardHeightPercent.getValue()
@@ -544,7 +545,7 @@ class InputView(
     }
 
     private fun resolveKeyboardSidePadding(): Int {
-        return if (isLandscapeOrientation) {
+        return if (isLayoutLandscape) {
             keyboardPrefs.keyboardSidePaddingLandscape.getValue()
         } else {
             keyboardPrefs.keyboardSidePadding.getValue()
@@ -552,7 +553,7 @@ class InputView(
     }
 
     private fun resolveKeyboardBottomPadding(): Int {
-        return if (isLandscapeOrientation) {
+        return if (isLayoutLandscape) {
             keyboardPrefs.keyboardBottomPaddingLandscape.getValue()
         } else {
             keyboardPrefs.keyboardBottomPadding.getValue()
@@ -757,6 +758,7 @@ class InputView(
     private val keyboardSidePaddingLandscape = keyboardPrefs.keyboardSidePaddingLandscape
     private val keyboardBottomPadding = keyboardPrefs.keyboardBottomPadding
     private val keyboardBottomPaddingLandscape = keyboardPrefs.keyboardBottomPaddingLandscape
+    private val splitKeyboardUseLandscapeLayout = keyboardPrefs.splitKeyboardUseLandscapeLayout
 
     private val keyboardSizePrefs = listOf(
         keyboardHeightPercent,
@@ -768,6 +770,7 @@ class InputView(
         keyboardPrefs.splitKeyboardEnabled,
         keyboardPrefs.splitKeyboardThreshold,
         keyboardPrefs.splitKeyboardGapPercent,
+        splitKeyboardUseLandscapeLayout,
     )
 
     var isFloating = false
@@ -816,6 +819,49 @@ class InputView(
 
     private val isLandscapeOrientation: Boolean
         get() = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+
+    // Whether layout-related preferences should be treated as landscape.
+    // Enabled when device is landscape OR when "use landscape layout when split" is enabled and split keyboard is active.
+    // Prefer using the actual keyboard view width when available to decide if split is active.
+    private val isLayoutLandscape: Boolean
+        get() {
+            if (isLandscapeOrientation) return true
+
+            if (!splitKeyboardUseLandscapeLayout.getValue()) return false
+
+            // If split keyboard switch is off, don't treat as split
+            if (!keyboardPrefs.splitKeyboardEnabled.getValue()) return false
+
+            // Require manager initialized
+            if (!SplitKeyboardStateManager.isInitialized()) return false
+            val manager = SplitKeyboardStateManager.getInstance()
+
+            // Try to use actual keyboardView width when available
+            val realWidthPx = keyboardView.width.takeIf { it > 0 }
+                ?: windowManager.view?.width?.takeIf { it > 0 }
+                ?: -1
+
+            val shouldSplit = if (realWidthPx > 0) {
+                // Use the width-based API for an accurate decision
+                manager.shouldUseSplitKeyboard(realWidthPx)
+            } else {
+                // Fallback to manager heuristic (based on display metrics)
+                manager.shouldUseSplitKeyboard()
+            }
+
+            // If we couldn't get real width, schedule a re-evaluation after layout so that
+            // once keyboardView has a width we refresh dependent UI.
+            if (realWidthPx <= 0) {
+                keyboardView.post {
+                    // Refresh keyboard layouts if split state might differ
+                    (windowManager.getEssentialWindow(KeyboardWindow) as? KeyboardWindow)?.refreshAllKeyboards()
+                    updateKeyboardSize()
+                    requestLayout()
+                }
+            }
+
+            return shouldSplit
+        }
 
     private val isDockedOneHandMode: Boolean
         get() = isOneHanded && !isFloating
@@ -1476,10 +1522,7 @@ class InputView(
 
     private val keyboardHeightPx: Int
         get() {
-            val percent = when (resources.configuration.orientation) {
-                Configuration.ORIENTATION_LANDSCAPE -> keyboardHeightPercentLandscape
-                else -> keyboardHeightPercent
-            }.getValue()
+            val percent = (if (isLayoutLandscape) keyboardHeightPercentLandscape else keyboardHeightPercent).getValue()
             val baseHeight = resources.displayMetrics.heightPixels * percent / 100
             if (isFloating) {
                 return (baseHeight * 0.8).toInt()
@@ -1489,10 +1532,7 @@ class InputView(
 
     private val keyboardSidePaddingPx: Int
         get() {
-            val value = when (resources.configuration.orientation) {
-                Configuration.ORIENTATION_LANDSCAPE -> keyboardSidePaddingLandscape
-                else -> keyboardSidePadding
-            }.getValue()
+            val value = (if (isLayoutLandscape) keyboardSidePaddingLandscape else keyboardSidePadding).getValue()
             val px = dp(value)
             if (isFloating) {
                 return (px * 0.8).toInt()
@@ -1502,10 +1542,7 @@ class InputView(
 
     private val keyboardBottomPaddingPx: Int
         get() {
-            val value = when (resources.configuration.orientation) {
-                Configuration.ORIENTATION_LANDSCAPE -> keyboardBottomPaddingLandscape
-                else -> keyboardBottomPadding
-            }.getValue()
+            val value = (if (isLayoutLandscape) keyboardBottomPaddingLandscape else keyboardBottomPadding).getValue()
             val px = dp(value)
             if (isFloating) {
                 return (px * 0.8).toInt()

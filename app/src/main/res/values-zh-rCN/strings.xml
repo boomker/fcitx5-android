@@ -210,6 +210,8 @@
     <string name="split_keyboard_auto_calibrate_toast">✅ 已应用推荐值：%1$ddp，间隙 %2$d%%（%3$s）</string>
     <string name="split_keyboard_reset_toast">已重置为默认值</string>
     <string name="split_keyboard_apply_toast">✅ 设置已保存：阈值 %1$ddp，间隙 %2$d%%%3$s</string>
+    <string name="split_keyboard_use_landscape_layout">分体键盘时采用横屏布局参数</string>
+    <string name="split_keyboard_use_landscape_layout_summary">启用后，当分体键盘生效时使用横屏的布局参数（高度、边距等）。仅当启用自动分体键盘时可用。</string>
     <string name="split_keyboard_apply_note_disabled">（注意：分体开关当前关闭）</string>
     <string name="disable_addon_warn_title">禁用附加组件</string>
     <string name="disable_addon_warn_name">禁用%1$s将同时：</string>

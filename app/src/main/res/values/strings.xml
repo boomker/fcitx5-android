@@ -211,6 +211,8 @@
     <string name="split_keyboard_reset_toast">Reset to defaults</string>
     <string name="split_keyboard_apply_toast">Saved: Threshold %1$ddp, Gap %2$d%%%3$s</string>
     <string name="split_keyboard_apply_note_disabled"> (Note: Split keyboard is disabled)</string>
+    <string name="split_keyboard_use_landscape_layout">Use landscape layout when split keyboard active</string>
+    <string name="split_keyboard_use_landscape_layout_summary">When enabled and split keyboard is active, use landscape layout parameters (height, padding, etc.). This option is only available when auto split keyboard is enabled.</string>
     <string name="disable_addon_warn_title">Disable Addon</string>
     <string name="disable_addon_warn_name">Disabling %1$s will also:</string>
     <string name="disable_addon_warn_dep">Disable %1$s</string>

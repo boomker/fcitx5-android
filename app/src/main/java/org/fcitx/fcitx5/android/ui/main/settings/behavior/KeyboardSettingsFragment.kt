@@ -24,6 +24,9 @@ class KeyboardSettingsFragment : ManagedPreferenceFragment(AppPrefs.getInstance(
         if (key == SPLIT_ENABLED_KEY) {
             val enabled = AppPrefs.getInstance().keyboard.splitKeyboardEnabled.getValue()
             calibrationPreference?.isEnabled = enabled
+            // Also enable/disable "Use landscape layout when split" preference when auto-split is toggled
+            val useLandscapePref = preferenceScreen.findPreference<Preference>("split_keyboard_use_landscape_layout")
+            useLandscapePref?.isEnabled = enabled
         }
     }
 
@@ -83,6 +86,10 @@ class KeyboardSettingsFragment : ManagedPreferenceFragment(AppPrefs.getInstance(
 
         calibrationPreference?.let { screen.addPreference(it) }
         
+        // Ensure "Use landscape layout when split" preference is enabled only when auto-split is enabled
+        val useLandscapePref = screen.findPreference<Preference>("split_keyboard_use_landscape_layout")
+        useLandscapePref?.isEnabled = AppPrefs.getInstance().keyboard.splitKeyboardEnabled.getValue()
+
         // Register listener to update calibration preference enabled state
         AppPrefs.getInstance().keyboard.registerOnChangeListener(onSplitEnabledChangeListener)
     }

@@ -271,6 +271,14 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
         val splitKeyboardThreshold = ManagedPreference.PInt(sharedPreferences, "split_keyboard_threshold", 470).apply { register() }
         val splitKeyboardGapPercent = ManagedPreference.PInt(sharedPreferences, "split_keyboard_gap_percent", 20).apply { register() }
 
+        // When enabled, use landscape layout parameters (height/padding/etc.) while split keyboard is active
+        val splitKeyboardUseLandscapeLayout = switch(
+            R.string.split_keyboard_use_landscape_layout,
+            "split_keyboard_use_landscape_layout",
+            false,
+            R.string.split_keyboard_use_landscape_layout_summary
+        )
+
         val horizontalCandidateStyle = enumList(
             R.string.horizontal_candidate_style,
             "horizontal_candidate_style",
