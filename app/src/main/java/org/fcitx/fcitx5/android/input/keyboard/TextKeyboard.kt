@@ -109,10 +109,18 @@ class TextKeyboard(
         )
 
         var cachedLayoutJsonMap: Map<String, List<List<KeyJson>>>? = null
-        
+
         // Cache for parsed KeyDef layouts to avoid recreating them on every reloadLayout()
         private val cachedKeyDefLayouts = mutableMapOf<String, List<List<KeyDef>>>()
         private var lastLayoutCacheInvalidated = 0L
+
+        /**
+         * Clear KeyDef layout cache. Call this after saving layout changes.
+         */
+        fun clearCachedKeyDefLayouts() {
+            cachedKeyDefLayouts.clear()
+            lastLayoutCacheInvalidated = 0L
+        }
 
         val textLayoutJsonMap: Map<String, List<List<KeyJson>>>?
             @Synchronized
@@ -187,9 +195,11 @@ class TextKeyboard(
             if (imeName != null) {
                 val map = textLayoutJsonMap
                 if (map != null) {
-                    // Try uniqueName first, then displayName
+                    // Try uniqueName first, then displayName, then "default" as fallback
                     val layoutKey = imeName
-                    val layoutJson = map[layoutKey] ?: map[ime?.displayName]
+                    val layoutJson = map[layoutKey] 
+                        ?: map[ime?.displayName] 
+                        ?: map["default"]  // Fallback to "default" layout
                     if (layoutJson != null) {
                         // Return cached KeyDef layout if available
                         return cachedKeyDefLayouts.getOrPut(layoutKey) {

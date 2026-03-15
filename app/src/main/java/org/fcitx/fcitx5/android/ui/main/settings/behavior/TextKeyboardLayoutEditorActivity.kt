@@ -2103,8 +2103,9 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
 
         file.writeText(prettyJson.encodeToString(jsonElement) + "\n")
 
-        // Clear cache to force reload on next access
+        // Clear all caches to force reload on next access
         TextKeyboard.cachedLayoutJsonMap = null
+        TextKeyboard.clearCachedKeyDefLayouts()
 
         // Notify provider watcher
         ConfigProviders.ensureWatching()
