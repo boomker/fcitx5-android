@@ -67,17 +67,29 @@ class AutoScaleTextView @JvmOverloads constructor(
 
     fun setFontTypeFace(key: String) {
         fontTypeFaceKey = key
-        setTypeface(fontTypefaceMap[key] ?: Typeface.DEFAULT)
+        // Force immediate font setup for backward compatibility
+        setTypeface(FontProviders.fontTypefaceMap[key] ?: Typeface.DEFAULT)
+        needsFontSetup = false
     }
 
     private var fontTypeFaceKey: String = "font"
+    
+    // Flag to track if font needs to be set up lazily
+    private var needsFontSetup = true
 
     init {
-        setFontTypeFace("font")
+        // Defer font setup to onAttachedToWindow() for better performance
+        // Font will be set when view is attached to window, using cached font map
     }
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
+        // Set font lazily when view is attached, using cached font map
+        // This avoids blocking view creation during keyboard show
+        if (needsFontSetup) {
+            setTypeface(FontProviders.fontTypefaceMap[fontTypeFaceKey] ?: Typeface.DEFAULT)
+            needsFontSetup = false
+        }
     }
 
     override fun onDetachedFromWindow() {

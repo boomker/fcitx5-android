@@ -7,18 +7,45 @@ import android.graphics.Typeface
 import java.io.File
 
 class DefaultFontProvider : FontProviderApi {
+    @Volatile
     private var cachedFontTypefaceMap: MutableMap<String, Typeface?>? = null
+    @Volatile
     private var lastModified = 0L
+    @Volatile
+    private var isLoading = false
 
     @Synchronized
     override fun clearCache() {
         cachedFontTypefaceMap = null
         lastModified = 0L
+        isLoading = false
+    }
+
+    /**
+     * Preload fonts asynchronously to avoid blocking UI thread.
+     * Call this when keyboard is about to show.
+     */
+    fun preloadFontsAsync(onComplete: ((MutableMap<String, Typeface?>) -> Unit)? = null) {
+        if (isLoading) return  // Already loading
+        isLoading = true
+        
+        Thread {
+            val fonts = fontTypefaceMap
+            isLoading = false
+            onComplete?.invoke(fonts)
+        }.start()
     }
 
     @get:Synchronized
     override val fontTypefaceMap: MutableMap<String, Typeface?>
         get() {
+            // Fast path: return cached map if available and up-to-date
+            val cached = cachedFontTypefaceMap
+            if (cached != null && !isLoading) {
+                return cached
+            }
+            
+            // Slow path: load fonts
             val snapshot = org.fcitx.fcitx5.android.input.config.ConfigProviders
                 .readFontsetPathMapSnapshot()
                 .getOrNull() ?: run {

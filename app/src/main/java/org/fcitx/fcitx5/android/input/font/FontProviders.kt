@@ -58,4 +58,26 @@ object FontProviders {
 
     val fontTypefaceMap: MutableMap<String, Typeface?>
         get() = provider.fontTypefaceMap
+
+    /**
+     * Preload fonts asynchronously. Call this before keyboard is shown.
+     */
+    fun preloadFontsAsync(onComplete: ((MutableMap<String, Typeface?>) -> Unit)? = null) {
+        if (provider is DefaultFontProvider) {
+            (provider as DefaultFontProvider).preloadFontsAsync(onComplete)
+        } else {
+            // For other providers, just return cached map immediately
+            onComplete?.invoke(fontTypefaceMap)
+        }
+    }
+
+    /**
+     * Check if user has custom fonts configured in fontset.json.
+     * @return true if any custom font is configured, false if using system default fonts
+     */
+    fun hasCustomFonts(): Boolean {
+        val snapshot = ConfigProviders.readFontsetPathMapSnapshot().getOrNull() ?: return false
+        // Check if any font path is non-empty
+        return snapshot.value.values.flatten().any { it.trim().isNotEmpty() }
+    }
 }

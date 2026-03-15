@@ -94,11 +94,14 @@ abstract class BaseKeyboard(
 
     @Keep
     private val splitStateChangeListener = SplitKeyboardStateManager.OnSplitStateChangeListener { shouldSplit ->
-        lastSplitLandscapeState = shouldSplit
-        reloadLayout()
-        reapplyTextScale()
-        requestLayout()
-        updateBounds()
+        // Only reload if split state actually changed
+        if (shouldSplit != lastSplitLandscapeState) {
+            lastSplitLandscapeState = shouldSplit
+            reloadLayout()
+            reapplyTextScale()
+            requestLayout()
+            updateBounds()
+        }
     }
 
     /**
@@ -117,10 +120,27 @@ abstract class BaseKeyboard(
         removeAllViews()
         spaceKeys.clear()
         touchTarget.clear()
+        
+        // Get all fonts once for batch setting - improves performance by reducing FontProviders access
+        val fontMap = org.fcitx.fcitx5.android.input.font.FontProviders.fontTypefaceMap
+        val mainFont = fontMap["key_main_font"]
+        val altFont = fontMap["key_alt_font"]
+        
         val splitKeyboard = splitKeyboardManager.shouldUseSplitKeyboard(width)
         lastSplitLandscapeState = splitKeyboard
         keyRows = keyLayout.map { row ->
-            val keyViews = row.map(::createKeyView)
+            val keyViews = row.map(::createKeyView).apply {
+                // Batch set fonts for all key views in this row
+                forEach { keyView ->
+                    when (keyView) {
+                        is TextKeyView -> keyView.mainText.typeface = mainFont
+                        is AltTextKeyView -> {
+                            keyView.mainText.typeface = mainFont
+                            keyView.altText.typeface = altFont
+                        }
+                    }
+                }
+            }
             if (splitKeyboard) {
                 buildSplitRow(row, keyViews)
             } else {
