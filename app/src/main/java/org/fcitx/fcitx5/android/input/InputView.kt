@@ -1712,8 +1712,8 @@ class InputView(
             }
         }
         kawaiiBar.onFloatingLongPressListener = {
-            // If not in floating mode, allow entering adjusting mode
-            if (!isFloating) {
+            // If not in floating mode and not in one-handed mode, allow entering adjusting mode
+            if (!isFloating && !isOneHanded) {
                 toggleAdjustingMode()
             }
         }
