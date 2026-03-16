@@ -36,11 +36,12 @@ object UserDataManager {
         val exportTime: Long
     )
 
-    // Allow importing from original Fcitx5 Android package
-    private val allowedPackageNames = listOf(
-        BuildConfig.APPLICATION_ID,
-        "org.fcitx.fcitx5.android"
-    )
+    // Allow importing user data from any build variant of Fcitx5 Android
+    private const val allowedPackageNamePrefix = "org.fcitx.fcitx5.android"
+
+    private fun isAllowedPackageName(packageName: String): Boolean {
+        return packageName == allowedPackageNamePrefix || packageName.startsWith("$allowedPackageNamePrefix.")
+    }
 
     private fun writeFileTree(srcDir: File, destPrefix: String, dest: ZipOutputStream) {
         dest.putNextEntry(ZipEntry("$destPrefix/"))
@@ -103,7 +104,7 @@ object UserDataManager {
                 val metadataFile = extracted.find { it.name == "metadata.json" }
                     ?: errorRuntime(R.string.exception_user_data_metadata)
                 val metadata = json.decodeFromString<Metadata>(metadataFile.readText())
-                if (metadata.packageName !in allowedPackageNames) {
+                if (!isAllowedPackageName(metadata.packageName)) {
                     errorRuntime(R.string.exception_user_data_package_name_mismatch, metadata.packageName)
                 }
                 copyDir(File(tempDir, "shared_prefs"), sharedPrefsDir)
