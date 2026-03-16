@@ -9,7 +9,7 @@ import java.io.File
 import java.util.zip.ZipInputStream
 
 /**
- * @return top-level files in zip file
+ * @return all extracted files in zip file (including subdirectories)
  */
 fun ZipInputStream.extract(destDir: File): List<File> {
     var entry = nextEntry
@@ -18,12 +18,14 @@ fun ZipInputStream.extract(destDir: File): List<File> {
         if (!entry.isDirectory) {
             val file = File(destDir, entry.name)
             if (!file.canonicalPath.startsWith(canonicalDest)) throw SecurityException()
+            file.parentFile?.mkdirs()
             copyTo(file.outputStream())
         } else {
             val dir = File(destDir, entry.name)
-            dir.mkdir()
+            dir.mkdirs()
         }
         entry = nextEntry
     }
-    return destDir.listFiles()?.toList() ?: emptyList()
+    // Return all files recursively (not just top-level)
+    return destDir.walkTopDown().filter { it.isFile }.toList()
 }

@@ -772,17 +772,39 @@ class CustomThemeActivity : AppCompatActivity() {
         applyThemePreview(theme, filteredDrawable)
     }
 
+    /**
+     * Resolve background file path, handling both absolute and relative paths.
+     */
+    private fun resolveBackgroundFile(filePath: String): File {
+        val file = File(filePath)
+        if (file.exists()) {
+            return file
+        }
+        // Try relative to theme directory
+        val appFilesDir = getExternalFilesDir(null)
+        if (appFilesDir != null) {
+            val themeDir = File(appFilesDir, "theme")
+            val relativeFile = File(themeDir, filePath)
+            if (relativeFile.exists()) {
+                return relativeFile
+            }
+        }
+        return file
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // recover from bundle
         val originTheme = intent?.parcelable<Theme.Custom>(ORIGIN_THEME)?.also { t ->
             theme = t
             whenHasBackground {
-                croppedImageFile = File(it.croppedFilePath)
-                srcImageFile = File(it.srcFilePath)
+                // Resolve relative path to absolute path
+                val croppedFile = resolveBackgroundFile(it.croppedFilePath)
+                croppedImageFile = croppedFile
+                srcImageFile = resolveBackgroundFile(it.srcFilePath)
                 cropRect = it.cropRect
                 cropRotation = it.cropRotation
-                croppedBitmap = BitmapFactory.decodeFile(it.croppedFilePath)
+                croppedBitmap = BitmapFactory.decodeFile(croppedFile.absolutePath)
                 filteredDrawable = BitmapDrawable(resources, croppedBitmap)
             }
             newCreated = false

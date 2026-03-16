@@ -100,12 +100,36 @@ sealed class Theme : Parcelable {
             val cropRotation: Int = 0
         ) : Parcelable {
             fun toDrawable(): Drawable? {
+                // Try direct path first (absolute path)
                 val cropped = File(croppedFilePath)
-                if (!cropped.exists()) return null
-                val bitmap = BitmapFactory.decodeStream(cropped.inputStream()) ?: return null
-                return BitmapDrawable(appContext.resources, bitmap).apply {
-                    colorFilter = DarkenColorFilter(100 - brightness)
+                if (cropped.exists()) {
+                    return runCatching {
+                        BitmapFactory.decodeStream(cropped.inputStream())?.let { bitmap ->
+                            BitmapDrawable(appContext.resources, bitmap).apply {
+                                colorFilter = DarkenColorFilter(100 - brightness)
+                            }
+                        }
+                    }.getOrNull()
                 }
+                
+                // Try relative to theme directory
+                return runCatching {
+                    val appFilesDir = appContext.getExternalFilesDir(null)
+                    if (appFilesDir != null) {
+                        val themeDir = File(appFilesDir, "theme")
+                        val relativeFile = File(themeDir, croppedFilePath)
+                        if (relativeFile.exists()) {
+                            relativeFile.inputStream().use { stream ->
+                                BitmapFactory.decodeStream(stream)?.let { bitmap ->
+                                    return@runCatching BitmapDrawable(appContext.resources, bitmap).apply {
+                                        colorFilter = DarkenColorFilter(100 - brightness)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    null
+                }.getOrNull()
             }
         }
 

@@ -11,6 +11,7 @@ import java.io.File
 import java.io.FileFilter
 import java.io.InputStream
 import java.io.OutputStream
+import java.nio.charset.Charset
 import java.util.UUID
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
@@ -33,11 +34,91 @@ object ThemeFilesManager {
         themeFile(theme).writeText(Json.encodeToString(CustomThemeSerializer, theme))
     }
 
-    fun deleteThemeFiles(theme: Theme.Custom) {
-        themeFile(theme).delete()
+    fun deleteThemeFiles(theme: Theme.Custom, allThemes: List<Theme.Custom> = emptyList()) {
+        val themeDir = dir
+        
+        // Collect directories and files to process
+        val dirsToCheck = mutableSetOf<File>()
+        val filesToDelete = mutableSetOf<File>()
+        
         theme.backgroundImage?.let {
-            File(it.croppedFilePath).delete()
-            File(it.srcFilePath).delete()
+            val croppedFile = File(it.croppedFilePath)
+            val srcFile = File(it.srcFilePath)
+            
+            collectParentDirs(croppedFile, dirsToCheck)
+            collectParentDirs(srcFile, dirsToCheck)
+            
+            // Only delete files if no other theme is using them
+            if (!isFileInUse(it.croppedFilePath, allThemes)) {
+                filesToDelete.add(croppedFile)
+            }
+            if (!isFileInUse(it.srcFilePath, allThemes)) {
+                filesToDelete.add(srcFile)
+            }
+        }
+
+        // Delete theme JSON file
+        themeFile(theme).delete()
+        
+        // Delete image files not in use by other themes
+        filesToDelete.forEach { it.delete() }
+
+        // Cleanup empty directories from deepest to shallowest
+        dirsToCheck.sortedByDescending { it.absolutePath.length }.forEach { dir ->
+            cleanupEmptyDir(dir, allThemes, themeDir)
+        }
+    }
+    
+    /**
+     * Check if a file path is used by any other theme.
+     */
+    private fun isFileInUse(filePath: String, allThemes: List<Theme.Custom>): Boolean {
+        return allThemes.any { theme ->
+            theme.backgroundImage?.let { bg ->
+                bg.croppedFilePath == filePath || bg.srcFilePath == filePath
+            } ?: false
+        }
+    }
+    
+    /**
+     * Collect all parent directories from a file up to the base theme dir.
+     */
+    private fun collectParentDirs(file: File, dirs: MutableSet<File>) {
+        var parent = file.parentFile
+        while (parent != null) {
+            dirs.add(parent)
+            parent = parent.parentFile
+        }
+    }
+    
+    /**
+     * Clean up an empty directory if no other theme is using files in it.
+     * Recursively cleans up parent directories if they become empty.
+     *
+     * @param dir The directory to check and potentially delete
+     * @param allThemes List of remaining themes to check for directory usage
+     * @param baseDir The base theme directory - stop cleanup at this level
+     */
+    private fun cleanupEmptyDir(dir: File, allThemes: List<Theme.Custom>, baseDir: File) {
+        // Don't delete the base theme directory itself
+        if (dir.absolutePath == baseDir.absolutePath) return
+
+        // Check if directory exists and is empty
+        if (!dir.exists() || !dir.isDirectory) return
+        val remainingFiles = dir.listFiles()
+        if (remainingFiles?.isNotEmpty() == true) return  // Directory not empty, skip
+
+        // Check if any other theme is using files in this directory or its subdirectories
+        val isDirInUse = allThemes.any { theme ->
+            theme.backgroundImage?.let { bg ->
+                bg.croppedFilePath.startsWith(dir.absolutePath) ||
+                bg.srcFilePath.startsWith(dir.absolutePath)
+            } ?: false
+        }
+
+        // Delete directory if not in use, then recursively check parent
+        if (!isDirInUse && dir.delete()) {
+            cleanupEmptyDir(dir.parentFile ?: return, allThemes, baseDir)
         }
     }
 
@@ -48,7 +129,11 @@ object ThemeFilesManager {
             .mapNotNull decode@{
                 val raw = it.readText()
                 // Normalize paths to this app's external files dir
-                val normalized = raw.replace(Regex("/Android/data/[^/]+/files"), "/Android/data/${appContext.packageName}/files")
+                // Replace any package name with current app's package name
+                val normalized = raw.replace(
+                    Regex("""/Android/data/[^/]+/files"""),
+                    "/Android/data/${appContext.packageName}/files"
+                )
                 val (theme, migratedFromSerializer) = runCatching {
                     Json.decodeFromString(CustomThemeSerializer.WithMigrationStatus, normalized)
                 }.getOrElse { e ->
@@ -56,21 +141,42 @@ object ThemeFilesManager {
                     return@decode null
                 }
 
-                // If we changed the JSON text (normalized) or the serializer reported migration, persist the corrected JSON
-                if (normalized != raw || migratedFromSerializer) {
-                    saveThemeFiles(theme)
+                // Resolve relative paths to absolute paths
+                val resolvedTheme = if (theme.backgroundImage != null) {
+                    val appFilesDir = appContext.getExternalFilesDir(null)!!
+                    val themeDir = File(appFilesDir, "theme")
+                    theme.copy(
+                        backgroundImage = theme.backgroundImage.copy(
+                            croppedFilePath = resolveImagePath(
+                                theme.backgroundImage.croppedFilePath,
+                                appFilesDir,
+                                themeDir
+                            ).absolutePath,
+                            srcFilePath = resolveImagePath(
+                                theme.backgroundImage.srcFilePath,
+                                appFilesDir,
+                                themeDir
+                            ).absolutePath
+                        )
+                    )
+                } else {
+                    theme
                 }
 
-                if (theme.backgroundImage != null) {
-                    if (!File(theme.backgroundImage.croppedFilePath).exists() ||
-                        !File(theme.backgroundImage.srcFilePath).exists()
+                // If we changed the JSON text (normalized) or the serializer reported migration, persist the corrected JSON
+                if (normalized != raw || migratedFromSerializer) {
+                    saveThemeFiles(resolvedTheme)
+                }
+
+                if (resolvedTheme.backgroundImage != null) {
+                    if (!File(resolvedTheme.backgroundImage.croppedFilePath).exists() ||
+                        !File(resolvedTheme.backgroundImage.srcFilePath).exists()
                     ) {
-                        Timber.w("Cannot find background image file for theme ${theme.name}")
                         return@decode null
                     }
                 }
 
-                return@decode theme
+                return@decode resolvedTheme
             }.toMutableList()
     }
 
@@ -114,85 +220,165 @@ object ThemeFilesManager {
         }
 
     /**
+     * Resolve image path from JSON to absolute file path.
+     * Handles both absolute paths and relative paths.
+     *
+     * Examples:
+     * - Absolute: /Android/data/org.fcitx.fcitx5.android/files/theme/xxx.png → appFilesDir/theme/xxx.png
+     * - Relative: theme/xxx.png → appFilesDir/theme/xxx.png
+     * - Relative: ./xxx.png → appFilesDir/theme/xxx.png
+     * - Relative: xxx.png → appFilesDir/theme/xxx.png
+     */
+    private fun resolveImagePath(jsonPath: String, appFilesDir: File, themeDir: File): File {
+        // If already an absolute path in current app, use it directly
+        if (jsonPath.startsWith(appFilesDir.absolutePath)) {
+            return File(jsonPath)
+        }
+        
+        // Handle /Android/data/[package]/files/... paths (from other app installations)
+        if (jsonPath.startsWith("/Android/data/") || jsonPath.startsWith("/data/data/")) {
+            val rel = jsonPath.substringAfter("/files/").trimStart('/')
+            return File(appFilesDir, rel)
+        }
+        
+        // Handle relative paths
+        // Remove leading ./ if present
+        val cleanPath = jsonPath.removePrefix("./")
+        
+        // If path starts with "theme/", resolve relative to appFilesDir
+        if (cleanPath.startsWith("theme/")) {
+            return File(appFilesDir, cleanPath)
+        }
+        
+        // Otherwise, assume it's relative to theme directory
+        return File(themeDir, cleanPath)
+    }
+
+    /**
      * @return (newCreated, theme, migrated)
      */
     fun importTheme(src: InputStream): Result<Triple<Boolean, Theme.Custom, Boolean>> =
         runCatching {
-            ZipInputStream(src).use { zipStream ->
-                withTempDir { tempDir ->
-                    val extracted = zipStream.extract(tempDir)
-                    val jsonFile = extracted.find { it.extension == "json" }
-                        ?: errorRuntime(R.string.exception_theme_json)
-                    val rawJson = jsonFile.readText()
-                    // Normalize paths to this app's external files dir
-                    val normalizedJson = rawJson.replace(Regex("/Android/data/[^/]+/files"), "/Android/data/${appContext.packageName}/files")
-                    val (decoded, migrated) = Json.decodeFromString(
-                        CustomThemeSerializer.WithMigrationStatus,
-                        normalizedJson
-                    )
-                    if (ThemeManager.BuiltinThemes.find { it.name == decoded.name } != null)
-                        errorRuntime(R.string.exception_theme_name_clash)
-                    val oldTheme = ThemeManager.getTheme(decoded.name) as? Theme.Custom
-                    val newCreated = oldTheme == null
-                    val newTheme = if (decoded.backgroundImage != null) {
-                        val appFilesDir = appContext.getExternalFilesDir(null)!!
-
-                        // Resolve target paths: use JSON path if already in this app, otherwise preserve path after /files/
-                        val srcTarget = run {
-                            val jsonPath = decoded.backgroundImage.srcFilePath
-                            if (jsonPath.startsWith(appFilesDir.absolutePath)) {
-                                File(jsonPath)
-                            } else {
-                                val rel = jsonPath.substringAfter("/files/").trimStart('/')
-                                File(appFilesDir, rel)
-                            }
-                        }
-
-                        val croppedTarget = run {
-                            val jsonPath = decoded.backgroundImage.croppedFilePath
-                            if (jsonPath.startsWith(appFilesDir.absolutePath)) {
-                                File(jsonPath)
-                            } else {
-                                val rel = jsonPath.substringAfter("/files/").trimStart('/')
-                                File(appFilesDir, rel)
-                            }
-                        }
-
-                        srcTarget.parentFile?.mkdirs()
-                        croppedTarget.parentFile?.mkdirs()
-
-                        val oldSrcFile = oldTheme?.backgroundImage?.srcFilePath?.let { File(it) }
-                        val srcFileNameMatches = oldSrcFile?.name == srcTarget.name
-                        extracted.find { it.name == srcTarget.name }
-                            ?.copyTo(srcTarget, overwrite = srcFileNameMatches)
-                            ?: errorRuntime(R.string.exception_theme_src_image)
-
-                        val oldCroppedFile = oldTheme?.backgroundImage?.croppedFilePath?.let { File(it) }
-                        val croppedFileNameMatches = oldCroppedFile?.name == croppedTarget.name
-                        extracted.find { it.name == croppedTarget.name }
-                            ?.copyTo(croppedTarget, overwrite = croppedFileNameMatches)
-                            ?: errorRuntime(R.string.exception_theme_cropped_image)
-
-                        if (!srcFileNameMatches) {
-                            oldSrcFile?.delete()
-                        }
-                        if (!croppedFileNameMatches) {
-                            oldCroppedFile?.delete()
-                        }
-
-                        decoded.copy(
-                            backgroundImage = decoded.backgroundImage.copy(
-                                croppedFilePath = croppedTarget.path,
-                                srcFilePath = srcTarget.path
-                            )
-                        )
-                    } else {
-                        decoded
-                    }
-                    saveThemeFiles(newTheme)
-                    Triple(newCreated, newTheme, migrated)
+            // Read entire ZIP to byte array for multiple encoding attempts
+            val zipBytes = src.readBytes()
+            // Try importing with different ZIP encodings (UTF-8, GBK, Big5)
+            // This handles ZIP files created on Windows with non-UTF-8 encodings
+            val encodings = listOf("UTF-8", "GBK", "Big5")
+            for (encoding in encodings) {
+                try {
+                    return@runCatching importThemeWithEncoding(zipBytes.inputStream(), encoding)
+                } catch (e: Exception) {
+                    // Try next encoding
                 }
             }
+            
+            // All encodings failed
+            errorRuntime(R.string.exception_theme_src_image)
         }
+    
+    /**
+     * Import theme with specific ZIP entry encoding.
+     * @param encoding Character encoding for ZIP entry names
+     */
+    private fun importThemeWithEncoding(src: InputStream, encoding: String?): Triple<Boolean, Theme.Custom, Boolean> {
+        val charset = encoding?.let { Charset.forName(it) }
+        return ZipInputStream(src, charset).use { zipStream ->
+            withTempDir { tempDir ->
+                // Extract all files and keep track of their paths
+                val extractedPaths = mutableMapOf<String, File>()
+                var jsonFile: File? = null
+
+                var entry = zipStream.nextEntry
+                while (entry != null) {
+                    if (!entry.isDirectory) {
+                        val file = File(tempDir, entry.name)
+                        file.parentFile?.mkdirs()
+                        zipStream.copyTo(file.outputStream())
+                        extractedPaths[entry.name] = file
+                        if (entry.name.endsWith(".json")) {
+                            jsonFile = file
+                        }
+                    }
+                    entry = zipStream.nextEntry
+                }
+                jsonFile ?: errorRuntime(R.string.exception_theme_json)
+                val rawJson = jsonFile!!.readText()
+                // Normalize paths to current app's external files dir (replace package name)
+                val normalizedJson = rawJson.replace(
+                    Regex("""/Android/data/[^/]+/files"""),
+                    "/Android/data/${appContext.packageName}/files"
+                )
+                val (decoded, migrated) = Json.decodeFromString(
+                    CustomThemeSerializer.WithMigrationStatus,
+                    normalizedJson
+                )
+                if (ThemeManager.BuiltinThemes.find { it.name == decoded.name } != null)
+                    errorRuntime(R.string.exception_theme_name_clash)
+                val oldTheme = ThemeManager.getTheme(decoded.name) as? Theme.Custom
+                val newCreated = oldTheme == null
+                val newTheme = if (decoded.backgroundImage != null) {
+                    val appFilesDir = appContext.getExternalFilesDir(null)!!
+                    val themeDir = File(appFilesDir, "theme")
+
+                    // Resolve target paths: handle both absolute and relative paths
+                    val srcTarget = resolveImagePath(
+                        decoded.backgroundImage.srcFilePath,
+                        appFilesDir,
+                        themeDir
+                    )
+                    val croppedTarget = resolveImagePath(
+                        decoded.backgroundImage.croppedFilePath,
+                        appFilesDir,
+                        themeDir
+                    )
+
+                    srcTarget.parentFile?.mkdirs()
+                    croppedTarget.parentFile?.mkdirs()
+
+                    val oldSrcFile = oldTheme?.backgroundImage?.srcFilePath?.let { File(it) }
+                    val srcFileNameMatches = oldSrcFile?.name == srcTarget.name
+
+                    // Find source file by filename (handles ZIP encoding differences)
+                    val srcFileInZip = extractedPaths.values.find { it.name == srcTarget.name }
+
+                    srcFileInZip?.let {
+                        it.copyTo(srcTarget, overwrite = srcFileNameMatches)
+                    } ?: errorRuntime(R.string.exception_theme_src_image)
+
+                    val oldCroppedFile = oldTheme?.backgroundImage?.croppedFilePath?.let { File(it) }
+                    val croppedFileNameMatches = oldCroppedFile?.name == croppedTarget.name
+
+                    // Find cropped file by filename
+                    val croppedFileInZip = extractedPaths.values.find { it.name == croppedTarget.name }
+
+                    croppedFileInZip?.let {
+                        it.copyTo(croppedTarget, overwrite = croppedFileNameMatches)
+                    } ?: errorRuntime(R.string.exception_theme_cropped_image)
+
+                    if (!srcFileNameMatches) {
+                        oldSrcFile?.delete()
+                    }
+                    if (!croppedFileNameMatches) {
+                        oldCroppedFile?.delete()
+                    }
+
+                    // Save theme with relative paths (relative to theme dir)
+                    decoded.copy(
+                        backgroundImage = decoded.backgroundImage.copy(
+                            croppedFilePath = croppedTarget.relativeTo(themeDir).path.replace(
+                                '\\',
+                                '/'
+                            ),
+                            srcFilePath = srcTarget.relativeTo(themeDir).path.replace('\\', '/')
+                        )
+                    )
+                } else {
+                    decoded
+                }
+                saveThemeFiles(newTheme)
+                Triple(newCreated, newTheme, migrated)
+            }
+        }
+    }
 
 }

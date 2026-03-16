@@ -12,9 +12,11 @@ import android.provider.Settings
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.LifecycleCoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.utils.getGlobalSettings
 import splitties.dimensions.dp
@@ -65,13 +67,17 @@ fun LifecycleCoroutineScope.withLoadingDialog(
     action: suspend () -> Unit
 ) {
     var loadingDialog: AlertDialog? = null
-    val loadingJob = launch {
+    // Show dialog on Main thread
+    val loadingJob = launch(Dispatchers.Main) {
         delay(threshold)
         loadingDialog = context.ProgressBarDialogIndeterminate(title).show()
     }
     launch {
-        action()
-        loadingJob.cancelAndJoin()
-        loadingDialog?.dismiss()
+        try {
+            action()
+        } finally {
+            loadingJob.cancelAndJoin()
+            loadingDialog?.dismiss()
+        }
     }
 }

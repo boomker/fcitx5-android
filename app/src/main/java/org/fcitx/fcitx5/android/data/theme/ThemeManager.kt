@@ -96,7 +96,9 @@ object ThemeManager {
 
     fun deleteTheme(name: String) {
         customThemes.find { it.name == name }?.also {
-            ThemeFilesManager.deleteThemeFiles(it)
+            // Pass all themes except the one being deleted, so we can clean up unused directories
+            val otherThemes = customThemes.filter { it.name != name }
+            ThemeFilesManager.deleteThemeFiles(it, otherThemes)
             customThemes.remove(it)
         }
         if (activeTheme.name == name) {
