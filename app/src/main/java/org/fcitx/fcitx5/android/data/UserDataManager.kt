@@ -16,7 +16,6 @@ import org.fcitx.fcitx5.android.utils.errorRuntime
 import org.fcitx.fcitx5.android.utils.extract
 import org.fcitx.fcitx5.android.utils.versionCodeCompat
 import org.fcitx.fcitx5.android.utils.withTempDir
-import timber.log.Timber
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
@@ -92,8 +91,38 @@ object UserDataManager {
         val isDir = source.isDirectory
         if (exists && isDir) {
             source.copyRecursively(target, overwrite = true)
-        } else {
-            Timber.w("Cannot import user data: path='${source.path}', exists=$exists, isDir=$isDir")
+        }
+    }
+
+    /**
+     * Copy shared_prefs directory, renaming preference files to match current package name.
+     * When importing between different build variants, we select the preferences file that
+     * matches the exported package name and rename it to the current package name.
+     */
+    private fun copySharedPrefs(source: File, target: File, exportedPackageName: String) {
+        if (!source.exists() || !source.isDirectory) {
+            return
+        }
+
+        target.mkdirs()
+
+        val currentPkgName = appContext.packageName
+        val exportedPrefsFileName = "${exportedPackageName}_preferences.xml"
+        val exportedPrefsFile = source.listFiles()?.find { it.name == exportedPrefsFileName }
+
+        // Copy files, renaming the exported package-specific file to current package name
+        source.listFiles()?.forEach { sourceFile ->
+            when {
+                sourceFile == exportedPrefsFile -> {
+                    sourceFile.copyTo(File(target, "${currentPkgName}_preferences.xml"), overwrite = true)
+                }
+                sourceFile.name.endsWith("_preferences.xml") -> {
+                    // Skip other package-specific files to avoid conflicts
+                }
+                else -> {
+                    sourceFile.copyTo(File(target, sourceFile.name), overwrite = true)
+                }
+            }
         }
     }
 
@@ -107,7 +136,8 @@ object UserDataManager {
                 if (!isAllowedPackageName(metadata.packageName)) {
                     errorRuntime(R.string.exception_user_data_package_name_mismatch, metadata.packageName)
                 }
-                copyDir(File(tempDir, "shared_prefs"), sharedPrefsDir)
+                // Copy shared_prefs with package name renaming
+                copySharedPrefs(File(tempDir, "shared_prefs"), sharedPrefsDir, metadata.packageName)
                 copyDir(File(tempDir, "databases"), dataBasesDir)
                 copyDir(File(tempDir, "external"), externalDir)
                 // keep importing recently_used for backwords compatibility
