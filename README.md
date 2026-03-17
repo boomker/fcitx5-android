@@ -2,6 +2,21 @@
 
 [Fcitx5](https://github.com/fcitx/fcitx5) input method framework and engines ported to Android.
 
+本mod是基于原仓几乎全程 vibe coding 而成，在原仓上增加了相当若干特性，包名为了方便网友同时使用体验使用改成了`org.fcitx.fcitx5.android.fx`，总体上可以理解成原仓做的超集, 可在[releases](https://github.com/fxliang/fcitx5-android/releases)下面下载体验。
+
+如果您觉得我vibe得还行，欢迎您支持我采购token续编vibe coding下去 😀
+
+<table>
+  <tr>
+    <th>支付宝</th>
+    <th>微信支付</th>
+  </tr>
+  <tr>
+    <td width=256 height=256><img src="https://github.com/fxliang/fxliang/assets/4023160/0dc39faf-e6c5-4a67-bebf-8e96c02a8f42"></td>
+    <td width=256 height=256><img src="https://github.com/fxliang/fxliang/assets/4023160/b0d58008-0ede-41f2-aa25-fcd514a4ec33"></td>
+  </tr>
+</table>
+
 ## Download
 
 [<img src="https://github.com/rubenpgrady/get-it-on-github/raw/refs/heads/main/get-it-on-github.png" alt="Git it on GitHub" width="207" height="80">](https://github.com/fcitx5-android/fcitx5-android/releases/latest)
