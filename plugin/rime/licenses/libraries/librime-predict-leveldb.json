@@ -1,9 +1,9 @@
 {
-    "uniqueId": "fxliang/librime-predict-leveldb",
-    "artifactVersion": "9f10a69",
+    "uniqueId": "boomker/librime-predict",
+    "artifactVersion": "a99254b",
     "description": "librime plugin. predict next word, by commit history",
     "name": "rime/librime-predict",
-    "website": "https://github.com/fxliang/librime-predict-leveldb",
+    "website": "https://github.com/boomker/librime-predict",
     "tag": "native",
     "licenses": [
         "BSD-3-Clause"
