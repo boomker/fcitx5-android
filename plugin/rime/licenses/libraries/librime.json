@@ -1,9 +1,9 @@
 {
-    "uniqueId": "rime/librime",
-    "artifactVersion": "1.16.1-de4700e",
+    "uniqueId": "boomker/librime",
+    "artifactVersion": "ca2beab2",
     "description": "Rime Input Method Engine",
-    "name": "rime/librime",
-    "website": "https://github.com/rime/librime",
+    "name": "boomker/librime",
+    "website": "https://github.com/boomker/librime",
     "tag": "native",
     "licenses": [
         "BSD-3-Clause"
