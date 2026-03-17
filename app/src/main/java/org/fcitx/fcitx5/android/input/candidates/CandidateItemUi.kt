@@ -6,6 +6,7 @@
 package org.fcitx.fcitx5.android.input.candidates
 
 import android.content.Context
+import android.graphics.Typeface
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.input.AutoScaleTextView
 import org.fcitx.fcitx5.android.input.keyboard.CustomGestureView
@@ -21,11 +22,18 @@ import splitties.views.gravityCenter
 class CandidateItemUi(
     override val ctx: Context,
     theme: Theme,
-    private val fontKey: String? = null  // Optional: font key for batch setting
+    private val fontKey: String? = null,
+    private val enableScrollMode: Boolean = false,
+    // Optional: external font for batch setting (avoids repeated FontProviders access)
+    private val font: Typeface? = null
 ) : Ui {
 
     val text = view(::CandidateAutoScaleTextView) {
-        scaleMode = AutoScaleTextView.Mode.Proportional
+        scaleMode = if (enableScrollMode) {
+            AutoScaleTextView.Mode.Proportional
+        } else {
+            AutoScaleTextView.Mode.None
+        }
         textSize = 20f // sp
         isSingleLine = true
         gravity = gravityCenter
@@ -33,18 +41,13 @@ class CandidateItemUi(
     }
 
     init {
-        // Set font from font key for batch setting
-        fontKey?.let { text.setFontTypeFace(it) }
+        // Priority: external font > fontKey > default
+        font?.let { text.typeface = it } ?: fontKey?.let { text.setFontTypeFace(it) }
     }
 
     override val root = view(::CustomGestureView) {
         background = pressHighlightDrawable(theme.keyPressHighlightColor)
-
-        /**
-         * candidate long press feedback is handled by [org.fcitx.fcitx5.android.input.candidates.horizontal.HorizontalCandidateComponent.showCandidateActionMenu]
-         */
         longPressFeedbackEnabled = false
-
         add(text, lParams(wrapContent, matchParent) {
             gravity = gravityCenter
         })

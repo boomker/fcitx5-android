@@ -181,7 +181,6 @@ class CandidateAutoScaleTextView @JvmOverloads constructor(
                     textScaleX = 1.0f
                     textScaleY = 1.0f
                     translateX = if (shouldAlignLeft) leftAlignOffset else centerAlignOffset
-                    isScrollMode = false
                 }
                 AutoScaleTextView.Mode.Horizontal -> {
                     if (widthScaleLimit < requiredScale) {
@@ -216,6 +215,11 @@ class CandidateAutoScaleTextView @JvmOverloads constructor(
         }
 
         maxScrollX = max(0f, textBounds.width() * textScaleX - contentWidth)
+
+        if (scaleMode == AutoScaleTextView.Mode.None && maxScrollX > 0f) {
+            isScrollMode = true
+        }
+
         if (isScrollMode && maxScrollX > 0f) {
             if (scrollX > maxScrollX.roundToInt()) scrollTo(maxScrollX.roundToInt(), scrollY)
         } else {
