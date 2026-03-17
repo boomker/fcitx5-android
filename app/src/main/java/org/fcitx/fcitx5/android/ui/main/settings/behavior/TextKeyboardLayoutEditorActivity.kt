@@ -57,7 +57,7 @@ import java.io.File
 
 // Extension function to convert JsonElement to Any?
 private fun JsonElement.toAny(): Any? = when (this) {
-    is JsonObject -> this
+    is JsonObject -> this.toMap()
     is JsonArray -> this.map { it.toAny() }
     is JsonPrimitive -> {
         if (this.isString) this.content
@@ -174,7 +174,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             setPadding(dp(12), dp(6), dp(12), dp(6))
             minWidth = dp(40)
             gravity = android.view.Gravity.CENTER
-            setOnClickListener { confirmDeleteCurrentLayout() }
+            setOnClickListener { confirmDeleteCurrentEditingLayout() }
         }
     }
 
@@ -220,6 +220,9 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
     private var originalEntries: Map<String, List<List<Map<String, Any?>>>> = emptyMap()
     private var currentLayout: String? = null
     private var previewSubModeLabel: String? = null
+    
+    // Track the last editing target to avoid redundant toast notifications
+    private var lastEditingTarget: String? = null  // Format: "layoutName:subModeLabel" or "layoutName:default"
     private var saveMenuItem: MenuItem? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -270,6 +273,47 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         else -> super.onOptionsItemSelected(item)
     }
 
+    /**
+     * Parse layout rows from JsonArray
+     */
+    private fun parseLayoutRows(rowsArray: JsonArray): List<List<Map<String, Any?>>> {
+        val rows = mutableListOf<List<Map<String, Any?>>>()
+        for (i in rowsArray.indices) {
+            val rowArray = rowsArray[i].jsonArray
+            val row = mutableListOf<Map<String, Any?>>()
+            for (j in rowArray.indices) {
+                val rowElement = rowArray[j]
+                if (rowElement is JsonNull) {
+                    continue
+                }
+                if (rowElement !is JsonObject) {
+                    continue
+                }
+                val keyJson = rowElement
+                val keyMap = mutableMapOf<String, Any?>()
+                keyJson.entries.forEach { (key, value) ->
+                    keyMap[key] = when (value) {
+                        is JsonObject -> {
+                            // Convert JsonObject to Map<String, Any?> recursively
+                            value.toMap().mapValues { it.value.toAny() }
+                        }
+                        is JsonArray -> {
+                            value.map { it.toAny() }
+                        }
+                        is JsonPrimitive -> {
+                            if (value.isString) value.content
+                            else value.booleanOrNull ?: value.intOrNull ?: value.doubleOrNull ?: value.content
+                        }
+                        is JsonNull -> null
+                    }
+                }
+                row.add(keyMap)
+            }
+            rows.add(row)
+        }
+        return rows
+    }
+
     private fun loadState() {
         // Try to load from existing TextKeyboardLayout.json file first
         val file = ConfigProviders.provider.textKeyboardLayoutFile()
@@ -284,16 +328,12 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             runCatching {
                 var jsonStr = file.readText()
                 // Remove // comments (JSON doesn't support comments, but we allow them for convenience)
-                // Only remove comments that start at the beginning of a line or after whitespace
                 jsonStr = jsonStr.lines()
                     .joinToString("\n") { line ->
-                        // Find // that is not inside a string
                         val commentIdx = line.indexOf("//")
                         if (commentIdx >= 0) {
-                            // Check if // is inside a string by counting quotes before it
                             val beforeComment = line.substring(0, commentIdx)
                             val quoteCount = beforeComment.count { it == '"' }
-                            // If even number of quotes, // is not inside a string
                             if (quoteCount % 2 == 0) {
                                 line.substring(0, commentIdx)
                             } else {
@@ -308,48 +348,33 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                 val jsonObject = jsonElement.jsonObject
 
                 val result = mutableMapOf<String, List<List<Map<String, Any?>>>>()
+
+                // Process each layout entry
                 jsonObject.entries.forEach { (layoutName, layoutValue) ->
-                    val rowsArray = layoutValue.jsonArray
-                    val rows = mutableListOf<List<Map<String, Any?>>>()
-                    for (i in rowsArray.indices) {
-                        val rowArray = rowsArray[i].jsonArray
-                        val row = mutableListOf<Map<String, Any?>>()
-                        for (j in rowArray.indices) {
-                            val rowElement = rowArray[j]
-                            // Skip null or invalid entries
-                            if (rowElement is JsonNull) {
-                                continue
-                            }
-                            // Make sure it's a JsonObject
-                            if (rowElement !is JsonObject) {
-                                continue
-                            }
-                            val keyJson = rowElement
-                            val keyMap = mutableMapOf<String, Any?>()
-                            keyJson.entries.forEach { (key, value) ->
-                                keyMap[key] = when (value) {
-                                    is JsonObject -> {
-                                        // Handle nested objects (like displayText)
-                                        // Keep as JsonObject for proper JSON serialization
-                                        value
+                    when (layoutValue) {
+                        is JsonArray -> {
+                            // Direct layout array (no submode structure)
+                            val rows = parseLayoutRows(layoutValue.jsonArray)
+                            result[layoutName] = rows
+                        }
+                        is JsonObject -> {
+                            // Submode structure - process each submode
+                            layoutValue.jsonObject.entries.forEach { (subModeLabel, subModeValue) ->
+                                if (subModeValue is JsonArray) {
+                                    val rows = parseLayoutRows(subModeValue.jsonArray)
+                                    val key = if (subModeLabel == "default") {
+                                        layoutName  // Use base name for default
+                                    } else {
+                                        "$layoutName:$subModeLabel"  // Use colon notation for submodes
                                     }
-                                    is JsonArray -> {
-                                        // Handle arrays
-                                        value.jsonArray.map { element -> element.toAny() }
-                                    }
-                                    is JsonPrimitive -> {
-                                        // Handle primitives - preserve type
-                                        if (value.isString) value.content
-                                        else value.booleanOrNull ?: value.intOrNull ?: value.doubleOrNull ?: value.content
-                                    }
-                                    is JsonNull -> null
+                                    result[key] = rows
                                 }
                             }
-                            row.add(keyMap)
                         }
-                        rows.add(row)
+                        else -> {
+                            // Skip invalid entries
+                        }
                     }
-                    result[layoutName] = rows
                 }
                 result
             }.onFailure { e ->
@@ -375,8 +400,85 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             }
         }
 
+        // Check if migration is needed before creating backup
+        val needsMigration = file != null && checkIfMigrationNeeded()
+
+        // Only backup if migration is actually needed
+        val backupFile = if (needsMigration) {
+            backupOriginalFile(file!!)
+        } else {
+            null
+        }
+
+        // Migrate old displayText format to new submode structure
+        // This ensures a smooth and automatic migration for all users
+        try {
+            migrateAllDisplayTextToSubmodeStructure()
+        } catch (e: Exception) {
+            android.util.Log.e("TextKeyboardEditor", "Migration failed, restoring backup", e)
+            backupFile?.let { restoreFromBackup(it, file) }
+            // Re-parse the restored file
+            val restoredParsed = runCatching {
+                val jsonStr = file!!.readText()
+                val jsonElement = lenientJson.parseToJsonElement(jsonStr)
+                parseJsonToEntries(jsonElement.jsonObject)
+            }.getOrNull()
+            if (restoredParsed != null) {
+                entries.clear()
+                parsed.toSortedMap().forEach { (k, v) ->
+                    entries[k] = v.map { row ->
+                        row.map { key -> key.toMutableMap() }.toMutableList()
+                    }.toMutableList()
+                }
+            }
+            showToast(getString(R.string.text_keyboard_layout_migration_failed))
+        }
+
         originalEntries = normalizedEntries()
-        currentLayout = entries.keys.firstOrNull()
+        
+        // Initialize currentLayout and previewSubModeLabel based on current IME state
+        val (currentIme, fcitxLabels) = fetchCurrentImeAndSubModeLabels()
+        val currentImeUniqueName = currentIme?.uniqueName
+        val currentSubModeLabel = currentIme?.subMode?.label?.ifEmpty { currentIme.subMode.name }?.takeIf { it.isNotBlank() }
+        
+        // Find matching layout for current IME
+        if (currentImeUniqueName != null) {
+            // Try uniqueName first, then displayName
+            val matchingLayoutKey = entries.keys.find { key ->
+                key == currentImeUniqueName || 
+                key == currentIme.displayName ||
+                (!key.contains(':') && allImesFromJson.any { ime -> 
+                    (ime.uniqueName == key || ime.displayName == key) &&
+                    (ime.uniqueName == currentImeUniqueName || ime.displayName == currentImeUniqueName)
+                })
+            }
+            currentLayout = matchingLayoutKey
+        }
+        
+        // Default to first layout if no matching layout found
+        if (currentLayout == null) {
+            currentLayout = entries.keys.firstOrNull()
+        }
+        
+        // Set previewSubModeLabel based on current IME submode
+        val layoutLabels = extractSubModeLabelsFromCurrentLayout()
+        val allLabels = (fcitxLabels + layoutLabels).distinct().filter { it.isNotBlank() }
+
+        if (allLabels.isNotEmpty() && currentSubModeLabel != null) {
+            previewSubModeLabel = currentSubModeLabel.takeIf { it in allLabels } ?: allLabels.first()
+        } else if (allLabels.isNotEmpty()) {
+            previewSubModeLabel = allLabels.first()
+        }
+        
+        // Initialize lastEditingTarget
+        currentLayout?.let { layout ->
+            val subModeKey = previewSubModeLabel?.let { "$layout:$it" }
+            lastEditingTarget = if (subModeKey != null && entries.containsKey(subModeKey)) {
+                subModeKey
+            } else {
+                "$layout:default"
+            }
+        }
     }
 
     private fun readDefaultPresetFromTextKeyboardKt(): Map<String, List<List<Map<String, Any?>>>> {
@@ -447,10 +549,22 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         val displayItems = mutableListOf<String>()
         val layoutNameMap = mutableMapOf<String, String>() // display -> actual key
 
-        entries.keys.forEach { layoutName ->
+        // Filter out submode keys (format: "layoutName:subModeLabel")
+        // Only show base layout keys (those without a colon)
+        val baseLayoutKeys = entries.keys.filter { !it.contains(":") }
+
+        // Ensure we have at least one layout to display
+        if (baseLayoutKeys.isEmpty()) {
+            // Fallback: add default
+            displayItems.add("default")
+            layoutNameMap["default"] = "default"
+            currentLayout = "default"
+        }
+
+        baseLayoutKeys.forEach { layoutName ->
             // Find if this layoutName matches any IME's uniqueName or displayName
-            val matchingIme = allImesFromJson.find { 
-                it.uniqueName == layoutName || it.displayName == layoutName 
+            val matchingIme = allImesFromJson.find {
+                it.uniqueName == layoutName || it.displayName == layoutName
             }
 
             if (matchingIme != null) {
@@ -487,13 +601,52 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         layoutSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 val displayItem = displayItems.getOrNull(position)
-                currentLayout = displayItem?.let { layoutNameMap[it] }
-                buildSubModeSpinner(forceResetSelection = true)
+                val newLayout = displayItem?.let { layoutNameMap[it] }
+
+                // Preserve current submode selection when switching layouts
+                // Only reset if the new layout doesn't have the current submode
+                val oldSubModeLabel = previewSubModeLabel
+                val oldLayout = currentLayout
+                currentLayout = newLayout
+
+                // Build submode spinner without forcing reset
+                buildSubModeSpinner(forceResetSelection = false)
+
+                // If the new layout doesn't have the old submode, reset to default
+                if (oldSubModeLabel != null && previewSubModeLabel != oldSubModeLabel) {
+                    // previewSubModeLabel was reset by buildSubModeSpinner, which is correct
+                }
+
                 buildRows()
                 updatePreview()
+
+                // Show toast when switching IME/layout
+                if (newLayout != oldLayout) {
+                    val layoutName = currentLayout ?: return@onItemSelected
+                    val subModeKey = "$layoutName:${previewSubModeLabel ?: "default"}"
+                    val newEditingTarget = if (entries.containsKey(subModeKey)) {
+                        subModeKey
+                    } else {
+                        "$layoutName:default"
+                    }
+
+                    // Only show toast if the editing target changed
+                    if (newEditingTarget != lastEditingTarget) {
+                        lastEditingTarget = newEditingTarget
+                        if (entries.containsKey(subModeKey)) {
+                            showToast(getString(R.string.text_keyboard_layout_editing_submode, previewSubModeLabel ?: "default"))
+                        } else {
+                            showToast(getString(R.string.text_keyboard_layout_editing_default, layoutName))
+                        }
+                    }
+                }
             }
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
+        // Remove from current parent first to avoid "child already has a parent" exception
+        (layoutSpinner.parent as? ViewGroup)?.removeView(layoutSpinner)
+        (addLayoutButton.parent as? ViewGroup)?.removeView(addLayoutButton)
+        (deleteLayoutButton.parent as? ViewGroup)?.removeView(deleteLayoutButton)
         spinnerContainer.addView(layoutSpinner)
         spinnerContainer.addView(addLayoutButton)
         spinnerContainer.addView(deleteLayoutButton)
@@ -521,18 +674,43 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             ?.ifEmpty { currentIme.subMode.name }
             ?.takeIf { it.isNotBlank() }
 
-        if (forceResetSelection) {
-            previewSubModeLabel = currentLabel?.takeIf { it in labels } ?: labels.first()
-        } else if (previewSubModeLabel.isNullOrBlank() || previewSubModeLabel !in labels) {
-            previewSubModeLabel = currentLabel?.takeIf { it in labels } ?: labels.first()
+        // Only reset selection if current previewSubModeLabel is not in labels
+        // This preserves user's selection when adding/editing submode layouts
+        if (previewSubModeLabel.isNullOrBlank() || previewSubModeLabel !in labels) {
+            // If forceResetSelection, prefer current IME submode, otherwise use first available
+            previewSubModeLabel = if (forceResetSelection) {
+                currentLabel?.takeIf { it in labels } ?: labels.first()
+            } else {
+                labels.first()
+            }
         }
 
         subModeContainer.removeAllViews()
         subModeContainer.visibility = View.VISIBLE
+
+        // Add layout spinner (left side) - remove from parent first if needed
+        (layoutSpinner.parent as? ViewGroup)?.removeView(layoutSpinner)
+        // Ensure layoutSpinner has correct layoutParams for subModeContainer
+        layoutSpinner.layoutParams = LinearLayout.LayoutParams(
+            0, LinearLayout.LayoutParams.WRAP_CONTENT
+        ).apply { weight = 1f }
+        subModeContainer.addView(layoutSpinner)
+
+        // Add spacer
+        subModeContainer.addView(createSubModeSpacer())
+
+        // Add submode spinner (right side)
         bindSubModeSpinner(labels)
         subModeContainer.addView(subModeSpinner)
-        subModeContainer.addView(createSubModeSpacer("+", bold = true))
-        subModeContainer.addView(createSubModeSpacer("🗑", bold = false))
+
+        // Add add button
+        subModeContainer.addView(createAddSubModeButton())
+
+        // Add delete button
+        subModeContainer.addView(createDeleteSubModeButton())
+
+        // Hide the original spinnerContainer to avoid duplicate space
+        spinnerContainer.visibility = View.GONE
     }
 
     private data class SubModeState(
@@ -544,6 +722,19 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         subModeContainer.removeAllViews()
         subModeContainer.visibility = View.GONE
         previewSubModeLabel = null
+
+        // Restore layoutSpinner to spinnerContainer if not already there
+        if (layoutSpinner.parent != spinnerContainer) {
+            (layoutSpinner.parent as? ViewGroup)?.removeView(layoutSpinner)
+            // Ensure layoutSpinner has correct layoutParams for spinnerContainer
+            layoutSpinner.layoutParams = LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { weight = 1f }
+            spinnerContainer.addView(layoutSpinner, 0)
+        }
+
+        // Show the original spinnerContainer
+        spinnerContainer.visibility = View.VISIBLE
     }
 
     private fun bindSubModeSpinner(labels: List<String>) {
@@ -564,25 +755,279 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                 val selected = labels.getOrNull(position) ?: return
                 if (selected == previewSubModeLabel) return
                 previewSubModeLabel = selected
-                updatePreview()
+                runCatching {
+                    // Update preview and editor rows to show the selected submode layout
+                    updatePreview()
+                    buildRows()
+                    updateSaveButtonState()
+
+                    // Show toast only when switching between different editing targets
+                    val layoutName = currentLayout ?: return@runCatching
+                    val subModeKey = "$layoutName:$selected"
+                    val newEditingTarget = if (entries.containsKey(subModeKey)) {
+                        // Has dedicated submode layout
+                        subModeKey
+                    } else {
+                        // Editing default layout
+                        "$layoutName:default"
+                    }
+                    
+                    // Only show toast if the editing target changed
+                    if (newEditingTarget != lastEditingTarget) {
+                        lastEditingTarget = newEditingTarget
+                        if (entries.containsKey(subModeKey)) {
+                            showToast(getString(R.string.text_keyboard_layout_editing_submode, selected))
+                        } else {
+                            showToast(getString(R.string.text_keyboard_layout_editing_default, layoutName))
+                        }
+                    }
+                }.onFailure { e ->
+                    // Log error but don't crash
+                    android.util.Log.e("TextKeyboardLayoutEditor", "Failed to switch submode", e)
+                }
             }
 
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
     }
 
-    private fun createSubModeSpacer(text: String, bold: Boolean): TextView {
+    private fun createSubModeSpacer(): View {
+        return View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(dp(8), LinearLayout.LayoutParams.WRAP_CONTENT)
+        }
+    }
+
+    private fun createAddSubModeButton(): TextView {
         return TextView(this).apply {
-            this.text = text
+            text = "+"
             textSize = 14f
-            if (bold) {
-                setTypeface(null, android.graphics.Typeface.BOLD)
-            }
+            setTypeface(null, android.graphics.Typeface.BOLD)
             setPadding(dp(12), dp(6), dp(12), dp(6))
             minWidth = dp(40)
             gravity = Gravity.CENTER
-            visibility = View.INVISIBLE
+            setOnClickListener { addSubModeForCurrentSelection() }
         }
+    }
+
+    private fun addSubModeForCurrentSelection() {
+        val layoutName = currentLayout ?: return
+        val currentSubModeLabel = previewSubModeLabel?.takeIf { it.isNotBlank() }
+        
+        // If no submode selected, show message
+        if (currentSubModeLabel == null) {
+            showToast(getString(R.string.text_keyboard_layout_no_submode_selected))
+            return
+        }
+        
+        // Check if submode layout already exists
+        val subModeKey = "$layoutName:$currentSubModeLabel"
+        if (entries.containsKey(subModeKey)) {
+            // Submode layout already exists - show toast
+            showToast(getString(R.string.text_keyboard_layout_submode_already_exists, currentSubModeLabel))
+            return
+        }
+        
+        // Submode layout doesn't exist - show confirmation dialog
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.text_keyboard_layout_add_submode))
+            .setMessage(getString(R.string.text_keyboard_layout_add_submode_confirm, currentSubModeLabel))
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                addSubModeLayout(layoutName, currentSubModeLabel)
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun createDeleteSubModeButton(): TextView {
+        return TextView(this).apply {
+            text = "🗑"
+            textSize = 14f
+            setPadding(dp(12), dp(6), dp(12), dp(6))
+            minWidth = dp(40)
+            gravity = Gravity.CENTER
+            setOnClickListener { confirmDeleteCurrentEditingLayout() }
+        }
+    }
+
+    private fun confirmDeleteCurrentEditingLayout() {
+        val layoutName = currentLayout ?: return
+        
+        // Determine what to delete based on current previewSubModeLabel (what user is currently editing)
+        val currentSubModeLabel = previewSubModeLabel?.takeIf { it.isNotBlank() }
+        
+        // Check if we have a submode-specific layout to delete
+        val subModeKey = if (currentSubModeLabel != null && currentSubModeLabel != "default") {
+            "$layoutName:$currentSubModeLabel"
+        } else {
+            null
+        }
+        
+        val keyToDelete = if (subModeKey != null && entries.containsKey(subModeKey)) {
+            subModeKey
+        } else {
+            // Delete the base layout (default)
+            layoutName
+        }
+        
+        val displayName = if (subModeKey != null && entries.containsKey(subModeKey)) {
+            "$layoutName ($currentSubModeLabel)"
+        } else {
+            layoutName
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle(R.string.delete)
+            .setMessage(getString(R.string.text_keyboard_layout_delete_layout_confirm, displayName))
+            .setPositiveButton(R.string.delete) { _, _ ->
+                entries.remove(keyToDelete)
+
+                // If deleting base layout and there are submode layouts, promote first submode to base
+                if (keyToDelete == layoutName) {
+                    val remainingSubModeKeys = entries.keys.filter { it.startsWith("$layoutName:") }
+                    if (remainingSubModeKeys.isNotEmpty()) {
+                        // Promote first submode to base layout
+                        val firstSubModeKey = remainingSubModeKeys.first()
+                        val firstSubModeLabel = firstSubModeKey.substringAfterLast(':')
+                        val subModeLayout = entries[firstSubModeKey]
+                        if (subModeLayout != null) {
+                            entries[layoutName] = subModeLayout
+                            entries.remove(firstSubModeKey)
+                            currentLayout = layoutName
+                            previewSubModeLabel = null
+                            lastEditingTarget = "$layoutName:default"
+                        }
+                    } else {
+                        // No more layouts for this IME - remove all submode entries and switch to another layout
+                        val allKeysForIme = entries.keys.filter {
+                            it == layoutName || it.startsWith("$layoutName:")
+                        }.toList()
+                        allKeysForIme.forEach { entries.remove(it) }
+
+                        // Switch to another base layout IMMEDIATELY
+                        currentLayout = entries.keys.firstOrNull { !it.contains(':') }
+                        previewSubModeLabel = null
+                        lastEditingTarget = currentLayout?.let { "$it:default" }
+                        
+                        // If no layouts left, load default from TextKeyboard.kt
+                        if (currentLayout == null) {
+                            val defaultLayout = readDefaultPresetFromTextKeyboardKt()
+                            defaultLayout.forEach { (k, v) ->
+                                entries[k] = v.map { row ->
+                                    row.map { key -> key.toMutableMap() }.toMutableList()
+                                }.toMutableList()
+                            }
+                            currentLayout = "default"
+                            previewSubModeLabel = null
+                            lastEditingTarget = "default:default"
+                        }
+                    }
+                } else {
+                    // Deleted a submode layout, switch to default or first available
+                    val remainingLabels = extractSubModeLabelsFromCurrentLayout()
+                    previewSubModeLabel = remainingLabels.firstOrNull()
+                    lastEditingTarget = previewSubModeLabel?.let { "$layoutName:$it" } ?: "$layoutName:default"
+                }
+
+                // Final safety check: ensure currentLayout is valid
+                if (currentLayout == null || !entries.containsKey(currentLayout)) {
+                    val newLayout = entries.keys.firstOrNull { !it.contains(':') } ?: "default"
+                    if (newLayout != currentLayout) {
+                        android.util.Log.d("TextKeyboardEditor", "Switching currentLayout from $currentLayout to $newLayout after delete")
+                    }
+                    currentLayout = newLayout
+                    if (!entries.containsKey(currentLayout)) {
+                        val defaultLayout = readDefaultPresetFromTextKeyboardKt()
+                        defaultLayout.forEach { (k, v) ->
+                            entries[k] = v.map { row ->
+                                row.map { key -> key.toMutableMap() }.toMutableList()
+                            }.toMutableList()
+                        }
+                    }
+                    previewSubModeLabel = null
+                    lastEditingTarget = "$currentLayout:default"
+                }
+
+                android.util.Log.d("TextKeyboardEditor", "After delete: currentLayout=$currentLayout, entries.keys=${entries.keys.toList()}")
+
+                buildSpinner()
+                buildSubModeSpinner()
+                buildRows()
+                updatePreview()
+                updateSaveButtonState()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun addSubModeLayout(layoutName: String, subModeLabel: String) {
+        // Try to get the base layout (default) to copy from
+        val baseLayout = entries[layoutName]
+
+        // Get existing submode layouts for this base layout
+        val existingSubModeKeys = entries.keys.filter {
+            it.startsWith("$layoutName:") && it != "$layoutName:default"
+        }
+
+        // Determine the source layout to copy from
+        // Priority: 1) base layout, 2) first existing submode layout, 3) create empty
+        val sourceLayout = if (baseLayout != null && baseLayout.isNotEmpty()) {
+            // Use base layout if it exists and is not empty
+            baseLayout
+        } else if (existingSubModeKeys.isNotEmpty()) {
+            // Use first existing submode layout
+            entries[existingSubModeKeys.first()]
+        } else {
+            null
+        }
+
+        val subModeKey = "$layoutName:$subModeLabel"
+
+        if (sourceLayout != null) {
+            // Deep copy the source layout - create completely new objects
+            val copiedLayout = mutableListOf<MutableList<MutableMap<String, Any?>>>()
+            for (sourceRow in sourceLayout) {
+                val newRow = mutableListOf<MutableMap<String, Any?>>()
+                for (sourceKey in sourceRow) {
+                    // Create a new mutable map with copied values
+                    val newKey = mutableMapOf<String, Any?>()
+                    sourceKey.forEach { (k, v) ->
+                        // Deep copy nested maps (like displayText JsonObject)
+                        newKey[k] = when (v) {
+                            is Map<*, *> -> mutableMapOf<String, Any?>().apply {
+                                v.forEach { (kk, vv) -> put(kk.toString(), vv) }
+                            }
+                            is List<*> -> v.toList()
+                            else -> v
+                        }
+                    }
+                    newRow.add(newKey)
+                }
+                copiedLayout.add(newRow)
+            }
+
+            // Migrate displayText from old format to new submode format
+            // If base layout has displayText: {subModeLabel: "text"}, extract it
+            migrateDisplayTextForSubMode(copiedLayout, subModeLabel)
+
+            entries[subModeKey] = copiedLayout
+        } else {
+            // Create empty layout
+            entries[subModeKey] = mutableListOf()
+        }
+
+        // Keep currentLayout unchanged, set previewSubModeLabel to the new submode
+        currentLayout = layoutName
+        previewSubModeLabel = subModeLabel
+
+        // Update last editing target to reflect the new submode layout
+        lastEditingTarget = subModeKey
+
+        // Build UI components - note: don't use forceResetSelection to preserve previewSubModeLabel
+        buildRows()
+        buildSubModeSpinner(forceResetSelection = false)
+        updatePreview()
+        updateSaveButtonState()
+        showToast(getString(R.string.text_keyboard_layout_submode_added, subModeLabel))
     }
 
     private fun resolveSubModeState(layoutLabels: List<String>): SubModeState {
@@ -604,29 +1049,318 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
 
     private fun extractSubModeLabelsFromCurrentLayout(): List<String> {
         val layoutName = currentLayout ?: return emptyList()
-        val rows = entries[layoutName] ?: return emptyList()
+        
+        // Collect all submode labels from submode-specific layouts
         val labels = linkedSetOf<String>()
-
+        
+        // Look for submode layouts with key "layoutName:subModeLabel"
+        entries.keys.forEach { key ->
+            if (key.startsWith("$layoutName:")) {
+                val subModeLabel = key.substringAfter("$layoutName:")
+                if (subModeLabel.isNotEmpty() && subModeLabel != "default") {
+                    labels.add(subModeLabel)
+                }
+            }
+        }
+        
+        // Also extract from displayText in the default layout
+        val rows = entries[layoutName] ?: return labels.toList()
+        
         rows.forEach { row ->
             row.forEach { key ->
                 when (val displayText = key["displayText"]) {
                     is JsonObject -> {
                         displayText.keys.forEach { mode ->
                             val normalized = mode.trim()
-                            if (normalized.isNotEmpty()) labels.add(normalized)
+                            if (normalized.isNotEmpty() && normalized != "default") labels.add(normalized)
                         }
                     }
                     is Map<*, *> -> {
                         displayText.keys.forEach { mode ->
                             val normalized = mode?.toString()?.trim().orEmpty()
-                            if (normalized.isNotEmpty()) labels.add(normalized)
+                            if (normalized.isNotEmpty() && normalized != "default") labels.add(normalized)
+                        }
+                    }
+                }
+            }
+        }
+        
+        return labels.toList()
+    }
+
+    /**
+     * Migrate displayText from old format to new submode format.
+     * If base layout has displayText: {subModeLabel: "text"}, extract it to simple string.
+     */
+    private fun migrateDisplayTextForSubMode(layout: MutableList<MutableList<MutableMap<String, Any?>>>, subModeLabel: String) {
+        for (row in layout) {
+            for (key in row) {
+                val displayText = key["displayText"]
+                when (displayText) {
+                    is Map<*, *> -> {
+                        // Old format: displayText: {mode1: "text1", mode2: "text2"}
+                        // Extract the value for current subModeLabel
+                        val specificValue = displayText[subModeLabel]?.toString()
+                        val defaultValue = displayText["default"]?.toString()
+                        
+                        // Use specific value if exists, otherwise use default
+                        val newValue = specificValue ?: defaultValue
+                        
+                        if (newValue != null) {
+                            // Replace with simple string
+                            key["displayText"] = newValue
+                        } else {
+                            // No matching value, remove displayText
+                            key.remove("displayText")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Clean up base layout's displayText entries that are now covered by submode layouts.
+     * Removes subModeLabel keys from displayText: {} in base layout if submode layout exists.
+     */
+    private fun cleanupBaseLayoutDisplayText(layoutName: String) {
+        val baseLayout = entries[layoutName] ?: return
+
+        // Find all existing submode keys for this layout
+        val subModeKeys = entries.keys.filter {
+            it.startsWith("$layoutName:") && it != "$layoutName:default"
+        }
+
+        if (subModeKeys.isEmpty()) return
+
+        for (row in baseLayout) {
+            for (key in row) {
+                val displayText = key["displayText"]
+                when (displayText) {
+                    is MutableMap<*, *> -> {
+                        // Remove keys that are now covered by submode layouts
+                        val keysToRemove = subModeKeys.map { it.substringAfter("$layoutName:") }
+                            .filter { it in displayText.keys }
+                        keysToRemove.forEach { keyToRemove ->
+                            displayText.remove(keyToRemove)
+                        }
+
+                        // If only "default" left or empty, convert to simple string
+                        val remainingKeys = displayText.keys.filter { it != "default" }
+                        if (remainingKeys.isEmpty()) {
+                            val defaultValue = displayText["default"]?.toString()
+                            if (defaultValue != null) {
+                                key["displayText"] = defaultValue
+                            } else if (displayText.isEmpty()) {
+                                key.remove("displayText")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Migrate all old displayText format to new submode structure automatically.
+     * 
+     * Migration strategy:
+     * 1. For layouts with existing submode layouts (e.g., "rime:倉頡五代"):
+     *    - Extract displayText values from base layout to corresponding submode layouts
+     *    - Convert base layout displayText to simple strings or remove
+     * 2. For layouts without submode layouts:
+     *    - Keep displayText as-is for backward compatibility
+     * 
+     * This ensures a smooth, automatic, and non-destructive migration.
+     */
+    private fun migrateAllDisplayTextToSubmodeStructure() {
+        // Group layouts by base name
+        val layoutGroups = entries.keys.groupBy { key ->
+            if (key.contains(':')) key.substringBeforeLast(':') else key
+        }
+
+        layoutGroups.forEach { (baseName, keys) ->
+            // Check if this layout has submode layouts
+            val subModeKeys = keys.filter { it.contains(':') && it != "$baseName:default" }
+
+            if (subModeKeys.isEmpty()) {
+                // No submode layouts - keep old format for backward compatibility
+                // But still normalize JsonObject to Map for consistency
+                val baseKey = keys.firstOrNull { it == baseName || it == "$baseName:default" }
+                baseKey?.let { normalizeDisplayTextToMap(it) }
+                return@forEach
+            }
+
+            // Has submode layouts - migrate old format
+            val baseKey = keys.firstOrNull { it == baseName || it == "$baseName:default" }
+
+            // Migrate each submode layout
+            subModeKeys.forEach { subModeKey ->
+                val subModeLabel = subModeKey.substringAfterLast(':')
+                val subModeLayout = entries[subModeKey]
+                subModeLayout?.let { layout ->
+                    migrateDisplayTextForSubMode(layout, subModeLabel)
+                }
+            }
+
+            // Clean up base layout
+            baseKey?.let { cleanupBaseLayoutDisplayText(baseName) }
+        }
+    }
+
+    /**
+     * Normalize displayText from JsonObject to Map<String, Any?> for consistent handling.
+     * This is called during initial load to ensure all data is in the correct format.
+     */
+    private fun normalizeDisplayTextToMap(layoutKey: String) {
+        val layout = entries[layoutKey] ?: return
+        for (row in layout) {
+            for (key in row) {
+                val displayText = key["displayText"]
+                // Data is already in Map<String, Any?> format after parsing
+                // This is just a safety check for any edge cases
+                if (displayText is Map<*, *>) {
+                    // Values are already Any? type, no conversion needed
+                    // Just ensure the map is mutable and properly typed
+                    key["displayText"] = displayText.toMutableMap() as MutableMap<String, Any?>
+                }
+            }
+        }
+    }
+
+    /**
+     * Check if migration is needed by detecting old displayText format.
+     * Old format: displayText: { "倉頡五代": "手" } in base layout without submode layouts
+     * @return true if migration is needed, false if data is already in new format
+     */
+    private fun checkIfMigrationNeeded(): Boolean {
+        // Group layouts by base name
+        val layoutGroups = entries.keys.groupBy { key ->
+            if (key.contains(':')) key.substringBeforeLast(':') else key
+        }
+
+        layoutGroups.forEach { (baseName, keys) ->
+            val hasSubModeLayouts = keys.any { it.contains(':') && it != "$baseName:default" }
+
+            if (hasSubModeLayouts) {
+                // Has submode layouts - check if base layout still has old format displayText
+                val baseKey = keys.firstOrNull { it == baseName || it == "$baseName:default" }
+                val baseLayout = baseKey?.let { entries[it] }
+                baseLayout?.forEach { row ->
+                    row.forEach { key ->
+                        val displayText = key["displayText"]
+                        if (displayText is Map<*, *> && displayText.isNotEmpty()) {
+                            // Found old format in base layout with submode layouts - migration needed
+                            return true
                         }
                     }
                 }
             }
         }
 
-        return labels.toList()
+        return false
+    }
+
+    /**
+     * Backup original file before migration.
+     * Creates a backup with timestamp in the same directory.
+     * Also cleans up old backups to prevent accumulation.
+     * @return The backup file, or null if backup failed
+     */
+    private fun backupOriginalFile(originalFile: File): File? {
+        return runCatching {
+            val timestamp = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.US)
+                .format(java.util.Date())
+            val backupFileName = "${originalFile.nameWithoutExtension}_backup_$timestamp.json"
+            val backupFile = File(originalFile.parentFile, backupFileName)
+
+            originalFile.copyTo(backupFile, overwrite = false)
+            android.util.Log.i("TextKeyboardEditor", "Backup created: ${backupFile.absolutePath}")
+
+            // Clean up old backups (keep only the latest 3)
+            cleanupOldBackups(originalFile, keepCount = 3)
+
+            backupFile
+        }.onFailure { e ->
+            android.util.Log.e("TextKeyboardEditor", "Failed to create backup", e)
+        }.getOrNull()
+    }
+
+    /**
+     * Clean up old backup files, keeping only the latest N backups.
+     * @param originalFile The original file to find backups for
+     * @param keepCount Number of backups to keep
+     */
+    private fun cleanupOldBackups(originalFile: File, keepCount: Int = 3) {
+        runCatching {
+            val backupPattern = "${originalFile.nameWithoutExtension}_backup_"
+            val backups = originalFile.parentFile
+                ?.listFiles { file ->
+                    file.name.startsWith(backupPattern) && file.name.endsWith(".json")
+                }
+                ?.sortedByDescending { it.lastModified() }
+                ?: return
+
+            if (backups.size > keepCount) {
+                backups.drop(keepCount).forEach { oldBackup ->
+                    if (oldBackup.delete()) {
+                        android.util.Log.i("TextKeyboardEditor", "Deleted old backup: ${oldBackup.absolutePath}")
+                    }
+                }
+            }
+        }.onFailure { e ->
+            android.util.Log.e("TextKeyboardEditor", "Failed to cleanup old backups", e)
+        }
+    }
+
+    /**
+     * Restore from backup file.
+     * @param backupFile The backup file to restore from
+     * @param targetFile The original file to restore to
+     */
+    private fun restoreFromBackup(backupFile: File, targetFile: File?) {
+        if (targetFile == null) return
+
+        runCatching {
+            if (backupFile.exists()) {
+                backupFile.copyTo(targetFile, overwrite = true)
+                android.util.Log.i("TextKeyboardEditor", "Restored from backup: ${backupFile.absolutePath}")
+            }
+        }.onFailure { e ->
+            android.util.Log.e("TextKeyboardEditor", "Failed to restore from backup", e)
+        }
+    }
+
+    /**
+     * Parse JsonElement to entries map.
+     * Helper function for restoring from backup.
+     */
+    private fun parseJsonToEntries(jsonObject: JsonObject): Map<String, List<List<Map<String, Any?>>>> {
+        val result = mutableMapOf<String, List<List<Map<String, Any?>>>>()
+
+        jsonObject.entries.forEach { (layoutName, layoutValue) ->
+            when (layoutValue) {
+                is JsonArray -> {
+                    val rows = parseLayoutRows(layoutValue.jsonArray)
+                    result[layoutName] = rows
+                }
+                is JsonObject -> {
+                    layoutValue.jsonObject.entries.forEach { (subModeLabel, subModeValue) ->
+                        if (subModeValue is JsonArray) {
+                            val rows = parseLayoutRows(subModeValue.jsonArray)
+                            val key = if (subModeLabel == "default") {
+                                layoutName
+                            } else {
+                                "$layoutName:$subModeLabel"
+                            }
+                            result[key] = rows
+                        }
+                    }
+                }
+                else -> {}
+            }
+        }
+        return result
     }
 
     private fun fetchCurrentImeAndSubModeLabels(): Pair<InputMethodEntry?, List<String>> {
@@ -689,38 +1423,6 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         return SubModeMenuResolver.extractLabels(actions, currentLabel)
     }
 
-    private fun confirmDeleteCurrentLayout() {
-        val layoutName = currentLayout ?: return
-
-        AlertDialog.Builder(this)
-            .setTitle(R.string.delete)
-            .setMessage(getString(R.string.text_keyboard_layout_delete_layout_confirm, layoutName))
-            .setPositiveButton(R.string.delete) { _, _ ->
-                entries.remove(layoutName)
-
-                // If no layouts left, load default from TextKeyboard.kt
-                if (entries.isEmpty()) {
-                    val defaultLayout = readDefaultPresetFromTextKeyboardKt()
-                    defaultLayout.forEach { (k, v) ->
-                        entries[k] = v.map { row ->
-                            row.map { key -> key.toMutableMap() }.toMutableList()
-                        }.toMutableList()
-                    }
-                    currentLayout = "default"
-                } else {
-                    currentLayout = entries.keys.firstOrNull()
-                }
-
-                buildSpinner()
-                buildSubModeSpinner()
-                buildRows()
-                updatePreview()
-                updateSaveButtonState() // Update save button state
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
-    }
-
     // Cache IMEs from JSON for spinner display
     private var allImesFromJson: Array<InputMethodEntry> = emptyArray()
 
@@ -731,7 +1433,34 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
 
     private fun buildRows() {
         val layoutName = currentLayout ?: return
-        val rows = entries[layoutName] ?: return
+
+        // Try to load submode-specific layout first
+        val subModeKey = previewSubModeLabel?.let { "$layoutName:$it" }
+
+        // Determine which layout to edit
+        val rows = if (subModeKey != null && entries.containsKey(subModeKey)) {
+            // Submode layout exists - edit it
+            entries[subModeKey]
+        } else {
+            // Edit default layout
+            entries[layoutName]
+        }
+        
+        // If rows is null, the currentLayout doesn't exist in entries - recover
+        if (rows == null) {
+            // Try to recover by finding a valid layout
+            val validLayout = entries.keys.firstOrNull { !it.contains(':') }
+            if (validLayout != null) {
+                currentLayout = validLayout
+                previewSubModeLabel = null
+                // Rebuild with the new valid layout
+                buildRows()
+            } else {
+                // No valid layout found - this shouldn't happen, but handle it gracefully
+                android.util.Log.e("TextKeyboardEditor", "No valid layout found in entries")
+            }
+            return
+        }
 
         // Update the mutable reference for drag callback
         currentRowsRef = rows
@@ -1128,7 +1857,19 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
 
     private fun openKeyEditor(rowIndex: Int, keyIndex: Int?) {
         val layoutName = currentLayout ?: return
-        val row = entries[layoutName] ?: return
+
+        // Get the correct layout to edit (submode or default)
+        val subModeKey = previewSubModeLabel?.let { "$layoutName:$it" }
+        val row = if (subModeKey != null && entries.containsKey(subModeKey)) {
+            entries[subModeKey]
+        } else {
+            entries[layoutName]
+        } ?: return
+
+        // Determine if we're editing a submode-specific layout
+        // For submode-specific layouts (e.g., "rime:倉頡五代"), don't allow adding submode to displayText
+        val isEditingSubModeLayout = subModeKey != null && entries.containsKey(subModeKey)
+        
         if (rowIndex >= row.size) return
 
         val keyData = keyIndex?.let { row[rowIndex][keyIndex] }?.toMap() ?: mutableMapOf()
@@ -1206,12 +1947,24 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             }
 
             if (displayTextMap != null && displayTextMap.isNotEmpty()) {
-                alphabetDisplayTextModeSpecific = true
-                alphabetDisplayTextModeItems.clear()
-                displayTextMap.forEach { (k, v) ->
-                    alphabetDisplayTextModeItems.add(
-                        DisplayTextItem(k?.toString().orEmpty(), v?.toString().orEmpty())
-                    )
+                // If editing a submode-specific layout, extract the value for current submode
+                // and convert to simple string
+                if (isEditingSubModeLayout && previewSubModeLabel != null) {
+                    // Try to get value for current submode, fallback to "default" or empty key
+                    val specificValue = displayTextMap[previewSubModeLabel]?.toString()
+                    val defaultValue = displayTextMap["default"]?.toString()
+                        ?: displayTextMap[""]?.toString()
+                    alphabetDisplayTextModeSpecific = false
+                    alphabetDisplayTextSimpleValue = specificValue ?: defaultValue ?: ""
+                } else {
+                    // Editing base layout - keep mode-specific format
+                    alphabetDisplayTextModeSpecific = true
+                    alphabetDisplayTextModeItems.clear()
+                    displayTextMap.forEach { (k, v) ->
+                        alphabetDisplayTextModeItems.add(
+                            DisplayTextItem(k?.toString().orEmpty(), v?.toString().orEmpty())
+                        )
+                    }
                 }
             } else {
                 alphabetDisplayTextModeSpecific = false
@@ -1283,34 +2036,38 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                             alphabetDisplayTextSimpleEdit = simpleText.second
                             displayTextContainer.addView(simpleText.first)
 
-                            val addModeBtn = TextView(this@TextKeyboardLayoutEditorActivity).apply {
-                                text = getString(R.string.text_keyboard_layout_add_mode)
-                                textSize = 14f
-                                setTypeface(null, android.graphics.Typeface.BOLD)
-                                gravity = Gravity.CENTER
-                                minWidth = dp(120)
-                                setPadding(dp(12), dp(8), dp(12), dp(8))
-                                background = android.graphics.drawable.GradientDrawable().apply {
-                                    setColor(styledColor(android.R.attr.colorButtonNormal))
-                                    setStroke(dp(1), styledColor(android.R.attr.colorControlNormal))
-                                    cornerRadius = dp(4).toFloat()
+                            // Don't show "Add Mode" button when editing submode-specific layout
+                            // Because submode-specific layouts should have simple displayText values
+                            if (!isEditingSubModeLayout) {
+                                val addModeBtn = TextView(this@TextKeyboardLayoutEditorActivity).apply {
+                                    text = getString(R.string.text_keyboard_layout_add_mode)
+                                    textSize = 14f
+                                    setTypeface(null, android.graphics.Typeface.BOLD)
+                                    gravity = Gravity.CENTER
+                                    minWidth = dp(120)
+                                    setPadding(dp(12), dp(8), dp(12), dp(8))
+                                    background = android.graphics.drawable.GradientDrawable().apply {
+                                        setColor(styledColor(android.R.attr.colorButtonNormal))
+                                        setStroke(dp(1), styledColor(android.R.attr.colorControlNormal))
+                                        cornerRadius = dp(4).toFloat()
+                                    }
+                                    layoutParams = LinearLayout.LayoutParams(
+                                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                                        LinearLayout.LayoutParams.WRAP_CONTENT
+                                    ).apply {
+                                        gravity = Gravity.CENTER_HORIZONTAL
+                                        topMargin = dp(4)
+                                    }
+                                    setOnClickListener {
+                                        alphabetDisplayTextSimpleValue = alphabetDisplayTextSimpleEdit?.text?.toString().orEmpty()
+                                        alphabetDisplayTextModeSpecific = true
+                                        alphabetDisplayTextModeItems.clear()
+                                        alphabetDisplayTextModeItems.add(DisplayTextItem("", alphabetDisplayTextSimpleValue))
+                                        renderDisplayTextEditor()
+                                    }
                                 }
-                                layoutParams = LinearLayout.LayoutParams(
-                                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                                    LinearLayout.LayoutParams.WRAP_CONTENT
-                                ).apply {
-                                    gravity = Gravity.CENTER_HORIZONTAL
-                                    topMargin = dp(4)
-                                }
-                                setOnClickListener {
-                                    alphabetDisplayTextSimpleValue = alphabetDisplayTextSimpleEdit?.text?.toString().orEmpty()
-                                    alphabetDisplayTextModeSpecific = true
-                                    alphabetDisplayTextModeItems.clear()
-                                    alphabetDisplayTextModeItems.add(DisplayTextItem("", alphabetDisplayTextSimpleValue))
-                                    renderDisplayTextEditor()
-                                }
+                                displayTextContainer.addView(addModeBtn)
                             }
-                            displayTextContainer.addView(addModeBtn)
                             return
                         }
 
@@ -1717,7 +2474,15 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             .setMessage(getString(R.string.text_keyboard_layout_delete_row_confirm, rowIndex + 1))
             .setPositiveButton(R.string.delete) { _, _ ->
                 val layoutName = currentLayout ?: return@setPositiveButton
-                val row = entries[layoutName] ?: return@setPositiveButton
+                
+                // Get the correct layout to edit (submode or default)
+                val subModeKey = previewSubModeLabel?.let { "$layoutName:$it" }
+                val row = if (subModeKey != null && entries.containsKey(subModeKey)) {
+                    entries[subModeKey]
+                } else {
+                    entries[layoutName]
+                } ?: return@setPositiveButton
+                
                 if (rowIndex < row.size) {
                     row.removeAt(rowIndex)
                     buildRows()
@@ -1734,10 +2499,19 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
 
     private fun addRow() {
         val layoutName = currentLayout ?: return
-        val rows = entries[layoutName] ?: return
+        
+        // Get the correct layout to edit (submode or default)
+        val subModeKey = previewSubModeLabel?.let { "$layoutName:$it" }
+        val rows = if (subModeKey != null && entries.containsKey(subModeKey)) {
+            entries[subModeKey]
+        } else {
+            entries[layoutName]
+        } ?: return
+        
         rows.add(mutableListOf())
         buildRows()
         updatePreview()
+        updateSaveButtonState()
     }
 
     private fun openLayoutEditor(originalLayoutName: String?) {
@@ -1825,9 +2599,10 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         val nameToKeyMap = mutableMapOf<String, String>() // display -> actual key
 
         // Add existing layouts from entries (for copying)
-        entries.keys.filter { it != originalLayoutName }.sorted().forEach { layoutName ->
+        // Filter out submode keys (format: "layoutName:subModeLabel")
+        entries.keys.filter { it != originalLayoutName && !it.contains(":") }.sorted().forEach { layoutName ->
             val matchingIme = allImes.find { ime: InputMethodEntry ->
-                ime.uniqueName == layoutName || ime.displayName == layoutName 
+                ime.uniqueName == layoutName || ime.displayName == layoutName
             }
 
             if (matchingIme != null && matchingIme.uniqueName != matchingIme.displayName) {
@@ -1944,11 +2719,20 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                 }
 
                 currentLayout = newName
+                previewSubModeLabel = null
+                
+                // Update lastEditingTarget for the new layout
+                lastEditingTarget = "$newName:default"
+                
                 buildSpinner()
                 buildSubModeSpinner()
                 buildRows()
                 updatePreview()
                 updateSaveButtonState() // Update save button state
+                
+                // Show toast for new IME layout
+                showToast(getString(R.string.text_keyboard_layout_editing_default, newName))
+                
                 dialog.dismiss()
             }
         }
@@ -1959,7 +2743,10 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         previewKeyboardContainer.removeAllViews()
 
         val layoutName = currentLayout ?: return
-        val rows = entries[layoutName] ?: return
+
+        // Try to load submode-specific layout first, same logic as buildRows()
+        val subModeKey = previewSubModeLabel?.let { "$layoutName:$it" }
+        val rows = subModeKey?.let { entries[it] } ?: entries[layoutName] ?: return
 
         // Remove old keyboard view
         previewKeyboard?.let {
@@ -1968,15 +2755,42 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         }
 
         // Create a temporary layout file for preview
+        // Always create submode structure to ensure TextKeyboard loads the correct layout
         val tempFile = File(cacheDir, "temp_layout.json")
-        val rowsArray = JsonArray(rows.map { row ->
+        
+        // Build submode map with all available submodes for this layout
+        val subModeMap = mutableMapOf<String, JsonElement>()
+        
+        // Add the current editing layout (either submode or default)
+        val currentRowsArray = JsonArray(rows.map { row ->
             JsonArray(row.map { key ->
                 JsonObject(key.entries.associate { (k, v) ->
                     k to convertToJsonProperty(v)
                 })
             })
         })
-        val tempJson = JsonObject(mapOf(layoutName to rowsArray))
+        
+        if (subModeKey != null && entries.containsKey(subModeKey)) {
+            // Editing a submode layout - add it with its label
+            subModeMap[previewSubModeLabel ?: "default"] = currentRowsArray
+            // Also add default layout if it exists (for fallback)
+            val defaultRows = entries[layoutName]
+            if (defaultRows != null) {
+                val defaultRowsArray = JsonArray(defaultRows.map { row ->
+                    JsonArray(row.map { key ->
+                        JsonObject(key.entries.associate { (k, v) ->
+                            k to convertToJsonProperty(v)
+                        })
+                    })
+                })
+                subModeMap["default"] = defaultRowsArray
+            }
+        } else {
+            // Editing default layout
+            subModeMap["default"] = currentRowsArray
+        }
+        
+        val tempJson = JsonObject(mapOf(layoutName to JsonObject(subModeMap)))
         tempFile.writeText(Json.encodeToString(tempJson))
 
         // Temporarily replace the layout file and reload
@@ -1990,7 +2804,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         }
 
         ConfigProviders.provider = tempProvider
-        TextKeyboard.cachedLayoutJsonMap = null
+        TextKeyboard.clearCachedKeyDefLayouts()
 
         try {
             val theme = ThemeManager.activeTheme
@@ -2064,7 +2878,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         } finally {
             // Restore original provider
             ConfigProviders.provider = DefaultConfigProvider
-            TextKeyboard.cachedLayoutJsonMap = null
+            TextKeyboard.clearCachedKeyDefLayouts()
             tempFile.delete()
         }
     }
@@ -2085,26 +2899,27 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             return
         }
 
+        // Clean up base layout's displayText entries that are covered by submode layouts
+        // This migrates old displayText: {} format to new submode structure
+        val baseLayoutNames = entries.keys.map { key ->
+            if (key.contains(':')) key.substringBeforeLast(':') else key
+        }.distinct()
+        
+        baseLayoutNames.forEach { layoutName ->
+            cleanupBaseLayoutDisplayText(layoutName)
+        }
+
         val file = layoutFile ?: run {
             showToast(getString(R.string.cannot_resolve_text_keyboard_layout))
             return
         }
         file.parentFile?.mkdirs()
 
-        val jsonElement = JsonObject(entries.toSortedMap().mapValues { (_, rows) ->
-            JsonArray(rows.map { row ->
-                JsonArray(row.map { key ->
-                    JsonObject(key.entries.associate { (k, v) ->
-                        k to convertToJsonProperty(v)
-                    })
-                })
-            })
-        })
+        val jsonElement = convertToSaveJson()
 
         file.writeText(prettyJson.encodeToString(jsonElement) + "\n")
 
         // Clear all caches to force reload on next access
-        TextKeyboard.cachedLayoutJsonMap = null
         TextKeyboard.clearCachedKeyDefLayouts()
 
         // Notify provider watcher
@@ -2268,6 +3083,84 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                     row.map { key -> key.toMap() }
                 }
             }
+
+    /**
+     * Convert entries to JSON structure for saving.
+     * Supports submode layouts as nested objects:
+     * {
+     *   "rime": {
+     *     "default": [...],
+     *     "倉頡五代": [...]
+     *   },
+     *   "pinyin": [...]
+     * }
+     */
+    private fun convertToSaveJson(): JsonObject {
+        // Group entries by base layout name
+        val layoutMap = mutableMapOf<String, JsonElement>()
+
+        // Collect base layout names (without submode suffix)
+        // Submode keys have format: "layoutName:subModeLabel"
+        // We need to extract the base layout name (before the last colon)
+        val baseLayoutNames = entries.keys.map { key ->
+            if (key.contains(':')) {
+                key.substringBeforeLast(':')
+            } else {
+                key
+            }
+        }.distinct()
+
+        for (baseName in baseLayoutNames) {
+            // Check if this layout has submode layouts
+            // Submode keys have format: "baseName:subModeLabel"
+            val subModeKeys = entries.keys.filter { key ->
+                // Match exact base name or submode keys starting with "baseName:"
+                key == baseName || key.startsWith("$baseName:")
+            }
+
+            // Check if any of the keys is a submode key (contains colon and baseName prefix)
+            val hasSubModeKeys = subModeKeys.any { key ->
+                key != baseName && key.startsWith("$baseName:")
+            }
+
+            if (hasSubModeKeys) {
+                // Has submode layouts - create nested object
+                val subModeMap = mutableMapOf<String, JsonElement>()
+
+                for (key in subModeKeys) {
+                    // Extract submode label (after the last colon)
+                    val subModeLabel = if (key.contains(':')) {
+                        key.substringAfterLast(':').ifEmpty { "default" }
+                    } else {
+                        "default"
+                    }
+
+                    val rows = entries[key]!!
+                    val jsonArray = JsonArray(rows.map { row ->
+                        JsonArray(row.map { keyMap ->
+                            JsonObject(keyMap.mapValues { (_, v) -> convertToJsonProperty(v) })
+                        })
+                    })
+
+                    subModeMap[subModeLabel] = jsonArray
+                }
+
+                layoutMap[baseName] = JsonObject(subModeMap.toSortedMap())
+            } else {
+                // No submode layouts - use direct array
+                val key = subModeKeys.firstOrNull() ?: baseName
+                val rows = entries[key] ?: continue
+                val jsonArray = JsonArray(rows.map { row ->
+                    JsonArray(row.map { keyMap ->
+                        JsonObject(keyMap.mapValues { (_, v) -> convertToJsonProperty(v) })
+                    })
+                })
+                layoutMap[baseName] = jsonArray
+            }
+        }
+
+        return JsonObject(layoutMap.toSortedMap())
+    }
 
     private fun hasChanges(): Boolean = normalizedEntries() != originalEntries
 

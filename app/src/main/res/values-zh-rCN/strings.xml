@@ -154,6 +154,7 @@
     <string name="horizontal_candidate_growth">拉伸横向候选词以填充宽度</string>
     <string name="none">无</string>
     <string name="theme_migrated">主题已迁移到当前版本</string>
+    <string name="text_keyboard_layout_migration_failed">数据迁移失败，已恢复原始数据</string>
     <string name="keep_keyboard_letters_uppercase">键盘字母保持大写</string>
     <string name="choose_input_method">选择输入法</string>
     <string name="edit_clipboard">编辑剪贴板</string>
@@ -438,6 +439,22 @@
     <string name="text_keyboard_layout_mode_name_hint">模式名称</string>
     <string name="text_keyboard_layout_display_value_hint">显示值</string>
     <string name="text_keyboard_layout_key_label_caps">Caps</string>
+    
+    <!-- Submode Layout Support -->
+    <string name="text_keyboard_layout_add_submode">添加子模式布局</string>
+    <string name="text_keyboard_layout_add_submode_confirm">为子模式"%1$s"添加专用布局？</string>
+    <string name="text_keyboard_layout_delete_submode">删除子模式布局</string>
+    <string name="text_keyboard_layout_delete_submode_confirm">删除子模式"%1$s"的专用布局？</string>
+    <string name="text_keyboard_layout_submode_added">已添加子模式布局：%1$s</string>
+    <string name="text_keyboard_layout_submode_deleted">已删除子模式布局：%1$s</string>
+    <string name="text_keyboard_layout_submode_not_found">未找到子模式布局</string>
+    <string name="text_keyboard_layout_submode_already_exists">子模式"%1$s"已有专用布局</string>
+    <string name="text_keyboard_layout_no_submode_selected">未选择子模式</string>
+    <string name="text_keyboard_layout_editing_submode">正在编辑子模式"%1$s"的专用布局</string>
+    <string name="text_keyboard_layout_editing_default">正在编辑"%1$s"的默认布局</string>
+    <string name="text_keyboard_layout_cannot_delete_default_submode">无法删除默认子模式布局</string>
+    <string name="text_keyboard_layout_no_additional_submodes">没有可添加的子模式</string>
+    <string name="text_keyboard_layout_select_submode_to_add">选择要添加的子模式：</string>
     <string name="text_keyboard_layout_key_label_lang">Lang</string>
     <string name="text_keyboard_layout_key_label_space">Space</string>
     <string name="text_keyboard_layout_key_label_enter">Enter</string>

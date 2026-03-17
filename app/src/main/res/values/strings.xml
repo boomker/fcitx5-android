@@ -154,6 +154,7 @@
     <string name="horizontal_candidate_growth">Stretch horizontal candidates to fill the remaining width</string>
     <string name="none">None</string>
     <string name="theme_migrated">Theme has been migrated to the current version</string>
+    <string name="text_keyboard_layout_migration_failed">Data migration failed, original data restored</string>
     <string name="keep_keyboard_letters_uppercase">Keep keyboard letters uppercase</string>
     <string name="choose_input_method">Choose input method</string>
     <string name="edit_clipboard">Edit clipboard</string>
@@ -448,6 +449,20 @@
     <string name="text_keyboard_layout_validation_error">Validation Error</string>
     <string name="text_keyboard_layout_display_text_mode_invalid">Please fill in row %1$d before adding a new mode</string>
     <string name="text_keyboard_layout_display_text_mode_duplicate">Mode name "%1$s" is already in use</string>
+    <string name="text_keyboard_layout_add_submode">Add submode layout</string>
+    <string name="text_keyboard_layout_add_submode_confirm">Add dedicated layout for submode "%1$s"?</string>
+    <string name="text_keyboard_layout_delete_submode">Delete submode layout</string>
+    <string name="text_keyboard_layout_delete_submode_confirm">Delete submode "%1$s" dedicated layout?</string>
+    <string name="text_keyboard_layout_submode_added">Added submode layout: %1$s</string>
+    <string name="text_keyboard_layout_submode_deleted">Deleted submode layout: %1$s</string>
+    <string name="text_keyboard_layout_submode_not_found">Submode layout not found</string>
+    <string name="text_keyboard_layout_submode_already_exists">Submode "%1$s" already has a dedicated layout</string>
+    <string name="text_keyboard_layout_no_submode_selected">No submode selected</string>
+    <string name="text_keyboard_layout_editing_submode">Editing layout for submode "%1$s"</string>
+    <string name="text_keyboard_layout_editing_default">Editing default layout for "%1$s"</string>
+    <string name="text_keyboard_layout_cannot_delete_default_submode">Cannot delete default submode layout</string>
+    <string name="text_keyboard_layout_no_additional_submodes">No additional submodes to add</string>
+    <string name="text_keyboard_layout_select_submode_to_add">Select submode to add:</string>
     <string name="cannot_resolve_text_keyboard_layout">Unable to resolve text keyboard layout file</string>
     <string name="text_keyboard_layout_saved_at">TextKeyboardLayout.json saved at: %1$s</string>
 </resources>

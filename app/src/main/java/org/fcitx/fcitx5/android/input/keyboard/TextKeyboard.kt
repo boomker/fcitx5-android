@@ -87,8 +87,8 @@ class TextKeyboard(
 
         @Synchronized
         private fun onTextLayoutFileChanged() {
-            cachedLayoutJsonMap = null
-            lastModified = 0L
+            cachedRawLayoutJson = null
+            lastRawModified = 0L
             val living = attachedKeyboards.mapNotNull { it.get() }
             attachedKeyboards.removeAll { it.get() == null }
             living.forEach { keyboard ->
@@ -108,7 +108,17 @@ class TextKeyboard(
             val weight: Float? = null
         )
 
-        var cachedLayoutJsonMap: Map<String, List<List<KeyJson>>>? = null
+        // Cache for raw JSON layout (preserves submode structure)
+        internal var cachedRawLayoutJson: JsonObject? = null
+        private var lastRawModified = 0L
+
+        // Compatibility alias for cachedRawLayoutJson (used by SplitKeyboardCalibrationActivity)
+        @JvmStatic
+        var cachedLayoutJsonMap: JsonObject?
+            get() = cachedRawLayoutJson
+            set(value) {
+                cachedRawLayoutJson = value
+            }
 
         // Cache for parsed KeyDef layouts to avoid recreating them on every reloadLayout()
         private val cachedKeyDefLayouts = mutableMapOf<String, List<List<KeyDef>>>()
@@ -122,27 +132,41 @@ class TextKeyboard(
             lastLayoutCacheInvalidated = 0L
         }
 
-        val textLayoutJsonMap: Map<String, List<List<KeyJson>>>?
+        val textLayoutJson: JsonObject?
             @Synchronized
             get() {
                 val snapshot = org.fcitx.fcitx5.android.input.config.ConfigProviders
-                    .readTextKeyboardLayout<Map<String, List<List<KeyJson>>>>() ?: run {
-                    cachedLayoutJsonMap = null
+                    .readTextKeyboardLayout<JsonObject>() ?: run {
+                    cachedRawLayoutJson = null
                     return null
                 }
-                if (cachedLayoutJsonMap == null || snapshot.lastModified != lastModified) {
-                    lastModified = snapshot.lastModified
-                    cachedLayoutJsonMap = snapshot.value
+                if (cachedRawLayoutJson == null || snapshot.lastModified != lastRawModified) {
+                    lastRawModified = snapshot.lastModified
+                    cachedRawLayoutJson = snapshot.value
                     // Invalidate KeyDef cache when JSON changes
                     lastLayoutCacheInvalidated = snapshot.lastModified
                     cachedKeyDefLayouts.clear()
                 }
-                return cachedLayoutJsonMap
+                return cachedRawLayoutJson
             }
 
-        private fun getTextLayoutJsonForIme(displayName: String): List<List<KeyJson>>? {
-            val map = textLayoutJsonMap ?: return null
-            return map[displayName]
+        private fun getTextLayoutJsonForIme(displayName: String): JsonArray? {
+            val json = textLayoutJson ?: return null
+            return json[displayName]?.jsonArray
+        }
+
+        private fun parseKeyJsonArray(rowArray: JsonArray): List<KeyJson> {
+            return rowArray.map { it.jsonObject.let { obj ->
+                KeyJson(
+                    type = obj["type"]?.jsonPrimitive?.content ?: "",
+                    main = obj["main"]?.jsonPrimitive?.content,
+                    alt = obj["alt"]?.jsonPrimitive?.content,
+                    displayText = obj["displayText"],
+                    label = obj["label"]?.jsonPrimitive?.content,
+                    subLabel = obj["subLabel"]?.jsonPrimitive?.content,
+                    weight = obj["weight"]?.jsonPrimitive?.float
+                )
+            } }
         }
 
         private fun createKeyDef(key: KeyJson): KeyDef {
@@ -192,19 +216,49 @@ class TextKeyboard(
 
         fun getLayout(): List<List<KeyDef>> {
             val imeName = ime?.uniqueName
+            val subModeLabel = ime?.subMode?.label ?: ""
             if (imeName != null) {
-                val map = textLayoutJsonMap
-                if (map != null) {
-                    // Try uniqueName first, then displayName, then "default" as fallback
+                val json = textLayoutJson
+                if (json != null) {
+                    // Try uniqueName first, then displayName
                     val layoutKey = imeName
-                    val layoutJson = map[layoutKey] 
-                        ?: map[ime?.displayName] 
-                        ?: map["default"]  // Fallback to "default" layout
-                    if (layoutJson != null) {
-                        // Return cached KeyDef layout if available
-                        return cachedKeyDefLayouts.getOrPut(layoutKey) {
-                            layoutJson.map { row ->
-                                row.map { createKeyDef(it) }
+                    val imeLayoutElement = json[layoutKey]
+                        ?: json[ime?.displayName]
+                    
+                    if (imeLayoutElement != null) {
+                        // Check if this is a submode structure (JsonObject) or direct layout (JsonArray)
+                        val subModeLayoutElement = if (imeLayoutElement is JsonObject) {
+                            // Submode structure: try submode label, then "default", then empty string
+                            imeLayoutElement[subModeLabel]
+                                ?: imeLayoutElement["default"]
+                                ?: imeLayoutElement[""]
+                        } else {
+                            // Direct layout array, use as-is
+                            imeLayoutElement
+                        }
+                        
+                        if (subModeLayoutElement is JsonArray) {
+                            // Use a cache key that includes submode for proper caching
+                            // For both old format (JsonArray) and new format (JsonObject),
+                            // include submode in cache key so displayText is re-resolved when submode changes
+                            val cacheKey = "$layoutKey:$subModeLabel"
+                            return cachedKeyDefLayouts.getOrPut(cacheKey) {
+                                subModeLayoutElement.map { rowElement ->
+                                    parseKeyJsonArray(rowElement.jsonArray)
+                                        .map { createKeyDef(it) }
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Fallback to global "default" layout
+                    json["default"]?.let { layoutElement ->
+                        if (layoutElement is JsonArray) {
+                            return cachedKeyDefLayouts.getOrPut("default") {
+                                layoutElement.map { rowElement ->
+                                    parseKeyJsonArray(rowElement.jsonArray)
+                                        .map { createKeyDef(it) }
+                                }
                             }
                         }
                     }
@@ -301,14 +355,14 @@ class TextKeyboard(
     private fun transformPunctuation(p: String) = punctuationMapping.getOrDefault(p, p)
 
     private fun layoutSignature(ime: InputMethodEntry): String {
-        val map = textLayoutJsonMap
+        val json = textLayoutJson
         val layoutSource = when {
-            map?.containsKey(ime.uniqueName) == true -> "u:${ime.uniqueName}"
-            map?.containsKey(ime.displayName) == true -> "d:${ime.displayName}"
+            json?.containsKey(ime.uniqueName) == true -> "u:${ime.uniqueName}"
+            json?.containsKey(ime.displayName) == true -> "d:${ime.displayName}"
             else -> "default"
         }
         val subModeLabel = ime.subMode.run { label.ifEmpty { name.ifEmpty { "" } } }
-        return "$layoutSource|$subModeLabel|$lastModified"
+        return "$layoutSource|$subModeLabel|$lastRawModified"
     }
 
     override fun onAction(action: KeyAction, source: KeyActionListener.Source) {
