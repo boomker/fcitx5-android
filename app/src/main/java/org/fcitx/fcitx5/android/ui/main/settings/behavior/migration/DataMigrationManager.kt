@@ -17,12 +17,19 @@ import java.util.Locale
 /**
  * 数据迁移管理器，负责键盘布局数据的迁移、备份和恢复。
  * 
- * Migration strategy:
- * 1. For layouts with existing submode layouts:
- *    - Extract displayText values from base layout to corresponding submode layouts
- *    - Convert base layout displayText to simple strings or remove
- * 2. For layouts without submode layouts:
- *    - Keep displayText as-is for backward compatibility
+ * 迁移策略：
+ * 1. 对于已有子模式布局的（如 "rime:倉頡五代"）：
+ *    - 从基础布局提取 displayText 值到对应的子模式布局
+ *    - 将基础布局的 displayText 转换为简单字符串或删除
+ * 2. 对于没有子模式布局的：
+ *    - 保持 displayText 原格式，向后兼容
+ * 
+ * 主要功能：
+ * - [checkIfMigrationNeeded] - 检测是否需要迁移
+ * - [backupOriginalFile] - 备份原始文件
+ * - [restoreFromBackup] - 从备份恢复
+ * - [migrateAllDisplayTextToSubmodeStructure] - 执行迁移
+ * - [parseJsonToEntries] - 解析 JSON 到数据结构
  */
 class DataMigrationManager(
     private val dataManager: LayoutDataManager
@@ -36,8 +43,13 @@ class DataMigrationManager(
     private var backupFile: File? = null
 
     /**
-     * Check if migration is needed by detecting old displayText format.
-     * @return true if migration is needed, false if data is already in new format
+     * 检测是否需要迁移。
+     * 
+     * 检测条件：
+     * 1. 存在子模式布局（如 "rime:倉頡五代"）
+     * 2. 基础布局中仍有旧格式的 displayText: { "倉頡五代": "手" }
+     * 
+     * @return true 需要迁移，false 数据已是新格式
      */
     fun checkIfMigrationNeeded(): Boolean {
         val layoutGroups = entries.keys.groupBy { key ->
@@ -65,9 +77,13 @@ class DataMigrationManager(
     }
 
     /**
-     * Backup original file before migration.
-     * @param originalFile The original file to backup
-     * @return The backup file, or null if backup failed
+     * 备份原始文件。
+     * 
+     * 备份文件名格式：`{原文件名}_backup_{时间戳}.json`
+     * 示例：`TextKeyboardLayout_backup_20260317_143022.json`
+     * 
+     * @param originalFile 原始文件
+     * @return 备份文件，失败时返回 null
      */
     fun backupOriginalFile(originalFile: File): File? {
         return runCatching {
@@ -113,8 +129,9 @@ class DataMigrationManager(
     }
 
     /**
-     * Restore from backup file.
-     * @param targetFile The original file to restore to
+     * 从备份恢复文件。
+     * 
+     * @param targetFile 要恢复到的目标文件
      */
     fun restoreFromBackup(targetFile: File?) {
         if (targetFile == null || backupFile == null) return
@@ -128,7 +145,14 @@ class DataMigrationManager(
     }
 
     /**
-     * Migrate all old displayText format to new submode structure automatically.
+     * 自动迁移旧格式到新子模式结构。
+     * 
+     * 迁移策略：
+     * 1. 对于有子模式布局的：
+     *    - 提取基础布局的 displayText 值到对应子模式布局
+     *    - 转换基础布局 displayText 为简单字符串或删除
+     * 2. 对于没有子模式布局的：
+     *    - 保持 displayText 原格式，向后兼容
      */
     fun migrateAllDisplayTextToSubmodeStructure() {
         val layoutGroups = entries.keys.groupBy { key ->
@@ -239,7 +263,10 @@ class DataMigrationManager(
     }
 
     /**
-     * Parse JsonElement to entries map.
+     * 解析 JsonElement 到数据结构。
+     * 
+     * @param jsonObject JSON 对象
+     * @return 解析后的数据结构
      */
     fun parseJsonToEntries(jsonObject: JsonObject): Map<String, List<List<Map<String, Any?>>>> {
         val result = mutableMapOf<String, List<List<Map<String, Any?>>>>()

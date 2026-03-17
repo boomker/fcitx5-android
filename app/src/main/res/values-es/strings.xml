@@ -90,6 +90,7 @@
     <string name="skip">Omitir</string>
     <string name="none">Ninguno</string>
     <string name="theme_migrated">El tema se migró a la versión actual</string>
+    <string name="text_keyboard_layout_migration_failed">Falló la migración de datos, se restauraron los datos originales</string>
     <string name="edit_clipboard">Editar portapapeles</string>
     <string name="clipboard_edit_text_hint">Contenido del portapapeles</string>
     <string name="portrait">Vertical</string>

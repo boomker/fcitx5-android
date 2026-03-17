@@ -29,6 +29,22 @@ import java.io.File
 
 /**
  * 键盘预览管理器，负责键盘布局的预览功能。
+ * 
+ * 主要功能：
+ * - [updatePreview] - 更新键盘预览
+ * - [clear] - 清除预览键盘
+ * 
+ * 工作原理：
+ * 1. 创建临时 JSON 文件存储当前布局
+ * 2. 临时替换 ConfigProvider 指向临时文件
+ * 3. 加载 TextKeyboard 进行预览
+ * 4. 恢复原始 ConfigProvider 并删除临时文件
+ * 
+ * 使用示例：
+ * ```kotlin
+ * val previewManager = KeyboardPreviewManager(context, container, entries)
+ * previewManager.updatePreview(layoutName, subModeLabel, fcitxConnection)
+ * ```
  */
 class KeyboardPreviewManager(
     private val context: Context,
@@ -38,10 +54,11 @@ class KeyboardPreviewManager(
     private var previewKeyboard: TextKeyboard? = null
 
     /**
-     * Update keyboard preview with current layout.
-     * @param layoutName The layout name to preview
-     * @param previewSubModeLabel The submode label, or null for default
-     * @param fcitxConnection Fcitx connection for getting current IME
+     * 更新键盘预览。
+     * 
+     * @param layoutName 布局名称
+     * @param previewSubModeLabel 子模式标签，null 表示默认
+     * @param fcitxConnection Fcitx 连接，用于获取当前输入法
      */
     fun updatePreview(
         layoutName: String,
@@ -217,7 +234,7 @@ class KeyboardPreviewManager(
     }
 
     /**
-     * Clear preview keyboard.
+     * 清除预览键盘。
      */
     fun clear() {
         previewKeyboard?.let {

@@ -16,13 +16,27 @@ import kotlinx.serialization.json.jsonArray
 
 /**
  * 布局数据管理器，管理键盘布局的数据结构。
+ * 
+ * 主要功能：
+ * - [parseLayoutRows] - 从 JSON 数组解析布局行
+ * - [copyLayout] - 深拷贝布局数据
+ * - [normalizedEntries] - 标准化数据用于比较
+ * - [toAny] - 将 JsonElement 转换为 Any? 类型（伴生对象方法）
  */
 class LayoutDataManager {
     val entries = mutableMapOf<String, MutableList<MutableList<MutableMap<String, Any?>>>>()
 
     companion object {
         /**
-         * Extension function to convert JsonElement to Any?.
+         * 将 JsonElement 转换为 Any? 类型。
+         * 
+         * 转换规则：
+         * - JsonObject → Map<String, Any?>
+         * - JsonArray → List<Any?>
+         * - JsonPrimitive(String) → String
+         * - JsonPrimitive(Boolean) → Boolean
+         * - JsonPrimitive(Number) → Number
+         * - JsonNull → null
          */
         fun toAny(element: JsonElement): Any? = when (element) {
             is JsonObject -> element.toMap()
@@ -36,7 +50,10 @@ class LayoutDataManager {
     }
 
     /**
-     * Parse layout rows from JsonArray.
+     * 从 JsonArray 解析布局行。
+     * 
+     * @param rowsArray JSON 数组，包含布局行数据
+     * @return 解析后的布局行列表
      */
     fun parseLayoutRows(rowsArray: JsonArray): List<List<Map<String, Any?>>> {
         val rows = mutableListOf<List<Map<String, Any?>>>()
@@ -69,7 +86,10 @@ class LayoutDataManager {
     }
 
     /**
-     * Deep copy a layout.
+     * 深拷贝布局数据。
+     * 
+     * @param sourceLayout 源布局数据
+     * @return 拷贝后的布局数据
      */
     fun copyLayout(sourceLayout: List<List<Map<String, Any?>>>): MutableList<MutableList<MutableMap<String, Any?>>> {
         val copiedLayout = mutableListOf<MutableList<MutableMap<String, Any?>>>()
@@ -94,7 +114,9 @@ class LayoutDataManager {
     }
 
     /**
-     * Normalize entries for comparison.
+     * 标准化数据用于比较。
+     * 
+     * @return 标准化后的数据
      */
     fun normalizedEntries(): Map<String, List<List<Map<String, Any?>>>> =
         entries.toSortedMap().mapValues { (_, rows) ->

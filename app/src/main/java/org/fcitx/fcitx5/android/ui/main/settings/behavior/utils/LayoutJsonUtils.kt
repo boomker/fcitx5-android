@@ -9,11 +9,19 @@ import org.fcitx.fcitx5.android.input.keyboard.*
 
 /**
  * JSON 转换工具类，用于键盘布局数据与 JSON 之间的转换。
+ * 
+ * 主要功能：
+ * - [keyDefToJson] - 将 KeyDef 转换为 JSON 地图
+ * - [convertToSaveJson] - 将内部数据结构转换为保存用的 JSON 格式
+ * - [convertToJsonProperty] - 递归转换任意值为 JsonElement
  */
 object LayoutJsonUtils {
 
     /**
-     * Convert KeyDef to JSON map for saving.
+     * 将 KeyDef 转换为 JSON 地图用于保存。
+     * 
+     * @param keyDef 键盘定义对象
+     * @return JSON 地图，包含 type、main、alt、weight 等字段
      */
     fun keyDefToJson(keyDef: KeyDef): MutableMap<String, Any?> {
         val type = when (keyDef) {
@@ -71,7 +79,21 @@ object LayoutJsonUtils {
     }
 
     /**
-     * Convert internal entries to JSON structure for saving.
+     * 将内部数据结构转换为 JSON 格式用于保存。
+     * 
+     * 支持子模式布局的嵌套结构：
+     * ```json
+     * {
+     *   "rime": {
+     *     "default": [...],
+     *     "倉頡五代": [...]
+     *   },
+     *   "pinyin": [...]
+     * }
+     * ```
+     * 
+     * @param entries 布局数据
+     * @return JSON 对象
      */
     fun convertToSaveJson(
         entries: Map<String, List<List<Map<String, Any?>>>>
@@ -128,7 +150,19 @@ object LayoutJsonUtils {
     }
 
     /**
-     * Convert any value to JsonElement recursively.
+     * 递归转换任意值为 JsonElement。
+     * 
+     * 转换规则：
+     * - Map → JsonObject
+     * - List → JsonArray
+     * - String → JsonPrimitive
+     * - Number → JsonPrimitive
+     * - Boolean → JsonPrimitive
+     * - null → JsonNull
+     * - 其他 → JsonPrimitive(value.toString())
+     * 
+     * @param value 要转换的值
+     * @return JsonElement
      */
     fun convertToJsonProperty(value: Any?): JsonElement = when (value) {
         is JsonObject -> value
