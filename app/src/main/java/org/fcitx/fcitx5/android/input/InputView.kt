@@ -35,6 +35,8 @@ import org.fcitx.fcitx5.android.data.prefs.ManagedPreferenceProvider
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.data.theme.ThemeManager
 import org.fcitx.fcitx5.android.input.bar.KawaiiBarComponent
+import org.fcitx.fcitx5.android.input.config.ConfigChangeListener
+import org.fcitx.fcitx5.android.input.config.ConfigProviders
 import org.fcitx.fcitx5.android.input.broadcast.InputBroadcaster
 import org.fcitx.fcitx5.android.input.broadcast.PreeditEmptyStateComponent
 import org.fcitx.fcitx5.android.input.broadcast.PunctuationComponent
@@ -1172,7 +1174,7 @@ class InputView(
         requestLayout()
     }
 
-    private fun toggleFloatingMode() {
+    internal fun toggleFloatingMode() {
         popup.dismissAll()
         if (isFloating) {
             saveFloatingPosition(
@@ -1195,6 +1197,18 @@ class InputView(
         requestLayout()
         // Trigger insets update
         service.window.window?.decorView?.requestLayout()
+    }
+
+    internal fun enterAdjustingMode() {
+        if (!isAdjustingMode) {
+            toggleAdjustingMode()
+        }
+    }
+
+    internal fun exitAdjustingMode() {
+        if (isAdjustingMode) {
+            toggleAdjustingMode()
+        }
     }
 
     fun toggleOneHandMode() {
@@ -1916,8 +1930,18 @@ class InputView(
         return kawaiiBar.handleInlineSuggestions(response)
     }
 
+    private val onButtonsLayoutChangeListener: ConfigChangeListener = {
+        kawaiiBar.reloadButtonsConfig()
+    }
+
+    init {
+        // Register listener for buttons layout config changes
+        ConfigProviders.addButtonsLayoutListener(onButtonsLayoutChangeListener)
+    }
+
     override fun onDetachedFromWindow() {
         keyboardPrefs.unregisterOnChangeListener(onKeyboardSizeChangeListener)
+        ConfigProviders.removeButtonsLayoutListener(onButtonsLayoutChangeListener)
         // clear DynamicScope, implies that InputView should not be attached again after detached.
         scope.clear()
         super.onDetachedFromWindow()

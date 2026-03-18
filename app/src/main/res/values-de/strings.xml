@@ -24,6 +24,7 @@
     <string name="add">Hinzufügen</string>
     <string name="edit">Bearbeiten</string>
     <string name="undo">Rückgängig</string>
+    <string name="redo">Wiederherstellen</string>
     <string name="delete_and_sync_data">Laufzeitdaten löschen und synchronisieren</string>
     <string name="enable_ime">Eingabemethode aktivieren</string>
     <string name="enable_ime_hint">&lt;b>%1$s&lt;/b> in Sprach- und Eingabeeinstellungen einschalten</string>
@@ -169,6 +170,19 @@
     <string name="button_sound_volume">Ton Tastendruck Lautstärke</string>
     <string name="edit_popup_preset">Popup-Voreinstellung bearbeiten</string>
     <string name="edit_popup_preset_summary">Popup-Tastenzuordnung bearbeiten (Taste -&gt; Popup-Kandidaten)</string>
+    <string name="edit_buttons">Schaltflächen bearbeiten</string>
+    <string name="edit_buttons_summary">Schaltflächen in Kawaii Bar und Status Area anpassen</string>
+    <string name="buttons_customizer_hint">Schaltflächen ziehen zum Umordnen oder Verschieben zwischen Kawaii Bar (obere Zeile) und Status Area (Menü). Lange drücken zum Starten des Ziehens.</string>
+    <string name="kawaii_bar_section">Kawaii Bar (obere Zeile)</string>
+    <string name="status_area_section">Status Area (Menü)</string>
+    <string name="all_buttons_added">Alle verfügbaren Schaltflächen wurden hinzugefügt</string>
+    <string name="add_button_to_section_title">Zu Abschnitt hinzufügen</string>
+    <string name="custom_label_hint">Benutzerdefiniertes Label (optional)</string>
+    <string name="enable_long_press_menu">Langes Drücken aktivieren, um schwebendes Menü anzuzeigen</string>
+    <string name="floating_keyboard">Schwebende Tastatur</string>
+    <string name="edit_button_title">Schaltfläche bearbeiten</string>
+    <string name="delete_button_title">Schaltfläche löschen</string>
+    <string name="delete_button_confirm">Diese Schaltfläche löschen?</string>
     <string name="popup_editor_hint">Tippen Sie auf ein Element zum Bearbeiten. Lange drücken zum Löschen.</string>
     <string name="popup_editor_add_mapping">Zuordnung hinzufügen</string>
     <string name="popup_editor_key">Taste</string>

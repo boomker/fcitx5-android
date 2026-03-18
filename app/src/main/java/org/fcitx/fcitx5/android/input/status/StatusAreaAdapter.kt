@@ -30,6 +30,16 @@ abstract class StatusAreaAdapter : RecyclerView.Adapter<StatusAreaAdapter.Holder
         holder.ui.root.setOnClickListener {
             onItemClick(it, entry)
         }
+        // Handle long press for ActionEntry with long press action
+        if (entry is StatusAreaEntry.ActionEntry && entry.longPressAction != null) {
+            holder.ui.root.setOnLongClickListener {
+                entry.longPressAction?.let { action ->
+                    onItemLongClick(it, entry, action)
+                } ?: false
+            }
+        } else {
+            holder.ui.root.setOnLongClickListener(null)
+        }
     }
 
     abstract val theme: Theme
@@ -37,4 +47,8 @@ abstract class StatusAreaAdapter : RecyclerView.Adapter<StatusAreaAdapter.Holder
     override fun getItemCount() = entries.size
 
     abstract fun onItemClick(view: View, entry: StatusAreaEntry)
+    
+    open fun onItemLongClick(view: View, entry: StatusAreaEntry, action: StatusAreaEntry.ActionEntry.LongPressActionType): Boolean {
+        return false
+    }
 }

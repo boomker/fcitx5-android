@@ -9,10 +9,13 @@ import android.os.Handler
 import android.os.Looper
 import java.io.File
 
+typealias ConfigChangeListener = () -> Unit
+
 interface ConfigProvider {
     fun textKeyboardLayoutFile(): File?
     fun popupPresetFile(): File?
     fun fontsetFile(): File?
+    fun buttonsLayoutConfigFile(): File?
     fun writeFontsetPathMap(pathMap: Map<String, List<String>>): Result<File>
 }
 
@@ -20,6 +23,7 @@ object DefaultConfigProvider : ConfigProvider {
     override fun textKeyboardLayoutFile(): File? = UserConfigFiles.textKeyboardLayoutJson()
     override fun popupPresetFile(): File? = UserConfigFiles.popupPresetJson()
     override fun fontsetFile(): File? = UserConfigFiles.fontsetJson()
+    override fun buttonsLayoutConfigFile(): File? = UserConfigFiles.buttonsLayoutConfig()
     override fun writeFontsetPathMap(pathMap: Map<String, List<String>>): Result<File> =
         UserJsonConfigStore.writeFontsetPathMap(pathMap)
 }
@@ -54,10 +58,14 @@ object ConfigProviders {
 
     @Volatile
     private var watchedFontsetFileName: String? = null
+    
+    @Volatile
+    private var watchedButtonsLayoutFileName: String? = null
 
     private val textLayoutListeners = linkedSetOf<() -> Unit>()
     private val popupPresetListeners = linkedSetOf<() -> Unit>()
     private val fontsetListeners = linkedSetOf<() -> Unit>()
+    private val buttonsLayoutListeners = linkedSetOf<() -> Unit>()
 
     @Synchronized
     private fun notifyListeners(listeners: Set<() -> Unit>) {
@@ -89,6 +97,17 @@ object ConfigProviders {
     }
 
     @Synchronized
+    fun addButtonsLayoutListener(listener: () -> Unit) {
+        buttonsLayoutListeners.add(listener)
+        ensureWatching()
+    }
+
+    @Synchronized
+    fun removeButtonsLayoutListener(listener: () -> Unit) {
+        buttonsLayoutListeners.remove(listener)
+    }
+
+    @Synchronized
     private fun restartWatching() {
         configWatcher?.stopWatching()
         fontWatcher?.stopWatching()
@@ -97,6 +116,7 @@ object ConfigProviders {
         watchedConfigDir = null
         watchedTextLayoutFileName = null
         watchedPopupPresetFileName = null
+        watchedButtonsLayoutFileName = null
         watchedFontDir = null
         watchedFontsetFileName = null
         ensureWatching()
@@ -104,24 +124,28 @@ object ConfigProviders {
 
     @Synchronized
     fun ensureWatching() {
-        val hasConfigListeners = textLayoutListeners.isNotEmpty() || popupPresetListeners.isNotEmpty()
+        val hasConfigListeners = textLayoutListeners.isNotEmpty() || popupPresetListeners.isNotEmpty() ||
+                buttonsLayoutListeners.isNotEmpty()
         val hasFontsetListeners = fontsetListeners.isNotEmpty()
 
         if (!hasConfigListeners && !hasFontsetListeners) return
 
         val textFile = provider.textKeyboardLayoutFile()
         val popupFile = provider.popupPresetFile()
-        val configDir = textFile?.parentFile ?: popupFile?.parentFile
+        val buttonsLayoutFile = provider.buttonsLayoutConfigFile()
+        val configDir = textFile?.parentFile ?: popupFile?.parentFile ?: buttonsLayoutFile?.parentFile
 
         if (hasConfigListeners && configDir != null) {
             val dirPath = configDir.absolutePath
             val textFileName = textFile?.name
             val popupFileName = popupFile?.name
+            val buttonsLayoutFileName = buttonsLayoutFile?.name
 
             if (!(configWatcher != null &&
                         watchedConfigDir == dirPath &&
                         watchedTextLayoutFileName == textFileName &&
-                        watchedPopupPresetFileName == popupFileName)
+                        watchedPopupPresetFileName == popupFileName &&
+                        watchedButtonsLayoutFileName == buttonsLayoutFileName)
             ) {
                 configWatcher?.stopWatching()
                 // Use String path for API 28 compatibility (HarmonyOS 9.1.0)
@@ -133,11 +157,15 @@ object ConfigProviders {
                         if (path == null) return
                         val textName = watchedTextLayoutFileName
                         val popupName = watchedPopupPresetFileName
+                        val buttonsLayoutName = watchedButtonsLayoutFileName
                         if (textName != null && path == textName) {
                             notifyListeners(textLayoutListeners)
                         }
                         if (popupName != null && path == popupName) {
                             notifyListeners(popupPresetListeners)
+                        }
+                        if (buttonsLayoutName != null && path == buttonsLayoutName) {
+                            notifyListeners(buttonsLayoutListeners)
                         }
                     }
                 }.also { it.startWatching() }
@@ -145,6 +173,7 @@ object ConfigProviders {
                 watchedConfigDir = dirPath
                 watchedTextLayoutFileName = textFileName
                 watchedPopupPresetFileName = popupFileName
+                watchedButtonsLayoutFileName = buttonsLayoutFileName
             }
         } else if (!hasConfigListeners) {
             configWatcher?.stopWatching()
@@ -152,6 +181,7 @@ object ConfigProviders {
             watchedConfigDir = null
             watchedTextLayoutFileName = null
             watchedPopupPresetFileName = null
+            watchedButtonsLayoutFileName = null
         }
 
         val fontsetFile = provider.fontsetFile()
@@ -190,6 +220,27 @@ object ConfigProviders {
 
     inline fun <reified T> readPopupPreset(): UserJsonConfigStore.JsonSnapshot<T>? =
         UserJsonConfigStore.readJson<T>(provider.popupPresetFile()).also { ensureWatching() }
+
+    /**
+     * Read unified buttons layout configuration.
+     * Supports migration from old separate config files.
+     */
+    inline fun <reified T> readButtonsLayoutConfig(): UserJsonConfigStore.JsonSnapshot<T>? =
+        UserJsonConfigStore.readJson<T>(provider.buttonsLayoutConfigFile()).also { ensureWatching() }
+
+    /**
+     * @deprecated Use readButtonsLayoutConfig instead
+     */
+    @Deprecated("Use readButtonsLayoutConfig instead", ReplaceWith("readButtonsLayoutConfig()"))
+    inline fun <reified T> readKawaiiBarButtonsConfig(): UserJsonConfigStore.JsonSnapshot<T>? =
+        readButtonsLayoutConfig()
+
+    /**
+     * @deprecated Use readButtonsLayoutConfig instead
+     */
+    @Deprecated("Use readButtonsLayoutConfig instead", ReplaceWith("readButtonsLayoutConfig()"))
+    inline fun <reified T> readStatusAreaButtonsConfig(): UserJsonConfigStore.JsonSnapshot<T>? =
+        readButtonsLayoutConfig()
 
     fun readFontsetPathMapSnapshot(): Result<UserJsonConfigStore.JsonSnapshot<Map<String, List<String>>>?> =
         runCatching {

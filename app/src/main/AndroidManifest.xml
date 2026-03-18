@@ -79,6 +79,10 @@
             android:exported="false"
             android:label="@string/edit_text_keyboard_layout" />
         <activity
+            android:name=".ui.main.settings.behavior.ButtonsCustomizerActivity"
+            android:exported="false"
+            android:label="@string/edit_buttons" />
+        <activity
             android:name=".ui.main.settings.behavior.SplitKeyboardCalibrationActivity"
             android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout"
             android:exported="false"

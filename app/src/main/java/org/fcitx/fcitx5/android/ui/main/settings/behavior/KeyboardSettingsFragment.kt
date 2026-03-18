@@ -61,6 +61,16 @@ class KeyboardSettingsFragment : ManagedPreferenceFragment(AppPrefs.getInstance(
                 true
             }
         })
+        screen.addPreference(Preference(requireContext()).apply {
+            setTitle(R.string.edit_buttons)
+            setSummary(R.string.edit_buttons_summary)
+            isSingleLineTitle = false
+            isIconSpaceReserved = false
+            setOnPreferenceClickListener {
+                startActivity(Intent(requireContext(), ButtonsCustomizerActivity::class.java))
+                true
+            }
+        })
 
         // Split keyboard calibration entry - placed after "Enable auto split keyboard"
         calibrationPreference = Preference(requireContext()).apply {

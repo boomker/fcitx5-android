@@ -19,6 +19,8 @@ import org.fcitx.fcitx5.android.input.bar.ui.idle.ButtonsBarUi
 import org.fcitx.fcitx5.android.input.bar.ui.idle.ClipboardSuggestionUi
 import org.fcitx.fcitx5.android.input.bar.ui.idle.InlineSuggestionsUi
 import org.fcitx.fcitx5.android.input.bar.ui.idle.NumberRow
+import org.fcitx.fcitx5.android.input.config.ConfigurableButton
+import org.fcitx.fcitx5.android.input.config.KawaiiBarButtonsConfig
 import org.fcitx.fcitx5.android.input.keyboard.CommonKeyActionListener
 import org.fcitx.fcitx5.android.input.popup.PopupComponent
 import splitties.dimensions.dp
@@ -41,7 +43,8 @@ class IdleUi(
     override val ctx: Context,
     private val theme: Theme,
     private val popup: PopupComponent,
-    private val commonKeyActionListener: CommonKeyActionListener
+    private val commonKeyActionListener: CommonKeyActionListener,
+    private val buttonsConfig: List<ConfigurableButton> = KawaiiBarButtonsConfig.default().buttons
 ) : Ui {
 
     enum class State {
@@ -74,7 +77,7 @@ class IdleUi(
 
     val emptyBar = Space(ctx)
 
-    val buttonsUi = ButtonsBarUi(ctx, theme)
+    val buttonsUi = ButtonsBarUi(ctx, theme, buttonsConfig)
 
     val clipboardUi = ClipboardSuggestionUi(ctx, theme)
 
@@ -151,7 +154,9 @@ class IdleUi(
     private fun updateMenuButtonRotation(instant: Boolean = false) {
         val targetRotation = menuButtonRotation
         menuButton.apply {
-            if (targetRotation == rotation) return
+            if (targetRotation == rotation) {
+                return
+            }
             animate().cancel()
             if (!instant && !disableAnimation) {
                 animate().setDuration(200L).rotation(targetRotation)

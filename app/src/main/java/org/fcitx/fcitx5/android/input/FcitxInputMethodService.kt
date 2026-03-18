@@ -84,7 +84,7 @@ import kotlin.math.max
 
 class FcitxInputMethodService : LifecycleInputMethodService() {
 
-    private lateinit var fcitx: FcitxConnection
+    internal lateinit var fcitx: FcitxConnection
 
     private var jobs = Channel<Job>(capacity = Channel.UNLIMITED)
 
@@ -101,7 +101,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
 
     private lateinit var decorView: View
     private lateinit var contentView: FrameLayout
-    private var inputView: InputView? = null
+    internal var inputView: InputView? = null
     private var candidatesView: CandidatesView? = null
 
     private val navbarMgr = NavigationBarManager()

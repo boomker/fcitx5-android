@@ -253,6 +253,7 @@ class KeyboardPreviewManager(
         override fun textKeyboardLayoutFile(): File? = tempFile
         override fun popupPresetFile(): File? = delegate.popupPresetFile()
         override fun fontsetFile(): File? = delegate.fontsetFile()
+        override fun buttonsLayoutConfigFile(): File? = delegate.buttonsLayoutConfigFile()
         override fun writeFontsetPathMap(pathMap: Map<String, List<String>>): Result<File> =
             delegate.writeFontsetPathMap(pathMap)
     }

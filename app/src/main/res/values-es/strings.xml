@@ -24,6 +24,7 @@
     <string name="add">Añadir</string>
     <string name="edit">Editar</string>
     <string name="undo">Deshacer</string>
+    <string name="redo">Rehacer</string>
     <string name="delete_and_sync_data">Eliminar y sincronizar datos de ejecución</string>
     <string name="enable_ime">Activar método de entrada</string>
     <string name="select_ime">Seleccionar método de entrada</string>
@@ -124,6 +125,19 @@
     <string name="disable_it">Desactivarlo</string>
     <string name="edit_popup_preset">Editar preajuste de popup</string>
     <string name="edit_popup_preset_summary">Editar asignación de teclas de popup (tecla -&gt; candidatos de popup)</string>
+    <string name="edit_buttons">Editar botones</string>
+    <string name="edit_buttons_summary">Personalizar botones en Kawaii Bar y Status Area</string>
+    <string name="buttons_customizer_hint">Arrastre los botones para reordenar o mover entre Kawaii Bar (fila superior) y Status Area (menú). Mantenga presionado para comenzar a arrastrar.</string>
+    <string name="kawaii_bar_section">Kawaii Bar (fila superior)</string>
+    <string name="status_area_section">Status Area (menú)</string>
+    <string name="all_buttons_added">Se han añadido todos los botones disponibles</string>
+    <string name="add_button_to_section_title">Añadir a sección</string>
+    <string name="custom_label_hint">Etiqueta personalizada (opcional)</string>
+    <string name="enable_long_press_menu">Activar mantenimiento para mostrar menú flotante</string>
+    <string name="floating_keyboard">Teclado flotante</string>
+    <string name="edit_button_title">Editar botón</string>
+    <string name="delete_button_title">Eliminar botón</string>
+    <string name="delete_button_confirm">¿Eliminar este botón?</string>
     <string name="popup_editor_hint">Toque un elemento para editar. Mantenga presionado para eliminar.</string>
     <string name="popup_editor_add_mapping">Añadir asignación</string>
     <string name="popup_editor_key">Tecla</string>

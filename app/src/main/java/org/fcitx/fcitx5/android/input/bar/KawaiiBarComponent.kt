@@ -15,6 +15,7 @@ import android.view.inputmethod.InlineSuggestion
 import android.view.inputmethod.InlineSuggestionsResponse
 import android.view.inputmethod.InputMethodSubtype
 import android.widget.FrameLayout
+import android.widget.Toast
 import android.widget.ViewAnimator
 import android.widget.inline.InlineContentView
 import androidx.annotation.Keep
@@ -42,10 +43,14 @@ import org.fcitx.fcitx5.android.input.bar.KawaiiBarStateMachine.BooleanKey.Preed
 import org.fcitx.fcitx5.android.input.bar.KawaiiBarStateMachine.TransitionEvent.CandidatesUpdated
 import org.fcitx.fcitx5.android.input.bar.KawaiiBarStateMachine.TransitionEvent.ExtendedWindowAttached
 import org.fcitx.fcitx5.android.input.bar.KawaiiBarStateMachine.TransitionEvent.PreeditUpdated
+import org.fcitx.fcitx5.android.input.action.ButtonAction
 import org.fcitx.fcitx5.android.input.bar.KawaiiBarStateMachine.TransitionEvent.WindowDetached
 import org.fcitx.fcitx5.android.input.bar.ui.CandidateUi
 import org.fcitx.fcitx5.android.input.bar.ui.IdleUi
 import org.fcitx.fcitx5.android.input.bar.ui.TitleUi
+import org.fcitx.fcitx5.android.input.config.ButtonsLayoutConfig
+import org.fcitx.fcitx5.android.input.config.ConfigProviders
+import org.fcitx.fcitx5.android.input.config.ConfigurableButton
 import org.fcitx.fcitx5.android.input.broadcast.InputBroadcastReceiver
 import org.fcitx.fcitx5.android.input.candidates.expanded.ExpandedCandidateStyle
 import org.fcitx.fcitx5.android.input.candidates.expanded.window.FlexboxExpandedCandidateWindow
@@ -54,6 +59,7 @@ import org.fcitx.fcitx5.android.input.candidates.horizontal.HorizontalCandidateC
 import org.fcitx.fcitx5.android.input.clipboard.ClipboardWindow
 import org.fcitx.fcitx5.android.input.dependency.UniqueViewComponent
 import org.fcitx.fcitx5.android.input.dependency.context
+import org.fcitx.fcitx5.android.input.dependency.fcitx
 import org.fcitx.fcitx5.android.input.dependency.inputMethodService
 import org.fcitx.fcitx5.android.input.dependency.theme
 import org.fcitx.fcitx5.android.input.editing.TextEditingWindow
@@ -65,6 +71,8 @@ import org.fcitx.fcitx5.android.input.status.StatusAreaWindow
 import org.fcitx.fcitx5.android.input.wm.InputWindow
 import org.fcitx.fcitx5.android.input.wm.InputWindowManager
 import org.fcitx.fcitx5.android.utils.AppUtil
+import org.fcitx.fcitx5.android.core.SubtypeManager
+import org.fcitx.fcitx5.android.daemon.launchOnReady
 import org.fcitx.fcitx5.android.utils.InputMethodUtil
 import org.mechdancer.dependency.DynamicScope
 import org.mechdancer.dependency.manager.must
@@ -85,6 +93,7 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
     private val context by manager.context()
     private val theme by manager.theme()
     private val service by manager.inputMethodService()
+    private val fcitx by manager.fcitx()
     private val windowManager: InputWindowManager by manager.must()
     private val horizontalCandidate: HorizontalCandidateComponent by manager.must()
     private val commonKeyActionListener: CommonKeyActionListener by manager.must()
@@ -206,75 +215,127 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         InputMethodUtil.switchInputMethod(service, id, subtype)
     }
 
-    private val idleUi: IdleUi by lazy {
-        IdleUi(context, theme, popup, commonKeyActionListener).apply {
-            menuButton.setOnClickListener {
-                when (idleUi.currentState) {
-                    IdleUi.State.Empty -> {
-                        prefs.keyboard.toolbarManuallyToggled.setValue(!expandToolbarByDefault)
-                        evalIdleUiState(fromUser = true)
-                    }
-                    IdleUi.State.Toolbar -> {
-                        prefs.keyboard.toolbarManuallyToggled.setValue(expandToolbarByDefault)
-                        evalIdleUiState(fromUser = true)
-                    }
-                    else -> {
-                        prefs.keyboard.toolbarManuallyToggled.setValue(!expandToolbarByDefault)
-                        idleUi.updateState(IdleUi.State.Toolbar, fromUser = true)
-                    }
+    // Load buttons config from file or use default
+    // Note: 'more' button is always added automatically at the end if not present in config
+    private fun loadButtonsConfig(): List<ConfigurableButton> {
+        return try {
+            val snapshot = ConfigProviders.readButtonsLayoutConfig<ButtonsLayoutConfig>()
+            val config = snapshot?.value ?: ButtonsLayoutConfig.default()
+            
+            // Filter out 'more' button from config (it's always added automatically)
+            val filteredButtons = config.kawaiiBarButtons.filter { it.id != "more" }
+
+            // Always add 'more' button at the end
+            filteredButtons + ConfigurableButton("more")
+        } catch (e: Exception) {
+            // Default config without 'more' (it will be added automatically)
+            ButtonsLayoutConfig.default().kawaiiBarButtons.filter { it.id != "more" } + ConfigurableButton("more")
+        }
+    }
+
+    private var _idleUi: IdleUi? = null
+    private var currentButtonsConfig: List<ConfigurableButton> = emptyList()
+    
+    private val idleUi: IdleUi
+        get() {
+            if (_idleUi == null) {
+                currentButtonsConfig = loadButtonsConfig()
+                _idleUi = IdleUi(context, theme, popup, commonKeyActionListener, currentButtonsConfig)
+                setupIdleUiCallbacks(_idleUi!!)
+            }
+            return _idleUi!!
+        }
+
+    private fun setupIdleUiCallbacks(ui: IdleUi) {
+        ui.menuButton.setOnClickListener {
+            when (ui.currentState) {
+                IdleUi.State.Empty -> {
+                    prefs.keyboard.toolbarManuallyToggled.setValue(!expandToolbarByDefault)
+                    evalIdleUiState(fromUser = true)
                 }
-                // reset timeout timer (if present) when user switch layout
-                if (clipboardTimeoutJob != null) {
-                    launchClipboardTimeoutJob()
+                IdleUi.State.Toolbar -> {
+                    prefs.keyboard.toolbarManuallyToggled.setValue(expandToolbarByDefault)
+                    evalIdleUiState(fromUser = true)
+                }
+                else -> {
+                    prefs.keyboard.toolbarManuallyToggled.setValue(!expandToolbarByDefault)
+                    ui.updateState(IdleUi.State.Toolbar, fromUser = true)
                 }
             }
-            hideKeyboardButton.apply {
-                setOnClickListener(hideKeyboardCallback)
-                swipeEnabled = true
-                swipeThresholdY = dp(HEIGHT.toFloat())
-                onGestureListener = swipeDownHideKeyboardCallback
+            // reset timeout timer (if present) when user switch layout
+            if (clipboardTimeoutJob != null) {
+                launchClipboardTimeoutJob()
             }
-            buttonsUi.apply {
-                undoButton.setOnClickListener {
-                    service.sendCombinationKeyEvents(KeyEvent.KEYCODE_Z, ctrl = true)
-                }
-                redoButton.setOnClickListener {
-                    service.sendCombinationKeyEvents(KeyEvent.KEYCODE_Z, ctrl = true, shift = true)
-                }
-                cursorMoveButton.setOnClickListener {
-                    windowManager.attachWindow(TextEditingWindow())
-                }
-                clipboardButton.setOnClickListener {
-                    windowManager.attachWindow(ClipboardWindow())
-                }
-                moreButton.setOnClickListener {
-                    windowManager.attachWindow(StatusAreaWindow())
-                }
-                floatingButton.setOnClickListener {
-                    onFloatingToggleListener?.invoke()
-                }
-                floatingButton.setOnLongClickListener {
-                    onFloatingLongPressListener?.invoke()
-                    true
-                }
-            }
-            clipboardUi.suggestionView.apply {
-                setOnClickListener {
-                    ClipboardManager.lastEntry?.let {
-                        service.commitText(it.text)
-                    }
-                    clipboardTimeoutJob?.cancel()
-                    clipboardTimeoutJob = null
-                    isClipboardFresh = false
-                    evalIdleUiState()
-                }
-                setOnLongClickListener {
-                    ClipboardManager.lastEntry?.let {
-                        AppUtil.launchClipboardEdit(context, it.id, true)
-                    }
-                    true
+        }
+        ui.hideKeyboardButton.apply {
+            setOnClickListener(hideKeyboardCallback)
+            swipeEnabled = true
+            swipeThresholdY = dp(HEIGHT.toFloat())
+            onGestureListener = swipeDownHideKeyboardCallback
+        }
+        ui.buttonsUi.apply {
+            // Setup click listeners using ButtonAction
+            ButtonAction.allConfigurableActions.forEach { action ->
+                setOnClickListener(action.id) {
+                    action.execute(
+                        context = context,
+                        service = service,
+                        fcitx = fcitx,
+                        windowManager = windowManager,
+                        view = null,
+                        onActionComplete = {
+                            // Refresh UI state after action completion (for floating toggle, etc.)
+                            if (action.id == "floating_toggle") {
+                                evalIdleUiState()
+                            }
+                        }
+                    )
                 }
             }
+            
+            // Special handling for 'more' button
+            setOnClickListener("more") {
+                windowManager.attachWindow(StatusAreaWindow())
+            }
+            
+            // Special handling for floating_toggle long press
+            setOnLongClickListener("floating_toggle") {
+                ButtonAction.fromId("floating_toggle")?.onLongPress(
+                    context = context,
+                    service = service,
+                    fcitx = fcitx,
+                    windowManager = windowManager,
+                    view = ui.buttonsUi.root
+                )
+                true
+            }
+        }
+        ui.clipboardUi.suggestionView.apply {
+            setOnClickListener {
+                ClipboardManager.lastEntry?.let {
+                    service.commitText(it.text)
+                }
+                clipboardTimeoutJob?.cancel()
+                clipboardTimeoutJob = null
+                isClipboardFresh = false
+                evalIdleUiState()
+            }
+            setOnLongClickListener {
+                ClipboardManager.lastEntry?.let {
+                    AppUtil.launchClipboardEdit(context, it.id, true)
+                }
+                true
+            }
+        }
+    }
+
+    // Reload Kawaii Bar buttons config (called when config file changes)
+    fun reloadButtonsConfig() {
+        val newConfig = loadButtonsConfig()
+        if (newConfig != currentButtonsConfig) {
+            currentButtonsConfig = newConfig
+            // Update the existing IdleUi with new config
+            _idleUi?.buttonsUi?.updateConfig(newConfig)
         }
     }
 

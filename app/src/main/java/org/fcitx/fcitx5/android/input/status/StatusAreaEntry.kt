@@ -7,6 +7,7 @@ package org.fcitx.fcitx5.android.input.status
 import androidx.annotation.DrawableRes
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.core.Action
+import org.fcitx.fcitx5.android.input.action.ButtonAction
 
 sealed class StatusAreaEntry(
     val label: String,
@@ -14,6 +15,21 @@ sealed class StatusAreaEntry(
     val icon: Int,
     val active: Boolean
 ) {
+    /**
+     * Status Area entry backed by a ButtonAction
+     */
+    class ActionEntry(
+        val buttonAction: ButtonAction,
+        label: String,
+        icon: Int,
+        active: Boolean = false,
+        val longPressAction: LongPressActionType? = null
+    ) : StatusAreaEntry(label, icon, active) {
+        enum class LongPressActionType {
+            EnterAdjustingMode
+        }
+    }
+
     class Android(label: String, icon: Int, val type: Type, active: Boolean = false) :
         StatusAreaEntry(label, icon, active) {
         enum class Type {
