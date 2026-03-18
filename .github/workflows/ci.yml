@@ -94,6 +94,22 @@ jobs:
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v3
 
+      - name: Validate signing secrets
+        shell: bash
+        env:
+          SIGN_KEY_BASE64: ${{ secrets.SIGNING_KEY }}
+          SIGN_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          SIGN_KEY_PWD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          for key in SIGN_KEY_BASE64 SIGN_KEY_ALIAS SIGN_KEY_PWD
+          do
+            if [ -z "${!key}" ]
+            then
+              echo "::error::Missing required signing secret: $key"
+              exit 1
+            fi
+          done
+
       - name: Build Release APK
         env:
           SIGN_KEY_BASE64: ${{ secrets.SIGNING_KEY }}
@@ -114,6 +130,45 @@ jobs:
               mv "plugin/${i}/build/outputs/apk/release"/*.apk "app/build/outputs/apk/release/"
             fi
           done
+
+      - name: Verify signed APKs
+        shell: bash
+        run: |
+          shopt -s nullglob
+          apks=(app/build/outputs/apk/release/*.apk)
+          if [ ${#apks[@]} -eq 0 ]
+          then
+            echo "::error::No APKs produced in app/build/outputs/apk/release"
+            exit 1
+          fi
+
+          for apk in "${apks[@]}"
+          do
+            if [[ "$apk" == *-unsigned.apk ]]
+            then
+              echo "::error::Unsigned APK detected: $apk"
+              exit 1
+            fi
+          done
+
+          sdk_root="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+          if [ -z "$sdk_root" ]
+          then
+            echo "::error::ANDROID_SDK_ROOT or ANDROID_HOME is not set"
+            exit 1
+          fi
+
+          apksigner=$(find "$sdk_root/build-tools" -type f -name apksigner | sort -V | tail -n1)
+          if [ -z "$apksigner" ]
+          then
+            echo "::error::Failed to locate apksigner under $sdk_root/build-tools"
+            exit 1
+          fi
+
+          for apk in "${apks[@]}"
+          do
+            "$apksigner" verify --print-certs "$apk"
+          done
         
       - name: Upload app with plugins
         uses: actions/upload-artifact@v4
@@ -131,4 +186,3 @@ jobs:
           title: "Nightly Build"
           files: |
             app/build/outputs/apk/release/*.apk
-
