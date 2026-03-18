@@ -88,6 +88,10 @@ jobs:
       #    Add-Content $env:GITHUB_PATH "C:/msys64/ucrt64/bin"
 
       - name: Prepare personal build sources
+        env:
+          FCITX5_RIME_REPO: https://github.com/fxliang/fcitx5-rime.git
+          PREBUILT_REPO: https://github.com/boomker/prebuilt.git
+          PREBUILDER_REPO: https://github.com/boomker/prebuilder.git
         run: |
           ./prepare_personal_build.sh
 
