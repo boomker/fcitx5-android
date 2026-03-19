@@ -1,8 +1,8 @@
 #!/usr/bin/bash
 
-FCITX5_RIME_REPO="${FCITX5_RIME_REPO:-https://github.com/fxliang/fcitx5-rime.git}"
-PREBUILT_REPO="${PREBUILT_REPO:-https://github.com/boomker/prebuilt.git}"
-PREBUILDER_REPO="${PREBUILDER_REPO:-https://github.com/boomker/prebuilder.git}"
+FCITX5_RIME_REPO="${FCITX5_RIME_REPO:-https://github.com/fcitx/fcitx5-rime.git}"
+PREBUILT_REPO="${PREBUILT_REPO:-https://github.com/boomker/f5a-prebuilt.git}"
+PREBUILDER_REPO="${PREBUILDER_REPO:-https://github.com/boomker/f5a-prebuilder.git}"
 
 # update fcitx5-rime
 echo "updating fcitx5-rime from ${FCITX5_RIME_REPO}"
