@@ -55,7 +55,7 @@ class KeyboardPreviewManager(
 
     /**
      * 更新键盘预览。
-     * 
+     *
      * @param layoutName 布局名称
      * @param previewSubModeLabel 子模式标签，null 表示默认
      * @param fcitxConnection Fcitx 连接，用于获取当前输入法
@@ -93,14 +93,18 @@ class KeyboardPreviewManager(
         ConfigProviders.provider = tempProvider
         TextKeyboard.clearCachedKeyDefLayouts()
 
+        // Save the original IME state to restore later
+        val originalIme = TextKeyboard.ime
+
         try {
             createKeyboardPreview(layoutName, previewSubModeLabel, fcitxConnection)
         } catch (e: Exception) {
             showError(e.message ?: "Unknown error")
         } finally {
-            // Restore original provider
+            // Restore original provider and IME state
             ConfigProviders.provider = DefaultConfigProvider
             TextKeyboard.clearCachedKeyDefLayouts()
+            TextKeyboard.ime = originalIme
             tempFile.delete()
         }
     }

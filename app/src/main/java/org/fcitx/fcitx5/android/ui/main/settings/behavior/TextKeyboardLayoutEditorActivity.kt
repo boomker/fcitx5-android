@@ -40,10 +40,12 @@ import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.data.theme.ThemeManager
 import org.fcitx.fcitx5.android.input.config.ConfigProviders
 import org.fcitx.fcitx5.android.input.config.ConfigProvider
-import org.fcitx.fcitx5.android.input.config.DefaultConfigProvider
 import org.fcitx.fcitx5.android.input.keyboard.TextKeyboard
+import org.fcitx.fcitx5.android.ui.main.settings.behavior.adapter.KeyboardLayoutAdapter
+import org.fcitx.fcitx5.android.ui.main.settings.behavior.adapter.SimpleDividerItemDecoration
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.data.LayoutDataManager
-import org.fcitx.fcitx5.android.ui.main.settings.behavior.migration.DataMigrationManager
+import org.fcitx.fcitx5.android.ui.main.settings.behavior.dialog.KeyEditorDialog
+import org.fcitx.fcitx5.android.ui.main.settings.behavior.manager.SubModeManager
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.preview.KeyboardPreviewManager
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.utils.LayoutJsonUtils
 import org.fcitx.fcitx5.android.utils.InputMethodUtil
@@ -53,19 +55,8 @@ import splitties.views.backgroundColor
 import splitties.views.dsl.core.add
 import splitties.views.dsl.core.matchParent
 import splitties.views.dsl.core.wrapContent
-import kotlinx.serialization.json.*
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.JsonObject
 import java.io.File
-
-// Lenient JSON parser for reading user config files
-private val lenientJson = Json {
-    ignoreUnknownKeys = true
-    isLenient = true
-}
-
-// Pretty-print JSON formatter for writing files
-private val prettyJson = Json { prettyPrint = true }
 
 class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
 
@@ -104,11 +95,10 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         }
     }
 
-    // Single spinner container for both layout and submode spinners
     private val spinnerContainer by lazy {
         LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            gravity = android.view.Gravity.CENTER_VERTICAL
+            gravity = Gravity.CENTER_VERTICAL
             val pad = dp(8)
             setPadding(0, pad, 0, pad)
         }
@@ -137,7 +127,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             setTypeface(null, android.graphics.Typeface.BOLD)
             setPadding(dp(12), dp(6), dp(12), dp(6))
             minWidth = dp(40)
-            gravity = android.view.Gravity.CENTER
+            gravity = Gravity.CENTER
             setOnClickListener { openLayoutEditor(null) }
         }
     }
@@ -148,7 +138,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             textSize = 14f
             setPadding(dp(12), dp(6), dp(12), dp(6))
             minWidth = dp(40)
-            gravity = android.view.Gravity.CENTER
+            gravity = Gravity.CENTER
             setOnClickListener { confirmDeleteCurrentEditingLayout() }
         }
     }
@@ -172,25 +162,34 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
     }
 
     private val provider: ConfigProvider = ConfigProviders.provider
-
     private val layoutFile: File? by lazy { provider.textKeyboardLayoutFile() }
     private val fcitxConnection: FcitxConnection by lazy {
         FcitxDaemon.connect(FCITX_CONNECTION_NAME)
     }
 
-    private val dataManager = LayoutDataManager()
-    private val migrationManager = DataMigrationManager(dataManager)
+    // 数据管理器
+    private val dataManager = LayoutDataManager(this)
+    private val entries get() = dataManager.entries
+    private var originalEntries: Map<String, List<List<Map<String, Any?>>>> = emptyMap()
+
     private val previewManager by lazy {
         KeyboardPreviewManager(this, previewKeyboardContainer, dataManager.entries)
     }
-    private val entries get() = dataManager.entries
-    private var originalEntries: Map<String, List<List<Map<String, Any?>>>> = emptyMap()
+    
+    // 对话框
+    private val keyEditorDialog by lazy { KeyEditorDialog(this) }
+    
+    // 子模式管理器
+    private lateinit var subModeManager: SubModeManager
+
+    // 当前状态（委托给 dataManager）
     private var currentLayout: String? = null
     private var previewSubModeLabel: String? = null
-    
-    // Track the last editing target to avoid redundant toast notifications
-    private var lastEditingTarget: String? = null  // Format: "layoutName:subModeLabel" or "layoutName:default"
+    private var lastEditingTarget: String? = null
     private var saveMenuItem: MenuItem? = null
+
+    // 缓存 IMEs 用于 spinner 显示
+    private var allImesFromJson: Array<InputMethodEntry> = emptyArray()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -208,12 +207,30 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         }
         ViewCompat.requestApplyInsets(toolbar)
 
+        // 初始化子模式管理器（必须在 loadState 之前）
+        subModeManager = SubModeManager(fcitxConnection, allImesFromJson, dataManager.entries)
+
         loadState()
+
         buildSpinner()
         buildSubModeSpinner()
         buildRows()
         run { val layoutName = currentLayout ?: return@run; previewManager.updatePreview(layoutName, previewSubModeLabel, fcitxConnection) }
         maybePromptSwitchToFcitxIme()
+
+        // Show toast to indicate current editing layout
+        // Only show submode-specific message if there's actually a dedicated submode layout
+        currentLayout?.let { layoutName ->
+            val subModeLabel = previewSubModeLabel
+            val subModeKey = subModeLabel?.let { "$layoutName:$it" }
+            val hasDedicatedSubModeLayout = subModeKey != null && entries.containsKey(subModeKey)
+            
+            if (hasDedicatedSubModeLayout) {
+                showToast(getString(R.string.text_keyboard_layout_editing_submode, subModeLabel))
+            } else {
+                showToast(getString(R.string.text_keyboard_layout_editing_default, layoutName))
+            }
+        }
     }
 
     override fun onDestroy() {
@@ -241,151 +258,41 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
     }
 
     private fun loadState() {
-        // Try to load from existing TextKeyboardLayout.json file first
         val file = ConfigProviders.provider.textKeyboardLayoutFile()
 
-        // Get IMEs for spinner display
+        // 获取 IMEs 用于 spinner 显示
         allImesFromJson = runCatching {
             fcitxConnection.runImmediately { enabledIme() }
         }.getOrDefault(emptyArray())
 
-        val parsed: Map<String, List<List<Map<String, Any?>>>> = if (file?.exists() == true && file.length() > 0) {
-            // Read and parse JSON manually
-            runCatching {
-                var jsonStr = file.readText()
-                // Remove // comments (JSON doesn't support comments, but we allow them for convenience)
-                jsonStr = jsonStr.lines()
-                    .joinToString("\n") { line ->
-                        val commentIdx = line.indexOf("//")
-                        if (commentIdx >= 0) {
-                            val beforeComment = line.substring(0, commentIdx)
-                            val quoteCount = beforeComment.count { it == '"' }
-                            if (quoteCount % 2 == 0) {
-                                line.substring(0, commentIdx)
-                            } else {
-                                line
-                            }
-                        } else {
-                            line
-                        }
-                    }
+        // 使用 dataManager 加载数据
+        dataManager.loadFromFile(file)
 
-                val jsonElement = lenientJson.parseToJsonElement(jsonStr)
-                val jsonObject = jsonElement.jsonObject
-
-                val result = mutableMapOf<String, List<List<Map<String, Any?>>>>()
-
-                // Process each layout entry
-                jsonObject.entries.forEach { (layoutName, layoutValue) ->
-                    when (layoutValue) {
-                        is JsonArray -> {
-                            // Direct layout array (no submode structure)
-                            val rows = dataManager.parseLayoutRows(layoutValue.jsonArray)
-                            result[layoutName] = rows
-                        }
-                        is JsonObject -> {
-                            // Submode structure - process each submode
-                            layoutValue.jsonObject.entries.forEach { (subModeLabel, subModeValue) ->
-                                if (subModeValue is JsonArray) {
-                                    val rows = dataManager.parseLayoutRows(subModeValue.jsonArray)
-                                    val key = if (subModeLabel == "default") {
-                                        layoutName  // Use base name for default
-                                    } else {
-                                        "$layoutName:$subModeLabel"  // Use colon notation for submodes
-                                    }
-                                    result[key] = rows
-                                }
-                            }
-                        }
-                        else -> {
-                            // Skip invalid entries
-                        }
-                    }
-                }
-                result
-            }.onFailure { e ->
-                android.util.Log.e("TextKeyboardEditor", "Failed to parse JSON", e)
-            }.getOrNull() ?: readDefaultPresetFromTextKeyboardKt()
-        } else {
-            readDefaultPresetFromTextKeyboardKt()
-        }
-
-        parsed.toSortedMap().forEach { (k, v) ->
-            entries[k] = v.map { row ->
-                row.map { key -> key.toMutableMap() }.toMutableList()
-            }.toMutableList()
-        }
-
-        // Ensure at least one layout exists (default from TextKeyboard.kt)
-        if (entries.isEmpty()) {
-            val defaultLayout = readDefaultPresetFromTextKeyboardKt()
-            defaultLayout.forEach { (k, v) ->
-                entries[k] = v.map { row ->
-                    row.map { key -> key.toMutableMap() }.toMutableList()
-                }.toMutableList()
-            }
-        }
-
-        // Check if migration is needed before creating backup
-        val needsMigration = file != null && migrationManager.checkIfMigrationNeeded()
-
-        // Only backup if migration is actually needed
-        if (needsMigration) {
-            migrationManager.createBackup(file!!)
-        }
-
-        // Migrate old displayText format to new submode structure
-        // This ensures a smooth and automatic migration for all users
-        try {
-            migrationManager.migrateAllDisplayTextToSubmodeStructure()
-        } catch (e: Exception) {
-            android.util.Log.e("TextKeyboardEditor", "Migration failed, restoring backup", e)
-            migrationManager.restoreFromBackup(file)
-            // Re-parse the restored file
-            val restoredParsed = runCatching {
-                val jsonStr = file!!.readText()
-                val jsonElement = lenientJson.parseToJsonElement(jsonStr)
-                migrationManager.parseJsonToEntries(jsonElement.jsonObject)
-            }.getOrNull()
-            if (restoredParsed != null) {
-                entries.clear()
-                parsed.toSortedMap().forEach { (k, v) ->
-                    entries[k] = v.map { row ->
-                        row.map { key -> key.toMutableMap() }.toMutableList()
-                    }.toMutableList()
-                }
-            }
-            showToast(getString(R.string.text_keyboard_layout_migration_failed))
-        }
-
-        originalEntries = normalizedEntries()
-        
-        // Initialize currentLayout and previewSubModeLabel based on current IME state
-        val (currentIme, fcitxLabels) = fetchCurrentImeAndSubModeLabels()
+        // 初始化 currentLayout 和 previewSubModeLabel（基于当前 IME 状态）
+        val (currentIme, fcitxLabels) = subModeManager.fetchCurrentImeAndSubModeLabels(currentLayout.orEmpty())
         val currentImeUniqueName = currentIme?.uniqueName
         val currentSubModeLabel = currentIme?.subMode?.label?.ifEmpty { currentIme.subMode.name }?.takeIf { it.isNotBlank() }
-        
-        // Find matching layout for current IME
+
+        // 查找与当前 IME 匹配的布局
         if (currentImeUniqueName != null) {
-            // Try uniqueName first, then displayName
             val matchingLayoutKey = entries.keys.find { key ->
-                key == currentImeUniqueName || 
+                key == currentImeUniqueName ||
                 key == currentIme.displayName ||
-                (!key.contains(':') && allImesFromJson.any { ime -> 
+                (!key.contains(':') && allImesFromJson.any { ime ->
                     (ime.uniqueName == key || ime.displayName == key) &&
                     (ime.uniqueName == currentImeUniqueName || ime.displayName == currentImeUniqueName)
                 })
             }
             currentLayout = matchingLayoutKey
         }
-        
-        // Default to first layout if no matching layout found
+
+        // 默认选择第一个布局
         if (currentLayout == null) {
-            currentLayout = entries.keys.firstOrNull()
+            currentLayout = entries.keys.firstOrNull { !it.contains(':') }
         }
-        
-        // Set previewSubModeLabel based on current IME submode
-        val layoutLabels = extractSubModeLabelsFromCurrentLayout()
+
+        // 设置 previewSubModeLabel
+        val layoutLabels = subModeManager.extractSubModeLabelsFromLayout(currentLayout.orEmpty())
         val allLabels = (fcitxLabels + layoutLabels).distinct().filter { it.isNotBlank() }
 
         if (allLabels.isNotEmpty() && currentSubModeLabel != null) {
@@ -393,8 +300,8 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         } else if (allLabels.isNotEmpty()) {
             previewSubModeLabel = allLabels.first()
         }
-        
-        // Initialize lastEditingTarget
+
+        // 初始化 lastEditingTarget
         currentLayout?.let { layout ->
             val subModeKey = previewSubModeLabel?.let { "$layout:$it" }
             lastEditingTarget = if (subModeKey != null && entries.containsKey(subModeKey)) {
@@ -403,6 +310,8 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                 "$layout:default"
             }
         }
+
+        originalEntries = dataManager.normalizedEntries()
     }
 
     private fun readDefaultPresetFromTextKeyboardKt(): Map<String, List<List<Map<String, Any?>>>> {
@@ -523,14 +432,32 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
     }
 
     private fun buildSubModeSpinner(forceResetSelection: Boolean = false) {
-        val layoutLabels = extractSubModeLabelsFromCurrentLayout()
-        val shouldShowForLayout = layoutLabels.isNotEmpty() || isCurrentLayoutRime()
+        val layoutName = currentLayout ?: return
+        val layoutLabels = subModeManager.extractSubModeLabelsFromLayout(layoutName)
+        val isRime = subModeManager.isCurrentLayoutRime(layoutName)
+        val shouldShowForLayout = layoutLabels.isNotEmpty() || isRime
         if (!shouldShowForLayout) {
             hideSubModeSpinner()
             return
         }
 
-        val subModeState = resolveSubModeState(layoutLabels)
+        // Save current IME state before activating target IME for fetching submode labels
+        val previousIme = runCatching {
+            fcitxConnection.runImmediately { inputMethodEntryCached }
+        }.getOrNull()
+
+        // Force activate the target IME before fetching submode labels
+        // This ensures Fcitx status area menu has the correct scheme list for Rime
+        val targetImeUniqueName = allImesFromJson.firstOrNull {
+            it.uniqueName == layoutName || it.displayName == layoutName
+        }?.uniqueName
+        if (targetImeUniqueName != null) {
+            fcitxConnection.runImmediately {
+                runCatching { activateIme(targetImeUniqueName) }
+            }
+        }
+
+        val subModeState = subModeManager.resolveSubModeState(layoutName, layoutLabels)
         val currentIme = subModeState.currentIme
         val labels = subModeState.labels
 
@@ -563,9 +490,19 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
 
         // Bind submode spinner data
         bindSubModeSpinner(labels)
-        
+
         // Update button behavior for submode
         updateLayoutButtonBehavior()
+
+        // Restore previous IME state to avoid affecting external real input method
+        // Only restore if we activated a different IME and the previous IME is still available
+        if (targetImeUniqueName != null && previousIme != null && previousIme.uniqueName != targetImeUniqueName) {
+            runCatching {
+                fcitxConnection.runImmediately {
+                    runCatching { activateIme(previousIme.uniqueName) }
+                }
+            }
+        }
     }
 
     private fun hideSubModeSpinner() {
@@ -622,11 +559,6 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             deleteLayoutButton.setOnClickListener { confirmDeleteCurrentEditingLayout() }
         }
     }
-
-    private data class SubModeState(
-        val currentIme: InputMethodEntry?,
-        val labels: List<String>
-    )
 
     private fun bindSubModeSpinner(labels: List<String>) {
         val adapter = ArrayAdapter(
@@ -814,7 +746,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                     }
                 } else {
                     // Deleted a submode layout, switch to default or first available
-                    val remainingLabels = extractSubModeLabelsFromCurrentLayout()
+                    val remainingLabels = subModeManager.extractSubModeLabelsFromLayout(layoutName)
                     previewSubModeLabel = remainingLabels.firstOrNull()
                     lastEditingTarget = previewSubModeLabel?.let { "$layoutName:$it" } ?: "$layoutName:default"
                 }
@@ -858,12 +790,12 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             .setMessage(getString(R.string.text_keyboard_layout_delete_submode_layout_confirm, subModeLabel))
             .setPositiveButton(R.string.delete) { _, _ ->
                 entries.remove(subModeKey)
-                
+
                 // Switch to default or first available submode
-                val remainingLabels = extractSubModeLabelsFromCurrentLayout()
+                val remainingLabels = subModeManager.extractSubModeLabelsFromLayout(layoutName)
                 previewSubModeLabel = remainingLabels.firstOrNull()
                 lastEditingTarget = previewSubModeLabel?.let { "$layoutName:$it" } ?: "$layoutName:default"
-                
+
                 buildSubModeSpinner(forceResetSelection = true)
                 buildRows()
                 run { val name = currentLayout ?: return@run; previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection) }
@@ -915,198 +847,27 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
     }
 
     private fun addSubModeLayout(layoutName: String, subModeLabel: String) {
-        // Try to get the base layout (default) to copy from
-        val baseLayout = entries[layoutName]
-
-        // Get existing submode layouts for this base layout
-        val existingSubModeKeys = entries.keys.filter {
-            it.startsWith("$layoutName:") && it != "$layoutName:default"
-        }
-
-        // Determine the source layout to copy from
-        // Priority: 1) base layout, 2) first existing submode layout, 3) create empty
-        val sourceLayout = if (baseLayout != null && baseLayout.isNotEmpty()) {
-            // Use base layout if it exists and is not empty
-            baseLayout
-        } else if (existingSubModeKeys.isNotEmpty()) {
-            // Use first existing submode layout
-            entries[existingSubModeKeys.first()]
-        } else {
-            null
-        }
-
         val subModeKey = "$layoutName:$subModeLabel"
 
-        if (sourceLayout != null) {
-            // Deep copy the source layout - create completely new objects
-            val copiedLayout = mutableListOf<MutableList<MutableMap<String, Any?>>>()
-            for (sourceRow in sourceLayout) {
-                val newRow = mutableListOf<MutableMap<String, Any?>>()
-                for (sourceKey in sourceRow) {
-                    // Create a new mutable map with copied values
-                    val newKey = mutableMapOf<String, Any?>()
-                    sourceKey.forEach { (k, v) ->
-                        // Deep copy nested maps (like displayText JsonObject)
-                        newKey[k] = when (v) {
-                            is Map<*, *> -> mutableMapOf<String, Any?>().apply {
-                                v.forEach { (kk, vv) -> put(kk.toString(), vv) }
-                            }
-                            is List<*> -> v.toList()
-                            else -> v
-                        }
-                    }
-                    newRow.add(newKey)
-                }
-                copiedLayout.add(newRow)
-            }
+        // 使用 dataManager 添加子模式布局
+        if (dataManager.addSubModeLayout(layoutName, subModeLabel)) {
+            // 更新状态
+            currentLayout = layoutName
+            previewSubModeLabel = subModeLabel
+            lastEditingTarget = subModeKey
 
-            // Migrate displayText from old format to new submode format
-            // If base layout has displayText: {subModeLabel: "text"}, extract it
-            migrationManager.migrateDisplayTextForSubMode(copiedLayout, subModeLabel)
-
-            entries[subModeKey] = copiedLayout
+            // 刷新 UI
+            buildRows()
+            buildSubModeSpinner(forceResetSelection = false)
+            run { val name = currentLayout ?: return@run; previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection) }
+            updateSaveButtonState()
+            showToast(getString(R.string.text_keyboard_layout_submode_added, subModeLabel))
         } else {
-            // Create empty layout
-            entries[subModeKey] = mutableListOf()
-        }
-
-        // Keep currentLayout unchanged, set previewSubModeLabel to the new submode
-        currentLayout = layoutName
-        previewSubModeLabel = subModeLabel
-
-        // Update last editing target to reflect the new submode layout
-        lastEditingTarget = subModeKey
-
-        // Build UI components - note: don't use forceResetSelection to preserve previewSubModeLabel
-        buildRows()
-        buildSubModeSpinner(forceResetSelection = false)
-        run { val layoutName = currentLayout ?: return@run; previewManager.updatePreview(layoutName, previewSubModeLabel, fcitxConnection) }
-        updateSaveButtonState()
-        showToast(getString(R.string.text_keyboard_layout_submode_added, subModeLabel))
-    }
-
-    private fun resolveSubModeState(layoutLabels: List<String>): SubModeState {
-        val (currentIme, fcitxLabels) = fetchCurrentImeAndSubModeLabels()
-        val labels = (fcitxLabels + layoutLabels).distinct().filter { it.isNotBlank() }
-        return SubModeState(currentIme, labels)
-    }
-
-    private fun isCurrentLayoutRime(): Boolean {
-        val layoutName = currentLayout ?: return false
-        val ime = allImesFromJson.firstOrNull {
-            it.uniqueName == layoutName || it.displayName == layoutName
-        }
-        val uniqueName = ime?.uniqueName ?: layoutName
-        val displayName = ime?.displayName ?: layoutName
-        return uniqueName.contains("rime", ignoreCase = true) ||
-            displayName.contains("rime", ignoreCase = true)
-    }
-
-    private fun extractSubModeLabelsFromCurrentLayout(): List<String> {
-        val layoutName = currentLayout ?: return emptyList()
-
-        // Collect all submode labels from submode-specific layouts
-        val labels = linkedSetOf<String>()
-
-        // Look for submode layouts with key "layoutName:subModeLabel"
-        entries.keys.forEach { key ->
-            if (key.startsWith("$layoutName:")) {
-                val subModeLabel = key.substringAfter("$layoutName:")
-                if (subModeLabel.isNotEmpty() && subModeLabel != "default") {
-                    labels.add(subModeLabel)
-                }
-            }
-        }
-
-        // Also extract from displayText in the default layout
-        val rows = entries[layoutName] ?: return labels.toList()
-
-        rows.forEach { row ->
-            row.forEach { key ->
-                when (val displayText = key["displayText"]) {
-                    is JsonObject -> {
-                        displayText.keys.forEach { mode ->
-                            val normalized = mode.trim()
-                            if (normalized.isNotEmpty() && normalized != "default") labels.add(normalized)
-                        }
-                    }
-                    is Map<*, *> -> {
-                        displayText.keys.forEach { mode ->
-                            val normalized = mode?.toString()?.trim().orEmpty()
-                            if (normalized.isNotEmpty() && normalized != "default") labels.add(normalized)
-                        }
-                    }
-                }
-            }
-        }
-
-        return labels.toList()
-    }
-
-    private fun fetchCurrentImeAndSubModeLabels(): Pair<InputMethodEntry?, List<String>> {
-        return runCatching {
-            fcitxConnection.runImmediately {
-                val targetImeUniqueName = resolveTargetImeUniqueName()
-
-                if (targetImeUniqueName != null) {
-                    runCatching { activateIme(targetImeUniqueName) }
-                }
-
-                val ime = runCatching { currentIme() }.getOrElse { inputMethodEntryCached }
-                val currentLabel = ime.subMode.label.ifEmpty { ime.subMode.name }.trim()
-                var actions = runCatching { statusArea() }.getOrNull() ?: statusAreaActionsCached
-
-                var fromStatusMenu = extractLabelsFromStatusArea(actions, currentLabel)
-
-                if (fromStatusMenu.isEmpty() && targetImeUniqueName != null) {
-                    runCatching { activateIme(targetImeUniqueName) }
-                    actions = runCatching { statusArea() }.getOrNull() ?: statusAreaActionsCached
-                    fromStatusMenu = extractLabelsFromStatusArea(actions, currentLabel)
-                }
-
-                if (fromStatusMenu.isEmpty()) {
-                    runCatching { focusOutIn() }
-                    actions = runCatching { statusArea() }.getOrNull() ?: statusAreaActionsCached
-                    fromStatusMenu = extractLabelsFromStatusArea(actions, currentLabel)
-                }
-
-                val baseLabels = when {
-                    fromStatusMenu.isNotEmpty() -> fromStatusMenu
-                    else -> emptyList()
-                }
-
-                val labels = baseLabels.toMutableList().apply {
-                    if (currentLabel.isNotEmpty() && currentLabel !in this) add(0, currentLabel)
-                }.distinct()
-
-                ime to labels
-            }
-        }.getOrElse {
-            null to emptyList()
+            showToast(getString(R.string.text_keyboard_layout_submode_already_exists, subModeLabel))
         }
     }
 
-    private fun resolveTargetImeUniqueName(): String? {
-        return currentLayout
-            ?.let { layout ->
-                allImesFromJson.firstOrNull {
-                    it.uniqueName == layout || it.displayName == layout
-                }?.uniqueName
-            }
-            ?.takeIf { it.isNotBlank() }
-    }
-
-    private fun extractLabelsFromStatusArea(
-        actions: Array<Action>,
-        currentLabel: String
-    ): List<String> {
-        return SubModeMenuResolver.extractLabels(actions, currentLabel)
-    }
-
-    // Cache IMEs from JSON for spinner display
-    private var allImesFromJson: Array<InputMethodEntry> = emptyArray()
-
-    private var rowsAdapter: RowsAdapter? = null
+    private var rowsAdapter: KeyboardLayoutAdapter? = null
     private var rowTouchHelper: ItemTouchHelper? = null
     private var currentRowsRef: MutableList<MutableList<MutableMap<String, Any?>>> = mutableListOf()
 
@@ -1133,7 +894,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                 currentRowsRef = entries[validLayout] ?: mutableListOf()
                 rowsAdapter?.updateRows(currentRowsRef)
                 rowsRecyclerView.requestLayout()
-                run { val layoutName = currentLayout ?: return@run; previewManager.updatePreview(layoutName, previewSubModeLabel, fcitxConnection) }
+                run { val name = currentLayout ?: return@run; previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection) }
                 updateSaveButtonState()
             } else {
                 android.util.Log.e("TextKeyboardEditor", "No valid layout found in entries")
@@ -1167,6 +928,58 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             rowsRecyclerView.addItemDecoration(SimpleDividerItemDecoration(this))
             listContainer.addView(rowsRecyclerView)
 
+            // Create adapter with listener
+            rowsAdapter = KeyboardLayoutAdapter(this, rows, object : KeyboardLayoutAdapter.Listener {
+                override fun onKeyClick(rowIndex: Int, keyIndex: Int) {
+                    openKeyEditor(rowIndex, keyIndex)
+                }
+
+                override fun onKeyLongClick(rowIndex: Int, keyIndex: Int): Boolean {
+                    confirmDeleteKey(rowIndex, keyIndex)
+                    return true
+                }
+
+                override fun onAddKeyClick(rowIndex: Int) {
+                    openKeyEditor(rowIndex, null)
+                }
+
+                override fun onDeleteRowClick(rowIndex: Int) {
+                    confirmDeleteRow(rowIndex)
+                }
+
+                override fun onAddRowClick() {
+                    addRow()
+                }
+
+                override fun onRowPositionChanged(from: Int, to: Int) {
+                    // Data already swapped in ItemTouchHelper.onMove, nothing to do here
+                }
+
+                override fun onRowDragEnded() {
+                    rowsAdapter?.notifyDataSetChanged()
+                    run { val name = currentLayout ?: return@run; previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection) }
+                    updateSaveButtonState()
+                }
+
+                override fun onKeyPositionChanged(rowIndex: Int, from: Int, to: Int) {
+                    val layoutName = currentLayout ?: return
+                    val rows = entries[layoutName] ?: return
+                    val currentRow = rows[rowIndex]
+
+                    if (from >= 0 && from < currentRow.size && to >= 0 && to < currentRow.size) {
+                        val item = currentRow.removeAt(from)
+                        currentRow.add(to, item)
+                        updateSaveButtonState()
+                    }
+                }
+
+                override fun onKeyDragEnded(rowIndex: Int) {
+                    buildRows()
+                    run { val name = currentLayout ?: return@run; previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection) }
+                }
+            })
+            rowsRecyclerView.adapter = rowsAdapter
+
             // Setup drag helper - uses currentRowsRef which is updated on each buildRows()
             rowTouchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
                 ItemTouchHelper.UP or ItemTouchHelper.DOWN,
@@ -1174,13 +987,13 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             ) {
                 override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean {
                     // Don't allow dragging if either viewHolder is AddRowViewHolder (footer)
-                    if (viewHolder is AddRowViewHolder || target is AddRowViewHolder) {
+                    if (viewHolder is KeyboardLayoutAdapter.AddRowViewHolder || target is KeyboardLayoutAdapter.AddRowViewHolder) {
                         return false
                     }
                     
                     // Check if either the current or target ViewHolder contains a DraggableFlowLayout that is currently dragging
                     // Cast the ViewHolder to RowViewHolder to access the keysFlow field
-                    if (viewHolder is RowViewHolder && target is RowViewHolder) {
+                    if (viewHolder is KeyboardLayoutAdapter.RowViewHolder && target is KeyboardLayoutAdapter.RowViewHolder) {
                         val currentKeysFlow = viewHolder.keysFlow
                         val targetKeysFlow = target.keysFlow
 
@@ -1192,387 +1005,145 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                         }
                     }
 
-                    val fromPosition = viewHolder.bindingAdapterPosition
-                    val toPosition = target.bindingAdapterPosition
+                    val fromPosition = viewHolder.layoutPosition
+                    val toPosition = target.layoutPosition
                     if (fromPosition < 0 || toPosition < 0 || fromPosition >= currentRowsRef.size || toPosition >= currentRowsRef.size) return false
 
-                    // Swap rows
+                    // Swap rows in currentRowsRef (which is a reference to entries[layoutName])
                     val temp = currentRowsRef[fromPosition]
                     currentRowsRef[fromPosition] = currentRowsRef[toPosition]
                     currentRowsRef[toPosition] = temp
 
-                    rowsRecyclerView.adapter?.notifyItemMoved(fromPosition, toPosition)
+                    recyclerView.adapter?.notifyItemMoved(fromPosition, toPosition)
                     return true
                 }
 
                 override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {}
 
-                override fun onSelectedChanged(viewHolder: RecyclerView.ViewHolder?, actionState: Int) {
+                override fun onSelectedChanged(
+                    viewHolder: RecyclerView.ViewHolder?,
+                    actionState: Int
+                ) {
                     super.onSelectedChanged(viewHolder, actionState)
-                    if (actionState == ItemTouchHelper.ACTION_STATE_DRAG && viewHolder is RowViewHolder) {
-                        // Highlight the dragged row
-                        viewHolder.itemView.setBackgroundColor(
-                            this@TextKeyboardLayoutEditorActivity.styledColor(android.R.attr.colorControlHighlight)
-                        )
+                    if (actionState == ItemTouchHelper.ACTION_STATE_DRAG && viewHolder is KeyboardLayoutAdapter.RowViewHolder) {
+                        viewHolder.itemView.backgroundColor = this@TextKeyboardLayoutEditorActivity.styledColor(android.R.attr.colorControlHighlight)
                     }
                 }
 
                 override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
                     super.clearView(recyclerView, viewHolder)
-                    // Restore original background
-                    viewHolder.itemView.setBackgroundColor(android.graphics.Color.TRANSPARENT)
-                    // Refresh adapter after drag ends to ensure correct position and preview
-                    rowsAdapter?.notifyDataSetChanged()
-                    run { val layoutName = currentLayout ?: return@run; previewManager.updatePreview(layoutName, previewSubModeLabel, fcitxConnection) }
-                    updateSaveButtonState() // Update save button state
+                    viewHolder.itemView.backgroundColor = Color.TRANSPARENT
+                    rowsAdapter?.listener?.onRowDragEnded()
                 }
 
-                // Override to check if touch is on draggable flow layout
-                override fun canDropOver(recyclerView: RecyclerView, current: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean {
-                    // Don't allow dropping on AddRowViewHolder (footer)
-                    if (target is AddRowViewHolder) {
+                override fun canDropOver(
+                    recyclerView: RecyclerView,
+                    current: RecyclerView.ViewHolder,
+                    target: RecyclerView.ViewHolder
+                ): Boolean {
+                    if (target is KeyboardLayoutAdapter.AddRowViewHolder) {
                         return false
                     }
-                    // Check if the target ViewHolder contains a DraggableFlowLayout that is currently dragging
-                    if (target is RowViewHolder) {
+                    if (target is KeyboardLayoutAdapter.RowViewHolder) {
                         val keysFlow = target.keysFlow
                         if (keysFlow is DraggableFlowLayout && keysFlow.isDragging) {
-                            // If the target row has a flow layout that's currently dragging keys,
-                            // don't allow row drop to prevent conflicts
                             return false
                         }
                     }
                     return super.canDropOver(recyclerView, current, target)
                 }
-                
-                // Disable long press drag - only allow manual start via drag handle
+
                 override fun isLongPressDragEnabled(): Boolean {
                     return false
                 }
             })
             rowTouchHelper?.attachToRecyclerView(rowsRecyclerView)
-        }
-
-        // Update adapter data
-        if (rowsAdapter == null) {
-            rowsAdapter = RowsAdapter(rows)
-            rowsRecyclerView.adapter = rowsAdapter
+            
+            // Setup row drag trigger in adapter
+            rowsAdapter?.setupRowDragTrigger(rowsRecyclerView, rowTouchHelper)
         } else {
             rowsAdapter?.updateRows(rows)
         }
 
         // Force RecyclerView to re-measure
         rowsRecyclerView.requestLayout()
-        
+
         // Update button behavior based on current submode state
         updateLayoutButtonBehavior()
     }
 
-    // Simple divider without animation issues
-    private class SimpleDividerItemDecoration(context: Context) : RecyclerView.ItemDecoration() {
-        private val dividerHeight = context.dp(1)
-        private val paint = android.graphics.Paint().apply {
-            color = context.styledColor(android.R.attr.colorControlNormal)
-            alpha = 90 // 0.35 * 255
+    private fun openKeyEditor(rowIndex: Int, keyIndex: Int?) {
+        val layoutName = currentLayout ?: return
+
+        // Get the correct layout to edit (submode or default)
+        val subModeKey = previewSubModeLabel?.let { "$layoutName:$it" }
+        val row = if (subModeKey != null && entries.containsKey(subModeKey)) {
+            entries[subModeKey]
+        } else {
+            entries[layoutName]
+        } ?: return
+
+        if (rowIndex >= row.size) return
+
+        val keyData = keyIndex?.let { row[rowIndex][keyIndex] }?.toMap() ?: mutableMapOf()
+        val isEditingSubModeLayout = subModeKey != null && entries.containsKey(subModeKey)
+
+        // Check if the current IME supports multiple submodes
+        // Rime IME always supports multiple submodes (schemes)
+        // For other IMEs, check if Fcitx status area menu has multiple submode labels
+        val isRime = subModeManager.isCurrentLayoutRime(layoutName)
+        val hasMultiSubmodeSupport = if (isRime) {
+            true
+        } else {
+            val (currentIme, fcitxLabels) = subModeManager.fetchCurrentImeAndSubModeLabels(layoutName)
+            fcitxLabels.size > 1
         }
 
-        override fun onDraw(c: android.graphics.Canvas, parent: RecyclerView, state: RecyclerView.State) {
-            val left = parent.paddingLeft
-            val right = parent.width - parent.paddingRight
-
-            // Don't draw divider after the last item (add row button)
-            val childCount = parent.childCount - 1
-            for (i in 0 until childCount) {
-                val child = parent.getChildAt(i)
-                val params = child.layoutParams as RecyclerView.LayoutParams
-                val top = child.bottom + params.bottomMargin
-                val bottom = top + dividerHeight
-                c.drawRect(left.toFloat(), top.toFloat(), right.toFloat(), bottom.toFloat(), paint)
-            }
-        }
-
-        override fun getItemOffsets(outRect: android.graphics.Rect, view: View, parent: RecyclerView, state: RecyclerView.State) {
-            // Don't add offset for the last item (add row button)
-            val position = parent.getChildAdapterPosition(view)
-            val adapter = parent.adapter
-            if (adapter != null && position == adapter.itemCount - 1) {
-                outRect.set(0, 0, 0, 0)
+        keyEditorDialog.show(
+            keyData = keyData.toMutableMap(),
+            isEditingSubModeLayout = isEditingSubModeLayout,
+            currentSubModeLabel = previewSubModeLabel,
+            hasMultiSubmodeSupport = hasMultiSubmodeSupport
+        ) { newKey ->
+            // 保存键数据
+            if (keyIndex != null) {
+                row[rowIndex][keyIndex] = newKey
             } else {
-                outRect.set(0, 0, 0, dividerHeight)
+                row[rowIndex].add(newKey)
             }
+            buildRows()
+            val name = currentLayout ?: return@show
+            previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection)
+            updateSaveButtonState()
         }
     }
 
-    private inner class RowsAdapter(
-        var rows: List<MutableList<MutableMap<String, Any?>>>
-    ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+    private fun confirmDeleteKey(rowIndex: Int, keyIndex: Int) {
+        val layoutName = currentLayout ?: return
+        val row = entries[layoutName] ?: return
+        val key = row.getOrNull(rowIndex)?.getOrNull(keyIndex)
+        val keyLabel = key?.let { buildKeyLabel(it) } ?: "?"
 
-        private val VIEW_TYPE_ROW = 0
-        private val VIEW_TYPE_ADD_ROW = 1
-
-        fun updateRows(newRows: List<MutableList<MutableMap<String, Any?>>>) {
-            rows = newRows
-            notifyDataSetChanged()
-        }
-
-        override fun getItemViewType(position: Int): Int {
-            return if (position == rows.size) VIEW_TYPE_ADD_ROW else VIEW_TYPE_ROW
-        }
-
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
-            return when (viewType) {
-                VIEW_TYPE_ROW -> createRowViewHolder(parent)
-                VIEW_TYPE_ADD_ROW -> createAddRowViewHolder(parent)
-                else -> throw IllegalArgumentException("Unknown view type: $viewType")
-            }
-        }
-
-        private fun createRowViewHolder(parent: ViewGroup): RowViewHolder {
-            val rowContainer = LinearLayout(this@TextKeyboardLayoutEditorActivity).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = android.view.Gravity.CENTER_VERTICAL
-                setPadding(0, dp(4), 0, dp(4))
-            }
-
-            // Drag handle on the left
-            val dragHandle = TextView(this@TextKeyboardLayoutEditorActivity).apply {
-                text = "☰"
-                textSize = 16f
-                setPadding(dp(8), dp(8), dp(4), dp(8))
-                setTextColor(styledColor(android.R.attr.textColorSecondary))
-                alpha = 0.5f
-                minWidth = dp(32)
-            }
-            rowContainer.addView(dragHandle, LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                gravity = android.view.Gravity.CENTER_VERTICAL
-            })
-
-            // FlowLayout for keys (auto wrap)
-            val keysFlowContainer = LinearLayout(this@TextKeyboardLayoutEditorActivity).apply {
-                orientation = LinearLayout.VERTICAL
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-                    weight = 1f
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.delete)
+            .setMessage(getString(R.string.text_keyboard_layout_delete_key_confirm_with_label, keyLabel))
+            .setPositiveButton(R.string.delete) { _, _ ->
+                if (rowIndex < row.size && keyIndex < row[rowIndex].size) {
+                    row[rowIndex].removeAt(keyIndex)
+                    buildRows()
+                    run { val name = currentLayout ?: return@run; previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection) }
+                    updateSaveButtonState()
                 }
             }
-
-            val keysFlow = DraggableFlowLayout(this@TextKeyboardLayoutEditorActivity).apply {
-                setPadding(0, dp(4), 0, dp(4))
-            }
-            keysFlowContainer.addView(keysFlow)
-            rowContainer.addView(keysFlowContainer)
-
-            // Delete row button on the right
-            val deleteRowButton = TextView(this@TextKeyboardLayoutEditorActivity).apply {
-                text = "🗑"
-                textSize = 14f
-                setPadding(dp(8), dp(8), dp(8), dp(8))
-                minWidth = dp(36)
-            }
-            rowContainer.addView(deleteRowButton, LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                gravity = android.view.Gravity.CENTER_VERTICAL
-            })
-
-            return RowViewHolder(rowContainer, dragHandle, keysFlow, deleteRowButton)
-        }
-
-        private fun createAddRowViewHolder(parent: ViewGroup): AddRowViewHolder {
-            val addRowButton = TextView(this@TextKeyboardLayoutEditorActivity).apply {
-                text = getString(R.string.text_keyboard_layout_add_row)
-                textSize = 16f
-                setTypeface(null, android.graphics.Typeface.BOLD)
-                setPadding(dp(12), dp(8), dp(12), dp(8))
-                gravity = android.view.Gravity.CENTER
-                background = android.graphics.drawable.GradientDrawable().apply {
-                    setColor(styledColor(android.R.attr.colorPrimary))
-                    setStroke(dp(1), styledColor(android.R.attr.colorControlNormal))
-                    cornerRadius = dp(4).toFloat()
-                }
-                setOnClickListener { addRow() }
-            }
-            val container = LinearLayout(this@TextKeyboardLayoutEditorActivity).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = android.view.Gravity.CENTER_HORIZONTAL
-                setPadding(0, dp(16), 0, dp(8))
-                addView(addRowButton, LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                ).apply {
-                    gravity = android.view.Gravity.CENTER
-                })
-            }
-            return AddRowViewHolder(container, addRowButton)
-        }
-
-        override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
-            when (holder) {
-                is RowViewHolder -> bindRowViewHolder(holder, position)
-                is AddRowViewHolder -> {
-                    // Add row button doesn't need binding, click listener is set in onCreateViewHolder
-                }
-            }
-        }
-
-        private fun bindRowViewHolder(holder: RowViewHolder, position: Int) {
-            val row = rows[position]
-            holder.keysFlow.removeAllViews()
-
-            // Add keys - short click to edit, with drag support (directly on the key)
-            row.forEachIndexed { keyIndex, key ->
-                val keyChip = TextView(this@TextKeyboardLayoutEditorActivity).apply {
-                    text = buildKeyLabel(key)
-                    textSize = 14f
-                    setPadding(dp(10), dp(8), dp(10), dp(8))
-                    gravity = android.view.Gravity.CENTER
-                    background = android.graphics.drawable.GradientDrawable().apply {
-                        setColor(styledColor(android.R.attr.colorButtonNormal))
-                        setStroke(dp(1), styledColor(android.R.attr.colorControlNormal))
-                        cornerRadius = dp(4).toFloat()
-                    }
-                    setOnClickListener { openKeyEditor(position, keyIndex) }
-                    setOnLongClickListener {
-                        confirmDeleteKey(position, keyIndex)
-                        true
-                    }
-                }
-
-                holder.keysFlow.addView(keyChip, ViewGroup.MarginLayoutParams(
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-                ).apply {
-                    rightMargin = dp(6)
-                    bottomMargin = dp(4)
-                    topMargin = dp(4)
-                })
-
-                if (holder.keysFlow is DraggableFlowLayout) {
-                    val dragListener = object : DraggableFlowLayout.OnDragListener {
-                        override fun onDragStarted(view: View, position: Int) {
-                        }
-
-                        override fun onDragPositionChanged(from: Int, to: Int) {
-                            val layoutName = currentLayout ?: return
-                            val rows = entries[layoutName] ?: return
-                            val currentRow = rows[position]
-
-                            if (from >= 0 && from < currentRow.size && to >= 0 && to < currentRow.size) {
-                                val item = currentRow.removeAt(from)
-                                currentRow.add(to, item)
-                                updateSaveButtonState()
-                            }
-                        }
-
-                        override fun onDragEnded(view: View, position: Int) {
-                            buildRows()
-                            run { val layoutName = currentLayout ?: return@run; previewManager.updatePreview(layoutName, previewSubModeLabel, fcitxConnection) }
-                        }
-                    }
-                    holder.keysFlow.onDragListener = dragListener
-                }
-            }
-
-            // Add button (same style as other keys)
-            val addKeyChip = TextView(this@TextKeyboardLayoutEditorActivity).apply {
-                text = "+"
-                textSize = 14f
-                setTypeface(null, android.graphics.Typeface.BOLD)
-                setPadding(dp(10), dp(8), dp(10), dp(8))
-                gravity = android.view.Gravity.CENTER
-                background = android.graphics.drawable.GradientDrawable().apply {
-                    setColor(styledColor(android.R.attr.colorPrimary))
-                    setStroke(dp(1), styledColor(android.R.attr.colorControlNormal))
-                    cornerRadius = dp(4).toFloat()
-                }
-                setOnClickListener { openKeyEditor(position, null) }
-            }
-            holder.keysFlow.addView(addKeyChip, ViewGroup.MarginLayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            ).apply {
-                rightMargin = dp(6)
-                bottomMargin = dp(4)
-                topMargin = dp(4)
-            })
-
-            // Delete row button
-            holder.deleteButton.setOnClickListener { confirmDeleteRow(position) }
-            var downOnKeyChip = false
-            val startRowDragIfAllowed: () -> Boolean = {
-                if (holder.keysFlow is DraggableFlowLayout && holder.keysFlow.isDragging) {
-                    false
-                } else {
-                    rowsRecyclerView.findViewHolderForAdapterPosition(position)?.let { viewHolder ->
-                        rowTouchHelper?.startDrag(viewHolder)
-                        true
-                    } ?: false
-                }
-            }
-
-            // Setup drag handle for row reordering - only if not dragging a key
-            holder.dragHandle.setOnLongClickListener {
-                startRowDragIfAllowed()
-            }
-
-            // Keep key drag behavior, but allow row drag when long-press starts in keysFlow blank area.
-            holder.keysFlow.setOnTouchListener { _, event ->
-                when (event.action) {
-                    android.view.MotionEvent.ACTION_DOWN -> {
-                        downOnKeyChip = holder.keysFlow.isTouchOnAnyChild(event.x, event.y)
-                        rowsRecyclerView.stopNestedScroll()
-                    }
-                }
-                false // Return false to allow other touch handlers to process the event
-            }
-            holder.keysFlow.setOnLongClickListener {
-                if (downOnKeyChip) false else startRowDragIfAllowed()
-            }
-
-            // Add touch feedback for drag handle
-            holder.dragHandle.setOnTouchListener { v, event ->
-                when (event.action) {
-                    android.view.MotionEvent.ACTION_DOWN -> {
-                        v.alpha = 0.3f
-                    }
-                    android.view.MotionEvent.ACTION_UP,
-                    android.view.MotionEvent.ACTION_CANCEL -> {
-                        v.alpha = 0.5f
-                    }
-                }
-                false
-            }
-        }
-
-        override fun getItemCount(): Int = rows.size + 1  // +1 for add row button
+            .setNegativeButton(android.R.string.cancel, null)
+            .create()
+        dialog.setOnShowListener { styleDialogTypography(dialog) }
+        dialog.show()
     }
 
-    private data class RowViewHolder(
-        val container: LinearLayout,
-        val dragHandle: TextView,
-        val keysFlow: ViewGroup,
-        val deleteButton: TextView
-    ) : RecyclerView.ViewHolder(container)
-
-    private data class AddRowViewHolder(
-        val container: LinearLayout,
-        val addRowButton: TextView
-    ) : RecyclerView.ViewHolder(container)
-
-    private fun ViewGroup.isTouchOnAnyChild(x: Float, y: Float): Boolean {
-        for (i in 0 until childCount) {
-            val child = getChildAt(i)
-            if (child.visibility != View.VISIBLE) continue
-            if (x >= child.left && x < child.right && y >= child.top && y < child.bottom) {
-                return true
-            }
-        }
-        return false
-    }
-
+    /**
+     * 构建键的显示标签（用于删除确认对话框）
+     */
     private fun buildKeyLabel(key: Map<String, Any?>): String {
         val type = key["type"] as? String ?: "?"
         return when (type) {
@@ -1594,619 +1165,6 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             "BackspaceKey" -> "⌫"
             else -> type
         }
-    }
-
-    private fun openKeyEditor(rowIndex: Int, keyIndex: Int?) {
-        val layoutName = currentLayout ?: return
-
-        // Get the correct layout to edit (submode or default)
-        val subModeKey = previewSubModeLabel?.let { "$layoutName:$it" }
-        val row = if (subModeKey != null && entries.containsKey(subModeKey)) {
-            entries[subModeKey]
-        } else {
-            entries[layoutName]
-        } ?: return
-
-        // Determine if we're editing a submode-specific layout
-        // For submode-specific layouts (e.g., "rime:倉頡五代"), don't allow adding submode to displayText
-        val isEditingSubModeLayout = subModeKey != null && entries.containsKey(subModeKey)
-        
-        if (rowIndex >= row.size) return
-
-        val keyData = keyIndex?.let { row[rowIndex][keyIndex] }?.toMap() ?: mutableMapOf()
-        val isEdit = keyIndex != null
-
-        val container = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            val pad = dp(12)
-            setPadding(pad, pad, pad, pad)
-        }
-
-        val typeLabel = TextView(this).apply {
-            text = getString(R.string.text_keyboard_layout_key_type)
-            textSize = DIALOG_LABEL_TEXT_SIZE_SP
-            setTextColor(styledColor(android.R.attr.textColorSecondary))
-            layoutParams = LinearLayout.LayoutParams(dp(96), LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-                rightMargin = dp(8)
-            }
-        }
-
-        val typeSpinner = Spinner(this).apply {
-            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-                weight = 1f
-            }
-        }
-        val types = arrayOf("AlphabetKey", "CapsKey", "LayoutSwitchKey", "CommaKey", "LanguageKey", "SpaceKey", "SymbolKey", "ReturnKey", "BackspaceKey")
-        val typeAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, types)
-        typeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        typeSpinner.adapter = typeAdapter
-        val currentType = keyData["type"] as? String ?: "AlphabetKey"
-        val typePosition = types.indexOf(currentType)
-        if (typePosition >= 0) typeSpinner.setSelection(typePosition)
-
-        val typeRow = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(0, dp(4), 0, dp(4))
-            addView(typeLabel)
-            addView(typeSpinner)
-        }
-        container.addView(typeRow)
-
-        // Dynamic fields based on type
-        val fieldsContainer = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(0, dp(8), 0, 0)
-        }
-        container.addView(fieldsContainer)
-
-        var selectedType = currentType
-
-        var alphabetMainEdit: EditText? = null
-        var alphabetAltEdit: EditText? = null
-        var alphabetDisplayTextSimpleEdit: EditText? = null
-
-        data class DisplayTextItem(var mode: String, var value: String)
-        data class DisplayTextRowBinding(
-            val modeEdit: EditText,
-            val valueEdit: EditText
-        )
-
-        var alphabetDisplayTextModeSpecific = false
-        var alphabetDisplayTextSimpleValue = ""
-        val alphabetDisplayTextModeItems = mutableListOf<DisplayTextItem>()
-        val alphabetDisplayTextRowBindings = mutableListOf<DisplayTextRowBinding>()
-
-        run {
-            val displayTextData = keyData["displayText"]
-            val displayTextMap = when (displayTextData) {
-                is JsonObject -> displayTextData.mapValues { entry ->
-                    LayoutDataManager.toAny(entry.value)
-                }
-                is Map<*, *> -> displayTextData
-                else -> null
-            }
-
-            if (displayTextMap != null && displayTextMap.isNotEmpty()) {
-                // If editing a submode-specific layout, extract the value for current submode
-                // and convert to simple string
-                if (isEditingSubModeLayout && previewSubModeLabel != null) {
-                    // Try to get value for current submode, fallback to "default" or empty key
-                    val specificValue = displayTextMap[previewSubModeLabel]?.toString()
-                    val defaultValue = displayTextMap["default"]?.toString()
-                        ?: displayTextMap[""]?.toString()
-                    alphabetDisplayTextModeSpecific = false
-                    alphabetDisplayTextSimpleValue = specificValue ?: defaultValue ?: ""
-                } else {
-                    // Editing base layout - keep mode-specific format
-                    alphabetDisplayTextModeSpecific = true
-                    alphabetDisplayTextModeItems.clear()
-                    displayTextMap.forEach { (k, v) ->
-                        alphabetDisplayTextModeItems.add(
-                            DisplayTextItem(k?.toString().orEmpty(), v?.toString().orEmpty())
-                        )
-                    }
-                }
-            } else {
-                alphabetDisplayTextModeSpecific = false
-                alphabetDisplayTextSimpleValue = displayTextData?.toString().orEmpty()
-            }
-        }
-
-        var layoutSwitchLabelEdit: EditText? = null
-        var layoutSwitchSubLabelEdit: EditText? = null
-        var layoutSwitchWeightEdit: EditText? = null
-        var symbolLabelEdit: EditText? = null
-        var symbolWeightEdit: EditText? = null
-        var simpleWeightEdit: EditText? = null
-
-        fun captureModeSpecificFromUi() {
-            if (!alphabetDisplayTextModeSpecific) return
-            if (alphabetDisplayTextRowBindings.isEmpty()) return
-            alphabetDisplayTextModeItems.clear()
-            alphabetDisplayTextRowBindings.forEach { binding ->
-                val modeText = binding.modeEdit.text?.toString().orEmpty()
-                val valueText = binding.valueEdit.text?.toString().orEmpty()
-                alphabetDisplayTextModeItems.add(
-                    DisplayTextItem(modeText, valueText)
-                )
-            }
-        }
-
-        fun rebuildFields() {
-            fieldsContainer.removeAllViews()
-            alphabetMainEdit = null
-            alphabetAltEdit = null
-            alphabetDisplayTextSimpleEdit = null
-            alphabetDisplayTextRowBindings.clear()
-            layoutSwitchLabelEdit = null
-            layoutSwitchSubLabelEdit = null
-            layoutSwitchWeightEdit = null
-            symbolLabelEdit = null
-            symbolWeightEdit = null
-            simpleWeightEdit = null
-
-            when (selectedType) {
-                "AlphabetKey" -> {
-                    val mainEdit = createEditField(
-                        getString(R.string.text_keyboard_layout_key_main),
-                        keyData["main"] as? String ?: ""
-                    )
-                    val altEdit = createEditField(
-                        getString(R.string.text_keyboard_layout_key_alt),
-                        keyData["alt"] as? String ?: ""
-                    )
-                    fieldsContainer.addView(mainEdit.first)
-                    fieldsContainer.addView(altEdit.first)
-
-                    val displayTextContainer = LinearLayout(this@TextKeyboardLayoutEditorActivity).apply {
-                        orientation = LinearLayout.VERTICAL
-                    }
-                    fieldsContainer.addView(displayTextContainer)
-
-                    fun renderDisplayTextEditor() {
-                        displayTextContainer.removeAllViews()
-                        alphabetDisplayTextSimpleEdit = null
-                        alphabetDisplayTextRowBindings.clear()
-
-                        if (!alphabetDisplayTextModeSpecific) {
-                            val simpleText = createEditField(
-                                getString(R.string.text_keyboard_layout_key_display_text),
-                                alphabetDisplayTextSimpleValue
-                            )
-                            alphabetDisplayTextSimpleEdit = simpleText.second
-                            displayTextContainer.addView(simpleText.first)
-
-                            // Don't show "Add Mode" button when editing submode-specific layout
-                            // Because submode-specific layouts should have simple displayText values
-                            if (!isEditingSubModeLayout) {
-                                val addModeBtn = TextView(this@TextKeyboardLayoutEditorActivity).apply {
-                                    text = getString(R.string.text_keyboard_layout_add_mode)
-                                    textSize = 14f
-                                    setTypeface(null, android.graphics.Typeface.BOLD)
-                                    gravity = Gravity.CENTER
-                                    minWidth = dp(120)
-                                    setPadding(dp(12), dp(8), dp(12), dp(8))
-                                    background = android.graphics.drawable.GradientDrawable().apply {
-                                        setColor(styledColor(android.R.attr.colorButtonNormal))
-                                        setStroke(dp(1), styledColor(android.R.attr.colorControlNormal))
-                                        cornerRadius = dp(4).toFloat()
-                                    }
-                                    layoutParams = LinearLayout.LayoutParams(
-                                        LinearLayout.LayoutParams.WRAP_CONTENT,
-                                        LinearLayout.LayoutParams.WRAP_CONTENT
-                                    ).apply {
-                                        gravity = Gravity.CENTER_HORIZONTAL
-                                        topMargin = dp(4)
-                                    }
-                                    setOnClickListener {
-                                        alphabetDisplayTextSimpleValue = alphabetDisplayTextSimpleEdit?.text?.toString().orEmpty()
-                                        alphabetDisplayTextModeSpecific = true
-                                        alphabetDisplayTextModeItems.clear()
-                                        alphabetDisplayTextModeItems.add(DisplayTextItem("", alphabetDisplayTextSimpleValue))
-                                        renderDisplayTextEditor()
-                                    }
-                                }
-                                displayTextContainer.addView(addModeBtn)
-                            }
-                            return
-                        }
-
-                        val mapLabel = TextView(this@TextKeyboardLayoutEditorActivity).apply {
-                            text = getString(
-                                R.string.text_keyboard_layout_display_text_mode_specific,
-                                getString(R.string.text_keyboard_layout_key_display_text)
-                            )
-                            textSize = DIALOG_LABEL_TEXT_SIZE_SP
-                            setTextColor(styledColor(android.R.attr.textColorSecondary))
-                            setPadding(0, dp(8), 0, dp(8))
-                        }
-                        displayTextContainer.addView(mapLabel)
-
-                        val modeEntriesContainer = LinearLayout(this@TextKeyboardLayoutEditorActivity).apply {
-                            orientation = LinearLayout.VERTICAL
-                        }
-                        displayTextContainer.addView(modeEntriesContainer)
-
-                        alphabetDisplayTextModeItems.forEachIndexed { index, item ->
-                            val entryRow = LinearLayout(this@TextKeyboardLayoutEditorActivity).apply {
-                                orientation = LinearLayout.HORIZONTAL
-                                gravity = android.view.Gravity.CENTER_VERTICAL
-                                setPadding(0, dp(2), 0, dp(2))
-                            }
-
-                            val modeEdit = EditText(this@TextKeyboardLayoutEditorActivity).apply {
-                                setText(item.mode)
-                                textSize = DIALOG_CONTENT_TEXT_SIZE_SP
-                                hint = getString(R.string.text_keyboard_layout_mode_name_hint)
-                                layoutParams = LinearLayout.LayoutParams(
-                                    0,
-                                    LinearLayout.LayoutParams.WRAP_CONTENT
-                                ).apply {
-                                    weight = 1f
-                                    rightMargin = dp(4)
-                                }
-                            }
-
-                            val valueEdit = EditText(this@TextKeyboardLayoutEditorActivity).apply {
-                                setText(item.value)
-                                textSize = DIALOG_CONTENT_TEXT_SIZE_SP
-                                hint = getString(R.string.text_keyboard_layout_display_value_hint)
-                                layoutParams = LinearLayout.LayoutParams(
-                                    0,
-                                    LinearLayout.LayoutParams.WRAP_CONTENT
-                                ).apply {
-                                    weight = 1f
-                                    rightMargin = dp(4)
-                                }
-                            }
-
-                            val deleteBtn = TextView(this@TextKeyboardLayoutEditorActivity).apply {
-                                text = "🗑"
-                                textSize = DIALOG_CONTENT_TEXT_SIZE_SP
-                                setPadding(dp(8), dp(4), dp(8), dp(4))
-                                setOnClickListener {
-                                    // Capture current UI data and delete the current item
-                                    // Use modeEdit and valueEdit references to get current values directly
-                                    val currentMode = modeEdit.text.toString()
-                                    val currentValue = valueEdit.text.toString()
-                                    // Find the item to remove based on current UI values
-                                    val positionToRemove = alphabetDisplayTextModeItems.indexOfFirst { item ->
-                                        item.mode == currentMode && item.value == currentValue
-                                    }
-                                    if (positionToRemove >= 0) {
-                                        alphabetDisplayTextModeItems.removeAt(positionToRemove)
-                                    } else {
-                                        // Fallback: find first item with matching mode
-                                        val fallbackPosition = alphabetDisplayTextModeItems.indexOfFirst { item ->
-                                            item.mode == currentMode
-                                        }
-                                        if (fallbackPosition >= 0) {
-                                            alphabetDisplayTextModeItems.removeAt(fallbackPosition)
-                                        }
-                                    }
-                                    if (alphabetDisplayTextModeItems.isEmpty()) {
-                                        alphabetDisplayTextModeSpecific = false
-                                        alphabetDisplayTextSimpleValue = ""
-                                    }
-                                    renderDisplayTextEditor()
-                                }
-                            }
-
-                            entryRow.addView(modeEdit)
-                            entryRow.addView(valueEdit)
-                            entryRow.addView(deleteBtn)
-                            modeEntriesContainer.addView(entryRow)
-                            alphabetDisplayTextRowBindings.add(DisplayTextRowBinding(modeEdit, valueEdit))
-                        }
-
-                        val addModeBtn = TextView(this@TextKeyboardLayoutEditorActivity).apply {
-                            text = getString(R.string.text_keyboard_layout_add_mode)
-                            textSize = 14f
-                            setTypeface(null, android.graphics.Typeface.BOLD)
-                            gravity = Gravity.CENTER
-                            minWidth = dp(120)
-                            setPadding(dp(12), dp(8), dp(12), dp(8))
-                            background = android.graphics.drawable.GradientDrawable().apply {
-                                setColor(styledColor(android.R.attr.colorButtonNormal))
-                                setStroke(dp(1), styledColor(android.R.attr.colorControlNormal))
-                                cornerRadius = dp(4).toFloat()
-                            }
-                            layoutParams = LinearLayout.LayoutParams(
-                                LinearLayout.LayoutParams.WRAP_CONTENT,
-                                LinearLayout.LayoutParams.WRAP_CONTENT
-                            ).apply {
-                                gravity = Gravity.CENTER_HORIZONTAL
-                                topMargin = dp(4)
-                            }
-                            var lastInvalidToastTime = 0L
-                            setOnClickListener {
-                                // Capture current UI state
-                                captureModeSpecificFromUi()
-                                
-                                // Validate existing entries before adding new one
-                                val hasInvalidEntry = alphabetDisplayTextRowBindings.any { binding ->
-                                    val mode = binding.modeEdit.text?.toString().orEmpty().trim()
-                                    val value = binding.valueEdit.text?.toString().orEmpty().trim()
-                                    mode.isEmpty() || value.isEmpty()
-                                }
-                                if (hasInvalidEntry) {
-                                    // Find the first invalid row and focus it
-                                    var firstInvalidIndex = -1
-                                    for ((index, binding) in alphabetDisplayTextRowBindings.withIndex()) {
-                                        val mode = binding.modeEdit.text?.toString().orEmpty().trim()
-                                        val value = binding.valueEdit.text?.toString().orEmpty().trim()
-                                        if (mode.isEmpty() || value.isEmpty()) {
-                                            binding.modeEdit.requestFocus()
-                                            firstInvalidIndex = index
-                                            break
-                                        }
-                                    }
-                                    // Show toast only once every 2 seconds to avoid spam
-                                    val currentTime = System.currentTimeMillis()
-                                    if (currentTime - lastInvalidToastTime > 2000 && firstInvalidIndex >= 0) {
-                                        Toast.makeText(
-                                            this@TextKeyboardLayoutEditorActivity,
-                                            getString(R.string.text_keyboard_layout_display_text_mode_invalid, firstInvalidIndex + 1),
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                        lastInvalidToastTime = currentTime
-                                    }
-                                    return@setOnClickListener
-                                }
-                                
-                                // Check for duplicate mode names
-                                val modeNames = alphabetDisplayTextModeItems.map { it.mode.trim() }.filter { it.isNotEmpty() }
-                                val duplicateModes = modeNames.groupingBy { it }.eachCount().filter { it.value > 1 }
-                                if (duplicateModes.isNotEmpty()) {
-                                    val duplicateMode = duplicateModes.keys.first()
-                                    Toast.makeText(
-                                        this@TextKeyboardLayoutEditorActivity,
-                                        getString(R.string.text_keyboard_layout_display_text_mode_duplicate, duplicateMode),
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                    return@setOnClickListener
-                                }
-                                
-                                alphabetDisplayTextModeItems.add(DisplayTextItem("", ""))
-                                renderDisplayTextEditor()
-                            }
-                        }
-                        displayTextContainer.addView(addModeBtn)
-                    }
-
-                    renderDisplayTextEditor()
-
-                    alphabetMainEdit = mainEdit.second
-                    alphabetAltEdit = altEdit.second
-                }
-                "LayoutSwitchKey" -> {
-                    val labelEdit = createEditField(
-                        getString(R.string.text_keyboard_layout_key_label),
-                        keyData["label"] as? String ?: "?123"
-                    )
-                    val weightEdit = createEditField(
-                        getString(R.string.text_keyboard_layout_key_weight),
-                        (keyData["weight"] as? Number)?.toString() ?: ""
-                    )
-                    val subLabelEdit = createEditField(
-                        getString(R.string.text_keyboard_layout_key_sub_label),
-                        keyData["subLabel"] as? String ?: ""
-                    )
-                    layoutSwitchLabelEdit = labelEdit.second
-                    layoutSwitchWeightEdit = weightEdit.second
-                    layoutSwitchSubLabelEdit = subLabelEdit.second
-                    fieldsContainer.addView(labelEdit.first)
-                    fieldsContainer.addView(weightEdit.first)
-                    fieldsContainer.addView(subLabelEdit.first)
-                }
-                "SymbolKey" -> {
-                    val labelEdit = createEditField(
-                        getString(R.string.text_keyboard_layout_key_label),
-                        keyData["label"] as? String ?: "."
-                    )
-                    val weightEdit = createEditField(
-                        getString(R.string.text_keyboard_layout_key_weight),
-                        (keyData["weight"] as? Number)?.toString() ?: ""
-                    )
-                    symbolLabelEdit = labelEdit.second
-                    symbolWeightEdit = weightEdit.second
-                    fieldsContainer.addView(labelEdit.first)
-                    fieldsContainer.addView(weightEdit.first)
-                }
-                "CapsKey", "CommaKey", "LanguageKey", "SpaceKey", "ReturnKey", "BackspaceKey" -> {
-                    val weightEdit = createEditField(
-                        getString(R.string.text_keyboard_layout_key_weight),
-                        (keyData["weight"] as? Number)?.toString() ?: ""
-                    )
-                    simpleWeightEdit = weightEdit.second
-                    fieldsContainer.addView(weightEdit.first)
-                }
-            }
-        }
-
-        typeSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                selectedType = types[position]
-                rebuildFields()
-            }
-            override fun onNothingSelected(parent: AdapterView<*>?) {}
-        }
-
-        rebuildFields()
-
-        val dialog = AlertDialog.Builder(this)
-            .setTitle(if (isEdit) R.string.edit else R.string.text_keyboard_layout_add_key)
-            .setView(container)
-            .setPositiveButton(android.R.string.ok, null)
-            .setNegativeButton(android.R.string.cancel, null)
-            .create()
-
-        dialog.setOnShowListener {
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                // Validate AlphabetKey fields
-                if (selectedType == "AlphabetKey") {
-                    val main = alphabetMainEdit?.text.toString().trim()
-                    val alt = alphabetAltEdit?.text.toString().trim()
-                    if (main.isEmpty()) {
-                        Toast.makeText(
-                            this,
-                            R.string.text_keyboard_layout_alphabet_key_main_required,
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        return@setOnClickListener
-                    }
-                    if (alt.isEmpty()) {
-                        Toast.makeText(
-                            this,
-                            R.string.text_keyboard_layout_alphabet_key_alt_required,
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        return@setOnClickListener
-                    }
-                    // Validate main and alt are single characters
-                    if (main.length != 1) {
-                        Toast.makeText(
-                            this,
-                            getString(R.string.text_keyboard_layout_alphabet_key_main_length_invalid),
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        return@setOnClickListener
-                    }
-                    if (alt.length != 1) {
-                        Toast.makeText(
-                            this,
-                            getString(R.string.text_keyboard_layout_alphabet_key_alt_length_invalid),
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        return@setOnClickListener
-                    }
-                }
-
-                val newKey = mutableMapOf<String, Any?>()
-                newKey["type"] = selectedType
-
-                when (selectedType) {
-                    "AlphabetKey" -> {
-                        val main = alphabetMainEdit?.text.toString()
-                        val alt = alphabetAltEdit?.text.toString()
-                        newKey["main"] = main
-                        newKey["alt"] = alt
-
-                        if (alphabetDisplayTextModeSpecific) {
-                            captureModeSpecificFromUi()
-                            val displayTextMap = mutableMapOf<String, String>()
-                            alphabetDisplayTextModeItems.forEach { item ->
-                                val modeName = item.mode.trim()
-                                val modeValue = item.value.trim()
-                                // Validate and add non-empty entries
-                                if (modeName.isNotEmpty() && modeValue.isNotEmpty()) {
-                                    displayTextMap[modeName] = modeValue
-                                }
-                            }
-                            if (displayTextMap.isNotEmpty()) {
-                                newKey["displayText"] = displayTextMap
-                            }
-                        } else {
-                            val displayText = alphabetDisplayTextSimpleEdit?.text?.toString()?.trim()
-                                ?: alphabetDisplayTextSimpleValue.trim()
-                            if (displayText.isNotEmpty()) {
-                                newKey["displayText"] = displayText
-                            }
-                        }
-                    }
-                    "LayoutSwitchKey" -> {
-                        val label = layoutSwitchLabelEdit?.text.toString().ifEmpty { "?123" }
-                        val subLabel = layoutSwitchSubLabelEdit?.text.toString()
-                        val weight = parseWeight(layoutSwitchWeightEdit?.text.toString())
-                        newKey["label"] = label
-                        if (subLabel.isNotEmpty()) newKey["subLabel"] = subLabel
-                        if (weight != null) newKey["weight"] = weight
-                    }
-                    "SymbolKey" -> {
-                        val label = symbolLabelEdit?.text.toString().ifEmpty { "." }
-                        val weight = parseWeight(symbolWeightEdit?.text.toString())
-                        newKey["label"] = label
-                        if (weight != null) newKey["weight"] = weight
-                    }
-                    "CapsKey", "CommaKey", "LanguageKey", "SpaceKey", "ReturnKey", "BackspaceKey" -> {
-                        val weight = parseWeight(simpleWeightEdit?.text.toString())
-                        if (weight != null) newKey["weight"] = weight
-                    }
-                }
-
-                if (isEdit) {
-                    row[rowIndex][keyIndex] = newKey
-                } else {
-                    row[rowIndex].add(newKey)
-                }
-                buildRows()
-                run { val layoutName = currentLayout ?: return@run; previewManager.updatePreview(layoutName, previewSubModeLabel, fcitxConnection) }
-                updateSaveButtonState() // Update save button state
-                dialog.dismiss()
-            }
-        }
-        dialog.show()
-    }
-
-    private fun createEditField(
-        label: String,
-        value: String
-    ): Pair<LinearLayout, EditText> {
-        val container = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(0, dp(4), 0, dp(4))
-        }
-        val labelView = TextView(this).apply {
-            text = label
-            textSize = DIALOG_LABEL_TEXT_SIZE_SP
-            setTextColor(styledColor(android.R.attr.textColorSecondary))
-            layoutParams = LinearLayout.LayoutParams(dp(96), LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-                rightMargin = dp(8)
-            }
-        }
-        val editText = EditText(this).apply {
-            setText(value)
-            textSize = DIALOG_CONTENT_TEXT_SIZE_SP
-            isSingleLine = true
-            maxLines = 1
-            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-                weight = 1f
-            }
-        }
-        container.addView(labelView)
-        container.addView(editText)
-        return container to editText
-    }
-
-    private fun parseWeight(text: String): Float? {
-        val weight = text.toFloatOrNull()
-        // Validate weight is in valid range (0.0 to 1.0)
-        return weight?.takeIf { it in 0.0f..1.0f }
-    }
-
-    private fun confirmDeleteKey(rowIndex: Int, keyIndex: Int) {
-        val layoutName = currentLayout ?: return
-        val row = entries[layoutName] ?: return
-        val key = row.getOrNull(rowIndex)?.getOrNull(keyIndex)
-        val keyLabel = key?.let { buildKeyLabel(it) } ?: "?"
-
-        val dialog = AlertDialog.Builder(this)
-            .setTitle(R.string.delete)
-            .setMessage(getString(R.string.text_keyboard_layout_delete_key_confirm_with_label, keyLabel))
-            .setPositiveButton(R.string.delete) { _, _ ->
-                if (rowIndex < row.size && keyIndex < row[rowIndex].size) {
-                    row[rowIndex].removeAt(keyIndex)
-                    buildRows()
-                    run { val layoutName = currentLayout ?: return@run; previewManager.updatePreview(layoutName, previewSubModeLabel, fcitxConnection) }
-                    updateSaveButtonState() // Update save button state
-                }
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-            .create()
-        dialog.setOnShowListener { styleDialogTypography(dialog) }
-        dialog.show()
     }
 
     private fun confirmDeleteRow(rowIndex: Int) {
@@ -2485,8 +1443,8 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             return
         }
 
-        // Validate data integrity before saving
-        val validationErrors = validateEntries()
+        // 验证数据
+        val validationErrors = dataManager.validateEntries()
         if (validationErrors.isNotEmpty()) {
             AlertDialog.Builder(this)
                 .setTitle(R.string.text_keyboard_layout_validation_error)
@@ -2501,117 +1459,21 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             return
         }
 
-        // Create timestamped backup before saving
-        migrationManager.createBackup(file)
-
-        // Clean up base layout's displayText entries that are covered by submode layouts
-        // This migrates old displayText: {} format to new submode structure
-        val baseLayoutNames = entries.keys.map { key ->
-            if (key.contains(':')) key.substringBeforeLast(':') else key
-        }.distinct()
-
-        baseLayoutNames.forEach { layoutName ->
-            migrationManager.cleanupBaseLayoutDisplayText(layoutName)
+        // 使用 dataManager 保存
+        if (dataManager.saveToFile(file)) {
+            showToast(getString(R.string.text_keyboard_layout_saved_at, file.absolutePath))
+            // 通知 provider watcher 文件已更改
+            ConfigProviders.ensureWatching()
+        } else {
+            // 显示详细错误信息
+            AlertDialog.Builder(this)
+                .setTitle(R.string.text_keyboard_layout_validation_error)
+                .setMessage(getString(R.string.text_keyboard_layout_save_failed))
+                .setPositiveButton(android.R.string.ok, null)
+                .show()
         }
 
-        file.parentFile?.mkdirs()
-
-        val jsonElement = LayoutJsonUtils.convertToSaveJson(entries)
-
-        file.writeText(prettyJson.encodeToString(jsonElement) + "\n")
-
-        // Clear all caches to force reload on next access
-        TextKeyboard.clearCachedKeyDefLayouts()
-
-        // Notify provider watcher
-        ConfigProviders.ensureWatching()
-        showToast(getString(R.string.text_keyboard_layout_saved_at, file.absolutePath))
-        // Update original entries to reflect current state, so button becomes inactive
-        originalEntries = normalizedEntries()
-        // Update save button state
         updateSaveButtonState()
-    }
-
-    private fun validateEntries(): List<String> {
-        val errors = mutableListOf<String>()
-        
-        // Check for duplicate layout names at the top level
-        val layoutNames = entries.keys.toList()
-        val duplicateLayoutNames = layoutNames.groupingBy { it }.eachCount().filter { it.value > 1 }
-        duplicateLayoutNames.forEach { (name, count) ->
-            errors.add("布局名称 \"$name\" 重复了 $count 次")
-        }
-        
-        entries.forEach { (layoutName, rows) ->
-            if (rows.isEmpty()) {
-                errors.add("布局 \"$layoutName\" 没有任何行")
-                return@forEach
-            }
-            
-            rows.forEachIndexed { rowIndex, row ->
-                if (row.isEmpty()) {
-                    errors.add("布局 \"$layoutName\" 第 ${rowIndex + 1} 行为空")
-                    return@forEachIndexed
-                }
-                
-                row.forEachIndexed { keyIndex, key ->
-                    val type = key["type"] as? String
-                    if (type == null) {
-                        errors.add("布局 \"$layoutName\" 第 ${rowIndex + 1} 行第 ${keyIndex + 1} 个键缺少 type 字段")
-                        return@forEachIndexed
-                    }
-                    
-                    when (type) {
-                        "AlphabetKey" -> {
-                            val main = key["main"] as? String
-                            val alt = key["alt"] as? String
-                            if (main.isNullOrBlank()) {
-                                errors.add("布局 \"$layoutName\" 第 ${rowIndex + 1} 行第 ${keyIndex + 1} 个键 (AlphabetKey) 缺少 main 字段")
-                            } else if (main.length != 1) {
-                                errors.add("布局 \"$layoutName\" 第 ${rowIndex + 1} 行第 ${keyIndex + 1} 个键 (AlphabetKey) 的 main 字段必须是单个字符")
-                            }
-                            if (alt.isNullOrBlank()) {
-                                errors.add("布局 \"$layoutName\" 第 ${rowIndex + 1} 行第 ${keyIndex + 1} 个键 (AlphabetKey) 缺少 alt 字段")
-                            } else if (alt.length != 1) {
-                                errors.add("布局 \"$layoutName\" 第 ${rowIndex + 1} 行第 ${keyIndex + 1} 个键 (AlphabetKey) 的 alt 字段必须是单个字符")
-                            }
-                        }
-                        "LayoutSwitchKey", "SymbolKey" -> {
-                            val label = key["label"] as? String
-                            if (label.isNullOrBlank()) {
-                                errors.add("布局 \"$layoutName\" 第 ${rowIndex + 1} 行第 ${keyIndex + 1} 个键 ($type) 缺少 label 字段")
-                            }
-                        }
-                    }
-                    
-                    // Validate weight if present
-                    key["weight"]?.let { weight ->
-                        when (weight) {
-                            is Number -> {
-                                val floatValue = weight.toFloat()
-                                if (floatValue < 0.0f || floatValue > 1.0f) {
-                                    errors.add("布局 \"$layoutName\" 第 ${rowIndex + 1} 行第 ${keyIndex + 1} 个键 ($type) 的 weight 字段必须在 0.0 到 1.0 之间")
-                                }
-                            }
-                            else -> {
-                                errors.add("布局 \"$layoutName\" 第 ${rowIndex + 1} 行第 ${keyIndex + 1} 个键 ($type) 的 weight 字段必须是数字")
-                            }
-                        }
-                    }
-                    
-                    // Check for duplicate displayText mode names
-                    (key["displayText"] as? Map<*, *>)?.let { displayText ->
-                        val modeNames = displayText.keys.filterIsInstance<String>().toList()
-                        val duplicateModes = modeNames.groupingBy { it }.eachCount().filter { it.value > 1 }
-                        duplicateModes.forEach { (mode, count) ->
-                            errors.add("布局 \"$layoutName\" 第 ${rowIndex + 1} 行第 ${keyIndex + 1} 个键 ($type) 的 displayText 中模式名称 \"$mode\" 重复了 $count 次")
-                        }
-                    }
-                }
-            }
-        }
-        
-        return errors
     }
 
     private fun showToast(message: String) {
@@ -2655,77 +1517,18 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         dialog.getButton(AlertDialog.BUTTON_NEUTRAL)?.textSize = DIALOG_CONTENT_TEXT_SIZE_SP
     }
 
-    private fun normalizedEntries(): Map<String, List<List<Map<String, Any?>>>> =
-        entries
-            .toSortedMap()
-            .mapValues { (_, rows) ->
-                rows.map { row ->
-                    row.map { key -> key.toMap() }
-                }
-            }
-
-    private fun hasChanges(): Boolean = normalizedEntries() != originalEntries
+    private fun hasChanges(): Boolean = dataManager.hasChanges()
 
     private fun updateSaveButtonState() {
         saveMenuItem?.let { menuItem ->
             if (hasChanges()) {
-                // Use active color when there are changes
                 menuItem.isEnabled = true
-                // Set title color to accent color
                 menuItem.title = getString(R.string.save)
             } else {
-                // Use inactive color when there are no changes
                 menuItem.isEnabled = false
-                // Set title color to secondary text color
                 menuItem.title = getString(R.string.save)
             }
         }
-    }
-
-    private object SubModeMenuResolver {
-        fun extractLabels(
-            actions: Array<Action>,
-            currentLabel: String
-        ): List<String> {
-            return pickSchemeMenu(actions, currentLabel)
-                ?.let { takeItemsBeforeSeparator(it) }
-                ?.mapNotNull { toMenuLabel(it) }
-                .orEmpty()
-        }
-
-        private fun pickSchemeMenu(
-            actions: Array<Action>,
-            currentLabel: String
-        ): List<Action>? {
-            val topMenus = actions.mapNotNull { action ->
-                action.menu?.toList()?.takeIf { it.isNotEmpty() }
-            }
-            if (topMenus.isEmpty()) return null
-
-            val byCurrentLabel = topMenus.firstOrNull { menu ->
-                menu.any { toMenuLabel(it) == currentLabel }
-            }
-            if (byCurrentLabel != null) return byCurrentLabel
-
-            val withSeparator = topMenus.firstOrNull { menu ->
-                val schemePart = takeItemsBeforeSeparator(menu)
-                schemePart.size >= 2
-            }
-            if (withSeparator != null) return withSeparator
-
-            return topMenus.firstOrNull()
-        }
-
-        private fun takeItemsBeforeSeparator(
-            items: List<Action>
-        ): List<Action> {
-            val separatorIndex = items.indexOfFirst { it.isSeparator }
-            val head = if (separatorIndex >= 0) items.subList(0, separatorIndex) else items
-            return head.filterNot { it.isSeparator }
-        }
-
-        private fun toMenuLabel(action: Action): String? =
-            action.shortText.ifEmpty { action.longText }.ifEmpty { action.name }.trim().takeIf { it.isNotEmpty() }
     }
 
     companion object {
