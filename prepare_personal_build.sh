@@ -11,7 +11,7 @@ git remote add gh "${FCITX5_RIME_REPO}" || git remote set-url gh "${FCITX5_RIME_
 git fetch -v gh master
 git checkout gh/master
 popd
-sed -i 's|/fcitx/|/fxliang/|g' plugin/rime/licenses/libraries/fcitx5-rime.json
+# sed -i 's|/fcitx/|/fxliang/|g' plugin/rime/licenses/libraries/fcitx5-rime.json
 
 # update prebuilt
 echo "updating prebuilt from ${PREBUILT_REPO}"
