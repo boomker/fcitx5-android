@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name_release">Fcitx5.fx</string>
-    <string name="app_name_debug">Fcitx5.fx (Debug)</string>
+    <string name="app_name_release">小天鹅</string>
+    <string name="app_name_debug">小天鹅 (Debug)</string>
     <string name="save">Save</string>
     <string name="input_methods">Input Methods</string>
     <string name="add_input_method">Add Input Method</string>

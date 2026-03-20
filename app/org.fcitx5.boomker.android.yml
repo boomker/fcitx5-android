@@ -2,15 +2,15 @@ Categories:
   - System
 License: LGPL-2.1-only
 AuthorName: Fcitx5 for Android Contributors
-WebSite: https://fcitx5-android.github.io
-SourceCode: https://github.com/fcitx5-android/fcitx5-android
-IssueTracker: https://github.com/fcitx5-android/fcitx5-android/issues
+WebSite: https://github.com/boomker/fcitx5-android
+SourceCode: https://github.com/boomker/fcitx5-android
+IssueTracker: https://github.com/boomker/fcitx5-android/issues
 Translation: https://explore.transifex.com/fcitx/fcitx5-android
 
-AutoName: Fcitx5 for Android
+AutoName: 小天鹅
 
 RepoType: git
-Repo: https://github.com/fcitx5-android/fcitx5-android
+Repo: https://github.com/boomker/fcitx5-android
 
 Builds:
   - versionName: placeholder
@@ -26,7 +26,7 @@ Builds:
         python-is-python3 opencc
     gradle:
       - yes
-    binary: https://jenkins.fcitx-im.org/job/android/job/fcitx5-android/lastSuccessfulBuild/artifact/out/org.fcitx.fcitx5.android-%v-%abi-release.apk
+    binary: https://jenkins.fcitx-im.org/job/android/job/fcitx5-android/lastSuccessfulBuild/artifact/out/org.fcitx5.boomker.android-%v-%abi-release.apk
     srclibs:
       - fcitx5-android-prebuilder@master
     rm:

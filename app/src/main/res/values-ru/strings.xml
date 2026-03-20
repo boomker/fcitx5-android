@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name_release">Fcitx5.fx</string>
-    <string name="app_name_debug">Fcitx5.fx (Отладка)</string>
+    <string name="app_name_release">小天鹅</string>
+    <string name="app_name_debug">小天鹅 (Отладка)</string>
     <string name="save">Сохранить</string>
     <string name="input_methods">Методы ввода</string>
     <string name="add_input_method">Добавить метод ввода</string>

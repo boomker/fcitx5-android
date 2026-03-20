@@ -2,7 +2,7 @@
 
 [Fcitx5](https://github.com/fcitx/fcitx5) input method framework and engines ported to Android.
 
-本mod是基于原仓几乎全程 vibe coding 而成，在原仓上增加了相当若干特性，包名为了方便网友同时使用体验使用改成了`org.fcitx.fcitx5.android.fx`，总体上可以理解成原仓做的超集, 可在[releases](https://github.com/fxliang/fcitx5-android/releases)下面下载体验。
+本 mod 是基于原仓几乎全程 vibe coding 而成，在原仓上增加了相当若干特性。当前应用名为`小天鹅`，安装包标识为`org.fcitx5.boomker.android`，总体上可以理解成原仓做的超集，可在[releases](https://github.com/boomker/fcitx5-android/releases)下面下载体验。
 
 如果您觉得我vibe得还行，欢迎您支持我采购token续编vibe coding下去 😀
 
@@ -19,9 +19,9 @@
 
 ## Download
 
-[<img src="https://github.com/rubenpgrady/get-it-on-github/raw/refs/heads/main/get-it-on-github.png" alt="Git it on GitHub" width="207" height="80">](https://github.com/fcitx5-android/fcitx5-android/releases/latest)
-[<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="Get it on F-Droid" width="207" height="80">](https://f-droid.org/packages/org.fcitx.fcitx5.android)
-[<img alt="Get it on Google Play" src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" width="207" height="80">](https://play.google.com/store/apps/details?id=org.fcitx.fcitx5.android)
+[<img src="https://github.com/rubenpgrady/get-it-on-github/raw/refs/heads/main/get-it-on-github.png" alt="Git it on GitHub" width="207" height="80">](https://github.com/boomker/fcitx5-android/releases/latest)
+[<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="Get it on F-Droid" width="207" height="80">](https://f-droid.org/packages/org.fcitx5.boomker.android)
+[<img alt="Get it on Google Play" src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" width="207" height="80">](https://play.google.com/store/apps/details?id=org.fcitx5.boomker.android)
 
 You can also download the **latest CI build** on our Jeninks server: [![build status](https://img.shields.io/jenkins/build.svg?jobUrl=https://jenkins.fcitx-im.org/job/android/job/fcitx5-android/)](https://jenkins.fcitx-im.org/job/android/job/fcitx5-android/)
 
@@ -30,7 +30,7 @@ You can also download the **latest CI build** on our Jeninks server: [![build st
 > <details>
 > <summary>(click here for detailed signature info)</summary>
 > <ul>
-> <li>Package Name: <code>org.fcitx.fcitx5.android</code></li>
+> <li>Package Name: <code>org.fcitx5.boomker.android</code></li>
 > <li>Certificate SHA-256 fingerprint:</li>
 > <ul>
 > <li>GitHub Release/Jenkins/F-Droid</li>
