@@ -486,4 +486,5 @@
     <string name="text_keyboard_layout_select_submode_to_add">Select submode to add:</string>
     <string name="cannot_resolve_text_keyboard_layout">Unable to resolve text keyboard layout file</string>
     <string name="text_keyboard_layout_saved_at">TextKeyboardLayout.json saved at: %1$s</string>
+    <string name="text_keyboard_layout_save_failed">Failed to save layout. Check logcat for details.</string>
 </resources>

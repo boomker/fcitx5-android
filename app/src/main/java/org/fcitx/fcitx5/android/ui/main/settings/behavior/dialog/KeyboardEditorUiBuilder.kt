@@ -1,0 +1,438 @@
+/*
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileCopyrightText: Copyright 2026 Fcitx5 for Android Contributors
+ */
+package org.fcitx.fcitx5.android.ui.main.settings.behavior.dialog
+
+import android.view.Gravity
+import android.view.View
+import android.view.ViewGroup
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
+import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.Spinner
+import android.widget.TextView
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import org.fcitx.fcitx5.android.R
+import splitties.dimensions.dp
+import splitties.resources.styledColor
+
+/**
+ * UI builder for keyboard editor, responsible for building UI components
+ * for the keyboard edit dialog.
+ */
+class KeyboardEditorUiBuilder(private val activity: AppCompatActivity) {
+
+    companion object {
+        private const val DIALOG_LABEL_TEXT_SIZE_SP = 13f
+        private const val DIALOG_CONTENT_TEXT_SIZE_SP = 14f
+
+        val KEY_TYPES = arrayOf(
+            "AlphabetKey",
+            "CapsKey",
+            "LayoutSwitchKey",
+            "CommaKey",
+            "LanguageKey",
+            "SpaceKey",
+            "SymbolKey",
+            "ReturnKey",
+            "BackspaceKey"
+        )
+    }
+
+    /**
+     * Create type selector spinner
+     *
+     * @param container Parent container
+     * @param keyData Current key data
+     * @return Spinner instance
+     */
+    fun setupTypeSpinner(
+        container: LinearLayout,
+        keyData: Map<String, Any?>
+    ): Spinner {
+        val typeLabel = TextView(activity).apply {
+            text = activity.getString(R.string.text_keyboard_layout_key_type)
+            textSize = DIALOG_LABEL_TEXT_SIZE_SP
+            setTextColor(activity.styledColor(android.R.attr.textColorSecondary))
+            layoutParams = LinearLayout.LayoutParams(activity.dp(96), LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                rightMargin = activity.dp(8)
+            }
+        }
+
+        val typeSpinner = Spinner(activity).apply {
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                weight = 1f
+            }
+        }
+        val typeAdapter = ArrayAdapter(activity, android.R.layout.simple_spinner_item, KEY_TYPES)
+        typeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        typeSpinner.adapter = typeAdapter
+
+        val currentType = keyData["type"] as? String ?: "AlphabetKey"
+        val typePosition = KEY_TYPES.indexOf(currentType)
+        if (typePosition >= 0) typeSpinner.setSelection(typePosition)
+
+        val typeRow = LinearLayout(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, activity.dp(4), 0, activity.dp(4))
+            addView(typeLabel)
+            addView(typeSpinner)
+        }
+        container.addView(typeRow)
+
+        return typeSpinner
+    }
+
+    /**
+     * Create edit field
+     *
+     * @param label Label text
+     * @param value Initial value
+     * @return Pair(Container, EditText)
+     */
+    fun createEditField(label: String, value: String): Pair<LinearLayout, EditText> {
+        val container = LinearLayout(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, activity.dp(4), 0, activity.dp(4))
+        }
+        val labelView = TextView(activity).apply {
+            text = label
+            textSize = DIALOG_LABEL_TEXT_SIZE_SP
+            setTextColor(activity.styledColor(android.R.attr.textColorSecondary))
+            layoutParams = LinearLayout.LayoutParams(activity.dp(96), LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                rightMargin = activity.dp(8)
+            }
+        }
+        val editText = EditText(activity).apply {
+            setText(value)
+            textSize = DIALOG_CONTENT_TEXT_SIZE_SP
+            isSingleLine = true
+            maxLines = 1
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                weight = 1f
+            }
+        }
+        container.addView(labelView)
+        container.addView(editText)
+        return container to editText
+    }
+
+    /**
+     * DisplayText data item
+     */
+    data class DisplayTextItem(var mode: String, var value: String)
+
+    /**
+     * DisplayText row binding
+     */
+    data class DisplayTextRowBinding(
+        val modeEdit: EditText,
+        val valueEdit: EditText
+    )
+
+    /**
+     * Render displayText editor
+     *
+     * @param displayTextContainer Container
+     * @param modeSpecific Whether mode-specific
+     * @param simpleValue Simple value
+     * @param modeItems Mode items list
+     * @param rowBindings Row bindings list
+     * @param isEditingSubModeLayout Whether editing submode layout
+     * @param hasMultiSubmodeSupport Whether supports multi-submode
+     * @param callback Callback (returns modeSpecific, simpleValue, items, bindings, simpleTextEdit)
+     */
+    fun renderDisplayTextEditor(
+        displayTextContainer: LinearLayout,
+        modeSpecific: Boolean,
+        simpleValue: String,
+        modeItems: List<DisplayTextItem>,
+        rowBindings: MutableList<DisplayTextRowBinding>,
+        isEditingSubModeLayout: Boolean,
+        hasMultiSubmodeSupport: Boolean,
+        callback: (Boolean, String, MutableList<DisplayTextItem>, MutableList<DisplayTextRowBinding>, EditText?) -> Unit
+    ) {
+        // 重建前先清除焦点，避免输入法在布局变化时崩溃
+        displayTextContainer.clearFocus()
+        for (i in 0 until displayTextContainer.childCount) {
+            displayTextContainer.getChildAt(i).clearFocus()
+        }
+
+        displayTextContainer.removeAllViews()
+
+        if (!modeSpecific) {
+            val simpleText = createEditField(
+                activity.getString(R.string.text_keyboard_layout_key_display_text),
+                simpleValue
+            )
+            displayTextContainer.addView(simpleText.first)
+
+            if (!isEditingSubModeLayout && hasMultiSubmodeSupport) {
+                val addModeBtn = TextView(activity).apply {
+                    text = activity.getString(R.string.text_keyboard_layout_add_mode)
+                    textSize = 14f
+                    setTypeface(null, android.graphics.Typeface.BOLD)
+                    gravity = Gravity.CENTER
+                    minWidth = activity.dp(120)
+                    setPadding(activity.dp(12), activity.dp(8), activity.dp(12), activity.dp(8))
+                    background = android.graphics.drawable.GradientDrawable().apply {
+                        setColor(activity.styledColor(android.R.attr.colorButtonNormal))
+                        setStroke(activity.dp(1), activity.styledColor(android.R.attr.colorControlNormal))
+                        cornerRadius = activity.dp(4).toFloat()
+                    }
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply {
+                        gravity = Gravity.CENTER_HORIZONTAL
+                        topMargin = activity.dp(4)
+                    }
+                    setOnClickListener {
+                        val newValue = simpleText.second.text?.toString().orEmpty()
+                        // Switch to mode-specific mode
+                        callback(true, newValue, mutableListOf(DisplayTextItem("", newValue)), mutableListOf(), null)
+                        // Re-render UI
+                        renderDisplayTextEditor(
+                            displayTextContainer,
+                            true,
+                            newValue,
+                            mutableListOf(DisplayTextItem("", newValue)),
+                            mutableListOf(),
+                            isEditingSubModeLayout,
+                            hasMultiSubmodeSupport,
+                            callback
+                        )
+                    }
+                }
+                displayTextContainer.addView(addModeBtn)
+            }
+            // Call callback with simpleTextEdit reference
+            callback(modeSpecific, simpleValue, mutableListOf(), mutableListOf(), simpleText.second)
+            return
+        }
+
+        val mapLabel = TextView(activity).apply {
+            text = activity.getString(R.string.text_keyboard_layout_key_display_text)
+            textSize = DIALOG_LABEL_TEXT_SIZE_SP
+            setTextColor(activity.styledColor(android.R.attr.textColorSecondary))
+            setPadding(0, activity.dp(8), 0, activity.dp(8))
+        }
+        displayTextContainer.addView(mapLabel)
+
+        val modeEntriesContainer = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+        displayTextContainer.addView(modeEntriesContainer)
+
+        val items = modeItems.toMutableList()
+        val bindings = rowBindings
+
+        modeItems.forEachIndexed { index, item ->
+            val entryRow = createDisplayTextEntryRow(
+                item,
+                index,
+                items,
+                bindings,
+                displayTextContainer,
+                modeSpecific,
+                simpleValue,
+                isEditingSubModeLayout,
+                hasMultiSubmodeSupport,
+                callback
+            )
+            modeEntriesContainer.addView(entryRow)
+        }
+
+        val addModeBtn = TextView(activity).apply {
+            text = activity.getString(R.string.text_keyboard_layout_add_mode)
+            textSize = 14f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            gravity = Gravity.CENTER
+            minWidth = activity.dp(120)
+            setPadding(activity.dp(12), activity.dp(8), activity.dp(12), activity.dp(8))
+            background = android.graphics.drawable.GradientDrawable().apply {
+                setColor(activity.styledColor(android.R.attr.colorButtonNormal))
+                setStroke(activity.dp(1), activity.styledColor(android.R.attr.colorControlNormal))
+                cornerRadius = activity.dp(4).toFloat()
+            }
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                gravity = Gravity.CENTER_HORIZONTAL
+                topMargin = activity.dp(4)
+            }
+            var lastInvalidToastTime = 0L
+            setOnClickListener {
+                // 验证现有条目
+                val hasInvalidEntry = bindings.any { binding ->
+                    val mode = binding.modeEdit.text?.toString().orEmpty().trim()
+                    val value = binding.valueEdit.text?.toString().orEmpty().trim()
+                    mode.isEmpty() || value.isEmpty()
+                }
+                if (hasInvalidEntry) {
+                    var firstInvalidIndex = -1
+                    for ((index, binding) in bindings.withIndex()) {
+                        val mode = binding.modeEdit.text?.toString().orEmpty().trim()
+                        val value = binding.valueEdit.text?.toString().orEmpty().trim()
+                        if (mode.isEmpty() || value.isEmpty()) {
+                            binding.modeEdit.requestFocus()
+                            firstInvalidIndex = index
+                            break
+                        }
+                    }
+                    val currentTime = System.currentTimeMillis()
+                    if (currentTime - lastInvalidToastTime > 2000 && firstInvalidIndex >= 0) {
+                        Toast.makeText(
+                            activity,
+                            activity.getString(R.string.text_keyboard_layout_display_text_mode_invalid, firstInvalidIndex + 1),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        lastInvalidToastTime = currentTime
+                    }
+                    return@setOnClickListener
+                }
+
+                // 检查重复模式名称
+                val modeNames = bindings.map { it.modeEdit.text?.toString().orEmpty().trim() }.filter { it.isNotEmpty() }
+                val duplicateModes = modeNames.groupingBy { it }.eachCount().filter { it.value > 1 }
+                if (duplicateModes.isNotEmpty()) {
+                    val duplicateMode = duplicateModes.keys.first()
+                    Toast.makeText(
+                        activity,
+                        activity.getString(R.string.text_keyboard_layout_display_text_mode_duplicate, duplicateMode),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    return@setOnClickListener
+                }
+
+                items.add(DisplayTextItem("", ""))
+                // Re-render
+                callback(modeSpecific, simpleValue, items, bindings, null)
+                renderDisplayTextEditor(
+                    displayTextContainer,
+                    modeSpecific,
+                    simpleValue,
+                    items,
+                    bindings,
+                    isEditingSubModeLayout,
+                    hasMultiSubmodeSupport,
+                    callback
+                )
+            }
+        }
+        displayTextContainer.addView(addModeBtn)
+    }
+
+    /**
+     * Create displayText input row
+     */
+    private fun createDisplayTextEntryRow(
+        item: DisplayTextItem,
+        index: Int,
+        items: MutableList<DisplayTextItem>,
+        bindings: MutableList<DisplayTextRowBinding>,
+        displayTextContainer: LinearLayout,
+        modeSpecific: Boolean,
+        simpleValue: String,
+        isEditingSubModeLayout: Boolean,
+        hasMultiSubmodeSupport: Boolean,
+        callback: (Boolean, String, MutableList<DisplayTextItem>, MutableList<DisplayTextRowBinding>, EditText?) -> Unit
+    ): LinearLayout {
+        val entryRow = LinearLayout(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, activity.dp(2), 0, activity.dp(2))
+        }
+
+        val modeEdit = EditText(activity).apply {
+            setText(item.mode)
+            textSize = DIALOG_CONTENT_TEXT_SIZE_SP
+            hint = activity.getString(R.string.text_keyboard_layout_mode_name_hint)
+            layoutParams = LinearLayout.LayoutParams(
+                0,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                weight = 1f
+                rightMargin = activity.dp(4)
+            }
+        }
+
+        val valueEdit = EditText(activity).apply {
+            setText(item.value)
+            textSize = DIALOG_CONTENT_TEXT_SIZE_SP
+            hint = activity.getString(R.string.text_keyboard_layout_display_value_hint)
+            layoutParams = LinearLayout.LayoutParams(
+                0,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                weight = 1f
+                rightMargin = activity.dp(4)
+            }
+        }
+
+        val deleteBtn = TextView(activity).apply {
+            text = "🗑"
+            textSize = DIALOG_CONTENT_TEXT_SIZE_SP
+            setPadding(activity.dp(8), activity.dp(4), activity.dp(8), activity.dp(4))
+            setOnClickListener {
+                // 从 items 中删除
+                val itemIndex = items.indexOfFirst {
+                    it.mode == item.mode && it.value == item.value
+                }
+                if (itemIndex >= 0) {
+                    items.removeAt(itemIndex)
+                }
+
+                // 从 bindings 中删除对应的 binding
+                val bindingToRemove = bindings.firstOrNull {
+                    it.modeEdit === modeEdit && it.valueEdit === valueEdit
+                }
+                if (bindingToRemove != null) {
+                    bindings.remove(bindingToRemove)
+                }
+
+                // If no submode left, switch to simple text mode
+                if (items.isEmpty()) {
+                    // Call callback to update external state first
+                    callback(false, item.value, mutableListOf(), mutableListOf(), null)
+                    // Then re-render UI
+                    renderDisplayTextEditor(
+                        displayTextContainer,
+                        false,
+                        item.value,
+                        mutableListOf(),
+                        mutableListOf(),
+                        isEditingSubModeLayout,
+                        hasMultiSubmodeSupport,
+                        callback
+                    )
+                } else {
+                    // Re-render the entire displayText editor
+                    renderDisplayTextEditor(
+                        displayTextContainer,
+                        modeSpecific,
+                        simpleValue,
+                        items,
+                        bindings,
+                        isEditingSubModeLayout,
+                        hasMultiSubmodeSupport,
+                        callback
+                    )
+                }
+            }
+        }
+
+        entryRow.addView(modeEdit)
+        entryRow.addView(valueEdit)
+        entryRow.addView(deleteBtn)
+        bindings.add(DisplayTextRowBinding(modeEdit, valueEdit))
+
+        return entryRow
+    }
+}
