@@ -159,11 +159,11 @@
     <string name="text_keyboard_layout_hint">Toque una tecla para editar. Mantenga pulsado para eliminar. Use el botón + para añadir una tecla a la fila.</string>
     <string name="text_keyboard_layout_key_type">Tipo de tecla</string>
     <string name="text_keyboard_layout_key_main">Carácter principal</string>
-    <string name="text_keyboard_layout_key_alt">Carácter alternativo (puntuación)</string>
+    <string name="text_keyboard_layout_key_alt">Carácter alternativo</string>
     <string name="text_keyboard_layout_key_display_text">Texto mostrado</string>
     <string name="text_keyboard_layout_key_label">Etiqueta</string>
     <string name="text_keyboard_layout_key_sub_label">Subetiqueta</string>
-    <string name="text_keyboard_layout_key_weight">Peso (percentWidth)</string>
+    <string name="text_keyboard_layout_key_weight">Ancho de peso</string>
     <string name="text_keyboard_layout_layout_name">Nombre de la distribución</string>
     <string name="text_keyboard_layout_layout_name_hint">p. ej., rime, pinyin</string>
     <string name="text_keyboard_layout_copy_from">Copiar de una distribución existente</string>
@@ -189,9 +189,9 @@
     <string name="text_keyboard_layout_key_label_space">Space</string>
     <string name="text_keyboard_layout_key_label_enter">Enter</string>
     <string name="text_keyboard_layout_alphabet_key_main_required">El carácter principal no debe estar vacío</string>
-    <string name="text_keyboard_layout_alphabet_key_alt_required">El carácter alternativo (puntuación) no debe estar vacío</string>
+    <string name="text_keyboard_layout_alphabet_key_alt_required">El carácter alternativo no debe estar vacío</string>
     <string name="text_keyboard_layout_alphabet_key_main_length_invalid">El carácter principal debe ser un solo carácter</string>
-    <string name="text_keyboard_layout_alphabet_key_alt_length_invalid">El carácter alternativo (puntuación) debe ser un solo carácter</string>
+    <string name="text_keyboard_layout_alphabet_key_alt_length_invalid">El carácter alternativo debe ser un solo carácter</string>
     <string name="text_keyboard_layout_validation_error">Error de validación</string>
     <string name="text_keyboard_layout_display_text_mode_invalid">Complete la fila %1$d antes de agregar un nuevo modo</string>
     <string name="text_keyboard_layout_display_text_mode_duplicate">El nombre del modo "%1$s" ya está en uso</string>

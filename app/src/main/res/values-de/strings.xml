@@ -204,11 +204,11 @@
     <string name="text_keyboard_layout_hint">Tippen Sie auf eine Taste zum Bearbeiten. Lange drücken zum Löschen. Mit der + Schaltfläche fügen Sie eine Taste zur Zeile hinzu.</string>
     <string name="text_keyboard_layout_key_type">Tastentyp</string>
     <string name="text_keyboard_layout_key_main">Hauptzeichen</string>
-    <string name="text_keyboard_layout_key_alt">Alternatives Zeichen (Satzzeichen)</string>
+    <string name="text_keyboard_layout_key_alt">Alternatives Zeichen</string>
     <string name="text_keyboard_layout_key_display_text">Anzeigetext</string>
     <string name="text_keyboard_layout_key_label">Beschriftung</string>
     <string name="text_keyboard_layout_key_sub_label">Unterbeschriftung</string>
-    <string name="text_keyboard_layout_key_weight">Gewichtung (percentWidth)</string>
+    <string name="text_keyboard_layout_key_weight">Gewichtungsbreite</string>
     <string name="text_keyboard_layout_layout_name">Layoutname</string>
     <string name="text_keyboard_layout_layout_name_hint">z. B.: rime, pinyin</string>
     <string name="text_keyboard_layout_copy_from">Aus bestehendem Layout kopieren</string>
@@ -234,9 +234,9 @@
     <string name="text_keyboard_layout_key_label_space">Space</string>
     <string name="text_keyboard_layout_key_label_enter">Enter</string>
     <string name="text_keyboard_layout_alphabet_key_main_required">Hauptzeichen darf nicht leer sein</string>
-    <string name="text_keyboard_layout_alphabet_key_alt_required">Alternatives Zeichen (Satzzeichen) darf nicht leer sein</string>
+    <string name="text_keyboard_layout_alphabet_key_alt_required">Alternatives Zeichen darf nicht leer sein</string>
     <string name="text_keyboard_layout_alphabet_key_main_length_invalid">Hauptzeichen muss ein einzelnes Zeichen sein</string>
-    <string name="text_keyboard_layout_alphabet_key_alt_length_invalid">Alternatives Zeichen (Satzzeichen) muss ein einzelnes Zeichen sein</string>
+    <string name="text_keyboard_layout_alphabet_key_alt_length_invalid">Alternatives Zeichen muss ein einzelnes Zeichen sein</string>
     <string name="text_keyboard_layout_validation_error">Validierungsfehler</string>
     <string name="text_keyboard_layout_display_text_mode_invalid">Bitte füllen Sie Zeile %1$d aus, bevor Sie einen neuen Modus hinzufügen</string>
     <string name="text_keyboard_layout_display_text_mode_duplicate">Modusname "%1$s" wird bereits verwendet</string>

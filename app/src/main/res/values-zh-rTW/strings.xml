@@ -360,11 +360,11 @@
     <string name="text_keyboard_layout_hint">點擊按鍵可編輯，長按可刪除。使用 + 按鈕可在該列新增按鍵。</string>
     <string name="text_keyboard_layout_key_type">按鍵類型</string>
     <string name="text_keyboard_layout_key_main">主字元</string>
-    <string name="text_keyboard_layout_key_alt">副字元（標點）</string>
+    <string name="text_keyboard_layout_key_alt">副字元</string>
     <string name="text_keyboard_layout_key_display_text">顯示文字</string>
     <string name="text_keyboard_layout_key_label">標籤</string>
     <string name="text_keyboard_layout_key_sub_label">子標籤</string>
-    <string name="text_keyboard_layout_key_weight">權重（percentWidth）</string>
+    <string name="text_keyboard_layout_key_weight">權重寬度</string>
     <string name="text_keyboard_layout_layout_name">佈局名稱</string>
     <string name="text_keyboard_layout_layout_name_hint">例如：rime、pinyin</string>
     <string name="text_keyboard_layout_copy_from">從現有佈局複製</string>
@@ -390,9 +390,9 @@
     <string name="text_keyboard_layout_key_label_space">Space</string>
     <string name="text_keyboard_layout_key_label_enter">Enter</string>
     <string name="text_keyboard_layout_alphabet_key_main_required">主字元不能為空</string>
-    <string name="text_keyboard_layout_alphabet_key_alt_required">副字元（標點）不能為空</string>
+    <string name="text_keyboard_layout_alphabet_key_alt_required">副字元不能為空</string>
     <string name="text_keyboard_layout_alphabet_key_main_length_invalid">主字元必須是單個字元</string>
-    <string name="text_keyboard_layout_alphabet_key_alt_length_invalid">副字元（標點）必須是單個字元</string>
+    <string name="text_keyboard_layout_alphabet_key_alt_length_invalid">副字元必須是單個字元</string>
     <string name="text_keyboard_layout_validation_error">驗證錯誤</string>
     <string name="text_keyboard_layout_display_text_mode_invalid">請先填寫第 %1$d 行的模式名稱和顯示文字</string>
     <string name="text_keyboard_layout_display_text_mode_duplicate">模式名稱 "%1$s" 已被使用</string>

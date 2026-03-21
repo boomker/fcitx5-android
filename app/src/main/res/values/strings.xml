@@ -433,11 +433,11 @@
     <string name="text_keyboard_layout_hint">Tap a key to edit. Long press to delete. Use + button to add a key to row.</string>
     <string name="text_keyboard_layout_key_type">Key Type</string>
     <string name="text_keyboard_layout_key_main">Main Character</string>
-    <string name="text_keyboard_layout_key_alt">Alt Character (Punctuation)</string>
+    <string name="text_keyboard_layout_key_alt">Alt Character</string>
     <string name="text_keyboard_layout_key_display_text">Display Text</string>
     <string name="text_keyboard_layout_key_label">Label</string>
     <string name="text_keyboard_layout_key_sub_label">Sub Label</string>
-    <string name="text_keyboard_layout_key_weight">Weight (percentWidth)</string>
+    <string name="text_keyboard_layout_key_weight">Weight Width</string>
     <string name="text_keyboard_layout_layout_name">Layout Name</string>
     <string name="text_keyboard_layout_layout_name_hint">e.g., rime, pinyin</string>
     <string name="text_keyboard_layout_copy_from">Copy from existing layout</string>

@@ -133,11 +133,11 @@
     <string name="text_keyboard_layout_hint">키를 탭하여 편집하고 길게 눌러 삭제합니다. + 버튼으로 행에 키를 추가합니다.</string>
     <string name="text_keyboard_layout_key_type">키 유형</string>
     <string name="text_keyboard_layout_key_main">기본 문자</string>
-    <string name="text_keyboard_layout_key_alt">보조 문자(문장부호)</string>
+    <string name="text_keyboard_layout_key_alt">보조 문자</string>
     <string name="text_keyboard_layout_key_display_text">표시 텍스트</string>
     <string name="text_keyboard_layout_key_label">레이블</string>
     <string name="text_keyboard_layout_key_sub_label">하위 레이블</string>
-    <string name="text_keyboard_layout_key_weight">가중치(percentWidth)</string>
+    <string name="text_keyboard_layout_key_weight">가중치 너비</string>
     <string name="text_keyboard_layout_layout_name">레이아웃 이름</string>
     <string name="text_keyboard_layout_layout_name_hint">예: rime, pinyin</string>
     <string name="text_keyboard_layout_copy_from">기존 레이아웃에서 복사</string>
@@ -163,9 +163,9 @@
     <string name="text_keyboard_layout_key_label_space">Space</string>
     <string name="text_keyboard_layout_key_label_enter">Enter</string>
     <string name="text_keyboard_layout_alphabet_key_main_required">주 문자는 비워둘 수 없습니다</string>
-    <string name="text_keyboard_layout_alphabet_key_alt_required">보조 문자 (문장부호) 는 비워둘 수 없습니다</string>
+    <string name="text_keyboard_layout_alphabet_key_alt_required">보조 문자는 비워둘 수 없습니다</string>
     <string name="text_keyboard_layout_alphabet_key_main_length_invalid">주 문자는 단일 문자여야 합니다</string>
-    <string name="text_keyboard_layout_alphabet_key_alt_length_invalid">보조 문자 (문장부호) 는 단일 문자여야 합니다</string>
+    <string name="text_keyboard_layout_alphabet_key_alt_length_invalid">보조 문자는 단일 문자여야 합니다</string>
     <string name="text_keyboard_layout_validation_error">유효성 검사 오류</string>
     <string name="text_keyboard_layout_display_text_mode_invalid">새 모드를 추가하기 전에 %1$d 행을 입력하세요</string>
     <string name="text_keyboard_layout_display_text_mode_duplicate">모드 이름 "%1$s" 이 (가) 이미 사용 중입니다</string>
