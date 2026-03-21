@@ -10,6 +10,7 @@ import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.kotlin.dsl.the
 import java.io.File
+import java.util.Properties
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 
@@ -22,6 +23,14 @@ fun Project.runCmd(cmd: String, defaultValue: String = ""): String {
     } else {
         defaultValue
     }
+}
+
+private fun Project.readLocalSigningProperty(name: String): String? {
+    val propertiesFile = rootProject.file("signing.properties")
+    if (!propertiesFile.isFile) return null
+    val properties = Properties()
+    propertiesFile.inputStream().use(properties::load)
+    return properties.getProperty(name)?.takeIf { it.isNotBlank() }
 }
 
 val Project.libs get() = the<LibrariesForLibs>()
@@ -64,13 +73,14 @@ val Project.signKeyBase64: String?
 
 val Project.signKeyFile: String?
     get() = epn("SIGN_KEY_FILE", "signKeyFile")
+        ?: readLocalSigningProperty("signKeyFile")
 
 private var signKeyTempFile: File? = null
 
 val Project.signKey: File?
     get() {
         signKeyFile?.let {
-            val file = File(it)
+            val file = File(it).takeIf(File::isAbsolute) ?: rootProject.file(it)
             if (file.exists()) return file
         }
         @OptIn(ExperimentalEncodingApi::class)
@@ -96,9 +106,11 @@ val Project.signKey: File?
 
 val Project.signKeyPwd: String?
     get() = epn("SIGN_KEY_PWD", "signKeyPwd")
+        ?: readLocalSigningProperty("signKeyPwd")
 
 val Project.signKeyAlias: String?
     get() = epn("SIGN_KEY_ALIAS", "signKeyAlias")
+        ?: readLocalSigningProperty("signKeyAlias")
 
 fun NamedDomainObjectContainer<SigningConfig>.fromProjectEnv(project: Project): SigningConfig? {
     val keyFile = project.signKey ?: return null

@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <queries>
+        <package android:name="${mainApplicationId}" />
+        <package android:name="org.fcitx.fcitx5.android" />
+    </queries>
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="${mainApplicationId}.permission.IPC" />
+
+    <application
+        android:icon="@android:drawable/sym_def_app_icon"
+        android:label="@string/app_display_name"
+        android:theme="@style/Theme.AppCompat.Light"
+        android:usesCleartextTraffic="true">
+
+        <service
+            android:name=".MainService"
+            android:exported="true"
+            android:permission="${mainApplicationId}.permission.PLUGIN">
+            <intent-filter>
+                <action android:name="${mainApplicationId}.plugin.SERVICE" />
+            </intent-filter>
+        </service>
+
+        <activity
+            android:name=".ui.PluginSettingsActivity"
+            android:exported="true"
+            android:label="@string/app_display_name"
+            android:theme="@style/Theme.ClipboardSync.Settings">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="${mainApplicationId}.plugin.MANIFEST" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="org.fcitx.fcitx5.android.plugin.MANIFEST" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <service
+            android:name=".service.QuickSyncTileService"
+            android:exported="true"
+            android:icon="@android:drawable/sym_def_app_icon"
+            android:label="@string/quick_sync_tile_label"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+    </application>
+</manifest>

@@ -1,0 +1,26 @@
+<resources>
+    <string name="app_display_name">ClipboardSync</string>
+
+    <string name="local_quick_sync">开启同步</string>
+    <string name="local_quick_sync_summary">关闭后将停止所有同步服务</string>
+    <string name="server_profile_title">服务端</string>
+    <string name="server_profile_summary">选择服务端别名并配置地址</string>
+    <string name="server_alias_title">别名</string>
+    <string name="server_custom_alias_hint">输入自定义别名</string>
+    <string name="server_address_field_title">服务器地址</string>
+    <string name="server_address_field_hint">例如 http://192.168.10.11:5003</string>
+    <string name="server_profile_syncclipboard">SyncClipboard</string>
+    <string name="server_profile_oneclip">OneClip</string>
+    <string name="server_profile_custom">自定义</string>
+    <string name="local_username">用户名</string>
+    <string name="local_password">密码</string>
+    <string name="password_show">显示</string>
+    <string name="password_hide">隐藏</string>
+    <string name="local_sync_interval">同步间隔（秒）</string>
+    <string name="storage_location_title">存储位置</string>
+    <string name="storage_location_not_set">未设置</string>
+    <string name="storage_location_hint">例如 /Download/SyncClipboard 或 content://…</string>
+    <string name="storage_location_pick">选择目录</string>
+    <string name="local_test_connection">测试连接</string>
+    <string name="local_click_test">点击测试服务器可用性</string>
+</resources>

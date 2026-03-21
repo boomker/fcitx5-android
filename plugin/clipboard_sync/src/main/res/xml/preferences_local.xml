@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <SwitchPreferenceCompat
+        app:key="quick_sync"
+        app:title="@string/local_quick_sync"
+        app:summary="@string/local_quick_sync_summary"
+        app:defaultValue="true" />
+
+    <Preference
+        app:key="server_profile"
+        app:title="@string/server_profile_title"
+        app:summary="@string/server_profile_summary" />
+
+    <EditTextPreference
+        app:key="username"
+        app:title="@string/local_username"
+        app:defaultValue="admin"
+        app:useSimpleSummaryProvider="true" />
+
+    <EditTextPreference
+        app:key="password"
+        app:title="@string/local_password"
+        app:defaultValue="123456"
+        app:useSimpleSummaryProvider="false"
+        app:summary="******" />
+
+    <EditTextPreference
+        app:key="sync_interval"
+        app:title="@string/local_sync_interval"
+        app:defaultValue="3"
+        app:useSimpleSummaryProvider="true" />
+
+    <Preference
+        app:key="download_path"
+        app:title="@string/storage_location_title"
+        app:summary="@string/storage_location_not_set" />
+
+    <Preference
+        app:key="test_connection"
+        app:title="@string/local_test_connection"
+        app:summary="@string/local_click_test" />
+
+</PreferenceScreen>

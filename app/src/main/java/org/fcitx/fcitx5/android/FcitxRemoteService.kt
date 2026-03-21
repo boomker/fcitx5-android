@@ -60,27 +60,33 @@ class FcitxRemoteService : Service() {
         Timber.d("All clipboard transformers: ${clipboardTransformers.joinToString { it.desc }}")
     }
 
-    /**
-     * Get the calling package name
-     */
-    private fun getCallingPackageName(): String? {
+    private fun getCallingPackages(): Set<String> {
         val uid = Binder.getCallingUid()
-        return packageManager.getNameForUid(uid)
+        return packageManager.getPackagesForUid(uid)?.toSet().orEmpty()
+    }
+
+    private fun getLoadedPluginPackages(): Set<String> {
+        return DataManager.getLoadedPlugins()
+            .mapTo(mutableSetOf()) { it.packageName }
     }
 
     /**
      * Check if the calling package is allowed based on IPC compatibility mode
      */
-    private fun isCallerAllowed(callingPackage: String?): Boolean {
-        if (callingPackage == null) return false
+    private fun isCallerAllowed(callingPackages: Set<String>): Boolean {
+        if (callingPackages.isEmpty()) return false
 
         // Always allow self
-        if (callingPackage == packageName) return true
+        if (callingPackages.contains(packageName)) return true
+
+        // Allow loaded plugin packages from this installation.
+        if (callingPackages.any { it in getLoadedPluginPackages() }) return true
 
         // Check if allowing original plugins (both release and debug)
         return AppPrefs.getInstance().advanced.allowOriginalPlugins.getValue() &&
-                (callingPackage == "org.fcitx.fcitx5.android" ||
-                 callingPackage == "org.fcitx.fcitx5.android.debug")
+                callingPackages.any {
+                    it == "org.fcitx.fcitx5.android" || it == "org.fcitx.fcitx5.android.debug"
+                }
     }
 
     private val binder = object : IFcitxRemoteService.Stub() {
@@ -98,12 +104,12 @@ class FcitxRemoteService : Service() {
         }
 
         override fun registerClipboardEntryTransformer(transformer: IClipboardEntryTransformer) {
-            val callingPackage = getCallingPackageName()
-            if (!isCallerAllowed(callingPackage)) {
-                Timber.w("Rejected clipboard transformer registration from $callingPackage (allowOriginalPlugins=${AppPrefs.getInstance().advanced.allowOriginalPlugins.getValue()})")
-                throw SecurityException("IPC compatibility mode does not allow access from $callingPackage")
+            val callingPackages = getCallingPackages()
+            if (!isCallerAllowed(callingPackages)) {
+                Timber.w("Rejected clipboard transformer registration from $callingPackages (allowOriginalPlugins=${AppPrefs.getInstance().advanced.allowOriginalPlugins.getValue()})")
+                throw SecurityException("IPC compatibility mode does not allow access from $callingPackages")
             }
-            Timber.d("registerClipboardEntryTransformer: ${transformer.desc} from $callingPackage")
+            Timber.d("registerClipboardEntryTransformer: ${transformer.desc} from $callingPackages")
             if (transformer.description.isNullOrBlank()) {
                 Timber.w("Cannot register ClipboardEntryTransformer of null or empty description")
             }
@@ -145,11 +151,11 @@ class FcitxRemoteService : Service() {
     }
 
     override fun onBind(intent: Intent): IBinder {
-        val callingPackage = getCallingPackageName()
-        Timber.d("FcitxRemoteService onBind: $intent, callingPackage=$callingPackage")
-        if (!isCallerAllowed(callingPackage)) {
-            Timber.w("Rejected IPC connection from $callingPackage (allowOriginalPlugins=${AppPrefs.getInstance().advanced.allowOriginalPlugins.getValue()})")
-            throw SecurityException("IPC compatibility mode does not allow access from $callingPackage")
+        val callingPackages = getCallingPackages()
+        Timber.d("FcitxRemoteService onBind: $intent, callingPackages=$callingPackages")
+        if (!isCallerAllowed(callingPackages)) {
+            Timber.w("Rejected IPC connection from $callingPackages (allowOriginalPlugins=${AppPrefs.getInstance().advanced.allowOriginalPlugins.getValue()})")
+            throw SecurityException("IPC compatibility mode does not allow access from $callingPackages")
         }
         return binder
     }
