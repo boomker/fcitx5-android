@@ -1,6 +1,7 @@
 package org.fcitx.fcitx5.android.plugin.clipboard_sync.ui
 
 import android.app.AlertDialog
+import android.content.SharedPreferences
 import android.content.Intent
 import android.os.Bundle
 import android.text.InputType
@@ -9,8 +10,8 @@ import android.text.method.PasswordTransformationMethod
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.ArrayAdapter
-import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageButton
 import android.widget.Spinner
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -24,13 +25,14 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.fcitx.fcitx5.android.plugin.clipboard_sync.R
 import org.fcitx.fcitx5.android.plugin.clipboard_sync.network.SyncClient
+import org.fcitx.fcitx5.android.plugin.clipboard_sync.network.SyncClient.ServerBackend
 
 class SettingsActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_settings)
-        
+
         if (savedInstanceState == null) {
             supportFragmentManager
                 .beginTransaction()
@@ -52,6 +54,9 @@ class SettingsActivity : AppCompatActivity() {
             private const val SERVER_PROFILE_TYPE_KEY = "server_profile_type"
             private const val SERVER_PROFILE_CUSTOM_ALIAS_KEY = "server_profile_custom_alias"
             private const val SERVER_ADDRESS_KEY = "server_address"
+            private const val SERVER_ADDRESS_SYNC_CLIPBOARD_KEY = "server_address_syncclipboard"
+            private const val SERVER_ADDRESS_ONE_CLIP_KEY = "server_address_oneclip"
+            private const val SERVER_ADDRESS_CUSTOM_KEY = "server_address_custom"
             private const val DOWNLOAD_PATH_KEY = "download_path"
             private const val DOWNLOAD_PATH_URI_KEY = "download_path_uri"
             private const val PROFILE_SYNC_CLIPBOARD = "syncclipboard"
@@ -106,14 +111,8 @@ class SettingsActivity : AppCompatActivity() {
             setPreferencesFromResource(R.xml.preferences_local, rootKey)
             initializeServerProfileState()
 
-            findPreference<EditTextPreference>("password")?.apply {
-                setOnBindEditTextListener { editText ->
-                    editText.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
-                }
-                setOnPreferenceClickListener {
-                    showPasswordDialog(this)
-                    true
-                }
+            findPreference<EditTextPreference>("password")?.setOnBindEditTextListener { editText ->
+                editText.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
             }
 
             findPreference<EditTextPreference>("sync_interval")?.setOnBindEditTextListener { editText ->
@@ -140,6 +139,14 @@ class SettingsActivity : AppCompatActivity() {
             }
         }
 
+        override fun onDisplayPreferenceDialog(preference: Preference) {
+            if (preference.key == "password" && preference is EditTextPreference) {
+                createPasswordDialog(preference).show()
+                return
+            }
+            super.onDisplayPreferenceDialog(preference)
+        }
+
         private fun initializeServerProfileState() {
             val prefs = preferenceManager.sharedPreferences ?: return
             val currentType = prefs.getString(SERVER_PROFILE_TYPE_KEY, null)
@@ -157,10 +164,15 @@ class SettingsActivity : AppCompatActivity() {
 
             val editor = prefs.edit()
             editor.putString(SERVER_PROFILE_TYPE_KEY, resolvedType)
+            if (currentAddress.isNotBlank()) {
+                profileAddressKey(resolvedType)?.let { addressKey ->
+                    editor.putString(addressKey, currentAddress)
+                }
+            }
             if (currentAddress.isBlank()) {
                 editor.putString(
                     SERVER_ADDRESS_KEY,
-                    profileByKey(resolvedType)?.defaultAddress.orEmpty()
+                    storedAddressForProfile(prefs, resolvedType)
                 )
             }
             if (currentUsername.isNullOrBlank()) {
@@ -194,8 +206,7 @@ class SettingsActivity : AppCompatActivity() {
 
             customAliasEdit.setText(prefs.getString(SERVER_PROFILE_CUSTOM_ALIAS_KEY, ""))
             serverAddressEdit.setText(
-                prefs.getString(SERVER_ADDRESS_KEY, currentProfile.defaultAddress)
-                    ?: currentProfile.defaultAddress
+                storedAddressForProfile(prefs, currentProfile.key)
             )
 
             fun updateFields(keepAddress: Boolean) {
@@ -203,7 +214,7 @@ class SettingsActivity : AppCompatActivity() {
                 val isCustom = selectedProfile.key == PROFILE_CUSTOM
                 customAliasEdit.visibility = if (isCustom) View.VISIBLE else View.GONE
                 if (!isCustom && (!keepAddress || serverAddressEdit.text.isNullOrBlank())) {
-                    serverAddressEdit.setText(selectedProfile.defaultAddress)
+                    serverAddressEdit.setText(storedAddressForProfile(prefs, selectedProfile.key))
                 }
             }
 
@@ -224,6 +235,9 @@ class SettingsActivity : AppCompatActivity() {
                         .putString(SERVER_PROFILE_TYPE_KEY, selectedProfile.key)
                         .putString(SERVER_PROFILE_CUSTOM_ALIAS_KEY, customAlias)
                         .putString(SERVER_ADDRESS_KEY, serverAddress)
+                        .apply {
+                            profileAddressKey(selectedProfile.key)?.let { putString(it, serverAddress) }
+                        }
                         .apply()
 
                     updateServerProfileSummary(findPreference(SERVER_PROFILE_KEY))
@@ -287,11 +301,11 @@ class SettingsActivity : AppCompatActivity() {
             dialog.show()
         }
 
-        private fun showPasswordDialog(preference: EditTextPreference) {
+        internal fun createPasswordDialog(preference: EditTextPreference): AlertDialog {
             val context = requireContext()
             val view = LayoutInflater.from(context).inflate(R.layout.dialog_password_preference, null)
             val passwordEdit = view.findViewById<EditText>(R.id.password_edit)
-            val toggleButton = view.findViewById<Button>(R.id.password_toggle_button)
+            val toggleButton = view.findViewById<ImageButton>(R.id.password_toggle_button)
 
             passwordEdit.setText(preference.text.orEmpty())
             passwordEdit.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
@@ -306,7 +320,10 @@ class SettingsActivity : AppCompatActivity() {
                 } else {
                     PasswordTransformationMethod.getInstance()
                 }
-                toggleButton.setText(
+                toggleButton.setImageResource(
+                    if (passwordVisible) R.drawable.ic_visibility_off else R.drawable.ic_visibility
+                )
+                toggleButton.contentDescription = getString(
                     if (passwordVisible) R.string.password_hide else R.string.password_show
                 )
                 passwordEdit.setSelection(passwordEdit.text?.length ?: 0)
@@ -318,7 +335,7 @@ class SettingsActivity : AppCompatActivity() {
             }
             updatePasswordVisibility()
 
-            AlertDialog.Builder(context)
+            return AlertDialog.Builder(context)
                 .setTitle(R.string.local_password)
                 .setView(view)
                 .setPositiveButton(android.R.string.ok) { _, _ ->
@@ -328,17 +345,40 @@ class SettingsActivity : AppCompatActivity() {
                     }
                 }
                 .setNegativeButton(android.R.string.cancel, null)
-                .show()
+                .create()
         }
 
         private fun profileByKey(key: String): ServerProfile? {
             return profiles.firstOrNull { it.key == key }
         }
 
+        private fun profileAddressKey(profileKey: String): String? {
+            return when (profileKey) {
+                PROFILE_SYNC_CLIPBOARD -> SERVER_ADDRESS_SYNC_CLIPBOARD_KEY
+                PROFILE_ONE_CLIP -> SERVER_ADDRESS_ONE_CLIP_KEY
+                PROFILE_CUSTOM -> SERVER_ADDRESS_CUSTOM_KEY
+                else -> null
+            }
+        }
+
+        private fun storedAddressForProfile(prefs: SharedPreferences, profileKey: String): String {
+            val addressKey = profileAddressKey(profileKey)
+            val stored = if (addressKey != null) {
+                prefs.getString(addressKey, null)?.trim().orEmpty()
+            } else {
+                ""
+            }
+            if (stored.isNotEmpty()) return stored
+            return profileByKey(profileKey)?.defaultAddress.orEmpty()
+        }
+
         private fun testConnection() {
             val address = preferenceManager.sharedPreferences?.getString(SERVER_ADDRESS_KEY, "") ?: ""
             val username = preferenceManager.sharedPreferences?.getString("username", "") ?: ""
             val password = preferenceManager.sharedPreferences?.getString("password", "") ?: ""
+            val backend = ServerBackend.fromProfileType(
+                preferenceManager.sharedPreferences?.getString(SERVER_PROFILE_TYPE_KEY, PROFILE_SYNC_CLIPBOARD)
+            )
 
             if (address.isBlank()) {
                 Toast.makeText(context, R.string.please_set_server_address, Toast.LENGTH_SHORT).show()
@@ -353,8 +393,8 @@ class SettingsActivity : AppCompatActivity() {
             progressDialog.show()
 
             CoroutineScope(Dispatchers.IO).launch {
-                val result = SyncClient.testConnection(address, username, password)
-                
+                val result = SyncClient.testConnection(address, username, password, backend)
+
                 withContext(Dispatchers.Main) {
                     progressDialog.dismiss()
                     if (result.isSuccess) {
