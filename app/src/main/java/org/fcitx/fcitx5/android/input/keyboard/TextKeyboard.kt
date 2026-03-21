@@ -179,7 +179,8 @@ class TextKeyboard(
                         ime?.subMode?.label ?: "",
                         ime?.subMode?.name ?: "",
                         key.main ?: ""
-                    )
+                    ),
+                    weight = key.weight
                 )
                 "CapsKey" -> CapsKey(
                     percentWidth = key.weight ?: 0.15f

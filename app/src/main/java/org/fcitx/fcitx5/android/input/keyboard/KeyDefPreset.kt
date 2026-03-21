@@ -44,14 +44,16 @@ class AlphabetKey(
     val punctuation: String,
     val displayText: String = character,
     variant: Variant = Variant.Normal,
-    popup: Array<Popup>? = null
+    popup: Array<Popup>? = null,
+    weight: Float? = null
 ) : KeyDef(
     Appearance.AltText(
         displayText = displayText,
         altText = punctuation,
         character = character,
         textSize = 23f,
-        variant = variant
+        variant = variant,
+        percentWidth = weight ?: 0.1f
     ),
     setOf(
         Behavior.Press(KeyAction.FcitxKeyAction(character)),

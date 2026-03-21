@@ -45,6 +45,7 @@ object LayoutJsonUtils {
                 json["main"] = keyDef.character
                 json["alt"] = keyDef.punctuation
                 json["displayText"] = keyDef.displayText
+                json["weight"] = appearance.percentWidth.takeIf { it != 0.1f }
             }
             is CapsKey -> {
                 json["weight"] = appearance.percentWidth

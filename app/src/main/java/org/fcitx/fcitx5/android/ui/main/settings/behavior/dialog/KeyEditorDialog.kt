@@ -74,6 +74,7 @@ class KeyEditorDialog(private val activity: AppCompatActivity) {
         // AlphabetKey fields
         var alphabetMainEdit: EditText? = null
         var alphabetAltEdit: EditText? = null
+        var alphabetWeightEdit: EditText? = null
         var alphabetDisplayTextSimpleEdit: EditText? = null
         var alphabetDisplayTextModeSpecific = false
         var alphabetDisplayTextSimpleValue = ""
@@ -116,6 +117,7 @@ class KeyEditorDialog(private val activity: AppCompatActivity) {
             fieldsContainer.removeAllViews()
             alphabetMainEdit = null
             alphabetAltEdit = null
+            alphabetWeightEdit = null
             alphabetDisplayTextSimpleEdit = null
             alphabetDisplayTextRowBindings.clear()
             layoutSwitchLabelEdit = null
@@ -135,8 +137,13 @@ class KeyEditorDialog(private val activity: AppCompatActivity) {
                         activity.getString(R.string.text_keyboard_layout_key_alt),
                         keyData["alt"] as? String ?: ""
                     )
+                    val weightEdit = uiBuilder.createEditField(
+                        activity.getString(R.string.text_keyboard_layout_key_weight),
+                        (keyData["weight"] as? Number)?.toString() ?: ""
+                    )
                     fieldsContainer.addView(mainEdit.first)
                     fieldsContainer.addView(altEdit.first)
+                    fieldsContainer.addView(weightEdit.first)
 
                     val displayTextContainer = LinearLayout(activity).apply {
                         orientation = LinearLayout.VERTICAL
@@ -145,6 +152,7 @@ class KeyEditorDialog(private val activity: AppCompatActivity) {
 
                     alphabetMainEdit = mainEdit.second
                     alphabetAltEdit = altEdit.second
+                    alphabetWeightEdit = weightEdit.second
 
                     uiBuilder.renderDisplayTextEditor(
                         displayTextContainer,
@@ -237,6 +245,7 @@ class KeyEditorDialog(private val activity: AppCompatActivity) {
                     selectedType,
                     alphabetMainEdit,
                     alphabetAltEdit,
+                    alphabetWeightEdit,
                     alphabetDisplayTextModeSpecific,
                     alphabetDisplayTextSimpleEdit,
                     alphabetDisplayTextSimpleValue,
@@ -298,6 +307,7 @@ class KeyEditorDialog(private val activity: AppCompatActivity) {
         selectedType: String,
         alphabetMainEdit: EditText?,
         alphabetAltEdit: EditText?,
+        alphabetWeightEdit: EditText?,
         alphabetDisplayTextModeSpecific: Boolean,
         alphabetDisplayTextSimpleEdit: EditText?,
         alphabetDisplayTextSimpleValue: String,
@@ -340,6 +350,7 @@ class KeyEditorDialog(private val activity: AppCompatActivity) {
             "AlphabetKey" -> {
                 newKey["main"] = alphabetMainEdit?.text?.toString().orEmpty()
                 newKey["alt"] = alphabetAltEdit?.text?.toString().orEmpty()
+                parseWeight(alphabetWeightEdit?.text?.toString())?.let { newKey["weight"] = it }
 
                 if (alphabetDisplayTextModeSpecific) {
                     // In mode-specific mode, read from row bindings (UI EditText fields)
