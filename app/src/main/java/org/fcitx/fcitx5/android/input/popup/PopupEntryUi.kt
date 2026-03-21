@@ -26,7 +26,11 @@ class PopupEntryUi(override val ctx: Context, theme: Theme, keyHeight: Int, radi
     var lastShowTime = -1L
 
     val textView = view(::AutoScaleTextView) {
-        textSize = 23f
+        // Use configured font size with fallback to default (23f)
+        val fontSize = org.fcitx.fcitx5.android.input.font.FontProviders.getFontSize(
+            "popup_key_font", 23f
+        )
+        setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, fontSize)
         gravity = gravityCenter
         setTextColor(theme.popupTextColor)
     }

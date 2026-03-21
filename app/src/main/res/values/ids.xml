@@ -3,4 +3,5 @@
     <item name="seekbar" type="id" />
     <item name="value_text" type="id" />
     <item name="recommendation_text" type="id" />
+    <item name="button_layout_switch" type="id" />
 </resources>

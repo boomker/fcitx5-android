@@ -10,6 +10,8 @@ class DefaultFontProvider : FontProviderApi {
     @Volatile
     private var cachedFontTypefaceMap: MutableMap<String, Typeface?>? = null
     @Volatile
+    private var cachedFontSizeMap: MutableMap<String, Float>? = null
+    @Volatile
     private var lastModified = 0L
     @Volatile
     private var isLoading = false
@@ -17,6 +19,7 @@ class DefaultFontProvider : FontProviderApi {
     @Synchronized
     override fun clearCache() {
         cachedFontTypefaceMap = null
+        cachedFontSizeMap = null
         lastModified = 0L
         isLoading = false
     }
@@ -28,7 +31,7 @@ class DefaultFontProvider : FontProviderApi {
     fun preloadFontsAsync(onComplete: ((MutableMap<String, Typeface?>) -> Unit)? = null) {
         if (isLoading) return  // Already loading
         isLoading = true
-        
+
         Thread {
             val fonts = fontTypefaceMap
             isLoading = false
@@ -44,7 +47,7 @@ class DefaultFontProvider : FontProviderApi {
             if (cached != null && !isLoading) {
                 return cached
             }
-            
+
             // Slow path: load fonts
             val snapshot = org.fcitx.fcitx5.android.input.config.ConfigProviders
                 .readFontsetPathMapSnapshot()
@@ -63,9 +66,9 @@ class DefaultFontProvider : FontProviderApi {
             if (cachedFontTypefaceMap == null || lastModified != fontset.lastModified) {
                 cachedFontTypefaceMap = runCatching {
                     fontset.value
-                        .asSequence()
-                        .associateTo(mutableMapOf()) { (key, paths) ->
-                            key to runCatching {
+                        .filterKeys { !it.endsWith("_size") }  // Exclude font size keys
+                        .mapValues { (_, paths) ->
+                            runCatching {
                                 val fontPaths = paths.map { it.trim() }
                                 if (android.os.Build.VERSION.SDK_INT >= 29) {
                                     var builder: android.graphics.Typeface.CustomFallbackBuilder? = null
@@ -94,5 +97,42 @@ class DefaultFontProvider : FontProviderApi {
                 lastModified = fontset.lastModified
             }
             return cachedFontTypefaceMap ?: mutableMapOf()
+        }
+
+    @get:Synchronized
+    override val fontSizeMap: MutableMap<String, Float>
+        get() {
+            // Fast path: return cached map if available and up-to-date
+            val cached = cachedFontSizeMap
+            if (cached != null) {
+                return cached
+            }
+
+            // Slow path: parse font sizes
+            val snapshot = org.fcitx.fcitx5.android.input.config.ConfigProviders
+                .readFontsetPathMapSnapshot()
+                .getOrNull() ?: run {
+                cachedFontSizeMap = null
+                return mutableMapOf()
+            }
+            val fontset = snapshot ?: run {
+                cachedFontSizeMap = null
+                return mutableMapOf()
+            }
+            if (cachedFontSizeMap == null || lastModified != fontset.lastModified) {
+                cachedFontSizeMap = runCatching {
+                    fontset.value
+                        .filterKeys { key -> key.endsWith("_size") }  // Only process font size keys
+                        .mapValues { (_, values) ->
+                            runCatching {
+                                val sizeStr = values.firstOrNull()?.trim() ?: return@runCatching null
+                                sizeStr.toFloatOrNull()?.coerceIn(8f, 72f)
+                            }.getOrNull()
+                        }
+                        .filterValues { it != null }
+                        .mapValues { it.value!! } as MutableMap<String, Float>
+                }.getOrElse { mutableMapOf() }
+            }
+            return cachedFontSizeMap ?: mutableMapOf()
         }
 }

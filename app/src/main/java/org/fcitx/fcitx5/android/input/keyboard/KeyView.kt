@@ -278,7 +278,16 @@ open class TextKeyView(
         background = null
         scaleMode = AutoScaleTextView.Mode.Proportional
         text = def.displayText
-        setTextSize(TypedValue.COMPLEX_UNIT_SP, def.textSize)
+        // Use configured font size with fallback to def.textSize
+        // SpaceKey and LayoutSwitchKey use hardcoded default textSize
+        val fontSize = when (def.viewId) {
+            R.id.button_space -> def.textSize  // SpaceKey uses hardcoded 13f
+            R.id.button_layout_switch -> def.textSize  // LayoutSwitchKey uses hardcoded 16f
+            else -> org.fcitx.fcitx5.android.input.font.FontProviders.getFontSize(
+                "key_main_font", def.textSize
+            )
+        }
+        setTextSize(TypedValue.COMPLEX_UNIT_SP, fontSize)
         textDirection = View.TEXT_DIRECTION_FIRST_STRONG_LTR
         // Set font key for batch setting in BaseKeyboard.reloadLayout()
         fontKey = "key_main_font"
@@ -311,7 +320,14 @@ open class TextKeyView(
 
     override fun setTextScale(scale: Float) {
         if (def is KeyDef.Appearance.Text) {
-            mainText.setTextSize(TypedValue.COMPLEX_UNIT_SP, def.textSize * scale)
+            val fontSize = when (def.viewId) {
+                R.id.button_space -> def.textSize
+                R.id.button_layout_switch -> def.textSize
+                else -> org.fcitx.fcitx5.android.input.font.FontProviders.getFontSize(
+                    "key_main_font", def.textSize
+                )
+            }
+            mainText.setTextSize(TypedValue.COMPLEX_UNIT_SP, fontSize * scale)
             mainText.requestLayout()
         }
     }
@@ -328,8 +344,11 @@ class AltTextKeyView(
     val altText = view(::AutoScaleTextView) {
         isClickable = false
         isFocusable = false
-        // TODO hardcoded alt text size
-        setTextSize(TypedValue.COMPLEX_UNIT_SP, 10.666667f)
+        // Use configured font size with fallback to default (10.67f)
+        val fontSize = org.fcitx.fcitx5.android.input.font.FontProviders.getFontSize(
+            "key_alt_font", 10.666667f
+        )
+        setTextSize(TypedValue.COMPLEX_UNIT_SP, fontSize)
         // Set font key for batch setting in BaseKeyboard.reloadLayout()
         fontKey = "key_alt_font"
         setTypeface(typeface, Typeface.BOLD)
@@ -352,8 +371,10 @@ class AltTextKeyView(
 
     override fun setTextScale(scale: Float) {
         super.setTextScale(scale)
-        // TODO hardcoded alt text size: 10.666667f
-        altText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10.666667f * scale)
+        val fontSize = org.fcitx.fcitx5.android.input.font.FontProviders.getFontSize(
+            "key_alt_font", 10.666667f
+        )
+        altText.setTextSize(TypedValue.COMPLEX_UNIT_SP, fontSize * scale)
         altText.requestLayout()
     }
 

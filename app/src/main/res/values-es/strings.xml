@@ -238,4 +238,8 @@
     <string name="text_keyboard_layout_delete_submode_layout_confirm">¿Eliminar el diseño del submodo "%1$s"?</string>
     <string name="text_keyboard_layout_editing_submode">Editando diseño para el submodo "%1$s"</string>
     <string name="text_keyboard_layout_editing_default">Editando diseño predeterminado para "%1$s"</string>
+    <string name="font_size">Tamaño de fuente</string>
+    <string name="font_size_value">%1$d sp</string>
+    <string name="font_size_editor_title">%1$s - Tamaño de fuente</string>
+    <string name="font_size_editor_hint">Arrastra para ajustar el tamaño de fuente (%1$d–%2$d sp)</string>
 </resources>

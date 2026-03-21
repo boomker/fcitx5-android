@@ -288,6 +288,10 @@
     <string name="popup_editor_add_candidate_button">追加</string>
     <string name="popup_editor_candidate_input_hint">候補値を入力</string>
     <string name="edit_text_keyboard_layout">テキストキーボードレイアウトを編集</string>
+    <string name="font_size">フォントサイズ</string>
+    <string name="font_size_value">%1$d sp</string>
+    <string name="font_size_editor_title">%1$s - フォントサイズ</string>
+    <string name="font_size_editor_hint">ドラッグしてフォントサイズを調整 (%1$d–%2$d sp)</string>
     <string name="text_keyboard_layout_preview">プレビュー</string>
     <string name="text_keyboard_layout_add_layout">レイアウトを追加</string>
     <string name="text_keyboard_layout_add_row">行を追加</string>

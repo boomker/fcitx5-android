@@ -34,7 +34,11 @@ class CandidateItemUi(
         } else {
             AutoScaleTextView.Mode.None
         }
-        textSize = 20f // sp
+        // Use configured font size with fallback to default (20f)
+        val fontSize = org.fcitx.fcitx5.android.input.font.FontProviders.getFontSize(
+            "cand_font", 20f
+        )
+        textSize = fontSize
         isSingleLine = true
         gravity = gravityCenter
         setTextColor(theme.candidateTextColor)

@@ -388,6 +388,10 @@
     <string name="horizontal">横向</string>
     <string name="vertical">纵向</string>
     <string name="candidates_font_size">候选词字体大小</string>
+    <string name="font_size">字体大小</string>
+    <string name="font_size_value">%1$d sp</string>
+    <string name="font_size_editor_title">%1$s - 字体大小</string>
+    <string name="font_size_editor_hint">拖动调整字体大小 (%1$d–%2$d sp)</string>
     <string name="candidates_padding">候选词边距</string>
     <string name="candidates_window_min_width">候选窗口最小宽度</string>
     <string name="candidates_window_padding">候选窗口边距</string>

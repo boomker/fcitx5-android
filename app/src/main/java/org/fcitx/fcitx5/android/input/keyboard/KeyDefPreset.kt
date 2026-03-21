@@ -125,7 +125,8 @@ class LayoutSwitchKey(
         textSize = 16f,
         textStyle = Typeface.BOLD,
         percentWidth = percentWidth,
-        variant = variant
+        variant = variant,
+        viewId = R.id.button_layout_switch
     ),
     setOf(
         Behavior.Press(KeyAction.LayoutSwitchAction(to))
@@ -145,7 +146,7 @@ class LayoutSwitchKey(
                 KeyAction.LayoutSwitchAction(NumberKeyboard.Name)
             )
         )
-       ) 
+       )
     )
 )
 

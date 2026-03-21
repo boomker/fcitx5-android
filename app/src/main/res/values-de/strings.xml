@@ -283,4 +283,8 @@
     <string name="text_keyboard_layout_delete_submode_layout_confirm">Submodus-Layout "%1$s" löschen?</string>
     <string name="text_keyboard_layout_editing_submode">Bearbeite Layout für Submodus "%1$s"</string>
     <string name="text_keyboard_layout_editing_default">Bearbeite Standard-Layout für "%1$s"</string>
+    <string name="font_size">Schriftgröße</string>
+    <string name="font_size_value">%1$d sp</string>
+    <string name="font_size_editor_title">%1$s - Schriftgröße</string>
+    <string name="font_size_editor_hint">Ziehen, um Schriftgröße anzupassen (%1$d–%2$d sp)</string>
 </resources>

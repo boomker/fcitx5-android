@@ -47,7 +47,11 @@ open class PreeditUi(
 
     private fun createTextView() = textView {
         setTextColor(theme.keyTextColor)
-        textSize = 16f
+        // Use configured font size with fallback to default (16f)
+        val fontSize = org.fcitx.fcitx5.android.input.font.FontProviders.getFontSize(
+            "preedit_font", 16f
+        )
+        setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, fontSize)
         setupTextView?.invoke(this)
         typeface = AutoScaleTextView.fontTypefaceMap["preedit_font"] ?: typeface
     }
