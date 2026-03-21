@@ -1,5 +1,6 @@
 <resources>
     <string name="app_display_name">ClipboardSync</string>
+    <string name="plugin_description">与 SyncClipboard / OneClip 服务同步剪贴板</string>
     <string name="settings_title">设置</string>
     <string name="quick_sync_tile_label">剪贴板同步</string>
 
