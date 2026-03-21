@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name_release">小天鹅</string>
-    <string name="app_name_debug">小天鹅 (除錯)</string>
+    <string name="app_name_release">天鹅输入法</string>
+    <string name="app_name_debug">天鹅输入法 (除錯)</string>
     <string name="save">儲存</string>
     <string name="input_methods">輸入法</string>
     <string name="add_input_method">新增輸入法</string>
@@ -398,7 +398,7 @@
     <string name="text_keyboard_layout_display_text_mode_duplicate">模式名稱 "%1$s" 已被使用</string>
     <string name="cannot_resolve_text_keyboard_layout">無法定位文字鍵盤佈局檔案</string>
     <string name="text_keyboard_layout_saved_at">TextKeyboardLayout.json 已儲存至：%1$s</string>
-    
+
     <!-- Split keyboard settings (refactored) -->
     <string name="split_keyboard_enabled">啟用自動分體鍵盤</string>
     <string name="split_keyboard_enabled_summary">根據鍵盤寬度自動啟用分體鍵盤。關閉後始終使用完整鍵盤。</string>

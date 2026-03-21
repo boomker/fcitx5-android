@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name_release">小天鹅</string>
-    <string name="app_name_debug">小天鹅 (调试)</string>
+    <string name="app_name_release">天鹅输入法</string>
+    <string name="app_name_debug">天鹅输入法 (调试)</string>
     <string name="save">保存</string>
     <string name="input_methods">输入法</string>
     <string name="add_input_method">添加输入法</string>
@@ -165,7 +165,7 @@
     <string name="keyboard_bottom_padding">键盘底部边距</string>
     <string name="keyboard_side_padding">键盘两侧边距</string>
     <string name="clipboard_suggestion">显示剪贴板提示</string>
-    
+
     <!-- Split keyboard settings (refactored) -->
     <string name="split_keyboard_enabled">启用自动分体键盘</string>
     <string name="split_keyboard_enabled_summary">根据键盘宽度自动启用分体键盘。关闭后始终使用完整键盘。</string>
@@ -452,7 +452,7 @@
     <string name="text_keyboard_layout_mode_name_hint">模式名称</string>
     <string name="text_keyboard_layout_display_value_hint">显示值</string>
     <string name="text_keyboard_layout_key_label_caps">Caps</string>
-    
+
     <!-- Submode Layout Support -->
     <string name="text_keyboard_layout_add_submode">添加子模式布局</string>
     <string name="text_keyboard_layout_add_submode_confirm">为子模式"%1$s"添加专用布局？</string>

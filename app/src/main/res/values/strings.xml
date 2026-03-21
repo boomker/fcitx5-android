@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name_release">小天鹅</string>
-    <string name="app_name_debug">小天鹅 (Debug)</string>
+    <string name="app_name_release">天鹅输入法</string>
+    <string name="app_name_debug">天鹅输入法 (Debug)</string>
     <string name="save">Save</string>
     <string name="input_methods">Input Methods</string>
     <string name="add_input_method">Add Input Method</string>
@@ -165,7 +165,7 @@
     <string name="keyboard_bottom_padding">Keyboard bottom padding</string>
     <string name="keyboard_side_padding">Keyboard side padding</string>
     <string name="clipboard_suggestion">Show clipboard suggestions</string>
-    
+
     <!-- Split keyboard settings (refactored) -->
     <string name="split_keyboard_enabled">Enable auto split keyboard</string>
     <string name="split_keyboard_enabled_summary">Automatically enable split keyboard based on keyboard width. When disabled, always use full keyboard.</string>
@@ -415,12 +415,12 @@
     <string name="emoji_skin_tone_type_6">🏿 Type-6</string>
     <string name="hide_unsupported_emojis">Hide unsupported Emojis</string>
     <string name="key_border_stroke">Enable stroke for key border</string>
-    
+
     <!-- Text Keyboard Layout Editor -->
     <string name="edit_text_keyboard_layout">Edit Text Keyboard Layout</string>
     <string name="edit_text_keyboard_layout_summary">Edit text keyboard layout (TextKeyboardLayout.json)</string>
     <string name="text_keyboard_layout_preview">Preview</string>
-    
+
     <!-- Common strings -->
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>

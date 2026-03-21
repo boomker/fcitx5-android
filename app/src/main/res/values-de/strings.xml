@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name_release">小天鹅</string>
-    <string name="app_name_debug">小天鹅 (Debug)</string>
+    <string name="app_name_release">天鹅输入法</string>
+    <string name="app_name_debug">天鹅输入法 (Debug)</string>
     <string name="save">Speichern</string>
     <string name="input_methods">Eingabemethoden</string>
     <string name="add_input_method">Eingabemethode hinzufügen</string>
