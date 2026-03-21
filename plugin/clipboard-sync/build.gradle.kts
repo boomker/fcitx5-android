@@ -6,15 +6,6 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
-val externalProjectDir = file(
-    findProperty("clipboardSyncProjectDir")?.toString()
-        ?: "/Users/cyzhu/gitrepos/Fcitx5-clipboard_sync"
-)
-val externalMainDir = externalProjectDir.resolve("app/src/main")
-require(externalMainDir.isDirectory) {
-    "Clipboard Sync source dir not found: $externalMainDir"
-}
-
 android {
     namespace = "org.fcitx.fcitx5.android.plugin.clipboard_sync"
 
@@ -26,11 +17,6 @@ android {
         release {
             isShrinkResources = false
         }
-    }
-
-    sourceSets.named("main") {
-        manifest.srcFile("src/main/AndroidManifest.xml")
-        res.srcDir(externalMainDir.resolve("res"))
     }
 }
 

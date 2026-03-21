@@ -1,5 +1,7 @@
 <resources>
     <string name="app_display_name">ClipboardSync</string>
+    <string name="settings_title">设置</string>
+    <string name="quick_sync_tile_label">剪贴板同步</string>
 
     <string name="local_quick_sync">开启同步</string>
     <string name="local_quick_sync_summary">关闭后将停止所有同步服务</string>
@@ -23,4 +25,10 @@
     <string name="storage_location_pick">选择目录</string>
     <string name="local_test_connection">测试连接</string>
     <string name="local_click_test">点击测试服务器可用性</string>
+    <string name="please_set_server_address">请先设置服务器地址</string>
+    <string name="testing_connection">正在测试连接...</string>
+    <string name="connecting_to">正在连接到 %s...</string>
+    <string name="connection_success">连接成功</string>
+    <string name="connection_failed">连接失败</string>
+    <string name="unknown_error">未知错误</string>
 </resources>
