@@ -52,10 +52,10 @@ class PickerLayout(context: Context, theme: Theme, switchKey: KeyDef) :
             )
         )
 
-        val `return`: ImageKeyView by lazy { findViewById(R.id.button_return) }
+        val `return`: ImageKeyView? by lazy { findKeyViewById<ImageKeyView>(R.id.button_return) }
 
         override fun onReturnDrawableUpdate(returnDrawable: Int) {
-            `return`.img.imageResource = returnDrawable
+            `return`?.img?.imageResource = returnDrawable
         }
     }
 

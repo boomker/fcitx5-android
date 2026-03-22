@@ -314,18 +314,56 @@ class TextKeyboard(
         )
     }
 
-    val caps: ImageKeyView?
-        get() = findViewById(R.id.button_caps)
-    val backspace: ImageKeyView?
-        get() = findViewById(R.id.button_backspace)
-    val quickphrase: ImageKeyView?
-        get() = findViewById(R.id.button_quickphrase)
-    val lang: ImageKeyView?
-        get() = findViewById(R.id.button_lang)
-    val space: TextKeyView?
-        get() = findViewById(R.id.button_space)
-    val `return`: ImageKeyView?
-        get() = findViewById(R.id.button_return)
+    private var specialKeyViews: SpecialKeyViews = SpecialKeyViews(
+        caps = emptyList(),
+        backspace = emptyList(),
+        quickphrase = emptyList(),
+        lang = emptyList(),
+        space = emptyList(),
+        `return` = emptyList()
+    )
+    
+    data class SpecialKeyViews(
+        val caps: List<ImageKeyView>,
+        val backspace: List<ImageKeyView>,
+        val quickphrase: List<ImageKeyView>,
+        val lang: List<ImageKeyView>,
+        val space: List<TextKeyView>,
+        val `return`: List<ImageKeyView>
+    )
+    
+    private fun findAllSpecialKeyViews(): SpecialKeyViews {
+        val caps = mutableListOf<ImageKeyView>()
+        val backspace = mutableListOf<ImageKeyView>()
+        val quickphrase = mutableListOf<ImageKeyView>()
+        val lang = mutableListOf<ImageKeyView>()
+        val space = mutableListOf<TextKeyView>()
+        val returnKeys = mutableListOf<ImageKeyView>()
+        
+        allViews.forEach { view ->
+            when (view.tag) {
+                R.id.button_caps -> caps.add(view as ImageKeyView)
+                R.id.button_backspace -> backspace.add(view as ImageKeyView)
+                R.id.button_quickphrase -> quickphrase.add(view as ImageKeyView)
+                R.id.button_lang -> lang.add(view as ImageKeyView)
+                R.id.button_space -> space.add(view as TextKeyView)
+                R.id.button_return -> returnKeys.add(view as ImageKeyView)
+            }
+        }
+        
+        return SpecialKeyViews(
+            caps = caps,
+            backspace = backspace,
+            quickphrase = quickphrase,
+            lang = lang,
+            space = space,
+            `return` = returnKeys
+        )
+    }
+    
+    private fun ensureSpecialKeyViewsInitialized() {
+        specialKeyViews = findAllSpecialKeyViews()
+    }
 
     private val showLangSwitchKey = AppPrefs.getInstance().keyboard.showLangSwitchKey
 
@@ -403,6 +441,7 @@ class TextKeyboard(
     }
 
     override fun onAttach() {
+        ensureSpecialKeyViewsInitialized()
         capsState = CapsState.None
         updateCapsButtonIcon()
         updateAlphabetKeys()
@@ -422,7 +461,9 @@ class TextKeyboard(
     }
 
     override fun onReturnDrawableUpdate(returnDrawable: Int) {
-        `return`?.img?.imageResource = returnDrawable
+        specialKeyViews.`return`.forEach { returnKey ->
+            returnKey.img.imageResource = returnDrawable
+        }
     }
 
     override fun onPunctuationUpdate(mapping: Map<String, String>) {
@@ -432,9 +473,13 @@ class TextKeyboard(
 
     private fun updateSpaceLabel(ime: InputMethodEntry?) {
         if (ime == null) return
-        space?.mainText?.text = buildString {
+        val newText = buildString {
             append(ime.displayName)
             ime.subMode.run { label.ifEmpty { name.ifEmpty { null } } }?.let { append(" ($it)") }
+        }
+        ensureSpecialKeyViewsInitialized()
+        specialKeyViews.space.forEach { spaceKey ->
+            spaceKey.mainText.text = newText
         }
     }
 
@@ -446,6 +491,8 @@ class TextKeyboard(
             reloadLayout()
             lastLayoutSignature = signature
         }
+        // Re-find special key views after layout reload (or ensure initialized on first call)
+        ensureSpecialKeyViewsInitialized()
         updateAlphabetKeys()
         updateSpaceLabel(ime)
         if (capsState != CapsState.None) {
@@ -454,6 +501,7 @@ class TextKeyboard(
     }
 
     override fun onStyleRefreshFinished() {
+        ensureSpecialKeyViewsInitialized()
         updateCapsButtonIcon()
         updateAlphabetKeys()
         updatePunctuationKeys()
@@ -499,17 +547,22 @@ class TextKeyboard(
     }
 
     private fun updateCapsButtonIcon() {
-        caps?.img?.apply {
-            imageResource = when (capsState) {
-                CapsState.None -> R.drawable.ic_capslock_none
-                CapsState.Once -> R.drawable.ic_capslock_once
-                CapsState.Lock -> R.drawable.ic_capslock_lock
+        specialKeyViews.caps.forEach { cap ->
+            cap.img.apply {
+                imageResource = when (capsState) {
+                    CapsState.None -> R.drawable.ic_capslock_none
+                    CapsState.Once -> R.drawable.ic_capslock_once
+                    CapsState.Lock -> R.drawable.ic_capslock_lock
+                }
             }
         }
     }
 
     private fun updateLangSwitchKey(visible: Boolean) {
-        lang?.visibility = if (visible) View.VISIBLE else View.GONE
+        ensureSpecialKeyViewsInitialized()
+        specialKeyViews.lang.forEach { langKey ->
+            langKey.visibility = if (visible) View.VISIBLE else View.GONE
+        }
     }
 
     private fun updateAlphabetKeys() {

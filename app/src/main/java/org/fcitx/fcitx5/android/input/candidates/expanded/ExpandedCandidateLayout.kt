@@ -63,13 +63,13 @@ class ExpandedCandidateLayout(context: Context, theme: Theme) : ConstraintLayout
             )
         }
 
-        val pageUpBtn: ImageKeyView by lazy { findViewById(UpBtnId) }
-        val pageDnBtn: ImageKeyView by lazy { findViewById(DownBtnId) }
-        val backspace: ImageKeyView by lazy { findViewById(R.id.button_backspace) }
-        val `return`: ImageKeyView by lazy { findViewById(R.id.button_return) }
+        val pageUpBtn: ImageKeyView? by lazy { findKeyViewById<ImageKeyView>(UpBtnId) }
+        val pageDnBtn: ImageKeyView? by lazy { findKeyViewById<ImageKeyView>(DownBtnId) }
+        val backspace: ImageKeyView? by lazy { findKeyViewById<ImageKeyView>(R.id.button_backspace) }
+        val `return`: ImageKeyView? by lazy { findKeyViewById<ImageKeyView>(R.id.button_return) }
 
         override fun onReturnDrawableUpdate(returnDrawable: Int) {
-            `return`.img.imageResource = returnDrawable
+            `return`?.img?.imageResource = returnDrawable
         }
     }
 
@@ -79,8 +79,8 @@ class ExpandedCandidateLayout(context: Context, theme: Theme) : ConstraintLayout
         isVerticalScrollBarEnabled = false
     }
 
-    var pageUpBtn: ImageKeyView
-    var pageDnBtn: ImageKeyView
+    var pageUpBtn: ImageKeyView? = null
+    var pageDnBtn: ImageKeyView? = null
 
     val embeddedKeyboard = Keyboard(context, theme).also {
         pageUpBtn = it.pageUpBtn

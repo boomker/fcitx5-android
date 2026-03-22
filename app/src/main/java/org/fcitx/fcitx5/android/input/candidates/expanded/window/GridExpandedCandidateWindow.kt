@@ -58,8 +58,8 @@ class GridExpandedCandidateWindow :
                 addOnScrollListener(object : RecyclerView.OnScrollListener() {
                     override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                         (recyclerView.layoutManager as GridLayoutManager).apply {
-                            pageUpBtn.isEnabled = findFirstCompletelyVisibleItemPosition() > 0
-                            pageDnBtn.isEnabled =
+                            pageUpBtn?.isEnabled = findFirstCompletelyVisibleItemPosition() > 0
+                            pageDnBtn?.isEnabled =
                                 findLastCompletelyVisibleItemPosition() < itemCount - 1
                         }
                     }
