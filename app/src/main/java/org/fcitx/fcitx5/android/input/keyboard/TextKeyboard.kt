@@ -155,18 +155,24 @@ class TextKeyboard(
             return json[displayName]?.jsonArray
         }
 
-        private fun parseKeyJsonArray(rowArray: JsonArray): List<KeyJson> {
-            return rowArray.map { it.jsonObject.let { obj ->
+        private fun parseKeyJsonArray(rowArray: JsonArray, showLangSwitch: Boolean = true): List<KeyDef> {
+            return rowArray.mapNotNull { element ->
+                val obj = element.jsonObject
+                val type = obj["type"]?.jsonPrimitive?.content ?: ""
+                // Skip LanguageKey if showLangSwitch is false
+                if (type == "LanguageKey" && !showLangSwitch) {
+                    return@mapNotNull null
+                }
                 KeyJson(
-                    type = obj["type"]?.jsonPrimitive?.content ?: "",
+                    type = type,
                     main = obj["main"]?.jsonPrimitive?.content,
                     alt = obj["alt"]?.jsonPrimitive?.content,
                     displayText = obj["displayText"],
                     label = obj["label"]?.jsonPrimitive?.content,
                     subLabel = obj["subLabel"]?.jsonPrimitive?.content,
                     weight = obj["weight"]?.jsonPrimitive?.float
-                )
-            } }
+                )?.let { createKeyDef(it) }
+            }
         }
 
         private fun createKeyDef(key: KeyJson): KeyDef {
@@ -218,6 +224,7 @@ class TextKeyboard(
         fun getLayout(): List<List<KeyDef>> {
             val imeName = ime?.uniqueName
             val subModeLabel = ime?.subMode?.label ?: ""
+            val showLangSwitch = AppPrefs.getInstance().keyboard.showLangSwitchKey.getValue()
             if (imeName != null) {
                 val json = textLayoutJson
                 if (json != null) {
@@ -225,7 +232,7 @@ class TextKeyboard(
                     val layoutKey = imeName
                     val imeLayoutElement = json[layoutKey]
                         ?: json[ime?.displayName]
-                    
+
                     if (imeLayoutElement != null) {
                         // Check if this is a submode structure (JsonObject) or direct layout (JsonArray)
                         val subModeLayoutElement = if (imeLayoutElement is JsonObject) {
@@ -237,125 +244,119 @@ class TextKeyboard(
                             // Direct layout array, use as-is
                             imeLayoutElement
                         }
-                        
+
                         if (subModeLayoutElement is JsonArray) {
-                            // Use a cache key that includes submode for proper caching
-                            // For both old format (JsonArray) and new format (JsonObject),
-                            // include submode in cache key so displayText is re-resolved when submode changes
-                            val cacheKey = "$layoutKey:$subModeLabel"
+                            // Use a cache key that includes submode and showLangSwitch for proper caching
+                            // Include showLangSwitch in cache key so layout is re-created when setting changes
+                            val cacheKey = "$layoutKey:$subModeLabel:$showLangSwitch"
                             return cachedKeyDefLayouts.getOrPut(cacheKey) {
                                 subModeLayoutElement.map { rowElement ->
-                                    parseKeyJsonArray(rowElement.jsonArray)
-                                        .map { createKeyDef(it) }
+                                    parseKeyJsonArray(rowElement.jsonArray, showLangSwitch)
                                 }
                             }
                         }
                     }
-                    
+
                     // Fallback to global "default" layout
                     json["default"]?.let { layoutElement ->
                         if (layoutElement is JsonArray) {
-                            return cachedKeyDefLayouts.getOrPut("default") {
+                            return cachedKeyDefLayouts.getOrPut("default:$showLangSwitch") {
                                 layoutElement.map { rowElement ->
-                                    parseKeyJsonArray(rowElement.jsonArray)
-                                        .map { createKeyDef(it) }
+                                    parseKeyJsonArray(rowElement.jsonArray, showLangSwitch)
                                 }
                             }
                         }
                     }
                 }
             }
-            return DefaultLayout
+            return getDefaultLayout(showLangSwitch)
         }
 
-        val DefaultLayout: List<List<KeyDef>> = listOf(
-            listOf(
-                AlphabetKey("Q", "1"),
-                AlphabetKey("W", "2"),
-                AlphabetKey("E", "3"),
-                AlphabetKey("R", "4"),
-                AlphabetKey("T", "5"),
-                AlphabetKey("Y", "6"),
-                AlphabetKey("U", "7"),
-                AlphabetKey("I", "8"),
-                AlphabetKey("O", "9"),
-                AlphabetKey("P", "0")
-            ),
-            listOf(
-                AlphabetKey("A", "@"),
-                AlphabetKey("S", "*"),
-                AlphabetKey("D", "+"),
-                AlphabetKey("F", "-"),
-                AlphabetKey("G", "="),
-                AlphabetKey("H", "/"),
-                AlphabetKey("J", "#"),
-                AlphabetKey("K", "("),
-                AlphabetKey("L", ")")
-            ),
-            listOf(
-                CapsKey(),
-                AlphabetKey("Z", "'"),
-                AlphabetKey("X", ":"),
-                AlphabetKey("C", "\""),
-                AlphabetKey("V", "?"),
-                AlphabetKey("B", "!"),
-                AlphabetKey("N", "~"),
-                AlphabetKey("M", "\\"),
-                BackspaceKey()
-            ),
-            listOf(
-                LayoutSwitchKey("?123", ""),
-                CommaKey(0.1f, KeyDef.Appearance.Variant.Alternative),
-                LanguageKey(),
-                SpaceKey(),
-                SymbolKey(".", 0.1f, KeyDef.Appearance.Variant.Alternative),
-                ReturnKey()
+        fun getDefaultLayout(showLangSwitch: Boolean = true): List<List<KeyDef>> {
+            return listOf(
+                listOf(
+                    AlphabetKey("Q", "1"),
+                    AlphabetKey("W", "2"),
+                    AlphabetKey("E", "3"),
+                    AlphabetKey("R", "4"),
+                    AlphabetKey("T", "5"),
+                    AlphabetKey("Y", "6"),
+                    AlphabetKey("U", "7"),
+                    AlphabetKey("I", "8"),
+                    AlphabetKey("O", "9"),
+                    AlphabetKey("P", "0")
+                ),
+                listOf(
+                    AlphabetKey("A", "@"),
+                    AlphabetKey("S", "*"),
+                    AlphabetKey("D", "+"),
+                    AlphabetKey("F", "-"),
+                    AlphabetKey("G", "="),
+                    AlphabetKey("H", "/"),
+                    AlphabetKey("J", "#"),
+                    AlphabetKey("K", "("),
+                    AlphabetKey("L", ")")
+                ),
+                listOf(
+                    CapsKey(),
+                    AlphabetKey("Z", "'"),
+                    AlphabetKey("X", ":"),
+                    AlphabetKey("C", "\""),
+                    AlphabetKey("V", "?"),
+                    AlphabetKey("B", "!"),
+                    AlphabetKey("N", "~"),
+                    AlphabetKey("M", "\\"),
+                    BackspaceKey()
+                ),
+                listOf(
+                    LayoutSwitchKey("?123", ""),
+                    CommaKey(0.1f, KeyDef.Appearance.Variant.Alternative),
+                    *if (showLangSwitch) arrayOf(LanguageKey()) else emptyArray(),
+                    SpaceKey(),
+                    SymbolKey(".", 0.1f, KeyDef.Appearance.Variant.Alternative),
+                    ReturnKey()
+                )
             )
-        )
+        }
     }
 
     private var specialKeyViews: SpecialKeyViews = SpecialKeyViews(
         caps = emptyList(),
         backspace = emptyList(),
         quickphrase = emptyList(),
-        lang = emptyList(),
         space = emptyList(),
         `return` = emptyList()
     )
-    
+
     data class SpecialKeyViews(
         val caps: List<ImageKeyView>,
         val backspace: List<ImageKeyView>,
         val quickphrase: List<ImageKeyView>,
-        val lang: List<ImageKeyView>,
         val space: List<TextKeyView>,
         val `return`: List<ImageKeyView>
     )
-    
+
     private fun findAllSpecialKeyViews(): SpecialKeyViews {
         val caps = mutableListOf<ImageKeyView>()
         val backspace = mutableListOf<ImageKeyView>()
         val quickphrase = mutableListOf<ImageKeyView>()
-        val lang = mutableListOf<ImageKeyView>()
         val space = mutableListOf<TextKeyView>()
         val returnKeys = mutableListOf<ImageKeyView>()
-        
+
         allViews.forEach { view ->
             when (view.tag) {
                 R.id.button_caps -> caps.add(view as ImageKeyView)
                 R.id.button_backspace -> backspace.add(view as ImageKeyView)
                 R.id.button_quickphrase -> quickphrase.add(view as ImageKeyView)
-                R.id.button_lang -> lang.add(view as ImageKeyView)
                 R.id.button_space -> space.add(view as TextKeyView)
                 R.id.button_return -> returnKeys.add(view as ImageKeyView)
             }
         }
-        
+
         return SpecialKeyViews(
             caps = caps,
             backspace = backspace,
             quickphrase = quickphrase,
-            lang = lang,
             space = space,
             `return` = returnKeys
         )
@@ -368,8 +369,11 @@ class TextKeyboard(
     private val showLangSwitchKey = AppPrefs.getInstance().keyboard.showLangSwitchKey
 
     @Keep
-    private val showLangSwitchKeyListener = ManagedPreference.OnChangeListener<Boolean> { _, v ->
-        updateLangSwitchKey(v)
+    private val showLangSwitchKeyListener = ManagedPreference.OnChangeListener<Boolean> { _, _ ->
+        // Clear cache when showLangSwitch setting changes
+        cachedKeyDefLayouts.clear()
+        // Reload layout to show/hide LanguageKey
+        reloadLayout()
     }
 
     private val keepLettersUppercase by AppPrefs.getInstance().keyboard.keepLettersUppercase
@@ -450,7 +454,6 @@ class TextKeyboard(
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
         registerKeyboard(this)
-        updateLangSwitchKey(showLangSwitchKey.getValue())
         showLangSwitchKey.registerOnChangeListener(showLangSwitchKeyListener)
     }
 
@@ -555,13 +558,6 @@ class TextKeyboard(
                     CapsState.Lock -> R.drawable.ic_capslock_lock
                 }
             }
-        }
-    }
-
-    private fun updateLangSwitchKey(visible: Boolean) {
-        ensureSpecialKeyViewsInitialized()
-        specialKeyViews.lang.forEach { langKey ->
-            langKey.visibility = if (visible) View.VISIBLE else View.GONE
         }
     }
 
