@@ -14,6 +14,7 @@ import androidx.annotation.Keep
 import androidx.annotation.DrawableRes
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.constraintlayout.widget.Guideline
+import androidx.core.view.allViews
 import androidx.core.view.children
 import androidx.core.view.updateLayoutParams
 import org.fcitx.fcitx5.android.core.FcitxKeyMapping
@@ -109,6 +110,13 @@ abstract class BaseKeyboard(
      * HashMap of [PointerId (Int)][MotionEvent.getPointerId] to [KeyView]
      */
     private val touchTarget = hashMapOf<Int, View>()
+
+    /**
+     * Find a key view by its type tag. Returns the first matching view or null if not found.
+     */
+    protected inline fun <reified T : View> findKeyViewById(tagId: Int): T? {
+        return allViews.firstOrNull { it.tag == tagId && it is T } as? T
+    }
 
     init {
         isMotionEventSplittingEnabled = true

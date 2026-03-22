@@ -127,7 +127,8 @@ abstract class KeyView(
         isClickable = true
         isHapticFeedbackEnabled = false
         if (def.viewId > 0) {
-            id = def.viewId
+            id = View.generateViewId()
+            tag = def.viewId
         }
         // key border
         if ((bordered && def.border != Border.Off) || def.border == Border.On) {
