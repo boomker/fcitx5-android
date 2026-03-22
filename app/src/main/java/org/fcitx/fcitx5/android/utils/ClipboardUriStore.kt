@@ -23,6 +23,8 @@ object ClipboardUriStore {
     private const val CACHE_DIR = "clipboard_shared"
     private const val FILE_PROVIDER_SUFFIX = ".fileprovider"
     private const val DEFAULT_MIME_TYPE = "application/octet-stream"
+    private const val OPEN_RETRY_COUNT = 5
+    private const val OPEN_RETRY_DELAY_MS = 120L
 
     fun String.toClipboardUriOrNull(): Uri? {
         return if (startsWith("content://") || startsWith("file://")) Uri.parse(this) else null
@@ -41,7 +43,7 @@ object ClipboardUriStore {
         val displayName = resolveDisplayName(context, uri, mimeType)
         val targetFile = File(cacheRoot(context), displayName)
         return try {
-            openInputStream(context, uri)?.use { input ->
+            openInputStreamWithRetry(context, uri)?.use { input ->
                 targetFile.outputStream().use { output -> input.copyTo(output) }
             } ?: return null
             pruneCache(targetFile)
@@ -77,6 +79,15 @@ object ClipboardUriStore {
         ContentResolver.SCHEME_FILE -> uri.path?.let { FileInputStream(it) }
         else -> null
     }
+
+    private fun openInputStreamWithRetry(context: Context, uri: Uri) =
+        (0 until OPEN_RETRY_COUNT).firstNotNullOfOrNull { attempt ->
+            val stream = runCatching { openInputStream(context, uri) }.getOrNull()
+            if (stream == null && attempt < OPEN_RETRY_COUNT - 1) {
+                Thread.sleep(OPEN_RETRY_DELAY_MS)
+            }
+            stream
+        }
 
     private fun resolveDisplayName(context: Context, uri: Uri, mimeType: String): String {
         val sourceName = when (uri.scheme?.lowercase(Locale.ROOT)) {

@@ -16,7 +16,22 @@
     <string name="server_profile_oneclip">OneClip</string>
     <string name="server_profile_clipcascade">ClipCascade</string>
     <string name="server_profile_custom">自定义</string>
-    <string name="local_username">用户名</string>
+    <string name="background_keep_alive_title">后台常驻同步</string>
+    <string name="background_keep_alive_summary">启用前台服务、网络重连和自恢复，减少后台被系统断开</string>
+    <string name="battery_optimization_title">电池优化</string>
+    <string name="battery_optimization_summary">建议将插件加入后台白名单，避免熄屏后被系统限制</string>
+    <string name="battery_optimization_summary_enabled">当前已忽略电池优化</string>
+    <string name="battery_optimization_summary_disabled">当前仍受电池优化限制，建议放行后台运行</string>
+    <string name="clipboard_permission_title">系统剪贴板授权</string>
+    <string name="clipboard_permission_summary">请授权应用读取/写入系统剪贴板及相关后台权限</string>
+    <string name="clipboard_permission_dialog_title">授权系统剪贴板访问</string>
+    <string name="clipboard_permission_dialog_message">Android 没有统一的剪贴板运行时授权弹窗，通常需要在系统的应用权限或隐私设置里手动允许本插件访问系统剪贴板。若你的系统提供了“读取剪贴板”“访问剪贴板”“后台读取剪贴板”或类似选项，请为 ClipboardSync 打开；同时建议保留后台运行权限。</string>
+    <string name="clipboard_permission_open_app_info">打开应用信息</string>
+    <string name="clipboard_permission_open_permissions">打开权限设置</string>
+    <string name="sync_account_title">同步账户</string>
+    <string name="sync_account_dialog_title">编辑同步账户</string>
+    <string name="sync_account_summary">账号：%1$s\n密码：%2$s</string>
+    <string name="local_username">账号</string>
     <string name="local_password">密码</string>
     <string name="credential_not_set">未设置</string>
     <string name="password_show">显示</string>
@@ -47,4 +62,11 @@
     <string name="connection_success">连接成功</string>
     <string name="connection_failed">连接失败</string>
     <string name="unknown_error">未知错误</string>
+    <string name="keep_alive_notification_channel_name">ClipboardSync 后台同步</string>
+    <string name="keep_alive_notification_channel_description">保持剪贴板同步插件在后台持续工作</string>
+    <string name="keep_alive_notification_title">ClipboardSync 正在后台同步</string>
+    <string name="keep_alive_notification_text">当前服务端：%1$s</string>
+    <string name="keep_alive_notification_text_battery">当前服务端：%1$s，建议放行电池优化</string>
+    <string name="keep_alive_notification_reconnect">重连</string>
+    <string name="keep_alive_notification_pause">暂停</string>
 </resources>

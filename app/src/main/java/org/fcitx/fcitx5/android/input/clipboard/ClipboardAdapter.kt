@@ -4,6 +4,8 @@
  */
 package org.fcitx.fcitx5.android.input.clipboard
 
+import android.content.Context
+import android.net.Uri
 import android.os.Build
 import android.view.ViewGroup
 import android.widget.PopupMenu
@@ -15,6 +17,7 @@ import org.fcitx.fcitx5.android.data.clipboard.db.ClipboardEntry
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.utils.DeviceUtil
 import org.fcitx.fcitx5.android.utils.item
+import org.fcitx.fcitx5.android.utils.queryFileName
 import splitties.resources.styledColor
 import kotlin.math.min
 
@@ -91,7 +94,12 @@ abstract class ClipboardAdapter(
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val entry = getItem(position) ?: return
         with(holder.entryUi) {
-            setEntry(excerptText(entry.text, entry.sensitive && maskSensitive), entry.pinned)
+            val displayText = if (entry.isUriEntry()) {
+                compactUriLabel(ctx, entry)
+            } else {
+                excerptText(entry.text, entry.sensitive && maskSensitive)
+            }
+            setEntry(displayText, entry.pinned)
             root.setOnClickListener {
                 onPaste(entry)
             }
@@ -149,5 +157,33 @@ abstract class ClipboardAdapter(
     abstract fun onShare(entry: ClipboardEntry)
 
     abstract fun onDelete(id: Int)
+
+    private fun compactUriLabel(context: Context, entry: ClipboardEntry): String {
+        val uri = runCatching { Uri.parse(entry.text) }.getOrNull()
+        val fileName = uri?.let { resolveUriFileName(context, it) }
+        return if (entry.type.startsWith("image/")) {
+            if (fileName.isNullOrBlank()) {
+                context.getString(R.string.clipboard_entry_image)
+            } else {
+                context.getString(R.string.clipboard_entry_image_named, fileName)
+            }
+        } else {
+            if (fileName.isNullOrBlank()) {
+                context.getString(R.string.clipboard_entry_file)
+            } else {
+                context.getString(R.string.clipboard_entry_file_named, fileName)
+            }
+        }
+    }
+
+    private fun resolveUriFileName(context: Context, uri: Uri): String? {
+        return when (uri.scheme) {
+            "content" -> context.contentResolver.queryFileName(uri)
+            "file" -> uri.lastPathSegment?.substringAfterLast('/')
+            else -> uri.lastPathSegment
+        }?.let { Uri.decode(it).substringAfterLast('/').substringAfterLast(':') }
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() }
+    }
 
 }

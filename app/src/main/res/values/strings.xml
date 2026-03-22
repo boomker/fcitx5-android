@@ -63,6 +63,13 @@
     <string name="unpin">Unpin</string>
     <string name="delete">Delete</string>
     <string name="clipboard">Clipboard</string>
+    <string name="clipboard_category_local">Local</string>
+    <string name="clipboard_category_media">Images &amp; Files</string>
+    <string name="clipboard_category_remote">Other Devices</string>
+    <string name="clipboard_entry_image">Image</string>
+    <string name="clipboard_entry_image_named">Image · %1$s</string>
+    <string name="clipboard_entry_file">File</string>
+    <string name="clipboard_entry_file_named">File · %1$s</string>
     <string name="keyboard_height">Keyboard height</string>
     <string name="virtual_keyboard">Virtual Keyboard</string>
     <string name="one_handed_keyboard">One-handed Keyboard</string>

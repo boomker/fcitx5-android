@@ -63,6 +63,13 @@
     <string name="unpin">取消置顶</string>
     <string name="delete">删除</string>
     <string name="clipboard">剪贴板</string>
+    <string name="clipboard_category_local">本机</string>
+    <string name="clipboard_category_media">图片文件</string>
+    <string name="clipboard_category_remote">其他设备</string>
+    <string name="clipboard_entry_image">图片</string>
+    <string name="clipboard_entry_image_named">图片 · %1$s</string>
+    <string name="clipboard_entry_file">文件</string>
+    <string name="clipboard_entry_file_named">文件 · %1$s</string>
     <string name="keyboard_height">键盘高度</string>
     <string name="virtual_keyboard">虚拟键盘</string>
     <string name="one_handed_keyboard">单手键盘</string>

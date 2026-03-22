@@ -105,6 +105,12 @@ object ClipboardManager : ClipboardManager.OnPrimaryClipChangedListener,
 
     fun allEntries() = clbDao.allEntries()
 
+    fun localTextEntries() = clbDao.textEntriesBySource(ClipboardEntry.SOURCE_LOCAL)
+
+    fun remoteTextEntries() = clbDao.textEntriesBySource(ClipboardEntry.SOURCE_REMOTE)
+
+    fun mediaEntries() = clbDao.mediaEntries()
+
     suspend fun pin(id: Int) = clbDao.updatePinStatus(id, true)
 
     suspend fun unpin(id: Int) = clbDao.updatePinStatus(id, false)
@@ -176,7 +182,7 @@ object ClipboardManager : ClipboardManager.OnPrimaryClipChangedListener,
                 } ?: return@withLock
                 if (entry.text.isBlank()) return@withLock
                 try {
-                    clbDao.find(entry.text, entry.sensitive)?.let {
+                    clbDao.find(entry.text, entry.sensitive, entry.source)?.let {
                         updateLastEntry(it.copy(timestamp = entry.timestamp))
                         clbDao.updateTime(it.id, entry.timestamp)
                         return@withLock

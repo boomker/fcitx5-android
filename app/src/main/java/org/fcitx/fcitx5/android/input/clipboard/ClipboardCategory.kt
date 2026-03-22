@@ -1,0 +1,14 @@
+/*
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ * SPDX-FileCopyrightText: Copyright 2026 Fcitx5 for Android Contributors
+ */
+package org.fcitx.fcitx5.android.input.clipboard
+
+import androidx.annotation.StringRes
+import org.fcitx.fcitx5.android.R
+
+enum class ClipboardCategory(@StringRes val titleRes: Int) {
+    Local(R.string.clipboard_category_local),
+    Media(R.string.clipboard_category_media),
+    Remote(R.string.clipboard_category_remote)
+}

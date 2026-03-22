@@ -1,10 +1,14 @@
 package org.fcitx.fcitx5.android.plugin.clipboard_sync.ui
 
 import android.app.AlertDialog
+import android.content.ActivityNotFoundException
 import android.content.SharedPreferences
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
+import android.os.PowerManager
 import android.os.Bundle
+import android.provider.Settings
 import android.provider.OpenableColumns
 import android.text.InputType
 import android.text.method.HideReturnsTransformationMethod
@@ -27,6 +31,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.fcitx.fcitx5.android.plugin.clipboard_sync.MainService
 import org.fcitx.fcitx5.android.plugin.clipboard_sync.R
 import org.fcitx.fcitx5.android.plugin.clipboard_sync.network.SyncClient
 import org.fcitx.fcitx5.android.plugin.clipboard_sync.network.SyncClient.ServerBackend
@@ -74,6 +79,10 @@ class SettingsActivity : AppCompatActivity() {
             private const val CREDENTIAL_MIGRATION_VERSION = 1
             private const val DOWNLOAD_PATH_KEY = "download_path"
             private const val DOWNLOAD_PATH_URI_KEY = "download_path_uri"
+            private const val BACKGROUND_KEEP_ALIVE_KEY = "background_keep_alive"
+            private const val BATTERY_OPTIMIZATION_KEY = "battery_optimization"
+            private const val CLIPBOARD_PERMISSION_KEY = "clipboard_permission"
+            private const val SYNC_ACCOUNT_KEY = "sync_account"
             private const val PROFILE_SYNC_CLIPBOARD = "syncclipboard"
             private const val PROFILE_ONE_CLIP = "oneclip"
             private const val PROFILE_CLIP_CASCADE = "clipcascade"
@@ -151,28 +160,27 @@ class SettingsActivity : AppCompatActivity() {
             setPreferencesFromResource(R.xml.preferences_local, rootKey)
             initializeServerProfileState()
             syncCredentialPreferencesForActiveProfile()
+            updateBatteryOptimizationSummary()
 
-            findPreference<EditTextPreference>("password")?.setOnBindEditTextListener { editText ->
-                editText.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
-            }
-            findPreference<EditTextPreference>("username")?.setOnPreferenceChangeListener { _, newValue ->
-                val prefs = preferenceManager.sharedPreferences ?: return@setOnPreferenceChangeListener true
-                val activeProfile = prefs.getString(SERVER_PROFILE_TYPE_KEY, PROFILE_SYNC_CLIPBOARD)
-                    ?: PROFILE_SYNC_CLIPBOARD
-                profileUsernameKey(activeProfile)?.let { key ->
-                    prefs.edit().putString(key, newValue?.toString().orEmpty()).apply()
-                }
-                updateCredentialPreferenceSummaries(newValue?.toString().orEmpty(), findPreference<EditTextPreference>("password")?.text.orEmpty())
+            findPreference<Preference>(BATTERY_OPTIMIZATION_KEY)?.setOnPreferenceClickListener {
+                requestIgnoreBatteryOptimizations()
                 true
             }
-            findPreference<EditTextPreference>("password")?.setOnPreferenceChangeListener { _, newValue ->
-                val prefs = preferenceManager.sharedPreferences ?: return@setOnPreferenceChangeListener true
-                val activeProfile = prefs.getString(SERVER_PROFILE_TYPE_KEY, PROFILE_SYNC_CLIPBOARD)
-                    ?: PROFILE_SYNC_CLIPBOARD
-                profilePasswordKey(activeProfile)?.let { key ->
-                    prefs.edit().putString(key, newValue?.toString().orEmpty()).apply()
+            findPreference<Preference>(CLIPBOARD_PERMISSION_KEY)?.setOnPreferenceClickListener {
+                showClipboardPermissionGuide()
+                true
+            }
+
+            findPreference<Preference>(BACKGROUND_KEEP_ALIVE_KEY)?.setOnPreferenceChangeListener { _, newValue ->
+                if (newValue == true) {
+                    MainService.startSyncService(requireContext(), "settings-keepalive-enabled")
                 }
-                updateCredentialPreferenceSummaries(findPreference<EditTextPreference>("username")?.text.orEmpty(), newValue?.toString().orEmpty())
+                true
+            }
+            findPreference<Preference>("quick_sync")?.setOnPreferenceChangeListener { _, newValue ->
+                if (newValue == true) {
+                    MainService.startSyncService(requireContext(), "settings-quick-sync-enabled")
+                }
                 true
             }
 
@@ -184,6 +192,10 @@ class SettingsActivity : AppCompatActivity() {
             updateServerProfileSummary(serverProfilePref)
             serverProfilePref?.setOnPreferenceClickListener {
                 showServerProfileDialog()
+                true
+            }
+            findPreference<Preference>(SYNC_ACCOUNT_KEY)?.setOnPreferenceClickListener {
+                showSyncAccountDialog()
                 true
             }
 
@@ -204,12 +216,9 @@ class SettingsActivity : AppCompatActivity() {
             }
         }
 
-        override fun onDisplayPreferenceDialog(preference: Preference) {
-            if (preference.key == "password" && preference is EditTextPreference) {
-                createPasswordDialog(preference).show()
-                return
-            }
-            super.onDisplayPreferenceDialog(preference)
+        override fun onResume() {
+            super.onResume()
+            updateBatteryOptimizationSummary()
         }
 
         private fun initializeServerProfileState() {
@@ -296,6 +305,84 @@ class SettingsActivity : AppCompatActivity() {
             }
 
             editor.putInt(CREDENTIAL_MIGRATION_VERSION_KEY, CREDENTIAL_MIGRATION_VERSION)
+        }
+
+        private fun updateBatteryOptimizationSummary() {
+            val preference = findPreference<Preference>(BATTERY_OPTIMIZATION_KEY) ?: return
+            val powerManager = requireContext().getSystemService(PowerManager::class.java)
+            val ignored = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                powerManager?.isIgnoringBatteryOptimizations(requireContext().packageName) == true
+            } else {
+                true
+            }
+            preference.summary = if (ignored) {
+                getString(R.string.battery_optimization_summary_enabled)
+            } else {
+                getString(R.string.battery_optimization_summary_disabled)
+            }
+        }
+
+        private fun requestIgnoreBatteryOptimizations() {
+            val context = requireContext()
+            val packageUri = Uri.parse("package:${context.packageName}")
+            val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, packageUri)
+            } else {
+                Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+            }
+            runCatching {
+                startActivity(intent)
+            }.recoverCatching {
+                startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+            }.onFailure {
+                if (it !is ActivityNotFoundException) {
+                    Toast.makeText(context, it.message ?: getString(R.string.unknown_error), Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+
+        private fun showClipboardPermissionGuide() {
+            val context = requireContext()
+            AlertDialog.Builder(context)
+                .setTitle(R.string.clipboard_permission_dialog_title)
+                .setMessage(R.string.clipboard_permission_dialog_message)
+                .setPositiveButton(R.string.clipboard_permission_open_app_info) { _, _ ->
+                    openClipboardPermissionSettings(openAppInfo = true)
+                }
+                .setNeutralButton(R.string.clipboard_permission_open_permissions) { _, _ ->
+                    openClipboardPermissionSettings(openAppInfo = false)
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+        }
+
+        private fun openClipboardPermissionSettings(openAppInfo: Boolean) {
+            val context = requireContext()
+            val packageUri = Uri.parse("package:${context.packageName}")
+            val intents = if (openAppInfo) {
+                listOf(
+                    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, packageUri)
+                )
+            } else {
+                listOf(
+                    Intent("android.settings.APP_PERMISSION_SETTINGS").apply {
+                        putExtra("android.provider.extra.APP_PACKAGE", context.packageName)
+                    },
+                    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, packageUri),
+                    Intent(Settings.ACTION_MANAGE_APPLICATIONS_SETTINGS)
+                )
+            }
+
+            val launched = intents.firstNotNullOfOrNull { intent ->
+                runCatching {
+                    startActivity(intent)
+                    true
+                }.getOrNull()
+            } == true
+
+            if (!launched) {
+                Toast.makeText(context, getString(R.string.unknown_error), Toast.LENGTH_SHORT).show()
+            }
         }
 
         private fun showServerProfileDialog() {
@@ -421,13 +508,19 @@ class SettingsActivity : AppCompatActivity() {
             dialog.show()
         }
 
-        internal fun createPasswordDialog(preference: EditTextPreference): AlertDialog {
+        private fun showSyncAccountDialog() {
             val context = requireContext()
-            val view = LayoutInflater.from(context).inflate(R.layout.dialog_password_preference, null)
+            val prefs = preferenceManager.sharedPreferences ?: return
+            val activeProfile = prefs.getString(SERVER_PROFILE_TYPE_KEY, PROFILE_SYNC_CLIPBOARD)
+                ?: PROFILE_SYNC_CLIPBOARD
+            val view = LayoutInflater.from(context).inflate(R.layout.dialog_sync_account, null)
+            val usernameEdit = view.findViewById<EditText>(R.id.username_edit)
             val passwordEdit = view.findViewById<EditText>(R.id.password_edit)
             val toggleButton = view.findViewById<ImageButton>(R.id.password_toggle_button)
 
-            passwordEdit.setText(preference.text.orEmpty())
+            usernameEdit.setText(storedUsernameForProfile(prefs, activeProfile))
+            usernameEdit.setSelection(usernameEdit.text?.length ?: 0)
+            passwordEdit.setText(storedPasswordForProfile(prefs, activeProfile))
             passwordEdit.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
             passwordEdit.transformationMethod = PasswordTransformationMethod.getInstance()
             passwordEdit.setSelection(passwordEdit.text?.length ?: 0)
@@ -455,17 +548,25 @@ class SettingsActivity : AppCompatActivity() {
             }
             updatePasswordVisibility()
 
-            return AlertDialog.Builder(context)
-                .setTitle(R.string.local_password)
+            AlertDialog.Builder(context)
+                .setTitle(R.string.sync_account_dialog_title)
                 .setView(view)
                 .setPositiveButton(android.R.string.ok) { _, _ ->
+                    val newUsername = usernameEdit.text?.toString().orEmpty()
                     val newPassword = passwordEdit.text?.toString().orEmpty()
-                    if (preference.callChangeListener(newPassword)) {
-                        preference.text = newPassword
-                    }
+                    prefs.edit()
+                        .apply {
+                            profileUsernameKey(activeProfile)?.let { putString(it, newUsername) }
+                            profilePasswordKey(activeProfile)?.let { putString(it, newPassword) }
+                            putString("username", newUsername)
+                            putString("password", newPassword)
+                        }
+                        .apply()
+                    updateCredentialPreferenceSummary(newUsername, newPassword)
                 }
                 .setNegativeButton(android.R.string.cancel, null)
                 .create()
+                .show()
         }
 
         private fun showTestPushDialog() {
@@ -665,20 +766,18 @@ class SettingsActivity : AppCompatActivity() {
                 .putString("username", username)
                 .putString("password", password)
                 .apply()
-            findPreference<EditTextPreference>("username")?.text = username
-            findPreference<EditTextPreference>("password")?.text = password
-            updateCredentialPreferenceSummaries(username, password)
+            updateCredentialPreferenceSummary(username, password)
         }
 
-        private fun updateCredentialPreferenceSummaries(username: String, password: String) {
-            findPreference<EditTextPreference>("username")?.summary =
-                username.ifBlank { getString(R.string.credential_not_set) }
-            findPreference<EditTextPreference>("password")?.summary =
-                if (password.isBlank()) {
-                    getString(R.string.credential_not_set)
-                } else {
-                    "*".repeat(password.length.coerceAtMost(16))
-                }
+        private fun updateCredentialPreferenceSummary(username: String, password: String) {
+            val usernameSummary = username.ifBlank { getString(R.string.credential_not_set) }
+            val passwordSummary = if (password.isBlank()) {
+                getString(R.string.credential_not_set)
+            } else {
+                "*".repeat(password.length.coerceAtMost(16))
+            }
+            findPreference<Preference>(SYNC_ACCOUNT_KEY)?.summary =
+                getString(R.string.sync_account_summary, usernameSummary, passwordSummary)
         }
 
         private fun storedUsernameForProfile(prefs: SharedPreferences, profileKey: String): String {

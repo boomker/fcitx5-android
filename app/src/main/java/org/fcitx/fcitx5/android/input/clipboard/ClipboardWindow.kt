@@ -81,9 +81,7 @@ class ClipboardWindow : InputWindow.ExtendedInputWindow<ClipboardWindow>() {
 
     private val clipboardEntryRadius by ThemeManager.prefs.clipboardEntryRadius
 
-    private val clipboardEntriesPager by lazy {
-        Pager(PagingConfig(pageSize = 16)) { ClipboardManager.allEntries() }
-    }
+    private var currentCategory = ClipboardCategory.Local
     private var adapterSubmitJob: Job? = null
 
     private val adapter: ClipboardAdapter by lazy {
@@ -129,12 +127,33 @@ class ClipboardWindow : InputWindow.ExtendedInputWindow<ClipboardWindow>() {
         }
     }
 
+    private fun entriesPager(category: ClipboardCategory) = Pager(PagingConfig(pageSize = 16)) {
+        when (category) {
+            ClipboardCategory.Local -> ClipboardManager.localTextEntries()
+            ClipboardCategory.Media -> ClipboardManager.mediaEntries()
+            ClipboardCategory.Remote -> ClipboardManager.remoteTextEntries()
+        }
+    }
+
+    private fun submitCategory(category: ClipboardCategory) {
+        currentCategory = category
+        ui.setSelectedCategory(category)
+        adapterSubmitJob?.cancel()
+        adapterSubmitJob = service.lifecycleScope.launch {
+            entriesPager(category).flow.collect {
+                adapter.submitData(it)
+            }
+        }
+    }
+
     private val ui by lazy {
         ClipboardUi(context, theme).apply {
             recyclerView.apply {
                 layoutManager = StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL)
                 adapter = this@ClipboardWindow.adapter
             }
+            setSelectedCategory(currentCategory)
+            setOnCategorySelectedListener(::submitCategory)
             ItemTouchHelper(object : ItemTouchHelper.Callback() {
                 override fun getMovementFlags(
                     recyclerView: RecyclerView,
@@ -228,6 +247,7 @@ class ClipboardWindow : InputWindow.ExtendedInputWindow<ClipboardWindow>() {
                                 pendingDeleteIds.clear()
                             }
                         }
+
                         BaseCallback.DISMISS_EVENT_ACTION,
                         BaseCallback.DISMISS_EVENT_CONSECUTIVE -> {
                             // user clicked "undo" or deleted more items which makes a new snackbar
@@ -267,11 +287,7 @@ class ClipboardWindow : InputWindow.ExtendedInputWindow<ClipboardWindow>() {
             val empty = it.append.endOfPaginationReached && adapter.itemCount < 1
             stateMachine.push(ClipboardDbUpdated, ClipboardDbEmpty to empty)
         }
-        adapterSubmitJob = service.lifecycleScope.launch {
-            clipboardEntriesPager.flow.collect {
-                adapter.submitData(it)
-            }
-        }
+        submitCategory(currentCategory)
         clipboardEnabledPref.registerOnChangeListener(clipboardEnabledListener)
     }
 

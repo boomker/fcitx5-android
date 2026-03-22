@@ -7,6 +7,10 @@
     </queries>
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="${mainApplicationId}.permission.IPC" />
 
     <application
@@ -18,11 +22,23 @@
         <service
             android:name=".MainService"
             android:exported="true"
+            android:foregroundServiceType="dataSync"
             android:permission="${mainApplicationId}.permission.PLUGIN">
             <intent-filter>
                 <action android:name="${mainApplicationId}.plugin.SERVICE" />
             </intent-filter>
         </service>
+
+        <receiver
+            android:name=".receiver.ServiceAutoStartReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.USER_UNLOCKED" />
+            </intent-filter>
+        </receiver>
 
         <activity
             android:name=".ui.PluginSettingsActivity"

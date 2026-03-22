@@ -7,20 +7,30 @@
         app:summary="@string/local_quick_sync_summary"
         app:defaultValue="true" />
 
+    <SwitchPreferenceCompat
+        app:key="background_keep_alive"
+        app:title="@string/background_keep_alive_title"
+        app:summary="@string/background_keep_alive_summary"
+        app:defaultValue="true" />
+
+    <Preference
+        app:key="battery_optimization"
+        app:title="@string/battery_optimization_title"
+        app:summary="@string/battery_optimization_summary" />
+
+    <Preference
+        app:key="clipboard_permission"
+        app:title="@string/clipboard_permission_title"
+        app:summary="@string/clipboard_permission_summary" />
+
     <Preference
         app:key="server_profile"
         app:title="@string/server_profile_title"
         app:summary="@string/server_profile_summary" />
 
-    <EditTextPreference
-        app:key="username"
-        app:title="@string/local_username"
-        app:defaultValue="admin" />
-
-    <EditTextPreference
-        app:key="password"
-        app:title="@string/local_password"
-        app:defaultValue="123456"
+    <Preference
+        app:key="sync_account"
+        app:title="@string/sync_account_title"
         app:summary="@string/credential_not_set" />
 
     <EditTextPreference

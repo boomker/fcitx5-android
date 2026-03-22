@@ -1,19 +1,33 @@
 package org.fcitx.fcitx5.android.plugin.clipboard_sync
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
 import android.net.Uri
+import android.os.Build
+import android.os.PersistableBundle
+import android.os.PowerManager
+import android.os.SystemClock
 import android.util.Base64
 import android.util.Log
+import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import androidx.preference.PreferenceManager
 import kotlinx.coroutines.*
+import org.fcitx.fcitx5.android.common.ClipboardMetadata
 import org.fcitx.fcitx5.android.common.FcitxPluginService
 import org.fcitx.fcitx5.android.common.ipc.FcitxRemoteConnection
 import org.fcitx.fcitx5.android.common.ipc.IClipboardEntryTransformer
 import org.fcitx.fcitx5.android.common.ipc.bindFcitxRemoteService
+import org.fcitx.fcitx5.android.plugin.clipboard_sync.ui.PluginSettingsActivity
 import org.fcitx.fcitx5.android.plugin.clipboard_sync.network.ClipCascadeClient
 import org.fcitx.fcitx5.android.plugin.clipboard_sync.network.ClipCascadeClipboardData
 import org.fcitx.fcitx5.android.plugin.clipboard_sync.network.OneClipEventClient
@@ -27,6 +41,11 @@ class MainService : FcitxPluginService() {
 
     companion object {
         private const val TAG = "FcitxClipboardSync"
+        private const val PREF_QUICK_SYNC = "quick_sync"
+        private const val PREF_SYNC_INTERVAL = "sync_interval"
+        private const val PREF_BACKGROUND_KEEP_ALIVE = "background_keep_alive"
+        private const val PREF_USERNAME = "username"
+        private const val PREF_PASSWORD = "password"
         private const val SERVER_PROFILE_TYPE_KEY = "server_profile_type"
         private const val SERVER_ADDRESS_KEY = "server_address"
         private const val SERVER_ADDRESS_SYNC_CLIPBOARD_KEY = "server_address_syncclipboard"
@@ -40,8 +59,35 @@ class MainService : FcitxPluginService() {
         private const val DEFAULT_SYNC_CLIPBOARD_URL = "http://192.168.10.11:5003"
         private const val DEFAULT_ONE_CLIP_URL = "http://192.168.10.11:8899"
         private const val DEFAULT_CLIP_CASCADE_URL = "http://192.168.10.11:8080"
-        private const val CONNECTIVITY_RETRY_COUNT = 3
-        private const val CONNECTIVITY_RETRY_DELAY_MS = 30_000L
+        private val CONNECTIVITY_RETRY_DELAYS_MS = longArrayOf(3_000L, 10_000L, 30_000L)
+        private const val EVENT_BACKEND_HEALTH_CHECK_MS = 30_000L
+        private const val EVENT_BACKEND_FALLBACK_PULL_MS = 60_000L
+        private const val EVENT_BACKEND_STALE_RECONNECT_MS = 120_000L
+        private const val NETWORK_RECONNECT_DEBOUNCE_MS = 2_000L
+        private const val NOTIFICATION_CHANNEL_ID = "clipboard-sync-keepalive"
+        private const val NOTIFICATION_ID = 1302
+        private const val ACTION_START_SYNC = "org.fcitx.fcitx5.android.plugin.clipboard_sync.action.START"
+        private const val ACTION_RECONNECT_SYNC = "org.fcitx.fcitx5.android.plugin.clipboard_sync.action.RECONNECT"
+        private const val ACTION_PAUSE_SYNC = "org.fcitx.fcitx5.android.plugin.clipboard_sync.action.PAUSE"
+        private const val EXTRA_START_REASON = "start_reason"
+
+        fun shouldAutoStart(context: Context): Boolean {
+            val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+            return prefs.getBoolean(PREF_QUICK_SYNC, true)
+        }
+
+        fun startSyncService(context: Context, reason: String) {
+            val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+            val intent = Intent(context, MainService::class.java).apply {
+                action = ACTION_START_SYNC
+                putExtra(EXTRA_START_REASON, reason)
+            }
+            if (prefs.getBoolean(PREF_BACKGROUND_KEEP_ALIVE, true) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                ContextCompat.startForegroundService(context, intent)
+            } else {
+                context.startService(intent)
+            }
+        }
     }
 
     override val stopOnUnbind: Boolean = false
@@ -49,23 +95,51 @@ class MainService : FcitxPluginService() {
     private lateinit var connection: FcitxRemoteConnection
     private lateinit var prefs: SharedPreferences
     private var syncJob: Job? = null
+    private var healthMonitorJob: Job? = null
+    private var networkReconnectJob: Job? = null
     private var scope = createScope()
     private var transformerRegistered = false
     private var serviceRunning = false
     private var selfStarted = false
+    private var networkCallbackRegistered = false
+    private var foregroundActive = false
     private val clipboardManager by lazy {
         getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+    }
+    private val connectivityManager by lazy {
+        getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     }
     private var clipboardListenerRegistered = false
     private var prefsListenerRegistered = false
     private var clipCascadeClient: ClipCascadeClient? = null
     private var oneClipClient: OneClipEventClient? = null
+    private var lastNetworkAvailableAt = 0L
 
     // Cache to avoid circular updates (Pull -> Local -> Push -> Loop)
     private var lastLocalContent: String? = null
     private var lastRemoteContent: String? = null
     private var lastRemoteRevision: String? = null
     private var lastUploadedContent: String? = null
+    private var lastSuccessfulRemoteSyncAt = 0L
+    private var lastBackendActivityAt = 0L
+
+    private val networkCallback = object : ConnectivityManager.NetworkCallback() {
+        override fun onAvailable(network: Network) {
+            val now = SystemClock.elapsedRealtime()
+            lastNetworkAvailableAt = now
+            scheduleReconnect("network-available")
+        }
+
+        override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
+            if (networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)) {
+                val now = SystemClock.elapsedRealtime()
+                if (now - lastNetworkAvailableAt >= NETWORK_RECONNECT_DEBOUNCE_MS) {
+                    lastNetworkAvailableAt = now
+                    scheduleReconnect("network-capabilities")
+                }
+            }
+        }
+    }
 
     private val clipboardListener = ClipboardManager.OnPrimaryClipChangedListener {
         handleSystemClipboardChanged()
@@ -96,24 +170,34 @@ class MainService : FcitxPluginService() {
         super.onCreate()
         Log.d(TAG, "MainService onCreate")
         prefs = PreferenceManager.getDefaultSharedPreferences(this)
+        createNotificationChannelIfNeeded()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         ensureScope()
+        selfStarted = true
+        handleActionIntent(intent)
         start()
         return START_STICKY
     }
 
     override fun start() {
-        if (serviceRunning) return
+        ensureScope()
+        if (serviceRunning) {
+            updateForegroundState()
+            refreshSyncRuntime()
+            return
+        }
         Log.d(TAG, "MainService start")
         serviceRunning = true
-        ensureScope()
         ensureSelfStarted()
+        updateForegroundState()
         registerClipboardListenerIfNeeded()
         registerPrefsListenerIfNeeded()
-        startPeriodicSync()
-        connection = bindFcitxRemoteService(BuildConfig.MAIN_APPLICATION_ID,
+        registerNetworkCallbackIfNeeded()
+        refreshSyncRuntime()
+        connection = bindFcitxRemoteService(
+            BuildConfig.MAIN_APPLICATION_ID,
             onDisconnect = {
                 Log.d(TAG, "Disconnected from Fcitx")
                 transformerRegistered = false
@@ -140,7 +224,10 @@ class MainService : FcitxPluginService() {
         serviceRunning = false
         unregisterClipboardListenerIfNeeded()
         unregisterPrefsListenerIfNeeded()
+        unregisterNetworkCallbackIfNeeded()
         stopPeriodicSync()
+        stopHealthMonitor()
+        stopForegroundState()
         runCatching {
             if (transformerRegistered) {
                 connection.remoteService?.unregisterClipboardEntryTransformer(transformer)
@@ -158,7 +245,10 @@ class MainService : FcitxPluginService() {
     override fun onDestroy() {
         unregisterClipboardListenerIfNeeded()
         unregisterPrefsListenerIfNeeded()
+        unregisterNetworkCallbackIfNeeded()
         stopPeriodicSync()
+        stopHealthMonitor()
+        stopForegroundState()
         scope.cancel()
         serviceRunning = false
         selfStarted = false
@@ -166,25 +256,26 @@ class MainService : FcitxPluginService() {
     }
 
     private val prefListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-        if (key == "server_address" || key == "username" || key == "password" || key == "server_profile_type") {
+        if (key == SERVER_ADDRESS_KEY || key == PREF_USERNAME || key == PREF_PASSWORD || key == SERVER_PROFILE_TYPE_KEY) {
             Log.d(TAG, "Sync credential/config changed: $key, resetting sync cache")
             resetRemoteCache()
             resetFailureState()
-            startPeriodicSync()
-        } else if (key == "quick_sync" || key == "sync_interval") {
+            refreshSyncRuntime()
+        } else if (key == PREF_QUICK_SYNC || key == PREF_SYNC_INTERVAL || key == PREF_BACKGROUND_KEEP_ALIVE) {
             Log.d(TAG, "Preference changed: $key, restarting sync")
-            startPeriodicSync()
+            updateForegroundState()
+            refreshSyncRuntime()
         }
     }
 
     private fun uploadToCloud(text: String) {
-        if (!prefs.getBoolean("quick_sync", true)) {
+        if (!prefs.getBoolean(PREF_QUICK_SYNC, true)) {
             Log.d(TAG, "[Push] Sync disabled, skipping upload")
             return
         }
-        val url = prefs.getString("server_address", "") ?: ""
-        val user = prefs.getString("username", "") ?: ""
-        val pass = prefs.getString("password", "") ?: ""
+        val url = prefs.getString(SERVER_ADDRESS_KEY, "") ?: ""
+        val user = prefs.getString(PREF_USERNAME, "") ?: ""
+        val pass = prefs.getString(PREF_PASSWORD, "") ?: ""
         val backend = currentBackend()
 
         if (url.isBlank()) return
@@ -213,10 +304,76 @@ class MainService : FcitxPluginService() {
         }
     }
 
+    private fun refreshSyncRuntime() {
+        if (!prefs.getBoolean(PREF_QUICK_SYNC, true)) {
+            stopPeriodicSync()
+            stopHealthMonitor()
+            return
+        }
+        ensureSelfStarted()
+        startPeriodicSync()
+        startHealthMonitor()
+    }
+
+    private fun startHealthMonitor() {
+        if (healthMonitorJob?.isActive == true) return
+        healthMonitorJob = scope.launch {
+            while (isActive) {
+                delay(EVENT_BACKEND_HEALTH_CHECK_MS)
+                if (!prefs.getBoolean(PREF_QUICK_SYNC, true)) {
+                    continue
+                }
+                val endpoint = currentEndpoint()
+                val backend = endpoint.backend
+                if (backend == ServerBackend.SYNCCLIPBOARD) {
+                    if (syncJob?.isActive != true) {
+                        Log.w(TAG, "[Health] Polling loop is inactive, restarting")
+                        startPeriodicSync()
+                    }
+                    continue
+                }
+
+                val connected = when (backend) {
+                    ServerBackend.CLIPCASCADE -> clipCascadeClient?.isConnected() == true
+                    ServerBackend.ONECLIP -> oneClipClient?.isConnected() == true
+                    ServerBackend.SYNCCLIPBOARD -> true
+                }
+                if (!connected || syncJob?.isActive != true) {
+                    Log.w(TAG, "[Health] Event stream is disconnected, restarting $backend")
+                    startPeriodicSync()
+                    continue
+                }
+
+                val now = SystemClock.elapsedRealtime()
+                if (now - lastSuccessfulRemoteSyncAt >= EVENT_BACKEND_FALLBACK_PULL_MS) {
+                    try {
+                        checkRemoteClipboard()
+                    } catch (error: CancellationException) {
+                        throw error
+                    } catch (error: Exception) {
+                        Log.e(TAG, "[Health] Fallback pull failed for ${endpoint.address}", error)
+                        handleConnectivityFailure(endpoint, error)
+                    }
+                }
+
+                if (now - lastBackendActivityAt >= EVENT_BACKEND_STALE_RECONNECT_MS) {
+                    Log.w(TAG, "[Health] Backend stream appears stale, forcing reconnect for $backend")
+                    resetRemoteCache()
+                    startPeriodicSync()
+                }
+            }
+        }
+    }
+
+    private fun stopHealthMonitor() {
+        healthMonitorJob?.cancel()
+        healthMonitorJob = null
+    }
+
     private fun startPeriodicSync() {
         stopPeriodicSync()
 
-        val quickSync = prefs.getBoolean("quick_sync", true)
+        val quickSync = prefs.getBoolean(PREF_QUICK_SYNC, true)
         if (!quickSync) {
             Log.d(TAG, "[Pull] Quick sync disabled, stopping background polling")
             return
@@ -243,7 +400,7 @@ class MainService : FcitxPluginService() {
             while (isActive) {
                 val endpoint = currentEndpoint()
                 try {
-                    val safeInterval = prefs.getString("sync_interval", "3")?.toLongOrNull()
+                    val safeInterval = prefs.getString(PREF_SYNC_INTERVAL, "3")?.toLongOrNull()
                         ?.coerceIn(1, 60)
                         ?: 3L
 
@@ -267,6 +424,8 @@ class MainService : FcitxPluginService() {
     private fun stopPeriodicSync() {
         syncJob?.cancel()
         syncJob = null
+        networkReconnectJob?.cancel()
+        networkReconnectJob = null
         disconnectClipCascadeClient()
         disconnectOneClipClient()
     }
@@ -281,8 +440,8 @@ class MainService : FcitxPluginService() {
                     return@launch
                 }
 
-                val username = prefs.getString("username", "") ?: ""
-                val password = prefs.getString("password", "") ?: ""
+                val username = currentUsernameForProfile(endpoint.profileKey)
+                val password = currentPasswordForProfile(endpoint.profileKey)
                 val client = ClipCascadeClient(
                     serverUrl = endpoint.address,
                     username = username,
@@ -291,7 +450,11 @@ class MainService : FcitxPluginService() {
                 clipCascadeClient = client
 
                 try {
-                    client.connect(::handleClipCascadeMessage)
+                    client.connect { data ->
+                        markBackendActivity()
+                        handleClipCascadeMessage(data)
+                    }
+                    markBackendActivity()
                     resetFailureState()
                     val closeCause = client.awaitClose()
                     if (!isActive) {
@@ -337,6 +500,7 @@ class MainService : FcitxPluginService() {
 
                 try {
                     client.connect { event ->
+                        markBackendActivity()
                         if (!event.update) {
                             return@connect
                         }
@@ -349,6 +513,7 @@ class MainService : FcitxPluginService() {
                     }
 
                     checkRemoteClipboard()
+                    markBackendActivity()
                     resetFailureState()
 
                     val closeCause = client.awaitClose()
@@ -381,10 +546,11 @@ class MainService : FcitxPluginService() {
     }
 
     private suspend fun checkRemoteClipboard() {
-        val url = prefs.getString("server_address", "") ?: ""
-        val user = prefs.getString("username", "") ?: ""
-        val pass = prefs.getString("password", "") ?: ""
-        val backend = currentBackend()
+        val endpoint = currentEndpoint()
+        val url = endpoint.address
+        val user = currentUsernameForProfile(endpoint.profileKey)
+        val pass = currentPasswordForProfile(endpoint.profileKey)
+        val backend = endpoint.backend
 
         if (url.isBlank()) return
 
@@ -403,6 +569,7 @@ class MainService : FcitxPluginService() {
             lastRevision = lastRemoteRevision,
             downloadDirUri = downloadUri
         )
+        noteRemoteSyncSuccess()
 
         if (result.revision != null) {
             lastRemoteRevision = result.revision
@@ -434,7 +601,7 @@ class MainService : FcitxPluginService() {
     private fun updateSystemClipboard(text: String) {
         try {
             val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-            val clip = ClipData.newPlainText("SyncClipboard", text)
+            val clip = ClipData.newPlainText("SyncClipboard", text).also(::markRemoteClip)
             clipboard.setPrimaryClip(clip)
             Log.d(TAG, "[Pull] System clipboard updated (Text)")
         } catch (e: Exception) {
@@ -445,11 +612,18 @@ class MainService : FcitxPluginService() {
     private fun updateSystemClipboardWithUri(uri: Uri) {
         try {
             val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-            val clip = ClipData.newUri(contentResolver, "SyncClipboard", uri)
+            val clip = ClipData.newUri(contentResolver, "SyncClipboard", uri).also(::markRemoteClip)
             clipboard.setPrimaryClip(clip)
             Log.d(TAG, "[Pull] System clipboard updated with URI: $uri")
         } catch (e: Exception) {
             Log.e(TAG, "[Pull] Failed to update system clipboard with URI", e)
+        }
+    }
+
+    private fun markRemoteClip(clip: ClipData) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return
+        clip.description.extras = PersistableBundle().apply {
+            putString(ClipboardMetadata.EXTRA_SOURCE, ClipboardMetadata.SOURCE_REMOTE)
         }
     }
 
@@ -611,6 +785,173 @@ class MainService : FcitxPluginService() {
         }
     }
 
+    private fun registerNetworkCallbackIfNeeded() {
+        if (networkCallbackRegistered) return
+        runCatching {
+            connectivityManager.registerDefaultNetworkCallback(networkCallback)
+            networkCallbackRegistered = true
+        }.onFailure {
+            Log.w(TAG, "Failed to register network callback", it)
+        }
+    }
+
+    private fun unregisterNetworkCallbackIfNeeded() {
+        if (!networkCallbackRegistered) return
+        runCatching {
+            connectivityManager.unregisterNetworkCallback(networkCallback)
+        }.onFailure {
+            Log.w(TAG, "Failed to unregister network callback", it)
+        }
+        networkCallbackRegistered = false
+    }
+
+    private fun handleActionIntent(intent: Intent?) {
+        when (intent?.action) {
+            ACTION_PAUSE_SYNC -> {
+                prefs.edit().putBoolean(PREF_QUICK_SYNC, false).apply()
+            }
+
+            ACTION_RECONNECT_SYNC -> {
+                scheduleReconnect("notification-reconnect", immediate = true)
+            }
+
+            ACTION_START_SYNC,
+            null -> Unit
+        }
+    }
+
+    private fun scheduleReconnect(reason: String, immediate: Boolean = false) {
+        if (!prefs.getBoolean(PREF_QUICK_SYNC, true)) return
+        networkReconnectJob?.cancel()
+        networkReconnectJob = scope.launch {
+            if (!immediate) {
+                delay(NETWORK_RECONNECT_DEBOUNCE_MS)
+            }
+            Log.d(TAG, "[Reconnect] Restarting sync runtime: $reason")
+            resetRemoteCache()
+            startPeriodicSync()
+        }
+    }
+
+    private fun updateForegroundState() {
+        if (shouldRunInForeground()) {
+            startForegroundCompat()
+        } else {
+            stopForegroundState()
+        }
+    }
+
+    private fun shouldRunInForeground(): Boolean {
+        return prefs.getBoolean(PREF_QUICK_SYNC, true) &&
+                prefs.getBoolean(PREF_BACKGROUND_KEEP_ALIVE, true)
+    }
+
+    private fun createNotificationChannelIfNeeded() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val channel = NotificationChannel(
+            NOTIFICATION_CHANNEL_ID,
+            getString(R.string.keep_alive_notification_channel_name),
+            NotificationManager.IMPORTANCE_LOW
+        ).apply {
+            description = getString(R.string.keep_alive_notification_channel_description)
+            setShowBadge(false)
+        }
+        manager.createNotificationChannel(channel)
+    }
+
+    private fun startForegroundCompat() {
+        val notification = buildForegroundNotification()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(
+                NOTIFICATION_ID,
+                notification,
+                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+            )
+        } else {
+            startForeground(NOTIFICATION_ID, notification)
+        }
+        foregroundActive = true
+    }
+
+    private fun stopForegroundState() {
+        if (!foregroundActive) return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+        } else {
+            @Suppress("DEPRECATION")
+            stopForeground(true)
+        }
+        foregroundActive = false
+    }
+
+    private fun buildForegroundNotification() = NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
+        .setSmallIcon(android.R.drawable.stat_notify_sync)
+        .setContentTitle(getString(R.string.keep_alive_notification_title))
+        .setContentText(buildForegroundNotificationText())
+        .setOngoing(true)
+        .setOnlyAlertOnce(true)
+        .setPriority(NotificationCompat.PRIORITY_LOW)
+        .setContentIntent(
+            PendingIntent.getActivity(
+                this,
+                1,
+                Intent(this, PluginSettingsActivity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                },
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+        )
+        .addAction(
+            android.R.drawable.ic_popup_sync,
+            getString(R.string.keep_alive_notification_reconnect),
+            PendingIntent.getService(
+                this,
+                2,
+                Intent(this, MainService::class.java).apply { action = ACTION_RECONNECT_SYNC },
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+        )
+        .addAction(
+            android.R.drawable.ic_media_pause,
+            getString(R.string.keep_alive_notification_pause),
+            PendingIntent.getService(
+                this,
+                3,
+                Intent(this, MainService::class.java).apply { action = ACTION_PAUSE_SYNC },
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+        )
+        .build()
+
+    private fun buildForegroundNotificationText(): String {
+        val backendLabel = when (currentBackend()) {
+            ServerBackend.SYNCCLIPBOARD -> getString(R.string.server_profile_syncclipboard)
+            ServerBackend.ONECLIP -> getString(R.string.server_profile_oneclip)
+            ServerBackend.CLIPCASCADE -> getString(R.string.server_profile_clipcascade)
+        }
+        val powerManager = getSystemService(Context.POWER_SERVICE) as? PowerManager
+        val ignoringBatteryOptimization = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            powerManager?.isIgnoringBatteryOptimizations(packageName) == true
+        } else {
+            true
+        }
+        return if (ignoringBatteryOptimization) {
+            getString(R.string.keep_alive_notification_text, backendLabel)
+        } else {
+            getString(R.string.keep_alive_notification_text_battery, backendLabel)
+        }
+    }
+
+    private fun noteRemoteSyncSuccess() {
+        lastSuccessfulRemoteSyncAt = SystemClock.elapsedRealtime()
+        markBackendActivity()
+    }
+
+    private fun markBackendActivity() {
+        lastBackendActivityAt = SystemClock.elapsedRealtime()
+    }
+
     private fun disconnectClipCascadeClient() {
         clipCascadeClient?.close()
         clipCascadeClient = null
@@ -624,7 +965,7 @@ class MainService : FcitxPluginService() {
     private fun ensureSelfStarted() {
         if (selfStarted) return
         runCatching {
-            startService(Intent(this, MainService::class.java))
+            startSyncService(this, "self-start")
             selfStarted = true
             Log.d(TAG, "MainService promoted to started service")
         }.onFailure {
@@ -667,17 +1008,18 @@ class MainService : FcitxPluginService() {
         }
 
         Log.e(TAG, "[Pull] All configured endpoints are unreachable, disabling quick sync")
-        prefs.edit().putBoolean("quick_sync", false).apply()
+        prefs.edit().putBoolean(PREF_QUICK_SYNC, false).apply()
         stopPeriodicSync()
         resetFailureState()
         return true
     }
 
     private suspend fun verifyEndpointRecovered(endpoint: ServerEndpoint): Boolean {
-        val username = prefs.getString("username", "") ?: ""
-        val password = prefs.getString("password", "") ?: ""
+        val username = currentUsernameForProfile(endpoint.profileKey)
+        val password = currentPasswordForProfile(endpoint.profileKey)
 
-        repeat(CONNECTIVITY_RETRY_COUNT) { index ->
+        CONNECTIVITY_RETRY_DELAYS_MS.forEach { delayMs ->
+            delay(delayMs)
             val result = SyncClient.testConnection(
                 serverUrl = endpoint.address,
                 username = username,
@@ -687,21 +1029,17 @@ class MainService : FcitxPluginService() {
             if (result.isSuccess) {
                 return true
             }
-            if (index < CONNECTIVITY_RETRY_COUNT - 1) {
-                delay(CONNECTIVITY_RETRY_DELAY_MS)
-            }
         }
         return false
     }
 
     private suspend fun switchToReachableEndpoint(failedEndpoint: ServerEndpoint): Boolean {
-        val username = prefs.getString("username", "") ?: ""
-        val password = prefs.getString("password", "") ?: ""
-
         val alternatives = endpointCandidates()
             .filter { it.identity != failedEndpoint.identity }
 
         for (candidate in alternatives) {
+            val username = currentUsernameForProfile(candidate.profileKey)
+            val password = currentPasswordForProfile(candidate.profileKey)
             val result = SyncClient.testConnection(
                 serverUrl = candidate.address,
                 username = username,
@@ -712,6 +1050,8 @@ class MainService : FcitxPluginService() {
                 prefs.edit()
                     .putString(SERVER_PROFILE_TYPE_KEY, candidate.profileKey)
                     .putString(SERVER_ADDRESS_KEY, candidate.address)
+                    .putString(PREF_USERNAME, username)
+                    .putString(PREF_PASSWORD, password)
                     .apply()
                 return true
             }
@@ -778,6 +1118,42 @@ class MainService : FcitxPluginService() {
             PROFILE_ONE_CLIP -> DEFAULT_ONE_CLIP_URL
             PROFILE_CLIP_CASCADE -> DEFAULT_CLIP_CASCADE_URL
             else -> ""
+        }
+    }
+
+    private fun currentUsernameForProfile(profileKey: String): String {
+        val key = when (profileKey) {
+            PROFILE_SYNC_CLIPBOARD -> "username_syncclipboard"
+            PROFILE_ONE_CLIP -> "username_oneclip"
+            PROFILE_CLIP_CASCADE -> "username_clipcascade"
+            PROFILE_CUSTOM -> "username_custom"
+            else -> null
+        }
+        val stored = key?.let { prefs.getString(it, null) }.orEmpty()
+        return if (stored.isNotBlank() || profileKey == PROFILE_ONE_CLIP) {
+            stored
+        } else if (profileKey == PROFILE_CLIP_CASCADE || profileKey == PROFILE_SYNC_CLIPBOARD || profileKey == PROFILE_CUSTOM) {
+            "admin"
+        } else {
+            ""
+        }
+    }
+
+    private fun currentPasswordForProfile(profileKey: String): String {
+        val key = when (profileKey) {
+            PROFILE_SYNC_CLIPBOARD -> "password_syncclipboard"
+            PROFILE_ONE_CLIP -> "password_oneclip"
+            PROFILE_CLIP_CASCADE -> "password_clipcascade"
+            PROFILE_CUSTOM -> "password_custom"
+            else -> null
+        }
+        val stored = key?.let { prefs.getString(it, null) }.orEmpty()
+        return if (stored.isNotBlank() || profileKey == PROFILE_ONE_CLIP) {
+            stored
+        } else when (profileKey) {
+            PROFILE_CLIP_CASCADE -> "admin123"
+            PROFILE_ONE_CLIP -> ""
+            else -> "123456"
         }
     }
 

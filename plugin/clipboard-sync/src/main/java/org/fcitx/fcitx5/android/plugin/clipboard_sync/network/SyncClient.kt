@@ -41,6 +41,9 @@ object SyncClient {
     )
 
     private const val TAG = "FcitxClipboardSync"
+    private const val SAVED_URI_READY_RETRY_COUNT = 10
+    private const val SAVED_URI_READY_RETRY_DELAY_MS = 150L
+    private val ONECLIP_UNSUPPORTED_FILE_TYPES = setOf("code", "file")
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -242,6 +245,10 @@ object SyncClient {
                     downloadDirUri = downloadDirUri
                 )
                 return FetchResult(imageData, revision)
+            }
+            if (normalizedType in ONECLIP_UNSUPPORTED_FILE_TYPES) {
+                Log.d(TAG, "[Pull] Ignoring unsupported OneClip file-like item: type=$normalizedType id=${item.id}")
+                return FetchResult(null, revision)
             }
 
             return FetchResult(
@@ -638,8 +645,11 @@ object SyncClient {
                 dir.findFile(fileName)?.delete()
                 val newFile = dir.createFile(mimeType, fileName)
                 if (newFile != null) {
-                    context.contentResolver.openOutputStream(newFile.uri)?.use { it.write(bytes) }
-                    newFile.uri
+                    context.contentResolver.openOutputStream(newFile.uri)?.use {
+                        it.write(bytes)
+                        it.flush()
+                    }
+                    waitUntilReadable(context, newFile.uri, bytes.size)
                 } else {
                     null
                 }
@@ -650,6 +660,36 @@ object SyncClient {
             Log.e(TAG, "[Pull] Failed to save file", e)
             null
         }
+    }
+
+    private fun waitUntilReadable(context: Context, uri: Uri, expectedSize: Int): Uri? {
+        repeat(SAVED_URI_READY_RETRY_COUNT) { attempt ->
+            val isReadable = runCatching {
+                context.contentResolver.openInputStream(uri)?.use { input ->
+                    var total = 0
+                    val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                    while (true) {
+                        val count = input.read(buffer)
+                        if (count <= 0) break
+                        total += count
+                        if (total >= expectedSize) break
+                    }
+                    if (expectedSize <= 0) {
+                        total > 0
+                    } else {
+                        total >= expectedSize
+                    }
+                } == true
+            }.getOrDefault(false)
+            if (isReadable) {
+                return uri
+            }
+            if (attempt < SAVED_URI_READY_RETRY_COUNT - 1) {
+                Thread.sleep(SAVED_URI_READY_RETRY_DELAY_MS)
+            }
+        }
+        Log.w(TAG, "[Pull] Saved file is not readable yet: $uri")
+        return null
     }
 
     private fun buildOneClipImageFileName(itemId: String, timestamp: Double, mimeType: String): String {
