@@ -45,7 +45,9 @@ data class ClipboardEntry(
             val desc = clipData.description
             // TODO: handle multiple items (when does this happen?)
             val item = clipData.getItemAt(0) ?: return null
-            val str = item.text?.toString() ?: return null
+            val str = item.text?.toString()
+                ?: item.uri?.toString()
+                ?: return null
             val sensitive = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 desc.extras?.getBoolean(IS_SENSITIVE) ?: false
             } else {

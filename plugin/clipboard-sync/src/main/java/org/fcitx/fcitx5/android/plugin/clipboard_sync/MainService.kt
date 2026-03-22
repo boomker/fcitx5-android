@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.net.Uri
+import android.util.Base64
 import android.util.Log
 import androidx.preference.PreferenceManager
 import kotlinx.coroutines.*
@@ -13,9 +14,14 @@ import org.fcitx.fcitx5.android.common.FcitxPluginService
 import org.fcitx.fcitx5.android.common.ipc.FcitxRemoteConnection
 import org.fcitx.fcitx5.android.common.ipc.IClipboardEntryTransformer
 import org.fcitx.fcitx5.android.common.ipc.bindFcitxRemoteService
+import org.fcitx.fcitx5.android.plugin.clipboard_sync.network.ClipCascadeClient
+import org.fcitx.fcitx5.android.plugin.clipboard_sync.network.ClipCascadeClipboardData
+import org.fcitx.fcitx5.android.plugin.clipboard_sync.network.OneClipEventClient
 import org.fcitx.fcitx5.android.plugin.clipboard_sync.network.SyncClient
 import org.fcitx.fcitx5.android.plugin.clipboard_sync.network.SyncClient.ServerBackend
 import org.fcitx.fcitx5.android.plugin.clipboard_sync.ui.StoragePathUtils
+import java.io.IOException
+import java.util.Locale
 
 class MainService : FcitxPluginService() {
 
@@ -25,12 +31,15 @@ class MainService : FcitxPluginService() {
         private const val SERVER_ADDRESS_KEY = "server_address"
         private const val SERVER_ADDRESS_SYNC_CLIPBOARD_KEY = "server_address_syncclipboard"
         private const val SERVER_ADDRESS_ONE_CLIP_KEY = "server_address_oneclip"
+        private const val SERVER_ADDRESS_CLIP_CASCADE_KEY = "server_address_clipcascade"
         private const val SERVER_ADDRESS_CUSTOM_KEY = "server_address_custom"
         private const val PROFILE_SYNC_CLIPBOARD = "syncclipboard"
         private const val PROFILE_ONE_CLIP = "oneclip"
+        private const val PROFILE_CLIP_CASCADE = "clipcascade"
         private const val PROFILE_CUSTOM = "custom"
         private const val DEFAULT_SYNC_CLIPBOARD_URL = "http://192.168.10.11:5003"
         private const val DEFAULT_ONE_CLIP_URL = "http://192.168.10.11:8899"
+        private const val DEFAULT_CLIP_CASCADE_URL = "http://192.168.10.11:8080"
         private const val CONNECTIVITY_RETRY_COUNT = 3
         private const val CONNECTIVITY_RETRY_DELAY_MS = 30_000L
     }
@@ -49,6 +58,8 @@ class MainService : FcitxPluginService() {
     }
     private var clipboardListenerRegistered = false
     private var prefsListenerRegistered = false
+    private var clipCascadeClient: ClipCascadeClient? = null
+    private var oneClipClient: OneClipEventClient? = null
 
     // Cache to avoid circular updates (Pull -> Local -> Push -> Loop)
     private var lastLocalContent: String? = null
@@ -181,7 +192,21 @@ class MainService : FcitxPluginService() {
         scope.launch {
             try {
                 lastUploadedContent = text
-                SyncClient.putClipboard(this@MainService, url, user, pass, backend, text)
+                if (backend == ServerBackend.CLIPCASCADE) {
+                    val activeClient = clipCascadeClient
+                    if (activeClient?.isConnected() == true) {
+                        val outgoing = SyncClient.buildClipCascadeClipboardData(this@MainService, text)
+                        activeClient.sendClipboard(
+                            payload = outgoing.payload,
+                            type = outgoing.type,
+                            filename = outgoing.filename
+                        )
+                    } else {
+                        SyncClient.putClipboard(this@MainService, url, user, pass, backend, text)
+                    }
+                } else {
+                    SyncClient.putClipboard(this@MainService, url, user, pass, backend, text)
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "[Push] Failed to upload clipboard", e)
             }
@@ -195,6 +220,22 @@ class MainService : FcitxPluginService() {
         if (!quickSync) {
             Log.d(TAG, "[Pull] Quick sync disabled, stopping background polling")
             return
+        }
+
+        when (currentBackend()) {
+            ServerBackend.CLIPCASCADE -> {
+                Log.d(TAG, "[ClipCascade] Starting persistent websocket sync")
+                startClipCascadeSync()
+                return
+            }
+
+            ServerBackend.ONECLIP -> {
+                Log.d(TAG, "[OneClip] Starting persistent SSE sync")
+                startOneClipSync()
+                return
+            }
+
+            ServerBackend.SYNCCLIPBOARD -> Unit
         }
 
         Log.d(TAG, "[Pull] Starting periodic sync")
@@ -226,6 +267,117 @@ class MainService : FcitxPluginService() {
     private fun stopPeriodicSync() {
         syncJob?.cancel()
         syncJob = null
+        disconnectClipCascadeClient()
+        disconnectOneClipClient()
+    }
+
+    private fun startClipCascadeSync() {
+        disconnectClipCascadeClient()
+        syncJob = scope.launch {
+            while (isActive) {
+                val endpoint = currentEndpoint()
+                if (endpoint.address.isBlank()) {
+                    Log.d(TAG, "[ClipCascade] Server address is blank, skipping websocket sync")
+                    return@launch
+                }
+
+                val username = prefs.getString("username", "") ?: ""
+                val password = prefs.getString("password", "") ?: ""
+                val client = ClipCascadeClient(
+                    serverUrl = endpoint.address,
+                    username = username,
+                    password = password
+                )
+                clipCascadeClient = client
+
+                try {
+                    client.connect(::handleClipCascadeMessage)
+                    resetFailureState()
+                    val closeCause = client.awaitClose()
+                    if (!isActive) {
+                        return@launch
+                    }
+
+                    val error = closeCause as? Exception
+                        ?: IOException("ClipCascade websocket disconnected")
+                    if (handleConnectivityFailure(endpoint, error)) {
+                        continue
+                    }
+                    delay(5000)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    if (handleConnectivityFailure(endpoint, e)) {
+                        continue
+                    }
+                    Log.e(TAG, "[ClipCascade] Connection loop error", e)
+                    delay(5000)
+                } finally {
+                    if (clipCascadeClient === client) {
+                        clipCascadeClient = null
+                    }
+                    client.close()
+                }
+            }
+        }
+    }
+
+    private fun startOneClipSync() {
+        disconnectOneClipClient()
+        syncJob = scope.launch {
+            while (isActive) {
+                val endpoint = currentEndpoint()
+                if (endpoint.address.isBlank()) {
+                    Log.d(TAG, "[OneClip] Server address is blank, skipping SSE sync")
+                    return@launch
+                }
+
+                val client = OneClipEventClient(endpoint.address)
+                oneClipClient = client
+
+                try {
+                    client.connect { event ->
+                        if (!event.update) {
+                            return@connect
+                        }
+                        scope.launch {
+                            runCatching { checkRemoteClipboard() }
+                                .onFailure { error ->
+                                    Log.e(TAG, "[OneClip] Failed to refresh clipboard after SSE event", error)
+                                }
+                        }
+                    }
+
+                    checkRemoteClipboard()
+                    resetFailureState()
+
+                    val closeCause = client.awaitClose()
+                    if (!isActive) {
+                        return@launch
+                    }
+
+                    val error = closeCause as? Exception
+                        ?: IOException("OneClip SSE disconnected")
+                    if (handleConnectivityFailure(endpoint, error)) {
+                        continue
+                    }
+                    delay(5000)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    if (handleConnectivityFailure(endpoint, e)) {
+                        continue
+                    }
+                    Log.e(TAG, "[OneClip] Connection loop error", e)
+                    delay(5000)
+                } finally {
+                    if (oneClipClient === client) {
+                        oneClipClient = null
+                    }
+                    client.close()
+                }
+            }
+        }
     }
 
     private suspend fun checkRemoteClipboard() {
@@ -313,6 +465,113 @@ class MainService : FcitxPluginService() {
         }
     }
 
+    private fun handleClipCascadeMessage(data: ClipCascadeClipboardData) {
+        val normalizedType = data.type.lowercase(Locale.ROOT)
+        val payloadFingerprint = buildClipCascadePayloadFingerprint(data)
+        Log.d(TAG, "[ClipCascade] Received remote payload type=$normalizedType size=${data.payload.length}")
+        if (payloadFingerprint.isEmpty() ||
+            payloadFingerprint == lastLocalContent ||
+            payloadFingerprint == lastRemoteContent
+        ) {
+            return
+        }
+
+        lastRemoteContent = payloadFingerprint
+        lastLocalContent = payloadFingerprint
+        lastUploadedContent = payloadFingerprint
+
+        scope.launch {
+            when (normalizedType) {
+                "text" -> withContext(Dispatchers.Main) {
+                    updateSystemClipboard(data.payload)
+                }
+
+                "image" -> handleClipCascadeImage(data)
+
+                "file_eager" -> handleClipCascadeFileEager(data)
+
+                "file_stub" -> withContext(Dispatchers.Main) {
+                    updateSystemClipboard(buildClipCascadeFileStubSummary(data))
+                }
+
+                else -> Log.w(TAG, "[ClipCascade] Ignoring unsupported payload type: ${data.type}")
+            }
+        }
+    }
+
+    private suspend fun handleClipCascadeImage(data: ClipCascadeClipboardData) {
+        val bytes = runCatching { Base64.decode(data.payload, Base64.DEFAULT) }
+            .getOrElse { error ->
+                Log.e(TAG, "[ClipCascade] Failed to decode image payload", error)
+                return
+            }
+        val downloadUri = resolveDownloadUri()
+        val fileName = SyncClient.buildClipCascadeImageFileName(data.filename)
+        val mimeType = SyncClient.guessClipCascadeImageMimeType(fileName)
+        val savedUri = SyncClient.saveIncomingBytes(
+            context = this,
+            dirUri = downloadUri,
+            fileName = fileName,
+            bytes = bytes,
+            mimeType = mimeType
+        )
+        if (savedUri != null) {
+            withContext(Dispatchers.Main) {
+                updateSystemClipboardWithUri(savedUri)
+            }
+        }
+    }
+
+    private suspend fun handleClipCascadeFileEager(data: ClipCascadeClipboardData) {
+        val bytes = runCatching { Base64.decode(data.payload, Base64.DEFAULT) }
+            .getOrElse { error ->
+                Log.e(TAG, "[ClipCascade] Failed to decode file payload", error)
+                return
+            }
+        val downloadUri = resolveDownloadUri()
+        val fileName = data.filename
+            ?.substringAfterLast('/')
+            ?.takeIf { it.isNotBlank() }
+            ?: "ClipCascade-${System.currentTimeMillis()}.bin"
+        val savedUri = SyncClient.saveIncomingBytes(
+            context = this,
+            dirUri = downloadUri,
+            fileName = fileName,
+            bytes = bytes
+        )
+        if (savedUri != null) {
+            withContext(Dispatchers.Main) {
+                updateSystemClipboardWithUri(savedUri)
+            }
+        }
+    }
+
+    private fun buildClipCascadePayloadFingerprint(data: ClipCascadeClipboardData): String {
+        return when (data.type.lowercase(Locale.ROOT)) {
+            "text" -> data.payload
+            else -> "${data.type}:${data.filename.orEmpty()}:${data.payload.hashCode()}"
+        }
+    }
+
+    private fun buildClipCascadeFileStubSummary(data: ClipCascadeClipboardData): String {
+        val firstName = data.filename
+            ?.takeIf { it.isNotBlank() }
+            ?: data.payload.lineSequence().firstOrNull()?.trim().orEmpty()
+        return if (firstName.isNotBlank()) {
+            "ClipCascade file placeholder: $firstName"
+        } else {
+            "ClipCascade file placeholder received"
+        }
+    }
+
+    private fun resolveDownloadUri(): Uri? {
+        val downloadPath = prefs.getString("download_path", null)
+        return StoragePathUtils.resolveDownloadUri(
+            displayPath = downloadPath,
+            storedUri = prefs.getString("download_path_uri", null)
+        )
+    }
+
     private fun readClipboardContent(): String? {
         val clip = clipboardManager.primaryClip ?: return null
         if (clip.itemCount == 0) return null
@@ -350,6 +609,16 @@ class MainService : FcitxPluginService() {
         if (!scope.isActive) {
             scope = createScope()
         }
+    }
+
+    private fun disconnectClipCascadeClient() {
+        clipCascadeClient?.close()
+        clipCascadeClient = null
+    }
+
+    private fun disconnectOneClipClient() {
+        oneClipClient?.close()
+        oneClipClient = null
     }
 
     private fun ensureSelfStarted() {
@@ -471,6 +740,7 @@ class MainService : FcitxPluginService() {
             add(current.profileKey)
             add(PROFILE_SYNC_CLIPBOARD)
             add(PROFILE_ONE_CLIP)
+            add(PROFILE_CLIP_CASCADE)
             add(PROFILE_CUSTOM)
         }.distinct()
 
@@ -497,6 +767,7 @@ class MainService : FcitxPluginService() {
         val key = when (profileKey) {
             PROFILE_SYNC_CLIPBOARD -> SERVER_ADDRESS_SYNC_CLIPBOARD_KEY
             PROFILE_ONE_CLIP -> SERVER_ADDRESS_ONE_CLIP_KEY
+            PROFILE_CLIP_CASCADE -> SERVER_ADDRESS_CLIP_CASCADE_KEY
             PROFILE_CUSTOM -> SERVER_ADDRESS_CUSTOM_KEY
             else -> null
         }
@@ -505,6 +776,7 @@ class MainService : FcitxPluginService() {
         return when (profileKey) {
             PROFILE_SYNC_CLIPBOARD -> DEFAULT_SYNC_CLIPBOARD_URL
             PROFILE_ONE_CLIP -> DEFAULT_ONE_CLIP_URL
+            PROFILE_CLIP_CASCADE -> DEFAULT_CLIP_CASCADE_URL
             else -> ""
         }
     }

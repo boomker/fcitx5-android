@@ -33,7 +33,13 @@ data class ClipboardData(
 
     @SerialName("Size")
     @JsonNames("size")
-    val size: Long = 0
+    val size: Long = 0,
+
+    @JsonNames("hasImage")
+    val hasImage: Boolean = false,
+
+    @JsonNames("timestamp")
+    val timestamp: Double = 0.0
 )
 
 @Serializable
@@ -64,4 +70,36 @@ data class OneClipUploadImageRequest(
 data class OneClipUploadResponse(
     val status: String = "",
     val message: String = ""
+)
+
+@Serializable
+data class OneClipEventData(
+    val update: Boolean = false,
+    val id: String = ""
+)
+
+@Serializable
+data class ClipCascadeClipboardData(
+    val payload: String = "",
+    val type: String = "text",
+    val filename: String? = null
+)
+
+@Serializable
+data class ClipCascadeSessionValidationResponse(
+    val valid: Boolean = false
+)
+
+@Serializable
+data class ClipCascadeUserInfoResponse(
+    val salt: String = "",
+    @SerialName("hash_rounds")
+    val hashRounds: Int = 100000
+)
+
+@Serializable
+data class ClipCascadeEncryptedPayload(
+    val nonce: String = "",
+    val ciphertext: String = "",
+    val tag: String = ""
 )

@@ -15,15 +15,13 @@
     <EditTextPreference
         app:key="username"
         app:title="@string/local_username"
-        app:defaultValue="admin"
-        app:useSimpleSummaryProvider="true" />
+        app:defaultValue="admin" />
 
     <EditTextPreference
         app:key="password"
         app:title="@string/local_password"
         app:defaultValue="123456"
-        app:useSimpleSummaryProvider="false"
-        app:summary="******" />
+        app:summary="@string/credential_not_set" />
 
     <EditTextPreference
         app:key="sync_interval"
@@ -40,5 +38,10 @@
         app:key="test_connection"
         app:title="@string/local_test_connection"
         app:summary="@string/local_click_test" />
+
+    <Preference
+        app:key="test_push"
+        app:title="@string/local_test_push"
+        app:summary="@string/local_test_push_summary" />
 
 </PreferenceScreen>

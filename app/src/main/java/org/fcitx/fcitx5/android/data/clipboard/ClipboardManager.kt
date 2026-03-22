@@ -22,6 +22,7 @@ import org.fcitx.fcitx5.android.data.clipboard.db.ClipboardDatabase
 import org.fcitx.fcitx5.android.data.clipboard.db.ClipboardEntry
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.data.prefs.ManagedPreference
+import org.fcitx.fcitx5.android.utils.ClipboardUriStore.normalizeClipboardText
 import org.fcitx.fcitx5.android.utils.WeakHashSet
 import org.fcitx.fcitx5.android.utils.appContext
 import org.fcitx.fcitx5.android.utils.clipboardManager
@@ -169,7 +170,10 @@ object ClipboardManager : ClipboardManager.OnPrimaryClipChangedListener,
         }
         launch {
             mutex.withLock {
-                val entry = ClipboardEntry.fromClipData(clip, transformer) ?: return@withLock
+                val entry = ClipboardEntry.fromClipData(clip, transformer)?.let {
+                    val normalizedText = normalizeClipboardText(appContext, it.text)
+                    if (normalizedText == it.text) it else it.copy(text = normalizedText)
+                } ?: return@withLock
                 if (entry.text.isBlank()) return@withLock
                 try {
                     clbDao.find(entry.text, entry.sensitive)?.let {

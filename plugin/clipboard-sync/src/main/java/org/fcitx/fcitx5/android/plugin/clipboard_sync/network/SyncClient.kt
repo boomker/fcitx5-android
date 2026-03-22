@@ -6,6 +6,7 @@ import android.provider.OpenableColumns
 import android.util.Base64
 import android.util.Log
 import androidx.documentfile.provider.DocumentFile
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import okhttp3.Credentials
@@ -20,14 +21,15 @@ import java.util.concurrent.TimeUnit
 object SyncClient {
     enum class ServerBackend {
         SYNCCLIPBOARD,
-        ONECLIP;
+        ONECLIP,
+        CLIPCASCADE;
 
         companion object {
             fun fromProfileType(profileType: String?): ServerBackend {
-                return if (profileType.equals("oneclip", ignoreCase = true)) {
-                    ONECLIP
-                } else {
-                    SYNCCLIPBOARD
+                return when {
+                    profileType.equals("oneclip", ignoreCase = true) -> ONECLIP
+                    profileType.equals("clipcascade", ignoreCase = true) -> CLIPCASCADE
+                    else -> SYNCCLIPBOARD
                 }
             }
         }
@@ -81,6 +83,10 @@ object SyncClient {
                 lastRevision = lastRevision,
                 downloadDirUri = downloadDirUri
             )
+
+            ServerBackend.CLIPCASCADE -> {
+                throw UnsupportedOperationException("ClipCascade uses a live websocket session instead of polling")
+            }
         }
     }
 
@@ -106,6 +112,25 @@ object SyncClient {
                 serverUrl = serverUrl,
                 content = content
             )
+
+            ServerBackend.CLIPCASCADE -> runBlocking {
+                val client = ClipCascadeClient(
+                    serverUrl = serverUrl,
+                    username = username,
+                    password = pass
+                )
+                try {
+                    client.connect { }
+                    val outgoing = buildClipCascadeClipboardData(context, content)
+                    client.sendClipboard(
+                        payload = outgoing.payload,
+                        type = outgoing.type,
+                        filename = outgoing.filename
+                    )
+                } finally {
+                    client.close()
+                }
+            }
         }
     }
 
@@ -128,12 +153,20 @@ object SyncClient {
                 }
 
                 ServerBackend.ONECLIP -> {
-                    val historyUrl = oneClipUrl(serverUrl, "/api/history")
+                    val historyUrl = oneClipUrl(serverUrl, "/api/current")
                     Log.d(TAG, "[Test] Testing OneClip connection to $historyUrl")
                     Request.Builder()
                         .url(historyUrl)
                         .get()
                         .build()
+                }
+
+                ServerBackend.CLIPCASCADE -> {
+                    return runBlocking {
+                        runCatching {
+                            ClipCascadeClient(serverUrl, username, pass).testConnection()
+                        }
+                    }
                 }
             }
 
@@ -179,60 +212,45 @@ object SyncClient {
         lastRevision: String?,
         downloadDirUri: Uri?
     ): FetchResult {
-        val historyUrl = oneClipUrl(serverUrl, "/api/history")
-        val historyRequest = Request.Builder()
-            .url(historyUrl)
+        val currentRequest = Request.Builder()
+            .url(oneClipUrl(serverUrl, "/api/current"))
             .get()
             .build()
 
-        client.newCall(historyRequest).execute().use { response ->
+        client.newCall(currentRequest).execute().use { response ->
             if (!response.isSuccessful) {
-                throw IOException("Failed to load OneClip history: ${response.code} ${response.message}")
+                throw IOException("Failed to load OneClip current item: ${response.code} ${response.message}")
             }
 
-            val bodyString = response.body?.string().orEmpty()
-            val history = json.decodeFromString<OneClipHistoryResponse>(bodyString)
-            val latest = history.items.firstOrNull() ?: return FetchResult(null, lastRevision)
-            val revision = REVISION_ONECLIP_PREFIX + latest.id
+            val item = json.decodeFromString<ClipboardData>(response.body?.string().orEmpty())
+            if (item.id.isBlank()) {
+                return FetchResult(null, lastRevision)
+            }
+            val revision = REVISION_ONECLIP_PREFIX + item.id
 
             if (revision == lastRevision) {
                 return FetchResult(null, revision)
             }
 
-            val detailRequest = Request.Builder()
-                .url(oneClipUrl(serverUrl, "/api/item/${latest.id}"))
-                .get()
-                .build()
-
-            client.newCall(detailRequest).execute().use { detailResponse ->
-                if (!detailResponse.isSuccessful) {
-                    throw IOException("Failed to load OneClip item: ${detailResponse.code} ${detailResponse.message}")
-                }
-
-                val detailBody = detailResponse.body?.string().orEmpty()
-                val item = json.decodeFromString<ClipboardData>(detailBody)
-                val normalizedType = item.type.lowercase(Locale.ROOT)
-
-                if (normalizedType == "image" || latest.hasImage) {
-                    val imageData = downloadOneClipImage(
-                        context = context,
-                        serverUrl = serverUrl,
-                        itemId = latest.id,
-                        timestamp = latest.timestamp,
-                        downloadDirUri = downloadDirUri
-                    )
-                    return FetchResult(imageData, revision)
-                }
-
-                return FetchResult(
-                    item.copy(
-                        id = latest.id,
-                        type = "Text",
-                        hash = latest.id
-                    ),
-                    revision
+            val normalizedType = item.type.lowercase(Locale.ROOT)
+            if (normalizedType == "image" || item.hasImage) {
+                val imageData = downloadOneClipImage(
+                    context = context,
+                    serverUrl = serverUrl,
+                    itemId = item.id,
+                    timestamp = item.timestamp,
+                    downloadDirUri = downloadDirUri
                 )
+                return FetchResult(imageData, revision)
             }
+
+            return FetchResult(
+                item.copy(
+                    type = "Text",
+                    hash = item.id
+                ),
+                revision
+            )
         }
     }
 
@@ -266,11 +284,12 @@ object SyncClient {
                         if (!it.isSuccessful) throw IOException("File upload failed: ${it.code}")
                     }
 
-                    val hash = HashUtils.calculateFileHash(fileName, bytes)
                     val data = ClipboardData(
                         type = "File",
                         text = fileName,
-                        hash = hash,
+                        // SyncClipboard server rejects Android-side file hashes here.
+                        // Leave it empty and let the server accept the uploaded file metadata.
+                        hash = "",
                         hasData = true,
                         dataName = fileName,
                         size = bytes.size.toLong()
@@ -303,6 +322,7 @@ object SyncClient {
     ) {
         val uri = content.toClipboardUriOrNull()
         try {
+            primeOneClipSession(serverUrl)
             if (uri != null && isImageUri(context, uri)) {
                 val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
                     ?: throw IOException("Unable to read image from clipboard URI")
@@ -473,6 +493,21 @@ object SyncClient {
         }
     }
 
+    private fun primeOneClipSession(serverUrl: String) {
+        val warmupPaths = listOf("/", "/api/current")
+        for (path in warmupPaths) {
+            val request = Request.Builder()
+                .url(oneClipUrl(serverUrl, path))
+                .get()
+                .build()
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    throw IOException("OneClip warmup failed for $path: ${response.code} ${response.message}")
+                }
+            }
+        }
+    }
+
     private fun downloadOneClipImage(
         context: Context,
         serverUrl: String,
@@ -516,6 +551,78 @@ object SyncClient {
                 size = bytes.size.toLong()
             )
         }
+    }
+
+    fun saveIncomingBytes(
+        context: Context,
+        dirUri: Uri?,
+        fileName: String,
+        bytes: ByteArray,
+        mimeType: String = "*/*"
+    ): Uri? {
+        if (dirUri == null) {
+            Log.w(TAG, "[Pull] No download directory set, skipping file save")
+            return null
+        }
+        return saveFile(
+            context = context,
+            dirUri = dirUri,
+            fileName = fileName,
+            bytes = bytes,
+            mimeType = mimeType
+        )
+    }
+
+    fun buildClipCascadeImageFileName(filename: String?): String {
+        val normalized = filename
+            ?.substringAfterLast('/')
+            ?.trim()
+            .orEmpty()
+        if (normalized.isNotEmpty()) {
+            return normalized
+        }
+        return "ClipCascade-${System.currentTimeMillis()}.png"
+    }
+
+    fun guessClipCascadeImageMimeType(filename: String?): String {
+        val extension = filename
+            ?.substringAfterLast('.', "")
+            ?.lowercase(Locale.ROOT)
+            .orEmpty()
+        return when (extension) {
+            "jpg", "jpeg" -> "image/jpeg"
+            "webp" -> "image/webp"
+            "gif" -> "image/gif"
+            else -> "image/png"
+        }
+    }
+
+    fun buildClipCascadeClipboardData(
+        context: Context,
+        content: String
+    ): ClipCascadeClipboardData {
+        val uri = content.toClipboardUriOrNull()
+        if (uri != null) {
+            val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+            if (bytes != null) {
+                val fileName = getFileName(context, uri) ?: "clipcascade-file"
+                val payloadType = if (isImageUri(context, uri)) {
+                    "image"
+                } else {
+                    "file_eager"
+                }
+                return ClipCascadeClipboardData(
+                    payload = Base64.encodeToString(bytes, Base64.NO_WRAP),
+                    type = payloadType,
+                    filename = fileName
+                )
+            }
+        }
+
+        return ClipCascadeClipboardData(
+            payload = content,
+            type = "text"
+        )
     }
 
     private fun saveFile(

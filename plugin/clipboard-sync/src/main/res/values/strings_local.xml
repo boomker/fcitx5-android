@@ -1,22 +1,24 @@
 <resources>
     <string name="app_display_name">ClipboardSync</string>
-    <string name="plugin_description">与 SyncClipboard / OneClip 服务同步剪贴板</string>
+    <string name="plugin_description">与 SyncClipboard / OneClip / ClipCascade 服务同步剪贴板</string>
     <string name="settings_title">设置</string>
     <string name="quick_sync_tile_label">剪贴板同步</string>
 
     <string name="local_quick_sync">开启同步</string>
     <string name="local_quick_sync_summary">关闭后将停止所有同步服务</string>
     <string name="server_profile_title">服务端</string>
-    <string name="server_profile_summary">选择服务端别名并配置地址</string>
-    <string name="server_alias_title">别名</string>
+    <string name="server_profile_summary">选择服务端类型并配置地址</string>
+    <string name="server_alias_title">类型</string>
     <string name="server_custom_alias_hint">输入自定义别名</string>
     <string name="server_address_field_title">服务器地址</string>
     <string name="server_address_field_hint">例如 http://192.168.10.11:5003</string>
     <string name="server_profile_syncclipboard">SyncClipboard</string>
     <string name="server_profile_oneclip">OneClip</string>
+    <string name="server_profile_clipcascade">ClipCascade</string>
     <string name="server_profile_custom">自定义</string>
     <string name="local_username">用户名</string>
     <string name="local_password">密码</string>
+    <string name="credential_not_set">未设置</string>
     <string name="password_show">显示</string>
     <string name="password_hide">隐藏</string>
     <string name="local_sync_interval">同步间隔（秒）</string>
@@ -26,6 +28,19 @@
     <string name="storage_location_pick">选择目录</string>
     <string name="local_test_connection">测试连接</string>
     <string name="local_click_test">点击测试服务器可用性</string>
+    <string name="local_test_push">测试推送</string>
+    <string name="local_test_push_summary">手动推送文本或文件到当前服务端</string>
+    <string name="local_test_push_hint">可直接输入测试文本，或选择一个文件进行推送。已选择文件时会优先推送文件。</string>
+    <string name="local_test_push_text_hint">输入要推送到服务端的文本</string>
+    <string name="local_test_push_no_file">未选择文件</string>
+    <string name="local_test_push_pick_file">选择文件</string>
+    <string name="local_test_push_clear_file">清除文件</string>
+    <string name="local_test_push_send">发送</string>
+    <string name="local_test_push_empty">请先输入文本或选择文件</string>
+    <string name="local_test_push_file_selected">已选择文件：%s</string>
+    <string name="local_test_push_running">正在测试推送...</string>
+    <string name="local_test_push_success">测试推送成功</string>
+    <string name="local_test_push_failed">测试推送失败</string>
     <string name="please_set_server_address">请先设置服务器地址</string>
     <string name="testing_connection">正在测试连接...</string>
     <string name="connecting_to">正在连接到 %s...</string>

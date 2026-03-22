@@ -7,6 +7,8 @@ package org.fcitx.fcitx5.android.input
 
 import android.annotation.SuppressLint
 import android.app.Dialog
+import android.content.ClipDescription
+import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.res.ColorStateList
 import android.content.res.Configuration
@@ -41,6 +43,8 @@ import androidx.autofill.inline.common.ImageViewStyle
 import androidx.autofill.inline.common.TextViewStyle
 import androidx.autofill.inline.common.ViewStyle
 import androidx.autofill.inline.v1.InlineSuggestionUi
+import androidx.core.view.inputmethod.InputConnectionCompat
+import androidx.core.view.inputmethod.InputContentInfoCompat
 import androidx.core.view.updateLayoutParams
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.CoroutineStart
@@ -69,6 +73,7 @@ import org.fcitx.fcitx5.android.data.theme.ThemeManager
 import org.fcitx.fcitx5.android.input.cursor.CursorRange
 import org.fcitx.fcitx5.android.input.cursor.CursorTracker
 import org.fcitx.fcitx5.android.utils.InputMethodUtil
+import org.fcitx.fcitx5.android.utils.ClipboardUriStore
 import org.fcitx.fcitx5.android.utils.alpha
 import org.fcitx.fcitx5.android.utils.forceShowSelf
 import org.fcitx.fcitx5.android.utils.inputMethodManager
@@ -449,6 +454,31 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         }
     }
 
+    fun commitClipboardEntry(text: String): Boolean {
+        return commitUriContent(text) || run {
+            commitText(text)
+            false
+        }
+    }
+
+    private fun commitUriContent(text: String): Boolean {
+        val staged = ClipboardUriStore.stageForCommit(this, text) ?: return false
+        val editorInfo = currentInputEditorInfo ?: return false
+        val inputConnection = currentInputConnection ?: return false
+        val packageName = editorInfo.packageName
+        if (!packageName.isNullOrEmpty()) {
+            grantUriPermission(packageName, staged.uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        val description = ClipDescription(staged.uri.lastPathSegment ?: "clipboard", arrayOf(staged.mimeType))
+        return InputConnectionCompat.commitContent(
+            inputConnection,
+            editorInfo,
+            InputContentInfoCompat(staged.uri, description, null),
+            InputConnectionCompat.INPUT_CONTENT_GRANT_READ_URI_PERMISSION,
+            null
+        )
+    }
+
     private fun sendDownKeyEvent(eventTime: Long, keyEventCode: Int, metaState: Int = 0) {
         currentInputConnection?.sendKeyEvent(
             KeyEvent(
@@ -599,7 +629,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     override fun onEvaluateFullscreenMode(): Boolean {
         // Always return false to prevent "Extract View" mode which hides the app.
         // We handle full screen window size manually via onConfigureWindow.
-        return false 
+        return false
     }
 
     override fun onComputeInsets(outInsets: Insets) {
@@ -609,7 +639,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             // But we need to handle touches.
              outInsets.contentTopInsets = inputView.height
              outInsets.visibleTopInsets = inputView.height
-             
+
              outInsets.touchableInsets = Insets.TOUCHABLE_INSETS_REGION
              inputView.getFloatingKeyboardRegion(outInsets.touchableRegion)
              return
@@ -619,12 +649,12 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             val location = IntArray(2)
             inputView?.keyboardView?.getLocationInWindow(location)
             val top = location[1]
-            
+
             // In fixed mode, use TOUCHABLE_INSETS_REGION to explicitly define touchable area
             // to avoid any ambiguity about full screen blocking.
             outInsets.touchableInsets = Insets.TOUCHABLE_INSETS_REGION
               inputView?.getDockedKeyboardRegion(outInsets.touchableRegion)
-            
+
             // Also set contentTopInsets to where the keyboard starts
             if (top > 0) {
                  outInsets.contentTopInsets = top
