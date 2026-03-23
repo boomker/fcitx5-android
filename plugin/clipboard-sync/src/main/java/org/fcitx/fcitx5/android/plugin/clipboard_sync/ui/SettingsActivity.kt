@@ -19,6 +19,7 @@ import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageButton
+import android.widget.LinearLayout
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
@@ -908,6 +909,10 @@ class SettingsActivity : AppCompatActivity() {
 
     class SyncFilterSettingsFragment : PreferenceFragmentCompat() {
 
+        companion object {
+            private const val MAX_FILE_SIZE_ENTRY_KEY = "filter_max_file_size_entry"
+        }
+
         private val previewListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
             if (key in observedKeys) {
                 updateFilterPreview()
@@ -928,7 +933,6 @@ class SettingsActivity : AppCompatActivity() {
             SyncFilterPrefs.ensureDefaults(prefs)
 
             listOf(
-                SyncFilterPrefs.PREF_FILTER_MAX_FILE_SIZE,
                 SyncFilterPrefs.PREF_FILTER_MIN_TEXT_CHARS,
                 SyncFilterPrefs.PREF_FILTER_MAX_TEXT_CHARS
             ).forEach { key ->
@@ -963,20 +967,9 @@ class SettingsActivity : AppCompatActivity() {
                 }
             }
 
-            findPreference<EditTextPreference>(SyncFilterPrefs.PREF_FILTER_MAX_FILE_SIZE)
-                ?.setOnPreferenceChangeListener { _, newValue ->
-                    persistPositiveNumericValue(
-                        key = SyncFilterPrefs.PREF_FILTER_MAX_FILE_SIZE,
-                        newValue = newValue?.toString()
-                    )
-                    false
-                }
-
-            listOf(
-                SyncFilterPrefs.PREF_FILTER_MAX_FILE_SIZE_UNIT
-            ).forEach { key ->
-                findPreference<Preference>(key)?.setOnPreferenceChangeListener { _, _ ->
-                    view?.post { updateFilterPreview() }
+            findPreference<Preference>(MAX_FILE_SIZE_ENTRY_KEY)?.apply {
+                setOnPreferenceClickListener {
+                    showMaxFileSizeDialog()
                     true
                 }
             }
@@ -1043,6 +1036,76 @@ class SettingsActivity : AppCompatActivity() {
             val prefs = preferenceManager.sharedPreferences ?: return
             findPreference<Preference>(SyncFilterPrefs.PREF_FILTER_PREVIEW)?.summary =
                 SyncFilterPrefs.buildPreview(requireContext(), prefs)
+            findPreference<Preference>(MAX_FILE_SIZE_ENTRY_KEY)?.summary =
+                buildMaxFileSizeSummary(prefs)
+        }
+
+        private fun showMaxFileSizeDialog() {
+            val context = requireContext()
+            val prefs = preferenceManager.sharedPreferences ?: return
+            val state = SyncFilterPrefs.loadState(prefs)
+            val density = context.resources.displayMetrics.density
+            val horizontalPadding = (20 * density).toInt()
+            val verticalPadding = (12 * density).toInt()
+            val spacing = (12 * density).toInt()
+
+            val container = LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                setPadding(horizontalPadding, verticalPadding, horizontalPadding, verticalPadding)
+            }
+            val valueInput = EditText(context).apply {
+                inputType = InputType.TYPE_CLASS_NUMBER
+                hint = getString(R.string.filter_max_file_size_title)
+                setText(state.maxFileSizeValue?.toString().orEmpty())
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                    marginEnd = spacing
+                }
+            }
+            val unitSpinner = Spinner(context).apply {
+                adapter = ArrayAdapter(
+                    context,
+                    android.R.layout.simple_spinner_dropdown_item,
+                    SyncFilterPrefs.FileSizeUnit.entries.map { it.prefValue }
+                )
+                setSelection(
+                    SyncFilterPrefs.FileSizeUnit.entries.indexOf(state.maxFileSizeUnit).coerceAtLeast(0)
+                )
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+            }
+            container.addView(valueInput)
+            container.addView(unitSpinner)
+
+            AlertDialog.Builder(context)
+                .setTitle(R.string.filter_max_file_size_title)
+                .setView(container)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(android.R.string.ok) { _, _ ->
+                    persistPositiveNumericValue(
+                        key = SyncFilterPrefs.PREF_FILTER_MAX_FILE_SIZE,
+                        newValue = valueInput.text?.toString()
+                    )
+                    prefs.edit()
+                        .putString(
+                            SyncFilterPrefs.PREF_FILTER_MAX_FILE_SIZE_UNIT,
+                            SyncFilterPrefs.FileSizeUnit.entries[unitSpinner.selectedItemPosition].prefValue
+                        )
+                        .apply()
+                    updateFilterPreview()
+                }
+                .show()
+        }
+
+        private fun buildMaxFileSizeSummary(prefs: SharedPreferences): String {
+            val state = SyncFilterPrefs.loadState(prefs)
+            val sizeValue = state.maxFileSizeValue ?: return getString(R.string.filter_max_file_size_summary)
+            return getString(
+                R.string.filter_max_file_size_value,
+                sizeValue.toString(),
+                state.maxFileSizeUnit.prefValue
+            )
         }
     }
 }

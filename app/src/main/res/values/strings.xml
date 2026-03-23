@@ -66,6 +66,7 @@
     <string name="unpin">Unpin</string>
     <string name="delete">Delete</string>
     <string name="clipboard">Clipboard</string>
+    <string name="clipboard_category_all">All</string>
     <string name="clipboard_category_local">Local</string>
     <string name="clipboard_category_media">Images &amp; Files</string>
     <string name="clipboard_category_remote">Other Devices</string>
@@ -415,6 +416,7 @@
     <string name="open_input_method_settings">Open input method settings</string>
     <string name="delete_all">Delete all</string>
     <string name="share">Share</string>
+    <string name="view_image">View image</string>
     <string name="open_link">Open link</string>
     <string name="emoji_and_symbols">Emoji &amp; Symbols</string>
     <string name="default_emoji_skin_tone">Default emoji skin tone modifier</string>

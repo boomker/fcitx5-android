@@ -42,6 +42,7 @@ out/
 # release/
 
 # Gradle files
+.tmp/
 .gradle/
 build/
 

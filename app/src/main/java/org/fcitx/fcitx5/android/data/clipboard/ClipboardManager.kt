@@ -106,6 +106,7 @@ object ClipboardManager : ClipboardManager.OnPrimaryClipChangedListener,
     suspend fun get(id: Int) = clbDao.get(id)
 
     suspend fun haveUnpinned(category: ClipboardCategory) = when (category) {
+        ClipboardCategory.All -> clbDao.findUnpinnedIds().isNotEmpty()
         ClipboardCategory.Local -> clbDao.haveUnpinnedTextEntriesBySource(ClipboardEntry.SOURCE_LOCAL)
         ClipboardCategory.Remote -> clbDao.haveUnpinnedTextEntriesBySource(ClipboardEntry.SOURCE_REMOTE)
         ClipboardCategory.Media -> clbDao.haveUnpinnedMediaEntries()
@@ -137,6 +138,14 @@ object ClipboardManager : ClipboardManager.OnPrimaryClipChangedListener,
 
     suspend fun deleteAll(category: ClipboardCategory, skipPinned: Boolean = true): IntArray {
         val ids = when (category) {
+            ClipboardCategory.All -> {
+                if (skipPinned) {
+                    clbDao.findUnpinnedIds()
+                } else {
+                    clbDao.findAllIds()
+                }
+            }
+
             ClipboardCategory.Local -> {
                 if (skipPinned) {
                     clbDao.findUnpinnedTextEntryIdsBySource(ClipboardEntry.SOURCE_LOCAL)

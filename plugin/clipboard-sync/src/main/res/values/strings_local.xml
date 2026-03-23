@@ -50,12 +50,12 @@
     <string name="sync_filter_segment_extensions">忽略 %1$s</string>
     <string name="sync_filter_segment_file_max">文件/图片 ≤ %1$d %2$s</string>
     <string name="filter_hint_title">生效说明</string>
-    <string name="filter_text_hint_summary">填写数字后即启用对应文本过滤；留空则不限制。</string>
-    <string name="filter_file_hint_summary">填写后缀或最大大小后即启用对应文件过滤；留空则不限制。</string>
+    <string name="filter_hint_summary">填写文本字符数、文件后缀或最大文件大小后即启用对应过滤；留空则不限制。</string>
     <string name="filter_blocked_extensions_title">忽略文件后缀</string>
     <string name="filter_blocked_extensions_summary">用逗号或空格分隔，例如 apk, zip, mp4</string>
     <string name="filter_max_file_size_title">最大文件大小</string>
     <string name="filter_max_file_size_summary">填写后大于该大小的图片或文件不接收</string>
+    <string name="filter_max_file_size_value">当前：%1$s %2$s</string>
     <string name="filter_max_file_size_unit_title">大小单位</string>
     <string-array name="filter_file_size_unit_entries">
         <item>KB</item>

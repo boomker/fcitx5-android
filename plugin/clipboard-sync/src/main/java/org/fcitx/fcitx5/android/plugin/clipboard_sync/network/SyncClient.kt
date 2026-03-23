@@ -654,14 +654,13 @@ object SyncClient {
         return try {
             val dir = DocumentFile.fromTreeUri(context, dirUri)
             if (dir != null && dir.isDirectory) {
-                dir.findFile(fileName)?.delete()
-                val newFile = dir.createFile(mimeType, fileName)
-                if (newFile != null) {
-                    context.contentResolver.openOutputStream(newFile.uri)?.use {
+                val targetFile = dir.findFile(fileName) ?: dir.createFile(mimeType, fileName)
+                if (targetFile != null) {
+                    context.contentResolver.openOutputStream(targetFile.uri, "wt")?.use {
                         it.write(bytes)
                         it.flush()
                     }
-                    waitUntilReadable(context, newFile.uri, bytes.size)
+                    waitUntilReadable(context, targetFile.uri, bytes.size)
                 } else {
                     null
                 }

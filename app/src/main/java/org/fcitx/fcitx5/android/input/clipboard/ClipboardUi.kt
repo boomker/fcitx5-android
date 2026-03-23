@@ -54,6 +54,7 @@ class ClipboardUi(override val ctx: Context, private val theme: Theme) : Ui {
     }
 
     private val categoryButtons = linkedMapOf(
+        ClipboardCategory.All to createCategoryButton(R.string.clipboard_category_all),
         ClipboardCategory.Local to createCategoryButton(R.string.clipboard_category_local),
         ClipboardCategory.Media to createCategoryButton(R.string.clipboard_category_media),
         ClipboardCategory.Remote to createCategoryButton(R.string.clipboard_category_remote)

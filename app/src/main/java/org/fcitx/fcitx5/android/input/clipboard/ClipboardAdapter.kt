@@ -157,6 +157,11 @@ abstract class ClipboardAdapter(
                 menu.item(R.string.share, R.drawable.ic_baseline_share_24, iconTint) {
                     onShare(entry)
                 }
+                entry.viewableImageUri()?.let { imageUri ->
+                    menu.item(R.string.view_image, R.drawable.ic_baseline_image_24, iconTint) {
+                        onViewImage(imageUri)
+                    }
+                }
                 if (linkUri != null) {
                     menu.item(R.string.open_link, R.drawable.ic_baseline_language_24, iconTint) {
                         onOpenLink(linkUri)
@@ -206,17 +211,15 @@ abstract class ClipboardAdapter(
 
     abstract fun onOpenLink(uri: Uri)
 
+    abstract fun onViewImage(uri: Uri)
+
     abstract fun onDelete(id: Int)
 
     private fun compactUriLabel(context: Context, entry: ClipboardEntry): String {
         val uri = runCatching { Uri.parse(entry.text) }.getOrNull()
         val fileName = uri?.let { resolveUriFileName(context, it) }
         return if (entry.type.startsWith("image/")) {
-            if (fileName.isNullOrBlank()) {
-                context.getString(R.string.clipboard_entry_image)
-            } else {
-                context.getString(R.string.clipboard_entry_image_named, fileName)
-            }
+            context.getString(R.string.clipboard_entry_image)
         } else {
             if (fileName.isNullOrBlank()) {
                 context.getString(R.string.clipboard_entry_file)
@@ -256,6 +259,11 @@ abstract class ClipboardAdapter(
 
     private fun ClipboardEntry.imagePreviewKey(): String? {
         return if (isUriEntry() && type.startsWith("image/")) text else null
+    }
+
+    private fun ClipboardEntry.viewableImageUri(): Uri? {
+        if (!isUriEntry() || !type.startsWith("image/")) return null
+        return runCatching { Uri.parse(text) }.getOrNull()
     }
 
     private suspend fun loadImagePreview(context: Context, entry: ClipboardEntry): Bitmap? {

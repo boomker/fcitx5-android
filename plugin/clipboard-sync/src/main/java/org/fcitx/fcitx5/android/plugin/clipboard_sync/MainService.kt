@@ -27,6 +27,8 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import androidx.preference.PreferenceManager
 import kotlinx.coroutines.*
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.fcitx.fcitx5.android.common.ClipboardMetadata
 import org.fcitx.fcitx5.android.common.FcitxPluginService
 import org.fcitx.fcitx5.android.common.PluginMessage
@@ -161,6 +163,7 @@ class MainService : FcitxPluginService() {
     private var lastUploadedContent: String? = null
     private var lastSuccessfulRemoteSyncAt = 0L
     private var lastBackendActivityAt = 0L
+    private val remoteFetchMutex = Mutex()
 
     private val networkCallback = object : ConnectivityManager.NetworkCallback() {
         override fun onAvailable(network: Network) {
@@ -607,58 +610,60 @@ class MainService : FcitxPluginService() {
     }
 
     private suspend fun checkRemoteClipboard() {
-        val endpoint = currentEndpoint()
-        val url = endpoint.address
-        val user = currentUsernameForProfile(endpoint.profileKey)
-        val pass = currentPasswordForProfile(endpoint.profileKey)
-        val backend = endpoint.backend
+        remoteFetchMutex.withLock {
+            val endpoint = currentEndpoint()
+            val url = endpoint.address
+            val user = currentUsernameForProfile(endpoint.profileKey)
+            val pass = currentPasswordForProfile(endpoint.profileKey)
+            val backend = endpoint.backend
 
-        if (url.isBlank()) return
+            if (url.isBlank()) return
 
-        val downloadPath = prefs.getString("download_path", null)
-        val downloadUri = StoragePathUtils.resolveDownloadUri(
-            displayPath = downloadPath,
-            storedUri = prefs.getString("download_path_uri", null)
-        )
+            val downloadPath = prefs.getString("download_path", null)
+            val downloadUri = StoragePathUtils.resolveDownloadUri(
+                displayPath = downloadPath,
+                storedUri = prefs.getString("download_path_uri", null)
+            )
 
-        val result = SyncClient.fetchClipboard(
-            context = this,
-            serverUrl = url,
-            username = user,
-            pass = pass,
-            backend = backend,
-            lastRevision = lastRemoteRevision,
-            downloadDirUri = downloadUri,
-            preDownloadFilter = ::shouldAcceptIncomingMetadata
-        )
-        noteRemoteSyncSuccess()
+            val result = SyncClient.fetchClipboard(
+                context = this,
+                serverUrl = url,
+                username = user,
+                pass = pass,
+                backend = backend,
+                lastRevision = lastRemoteRevision,
+                downloadDirUri = downloadUri,
+                preDownloadFilter = ::shouldAcceptIncomingMetadata
+            )
+            noteRemoteSyncSuccess()
 
-        if (result.revision != null) {
-            lastRemoteRevision = result.revision
-        }
+            if (result.revision != null) {
+                lastRemoteRevision = result.revision
+            }
 
-        val data = result.data ?: run {
-            return
-        }
-        if (!shouldAcceptIncomingClipboard(data)) {
-            Log.d(TAG, "[Pull] Incoming clipboard rejected by receive filter: type=${data.type} name=${data.dataName}")
-            return
-        }
+            val data = result.data ?: run {
+                return
+            }
+            if (!shouldAcceptIncomingClipboard(data)) {
+                Log.d(TAG, "[Pull] Incoming clipboard rejected by receive filter: type=${data.type} name=${data.dataName}")
+                return
+            }
 
-        val remoteText = data.text
-        Log.d(TAG, "[Pull] Processed data: type=${data.type}, text=$remoteText")
+            val remoteText = data.text
+            Log.d(TAG, "[Pull] Processed data: type=${data.type}, text=$remoteText")
 
-        if (remoteText.isNotEmpty() && remoteText != lastLocalContent && remoteText != lastRemoteContent) {
-            Log.d(TAG, "[Pull] Remote content changed, updating local")
-            lastRemoteContent = remoteText
-            lastLocalContent = remoteText // Update local cache to prevent echo
-            lastUploadedContent = remoteText
+            if (remoteText.isNotEmpty() && remoteText != lastLocalContent && remoteText != lastRemoteContent) {
+                Log.d(TAG, "[Pull] Remote content changed, updating local")
+                lastRemoteContent = remoteText
+                lastLocalContent = remoteText
+                lastUploadedContent = remoteText
 
-            withContext(Dispatchers.Main) {
-                if (data.type == "Text") {
-                    updateSystemClipboard(remoteText)
-                } else {
-                    updateSystemClipboardWithUri(Uri.parse(remoteText))
+                withContext(Dispatchers.Main) {
+                    if (data.type == "Text") {
+                        updateSystemClipboard(remoteText)
+                    } else {
+                        updateSystemClipboardWithUri(Uri.parse(remoteText))
+                    }
                 }
             }
         }

@@ -66,6 +66,7 @@
     <string name="unpin">取消置顶</string>
     <string name="delete">删除</string>
     <string name="clipboard">剪贴板</string>
+    <string name="clipboard_category_all">全部</string>
     <string name="clipboard_category_local">本机</string>
     <string name="clipboard_category_media">图片文件</string>
     <string name="clipboard_category_remote">其他设备</string>
@@ -415,6 +416,7 @@
     <string name="open_input_method_settings">打开输入法设置</string>
     <string name="delete_all">全部删除</string>
     <string name="share">分享</string>
+    <string name="view_image">查看图片</string>
     <string name="open_link">打开链接</string>
     <string name="emoji_and_symbols">表情和符号</string>
     <string name="default_emoji_skin_tone">默认表情肤色</string>

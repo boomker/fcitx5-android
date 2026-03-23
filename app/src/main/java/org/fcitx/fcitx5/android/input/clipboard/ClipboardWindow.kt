@@ -6,6 +6,7 @@ package org.fcitx.fcitx5.android.input.clipboard
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.net.Uri
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
@@ -123,6 +124,15 @@ class ClipboardWindow : InputWindow.ExtendedInputWindow<ClipboardWindow>() {
                 }
             }
 
+            override fun onViewImage(uri: Uri) {
+                val intent = Intent(Intent.ACTION_VIEW, uri).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                runCatching {
+                    service.startActivity(intent)
+                }
+            }
+
             override fun onDelete(id: Int) {
                 service.lifecycleScope.launch {
                     ClipboardManager.delete(id)
@@ -137,8 +147,14 @@ class ClipboardWindow : InputWindow.ExtendedInputWindow<ClipboardWindow>() {
         }
     }
 
-    private fun entriesPager(category: ClipboardCategory) = Pager(PagingConfig(pageSize = 16)) {
+    private fun entriesPager(category: ClipboardCategory) = Pager(
+        PagingConfig(
+            pageSize = 16,
+            enablePlaceholders = false
+        )
+    ) {
         when (category) {
+            ClipboardCategory.All -> ClipboardManager.allEntries()
             ClipboardCategory.Local -> ClipboardManager.localTextEntries()
             ClipboardCategory.Media -> ClipboardManager.mediaEntries()
             ClipboardCategory.Remote -> ClipboardManager.remoteTextEntries()
@@ -160,6 +176,7 @@ class ClipboardWindow : InputWindow.ExtendedInputWindow<ClipboardWindow>() {
         ClipboardUi(context, theme).apply {
             recyclerView.apply {
                 layoutManager = StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL)
+                itemAnimator = null
                 adapter = this@ClipboardWindow.adapter
             }
             setSelectedCategory(currentCategory)
