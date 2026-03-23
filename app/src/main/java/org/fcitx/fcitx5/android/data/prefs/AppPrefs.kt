@@ -15,6 +15,7 @@ import org.fcitx.fcitx5.android.data.InputFeedbacks.InputFeedbackMode
 import org.fcitx.fcitx5.android.input.candidates.expanded.ExpandedCandidateStyle
 import org.fcitx.fcitx5.android.input.candidates.floating.FloatingCandidatesMode
 import org.fcitx.fcitx5.android.input.candidates.floating.FloatingCandidatesOrientation
+import org.fcitx.fcitx5.android.input.candidates.floating.FloatingCandidatesVirtualKeyboardPosition
 import org.fcitx.fcitx5.android.input.candidates.horizontal.HorizontalCandidateMode
 import org.fcitx.fcitx5.android.input.keyboard.LangSwitchBehavior
 import org.fcitx.fcitx5.android.input.keyboard.SpaceLongPressBehavior
@@ -324,6 +325,14 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
             "candidates_window_orientation",
             FloatingCandidatesOrientation.Automatic
         )
+
+        val virtualKeyboardPosition = enumList(
+            R.string.candidates_position,
+            "virtual_keyboard_candidates_position",
+            FloatingCandidatesVirtualKeyboardPosition.TopLeft
+        ) {
+            mode.getValue() == FloatingCandidatesMode.Always
+        }
 
         val windowMinWidth = int(
             R.string.candidates_window_min_width,

@@ -25,6 +25,12 @@ class PreeditComponent : UniqueComponent<PreeditComponent>(), Dependent, InputBr
     private val context by manager.context()
     private val theme by manager.theme()
 
+    /**
+     * Control whether this PreeditComponent should display preedit text.
+     * Set to false when preedit is displayed elsewhere (e.g., in floating CandidatesView).
+     */
+    var shouldDisplay = true
+
     val ui by lazy {
         val keyBorder = ThemeManager.prefs.keyBorder.getValue()
         val bkgColor =
@@ -41,6 +47,7 @@ class PreeditComponent : UniqueComponent<PreeditComponent>(), Dependent, InputBr
 
     override fun onInputPanelUpdate(data: FcitxEvent.InputPanelEvent.Data) {
         ui.update(data)
-        ui.root.visibility = if (ui.visible) View.VISIBLE else View.INVISIBLE
+        // Only show if shouldDisplay is true
+        ui.root.visibility = if (shouldDisplay && ui.visible) View.VISIBLE else View.INVISIBLE
     }
 }

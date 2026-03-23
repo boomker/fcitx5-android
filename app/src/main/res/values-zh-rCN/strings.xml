@@ -388,6 +388,14 @@
     <string name="automatic">自动</string>
     <string name="horizontal">横向</string>
     <string name="vertical">纵向</string>
+    <string name="always">始终</string>
+    <string name="virtual_keyboard_candidates">虚拟键盘候选窗口</string>
+    <string name="candidates_position">候选窗口位置</string>
+    <string name="candidates_position_summary">仅在候选窗口模式为"始终"时生效</string>
+    <string name="top_left">左上</string>
+    <string name="top_right">右上</string>
+    <string name="bottom_left">左下</string>
+    <string name="bottom_right">右下</string>
     <string name="candidates_font_size">候选词字体大小</string>
     <string name="font_size">字体大小</string>
     <string name="font_size_value">%1$d sp</string>

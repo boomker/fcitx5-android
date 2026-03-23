@@ -38,11 +38,13 @@ import org.fcitx.fcitx5.android.input.bar.KawaiiBarComponent
 import org.fcitx.fcitx5.android.input.config.ConfigChangeListener
 import org.fcitx.fcitx5.android.input.config.ConfigProviders
 import org.fcitx.fcitx5.android.input.broadcast.InputBroadcaster
+import org.fcitx.fcitx5.android.input.broadcast.InputBroadcastReceiver
 import org.fcitx.fcitx5.android.input.broadcast.PreeditEmptyStateComponent
 import org.fcitx.fcitx5.android.input.broadcast.PunctuationComponent
 import org.fcitx.fcitx5.android.input.broadcast.ReturnKeyDrawableComponent
 import org.fcitx.fcitx5.android.input.candidates.horizontal.HorizontalCandidateComponent
 import org.fcitx.fcitx5.android.input.keyboard.CommonKeyActionListener
+import org.fcitx.fcitx5.android.input.keyboard.BaseKeyboard
 import org.fcitx.fcitx5.android.input.keyboard.KeyboardWindow
 import org.fcitx.fcitx5.android.input.picker.emojiPicker
 import org.fcitx.fcitx5.android.input.picker.emoticonPicker
@@ -1923,6 +1925,53 @@ class InputView(
 
     fun updateSelection(start: Int, end: Int) {
         broadcaster.onSelectionUpdate(start, end)
+    }
+
+    /**
+     * Control whether the preedit component should display preedit text.
+     * Set to false when preedit is displayed elsewhere (e.g., in floating CandidatesView).
+     */
+    fun setPreeditVisibility(shouldDisplay: Boolean) {
+        preedit.shouldDisplay = shouldDisplay
+    }
+
+    /**
+     * Get the Y position of the input field top (where text appears)
+     * This is used for positioning floating candidates window
+     */
+    internal fun getInputFieldTopY(): Float {
+        // The input field top is approximately at the top of the keyboard view
+        // In virtual keyboard mode, the text appears in the app's input field above the keyboard
+        // We use the keyboard top as a reference point for the cursor Y position
+        val kv = keyboardView
+        val location = IntArray(2)
+        kv.getLocationInWindow(location)
+        return location[1].toFloat()
+    }
+
+    /**
+     * Update space key label in "Always" floating mode
+     * Called when InputView doesn't handle Fcitx events but still needs to update space key
+     */
+    internal fun updateSpaceLabelOnFloatingMode() {
+        val ime = fcitx.runImmediately { inputMethodEntryCached }
+        
+        // Try to notify KeyboardWindow to update space label
+        val keyboardWindow = windowManager.getEssentialWindow(KeyboardWindow) as? InputBroadcastReceiver
+        if (keyboardWindow != null) {
+            keyboardWindow.onImeUpdate(ime)
+        } else {
+            // Fallback: directly update TextKeyboard if KeyboardWindow is not ready
+            // This can happen during initial view setup
+            keyboardView?.let { kv ->
+                val viewGroup = kv as? ViewGroup
+                val childCount = viewGroup?.childCount ?: 0
+                for (i in 0 until childCount) {
+                    val child = viewGroup?.getChildAt(i)
+                    (child as? BaseKeyboard)?.onInputMethodUpdate(ime)
+                }
+            }
+        }
     }
 
     @RequiresApi(Build.VERSION_CODES.R)

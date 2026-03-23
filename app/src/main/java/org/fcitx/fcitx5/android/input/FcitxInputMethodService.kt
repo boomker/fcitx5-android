@@ -66,6 +66,7 @@ import org.fcitx.fcitx5.android.daemon.FcitxConnection
 import org.fcitx.fcitx5.android.daemon.FcitxDaemon
 import org.fcitx.fcitx5.android.data.InputFeedbacks
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
+import org.fcitx.fcitx5.android.input.candidates.floating.FloatingCandidatesMode
 import org.fcitx.fcitx5.android.data.prefs.ManagedPreference
 import org.fcitx.fcitx5.android.data.prefs.ManagedPreferenceProvider
 import org.fcitx.fcitx5.android.data.theme.Theme
@@ -110,15 +111,162 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     private var candidatesView: CandidatesView? = null
 
     private val navbarMgr = NavigationBarManager()
-    private val inputDeviceMgr = InputDeviceManager { isVirtualKeyboard ->
-        postFcitxJob {
-            setCandidatePagingMode(if (isVirtualKeyboard) 0 else 1)
+    internal val inputDeviceManager = InputDeviceManager(
+        onChange = { isVirtualKeyboard ->
+            postFcitxJob {
+                setCandidatePagingMode(if (isVirtualKeyboard) 0 else 1)
+            }
+            currentInputConnection?.monitorCursorAnchor(!isVirtualKeyboard)
+            window.window?.let {
+                navbarMgr.evaluate(it, isVirtualKeyboard)
+            }
+            // Update candidates position when virtual keyboard visibility changes
+            if (AppPrefs.getInstance().candidates.mode.getValue() == FloatingCandidatesMode.Always) {
+                updateCandidatesViewPagingAndBounds()
+            }
+        },
+        floatingModeProvider = {
+            AppPrefs.getInstance().candidates.mode.getValue()
         }
-        currentInputConnection?.monitorCursorAnchor(!isVirtualKeyboard)
-        window.window?.let {
-            navbarMgr.evaluate(it, isVirtualKeyboard)
+    )
+
+    /**
+     * Listener for floating candidates mode changes
+     * Reset state when switching away from "Always" mode
+     */
+    @Keep
+    private val onFloatingModeChangeListener = ManagedPreference.OnChangeListener<FloatingCandidatesMode> { _, newMode ->
+        // Reset state when switching away from "Always" mode
+        if (newMode != FloatingCandidatesMode.Always) {
+            // Reset paging mode to virtual keyboard default (disable digit key selection)
+            postFcitxJob {
+                setCandidatePagingMode(0)
+            }
+            // Disable cursor anchor monitoring
+            currentInputConnection?.monitorCursorAnchor(false)
+        } else {
+            // Switching to "Always" mode: enable paging mode for digit key selection
+            postFcitxJob {
+                setCandidatePagingMode(1)
+            }
+            // Enable cursor anchor monitoring for floating candidates positioning
+            currentInputConnection?.monitorCursorAnchor(true)
+            // Update candidates view position
+            updateCandidatesViewPagingAndBounds()
         }
+        // Re-configure InputView and CandidatesView based on the new mode
+        inputDeviceManager.onFloatingModeChanged()
     }
+
+    /**
+     * Update CandidatesView with keyboard bounds for floating candidates positioning
+     */
+    private fun updateCandidatesViewKeyboardBounds() {
+        val cv = candidatesView ?: return
+        val iv = inputView ?: return
+        val keyboardView = iv.keyboardView ?: return
+
+        // Ensure views have valid dimensions
+        if (contentView.width <= 0 || contentView.height <= 0 || 
+            keyboardView.width <= 0 || keyboardView.height <= 0) {
+            android.util.Log.d("CandidatesPos", "Views not ready: contentView=${contentView.width}x${contentView.height}, keyboardView=${keyboardView.width}x${keyboardView.height}")
+            return
+        }
+        
+        val keyboardLocation = IntArray(2)
+        keyboardView.getLocationInWindow(keyboardLocation)
+        val keyboardLeft = keyboardLocation[0].toFloat()
+        val keyboardTop = keyboardLocation[1].toFloat()
+        val keyboardRight = (keyboardLeft + keyboardView.width).toFloat()
+        val keyboardBottom = (keyboardTop + keyboardView.height).toFloat()
+        
+        val parentWidth = contentView.width.toFloat()
+        val parentHeight = contentView.height.toFloat()
+
+        // Get cursor Y position from InputView
+        // This is the Y coordinate of the text input area (where text appears)
+        val cursorY = iv.getInputFieldTopY()
+
+        // Check if virtual keyboard is visible
+        val isKeyboardVisible = inputDeviceManager.isVirtualKeyboard
+
+        android.util.Log.d("CandidatesPos", "updateKeyboardBounds: keyboard=($keyboardLeft,$keyboardTop,$keyboardRight,$keyboardBottom), cursorY=$cursorY, parent=${parentWidth}x${parentHeight}, isKeyboardVisible=$isKeyboardVisible")
+
+        cv.updateKeyboardBounds(
+            floatArrayOf(keyboardLeft, keyboardTop, keyboardRight, keyboardBottom),
+            floatArrayOf(parentWidth, parentHeight),
+            cursorY,
+            isKeyboardVisible
+        )
+    }
+    
+    /**
+     * Update paging mode and cursor anchor for "Always" floating mode
+     */
+    internal fun updateCandidatesViewPagingAndBounds() {
+        val floatingMode = AppPrefs.getInstance().candidates.mode.getValue()
+        val useFloatingAlways = floatingMode == FloatingCandidatesMode.Always
+        
+        android.util.Log.d("FloatingCandidates", "updateCandidatesViewPagingAndBounds: mode=$floatingMode")
+        
+        // Enable candidate paging mode for "Always" floating mode
+        if (useFloatingAlways) {
+            android.util.Log.d("FloatingCandidates", "setCandidatePagingMode: 1")
+            postFcitxJob {
+                setCandidatePagingMode(1)
+            }
+        }
+        
+        // Enable cursor anchor monitoring to get actual cursor position from app
+        // This will trigger onUpdateCursorAnchorInfo callback
+        currentInputConnection?.monitorCursorAnchor(true)
+        
+        // Also update position immediately with current anchor info
+        updateCursorAnchorForFloatingCandidates()
+    }
+    
+    /**
+     * Update cursor anchor position for floating candidates in "Always" mode
+     */
+    private fun updateCursorAnchorForFloatingCandidates() {
+        val cv = candidatesView ?: return
+        val iv = inputView ?: return
+
+        val parentWidth = contentView.width.toFloat()
+        val parentHeight = contentView.height.toFloat()
+
+        // Use the anchor position from system cursor anchor info
+        // This is updated by onUpdateCursorAnchorInfo with the actual cursor position
+        // anchorPosition[1] = cursor bottom, anchorPosition[3] = cursor top
+        var cursorBottom = anchorPosition[1]
+        var cursorTop = anchorPosition[3]
+
+        // Get keyboard top position for reference
+        // This is used to position candidates near keyboard when cursor is far away
+        val keyboardTop = iv.getInputFieldTopY()
+
+        // Check if virtual keyboard is visible
+        val isKeyboardVisible = inputDeviceManager.isVirtualKeyboard
+
+        // Fallback: if system doesn't provide valid cursor position, use keyboard top
+        if (cursorTop <= 0f || cursorBottom <= 0f) {
+            // Assume cursor is near keyboard top
+            cursorBottom = keyboardTop
+            cursorTop = keyboardTop
+        }
+
+        android.util.Log.d("CandidatesPos", "updateCursorAnchorForFloatingCandidates: cursorTop=$cursorTop, cursorBottom=$cursorBottom, keyboardTop=$keyboardTop, parent=${parentWidth}x${parentHeight}, isKeyboardVisible=$isKeyboardVisible")
+
+        // Pass keyboard top as additional reference for positioning
+        cv.updateCursorAnchorForFloating(
+            floatArrayOf(anchorPosition[0], cursorBottom, cursorTop),
+            floatArrayOf(parentWidth, parentHeight),
+            keyboardTop,
+            isKeyboardVisible
+        )
+    }
+    
+    private val anchorPositionForFloating = floatArrayOf(0f, 0f, 0f, 0f)
 
     private var capabilityFlags = CapabilityFlags.DefaultFlags
 
@@ -152,7 +300,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     private fun replaceInputView(theme: Theme): InputView {
         val newInputView = InputView(this, fcitx, theme)
         setInputView(newInputView)
-        inputDeviceMgr.setInputView(newInputView)
+        inputDeviceManager.setInputView(newInputView)
         inputView = newInputView
         return newInputView
     }
@@ -163,13 +311,13 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         contentView.removeView(candidatesView)
         // put CandidatesView directly under content view
         contentView.addView(newCandidatesView)
-        inputDeviceMgr.setCandidatesView(newCandidatesView)
+        inputDeviceManager.setCandidatesView(newCandidatesView)
         candidatesView = newCandidatesView
         return newCandidatesView
     }
 
     private fun replaceInputViews(theme: Theme) {
-        navbarMgr.evaluate(window.window!!, inputDeviceMgr.isVirtualKeyboard)
+        navbarMgr.evaluate(window.window!!, inputDeviceManager.isVirtualKeyboard)
         replaceInputView(theme)
         replaceCandidateView(theme)
     }
@@ -219,6 +367,8 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             it.registerOnChangeListener(recreateInputViewListener)
         }
         prefs.candidates.registerOnChangeListener(recreateCandidatesViewListener)
+        // Register listener for floating mode changes to reset state when switching away from "Always" mode
+        prefs.candidates.mode.registerOnChangeListener(onFloatingModeChangeListener)
         ThemeManager.addOnChangedListener(onThemeChangeListener)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             postFcitxJob {
@@ -322,13 +472,15 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
                     // [^1]: notify system that input method subtype has changed
                     switchInputMethod(InputMethodUtil.componentName, subtype)
                 }
+                // Update space key label in "Always" floating mode
+                inputView?.updateSpaceLabelOnFloatingMode()
             }
             is FcitxEvent.SwitchInputMethodEvent -> {
                 val (reason) = event.data
                 if (reason != FcitxEvent.SwitchInputMethodEvent.Reason.CapabilityChanged &&
                     reason != FcitxEvent.SwitchInputMethodEvent.Reason.Other
                 ) {
-                    if (inputDeviceMgr.evaluateOnInputMethodSwitch()) {
+                    if (inputDeviceManager.evaluateOnInputMethodSwitch()) {
                         // show inputView for [CandidatesView] when input method switched by user
                         forceShowSelf()
                     }
@@ -563,7 +715,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     override fun onConfigurationChanged(newConfig: Configuration) {
         postFcitxJob { reset() }
         /**
-         * skip keyboard|keyboardHidden changes, because we have [inputDeviceMgr]
+         * skip keyboard|keyboardHidden changes, because we have [inputDeviceManager]
          * skip uiMode (system light/dark mode) changes, because we have [onThemeChangeListener]
          * to replace InputView(s) when needed
          * [android.inputmethodservice.InputMethodService.onConfigurationChanged] would call
@@ -645,7 +797,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
              return
         }
 
-        if (inputDeviceMgr.isVirtualKeyboard) {
+        if (inputDeviceManager.isVirtualKeyboard) {
             val location = IntArray(2)
             inputView?.keyboardView?.getLocationInWindow(location)
             val top = location[1]
@@ -712,7 +864,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         // request to show floating CandidatesView when pressing physical keyboard
-        if (inputDeviceMgr.evaluateOnKeyDown(event, this)) {
+        if (inputDeviceManager.evaluateOnKeyDown(event, this)) {
             postFcitxJob {
                 focus(true)
             }
@@ -730,13 +882,13 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
     override fun onViewClicked(focusChanged: Boolean) {
         super.onViewClicked(focusChanged)
-        inputDeviceMgr.evaluateOnViewClicked(this)
+        inputDeviceManager.evaluateOnViewClicked(this)
     }
 
     @RequiresApi(34)
     override fun onUpdateEditorToolType(toolType: Int) {
         super.onUpdateEditorToolType(toolType)
-        inputDeviceMgr.evaluateOnUpdateEditorToolType(toolType, this)
+        inputDeviceManager.evaluateOnUpdateEditorToolType(toolType, this)
     }
 
     private var firstBindInput = true
@@ -802,7 +954,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         val flags = CapabilityFlags.fromEditorInfo(attribute)
         capabilityFlags = flags
         // EditorInfo may change between onStartInput and onStartInputView
-        inputDeviceMgr.notifyOnStartInput(attribute)
+        inputDeviceManager.notifyOnStartInput(attribute)
         Timber.d("onStartInput: initialSel=${selection.current}, restarting=$restarting")
         val isNullType = attribute.isTypeNull()
         // wait until InputContext created/activated
@@ -828,7 +980,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         postFcitxJob {
             focus(true)
         }
-        if (inputDeviceMgr.evaluateOnStartInputView(info, this)) {
+        if (inputDeviceManager.evaluateOnStartInputView(info, this)) {
             // because onStartInputView will always be called after onStartInput,
             // editorInfo and capFlags should be up-to-date
             inputView?.startInput(info, capabilityFlags, restarting)
@@ -922,7 +1074,15 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         anchorPosition[1] -= yOffset
         anchorPosition[2] -= xOffset
         anchorPosition[3] -= yOffset
+        
+        // Update candidates view with cursor anchor
         candidatesView?.updateCursorAnchor(anchorPosition, contentSize)
+        
+        // Also update floating candidates position in "Always" mode
+        val floatingMode = AppPrefs.getInstance().candidates.mode.getValue()
+        if (floatingMode == FloatingCandidatesMode.Always) {
+            updateCursorAnchorForFloatingCandidates()
+        }
     }
 
     private fun handleCursorUpdate(newSelStart: Int, newSelEnd: Int, updateIndex: Int) {
@@ -1045,7 +1205,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     @RequiresApi(Build.VERSION_CODES.R)
     override fun onCreateInlineSuggestionsRequest(uiExtras: Bundle): InlineSuggestionsRequest? {
         // ignore inline suggestion when disabled by user || using physical keyboard with floating candidates view
-        if (!inlineSuggestions || !inputDeviceMgr.isVirtualKeyboard) return null
+        if (!inlineSuggestions || !inputDeviceManager.isVirtualKeyboard) return null
         val theme = ThemeManager.activeTheme
         val chipDrawable =
             if (theme.isDark) R.drawable.bkg_inline_suggestion_dark else R.drawable.bkg_inline_suggestion_light
@@ -1101,14 +1261,14 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
 
     @RequiresApi(Build.VERSION_CODES.R)
     override fun onInlineSuggestionsResponse(response: InlineSuggestionsResponse): Boolean {
-        if (!inlineSuggestions || !inputDeviceMgr.isVirtualKeyboard) return false
+        if (!inlineSuggestions || !inputDeviceManager.isVirtualKeyboard) return false
         return inputView?.handleInlineSuggestions(response) == true
     }
 
     override fun onFinishInputView(finishingInput: Boolean) {
         Timber.d("onFinishInputView: finishingInput=$finishingInput")
         decorLocationUpdated = false
-        inputDeviceMgr.onFinishInputView()
+        inputDeviceManager.onFinishInputView()
         currentInputConnection?.apply {
             finishComposingText()
             monitorCursorAnchor(false)
@@ -1145,6 +1305,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             it.unregisterOnChangeListener(recreateInputViewListener)
         }
         prefs.candidates.unregisterOnChangeListener(recreateCandidatesViewListener)
+        prefs.candidates.mode.unregisterOnChangeListener(onFloatingModeChangeListener)
         ThemeManager.removeOnChangedListener(onThemeChangeListener)
         super.onDestroy()
         // Fcitx might be used in super.onDestroy()

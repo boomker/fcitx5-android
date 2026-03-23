@@ -67,9 +67,11 @@ class CommonKeyActionListener :
     // there should be a new fcitx API for this
     private suspend fun FcitxAPI.commitAndReset() {
         if (inputMethodEntryCached.languageCode.startsWith("zh")) {
-            // Chinese: select 1st candidate, except prediction candidates
-            if (clientPreeditCached.isNotEmpty() || inputPanelCached.preedit.isNotEmpty()) {
-                // preedit not empty, maybe there are candidates to select ...
+            // Chinese: select 1st candidate if available
+            // Check for candidates in prediction mode (preedit empty but candidates available)
+            val hasCandidates = horizontalCandidate.adapter.total > 0
+            if (clientPreeditCached.isNotEmpty() || inputPanelCached.preedit.isNotEmpty() || hasCandidates) {
+                // preedit not empty or prediction candidates available, select the first candidate
                 select(0)
             }
         } else {

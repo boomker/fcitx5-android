@@ -220,4 +220,25 @@
     <string name="text_keyboard_layout_delete_submode_layout_confirm">서브모드 레이아웃 "%1$s" 을 (를) 삭제하시겠습니까?</string>
     <string name="text_keyboard_layout_editing_submode">서브모드 "%1$s" 의 전용 레이아웃 편집 중</string>
     <string name="text_keyboard_layout_editing_default">"%1$s" 의 기본 레이아웃 편집 중</string>
+    <string name="candidates_orientation">후보 목록 방향</string>
+    <string name="automatic">자동</string>
+    <string name="horizontal">가로</string>
+    <string name="vertical">세로</string>
+    <string name="always">항상</string>
+    <string name="virtual_keyboard_candidates">가상 키보드 후보</string>
+    <string name="candidates_position">후보 창 위치</string>
+    <string name="candidates_position_summary">후보 창 모드가 \"항상\" 으로 설정된 경우에만 효과적입니다</string>
+    <string name="top_left">왼쪽 상단</string>
+    <string name="top_right">오른쪽 상단</string>
+    <string name="bottom_left">왼쪽 하단</string>
+    <string name="bottom_right">오른쪽 하단</string>
+    <string name="candidates_font_size">후보 글꼴 크기</string>
+    <string name="candidates_padding">후보 패딩</string>
+    <string name="candidates_window_min_width">후보 창 최소 너비</string>
+    <string name="candidates_window_padding">후보 창 패딩</string>
+    <string name="restart_fcitx_instance">Fcitx 인스턴스 재시작</string>
+    <string name="restart_fcitx_instance_confirm">Fcitx 인스턴스가 종료되고 재초기화됩니다. 계속하시겠습니까?</string>
+    <string name="ignore_system_window_insets">시스템 WindowInsets 무시</string>
+    <string name="browse_user_data_dir">사용자 데이터 디렉터리 탐색</string>
+    <string name="haptic_on_repeat">키 반복 시 햅틱 피드백</string>
 </resources>

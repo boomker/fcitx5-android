@@ -395,6 +395,14 @@
     <string name="automatic">Automatic</string>
     <string name="horizontal">Horizontal</string>
     <string name="vertical">Vertical</string>
+    <string name="always">Always</string>
+    <string name="virtual_keyboard_candidates">Virtual Keyboard Candidates</string>
+    <string name="candidates_position">Candidates window position</string>
+    <string name="candidates_position_summary">Only effective when candidates window mode is set to \"Always\"</string>
+    <string name="top_left">Top Left</string>
+    <string name="top_right">Top Right</string>
+    <string name="bottom_left">Bottom Left</string>
+    <string name="bottom_right">Bottom Right</string>
     <string name="candidates_font_size">Candidate word font size</string>
     <string name="candidates_padding">Candidate word padding</string>
     <string name="candidates_window_min_width">Candidate window minimum width</string>

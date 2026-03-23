@@ -55,6 +55,7 @@ import org.fcitx.fcitx5.android.input.broadcast.InputBroadcastReceiver
 import org.fcitx.fcitx5.android.input.candidates.expanded.ExpandedCandidateStyle
 import org.fcitx.fcitx5.android.input.candidates.expanded.window.FlexboxExpandedCandidateWindow
 import org.fcitx.fcitx5.android.input.candidates.expanded.window.GridExpandedCandidateWindow
+import org.fcitx.fcitx5.android.input.candidates.floating.FloatingCandidatesMode
 import org.fcitx.fcitx5.android.input.candidates.horizontal.HorizontalCandidateComponent
 import org.fcitx.fcitx5.android.input.clipboard.ClipboardWindow
 import org.fcitx.fcitx5.android.input.dependency.UniqueViewComponent
@@ -461,7 +462,16 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
     }
 
     override fun onCandidateUpdate(data: CandidateListEvent.Data) {
-        barStateMachine.push(CandidatesUpdated, CandidateEmpty to data.candidates.isEmpty())
+        // When using "Always" floating mode, don't show candidates in Kawaii Bar
+        val floatingMode = AppPrefs.getInstance().candidates.mode.getValue()
+        val useFloatingAlways = floatingMode == FloatingCandidatesMode.Always
+
+        if (useFloatingAlways) {
+            // Force stay in Idle state when using floating candidates
+            barStateMachine.push(CandidatesUpdated, CandidateEmpty to true)
+        } else {
+            barStateMachine.push(CandidatesUpdated, CandidateEmpty to data.candidates.isEmpty())
+        }
     }
 
     override fun onWindowAttached(window: InputWindow) {
