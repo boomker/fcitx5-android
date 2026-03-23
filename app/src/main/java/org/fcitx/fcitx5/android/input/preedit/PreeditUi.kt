@@ -53,7 +53,10 @@ open class PreeditUi(
         )
         setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, fontSize)
         setupTextView?.invoke(this)
-        typeface = AutoScaleTextView.fontTypefaceMap["preedit_font"] ?: typeface
+        // Fallback: preedit_font → font → default
+        typeface = AutoScaleTextView.fontTypefaceMap["preedit_font"]
+            ?: AutoScaleTextView.fontTypefaceMap["font"]
+            ?: typeface
     }
 
     private val upView = createTextView()

@@ -90,6 +90,10 @@ class CandidatesView(
 
     private val setupTextView: TextView.() -> Unit = {
         textSize = fontSize.toFloat()
+        // Fallback: cand_font → font → default
+        val candFont = org.fcitx.fcitx5.android.input.font.FontProviders.fontTypefaceMap["cand_font"]
+            ?: org.fcitx.fcitx5.android.input.font.FontProviders.fontTypefaceMap["font"]
+        candFont?.let { typeface = it }
         val v = dp(itemPaddingVertical)
         val h = dp(itemPaddingHorizontal)
         setPadding(h, v, h, v)

@@ -6,7 +6,6 @@
 package org.fcitx.fcitx5.android.input.candidates.horizontal
 
 import android.annotation.SuppressLint
-import android.graphics.Typeface
 import android.view.ViewGroup
 import androidx.annotation.CallSuper
 import androidx.recyclerview.widget.RecyclerView
@@ -14,7 +13,6 @@ import com.google.android.flexbox.FlexboxLayoutManager
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.input.candidates.CandidateItemUi
 import org.fcitx.fcitx5.android.input.candidates.CandidateViewHolder
-import org.fcitx.fcitx5.android.input.font.FontProviders
 import splitties.dimensions.dp
 import splitties.views.dsl.core.matchParent
 import splitties.views.dsl.core.wrapContent
@@ -22,9 +20,6 @@ import splitties.views.setPaddingDp
 
 open class HorizontalCandidateViewAdapter(val theme: Theme) :
     RecyclerView.Adapter<CandidateViewHolder>() {
-
-    // Cache font to avoid repeated FontProviders access
-    private val candFont: Typeface? = FontProviders.fontTypefaceMap["cand_font"]
 
     init {
         setHasStableIds(true)
@@ -54,7 +49,7 @@ open class HorizontalCandidateViewAdapter(val theme: Theme) :
     @CallSuper
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CandidateViewHolder {
         val enableScrollMode = viewType == 1
-        val ui = CandidateItemUi(parent.context, theme, enableScrollMode = enableScrollMode, font = candFont)
+        val ui = CandidateItemUi(parent.context, theme, enableScrollMode = enableScrollMode)
         ui.root.apply {
             minimumWidth = dp(40)
             setPaddingDp(10, 0, 10, 0)

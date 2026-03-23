@@ -9,6 +9,7 @@ import android.content.Context
 import android.graphics.Typeface
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.input.AutoScaleTextView
+import org.fcitx.fcitx5.android.input.font.FontProviders
 import org.fcitx.fcitx5.android.input.keyboard.CustomGestureView
 import org.fcitx.fcitx5.android.utils.pressHighlightDrawable
 import splitties.views.dsl.core.Ui
@@ -22,7 +23,6 @@ import splitties.views.gravityCenter
 class CandidateItemUi(
     override val ctx: Context,
     theme: Theme,
-    private val fontKey: String? = null,
     private val enableScrollMode: Boolean = false,
     // Optional: external font for batch setting (avoids repeated FontProviders access)
     private val font: Typeface? = null
@@ -45,8 +45,19 @@ class CandidateItemUi(
     }
 
     init {
-        // Priority: external font > fontKey > default
-        font?.let { text.typeface = it } ?: fontKey?.let { text.setFontTypeFace(it) }
+        // Priority: external font > cand_font > font > default
+        if (font != null) {
+            text.typeface = font
+        } else {
+            val candFont = FontProviders.fontTypefaceMap["cand_font"]
+            if (candFont != null) {
+                text.typeface = candFont
+            } else {
+                // Fallback to "font" or default
+                val fallbackFont = FontProviders.fontTypefaceMap["font"]
+                text.typeface = fallbackFont ?: Typeface.DEFAULT
+            }
+        }
     }
 
     override val root = view(::CustomGestureView) {

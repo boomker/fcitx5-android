@@ -5,14 +5,12 @@
 
 package org.fcitx.fcitx5.android.input.candidates.expanded
 
-import android.graphics.Typeface
 import android.view.ViewGroup
 import androidx.paging.PagingDataAdapter
 import androidx.recyclerview.widget.DiffUtil
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.input.candidates.CandidateItemUi
 import org.fcitx.fcitx5.android.input.candidates.CandidateViewHolder
-import org.fcitx.fcitx5.android.input.font.FontProviders
 
 open class PagingCandidateViewAdapter(val theme: Theme) :
     PagingDataAdapter<String, CandidateViewHolder>(diffCallback) {
@@ -29,9 +27,6 @@ open class PagingCandidateViewAdapter(val theme: Theme) :
         }
     }
 
-    // Cache font to avoid repeated FontProviders access
-    private val candFont: Typeface? = FontProviders.fontTypefaceMap["cand_font"]
-
     var offset = 0
         private set
 
@@ -41,7 +36,7 @@ open class PagingCandidateViewAdapter(val theme: Theme) :
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CandidateViewHolder {
-        val ui = CandidateItemUi(parent.context, theme, enableScrollMode = true, font = candFont)
+        val ui = CandidateItemUi(parent.context, theme, enableScrollMode = true)
         return CandidateViewHolder(ui)
     }
 
