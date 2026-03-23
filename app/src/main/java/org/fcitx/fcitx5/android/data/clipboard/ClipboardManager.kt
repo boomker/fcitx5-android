@@ -71,7 +71,9 @@ object ClipboardManager : ClipboardManager.OnPrimaryClipChangedListener,
         }
     }
 
-    private val limitPref = AppPrefs.getInstance().clipboard.clipboardHistoryLimit
+    private val localLimitPref = AppPrefs.getInstance().clipboard.clipboardHistoryLimitLocal
+    private val remoteLimitPref = AppPrefs.getInstance().clipboard.clipboardHistoryLimitRemote
+    private val mediaLimitPref = AppPrefs.getInstance().clipboard.clipboardHistoryLimitMedia
 
     @Keep
     private val limitListener = ManagedPreference.OnChangeListener<Int> { _, _ ->
@@ -94,14 +96,20 @@ object ClipboardManager : ClipboardManager.OnPrimaryClipChangedListener,
         clbDao = clbDb.clipboardDao()
         enabledListener.onChange(enabledPref.key, enabledPref.getValue())
         enabledPref.registerOnChangeListener(enabledListener)
-        limitListener.onChange(limitPref.key, limitPref.getValue())
-        limitPref.registerOnChangeListener(limitListener)
+        limitListener.onChange(localLimitPref.key, localLimitPref.getValue())
+        localLimitPref.registerOnChangeListener(limitListener)
+        remoteLimitPref.registerOnChangeListener(limitListener)
+        mediaLimitPref.registerOnChangeListener(limitListener)
         launch { updateItemCount() }
     }
 
     suspend fun get(id: Int) = clbDao.get(id)
 
-    suspend fun haveUnpinned() = clbDao.haveUnpinned()
+    suspend fun haveUnpinned(category: ClipboardCategory) = when (category) {
+        ClipboardCategory.Local -> clbDao.haveUnpinnedTextEntriesBySource(ClipboardEntry.SOURCE_LOCAL)
+        ClipboardCategory.Remote -> clbDao.haveUnpinnedTextEntriesBySource(ClipboardEntry.SOURCE_REMOTE)
+        ClipboardCategory.Media -> clbDao.haveUnpinnedMediaEntries()
+    }
 
     fun allEntries() = clbDao.allEntries()
 
@@ -127,14 +135,36 @@ object ClipboardManager : ClipboardManager.OnPrimaryClipChangedListener,
         updateItemCount()
     }
 
-    suspend fun deleteAll(skipPinned: Boolean = true): IntArray {
-        val ids = if (skipPinned) {
-            clbDao.findUnpinnedIds()
-        } else {
-            clbDao.findAllIds()
+    suspend fun deleteAll(category: ClipboardCategory, skipPinned: Boolean = true): IntArray {
+        val ids = when (category) {
+            ClipboardCategory.Local -> {
+                if (skipPinned) {
+                    clbDao.findUnpinnedTextEntryIdsBySource(ClipboardEntry.SOURCE_LOCAL)
+                } else {
+                    clbDao.findAllTextEntryIdsBySource(ClipboardEntry.SOURCE_LOCAL)
+                }
+            }
+
+            ClipboardCategory.Remote -> {
+                if (skipPinned) {
+                    clbDao.findUnpinnedTextEntryIdsBySource(ClipboardEntry.SOURCE_REMOTE)
+                } else {
+                    clbDao.findAllTextEntryIdsBySource(ClipboardEntry.SOURCE_REMOTE)
+                }
+            }
+
+            ClipboardCategory.Media -> {
+                if (skipPinned) {
+                    clbDao.findUnpinnedMediaEntryIds()
+                } else {
+                    clbDao.findAllMediaEntryIds()
+                }
+            }
         }
-        clbDao.markAsDeleted(*ids)
-        updateItemCount()
+        if (ids.isNotEmpty()) {
+            clbDao.markAsDeleted(*ids)
+            updateItemCount()
+        }
         return ids
     }
 
@@ -204,16 +234,42 @@ object ClipboardManager : ClipboardManager.OnPrimaryClipChangedListener,
     }
 
     private suspend fun removeOutdated() {
-        val limit = limitPref.getValue()
-        val unpinned = clbDao.getAllUnpinned()
-        if (unpinned.size > limit) {
-            // the last one we will keep
-            val last = unpinned
-                .sortedBy { it.id }
-                .getOrNull(unpinned.size - limit)
-            // delete all unpinned before that, or delete all when limit <= 0
-            clbDao.markUnpinnedAsDeletedEarlierThan(last?.timestamp ?: System.currentTimeMillis())
+        var deletedAny = false
+        deletedAny = trimOutdatedEntries(
+            clbDao.getAllUnpinnedTextEntriesBySource(ClipboardEntry.SOURCE_LOCAL),
+            localLimitPref.getValue()
+        ) || deletedAny
+        deletedAny = trimOutdatedEntries(
+            clbDao.getAllUnpinnedTextEntriesBySource(ClipboardEntry.SOURCE_REMOTE),
+            remoteLimitPref.getValue()
+        ) || deletedAny
+        deletedAny = trimOutdatedEntries(
+            clbDao.getAllUnpinnedMediaEntries(),
+            mediaLimitPref.getValue()
+        ) || deletedAny
+        if (deletedAny) {
+            updateItemCount()
         }
+    }
+
+    private suspend fun trimOutdatedEntries(entries: List<ClipboardEntry>, limit: Int): Boolean {
+        if (entries.size <= limit) {
+            return false
+        }
+        val retained = entries
+            .sortedBy { it.id }
+            .takeLast(limit.coerceAtLeast(0))
+            .mapTo(hashSetOf()) { it.id }
+        val toDelete = entries
+            .asSequence()
+            .map { it.id }
+            .filter { it !in retained }
+            .toList()
+        if (toDelete.isEmpty()) {
+            return false
+        }
+        clbDao.markAsDeleted(*toDelete.toIntArray())
+        return true
     }
 
 }

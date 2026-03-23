@@ -366,11 +366,44 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
     }
 
     inner class Clipboard : ManagedPreferenceCategory(R.string.clipboard, sharedPreferences) {
+        init {
+            val legacyKey = "clipboard_limit"
+            val localKey = "clipboard_limit_local"
+            val remoteKey = "clipboard_limit_remote"
+            val mediaKey = "clipboard_limit_media"
+            if (!sharedPreferences.contains(localKey) ||
+                !sharedPreferences.contains(remoteKey) ||
+                !sharedPreferences.contains(mediaKey)
+            ) {
+                val legacyValue = if (sharedPreferences.contains(legacyKey)) {
+                    sharedPreferences.getInt(legacyKey, 100)
+                } else {
+                    100
+                }
+                sharedPreferences.edit {
+                    if (!sharedPreferences.contains(localKey)) putInt(localKey, legacyValue)
+                    if (!sharedPreferences.contains(remoteKey)) putInt(remoteKey, legacyValue)
+                    if (!sharedPreferences.contains(mediaKey)) putInt(mediaKey, legacyValue)
+                    remove(legacyKey)
+                }
+            }
+        }
+
         val clipboardListening = switch(R.string.clipboard_listening, "clipboard_enable", true)
-        val clipboardHistoryLimit = int(
-            R.string.clipboard_limit,
-            "clipboard_limit",
-            10,
+        val clipboardHistoryLimitLocal = int(
+            R.string.clipboard_limit_local,
+            "clipboard_limit_local",
+            100,
+        ) { clipboardListening.getValue() }
+        val clipboardHistoryLimitRemote = int(
+            R.string.clipboard_limit_remote,
+            "clipboard_limit_remote",
+            100,
+        ) { clipboardListening.getValue() }
+        val clipboardHistoryLimitMedia = int(
+            R.string.clipboard_limit_media,
+            "clipboard_limit_media",
+            100,
         ) { clipboardListening.getValue() }
         val clipboardSuggestion = switch(
             R.string.clipboard_suggestion, "clipboard_suggestion", true

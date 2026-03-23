@@ -37,6 +37,40 @@
     <string name="password_show">显示</string>
     <string name="password_hide">隐藏</string>
     <string name="local_sync_interval">同步间隔（秒）</string>
+    <string name="sync_filter_title">同步过滤</string>
+    <string name="sync_filter_summary_empty">不过滤任何接收内容</string>
+    <string name="sync_filter_category_text">文本</string>
+    <string name="sync_filter_category_binary">图片与文件</string>
+    <string name="sync_filter_category_preview">当前规则</string>
+    <string name="sync_filter_preview_title">规则预览</string>
+    <string name="sync_filter_preview_empty">当前未启用任何过滤规则</string>
+    <string name="sync_filter_segment_text_range">文本 %1$d-%2$d 字</string>
+    <string name="sync_filter_segment_text_min">文本 ≥ %1$d 字</string>
+    <string name="sync_filter_segment_text_max">文本 ≤ %1$d 字</string>
+    <string name="sync_filter_segment_extensions">忽略 %1$s</string>
+    <string name="sync_filter_segment_file_max">文件/图片 ≤ %1$d %2$s</string>
+    <string name="filter_hint_title">生效说明</string>
+    <string name="filter_text_hint_summary">填写数字后即启用对应文本过滤；留空则不限制。</string>
+    <string name="filter_file_hint_summary">填写后缀或最大大小后即启用对应文件过滤；留空则不限制。</string>
+    <string name="filter_blocked_extensions_title">忽略文件后缀</string>
+    <string name="filter_blocked_extensions_summary">用逗号或空格分隔，例如 apk, zip, mp4</string>
+    <string name="filter_max_file_size_title">最大文件大小</string>
+    <string name="filter_max_file_size_summary">填写后大于该大小的图片或文件不接收</string>
+    <string name="filter_max_file_size_unit_title">大小单位</string>
+    <string-array name="filter_file_size_unit_entries">
+        <item>KB</item>
+        <item>MB</item>
+        <item>GB</item>
+    </string-array>
+    <string-array name="filter_file_size_unit_values">
+        <item>KB</item>
+        <item>MB</item>
+        <item>GB</item>
+    </string-array>
+    <string name="filter_min_text_chars_title">最少文本字符数</string>
+    <string name="filter_min_text_chars_summary">少于该字符数的文本不接收，留空表示不限</string>
+    <string name="filter_max_text_chars_title">最多文本字符数</string>
+    <string name="filter_max_text_chars_summary">多于该字符数的文本不接收，留空表示不限</string>
     <string name="storage_location_title">存储位置</string>
     <string name="storage_location_not_set">未设置</string>
     <string name="storage_location_hint">例如 /Download/SyncClipboard 或 content://…</string>

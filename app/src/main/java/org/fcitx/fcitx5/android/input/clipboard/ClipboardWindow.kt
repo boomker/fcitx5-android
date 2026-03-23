@@ -27,6 +27,7 @@ import com.google.android.material.snackbar.SnackbarContentLayout
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.fcitx.fcitx5.android.R
+import org.fcitx.fcitx5.android.data.clipboard.ClipboardCategory
 import org.fcitx.fcitx5.android.data.clipboard.ClipboardManager
 import org.fcitx.fcitx5.android.data.clipboard.db.ClipboardEntry
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
@@ -113,6 +114,15 @@ class ClipboardWindow : InputWindow.ExtendedInputWindow<ClipboardWindow>() {
                 service.startActivity(chooser)
             }
 
+            override fun onOpenLink(uri: android.net.Uri) {
+                val intent = Intent(Intent.ACTION_VIEW, uri).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                runCatching {
+                    service.startActivity(intent)
+                }
+            }
+
             override fun onDelete(id: Int) {
                 service.lifecycleScope.launch {
                     ClipboardManager.delete(id)
@@ -183,7 +193,7 @@ class ClipboardWindow : InputWindow.ExtendedInputWindow<ClipboardWindow>() {
             }
             deleteAllButton.setOnClickListener {
                 service.lifecycleScope.launch {
-                    promptDeleteAll(ClipboardManager.haveUnpinned())
+                    promptDeleteAll(ClipboardManager.haveUnpinned(currentCategory))
                 }
             }
         }
@@ -206,7 +216,7 @@ class ClipboardWindow : InputWindow.ExtendedInputWindow<ClipboardWindow>() {
             menu.add(android.R.string.cancel)
             menu.item(android.R.string.ok) {
                 service.lifecycleScope.launch {
-                    val ids = ClipboardManager.deleteAll(skipPinned)
+                    val ids = ClipboardManager.deleteAll(currentCategory, skipPinned)
                     showUndoSnackbar(*ids)
                 }
             }

@@ -68,7 +68,8 @@ object SyncClient {
         pass: String,
         backend: ServerBackend,
         lastRevision: String? = null,
-        downloadDirUri: Uri? = null
+        downloadDirUri: Uri? = null,
+        preDownloadFilter: ((ClipboardData) -> Boolean)? = null
     ): FetchResult {
         return when (backend) {
             ServerBackend.SYNCCLIPBOARD -> fetchSyncClipboard(
@@ -77,14 +78,16 @@ object SyncClient {
                 username = username,
                 pass = pass,
                 lastRevision = lastRevision,
-                downloadDirUri = downloadDirUri
+                downloadDirUri = downloadDirUri,
+                preDownloadFilter = preDownloadFilter
             )
 
             ServerBackend.ONECLIP -> fetchOneClipClipboard(
                 context = context,
                 serverUrl = serverUrl,
                 lastRevision = lastRevision,
-                downloadDirUri = downloadDirUri
+                downloadDirUri = downloadDirUri,
+                preDownloadFilter = preDownloadFilter
             )
 
             ServerBackend.CLIPCASCADE -> {
@@ -192,7 +195,8 @@ object SyncClient {
         username: String,
         pass: String,
         lastRevision: String?,
-        downloadDirUri: Uri?
+        downloadDirUri: Uri?,
+        preDownloadFilter: ((ClipboardData) -> Boolean)?
     ): FetchResult {
         val previousEtag = lastRevision
             ?.takeIf { it.startsWith(REVISION_ETAG_PREFIX) }
@@ -201,6 +205,10 @@ object SyncClient {
         val (partialData, newEtag) = fetchClipboardJson(serverUrl, username, pass, previousEtag)
         if (partialData == null) {
             val revision = newEtag?.let { REVISION_ETAG_PREFIX + it } ?: lastRevision
+            return FetchResult(null, revision)
+        }
+        if (preDownloadFilter?.invoke(partialData) == false) {
+            val revision = newEtag?.let { REVISION_ETAG_PREFIX + it } ?: buildRevisionToken(partialData)
             return FetchResult(null, revision)
         }
 
@@ -213,7 +221,8 @@ object SyncClient {
         context: Context,
         serverUrl: String,
         lastRevision: String?,
-        downloadDirUri: Uri?
+        downloadDirUri: Uri?,
+        preDownloadFilter: ((ClipboardData) -> Boolean)?
     ): FetchResult {
         val currentRequest = Request.Builder()
             .url(oneClipUrl(serverUrl, "/api/current"))
@@ -232,6 +241,9 @@ object SyncClient {
             val revision = REVISION_ONECLIP_PREFIX + item.id
 
             if (revision == lastRevision) {
+                return FetchResult(null, revision)
+            }
+            if (preDownloadFilter?.invoke(item) == false) {
                 return FetchResult(null, revision)
             }
 

@@ -3,16 +3,21 @@ package org.fcitx.fcitx5.android.plugin.clipboard_sync
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.content.BroadcastReceiver
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
+import android.os.Message
 import android.os.PersistableBundle
 import android.os.PowerManager
 import android.os.SystemClock
@@ -24,15 +29,18 @@ import androidx.preference.PreferenceManager
 import kotlinx.coroutines.*
 import org.fcitx.fcitx5.android.common.ClipboardMetadata
 import org.fcitx.fcitx5.android.common.FcitxPluginService
+import org.fcitx.fcitx5.android.common.PluginMessage
 import org.fcitx.fcitx5.android.common.ipc.FcitxRemoteConnection
 import org.fcitx.fcitx5.android.common.ipc.IClipboardEntryTransformer
 import org.fcitx.fcitx5.android.common.ipc.bindFcitxRemoteService
 import org.fcitx.fcitx5.android.plugin.clipboard_sync.ui.PluginSettingsActivity
 import org.fcitx.fcitx5.android.plugin.clipboard_sync.network.ClipCascadeClient
 import org.fcitx.fcitx5.android.plugin.clipboard_sync.network.ClipCascadeClipboardData
+import org.fcitx.fcitx5.android.plugin.clipboard_sync.network.ClipboardData
 import org.fcitx.fcitx5.android.plugin.clipboard_sync.network.OneClipEventClient
 import org.fcitx.fcitx5.android.plugin.clipboard_sync.network.SyncClient
 import org.fcitx.fcitx5.android.plugin.clipboard_sync.network.SyncClient.ServerBackend
+import org.fcitx.fcitx5.android.plugin.clipboard_sync.service.QuickSyncTileService
 import org.fcitx.fcitx5.android.plugin.clipboard_sync.ui.StoragePathUtils
 import java.io.IOException
 import java.util.Locale
@@ -63,6 +71,18 @@ class MainService : FcitxPluginService() {
         private const val EVENT_BACKEND_HEALTH_CHECK_MS = 30_000L
         private const val EVENT_BACKEND_FALLBACK_PULL_MS = 60_000L
         private const val EVENT_BACKEND_STALE_RECONNECT_MS = 120_000L
+        private const val SCREEN_OFF_POLL_INTERVAL_SECONDS = 15L
+        private const val POWER_SAVE_POLL_INTERVAL_SECONDS = 30L
+        private const val AGGRESSIVE_POLL_INTERVAL_SECONDS = 60L
+        private const val SCREEN_OFF_HEALTH_CHECK_MS = 60_000L
+        private const val POWER_SAVE_HEALTH_CHECK_MS = 120_000L
+        private const val AGGRESSIVE_HEALTH_CHECK_MS = 180_000L
+        private const val SCREEN_OFF_FALLBACK_PULL_MS = 180_000L
+        private const val POWER_SAVE_FALLBACK_PULL_MS = 240_000L
+        private const val AGGRESSIVE_FALLBACK_PULL_MS = 300_000L
+        private const val SCREEN_OFF_STALE_RECONNECT_MS = 300_000L
+        private const val POWER_SAVE_STALE_RECONNECT_MS = 420_000L
+        private const val AGGRESSIVE_STALE_RECONNECT_MS = 600_000L
         private const val NETWORK_RECONNECT_DEBOUNCE_MS = 2_000L
         private const val NOTIFICATION_CHANNEL_ID = "clipboard-sync-keepalive"
         private const val NOTIFICATION_ID = 1302
@@ -70,17 +90,19 @@ class MainService : FcitxPluginService() {
         private const val ACTION_RECONNECT_SYNC = "org.fcitx.fcitx5.android.plugin.clipboard_sync.action.RECONNECT"
         private const val ACTION_PAUSE_SYNC = "org.fcitx.fcitx5.android.plugin.clipboard_sync.action.PAUSE"
         private const val EXTRA_START_REASON = "start_reason"
+        private const val EXTRA_FORCE_ENABLE_SYNC = "force_enable_sync"
 
         fun shouldAutoStart(context: Context): Boolean {
             val prefs = PreferenceManager.getDefaultSharedPreferences(context)
             return prefs.getBoolean(PREF_QUICK_SYNC, true)
         }
 
-        fun startSyncService(context: Context, reason: String) {
+        fun startSyncService(context: Context, reason: String, forceEnableSync: Boolean = false) {
             val prefs = PreferenceManager.getDefaultSharedPreferences(context)
             val intent = Intent(context, MainService::class.java).apply {
                 action = ACTION_START_SYNC
                 putExtra(EXTRA_START_REASON, reason)
+                putExtra(EXTRA_FORCE_ENABLE_SYNC, forceEnableSync)
             }
             if (prefs.getBoolean(PREF_BACKGROUND_KEEP_ALIVE, true) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 ContextCompat.startForegroundService(context, intent)
@@ -91,9 +113,21 @@ class MainService : FcitxPluginService() {
     }
 
     override val stopOnUnbind: Boolean = false
+    override val handler: Handler = object : Handler(Looper.getMainLooper()) {
+        override fun handleMessage(msg: Message) {
+            when (msg.what) {
+                PluginMessage.WHAT_LOCAL_CLIPBOARD_UPDATED -> {
+                    val content = msg.data?.getString(PluginMessage.KEY_CLIPBOARD_TEXT).orEmpty()
+                    handleLocalClipboardUpdate(content, "fcitx-plugin-message")
+                }
 
-    private lateinit var connection: FcitxRemoteConnection
+                else -> super.handleMessage(msg)
+            }
+        }
+    }
+
     private lateinit var prefs: SharedPreferences
+    private var connection: FcitxRemoteConnection? = null
     private var syncJob: Job? = null
     private var healthMonitorJob: Job? = null
     private var networkReconnectJob: Job? = null
@@ -103,17 +137,22 @@ class MainService : FcitxPluginService() {
     private var selfStarted = false
     private var networkCallbackRegistered = false
     private var foregroundActive = false
+    private var screenStateReceiverRegistered = false
     private val clipboardManager by lazy {
         getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     }
     private val connectivityManager by lazy {
         getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     }
+    private val powerManager by lazy {
+        getSystemService(Context.POWER_SERVICE) as PowerManager
+    }
     private var clipboardListenerRegistered = false
     private var prefsListenerRegistered = false
     private var clipCascadeClient: ClipCascadeClient? = null
     private var oneClipClient: OneClipEventClient? = null
     private var lastNetworkAvailableAt = 0L
+    private var connectionSessionId = 0
 
     // Cache to avoid circular updates (Pull -> Local -> Push -> Loop)
     private var lastLocalContent: String? = null
@@ -145,6 +184,17 @@ class MainService : FcitxPluginService() {
         handleSystemClipboardChanged()
     }
 
+    private val screenStateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            when (intent?.action) {
+                Intent.ACTION_SCREEN_OFF -> Log.d(TAG, "[Power] Screen turned off, sync will switch to a lower-power interval")
+                Intent.ACTION_SCREEN_ON -> scheduleReconnect("screen-on")
+                Intent.ACTION_USER_PRESENT -> scheduleReconnect("user-present")
+                PowerManager.ACTION_POWER_SAVE_MODE_CHANGED -> scheduleReconnect("power-save-mode")
+            }
+        }
+    }
+
     private val transformer = object : IClipboardEntryTransformer.Stub() {
         override fun getPriority(): Int = 100
 
@@ -155,11 +205,7 @@ class MainService : FcitxPluginService() {
                 return clipboardText
             }
 
-            if (clipboardText != lastLocalContent) {
-                lastLocalContent = clipboardText
-                Log.d(TAG, "[Push] Detected local change, triggering upload")
-                uploadToCloud(clipboardText)
-            }
+            handleLocalClipboardUpdate(clipboardText, "transformer")
             return clipboardText
         }
 
@@ -186,6 +232,7 @@ class MainService : FcitxPluginService() {
         if (serviceRunning) {
             updateForegroundState()
             refreshSyncRuntime()
+            ensureRemoteBinding()
             return
         }
         Log.d(TAG, "MainService start")
@@ -195,26 +242,9 @@ class MainService : FcitxPluginService() {
         registerClipboardListenerIfNeeded()
         registerPrefsListenerIfNeeded()
         registerNetworkCallbackIfNeeded()
+        registerScreenStateReceiverIfNeeded()
         refreshSyncRuntime()
-        connection = bindFcitxRemoteService(
-            BuildConfig.MAIN_APPLICATION_ID,
-            onDisconnect = {
-                Log.d(TAG, "Disconnected from Fcitx")
-                transformerRegistered = false
-            },
-            onConnected = { service ->
-                Log.d(TAG, "Connected to Fcitx")
-                runCatching {
-                    service.registerClipboardEntryTransformer(transformer)
-                }.onSuccess {
-                    transformerRegistered = true
-                    Log.d(TAG, "Clipboard transformer registered")
-                }.onFailure { error ->
-                    transformerRegistered = false
-                    Log.e(TAG, "Failed to register transformer; pull sync will continue", error)
-                }
-            }
-        )
+        ensureRemoteBinding(forceRebind = true)
         handleSystemClipboardChanged()
     }
 
@@ -225,18 +255,22 @@ class MainService : FcitxPluginService() {
         unregisterClipboardListenerIfNeeded()
         unregisterPrefsListenerIfNeeded()
         unregisterNetworkCallbackIfNeeded()
+        unregisterScreenStateReceiverIfNeeded()
         stopPeriodicSync()
         stopHealthMonitor()
         stopForegroundState()
+        connectionSessionId += 1
+        val activeConnection = connection
+        connection = null
         runCatching {
             if (transformerRegistered) {
-                connection.remoteService?.unregisterClipboardEntryTransformer(transformer)
+                activeConnection?.remoteService?.unregisterClipboardEntryTransformer(transformer)
             }
         }
         transformerRegistered = false
         runCatching {
-            if (::connection.isInitialized) {
-                unbindService(connection)
+            if (activeConnection != null) {
+                unbindService(activeConnection)
             }
         }
         scope.coroutineContext.cancelChildren()
@@ -246,9 +280,12 @@ class MainService : FcitxPluginService() {
         unregisterClipboardListenerIfNeeded()
         unregisterPrefsListenerIfNeeded()
         unregisterNetworkCallbackIfNeeded()
+        unregisterScreenStateReceiverIfNeeded()
         stopPeriodicSync()
         stopHealthMonitor()
         stopForegroundState()
+        connectionSessionId += 1
+        connection = null
         scope.cancel()
         serviceRunning = false
         selfStarted = false
@@ -261,10 +298,21 @@ class MainService : FcitxPluginService() {
             resetRemoteCache()
             resetFailureState()
             refreshSyncRuntime()
+        } else if (
+            key == SyncFilterPrefs.PREF_FILTER_BLOCKED_EXTENSIONS ||
+            key == SyncFilterPrefs.PREF_FILTER_MAX_FILE_SIZE ||
+            key == SyncFilterPrefs.PREF_FILTER_MAX_FILE_SIZE_UNIT ||
+            key == SyncFilterPrefs.PREF_FILTER_MIN_TEXT_CHARS ||
+            key == SyncFilterPrefs.PREF_FILTER_MAX_TEXT_CHARS
+        ) {
+            Log.d(TAG, "Receive filter changed: $key")
         } else if (key == PREF_QUICK_SYNC || key == PREF_SYNC_INTERVAL || key == PREF_BACKGROUND_KEEP_ALIVE) {
             Log.d(TAG, "Preference changed: $key, restarting sync")
             updateForegroundState()
             refreshSyncRuntime()
+            if (key == PREF_QUICK_SYNC) {
+                QuickSyncTileService.requestTileRefresh(this)
+            }
         }
     }
 
@@ -273,16 +321,16 @@ class MainService : FcitxPluginService() {
             Log.d(TAG, "[Push] Sync disabled, skipping upload")
             return
         }
-        val url = prefs.getString(SERVER_ADDRESS_KEY, "") ?: ""
-        val user = prefs.getString(PREF_USERNAME, "") ?: ""
-        val pass = prefs.getString(PREF_PASSWORD, "") ?: ""
-        val backend = currentBackend()
+        val endpoint = currentEndpoint()
+        val url = endpoint.address
+        val user = currentUsernameForProfile(endpoint.profileKey)
+        val pass = currentPasswordForProfile(endpoint.profileKey)
+        val backend = endpoint.backend
 
         if (url.isBlank()) return
 
         scope.launch {
             try {
-                lastUploadedContent = text
                 if (backend == ServerBackend.CLIPCASCADE) {
                     val activeClient = clipCascadeClient
                     if (activeClient?.isConnected() == true) {
@@ -298,10 +346,23 @@ class MainService : FcitxPluginService() {
                 } else {
                     SyncClient.putClipboard(this@MainService, url, user, pass, backend, text)
                 }
+                lastUploadedContent = text
             } catch (e: Exception) {
                 Log.e(TAG, "[Push] Failed to upload clipboard", e)
             }
         }
+    }
+
+    private fun handleLocalClipboardUpdate(content: String, origin: String) {
+        if (content.isBlank()) return
+        if (content == lastRemoteContent || content == lastUploadedContent) {
+            return
+        }
+        if (content != lastLocalContent) {
+            lastLocalContent = content
+        }
+        Log.d(TAG, "[Push] Detected local change from $origin, triggering upload")
+        uploadToCloud(content)
     }
 
     private fun refreshSyncRuntime() {
@@ -319,7 +380,7 @@ class MainService : FcitxPluginService() {
         if (healthMonitorJob?.isActive == true) return
         healthMonitorJob = scope.launch {
             while (isActive) {
-                delay(EVENT_BACKEND_HEALTH_CHECK_MS)
+                delay(currentHealthCheckDelayMs())
                 if (!prefs.getBoolean(PREF_QUICK_SYNC, true)) {
                     continue
                 }
@@ -345,7 +406,7 @@ class MainService : FcitxPluginService() {
                 }
 
                 val now = SystemClock.elapsedRealtime()
-                if (now - lastSuccessfulRemoteSyncAt >= EVENT_BACKEND_FALLBACK_PULL_MS) {
+                if (now - lastSuccessfulRemoteSyncAt >= currentFallbackPullDelayMs()) {
                     try {
                         checkRemoteClipboard()
                     } catch (error: CancellationException) {
@@ -356,7 +417,7 @@ class MainService : FcitxPluginService() {
                     }
                 }
 
-                if (now - lastBackendActivityAt >= EVENT_BACKEND_STALE_RECONNECT_MS) {
+                if (now - lastBackendActivityAt >= currentStaleReconnectDelayMs()) {
                     Log.w(TAG, "[Health] Backend stream appears stale, forcing reconnect for $backend")
                     resetRemoteCache()
                     startPeriodicSync()
@@ -407,7 +468,7 @@ class MainService : FcitxPluginService() {
                     checkRemoteClipboard()
                     resetFailureState()
 
-                    delay(safeInterval * 1000L)
+                    delay(currentPollingIntervalSeconds(safeInterval) * 1000L)
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
@@ -567,7 +628,8 @@ class MainService : FcitxPluginService() {
             pass = pass,
             backend = backend,
             lastRevision = lastRemoteRevision,
-            downloadDirUri = downloadUri
+            downloadDirUri = downloadUri,
+            preDownloadFilter = ::shouldAcceptIncomingMetadata
         )
         noteRemoteSyncSuccess()
 
@@ -576,6 +638,10 @@ class MainService : FcitxPluginService() {
         }
 
         val data = result.data ?: run {
+            return
+        }
+        if (!shouldAcceptIncomingClipboard(data)) {
+            Log.d(TAG, "[Pull] Incoming clipboard rejected by receive filter: type=${data.type} name=${data.dataName}")
             return
         }
 
@@ -629,14 +695,7 @@ class MainService : FcitxPluginService() {
 
     private fun handleSystemClipboardChanged() {
         val content = readClipboardContent() ?: return
-        if (content == lastRemoteContent || content == lastUploadedContent) {
-            return
-        }
-        if (content != lastLocalContent) {
-            lastLocalContent = content
-            Log.d(TAG, "[Push] System clipboard changed, triggering upload")
-            uploadToCloud(content)
-        }
+        handleLocalClipboardUpdate(content, "system-clipboard")
     }
 
     private fun handleClipCascadeMessage(data: ClipCascadeClipboardData) {
@@ -650,22 +709,32 @@ class MainService : FcitxPluginService() {
             return
         }
 
-        lastRemoteContent = payloadFingerprint
-        lastLocalContent = payloadFingerprint
-        lastUploadedContent = payloadFingerprint
-
         scope.launch {
             when (normalizedType) {
-                "text" -> withContext(Dispatchers.Main) {
-                    updateSystemClipboard(data.payload)
+                "text" -> {
+                    if (!shouldAcceptIncomingText(data.payload)) {
+                        Log.d(TAG, "[ClipCascade] Rejected text payload by receive filter")
+                        return@launch
+                    }
+                    rememberAcceptedRemotePayload(payloadFingerprint)
+                    withContext(Dispatchers.Main) {
+                        updateSystemClipboard(data.payload)
+                    }
                 }
 
-                "image" -> handleClipCascadeImage(data)
+                "image" -> handleClipCascadeImage(data, payloadFingerprint)
 
-                "file_eager" -> handleClipCascadeFileEager(data)
+                "file_eager" -> handleClipCascadeFileEager(data, payloadFingerprint)
 
-                "file_stub" -> withContext(Dispatchers.Main) {
-                    updateSystemClipboard(buildClipCascadeFileStubSummary(data))
+                "file_stub" -> {
+                    if (!shouldAcceptIncomingBinary(data.filename, null)) {
+                        Log.d(TAG, "[ClipCascade] Rejected file placeholder by receive filter")
+                        return@launch
+                    }
+                    rememberAcceptedRemotePayload(payloadFingerprint)
+                    withContext(Dispatchers.Main) {
+                        updateSystemClipboard(buildClipCascadeFileStubSummary(data))
+                    }
                 }
 
                 else -> Log.w(TAG, "[ClipCascade] Ignoring unsupported payload type: ${data.type}")
@@ -673,7 +742,7 @@ class MainService : FcitxPluginService() {
         }
     }
 
-    private suspend fun handleClipCascadeImage(data: ClipCascadeClipboardData) {
+    private suspend fun handleClipCascadeImage(data: ClipCascadeClipboardData, payloadFingerprint: String) {
         val bytes = runCatching { Base64.decode(data.payload, Base64.DEFAULT) }
             .getOrElse { error ->
                 Log.e(TAG, "[ClipCascade] Failed to decode image payload", error)
@@ -681,6 +750,10 @@ class MainService : FcitxPluginService() {
             }
         val downloadUri = resolveDownloadUri()
         val fileName = SyncClient.buildClipCascadeImageFileName(data.filename)
+        if (!shouldAcceptIncomingBinary(fileName, bytes.size.toLong())) {
+            Log.d(TAG, "[ClipCascade] Rejected image payload by receive filter: $fileName")
+            return
+        }
         val mimeType = SyncClient.guessClipCascadeImageMimeType(fileName)
         val savedUri = SyncClient.saveIncomingBytes(
             context = this,
@@ -690,13 +763,14 @@ class MainService : FcitxPluginService() {
             mimeType = mimeType
         )
         if (savedUri != null) {
+            rememberAcceptedRemotePayload(payloadFingerprint)
             withContext(Dispatchers.Main) {
                 updateSystemClipboardWithUri(savedUri)
             }
         }
     }
 
-    private suspend fun handleClipCascadeFileEager(data: ClipCascadeClipboardData) {
+    private suspend fun handleClipCascadeFileEager(data: ClipCascadeClipboardData, payloadFingerprint: String) {
         val bytes = runCatching { Base64.decode(data.payload, Base64.DEFAULT) }
             .getOrElse { error ->
                 Log.e(TAG, "[ClipCascade] Failed to decode file payload", error)
@@ -707,6 +781,10 @@ class MainService : FcitxPluginService() {
             ?.substringAfterLast('/')
             ?.takeIf { it.isNotBlank() }
             ?: "ClipCascade-${System.currentTimeMillis()}.bin"
+        if (!shouldAcceptIncomingBinary(fileName, bytes.size.toLong())) {
+            Log.d(TAG, "[ClipCascade] Rejected file payload by receive filter: $fileName")
+            return
+        }
         val savedUri = SyncClient.saveIncomingBytes(
             context = this,
             dirUri = downloadUri,
@@ -714,6 +792,7 @@ class MainService : FcitxPluginService() {
             bytes = bytes
         )
         if (savedUri != null) {
+            rememberAcceptedRemotePayload(payloadFingerprint)
             withContext(Dispatchers.Main) {
                 updateSystemClipboardWithUri(savedUri)
             }
@@ -779,10 +858,85 @@ class MainService : FcitxPluginService() {
         prefsListenerRegistered = false
     }
 
+    private fun registerScreenStateReceiverIfNeeded() {
+        if (screenStateReceiverRegistered) return
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_SCREEN_OFF)
+            addAction(Intent.ACTION_SCREEN_ON)
+            addAction(Intent.ACTION_USER_PRESENT)
+            addAction(PowerManager.ACTION_POWER_SAVE_MODE_CHANGED)
+        }
+        runCatching {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                registerReceiver(screenStateReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+            } else {
+                @Suppress("DEPRECATION")
+                registerReceiver(screenStateReceiver, filter)
+            }
+            screenStateReceiverRegistered = true
+        }.onFailure {
+            Log.w(TAG, "Failed to register screen-state receiver", it)
+        }
+    }
+
+    private fun unregisterScreenStateReceiverIfNeeded() {
+        if (!screenStateReceiverRegistered) return
+        runCatching {
+            unregisterReceiver(screenStateReceiver)
+        }.onFailure {
+            Log.w(TAG, "Failed to unregister screen-state receiver", it)
+        }
+        screenStateReceiverRegistered = false
+    }
+
     private fun ensureScope() {
         if (!scope.isActive) {
             scope = createScope()
         }
+    }
+
+    private fun ensureRemoteBinding(forceRebind: Boolean = false) {
+        if (!serviceRunning) return
+        if (!forceRebind && transformerRegistered && connection?.remoteService != null) {
+            return
+        }
+
+        val previousConnection = connection
+        connection = null
+        if (previousConnection != null) {
+            runCatching { unbindService(previousConnection) }
+        }
+
+        val sessionId = ++connectionSessionId
+        connection = bindFcitxRemoteService(
+            BuildConfig.MAIN_APPLICATION_ID,
+            onDisconnect = {
+                if (sessionId != connectionSessionId) return@bindFcitxRemoteService
+                Log.d(TAG, "Disconnected from Fcitx")
+                transformerRegistered = false
+                scope.launch {
+                    delay(1000)
+                    if (serviceRunning) {
+                        ensureRemoteBinding(forceRebind = true)
+                    }
+                }
+            },
+            onConnected = { service ->
+                if (sessionId != connectionSessionId || !serviceRunning) {
+                    return@bindFcitxRemoteService
+                }
+                Log.d(TAG, "Connected to Fcitx")
+                runCatching {
+                    service.registerClipboardEntryTransformer(transformer)
+                }.onSuccess {
+                    transformerRegistered = true
+                    Log.d(TAG, "Clipboard transformer registered")
+                }.onFailure { error ->
+                    transformerRegistered = false
+                    Log.e(TAG, "Failed to register transformer; pull sync will continue", error)
+                }
+            }
+        )
     }
 
     private fun registerNetworkCallbackIfNeeded() {
@@ -809,6 +963,7 @@ class MainService : FcitxPluginService() {
         when (intent?.action) {
             ACTION_PAUSE_SYNC -> {
                 prefs.edit().putBoolean(PREF_QUICK_SYNC, false).apply()
+                QuickSyncTileService.requestTileRefresh(this)
             }
 
             ACTION_RECONNECT_SYNC -> {
@@ -816,7 +971,12 @@ class MainService : FcitxPluginService() {
             }
 
             ACTION_START_SYNC,
-            null -> Unit
+            null -> {
+                if (intent?.getBooleanExtra(EXTRA_FORCE_ENABLE_SYNC, false) == true) {
+                    prefs.edit().putBoolean(PREF_QUICK_SYNC, true).apply()
+                    QuickSyncTileService.requestTileRefresh(this)
+                }
+            }
         }
     }
 
@@ -952,6 +1112,13 @@ class MainService : FcitxPluginService() {
         lastBackendActivityAt = SystemClock.elapsedRealtime()
     }
 
+    private fun rememberAcceptedRemotePayload(payloadFingerprint: String) {
+        lastRemoteContent = payloadFingerprint
+        lastLocalContent = payloadFingerprint
+        lastUploadedContent = payloadFingerprint
+        noteRemoteSyncSuccess()
+    }
+
     private fun disconnectClipCascadeClient() {
         clipCascadeClient?.close()
         clipCascadeClient = null
@@ -988,6 +1155,167 @@ class MainService : FcitxPluginService() {
         )
     }
 
+    private fun isScreenInteractive(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT_WATCH) {
+            powerManager.isInteractive
+        } else {
+            @Suppress("DEPRECATION")
+            powerManager.isScreenOn
+        }
+    }
+
+    private fun isPowerSaveEnabled(): Boolean {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && powerManager.isPowerSaveMode
+    }
+
+    private fun currentRuntimeMode(): RuntimeMode {
+        return when {
+            isPowerSaveEnabled() -> RuntimeMode.POWER_SAVE
+            !isScreenInteractive() && !prefs.getBoolean(PREF_BACKGROUND_KEEP_ALIVE, true) -> RuntimeMode.AGGRESSIVE
+            !isScreenInteractive() -> RuntimeMode.SCREEN_OFF
+            else -> RuntimeMode.NORMAL
+        }
+    }
+
+    private fun currentPollingIntervalSeconds(baseIntervalSeconds: Long): Long {
+        return when (currentRuntimeMode()) {
+            RuntimeMode.NORMAL -> baseIntervalSeconds
+            RuntimeMode.SCREEN_OFF -> maxOf(baseIntervalSeconds, SCREEN_OFF_POLL_INTERVAL_SECONDS)
+            RuntimeMode.POWER_SAVE -> maxOf(baseIntervalSeconds, POWER_SAVE_POLL_INTERVAL_SECONDS)
+            RuntimeMode.AGGRESSIVE -> maxOf(baseIntervalSeconds, AGGRESSIVE_POLL_INTERVAL_SECONDS)
+        }
+    }
+
+    private fun currentHealthCheckDelayMs(): Long {
+        return when (currentRuntimeMode()) {
+            RuntimeMode.NORMAL -> EVENT_BACKEND_HEALTH_CHECK_MS
+            RuntimeMode.SCREEN_OFF -> SCREEN_OFF_HEALTH_CHECK_MS
+            RuntimeMode.POWER_SAVE -> POWER_SAVE_HEALTH_CHECK_MS
+            RuntimeMode.AGGRESSIVE -> AGGRESSIVE_HEALTH_CHECK_MS
+        }
+    }
+
+    private fun currentFallbackPullDelayMs(): Long {
+        return when (currentRuntimeMode()) {
+            RuntimeMode.NORMAL -> EVENT_BACKEND_FALLBACK_PULL_MS
+            RuntimeMode.SCREEN_OFF -> SCREEN_OFF_FALLBACK_PULL_MS
+            RuntimeMode.POWER_SAVE -> POWER_SAVE_FALLBACK_PULL_MS
+            RuntimeMode.AGGRESSIVE -> AGGRESSIVE_FALLBACK_PULL_MS
+        }
+    }
+
+    private fun currentStaleReconnectDelayMs(): Long {
+        return when (currentRuntimeMode()) {
+            RuntimeMode.NORMAL -> EVENT_BACKEND_STALE_RECONNECT_MS
+            RuntimeMode.SCREEN_OFF -> SCREEN_OFF_STALE_RECONNECT_MS
+            RuntimeMode.POWER_SAVE -> POWER_SAVE_STALE_RECONNECT_MS
+            RuntimeMode.AGGRESSIVE -> AGGRESSIVE_STALE_RECONNECT_MS
+        }
+    }
+
+    private fun currentReceiveFilter(): ReceiveFilter {
+        val state = SyncFilterPrefs.loadState(prefs)
+        if (!state.hasActiveRule) {
+            return ReceiveFilter(
+                blockedExtensions = emptySet(),
+                minFileSizeBytes = null,
+                maxFileSizeBytes = null,
+                minTextChars = null,
+                maxTextChars = null
+            )
+        }
+        return ReceiveFilter(
+            blockedExtensions = state.blockedExtensions,
+            minFileSizeBytes = null,
+            maxFileSizeBytes = state.maxFileSizeBytes,
+            minTextChars = state.minTextChars,
+            maxTextChars = state.maxTextChars
+        ).normalized()
+    }
+
+    private fun shouldAcceptIncomingMetadata(data: ClipboardData): Boolean {
+        return if (isBinaryClipboardData(data)) {
+            shouldAcceptIncomingBinary(
+                fileName = inferIncomingFileName(data),
+                sizeBytes = data.size.takeIf { it > 0 }
+            )
+        } else {
+            shouldAcceptIncomingText(data.text)
+        }
+    }
+
+    private fun shouldAcceptIncomingClipboard(data: ClipboardData): Boolean {
+        return if (isBinaryClipboardData(data)) {
+            shouldAcceptIncomingBinary(
+                fileName = inferIncomingFileName(data),
+                sizeBytes = data.size.takeIf { it > 0 }
+            )
+        } else {
+            shouldAcceptIncomingText(data.text)
+        }
+    }
+
+    private fun shouldAcceptIncomingText(text: String): Boolean {
+        val filter = currentReceiveFilter()
+        val length = text.codePointCount(0, text.length)
+        filter.minTextChars?.let { minChars ->
+            if (length < minChars) {
+                return false
+            }
+        }
+        filter.maxTextChars?.let { maxChars ->
+            if (length > maxChars) {
+                return false
+            }
+        }
+        return true
+    }
+
+    private fun shouldAcceptIncomingBinary(fileName: String?, sizeBytes: Long?): Boolean {
+        val filter = currentReceiveFilter()
+        val extension = fileName
+            ?.substringAfterLast('.', "")
+            ?.trim()
+            ?.lowercase(Locale.ROOT)
+            .orEmpty()
+        if (extension.isNotEmpty() && extension in filter.blockedExtensions) {
+            return false
+        }
+        sizeBytes?.takeIf { it > 0 }?.let { actualSize ->
+            filter.minFileSizeBytes?.let { minSize ->
+                if (actualSize < minSize) {
+                    return false
+                }
+            }
+            filter.maxFileSizeBytes?.let { maxSize ->
+                if (actualSize > maxSize) {
+                    return false
+                }
+            }
+        }
+        return true
+    }
+
+    private fun isBinaryClipboardData(data: ClipboardData): Boolean {
+        return !data.type.equals("text", ignoreCase = true) ||
+            data.hasData ||
+            data.hasImage ||
+            data.dataName.isNotBlank()
+    }
+
+    private fun inferIncomingFileName(data: ClipboardData): String? {
+        if (data.dataName.isNotBlank()) {
+            return data.dataName
+        }
+        if (data.type.equals("text", ignoreCase = true)) {
+            return null
+        }
+        return data.text
+            .substringAfterLast('/')
+            .substringBefore('?')
+            .takeIf { it.isNotBlank() }
+    }
+
     private suspend fun handleConnectivityFailure(
         endpoint: ServerEndpoint,
         cause: Exception
@@ -1009,6 +1337,7 @@ class MainService : FcitxPluginService() {
 
         Log.e(TAG, "[Pull] All configured endpoints are unreachable, disabling quick sync")
         prefs.edit().putBoolean(PREF_QUICK_SYNC, false).apply()
+        QuickSyncTileService.requestTileRefresh(this)
         stopPeriodicSync()
         resetFailureState()
         return true
@@ -1164,6 +1493,50 @@ class MainService : FcitxPluginService() {
     ) {
         val identity: String
             get() = "$profileKey|${address.trim()}"
+    }
+
+    private enum class RuntimeMode {
+        NORMAL,
+        SCREEN_OFF,
+        POWER_SAVE,
+        AGGRESSIVE
+    }
+
+    private data class ReceiveFilter(
+        val blockedExtensions: Set<String>,
+        val minFileSizeBytes: Long?,
+        val maxFileSizeBytes: Long?,
+        val minTextChars: Int?,
+        val maxTextChars: Int?
+    ) {
+        fun normalized(): ReceiveFilter {
+            val normalizedFileBounds = normalizeBounds(minFileSizeBytes, maxFileSizeBytes)
+            val normalizedTextBounds = normalizeBounds(minTextChars, maxTextChars)
+            return copy(
+                minFileSizeBytes = normalizedFileBounds.first,
+                maxFileSizeBytes = normalizedFileBounds.second,
+                minTextChars = normalizedTextBounds.first,
+                maxTextChars = normalizedTextBounds.second
+            )
+        }
+
+        private fun normalizeBounds(minValue: Long?, maxValue: Long?): Pair<Long?, Long?> {
+            return when {
+                minValue == null -> null to maxValue
+                maxValue == null -> minValue to null
+                minValue <= maxValue -> minValue to maxValue
+                else -> maxValue to minValue
+            }
+        }
+
+        private fun normalizeBounds(minValue: Int?, maxValue: Int?): Pair<Int?, Int?> {
+            return when {
+                minValue == null -> null to maxValue
+                maxValue == null -> minValue to null
+                minValue <= maxValue -> minValue to maxValue
+                else -> maxValue to minValue
+            }
+        }
     }
 
     private fun createScope() = CoroutineScope(Dispatchers.IO + SupervisorJob())

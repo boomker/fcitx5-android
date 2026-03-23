@@ -47,6 +47,9 @@
     <string name="loading">Loading</string>
     <string name="clipboard_listening">Clipboard listening</string>
     <string name="clipboard_limit">Clipboard history limit</string>
+    <string name="clipboard_limit_local">Local clipboard history limit</string>
+    <string name="clipboard_limit_remote">Other devices clipboard history limit</string>
+    <string name="clipboard_limit_media">Images and files history limit</string>
     <string name="clipboard_enable">Enable Clipboard</string>
     <string name="expanded_candidate_style">Expanded candidate style</string>
     <string name="expanded_candidate_style_grid">Grid</string>
@@ -412,6 +415,7 @@
     <string name="open_input_method_settings">Open input method settings</string>
     <string name="delete_all">Delete all</string>
     <string name="share">Share</string>
+    <string name="open_link">Open link</string>
     <string name="emoji_and_symbols">Emoji &amp; Symbols</string>
     <string name="default_emoji_skin_tone">Default emoji skin tone modifier</string>
     <string name="emoji_skin_tone_none">No modifier</string>

@@ -46,7 +46,7 @@ object FcitxPluginServices {
 
         fun sendMessage(message: Message) {
             try {
-                messenger?.send(message)
+                messenger?.send(Message.obtain(message))
             } catch (e: Throwable) {
                 Timber.w("Cannot send message to plugin: $pluginId")
                 Timber.w(e)

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceCategory
+        app:title="@string/sync_filter_category_text">
+
+        <EditTextPreference
+            app:key="filter_min_text_chars"
+            app:title="@string/filter_min_text_chars_title"
+            app:summary="@string/filter_min_text_chars_summary"
+            app:useSimpleSummaryProvider="true" />
+
+        <EditTextPreference
+            app:key="filter_max_text_chars"
+            app:title="@string/filter_max_text_chars_title"
+            app:summary="@string/filter_max_text_chars_summary"
+            app:useSimpleSummaryProvider="true" />
+
+        <Preference
+            app:key="sync_filter_text_hint"
+            app:title="@string/filter_hint_title"
+            app:summary="@string/filter_text_hint_summary"
+            app:selectable="false" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:title="@string/sync_filter_category_binary">
+
+        <EditTextPreference
+            app:key="filter_blocked_extensions"
+            app:title="@string/filter_blocked_extensions_title"
+            app:summary="@string/filter_blocked_extensions_summary"
+            app:useSimpleSummaryProvider="true" />
+
+        <EditTextPreference
+            app:key="filter_max_file_size"
+            app:title="@string/filter_max_file_size_title"
+            app:summary="@string/filter_max_file_size_summary"
+            app:useSimpleSummaryProvider="true" />
+
+        <ListPreference
+            app:key="filter_max_file_size_unit"
+            app:title="@string/filter_max_file_size_unit_title"
+            app:entries="@array/filter_file_size_unit_entries"
+            app:entryValues="@array/filter_file_size_unit_values"
+            app:defaultValue="MB"
+            app:useSimpleSummaryProvider="true" />
+
+        <Preference
+            app:key="sync_filter_file_hint"
+            app:title="@string/filter_hint_title"
+            app:summary="@string/filter_file_hint_summary"
+            app:selectable="false" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:title="@string/sync_filter_category_preview">
+
+        <Preference
+            app:key="sync_filter_preview"
+            app:title="@string/sync_filter_preview_title"
+            app:summary="@string/sync_filter_preview_empty" />
+    </PreferenceCategory>
+
+</PreferenceScreen>

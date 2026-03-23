@@ -33,8 +33,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.fcitx.fcitx5.android.plugin.clipboard_sync.MainService
 import org.fcitx.fcitx5.android.plugin.clipboard_sync.R
+import org.fcitx.fcitx5.android.plugin.clipboard_sync.SyncFilterPrefs
 import org.fcitx.fcitx5.android.plugin.clipboard_sync.network.SyncClient
 import org.fcitx.fcitx5.android.plugin.clipboard_sync.network.SyncClient.ServerBackend
+import org.fcitx.fcitx5.android.plugin.clipboard_sync.service.QuickSyncTileService
+import java.util.Locale
 
 class SettingsActivity : AppCompatActivity() {
 
@@ -52,7 +55,11 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     override fun onSupportNavigateUp(): Boolean {
-        onBackPressed()
+        if (supportFragmentManager.backStackEntryCount > 0) {
+            supportFragmentManager.popBackStack()
+        } else {
+            finish()
+        }
         return true
     }
 
@@ -158,6 +165,8 @@ class SettingsActivity : AppCompatActivity() {
 
         override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
             setPreferencesFromResource(R.xml.preferences_local, rootKey)
+            val prefs = preferenceManager.sharedPreferences ?: return
+            SyncFilterPrefs.ensureDefaults(prefs)
             initializeServerProfileState()
             syncCredentialPreferencesForActiveProfile()
             updateBatteryOptimizationSummary()
@@ -173,13 +182,20 @@ class SettingsActivity : AppCompatActivity() {
 
             findPreference<Preference>(BACKGROUND_KEEP_ALIVE_KEY)?.setOnPreferenceChangeListener { _, newValue ->
                 if (newValue == true) {
-                    MainService.startSyncService(requireContext(), "settings-keepalive-enabled")
+                    view?.post {
+                        MainService.startSyncService(requireContext(), "settings-keepalive-enabled")
+                    }
                 }
                 true
             }
             findPreference<Preference>("quick_sync")?.setOnPreferenceChangeListener { _, newValue ->
+                QuickSyncTileService.requestTileRefresh(requireContext())
                 if (newValue == true) {
-                    MainService.startSyncService(requireContext(), "settings-quick-sync-enabled")
+                    MainService.startSyncService(
+                        requireContext(),
+                        "settings-quick-sync-enabled",
+                        forceEnableSync = true
+                    )
                 }
                 true
             }
@@ -206,6 +222,13 @@ class SettingsActivity : AppCompatActivity() {
                 true
             }
 
+            val syncFilterPref = findPreference<Preference>(SyncFilterPrefs.PREF_FILTER_ENTRY)
+            updateSyncFilterSummary(syncFilterPref)
+            syncFilterPref?.setOnPreferenceClickListener {
+                openPreferenceFragment(SyncFilterSettingsFragment())
+                true
+            }
+
             findPreference<Preference>("test_connection")?.setOnPreferenceClickListener {
                 testConnection()
                 true
@@ -218,7 +241,14 @@ class SettingsActivity : AppCompatActivity() {
 
         override fun onResume() {
             super.onResume()
+            requireActivity().title = getString(R.string.settings_title)
             updateBatteryOptimizationSummary()
+            updateSyncFilterSummary(findPreference(SyncFilterPrefs.PREF_FILTER_ENTRY))
+            QuickSyncTileService.requestTileRefresh(requireContext())
+            val prefs = preferenceManager.sharedPreferences
+            if (prefs?.getBoolean("quick_sync", true) == true) {
+                MainService.startSyncService(requireContext(), "settings-resume")
+            }
         }
 
         private fun initializeServerProfileState() {
@@ -474,6 +504,25 @@ class SettingsActivity : AppCompatActivity() {
             downloadPref?.summary = savedUri ?: getString(R.string.storage_location_not_set)
         }
 
+        private fun updateSyncFilterSummary(preference: Preference?) {
+            val prefs = preferenceManager.sharedPreferences ?: return
+            preference?.summary = SyncFilterPrefs.buildSummary(requireContext(), prefs)
+        }
+
+        private fun openPreferenceFragment(fragment: PreferenceFragmentCompat) {
+            parentFragmentManager.beginTransaction()
+                .replace(resolveSettingsContainerId(), fragment)
+                .addToBackStack(fragment.javaClass.name)
+                .commit()
+        }
+
+        private fun resolveSettingsContainerId(): Int {
+            return when {
+                requireActivity().findViewById<View>(R.id.settings_container) != null -> R.id.settings_container
+                else -> R.id.settings
+            }
+        }
+
         private fun showStorageLocationDialog() {
             val context = requireContext()
             val prefs = preferenceManager.sharedPreferences ?: return
@@ -641,12 +690,13 @@ class SettingsActivity : AppCompatActivity() {
         }
 
         private fun submitTestPush(dialog: AlertDialog) {
-            val address = preferenceManager.sharedPreferences?.getString(SERVER_ADDRESS_KEY, "") ?: ""
-            val username = preferenceManager.sharedPreferences?.getString("username", "") ?: ""
-            val password = preferenceManager.sharedPreferences?.getString("password", "") ?: ""
-            val backend = ServerBackend.fromProfileType(
-                preferenceManager.sharedPreferences?.getString(SERVER_PROFILE_TYPE_KEY, PROFILE_SYNC_CLIPBOARD)
-            )
+            val prefs = preferenceManager.sharedPreferences ?: return
+            val activeProfile = prefs.getString(SERVER_PROFILE_TYPE_KEY, PROFILE_SYNC_CLIPBOARD)
+                ?: PROFILE_SYNC_CLIPBOARD
+            val address = prefs.getString(SERVER_ADDRESS_KEY, "") ?: ""
+            val username = storedUsernameForProfile(prefs, activeProfile)
+            val password = storedPasswordForProfile(prefs, activeProfile)
+            val backend = ServerBackend.fromProfileType(activeProfile)
 
             if (address.isBlank()) {
                 Toast.makeText(context, R.string.please_set_server_address, Toast.LENGTH_SHORT).show()
@@ -817,12 +867,13 @@ class SettingsActivity : AppCompatActivity() {
         }
 
         private fun testConnection() {
-            val address = preferenceManager.sharedPreferences?.getString(SERVER_ADDRESS_KEY, "") ?: ""
-            val username = preferenceManager.sharedPreferences?.getString("username", "") ?: ""
-            val password = preferenceManager.sharedPreferences?.getString("password", "") ?: ""
-            val backend = ServerBackend.fromProfileType(
-                preferenceManager.sharedPreferences?.getString(SERVER_PROFILE_TYPE_KEY, PROFILE_SYNC_CLIPBOARD)
-            )
+            val prefs = preferenceManager.sharedPreferences ?: return
+            val activeProfile = prefs.getString(SERVER_PROFILE_TYPE_KEY, PROFILE_SYNC_CLIPBOARD)
+                ?: PROFILE_SYNC_CLIPBOARD
+            val address = prefs.getString(SERVER_ADDRESS_KEY, "") ?: ""
+            val username = storedUsernameForProfile(prefs, activeProfile)
+            val password = storedPasswordForProfile(prefs, activeProfile)
+            val backend = ServerBackend.fromProfileType(activeProfile)
 
             if (address.isBlank()) {
                 Toast.makeText(context, R.string.please_set_server_address, Toast.LENGTH_SHORT).show()
@@ -852,6 +903,146 @@ class SettingsActivity : AppCompatActivity() {
                     }
                 }
             }
+        }
+    }
+
+    class SyncFilterSettingsFragment : PreferenceFragmentCompat() {
+
+        private val previewListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key in observedKeys) {
+                updateFilterPreview()
+            }
+        }
+
+        private val observedKeys = setOf(
+            SyncFilterPrefs.PREF_FILTER_BLOCKED_EXTENSIONS,
+            SyncFilterPrefs.PREF_FILTER_MAX_FILE_SIZE,
+            SyncFilterPrefs.PREF_FILTER_MAX_FILE_SIZE_UNIT,
+            SyncFilterPrefs.PREF_FILTER_MIN_TEXT_CHARS,
+            SyncFilterPrefs.PREF_FILTER_MAX_TEXT_CHARS
+        )
+
+        override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
+            setPreferencesFromResource(R.xml.preferences_sync_filter, rootKey)
+            val prefs = preferenceManager.sharedPreferences ?: return
+            SyncFilterPrefs.ensureDefaults(prefs)
+
+            listOf(
+                SyncFilterPrefs.PREF_FILTER_MAX_FILE_SIZE,
+                SyncFilterPrefs.PREF_FILTER_MIN_TEXT_CHARS,
+                SyncFilterPrefs.PREF_FILTER_MAX_TEXT_CHARS
+            ).forEach { key ->
+                findPreference<EditTextPreference>(key)?.setOnBindEditTextListener { editText ->
+                    editText.inputType = InputType.TYPE_CLASS_NUMBER
+                }
+            }
+
+            findPreference<EditTextPreference>(SyncFilterPrefs.PREF_FILTER_BLOCKED_EXTENSIONS)
+                ?.setOnPreferenceChangeListener { _, newValue ->
+                    val normalized = newValue?.toString()
+                        .orEmpty()
+                        .split(Regex("[,\\s]+"))
+                        .map { it.trim().removePrefix(".").lowercase(Locale.ROOT) }
+                        .filter { it.isNotEmpty() }
+                        .distinct()
+                        .joinToString(", ")
+                    preferenceManager.sharedPreferences?.edit()
+                        ?.putString(SyncFilterPrefs.PREF_FILTER_BLOCKED_EXTENSIONS, normalized)
+                        ?.apply()
+                    updateFilterPreview()
+                    false
+                }
+
+            listOf(
+                SyncFilterPrefs.PREF_FILTER_MIN_TEXT_CHARS to SyncFilterPrefs.PREF_FILTER_MAX_TEXT_CHARS,
+                SyncFilterPrefs.PREF_FILTER_MAX_TEXT_CHARS to SyncFilterPrefs.PREF_FILTER_MIN_TEXT_CHARS
+            ).forEach { (key, peerKey) ->
+                findPreference<EditTextPreference>(key)?.setOnPreferenceChangeListener { _, newValue ->
+                    persistNormalizedNumericValue(changedKey = key, peerKey = peerKey, newValue = newValue?.toString())
+                    false
+                }
+            }
+
+            findPreference<EditTextPreference>(SyncFilterPrefs.PREF_FILTER_MAX_FILE_SIZE)
+                ?.setOnPreferenceChangeListener { _, newValue ->
+                    persistPositiveNumericValue(
+                        key = SyncFilterPrefs.PREF_FILTER_MAX_FILE_SIZE,
+                        newValue = newValue?.toString()
+                    )
+                    false
+                }
+
+            listOf(
+                SyncFilterPrefs.PREF_FILTER_MAX_FILE_SIZE_UNIT
+            ).forEach { key ->
+                findPreference<Preference>(key)?.setOnPreferenceChangeListener { _, _ ->
+                    view?.post { updateFilterPreview() }
+                    true
+                }
+            }
+            updateFilterPreview()
+        }
+
+        override fun onResume() {
+            super.onResume()
+            requireActivity().title = getString(R.string.sync_filter_title)
+            preferenceManager.sharedPreferences?.registerOnSharedPreferenceChangeListener(previewListener)
+            updateFilterPreview()
+        }
+
+        override fun onPause() {
+            preferenceManager.sharedPreferences?.unregisterOnSharedPreferenceChangeListener(previewListener)
+            super.onPause()
+        }
+
+        private fun persistNormalizedNumericValue(changedKey: String, peerKey: String, newValue: String?) {
+            val prefs = preferenceManager.sharedPreferences ?: return
+            val normalizedValue = newValue?.trim().orEmpty()
+            val changedNumber = normalizedValue.toLongOrNull()?.takeIf { it > 0 }
+            val peerNumber = prefs.getString(peerKey, null)?.trim()?.toLongOrNull()?.takeIf { it > 0 }
+
+            val editor = prefs.edit()
+            if (normalizedValue.isBlank() || changedNumber == null) {
+                editor.putString(changedKey, "")
+            } else if (peerNumber != null && isMinKey(changedKey) && changedNumber > peerNumber) {
+                editor.putString(changedKey, peerNumber.toString())
+                editor.putString(peerKey, changedNumber.toString())
+            } else if (peerNumber != null && !isMinKey(changedKey) && changedNumber < peerNumber) {
+                editor.putString(changedKey, peerNumber.toString())
+                editor.putString(peerKey, changedNumber.toString())
+            } else {
+                editor.putString(changedKey, changedNumber.toString())
+            }
+            editor.apply()
+            syncNumericPreferenceText(changedKey)
+            syncNumericPreferenceText(peerKey)
+            updateFilterPreview()
+        }
+
+        private fun persistPositiveNumericValue(key: String, newValue: String?) {
+            val prefs = preferenceManager.sharedPreferences ?: return
+            val normalizedValue = newValue?.trim().orEmpty()
+            val number = normalizedValue.toLongOrNull()?.takeIf { it > 0 }
+            prefs.edit()
+                .putString(key, number?.toString().orEmpty())
+                .apply()
+            syncNumericPreferenceText(key)
+            updateFilterPreview()
+        }
+
+        private fun syncNumericPreferenceText(key: String) {
+            val value = preferenceManager.sharedPreferences?.getString(key, "").orEmpty()
+            findPreference<EditTextPreference>(key)?.text = value
+        }
+
+        private fun isMinKey(key: String): Boolean {
+            return key == SyncFilterPrefs.PREF_FILTER_MIN_TEXT_CHARS
+        }
+
+        private fun updateFilterPreview() {
+            val prefs = preferenceManager.sharedPreferences ?: return
+            findPreference<Preference>(SyncFilterPrefs.PREF_FILTER_PREVIEW)?.summary =
+                SyncFilterPrefs.buildPreview(requireContext(), prefs)
         }
     }
 }

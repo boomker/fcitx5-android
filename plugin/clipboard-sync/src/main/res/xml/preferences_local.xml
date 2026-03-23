@@ -40,6 +40,11 @@
         app:useSimpleSummaryProvider="true" />
 
     <Preference
+        app:key="sync_filter"
+        app:title="@string/sync_filter_title"
+        app:summary="@string/sync_filter_summary_empty" />
+
+    <Preference
         app:key="download_path"
         app:title="@string/storage_location_title"
         app:summary="@string/storage_location_not_set" />

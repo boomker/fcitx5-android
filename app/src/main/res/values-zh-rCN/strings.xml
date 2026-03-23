@@ -47,6 +47,9 @@
     <string name="loading">加载中</string>
     <string name="clipboard_listening">记录剪贴板历史</string>
     <string name="clipboard_limit">剪贴板历史记录上限</string>
+    <string name="clipboard_limit_local">本机历史记录上限</string>
+    <string name="clipboard_limit_remote">其他设备历史记录上限</string>
+    <string name="clipboard_limit_media">图片文件历史记录上限</string>
     <string name="clipboard_enable">启用剪贴板</string>
     <string name="expanded_candidate_style">展开候选词样式</string>
     <string name="expanded_candidate_style_grid">表格</string>
@@ -412,6 +415,7 @@
     <string name="open_input_method_settings">打开输入法设置</string>
     <string name="delete_all">全部删除</string>
     <string name="share">分享</string>
+    <string name="open_link">打开链接</string>
     <string name="emoji_and_symbols">表情和符号</string>
     <string name="default_emoji_skin_tone">默认表情肤色</string>
     <string name="emoji_skin_tone_none">无</string>

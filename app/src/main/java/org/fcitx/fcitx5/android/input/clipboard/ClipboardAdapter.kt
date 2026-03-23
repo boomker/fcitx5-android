@@ -4,14 +4,26 @@
  */
 package org.fcitx.fcitx5.android.input.clipboard
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.content.Context
 import android.net.Uri
 import android.os.Build
+import android.util.LruCache
+import android.util.Patterns
 import android.view.ViewGroup
 import android.widget.PopupMenu
+import androidx.core.net.toUri
 import androidx.paging.PagingDataAdapter
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.data.clipboard.db.ClipboardEntry
 import org.fcitx.fcitx5.android.data.theme.Theme
@@ -28,6 +40,8 @@ abstract class ClipboardAdapter(
 ) : PagingDataAdapter<ClipboardEntry, ClipboardAdapter.ViewHolder>(diffCallback) {
 
     companion object {
+        private val thumbnailCache = object : LruCache<String, Bitmap>(24) {}
+
         private val diffCallback = object : DiffUtil.ItemCallback<ClipboardEntry>() {
             override fun areItemsTheSame(
                 oldItem: ClipboardEntry,
@@ -86,7 +100,12 @@ abstract class ClipboardAdapter(
 
     private var popupMenu: PopupMenu? = null
 
-    class ViewHolder(val entryUi: ClipboardEntryUi) : RecyclerView.ViewHolder(entryUi.root)
+    class ViewHolder(val entryUi: ClipboardEntryUi) : RecyclerView.ViewHolder(entryUi.root) {
+        var thumbnailJob: Job? = null
+        var boundThumbnailKey: String? = null
+    }
+
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder =
         ViewHolder(ClipboardEntryUi(parent.context, theme, entryRadius))
@@ -99,7 +118,23 @@ abstract class ClipboardAdapter(
             } else {
                 excerptText(entry.text, entry.sensitive && maskSensitive)
             }
-            setEntry(displayText, entry.pinned)
+            val linkUri = entry.openableLinkUri()
+            val thumbnailKey = entry.imagePreviewKey()
+            val cachedThumbnail = thumbnailKey?.let { thumbnailCache.get(it) }
+            holder.thumbnailJob?.cancel()
+            holder.boundThumbnailKey = thumbnailKey
+            setEntry(displayText, entry.pinned, cachedThumbnail)
+            if (thumbnailKey != null && cachedThumbnail == null) {
+                holder.thumbnailJob = scope.launch {
+                    val bitmap = loadImagePreview(ctx, entry)
+                    if (bitmap != null) {
+                        thumbnailCache.put(thumbnailKey, bitmap)
+                    }
+                    if (holder.boundThumbnailKey == thumbnailKey) {
+                        holder.entryUi.setEntry(displayText, entry.pinned, bitmap)
+                    }
+                }
+            }
             root.setOnClickListener {
                 onPaste(entry)
             }
@@ -122,6 +157,11 @@ abstract class ClipboardAdapter(
                 menu.item(R.string.share, R.drawable.ic_baseline_share_24, iconTint) {
                     onShare(entry)
                 }
+                if (linkUri != null) {
+                    menu.item(R.string.open_link, R.drawable.ic_baseline_language_24, iconTint) {
+                        onOpenLink(linkUri)
+                    }
+                }
                 menu.item(R.string.delete, R.drawable.ic_baseline_delete_24, iconTint) {
                     onDelete(entry.id)
                 }
@@ -139,9 +179,17 @@ abstract class ClipboardAdapter(
         }
     }
 
+    override fun onViewRecycled(holder: ViewHolder) {
+        holder.thumbnailJob?.cancel()
+        holder.thumbnailJob = null
+        holder.boundThumbnailKey = null
+        super.onViewRecycled(holder)
+    }
+
     fun getEntryAt(position: Int) = getItem(position)
 
     fun onDetached() {
+        scope.cancel()
         popupMenu?.dismiss()
         popupMenu = null
     }
@@ -155,6 +203,8 @@ abstract class ClipboardAdapter(
     abstract fun onEdit(id: Int)
 
     abstract fun onShare(entry: ClipboardEntry)
+
+    abstract fun onOpenLink(uri: Uri)
 
     abstract fun onDelete(id: Int)
 
@@ -184,6 +234,70 @@ abstract class ClipboardAdapter(
         }?.let { Uri.decode(it).substringAfterLast('/').substringAfterLast(':') }
             ?.trim()
             ?.takeIf { it.isNotEmpty() }
+    }
+
+    private fun ClipboardEntry.openableLinkUri(): Uri? {
+        if (isUriEntry()) return null
+        val raw = text.trim()
+        if (raw.isEmpty()) return null
+        val direct = runCatching { raw.toUri() }.getOrNull()
+        if (direct != null &&
+            direct.scheme?.lowercase() in setOf("http", "https") &&
+            !direct.host.isNullOrBlank()
+        ) {
+            return direct
+        }
+        return if (!raw.contains('\n') && Patterns.WEB_URL.matcher(raw).matches()) {
+            "https://$raw".toUri()
+        } else {
+            null
+        }
+    }
+
+    private fun ClipboardEntry.imagePreviewKey(): String? {
+        return if (isUriEntry() && type.startsWith("image/")) text else null
+    }
+
+    private suspend fun loadImagePreview(context: Context, entry: ClipboardEntry): Bitmap? {
+        if (!entry.isUriEntry() || !entry.type.startsWith("image/")) return null
+        val uri = runCatching { Uri.parse(entry.text) }.getOrNull() ?: return null
+        return withContext(Dispatchers.IO) {
+            runCatching {
+                val resolver = context.contentResolver
+                val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                resolver.openInputStream(uri)?.use { stream ->
+                    BitmapFactory.decodeStream(stream, null, bounds)
+                }
+                if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
+                    return@runCatching null
+                }
+                val sampleSize = calculateInSampleSize(bounds.outWidth, bounds.outHeight, 192, 192)
+                val options = BitmapFactory.Options().apply {
+                    inSampleSize = sampleSize
+                    inPreferredConfig = Bitmap.Config.RGB_565
+                }
+                resolver.openInputStream(uri)?.use { stream ->
+                    BitmapFactory.decodeStream(stream, null, options)
+                }
+            }.getOrNull()
+        }
+    }
+
+    private fun calculateInSampleSize(
+        width: Int,
+        height: Int,
+        reqWidth: Int,
+        reqHeight: Int
+    ): Int {
+        var sampleSize = 1
+        var currentWidth = width
+        var currentHeight = height
+        while (currentHeight / 2 >= reqHeight && currentWidth / 2 >= reqWidth) {
+            currentHeight /= 2
+            currentWidth /= 2
+            sampleSize *= 2
+        }
+        return sampleSize
     }
 
 }

@@ -6,6 +6,8 @@ package org.fcitx.fcitx5.android.core
 
 import android.content.Context
 import android.os.Build
+import android.os.Bundle
+import android.os.Message
 import androidx.annotation.Keep
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.channels.BufferOverflow
@@ -16,8 +18,10 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.fcitx.fcitx5.android.FcitxApplication
 import org.fcitx.fcitx5.android.R
+import org.fcitx.fcitx5.android.common.PluginMessage
 import org.fcitx.fcitx5.android.core.data.DataManager
 import org.fcitx.fcitx5.android.data.clipboard.ClipboardManager
+import org.fcitx.fcitx5.android.data.clipboard.db.ClipboardEntry
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.utils.ImmutableGraph
 import org.fcitx.fcitx5.android.utils.Locales
@@ -478,8 +482,18 @@ class Fcitx(private val context: Context) : FcitxAPI, FcitxLifecycleOwner {
         }
 
     @Keep
-    private val onClipboardUpdate = ClipboardManager.OnClipboardUpdateListener {
-        lifecycle.lifecycleScope.launch { setClipboard(it.text, it.sensitive) }
+    private val onClipboardUpdate = ClipboardManager.OnClipboardUpdateListener { entry ->
+        lifecycle.lifecycleScope.launch { setClipboard(entry.text, entry.sensitive) }
+        if (entry.source == ClipboardEntry.SOURCE_LOCAL && entry.text.isNotBlank()) {
+            FcitxPluginServices.sendMessage(
+                Message.obtain().apply {
+                    what = PluginMessage.WHAT_LOCAL_CLIPBOARD_UPDATED
+                    data = Bundle().apply {
+                        putString(PluginMessage.KEY_CLIPBOARD_TEXT, entry.text)
+                    }
+                }
+            )
+        }
     }
 
     private fun computeAddonGraph() = runBlocking {
