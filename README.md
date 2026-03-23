@@ -1,177 +1,128 @@
-# fcitx5-android
+# 天鹅输入法
 
-[Fcitx5](https://github.com/fcitx/fcitx5) input method framework and engines ported to Android.
+[English](./README.en.md)
 
-本 mod 是基于原仓几乎全程 vibe coding 而成，在原仓上增加了相当若干特性。当前应用名为`小天鹅`，安装包标识为`org.fcitx5.boomker.android`，总体上可以理解成原仓做的超集，可在[releases](https://github.com/boomker/fcitx5-android/releases)下面下载体验。
+天鹅输入法是基于 [Fcitx5 for Android](https://github.com/fcitx5-android/fcitx5-android) 深度定制的一版 Android 输入法。  
+当前主程序应用名为 `天鹅输入法`，主程序包名为 `org.fxboomk.fcitx5.android`。
 
-如果您觉得我vibe得还行，欢迎您支持我采购token续编vibe coding下去 😀
+这个分支重点强化了两条能力：
 
-<table>
-  <tr>
-    <th>支付宝</th>
-    <th>微信支付</th>
-  </tr>
-  <tr>
-    <td width=256 height=256><img src="https://github.com/fxliang/fxliang/assets/4023160/0dc39faf-e6c5-4a67-bebf-8e96c02a8f42"></td>
-    <td width=256 height=256><img src="https://github.com/fxliang/fxliang/assets/4023160/b0d58008-0ede-41f2-aa25-fcd514a4ec33"></td>
-  </tr>
-</table>
+- 剪贴板能力：把本机剪贴板、其他设备剪贴板、图片/文件剪贴板做成了更完整的一套工作流。
+- 预测与扩展能力：保留 Fcitx5 的多输入方案体系，同时增强了 RIME 等插件扩展场景。
 
-## Download
+## 项目特点
 
-[<img src="https://github.com/rubenpgrady/get-it-on-github/raw/refs/heads/main/get-it-on-github.png" alt="Git it on GitHub" width="207" height="80">](https://github.com/boomker/fcitx5-android/releases/latest)
-[<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="Get it on F-Droid" width="207" height="80">](https://f-droid.org/packages/org.fcitx5.boomker.android)
-[<img alt="Get it on Google Play" src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" width="207" height="80">](https://play.google.com/store/apps/details?id=org.fcitx5.boomker.android)
+### 1. 更强的剪贴板体系
 
-You can also download the **latest CI build** on our Jeninks server: [![build status](https://img.shields.io/jenkins/build.svg?jobUrl=https://jenkins.fcitx-im.org/job/android/job/fcitx5-android/)](https://jenkins.fcitx-im.org/job/android/job/fcitx5-android/)
+- 主程序剪贴板支持多分类视图：
+  - 本机
+  - 其他设备
+  - 图片文件
+  - 全部
+- 图片类条目支持缩略图预览。
+- URL 条目支持右键菜单直接“打开链接”。
+- 图片条目支持右键菜单“查看图片”，调用系统默认程序打开。
+- 图片、文件类剪贴板条目会尽量以 URI 形式保留，方便后续发送文件而不是只发送文本。
+- 剪贴板历史记录上限可分别按分类设置。
 
-> [!NOTE]
-> APKs downloaded from GitHub Release/F-Droid/Jenkins have the same signature, which means they're compatible when upgrading, but Google Play's do not.
-> <details>
-> <summary>(click here for detailed signature info)</summary>
-> <ul>
-> <li>Package Name: <code>org.fcitx5.boomker.android</code></li>
-> <li>Certificate SHA-256 fingerprint:</li>
-> <ul>
-> <li>GitHub Release/Jenkins/F-Droid</li>
-> <code>E4:DB:1E:9E:DF:F1:36:29:D0:7D:E4:BB:F8:16:5F:E9:BD:85:57:AB:55:09:26:72:DA:8E:40:DB:E4:84:EC:D7</code>
-> <li>Google Play</li>
-> <code>06:53:6F:F6:E8:76:C0:14:E1:4B:44:6F:61:FA:2B:80:9E:06:67:39:A1:D1:17:0D:0A:7A:89:88:4C:48:00:33</code>
-> </ul>
-> </ul>
-> </details>
+### 2. 剪贴板同步插件
 
-In case you want Fcitx5 on other platforms: [macOS](https://github.com/fcitx-contrib/fcitx5-macos), [iOS](https://github.com/fcitx-contrib/fcitx5-ios), [HarmonyOS](https://github.com/fcitx-contrib/fcitx5-harmony), [ChromeOS](https://github.com/fcitx-contrib/fcitx5-chrome), [Windows](https://github.com/fcitx-contrib/fcitx5-windows); or [try Fcitx5 in the browser](https://fcitx-contrib.github.io/online/index.html)
+项目已集成 `clipboard-sync` 插件构建链路，可与主程序一起构建和安装。
 
-## Project status
+当前剪贴板同步插件支持：
 
-### Supported Languages
+- `OneClip`
+- `ClipCascade`
+- `SyncClipboard`
 
-- English (with spell check)
-- Chinese
-  - Pinyin, Shuangpin, Wubi, Cangjie and custom tables (built-in, powered by [fcitx5-chinese-addons](https://github.com/fcitx/fcitx5-chinese-addons))
-  - Zhuyin/Bopomofo (via [Chewing Plugin](./plugin/chewing))
-  - Jyutping (via [Jyutping Plugin](./plugin/jyutping/), powered by [libime-jyutping](https://github.com/fcitx/libime-jyutping))
-- Vietnamese (via [UniKey Plugin](./plugin/unikey), supports Telex, VNI and VIQR)
-- Japanese (via [Anthy Plugin](./plugin/anthy))
-- Korean (via [Hangul Plugin](./plugin/hangul))
-- Sinhala (via [Sayura Plugin](./plugin/sayura))
-- Thai (via [Thai Plugin](./plugin/thai))
-- Generic (via [RIME Plugin](./plugin/rime), supports importing custom schemas)
+插件能力包括：
 
-### Implemented Features
+- 自动拉取桌面端剪贴板记录到手机。
+- 支持文本、图片、文件等多种剪贴板内容。
+- 支持把手机端剪贴板内容反向推送到服务端。
+- 支持后台保活、断线重连、前台服务常驻、控制磁贴开关。
+- 支持同步过滤：
+  - 文本长度过滤
+  - 文件后缀过滤
+  - 最大文件大小过滤
+- 支持测试连接、测试推送、系统剪贴板授权引导等设置项。
 
-- Virtual Keyboard (layout not customizable yet)
-- Expandable candidate view
-- Clipboard management (plain text only)
-- Theming (custom color scheme, background image and dynamic color aka monet color after Android 12)
-- Popup preview on key press
-- Long press popup keyboard for convenient symbol input
-- Symbol and Emoji picker
-- Plugin System for loading addons from other installed apk
-- Floating candidates panel when using physical keyboard
+如果你的使用场景是“电脑复制，手机输入”或“手机复制，电脑接收”，这一版已经把它当成核心能力来打磨。
 
-### Planned Features
+### 3. 预测与输入方案扩展
 
-- Customizable keyboard layout
-- More input methods (via plugin)
+- 保留 Fcitx5 原有的多语言输入方案框架。
+- 中文输入继续支持拼音、双拼、五笔、仓颉、码表等能力。
+- 保留并可加载 RIME 插件，适合自定义方案、词库和高级配置。
+- 保留 libime / 中文插件链路中的候选预测、联想与语言模型能力。
+- 最近还补充了字体大小、特殊按键复用、语言切换键显隐等键盘层面的可调能力。
 
-## Screenshots
+### 4. 保持 Fcitx5 的插件化结构
 
-|拼音, Material Light theme, key border enabled|自然码双拼, Pixel Dark theme, key border disabled|
-|:-:|:-:|
-|<img src="https://github.com/fcitx5-android/fcitx5-android/assets/13914967/bd429247-62d9-4c78-bab8-70ef3ce47588" width="360px">|<img src="https://github.com/fcitx5-android/fcitx5-android/assets/13914967/3ae969c1-7ed0-4f92-a5df-19dc8c90a8c3" width="360px">|
+- 主程序继续通过插件机制加载额外输入法引擎或功能插件。
+- 当前仓库除主程序外，还包含 RIME、Anthy、UniKey、Thai、Hangul、Sayura、Jyutping 等插件/组件。
+- 对外部插件安装与联动场景保持兼容。
 
-|Emoji picker, Pixel Light theme, key border enabled|Symbol picker, Material Dark theme, key border disabled|
-|:-:|:-:|
-|<img src="https://user-images.githubusercontent.com/13914967/202181845-6a5f6bb2-a877-468c-851a-fd7e66e64ed4.png" width="360px">|<img src="https://user-images.githubusercontent.com/13914967/202181861-dd253439-1d5e-4f5f-9535-934f28796a6b.png" width="360px">|
+## 支持的输入方案
 
-## Get involved
+- English
+- 中文
+  - 拼音 / 双拼 / 五笔 / 仓颉 / 自定义码表
+  - 注音
+  - 粤拼
+- Vietnamese
+- Japanese
+- Korean
+- Sinhala
+- Thai
+- RIME 自定义输入方案
 
-Trello kanban: https://trello.com/b/gftk6ZdV/kanban
+## 下载
 
-Matrix Room: https://matrix.to/#/#fcitx5-android:mozilla.org
+- GitHub Releases:
+  [https://github.com/boomker/fcitx5-android/releases](https://github.com/boomker/fcitx5-android/releases)
 
-Discuss on Telegram: [@fcitx5_android_group](https://t.me/fcitx5_android_group) ([@fcitx5_android](https://t.me/fcitx5_android) originally)
+如果你只想体验当前维护版本，优先使用 Releases 页面中的正式包。
 
-## Build
+## 构建
 
-### Dependencies
+### 依赖
 
-- Android SDK Platform & Build-Tools 35.
-- Android NDK (Side by side) 25 & CMake 3.22.1, they can be installed using SDK Manager in Android Studio or `sdkmanager` command line.
-- [KDE/extra-cmake-modules](https://github.com/KDE/extra-cmake-modules)
-- GNU Gettext >= 0.20 (for `msgfmt` binary; or install `appstream` if you really have to use gettext <= 0.19.)
+- Android SDK Platform / Build-Tools 35
+- Android NDK 25
+- CMake 3.22.1
+- `extra-cmake-modules`
+- `gettext`
 
-### How to set up development environment
+### 初始化仓库
 
-<details>
-<summary>Prerequisites for Windows</summary>
-
-- Enable [Developer Mode](https://learn.microsoft.com/en-us/windows/apps/get-started/enable-your-device-for-development) so that symlinks can be created without administrator privilege.
-
-- Enable symlink support for `git`:
-
-    ```shell
-    git config --global core.symlinks true
-    ```
-
-</details>
-
-First, clone this repository and fetch all submodules:
-
-```shell
-git clone git@github.com:fcitx5-android/fcitx5-android.git
+```sh
+git clone git@github.com:boomker/fcitx5-android.git
+cd fcitx5-android
 git submodule update --init --recursive
 ```
 
-Install `extra-cmake-modules` and `gettext` with your system package manager:
+### 本地构建
 
-```shell
-# For Arch Linux (Arch has gettext in it's base meta package)
-sudo pacman -S extra-cmake-modules
-
-# For Debian/Ubuntu
-sudo apt install extra-cmake-modules gettext
-
-# For macOS
-brew install extra-cmake-modules gettext
-
-# For Windows, install MSYS2 and execute in its shell (UCRT64)
-pacman -S mingw-w64-ucrt-x86_64-extra-cmake-modules mingw-w64-ucrt-x86_64-gettext
-# then add C:\msys64\ucrt64\bin to PATH
+```sh
+./gradlew assembleDebug
 ```
 
-Install Android SDK Platform, Android SDK Build-Tools, Android NDK and cmake via SDK Manager in Android Studio:
+如果要单独构建剪贴板同步插件：
 
-<details>
-<summary>Detailed steps (screenshots)</summary>
+```sh
+./gradlew :plugin:clipboard-sync:assembleRelease
+```
 
-**Note:** These screenshots are for references and the versions in them may be out of date.
-The current recommended versions are recorded in [Versions.kt](build-logic/convention/src/main/kotlin/Versions.kt) file.
+## 适合谁
 
-![Open SDK Manager](https://user-images.githubusercontent.com/13914967/202184493-3ee1546b-0a83-4cc9-9e41-d20b0904a0cf.png)
+- 希望在 Android 上使用 Fcitx5 体系输入法的人。
+- 需要 RIME、自定义码表、多输入方案切换的人。
+- 需要手机与桌面端双向同步剪贴板的人。
+- 需要把图片、文件、链接等内容也纳入输入法剪贴板工作流的人。
 
-![Install SDK Platform](https://user-images.githubusercontent.com/13914967/202184534-340a9e7c-7c42-49bd-9cf5-1ec9dcafcf32.png)
+## 致谢
 
-![Install SDK Build-Tools](https://user-images.githubusercontent.com/13914967/202185945-0c7a9f39-1fcc-4018-9c81-b3d2bf1c2d3f.png)
-
-![Install NDK](https://user-images.githubusercontent.com/13914967/202185601-0cf877ea-e148-4b88-bd2f-70533189b3d4.png)
-
-![Install CMake](https://user-images.githubusercontent.com/13914967/202184655-3c1ab47c-432f-4bd7-a508-92096482de50.png)
-
-</details>
-
-### Trouble-shooting
-
-- Android Studio indexing takes forever to complete and cosumes a lot of memory.
-
-    Switch to "Project" view in the "Project" tool window (namely the file tree side bar), right click `lib/fcitx5/src/main/cpp/prebuilt` directory, then select "Mark Directory as > Excluded". You may also need to restart the IDE to interrupt ongoing indexing process.
-
-- Gradle error: "No variants found for ':app'. Check build files to ensure at least one variant exists." or "[CXX1210] <whatever>/CMakeLists.txt debug|arm64-v8a : No compatible library found"
-
-    Examine if there are environment variables set such as `_JAVA_OPTIONS` or `JAVA_TOOL_OPTIONS`. You might want to clear them (maybe in the startup script `studio.sh` of Android Studio), as some gradle plugin treats anything in stderr as errors and aborts.
-
-## Nix
-
-Appropriate Android SDK with NDK is available in the development shell.  The `gradlew` should work out-of-the-box, so you can install the app to your phone with `./gradlew installDebug` after applying the patch mentioned above. For development, you may want to install the unstable version of Android Studio, and point the project SDK path to `$ANDROID_SDK_ROOT` defined in the shell. Notice that Android Studio may generate wrong `local.properties` which sets the SDK location to `~/Android/SDK` (installed by SDK Manager). In such case, you need specify `sdk.dir` as the project SDK in that file manually, in case Android Studio sticks to the wrong global SDK.
+- 原始项目：
+  [fcitx5-android/fcitx5-android](https://github.com/fcitx5-android/fcitx5-android)
+- Fcitx5 / libime / fcitx5-chinese-addons / RIME 等上游项目贡献者
