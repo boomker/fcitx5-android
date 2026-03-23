@@ -640,7 +640,7 @@ class LayoutDataManager(private val context: Context) {
                 val keyJson = rowElement
                 val keyMap = mutableMapOf<String, Any?>()
                 keyJson.entries.forEach { (key, value) ->
-                    keyMap[key] = when (value) {
+                    keyMap[key] = normalizeKeyValue(key, when (value) {
                         is JsonObject -> value.toMap().mapValues { it.value.let { e -> toAny(e) } }
                         is JsonArray -> value.map { toAny(it) }
                         is JsonPrimitive -> {
@@ -648,13 +648,27 @@ class LayoutDataManager(private val context: Context) {
                             else value.booleanOrNull ?: value.intOrNull ?: value.doubleOrNull ?: value.content
                         }
                         is JsonNull -> null
-                    }
+                    })
                 }
                 row.add(keyMap)
             }
             rows.add(row)
         }
         return rows
+    }
+
+    private fun normalizeKeyValue(key: String, value: Any?): Any? {
+        if (key != "weight") return value
+        return when (value) {
+            null -> null
+            is Number -> value.toFloat()
+            is String -> {
+                value.trim()
+                    .takeUnless { it.isEmpty() || it.equals("null", ignoreCase = true) }
+                    ?.toFloatOrNull()
+            }
+            else -> null
+        }
     }
     
     /**
