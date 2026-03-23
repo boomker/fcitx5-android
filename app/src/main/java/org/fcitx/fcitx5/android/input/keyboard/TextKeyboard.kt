@@ -170,8 +170,21 @@ class TextKeyboard(
                     displayText = obj["displayText"],
                     label = obj["label"]?.jsonPrimitive?.content,
                     subLabel = obj["subLabel"]?.jsonPrimitive?.content,
-                    weight = obj["weight"]?.jsonPrimitive?.float
+                    weight = parseOptionalFloat(obj["weight"])
                 )?.let { createKeyDef(it) }
+            }
+        }
+
+        private fun parseOptionalFloat(element: JsonElement?): Float? {
+            val primitive = element as? JsonPrimitive ?: return null
+            if (primitive is JsonNull) return null
+            return if (primitive.isString) {
+                primitive.content
+                    .trim()
+                    .takeUnless { it.isEmpty() || it.equals("null", ignoreCase = true) }
+                    ?.toFloatOrNull()
+            } else {
+                primitive.floatOrNull ?: primitive.doubleOrNull?.toFloat()
             }
         }
 
