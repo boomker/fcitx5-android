@@ -42,6 +42,52 @@ data class ClipboardData(
     val timestamp: Double = 0.0
 )
 
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+data class SyncClipboardHistoryRecord(
+    @JsonNames("hash", "Hash")
+    val hash: String = "",
+
+    @JsonNames("text", "Text")
+    val text: String = "",
+
+    @JsonNames("type", "Type")
+    val type: String = "Text",
+
+    @JsonNames("createTime", "CreateTime")
+    val createTime: String = "",
+
+    @JsonNames("lastModified", "LastModified")
+    val lastModified: String = "",
+
+    @JsonNames("lastAccessed", "LastAccessed")
+    val lastAccessed: String = "",
+
+    @JsonNames("starred", "Starred")
+    val starred: Boolean = false,
+
+    @JsonNames("pinned", "Pinned")
+    val pinned: Boolean = false,
+
+    @JsonNames("size", "Size")
+    val size: Long = 0,
+
+    @JsonNames("hasData", "HasData")
+    val hasData: Boolean = false,
+
+    @JsonNames("version", "Version")
+    val version: Int = 0,
+
+    @JsonNames("isDeleted", "IsDeleted")
+    val isDeleted: Boolean = false
+)
+
+@Serializable
+data class SyncClipboardHistoryCursor(
+    val modifiedAfter: String = "",
+    val seenProfileIdsAtModifiedAfter: List<String> = emptyList()
+)
+
 @Serializable
 data class OneClipHistoryResponse(
     val items: List<OneClipHistoryItem> = emptyList()

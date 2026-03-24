@@ -27,6 +27,10 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import androidx.preference.PreferenceManager
 import kotlinx.coroutines.*
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.fcitx.fcitx5.android.common.ClipboardMetadata
@@ -93,6 +97,10 @@ class MainService : FcitxPluginService() {
         private const val ACTION_PAUSE_SYNC = "org.fcitx.fcitx5.android.plugin.clipboard_sync.action.PAUSE"
         private const val EXTRA_START_REASON = "start_reason"
         private const val EXTRA_FORCE_ENABLE_SYNC = "force_enable_sync"
+        private const val PREF_PENDING_UPLOADS = "pending_uploads"
+        private const val PREF_REMOTE_REVISIONS = "remote_revisions"
+        private const val PREF_LAST_SYNCED_CONTENT = "last_synced_content"
+        private const val MAX_PENDING_UPLOADS = 50
 
         fun shouldAutoStart(context: Context): Boolean {
             val prefs = PreferenceManager.getDefaultSharedPreferences(context)
@@ -155,6 +163,7 @@ class MainService : FcitxPluginService() {
     private var oneClipClient: OneClipEventClient? = null
     private var lastNetworkAvailableAt = 0L
     private var connectionSessionId = 0
+    private var activeEndpointIdentity: String? = null
 
     // Cache to avoid circular updates (Pull -> Local -> Push -> Loop)
     private var lastLocalContent: String? = null
@@ -164,6 +173,16 @@ class MainService : FcitxPluginService() {
     private var lastSuccessfulRemoteSyncAt = 0L
     private var lastBackendActivityAt = 0L
     private val remoteFetchMutex = Mutex()
+    private val pendingUploadMutex = Mutex()
+    private val pendingUploadDrainMutex = Mutex()
+    private val pendingUploads = mutableListOf<PendingUploadEntry>()
+    private val storedRemoteRevisions = mutableMapOf<String, String>()
+    private val stateJson = Json {
+        ignoreUnknownKeys = true
+        encodeDefaults = true
+        explicitNulls = false
+        coerceInputValues = true
+    }
 
     private val networkCallback = object : ConnectivityManager.NetworkCallback() {
         override fun onAvailable(network: Network) {
@@ -219,6 +238,8 @@ class MainService : FcitxPluginService() {
         super.onCreate()
         Log.d(TAG, "MainService onCreate")
         prefs = PreferenceManager.getDefaultSharedPreferences(this)
+        loadPersistentSyncState()
+        lastUploadedContent = prefs.getString(PREF_LAST_SYNCED_CONTENT, null)
         createNotificationChannelIfNeeded()
     }
 
@@ -319,43 +340,6 @@ class MainService : FcitxPluginService() {
         }
     }
 
-    private fun uploadToCloud(text: String) {
-        if (!prefs.getBoolean(PREF_QUICK_SYNC, true)) {
-            Log.d(TAG, "[Push] Sync disabled, skipping upload")
-            return
-        }
-        val endpoint = currentEndpoint()
-        val url = endpoint.address
-        val user = currentUsernameForProfile(endpoint.profileKey)
-        val pass = currentPasswordForProfile(endpoint.profileKey)
-        val backend = endpoint.backend
-
-        if (url.isBlank()) return
-
-        scope.launch {
-            try {
-                if (backend == ServerBackend.CLIPCASCADE) {
-                    val activeClient = clipCascadeClient
-                    if (activeClient?.isConnected() == true) {
-                        val outgoing = SyncClient.buildClipCascadeClipboardData(this@MainService, text)
-                        activeClient.sendClipboard(
-                            payload = outgoing.payload,
-                            type = outgoing.type,
-                            filename = outgoing.filename
-                        )
-                    } else {
-                        SyncClient.putClipboard(this@MainService, url, user, pass, backend, text)
-                    }
-                } else {
-                    SyncClient.putClipboard(this@MainService, url, user, pass, backend, text)
-                }
-                lastUploadedContent = text
-            } catch (e: Exception) {
-                Log.e(TAG, "[Push] Failed to upload clipboard", e)
-            }
-        }
-    }
-
     private fun handleLocalClipboardUpdate(content: String, origin: String) {
         if (content.isBlank()) return
         if (content == lastRemoteContent || content == lastUploadedContent) {
@@ -364,8 +348,14 @@ class MainService : FcitxPluginService() {
         if (content != lastLocalContent) {
             lastLocalContent = content
         }
-        Log.d(TAG, "[Push] Detected local change from $origin, triggering upload")
-        uploadToCloud(content)
+        scope.launch {
+            val queued = enqueuePendingUpload(content)
+            if (!queued) {
+                return@launch
+            }
+            Log.d(TAG, "[Push] Detected local change from $origin, queued for upload")
+            flushPendingUploads("local-change:$origin")
+        }
     }
 
     private fun refreshSyncRuntime() {
@@ -412,6 +402,7 @@ class MainService : FcitxPluginService() {
                 if (now - lastSuccessfulRemoteSyncAt >= currentFallbackPullDelayMs()) {
                     try {
                         checkRemoteClipboard()
+                        flushPendingUploads("health-fallback")
                     } catch (error: CancellationException) {
                         throw error
                     } catch (error: Exception) {
@@ -422,7 +413,6 @@ class MainService : FcitxPluginService() {
 
                 if (now - lastBackendActivityAt >= currentStaleReconnectDelayMs()) {
                     Log.w(TAG, "[Health] Backend stream appears stale, forcing reconnect for $backend")
-                    resetRemoteCache()
                     startPeriodicSync()
                 }
             }
@@ -470,6 +460,7 @@ class MainService : FcitxPluginService() {
 
                     checkRemoteClipboard()
                     resetFailureState()
+                    flushPendingUploads("poll-loop")
 
                     delay(currentPollingIntervalSeconds(safeInterval) * 1000L)
                 } catch (e: CancellationException) {
@@ -520,6 +511,7 @@ class MainService : FcitxPluginService() {
                     }
                     markBackendActivity()
                     resetFailureState()
+                    flushPendingUploads("clipcascade-connected")
                     val closeCause = client.awaitClose()
                     if (!isActive) {
                         return@launch
@@ -579,6 +571,7 @@ class MainService : FcitxPluginService() {
                     checkRemoteClipboard()
                     markBackendActivity()
                     resetFailureState()
+                    flushPendingUploads("oneclip-connected")
 
                     val closeCause = client.awaitClose()
                     if (!isActive) {
@@ -612,6 +605,7 @@ class MainService : FcitxPluginService() {
     private suspend fun checkRemoteClipboard() {
         remoteFetchMutex.withLock {
             val endpoint = currentEndpoint()
+            ensureEndpointState(endpoint)
             val url = endpoint.address
             val user = currentUsernameForProfile(endpoint.profileKey)
             val pass = currentPasswordForProfile(endpoint.profileKey)
@@ -639,30 +633,41 @@ class MainService : FcitxPluginService() {
 
             if (result.revision != null) {
                 lastRemoteRevision = result.revision
+                persistRemoteRevision(endpoint, result.revision)
             }
 
-            val data = result.data ?: run {
+            val fetchedItems = result.items
+            if (fetchedItems.isEmpty()) {
                 return
             }
-            if (!shouldAcceptIncomingClipboard(data)) {
-                Log.d(TAG, "[Pull] Incoming clipboard rejected by receive filter: type=${data.type} name=${data.dataName}")
-                return
-            }
+            for (data in fetchedItems) {
+                if (!shouldAcceptIncomingClipboard(data)) {
+                    Log.d(TAG, "[Pull] Incoming clipboard rejected by receive filter: type=${data.type} name=${data.dataName}")
+                    continue
+                }
 
-            val remoteText = data.text
-            Log.d(TAG, "[Pull] Processed data: type=${data.type}, text=$remoteText")
+                val remoteText = data.text
+                Log.d(TAG, "[Pull] Processed data: type=${data.type}, text=$remoteText")
+                acknowledgePendingUploads(remoteText)
 
-            if (remoteText.isNotEmpty() && remoteText != lastLocalContent && remoteText != lastRemoteContent) {
-                Log.d(TAG, "[Pull] Remote content changed, updating local")
-                lastRemoteContent = remoteText
-                lastLocalContent = remoteText
-                lastUploadedContent = remoteText
+                if (
+                    remoteText.isNotEmpty() &&
+                    remoteText != lastLocalContent &&
+                    remoteText != lastRemoteContent &&
+                    remoteText != lastUploadedContent
+                ) {
+                    Log.d(TAG, "[Pull] Remote content changed, updating local")
+                    lastRemoteContent = remoteText
+                    lastLocalContent = remoteText
+                    lastUploadedContent = remoteText
+                    persistLastSyncedContent(remoteText)
 
-                withContext(Dispatchers.Main) {
-                    if (data.type == "Text") {
-                        updateSystemClipboard(remoteText)
-                    } else {
-                        updateSystemClipboardWithUri(Uri.parse(remoteText))
+                    withContext(Dispatchers.Main) {
+                        if (data.type == "Text") {
+                            updateSystemClipboard(remoteText)
+                        } else {
+                            updateSystemClipboardWithUri(Uri.parse(remoteText))
+                        }
                     }
                 }
             }
@@ -709,7 +714,8 @@ class MainService : FcitxPluginService() {
         Log.d(TAG, "[ClipCascade] Received remote payload type=$normalizedType size=${data.payload.length}")
         if (payloadFingerprint.isEmpty() ||
             payloadFingerprint == lastLocalContent ||
-            payloadFingerprint == lastRemoteContent
+            payloadFingerprint == lastRemoteContent ||
+            payloadFingerprint == lastUploadedContent
         ) {
             return
         }
@@ -721,6 +727,7 @@ class MainService : FcitxPluginService() {
                         Log.d(TAG, "[ClipCascade] Rejected text payload by receive filter")
                         return@launch
                     }
+                    acknowledgePendingUploads(data.payload)
                     rememberAcceptedRemotePayload(payloadFingerprint)
                     withContext(Dispatchers.Main) {
                         updateSystemClipboard(data.payload)
@@ -993,7 +1000,6 @@ class MainService : FcitxPluginService() {
                 delay(NETWORK_RECONNECT_DEBOUNCE_MS)
             }
             Log.d(TAG, "[Reconnect] Restarting sync runtime: $reason")
-            resetRemoteCache()
             startPeriodicSync()
         }
     }
@@ -1121,6 +1127,7 @@ class MainService : FcitxPluginService() {
         lastRemoteContent = payloadFingerprint
         lastLocalContent = payloadFingerprint
         lastUploadedContent = payloadFingerprint
+        persistLastSyncedContent(payloadFingerprint)
         noteRemoteSyncSuccess()
     }
 
@@ -1146,6 +1153,7 @@ class MainService : FcitxPluginService() {
     }
 
     private fun resetRemoteCache() {
+        activeEndpointIdentity = null
         lastRemoteRevision = null
         lastRemoteContent = null
     }
@@ -1498,6 +1506,166 @@ class MainService : FcitxPluginService() {
     ) {
         val identity: String
             get() = "$profileKey|${address.trim()}"
+    }
+
+    @Serializable
+    private data class PendingUploadEntry(
+        val content: String,
+        val enqueuedAt: Long = System.currentTimeMillis()
+    )
+
+    private fun loadPersistentSyncState() {
+        pendingUploads.clear()
+        prefs.getString(PREF_PENDING_UPLOADS, null)
+            ?.takeIf { it.isNotBlank() }
+            ?.let { serialized ->
+                runCatching {
+                    stateJson.decodeFromString<List<PendingUploadEntry>>(serialized)
+                }.onSuccess { restored ->
+                    pendingUploads += restored
+                }.onFailure { error ->
+                    Log.w(TAG, "[State] Failed to restore pending uploads", error)
+                }
+            }
+
+        storedRemoteRevisions.clear()
+        prefs.getString(PREF_REMOTE_REVISIONS, null)
+            ?.takeIf { it.isNotBlank() }
+            ?.let { serialized ->
+                runCatching {
+                    stateJson.decodeFromString<Map<String, String>>(serialized)
+                }.onSuccess { restored ->
+                    storedRemoteRevisions.putAll(restored)
+                }.onFailure { error ->
+                    Log.w(TAG, "[State] Failed to restore remote revisions", error)
+                }
+            }
+    }
+
+    private fun persistPendingUploadsLocked() {
+        prefs.edit()
+            .putString(PREF_PENDING_UPLOADS, stateJson.encodeToString(pendingUploads))
+            .apply()
+    }
+
+    private fun persistRemoteRevisions() {
+        prefs.edit()
+            .putString(PREF_REMOTE_REVISIONS, stateJson.encodeToString(storedRemoteRevisions))
+            .apply()
+    }
+
+    private fun persistLastSyncedContent(content: String) {
+        prefs.edit()
+            .putString(PREF_LAST_SYNCED_CONTENT, content)
+            .apply()
+    }
+
+    private suspend fun enqueuePendingUpload(content: String): Boolean {
+        return pendingUploadMutex.withLock {
+            if (content.isEmpty()) {
+                return@withLock false
+            }
+            pendingUploads.removeAll { it.content == content }
+            pendingUploads += PendingUploadEntry(content = content)
+            val overflow = pendingUploads.size - MAX_PENDING_UPLOADS
+            if (overflow > 0) {
+                repeat(overflow) {
+                    pendingUploads.removeAt(0)
+                }
+            }
+            persistPendingUploadsLocked()
+            true
+        }
+    }
+
+    private suspend fun acknowledgePendingUploads(content: String) {
+        if (content.isBlank()) return
+        pendingUploadMutex.withLock {
+            val matchedIndex = pendingUploads.indexOfLast { it.content == content }
+            if (matchedIndex < 0) {
+                return@withLock
+            }
+            repeat(matchedIndex + 1) {
+                pendingUploads.removeAt(0)
+            }
+            persistPendingUploadsLocked()
+        }
+    }
+
+    private fun ensureEndpointState(endpoint: ServerEndpoint) {
+        if (activeEndpointIdentity == endpoint.identity) {
+            return
+        }
+        activeEndpointIdentity = endpoint.identity
+        lastRemoteRevision = storedRemoteRevisions[endpoint.identity]
+        lastRemoteContent = null
+    }
+
+    private fun persistRemoteRevision(endpoint: ServerEndpoint, revision: String) {
+        storedRemoteRevisions[endpoint.identity] = revision
+        persistRemoteRevisions()
+    }
+
+    private suspend fun flushPendingUploads(reason: String) {
+        if (!prefs.getBoolean(PREF_QUICK_SYNC, true)) {
+            return
+        }
+        pendingUploadDrainMutex.withLock {
+            while (true) {
+                val next = pendingUploadMutex.withLock {
+                    pendingUploads.firstOrNull()
+                } ?: return
+
+                try {
+                    pushClipboardToCloud(next.content)
+                    pendingUploadMutex.withLock {
+                        if (pendingUploads.firstOrNull() == next) {
+                            pendingUploads.removeAt(0)
+                        } else {
+                            pendingUploads.removeAll { it.content == next.content }
+                        }
+                        persistPendingUploadsLocked()
+                    }
+                    Log.d(TAG, "[Push] Uploaded queued clipboard item from $reason")
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Log.e(TAG, "[Push] Failed to upload queued clipboard item from $reason", e)
+                    return
+                }
+            }
+        }
+    }
+
+    private suspend fun pushClipboardToCloud(text: String) {
+        val endpoint = currentEndpoint()
+        val url = endpoint.address
+        val user = currentUsernameForProfile(endpoint.profileKey)
+        val pass = currentPasswordForProfile(endpoint.profileKey)
+        val backend = endpoint.backend
+
+        if (url.isBlank()) {
+            throw IOException("Server address is blank")
+        }
+
+        if (backend == ServerBackend.CLIPCASCADE) {
+            val activeClient = clipCascadeClient
+            if (activeClient?.isConnected() == true) {
+                val outgoing = SyncClient.buildClipCascadeClipboardData(this@MainService, text)
+                activeClient.sendClipboard(
+                    payload = outgoing.payload,
+                    type = outgoing.type,
+                    filename = outgoing.filename
+                )
+            } else {
+                SyncClient.putClipboard(this@MainService, url, user, pass, backend, text)
+            }
+        } else {
+            SyncClient.putClipboard(this@MainService, url, user, pass, backend, text)
+        }
+        lastUploadedContent = text
+        persistLastSyncedContent(text)
+        markBackendActivity()
     }
 
     private enum class RuntimeMode {

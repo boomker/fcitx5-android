@@ -4,6 +4,7 @@ import android.app.AlertDialog
 import android.content.ActivityNotFoundException
 import android.content.SharedPreferences
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.PowerManager
@@ -67,6 +68,7 @@ class SettingsActivity : AppCompatActivity() {
     class SettingsFragment : PreferenceFragmentCompat() {
 
         companion object {
+            private const val ABOUT_KEY = "about"
             private const val SERVER_PROFILE_KEY = "server_profile"
             private const val SERVER_PROFILE_TYPE_KEY = "server_profile_type"
             private const val SERVER_PROFILE_CUSTOM_ALIAS_KEY = "server_profile_custom_alias"
@@ -98,6 +100,10 @@ class SettingsActivity : AppCompatActivity() {
             private const val DEFAULT_SYNC_CLIPBOARD_URL = "http://192.168.10.11:5003"
             private const val DEFAULT_ONE_CLIP_URL = "http://192.168.10.11:8899"
             private const val DEFAULT_CLIP_CASCADE_URL = "http://192.168.10.11:8080"
+            private const val SOURCE_REPOSITORY_URL = "https://github.com/boomker/fcitx5-android"
+            private const val ONECLIP_URL = "https://oneclip.cloud/"
+            private const val CLIPCASCADE_URL = "https://github.com/NOBB2333/ClipCascade_go"
+            private const val SYNCCLIPBOARD_URL = "https://github.com/Jeric-X/SyncClipboard"
         }
 
         private data class ServerProfile(
@@ -236,6 +242,10 @@ class SettingsActivity : AppCompatActivity() {
             }
             findPreference<Preference>("test_push")?.setOnPreferenceClickListener {
                 showTestPushDialog()
+                true
+            }
+            findPreference<Preference>(ABOUT_KEY)?.setOnPreferenceClickListener {
+                openPreferenceFragment(AboutSettingsFragment())
                 true
             }
         }
@@ -905,6 +915,20 @@ class SettingsActivity : AppCompatActivity() {
                 }
             }
         }
+
+        private fun openWebPage(url: String) {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+            runCatching {
+                startActivity(intent)
+            }.onFailure {
+                val message = if (it is ActivityNotFoundException) {
+                    getString(R.string.unknown_error)
+                } else {
+                    it.message ?: getString(R.string.unknown_error)
+                }
+                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     class SyncFilterSettingsFragment : PreferenceFragmentCompat() {
@@ -1106,6 +1130,82 @@ class SettingsActivity : AppCompatActivity() {
                 sizeValue.toString(),
                 state.maxFileSizeUnit.prefValue
             )
+        }
+    }
+
+    class AboutSettingsFragment : PreferenceFragmentCompat() {
+
+        companion object {
+            private const val SOURCE_REPO_KEY = "about_source_repo"
+            private const val BUILD_VERSION_KEY = "about_build_version"
+            private const val SERVER_ONECLIP_KEY = "about_server_oneclip"
+            private const val SERVER_CLIPCASCADE_KEY = "about_server_clipcascade"
+            private const val SERVER_SYNCCLIPBOARD_KEY = "about_server_syncclipboard"
+            private const val SOURCE_REPOSITORY_URL = "https://github.com/boomker/fcitx5-android"
+            private const val ONECLIP_URL = "https://oneclip.cloud/"
+            private const val CLIPCASCADE_URL = "https://github.com/NOBB2333/ClipCascade_go"
+            private const val SYNCCLIPBOARD_URL = "https://github.com/Jeric-X/SyncClipboard"
+        }
+
+        override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
+            setPreferencesFromResource(R.xml.preferences_about, rootKey)
+
+            findPreference<Preference>(SOURCE_REPO_KEY)?.setOnPreferenceClickListener {
+                openWebPage(SOURCE_REPOSITORY_URL)
+                true
+            }
+            findPreference<Preference>(SERVER_ONECLIP_KEY)?.setOnPreferenceClickListener {
+                openWebPage(ONECLIP_URL)
+                true
+            }
+            findPreference<Preference>(SERVER_CLIPCASCADE_KEY)?.setOnPreferenceClickListener {
+                openWebPage(CLIPCASCADE_URL)
+                true
+            }
+            findPreference<Preference>(SERVER_SYNCCLIPBOARD_KEY)?.setOnPreferenceClickListener {
+                openWebPage(SYNCCLIPBOARD_URL)
+                true
+            }
+
+            updateBuildVersionSummary()
+        }
+
+        override fun onResume() {
+            super.onResume()
+            requireActivity().title = getString(R.string.about_title)
+            updateBuildVersionSummary()
+        }
+
+        private fun updateBuildVersionSummary() {
+            findPreference<Preference>(BUILD_VERSION_KEY)?.summary = currentBuildVersion()
+        }
+
+        private fun currentBuildVersion(): String {
+            val packageManager = requireContext().packageManager
+            val packageName = requireContext().packageName
+            val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                packageManager.getPackageInfo(packageName, PackageManager.PackageInfoFlags.of(0))
+            } else {
+                @Suppress("DEPRECATION")
+                packageManager.getPackageInfo(packageName, 0)
+            }
+            return packageInfo.versionName
+                ?.takeIf { it.isNotBlank() }
+                ?: getString(R.string.about_build_version_unknown)
+        }
+
+        private fun openWebPage(url: String) {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+            runCatching {
+                startActivity(intent)
+            }.onFailure {
+                val message = if (it is ActivityNotFoundException) {
+                    getString(R.string.unknown_error)
+                } else {
+                    it.message ?: getString(R.string.unknown_error)
+                }
+                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+            }
         }
     }
 }

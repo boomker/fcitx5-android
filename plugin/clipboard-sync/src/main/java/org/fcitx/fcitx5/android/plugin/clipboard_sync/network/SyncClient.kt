@@ -7,14 +7,20 @@ import android.util.Base64
 import android.util.Log
 import androidx.documentfile.provider.DocumentFile
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import okhttp3.Credentials
+import okhttp3.FormBody
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.IOException
+import java.net.URLDecoder
+import java.time.Instant
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 
@@ -36,11 +42,12 @@ object SyncClient {
     }
 
     data class FetchResult(
-        val data: ClipboardData?,
+        val items: List<ClipboardData> = emptyList(),
         val revision: String?
     )
 
     private const val TAG = "FcitxClipboardSync"
+    private const val SYNCCLIPBOARD_HISTORY_PAGE_SIZE = 50
     private const val SAVED_URI_READY_RETRY_COUNT = 10
     private const val SAVED_URI_READY_RETRY_DELAY_MS = 150L
     private val ONECLIP_UNSUPPORTED_FILE_TYPES = setOf("code", "file")
@@ -60,6 +67,13 @@ object SyncClient {
 
     private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
     private val OCTET_STREAM_TYPE = "application/octet-stream".toMediaType()
+
+    private fun fetchResult(data: ClipboardData?, revision: String?): FetchResult {
+        return FetchResult(
+            items = data?.let(::listOf).orEmpty(),
+            revision = revision
+        )
+    }
 
     fun fetchClipboard(
         context: Context,
@@ -198,6 +212,36 @@ object SyncClient {
         downloadDirUri: Uri?,
         preDownloadFilter: ((ClipboardData) -> Boolean)?
     ): FetchResult {
+        fetchSyncClipboardHistory(
+            context = context,
+            serverUrl = serverUrl,
+            username = username,
+            pass = pass,
+            lastRevision = lastRevision,
+            downloadDirUri = downloadDirUri,
+            preDownloadFilter = preDownloadFilter
+        )?.let { return it }
+
+        return fetchSyncClipboardCurrent(
+            context = context,
+            serverUrl = serverUrl,
+            username = username,
+            pass = pass,
+            lastRevision = lastRevision,
+            downloadDirUri = downloadDirUri,
+            preDownloadFilter = preDownloadFilter
+        )
+    }
+
+    private fun fetchSyncClipboardCurrent(
+        context: Context,
+        serverUrl: String,
+        username: String,
+        pass: String,
+        lastRevision: String?,
+        downloadDirUri: Uri?,
+        preDownloadFilter: ((ClipboardData) -> Boolean)?
+    ): FetchResult {
         val previousEtag = lastRevision
             ?.takeIf { it.startsWith(REVISION_ETAG_PREFIX) }
             ?.removePrefix(REVISION_ETAG_PREFIX)
@@ -205,16 +249,110 @@ object SyncClient {
         val (partialData, newEtag) = fetchClipboardJson(serverUrl, username, pass, previousEtag)
         if (partialData == null) {
             val revision = newEtag?.let { REVISION_ETAG_PREFIX + it } ?: lastRevision
-            return FetchResult(null, revision)
+            return fetchResult(null, revision)
         }
         if (preDownloadFilter?.invoke(partialData) == false) {
             val revision = newEtag?.let { REVISION_ETAG_PREFIX + it } ?: buildRevisionToken(partialData)
-            return FetchResult(null, revision)
+            return fetchResult(null, revision)
         }
 
         val data = downloadDetails(context, serverUrl, username, pass, partialData, downloadDirUri)
         val revision = newEtag?.let { REVISION_ETAG_PREFIX + it } ?: buildRevisionToken(data)
-        return FetchResult(data, revision)
+        return fetchResult(data, revision)
+    }
+
+    private fun fetchSyncClipboardHistory(
+        context: Context,
+        serverUrl: String,
+        username: String,
+        pass: String,
+        lastRevision: String?,
+        downloadDirUri: Uri?,
+        preDownloadFilter: ((ClipboardData) -> Boolean)?
+    ): FetchResult? {
+        val cursor = decodeSyncClipboardHistoryCursor(lastRevision)
+        if (cursor == null) {
+            val bootstrapPage = querySyncClipboardHistoryPage(
+                serverUrl = serverUrl,
+                username = username,
+                pass = pass,
+                page = 1,
+                modifiedAfter = null
+            ) ?: return null
+
+            val bootstrapCursor = buildBootstrapHistoryCursor(bootstrapPage)
+            val bootstrapRevision = bootstrapCursor?.let(::encodeSyncClipboardHistoryCursor)
+
+            val currentResult = fetchSyncClipboardCurrent(
+                context = context,
+                serverUrl = serverUrl,
+                username = username,
+                pass = pass,
+                lastRevision = null,
+                downloadDirUri = downloadDirUri,
+                preDownloadFilter = preDownloadFilter
+            )
+
+            return if (bootstrapRevision != null) {
+                currentResult.copy(revision = bootstrapRevision)
+            } else {
+                currentResult
+            }
+        }
+
+        val queriedRecords = mutableListOf<SyncClipboardHistoryRecord>()
+        var page = 1
+        while (true) {
+            val pageRecords = querySyncClipboardHistoryPage(
+                serverUrl = serverUrl,
+                username = username,
+                pass = pass,
+                page = page,
+                modifiedAfter = cursor.modifiedAfter
+            ) ?: return null
+            if (pageRecords.isEmpty()) {
+                break
+            }
+            queriedRecords += pageRecords
+            if (pageRecords.size < SYNCCLIPBOARD_HISTORY_PAGE_SIZE) {
+                break
+            }
+            page += 1
+        }
+
+        val sortedRecords = filterAndSortHistoryRecords(queriedRecords, cursor)
+        if (sortedRecords.isEmpty()) {
+            return FetchResult(emptyList(), encodeSyncClipboardHistoryCursor(cursor))
+        }
+
+        val nextCursor = advanceSyncClipboardHistoryCursor(cursor, sortedRecords)
+        val items = buildList {
+            for (record in sortedRecords) {
+                if (record.isDeleted) {
+                    continue
+                }
+                val metadata = historyRecordToClipboardData(record)
+                if (preDownloadFilter?.invoke(metadata) == false) {
+                    continue
+                }
+                add(
+                    if (record.hasData) {
+                        downloadSyncClipboardHistoryData(
+                            context = context,
+                            serverUrl = serverUrl,
+                            username = username,
+                            pass = pass,
+                            record = record,
+                            metadata = metadata,
+                            downloadDirUri = downloadDirUri
+                        )
+                    } else {
+                        metadata
+                    }
+                )
+            }
+        }
+        return FetchResult(items, encodeSyncClipboardHistoryCursor(nextCursor))
     }
 
     private fun fetchOneClipClipboard(
@@ -236,15 +374,15 @@ object SyncClient {
 
             val item = json.decodeFromString<ClipboardData>(response.body?.string().orEmpty())
             if (item.id.isBlank()) {
-                return FetchResult(null, lastRevision)
+                return fetchResult(null, lastRevision)
             }
             val revision = REVISION_ONECLIP_PREFIX + item.id
 
             if (revision == lastRevision) {
-                return FetchResult(null, revision)
+                return fetchResult(null, revision)
             }
             if (preDownloadFilter?.invoke(item) == false) {
-                return FetchResult(null, revision)
+                return fetchResult(null, revision)
             }
 
             val normalizedType = item.type.lowercase(Locale.ROOT)
@@ -256,14 +394,14 @@ object SyncClient {
                     timestamp = item.timestamp,
                     downloadDirUri = downloadDirUri
                 )
-                return FetchResult(imageData, revision)
+                return fetchResult(imageData, revision)
             }
             if (normalizedType in ONECLIP_UNSUPPORTED_FILE_TYPES) {
                 Log.d(TAG, "[Pull] Ignoring unsupported OneClip file-like item: type=$normalizedType id=${item.id}")
-                return FetchResult(null, revision)
+                return fetchResult(null, revision)
             }
 
-            return FetchResult(
+            return fetchResult(
                 item.copy(
                     type = "Text",
                     hash = item.id
@@ -720,6 +858,277 @@ object SyncClient {
         return "OneClip-$unixSeconds-$itemId.$normalizedSubtype"
     }
 
+    private fun querySyncClipboardHistoryPage(
+        serverUrl: String,
+        username: String,
+        pass: String,
+        page: Int,
+        modifiedAfter: String?
+    ): List<SyncClipboardHistoryRecord>? {
+        val (baseUrl, _) = getBaseAndJsonUrl(serverUrl)
+        val credential = Credentials.basic(username, pass)
+        val formBody = FormBody.Builder()
+            .add("page", page.toString())
+            .apply {
+                modifiedAfter
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let { add("modifiedAfter", it) }
+            }
+            .build()
+
+        val request = Request.Builder()
+            .url("${baseUrl}api/history/query")
+            .header("Authorization", credential)
+            .post(formBody)
+            .build()
+
+        client.newCall(request).execute().use { response ->
+            if (response.code == 404 || response.code == 405) {
+                Log.d(TAG, "[Pull] SyncClipboard history API is unavailable on this server")
+                return null
+            }
+            if (!response.isSuccessful) {
+                throw IOException("Failed to query SyncClipboard history: ${response.code} ${response.message}")
+            }
+
+            val body = response.body?.string().orEmpty()
+            return json.decodeFromString(body)
+        }
+    }
+
+    private fun buildBootstrapHistoryCursor(
+        records: List<SyncClipboardHistoryRecord>
+    ): SyncClipboardHistoryCursor? {
+        val newestModifiedAt = records.maxOfOrNull(::historyRecordModifiedAtMillis) ?: return null
+        val seenIds = records
+            .filter { historyRecordModifiedAtMillis(it) == newestModifiedAt }
+            .map(::syncClipboardHistoryProfileId)
+            .distinct()
+        return buildHistoryCursor(newestModifiedAt, seenIds)
+    }
+
+    private fun filterAndSortHistoryRecords(
+        records: List<SyncClipboardHistoryRecord>,
+        cursor: SyncClipboardHistoryCursor
+    ): List<SyncClipboardHistoryRecord> {
+        val cursorMillis = parseIsoTimestampMillis(cursor.modifiedAfter)
+        val seenIds = cursor.seenProfileIdsAtModifiedAfter.toHashSet()
+        return records
+            .distinctBy(::syncClipboardHistoryProfileId)
+            .asSequence()
+            .filter { record ->
+                val modifiedAt = historyRecordModifiedAtMillis(record)
+                when {
+                    modifiedAt > cursorMillis -> true
+                    modifiedAt < cursorMillis -> false
+                    else -> syncClipboardHistoryProfileId(record) !in seenIds
+                }
+            }
+            .sortedWith(
+                compareBy<SyncClipboardHistoryRecord>(
+                    ::historyRecordModifiedAtMillis,
+                    ::historyRecordCreateAtMillis
+                ).thenBy(::syncClipboardHistoryProfileId)
+            )
+            .toList()
+    }
+
+    private fun advanceSyncClipboardHistoryCursor(
+        current: SyncClipboardHistoryCursor,
+        records: List<SyncClipboardHistoryRecord>
+    ): SyncClipboardHistoryCursor {
+        var latestModifiedAt = parseIsoTimestampMillis(current.modifiedAfter)
+        val seenIds = current.seenProfileIdsAtModifiedAfter.toMutableSet()
+        for (record in records) {
+            val modifiedAt = historyRecordModifiedAtMillis(record)
+            val profileId = syncClipboardHistoryProfileId(record)
+            when {
+                modifiedAt > latestModifiedAt -> {
+                    latestModifiedAt = modifiedAt
+                    seenIds.clear()
+                    seenIds += profileId
+                }
+
+                modifiedAt == latestModifiedAt -> {
+                    seenIds += profileId
+                }
+            }
+        }
+        return buildHistoryCursor(latestModifiedAt, seenIds.toList())
+    }
+
+    private fun buildHistoryCursor(
+        modifiedAfterMillis: Long,
+        seenIds: List<String>
+    ): SyncClipboardHistoryCursor {
+        return SyncClipboardHistoryCursor(
+            modifiedAfter = OffsetDateTime.ofInstant(
+                Instant.ofEpochMilli(modifiedAfterMillis),
+                ZoneOffset.UTC
+            ).toString(),
+            seenProfileIdsAtModifiedAfter = seenIds.distinct().sorted()
+        )
+    }
+
+    private fun encodeSyncClipboardHistoryCursor(cursor: SyncClipboardHistoryCursor): String {
+        val serialized = json.encodeToString(cursor)
+        return REVISION_SYNCCLIPBOARD_HISTORY_PREFIX + Base64.encodeToString(
+            serialized.toByteArray(Charsets.UTF_8),
+            Base64.NO_WRAP
+        )
+    }
+
+    private fun decodeSyncClipboardHistoryCursor(revision: String?): SyncClipboardHistoryCursor? {
+        val encoded = revision
+            ?.takeIf { it.startsWith(REVISION_SYNCCLIPBOARD_HISTORY_PREFIX) }
+            ?.removePrefix(REVISION_SYNCCLIPBOARD_HISTORY_PREFIX)
+            ?: return null
+        return runCatching {
+            val jsonText = String(Base64.decode(encoded, Base64.DEFAULT), Charsets.UTF_8)
+            json.decodeFromString<SyncClipboardHistoryCursor>(jsonText)
+        }.getOrNull()
+    }
+
+    private fun historyRecordToClipboardData(record: SyncClipboardHistoryRecord): ClipboardData {
+        return ClipboardData(
+            id = syncClipboardHistoryProfileId(record),
+            type = record.type,
+            text = record.text,
+            hash = record.hash,
+            hasData = record.hasData,
+            size = record.size
+        )
+    }
+
+    private fun downloadSyncClipboardHistoryData(
+        context: Context,
+        serverUrl: String,
+        username: String,
+        pass: String,
+        record: SyncClipboardHistoryRecord,
+        metadata: ClipboardData,
+        downloadDirUri: Uri?
+    ): ClipboardData {
+        val (baseUrl, _) = getBaseAndJsonUrl(serverUrl)
+        val credential = Credentials.basic(username, pass)
+        val profileId = syncClipboardHistoryProfileId(record)
+        val request = Request.Builder()
+            .url("${baseUrl}api/history/$profileId/data")
+            .header("Authorization", credential)
+            .get()
+            .build()
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                throw IOException("Failed to download SyncClipboard history data: ${response.code} ${response.message}")
+            }
+
+            val mimeType = response.body?.contentType()?.toString().orEmpty().ifBlank { "application/octet-stream" }
+            val bytes = response.body?.bytes() ?: ByteArray(0)
+            val fileName = extractSyncClipboardHistoryFileName(
+                response.header("Content-Disposition"),
+                record,
+                mimeType
+            )
+
+            if (record.type.equals("Text", ignoreCase = true)) {
+                return metadata.copy(
+                    text = String(bytes, Charsets.UTF_8),
+                    dataName = fileName,
+                    size = bytes.size.toLong()
+                )
+            }
+
+            if (downloadDirUri == null) {
+                Log.w(TAG, "[Pull] SyncClipboard history file received but no download directory is configured")
+                return metadata.copy(
+                    dataName = fileName,
+                    size = bytes.size.toLong()
+                )
+            }
+
+            val savedUri = saveFile(
+                context = context,
+                dirUri = downloadDirUri,
+                fileName = fileName,
+                bytes = bytes,
+                mimeType = mimeType
+            )
+            return metadata.copy(
+                text = savedUri?.toString().orEmpty(),
+                dataName = fileName,
+                size = bytes.size.toLong()
+            )
+        }
+    }
+
+    private fun extractSyncClipboardHistoryFileName(
+        contentDisposition: String?,
+        record: SyncClipboardHistoryRecord,
+        mimeType: String
+    ): String {
+        contentDisposition
+            ?.substringAfter("filename*=", "")
+            ?.takeIf { it.isNotBlank() }
+            ?.substringBefore(';')
+            ?.trim()
+            ?.trim('"')
+            ?.substringAfter("''", "")
+            ?.let {
+                return URLDecoder.decode(it, Charsets.UTF_8.name())
+            }
+
+        contentDisposition
+            ?.substringAfter("filename=", "")
+            ?.takeIf { it.isNotBlank() }
+            ?.substringBefore(';')
+            ?.trim()
+            ?.trim('"')
+            ?.takeIf { it.isNotBlank() }
+            ?.let { return it }
+
+        val baseName = "SyncClipboard-${record.hash.lowercase(Locale.ROOT)}"
+        if (record.type.equals("Image", ignoreCase = true) || mimeType.startsWith("image/")) {
+            return "$baseName.${extensionFromMimeType(mimeType, "png")}"
+        }
+        return "$baseName.${extensionFromMimeType(mimeType, "bin")}"
+    }
+
+    private fun extensionFromMimeType(mimeType: String, fallback: String): String {
+        return mimeType
+            .substringAfter('/', fallback)
+            .substringBefore(';')
+            .substringBefore('+')
+            .lowercase(Locale.ROOT)
+            .let {
+                when (it) {
+                    "jpeg" -> "jpg"
+                    "plain" -> "txt"
+                    else -> it.ifBlank { fallback }
+                }
+            }
+    }
+
+    private fun syncClipboardHistoryProfileId(record: SyncClipboardHistoryRecord): String {
+        return "${record.type}-${record.hash}"
+    }
+
+    private fun historyRecordModifiedAtMillis(record: SyncClipboardHistoryRecord): Long {
+        return parseIsoTimestampMillis(record.lastModified.ifBlank { record.createTime })
+    }
+
+    private fun historyRecordCreateAtMillis(record: SyncClipboardHistoryRecord): Long {
+        return parseIsoTimestampMillis(record.createTime.ifBlank { record.lastModified })
+    }
+
+    private fun parseIsoTimestampMillis(value: String): Long {
+        if (value.isBlank()) {
+            return 0L
+        }
+        return runCatching { OffsetDateTime.parse(value).toInstant().toEpochMilli() }
+            .getOrElse { 0L }
+    }
+
     private fun getFileName(context: Context, uri: Uri): String? {
         var result: String? = null
         if (uri.scheme == "content") {
@@ -797,6 +1206,7 @@ object SyncClient {
 
     private const val REVISION_ETAG_PREFIX = "etag:"
     private const val REVISION_HASH_PREFIX = "hash:"
+    private const val REVISION_SYNCCLIPBOARD_HISTORY_PREFIX = "synchistory:"
     private const val REVISION_TEXT_PREFIX = "text:"
     private const val REVISION_ONECLIP_PREFIX = "oneclip:"
 }

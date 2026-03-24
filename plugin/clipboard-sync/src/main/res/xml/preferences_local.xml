@@ -59,4 +59,9 @@
         app:title="@string/local_test_push"
         app:summary="@string/local_test_push_summary" />
 
+    <Preference
+        app:key="about"
+        app:title="@string/about_title"
+        app:summary="@string/about_summary" />
+
 </PreferenceScreen>
