@@ -171,6 +171,10 @@
     <string name="text_keyboard_layout_display_text_mode_duplicate">모드 이름 "%1$s" 이 (가) 이미 사용 중입니다</string>
     <string name="cannot_resolve_text_keyboard_layout">텍스트 키보드 레이아웃 파일을 찾을 수 없습니다</string>
     <string name="text_keyboard_layout_saved_at">TextKeyboardLayout.json 저장 위치: %1$s</string>
+    <string name="text_keyboard_layout_switch_submode_failed">서브 모드"%1$s"(으) 로 전환 실패</string>
+    <string name="fontset_save_failed_io_error">폰트 세트 저장 실패: I/O 오류 발생</string>
+    <string name="fontset_save_failed_permission_error">폰트 세트 저장 실패: 권한이 거부됨</string>
+    <string name="fontset_save_failed_unknown_error">폰트 세트 저장 실패: %1$s</string>
 
     <!-- Split keyboard calibration -->
     <string name="split_keyboard_device_info">📱 장치 정보</string>

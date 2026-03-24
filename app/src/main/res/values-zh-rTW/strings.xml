@@ -476,4 +476,8 @@
     <string name="text_keyboard_layout_delete_submode_layout_confirm">刪除子模式佈局"%1$s"？</string>
     <string name="text_keyboard_layout_editing_submode">正在編輯子模式"%1$s"的專用佈局</string>
     <string name="text_keyboard_layout_editing_default">正在編輯"%1$s"的預設佈局</string>
+    <string name="text_keyboard_layout_switch_submode_failed">切換到子模式"%1$s"失敗</string>
+    <string name="fontset_save_failed_io_error">儲存字體集失敗：發生 I/O 錯誤</string>
+    <string name="fontset_save_failed_permission_error">儲存字體集失敗：權限被拒絕</string>
+    <string name="fontset_save_failed_unknown_error">儲存字體集失敗：%1$s</string>
 </resources>

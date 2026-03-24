@@ -116,48 +116,53 @@ class LayoutDataManager(private val context: Context) {
             ignoreUnknownKeys = true
             isLenient = true
         }
-        
+
         return runCatching {
             var jsonStr = file.readText()
-            // 移除 // 注释
-            jsonStr = jsonStr.lines()
-                .joinToString("\n") { line ->
-                    val commentIdx = line.indexOf("//")
-                    if (commentIdx >= 0) {
-                        val beforeComment = line.substring(0, commentIdx)
-                        val quoteCount = beforeComment.count { it == '"' }
-                        if (quoteCount % 2 == 0) line.substring(0, commentIdx) else line
-                    } else line
-                }
-            
+            // 移除 // 注释 - 使用统一的工具方法
+            jsonStr = LayoutJsonUtils.removeJsonComments(jsonStr)
+
             val jsonElement = lenientJson.parseToJsonElement(jsonStr)
             val jsonObject = jsonElement.jsonObject
             val result = mutableMapOf<String, List<List<Map<String, Any?>>>>()
-            
+
             // 处理每个布局条目
             jsonObject.entries.forEach { (layoutName, layoutValue) ->
-                when (layoutValue) {
-                    is JsonArray -> {
-                        val rows = parseLayoutRows(layoutValue)
-                        result[layoutName] = rows
-                    }
-                    is JsonObject -> {
-                        layoutValue.jsonObject.entries.forEach { (subModeLabel, subModeValue) ->
-                            if (subModeValue is JsonArray) {
-                                val rows = parseLayoutRows(subModeValue)
-                                val key = if (subModeLabel == "default") {
-                                    layoutName
-                                } else {
-                                    "$layoutName:$subModeLabel"
+                try {
+                    when (layoutValue) {
+                        is JsonArray -> {
+                            val rows = LayoutJsonUtils.parseLayoutRows(layoutValue)
+                            result[layoutName] = rows
+                        }
+                        is JsonObject -> {
+                            layoutValue.jsonObject.entries.forEach { (subModeLabel, subModeValue) ->
+                                if (subModeValue is JsonArray) {
+                                    val rows = LayoutJsonUtils.parseLayoutRows(subModeValue)
+                                    val key = if (subModeLabel == "default") {
+                                        layoutName
+                                    } else {
+                                        "$layoutName:$subModeLabel"
+                                    }
+                                    result[key] = rows
                                 }
-                                result[key] = rows
                             }
                         }
+                        else -> {
+                            android.util.Log.w("LayoutDataManager", "Skipping invalid layout value for: $layoutName, type: ${layoutValue::class.simpleName}")
+                        }
                     }
-                    else -> {}
+                } catch (e: Exception) {
+                    android.util.Log.e("LayoutDataManager", "Failed to parse layout: $layoutName", e)
                 }
             }
+            
+            if (result.isEmpty()) {
+                android.util.Log.w("LayoutDataManager", "No valid layouts found in JSON file")
+            }
+            
             result
+        }.onFailure { e ->
+            android.util.Log.e("LayoutDataManager", "Failed to parse JSON file: ${file.name}", e)
         }.getOrNull() ?: loadDefaultPreset()
     }
     
@@ -570,7 +575,7 @@ class LayoutDataManager(private val context: Context) {
             errors.add("布局 \"$layoutName\" 第 ${rowIndex + 1} 行第 ${keyIndex + 1} 个键缺少 type 字段")
             return
         }
-        
+
         when (type) {
             "AlphabetKey" -> {
                 val main = key["main"] as? String
@@ -593,8 +598,8 @@ class LayoutDataManager(private val context: Context) {
                 }
             }
         }
-        
-        // 验证 weight
+
+        // 验证 weight - 改进的类型检查
         key["weight"]?.let { weight ->
             when (weight) {
                 is Number -> {
@@ -603,12 +608,23 @@ class LayoutDataManager(private val context: Context) {
                         errors.add("布局 \"$layoutName\" 第 ${rowIndex + 1} 行第 ${keyIndex + 1} 个键 ($type) 的 weight 字段必须在 0.0 到 1.0 之间")
                     }
                 }
+                is String -> {
+                    // 尝试解析字符串为数字
+                    val parsedValue = weight.trim()
+                        .takeUnless { it.isEmpty() || it.equals("null", ignoreCase = true) }
+                        ?.toFloatOrNull()
+                    if (parsedValue == null) {
+                        errors.add("布局 \"$layoutName\" 第 ${rowIndex + 1} 行第 ${keyIndex + 1} 个键 ($type) 的 weight 字段必须是数字，但得到：\"$weight\"")
+                    } else if (parsedValue < 0.0f || parsedValue > 1.0f) {
+                        errors.add("布局 \"$layoutName\" 第 ${rowIndex + 1} 行第 ${keyIndex + 1} 个键 ($type) 的 weight 字段必须在 0.0 到 1.0 之间")
+                    }
+                }
                 else -> {
-                    errors.add("布局 \"$layoutName\" 第 ${rowIndex + 1} 行第 ${keyIndex + 1} 个键 ($type) 的 weight 字段必须是数字")
+                    errors.add("布局 \"$layoutName\" 第 ${rowIndex + 1} 行第 ${keyIndex + 1} 个键 ($type) 的 weight 字段必须是数字，但得到：${weight::class.simpleName}")
                 }
             }
         }
-        
+
         // 验证 displayText 中的重复模式名称
         (key["displayText"] as? Map<*, *>)?.let { displayText ->
             val modeNames = displayText.keys.filterIsInstance<String>().toList()
@@ -641,8 +657,8 @@ class LayoutDataManager(private val context: Context) {
                 val keyMap = mutableMapOf<String, Any?>()
                 keyJson.entries.forEach { (key, value) ->
                     keyMap[key] = normalizeKeyValue(key, when (value) {
-                        is JsonObject -> value.toMap().mapValues { it.value.let { e -> toAny(e) } }
-                        is JsonArray -> value.map { toAny(it) }
+                        is JsonObject -> value.toMap().mapValues { it.value.let { e -> LayoutJsonUtils.toAny(e) } }
+                        is JsonArray -> value.map { LayoutJsonUtils.toAny(it) }
                         is JsonPrimitive -> {
                             if (value.isString) value.content
                             else value.booleanOrNull ?: value.intOrNull ?: value.doubleOrNull ?: value.content
@@ -710,30 +726,7 @@ class LayoutDataManager(private val context: Context) {
                 row.map { key -> key.toMap() }
             }
         }
-    
-    companion object {
-        /**
-         * 将 JsonElement 转换为 Any? 类型。
-         *
-         * 转换规则：
-         * - JsonObject → Map<String, Any?>
-         * - JsonArray → List<Any?>
-         * - JsonPrimitive(String) → String
-         * - JsonPrimitive(Boolean) → Boolean
-         * - JsonPrimitive(Number) → Number
-         * - JsonNull → null
-         */
-        fun toAny(element: JsonElement): Any? = when (element) {
-            is JsonObject -> element.toMap()
-            is JsonArray -> element.map { toAny(it) }
-            is JsonPrimitive -> {
-                if (element.isString) element.content
-                else element.booleanOrNull ?: element.intOrNull ?: element.doubleOrNull
-            }
-            is JsonNull -> null
-        }
-    }
-    
+
     /**
      * 验证异常类
      */

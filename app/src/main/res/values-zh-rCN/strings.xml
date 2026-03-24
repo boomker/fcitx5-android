@@ -493,4 +493,8 @@
     <string name="text_keyboard_layout_display_text_mode_duplicate">模式名称 "%1$s" 已被使用</string>
     <string name="cannot_resolve_text_keyboard_layout">无法定位文本键盘布局文件</string>
     <string name="text_keyboard_layout_saved_at">TextKeyboardLayout.json 已保存到：%1$s</string>
+    <string name="text_keyboard_layout_switch_submode_failed">切换到子模式"%1$s"失败</string>
+    <string name="fontset_save_failed_io_error">保存字体集失败：发生 I/O 错误</string>
+    <string name="fontset_save_failed_permission_error">保存字体集失败：权限被拒绝</string>
+    <string name="fontset_save_failed_unknown_error">保存字体集失败：%1$s</string>
 </resources>

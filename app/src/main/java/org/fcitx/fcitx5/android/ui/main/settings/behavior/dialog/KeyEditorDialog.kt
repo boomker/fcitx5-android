@@ -19,7 +19,7 @@ import androidx.appcompat.app.AppCompatActivity
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import org.fcitx.fcitx5.android.R
-import org.fcitx.fcitx5.android.ui.main.settings.behavior.data.LayoutDataManager
+import org.fcitx.fcitx5.android.ui.main.settings.behavior.utils.LayoutJsonUtils
 import splitties.dimensions.dp
 import splitties.resources.styledColor
 
@@ -277,7 +277,7 @@ class KeyEditorDialog(private val activity: AppCompatActivity) {
         val displayTextData = keyData["displayText"]
         val displayTextMap = when (displayTextData) {
             is JsonObject -> displayTextData.mapValues { entry ->
-                LayoutDataManager.toAny(entry.value)
+                LayoutJsonUtils.toAny(entry.value)
             }
             is Map<*, *> -> displayTextData
             else -> null

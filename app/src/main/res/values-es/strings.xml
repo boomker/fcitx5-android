@@ -263,4 +263,8 @@
     <string name="ignore_system_window_insets">Ignorar WindowInsets del sistema</string>
     <string name="browse_user_data_dir">Explorar directorio de datos de usuario</string>
     <string name="haptic_on_repeat">Retroalimentación háptica al repetir tecla</string>
+    <string name="text_keyboard_layout_switch_submode_failed">Error al cambiar al submodo "%1$s"</string>
+    <string name="fontset_save_failed_io_error">Error al guardar el conjunto de fuentes: Error de E/S</string>
+    <string name="fontset_save_failed_permission_error">Error al guardar el conjunto de fuentes: Permiso denegado</string>
+    <string name="fontset_save_failed_unknown_error">Error al guardar el conjunto de fuentes: %1$s</string>
 </resources>

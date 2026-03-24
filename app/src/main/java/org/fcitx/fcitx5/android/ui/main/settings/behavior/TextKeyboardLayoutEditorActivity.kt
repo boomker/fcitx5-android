@@ -453,7 +453,9 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         }?.uniqueName
         if (targetImeUniqueName != null) {
             fcitxConnection.runImmediately {
-                runCatching { activateIme(targetImeUniqueName) }
+                runCatching { activateIme(targetImeUniqueName) }.onFailure { e ->
+                    android.util.Log.w("TextKeyboardLayoutEditor", "Failed to activate IME: $targetImeUniqueName", e)
+                }
             }
         }
 
@@ -499,8 +501,12 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         if (targetImeUniqueName != null && previousIme != null && previousIme.uniqueName != targetImeUniqueName) {
             runCatching {
                 fcitxConnection.runImmediately {
-                    runCatching { activateIme(previousIme.uniqueName) }
+                    runCatching { activateIme(previousIme.uniqueName) }.onFailure { e ->
+                        android.util.Log.w("TextKeyboardLayoutEditor", "Failed to restore previous IME: ${previousIme.uniqueName}", e)
+                    }
                 }
+            }.onFailure { e ->
+                android.util.Log.w("TextKeyboardLayoutEditor", "Failed to restore previous IME state", e)
             }
         }
     }
@@ -577,15 +583,20 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 val selected = labels.getOrNull(position) ?: return
                 if (selected == previewSubModeLabel) return
-                previewSubModeLabel = selected
-                runCatching {
+                
+                // Save state for potential rollback
+                val oldSubModeLabel = previewSubModeLabel
+                val oldLastEditingTarget = lastEditingTarget
+                
+                try {
+                    previewSubModeLabel = selected
                     // Update preview and editor rows to show the selected submode layout
                     run { val layoutName = currentLayout ?: return@run; previewManager.updatePreview(layoutName, previewSubModeLabel, fcitxConnection) }
                     buildRows()
                     updateSaveButtonState()
 
                     // Show toast only when switching between different editing targets
-                    val layoutName = currentLayout ?: return@runCatching
+                    val layoutName = currentLayout ?: return
                     val subModeKey = "$layoutName:$selected"
                     val newEditingTarget = if (entries.containsKey(subModeKey)) {
                         // Has dedicated submode layout
@@ -594,7 +605,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                         // Editing default layout
                         "$layoutName:default"
                     }
-                    
+
                     // Only show toast if the editing target changed
                     if (newEditingTarget != lastEditingTarget) {
                         lastEditingTarget = newEditingTarget
@@ -604,9 +615,12 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                             showToast(getString(R.string.text_keyboard_layout_editing_default, layoutName))
                         }
                     }
-                }.onFailure { e ->
-                    // Log error but don't crash
-                    android.util.Log.e("TextKeyboardLayoutEditor", "Failed to switch submode", e)
+                } catch (e: Exception) {
+                    // Rollback state on failure
+                    previewSubModeLabel = oldSubModeLabel
+                    lastEditingTarget = oldLastEditingTarget
+                    android.util.Log.e("TextKeyboardLayoutEditor", "Failed to switch submode to: $selected", e)
+                    showToast(getString(R.string.text_keyboard_layout_switch_submode_failed, selected))
                 }
             }
 

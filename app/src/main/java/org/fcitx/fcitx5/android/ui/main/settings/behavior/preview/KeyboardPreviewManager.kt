@@ -99,13 +99,18 @@ class KeyboardPreviewManager(
         try {
             createKeyboardPreview(layoutName, previewSubModeLabel, fcitxConnection)
         } catch (e: Exception) {
+            android.util.Log.e("KeyboardPreview", "Failed to create keyboard preview for layout: $layoutName, submode: $previewSubModeLabel", e)
             showError(e.message ?: "Unknown error")
         } finally {
             // Restore original provider and IME state
             ConfigProviders.provider = DefaultConfigProvider
             TextKeyboard.clearCachedKeyDefLayouts()
             TextKeyboard.ime = originalIme
-            tempFile.delete()
+            
+            // Clean up temp file with error logging
+            if (!tempFile.delete()) {
+                android.util.Log.w("KeyboardPreview", "Failed to delete temporary layout file: ${tempFile.absolutePath}")
+            }
         }
     }
 

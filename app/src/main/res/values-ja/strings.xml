@@ -400,4 +400,8 @@
     <string name="browse_user_data_dir">ユーザーデータディレクトリを閲覧</string>
     <string name="haptic_on_repeat">キーリピート時に触覚フィードバック</string>
     <string name="redo">やり直し</string>
+    <string name="text_keyboard_layout_switch_submode_failed">サブモード"%1$s"への切り替えに失敗しました</string>
+    <string name="fontset_save_failed_io_error">フォントセットの保存に失敗しました：I/O エラーが発生しました</string>
+    <string name="fontset_save_failed_permission_error">フォントセットの保存に失敗しました：権限がありません</string>
+    <string name="fontset_save_failed_unknown_error">フォントセットの保存に失敗しました：%1$s</string>
 </resources>
