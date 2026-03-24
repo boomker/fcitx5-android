@@ -438,6 +438,7 @@
     <string name="search">Search</string>
     <string name="dial">Dial</string>
     <string name="emoji_and_symbols">Emoji &amp; Symbols</string>
+    <string name="copy">Copy</string>
     <string name="tokenized_clipboard">Tokenize</string>
     <string name="tokenized_clipboard_send">Send</string>
     <string name="tokenized_clipboard_select_all">Select all</string>

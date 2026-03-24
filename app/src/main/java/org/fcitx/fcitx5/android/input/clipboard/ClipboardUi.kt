@@ -10,6 +10,7 @@ import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.RippleDrawable
 import android.view.View
+import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import android.widget.ViewAnimator
 import androidx.transition.Fade
@@ -27,7 +28,6 @@ import splitties.views.dsl.coordinatorlayout.defaultLParams
 import splitties.views.dsl.core.Ui
 import splitties.views.dsl.core.add
 import splitties.views.dsl.core.horizontalLayout
-import splitties.views.dsl.core.horizontalScrollView
 import splitties.views.dsl.core.lParams
 import splitties.views.dsl.core.matchParent
 import splitties.views.dsl.core.textView
@@ -63,7 +63,7 @@ class ClipboardUi(override val ctx: Context, private val theme: Theme) : Ui {
         ClipboardCategory.Remote to createCategoryButton(R.string.clipboard_category_remote)
     )
 
-    val categoryBar = horizontalScrollView {
+    val categoryBar = view(::HorizontalScrollView) {
         isHorizontalScrollBarEnabled = false
         add(horizontalLayout {
             setPaddingDp(8, 8, 8, 4)
@@ -76,7 +76,7 @@ class ClipboardUi(override val ctx: Context, private val theme: Theme) : Ui {
                     ).apply { rightMargin = dp(6) }
                 )
             }
-        })
+        }, lParams(wrapContent, matchParent))
     }
 
     private val keyBorder by ThemeManager.prefs.keyBorder

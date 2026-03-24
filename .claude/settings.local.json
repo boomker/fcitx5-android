@@ -10,7 +10,19 @@
       "Bash(git log:*)",
       "Bash(./gradlew :app:compileDebugKotlin)",
       "Bash(echo:*)",
-      "Bash(kotlinc -version)"
+      "Bash(kotlinc -version)",
+      "Bash(gh run:*)",
+      "Bash(gh api:*)",
+      "Bash(gh workflow:*)",
+      "Bash(./gradlew :app:compileReleaseKotlin --no-daemon)",
+      "Bash(export ANDROID_HOME=/tmp/android-sdk)",
+      "Bash(export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$PATH)",
+      "Bash(sdkmanager \"cmake;3.31.6\")",
+      "Bash(./gradlew :app:assembleRelease --no-daemon)",
+      "Bash(tee -a /tmp/build.log)",
+      "Bash(./gradlew clean:*)",
+      "Bash(tee /tmp/build-clean.log)",
+      "Bash(grep:*)"
     ]
   }
 }
