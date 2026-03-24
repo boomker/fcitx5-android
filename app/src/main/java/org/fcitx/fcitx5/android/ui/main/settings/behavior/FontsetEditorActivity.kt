@@ -521,27 +521,40 @@ class FontsetEditorActivity : AppCompatActivity() {
                 )
             }
             .filterValues { it.isNotEmpty() && it.firstOrNull()?.toFloatOrNull() != null }
-        
+
         val nonEmptyMap = entries
             .associate { entry -> entry.key to selectedFonts[entry.key].orEmpty() }
             .filterValues { it.isNotEmpty() }
-        
+
         // Merge font paths and font sizes
         // Font sizes are saved independently from font paths
         val mergedMap = nonEmptyMap + fontSizeMap
-        
+
         // allow saving empty fontset (means use system default fonts)
         org.fcitx.fcitx5.android.input.config.ConfigProviders.provider.writeFontsetPathMap(mergedMap)
             .onSuccess { file ->
-            FontProviders.markNeedsRefresh()
-            FcitxDaemon.getFirstConnectionOrNull()?.runIfReady {
-                reloadConfig()
+                FontProviders.markNeedsRefresh()
+                val fcitxConnection = FcitxDaemon.getFirstConnectionOrNull()
+                if (fcitxConnection != null) {
+                    runCatching {
+                        fcitxConnection.runIfReady { reloadConfig() }
+                    }.onFailure { e ->
+                        android.util.Log.w("FontsetEditor", "Failed to reload Fcitx config after saving fontset", e)
+                    }
+                } else {
+                    android.util.Log.w("FontsetEditor", "Fcitx connection not available, config reload skipped")
+                }
+                toast(getString(R.string.fontset_saved_at, file.absolutePath))
+                finish()
+            }.onFailure { e ->
+                val errorMsg = when (e) {
+                    is java.io.IOException -> getString(R.string.fontset_save_failed_io_error)
+                    is SecurityException -> getString(R.string.fontset_save_failed_permission_error)
+                    else -> getString(R.string.fontset_save_failed_unknown_error, e.message.orEmpty())
+                }
+                toast(errorMsg)
+                android.util.Log.e("FontsetEditor", "Failed to save fontset", e)
             }
-            toast(getString(R.string.fontset_saved_at, file.absolutePath))
-            finish()
-        }.onFailure {
-            toast(it)
-        }
     }
 
     private fun buildTypeface(fontNames: List<String>): Typeface? {

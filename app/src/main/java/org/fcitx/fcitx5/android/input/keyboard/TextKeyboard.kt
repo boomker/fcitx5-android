@@ -21,33 +21,7 @@ import org.fcitx.fcitx5.android.input.popup.PopupAction
 import splitties.views.imageResource
 import kotlinx.serialization.json.*
 import kotlinx.serialization.Serializable
-
-object DisplayTextResolver {
-    fun resolve(
-        displayText: JsonElement?,
-        subModeLabel: String,
-        subModeName: String,
-        default: String
-    ): String {
-        return when {
-            displayText == null -> default
-            displayText is JsonPrimitive -> displayText.content
-            displayText is JsonObject -> resolveMap(displayText, subModeLabel, subModeName) ?: default
-            else -> default
-        }
-    }
-
-    private fun resolveMap(
-        map: JsonObject,
-        subModeLabel: String,
-        subModeName: String
-    ): String? {
-        // Prioritize matching sub-mode label, then name, finally fall back to empty key
-        return map[subModeLabel]?.takeIf { it is JsonPrimitive && it !is JsonNull }?.jsonPrimitive?.content
-            ?: map[subModeName]?.takeIf { it is JsonPrimitive && it !is JsonNull }?.jsonPrimitive?.content
-            ?: map[""]?.takeIf { it is JsonPrimitive && it !is JsonNull }?.jsonPrimitive?.content
-    }
-}
+import org.fcitx.fcitx5.android.ui.main.settings.behavior.utils.LayoutJsonUtils
 
 @SuppressLint("ViewConstructor")
 class TextKeyboard(
@@ -97,17 +71,6 @@ class TextKeyboard(
             }
         }
 
-        @Serializable
-        data class KeyJson(
-            val type: String,
-            val main: String? = null,
-            val alt: String? = null,
-            val displayText: JsonElement? = null,
-            val label: String? = null,
-            val subLabel: String? = null,
-            val weight: Float? = null
-        )
-
         // Cache for raw JSON layout (preserves submode structure)
         internal var cachedRawLayoutJson: JsonObject? = null
         private var lastRawModified = 0L
@@ -155,85 +118,6 @@ class TextKeyboard(
             return json[displayName]?.jsonArray
         }
 
-        private fun parseKeyJsonArray(rowArray: JsonArray, showLangSwitch: Boolean = true): List<KeyDef> {
-            return rowArray.mapNotNull { element ->
-                val obj = element.jsonObject
-                val type = obj["type"]?.jsonPrimitive?.content ?: ""
-                // Skip LanguageKey if showLangSwitch is false
-                if (type == "LanguageKey" && !showLangSwitch) {
-                    return@mapNotNull null
-                }
-                KeyJson(
-                    type = type,
-                    main = obj["main"]?.jsonPrimitive?.content,
-                    alt = obj["alt"]?.jsonPrimitive?.content,
-                    displayText = obj["displayText"],
-                    label = obj["label"]?.jsonPrimitive?.content,
-                    subLabel = obj["subLabel"]?.jsonPrimitive?.content,
-                    weight = parseOptionalFloat(obj["weight"])
-                )?.let { createKeyDef(it) }
-            }
-        }
-
-        private fun parseOptionalFloat(element: JsonElement?): Float? {
-            val primitive = element as? JsonPrimitive ?: return null
-            if (primitive is JsonNull) return null
-            return if (primitive.isString) {
-                primitive.content
-                    .trim()
-                    .takeUnless { it.isEmpty() || it.equals("null", ignoreCase = true) }
-                    ?.toFloatOrNull()
-            } else {
-                primitive.floatOrNull ?: primitive.doubleOrNull?.toFloat()
-            }
-        }
-
-        private fun createKeyDef(key: KeyJson): KeyDef {
-            return when (key.type) {
-                "AlphabetKey" -> AlphabetKey(
-                    character = key.main ?: "",
-                    punctuation = key.alt ?: "",
-                    displayText = DisplayTextResolver.resolve(
-                        key.displayText,
-                        ime?.subMode?.label ?: "",
-                        ime?.subMode?.name ?: "",
-                        key.main ?: ""
-                    ),
-                    weight = key.weight
-                )
-                "CapsKey" -> CapsKey(
-                    percentWidth = key.weight ?: 0.15f
-                )
-                "LayoutSwitchKey" -> LayoutSwitchKey(
-                    displayText = key.label ?: "?123",
-                    to = key.subLabel ?: "",
-                    percentWidth = key.weight ?: 0.15f
-                )
-                "CommaKey" -> CommaKey(
-                    percentWidth = key.weight ?: 0.1f,
-                    variant = KeyDef.Appearance.Variant.Alternative
-                )
-                "LanguageKey" -> LanguageKey(
-                    percentWidth = key.weight ?: 0.1f
-                )
-                "SpaceKey" -> SpaceKey(
-                    percentWidth = key.weight ?: 0f
-                )
-                "SymbolKey" -> SymbolKey(
-                    symbol = key.label ?: ".",
-                    percentWidth = key.weight ?: 0.1f,
-                    variant = KeyDef.Appearance.Variant.Alternative
-                )
-                "ReturnKey" -> ReturnKey(
-                    percentWidth = key.weight ?: 0.15f
-                )
-                "BackspaceKey" -> BackspaceKey(
-                    percentWidth = key.weight ?: 0.15f
-                )
-                else -> SpaceKey() // Fallback
-            }
-        }
-
         fun getLayout(): List<List<KeyDef>> {
             val imeName = ime?.uniqueName
             val subModeLabel = ime?.subMode?.label ?: ""
@@ -264,7 +148,8 @@ class TextKeyboard(
                             val cacheKey = "$layoutKey:$subModeLabel:$showLangSwitch"
                             return cachedKeyDefLayouts.getOrPut(cacheKey) {
                                 subModeLayoutElement.map { rowElement ->
-                                    parseKeyJsonArray(rowElement.jsonArray, showLangSwitch)
+                                    LayoutJsonUtils.parseKeyJsonArray(rowElement.jsonArray, showLangSwitch)
+                                        .map { LayoutJsonUtils.createKeyDef(it, subModeLabel, ime?.subMode?.name ?: "") }
                                 }
                             }
                         }
@@ -275,7 +160,8 @@ class TextKeyboard(
                         if (layoutElement is JsonArray) {
                             return cachedKeyDefLayouts.getOrPut("default:$showLangSwitch") {
                                 layoutElement.map { rowElement ->
-                                    parseKeyJsonArray(rowElement.jsonArray, showLangSwitch)
+                                    LayoutJsonUtils.parseKeyJsonArray(rowElement.jsonArray, showLangSwitch)
+                                        .map { LayoutJsonUtils.createKeyDef(it) }
                                 }
                             }
                         }

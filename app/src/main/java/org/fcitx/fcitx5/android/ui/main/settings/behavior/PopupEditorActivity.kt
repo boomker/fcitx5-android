@@ -143,23 +143,45 @@ class PopupEditorActivity : AppCompatActivity() {
 
     private fun readDefaultPresetFromPopupKt(): Map<String, List<String>> = runCatching {
         val holderClass = Class.forName("org.fcitx.fcitx5.android.input.popup.PopupPresetKt")
+        
+        // Try method reflection first
         val getterValue = runCatching {
             holderClass.getDeclaredMethod("getPopupPreset").invoke(null)
+        }.onFailure { e ->
+            android.util.Log.w("PopupEditor", "Failed to invoke getPopupPreset method", e)
         }.getOrNull()
+        
+        // Fallback to field reflection
         val fieldValue = runCatching {
-            holderClass.getDeclaredField("PopupPreset").apply { isAccessible = true }.get(null)
+            holderClass.getDeclaredField("PopupPreset").apply { 
+                isAccessible = true 
+            }.get(null)
+        }.onFailure { e ->
+            android.util.Log.w("PopupEditor", "Failed to access PopupPreset field", e)
         }.getOrNull()
 
-        val rawMap = (getterValue ?: fieldValue) as? Map<*, *> ?: return@runCatching emptyMap()
+        val rawMap = (getterValue ?: fieldValue) as? Map<*, *> ?: run {
+            android.util.Log.w("PopupEditor", "PopupPreset returned null or is not a Map")
+            return@runCatching emptyMap()
+        }
+        
         rawMap.mapNotNull { (key, value) ->
-            val mappedKey = key as? String ?: return@mapNotNull null
+            val mappedKey = key as? String ?: run {
+                android.util.Log.w("PopupEditor", "Invalid key type: ${key?.javaClass?.simpleName}, skipping")
+                return@mapNotNull null
+            }
             val mappedValues = when (value) {
                 is Array<*> -> value.mapNotNull { it?.toString()?.trim() }.filter { it.isNotEmpty() }
                 is List<*> -> value.mapNotNull { it?.toString()?.trim() }.filter { it.isNotEmpty() }
-                else -> emptyList()
+                else -> {
+                    android.util.Log.w("PopupEditor", "Invalid value type for key '$mappedKey': ${value?.javaClass?.simpleName}, expected Array or List")
+                    emptyList()
+                }
             }
             mappedKey to mappedValues
         }.toMap()
+    }.onFailure { e ->
+        android.util.Log.e("PopupEditor", "Failed to read default popup preset", e)
     }.getOrDefault(emptyMap())
 
     private fun buildRows() {

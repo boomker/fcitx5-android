@@ -440,4 +440,8 @@
     <string name="text_keyboard_layout_delete_submode_layout_confirm">Удалить раскладку субрежима "%1$s"?</string>
     <string name="text_keyboard_layout_editing_submode">Редактирование раскладки для субрежима "%1$s"</string>
     <string name="text_keyboard_layout_editing_default">Редактирование раскладки по умолчанию для "%1$s"</string>
+    <string name="text_keyboard_layout_switch_submode_failed">Не удалось переключиться на субрежим "%1$s"</string>
+    <string name="fontset_save_failed_io_error">Ошибка сохранения набора шрифтов: ошибка ввода/вывода</string>
+    <string name="fontset_save_failed_permission_error">Ошибка сохранения набора шрифтов: доступ запрещён</string>
+    <string name="fontset_save_failed_unknown_error">Ошибка сохранения набора шрифтов: %1$s</string>
 </resources>
