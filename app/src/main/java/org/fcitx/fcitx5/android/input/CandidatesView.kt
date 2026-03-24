@@ -58,6 +58,7 @@ class CandidatesView(
     private val itemPaddingVertical by candidatesPrefs.itemPaddingVertical
     private val itemPaddingHorizontal by candidatesPrefs.itemPaddingHorizontal
     private val floatingPosition by candidatesPrefs.virtualKeyboardPosition
+    private val highlightRadius by candidatesPrefs.candidateHighlightRadius
 
     /**
      * Gap between candidates window and screen edges/keyboard
@@ -140,7 +141,8 @@ class CandidatesView(
         ctx, theme, setupTextView,
         onCandidateClick = { index -> fcitx.launchOnReady { it.select(index) } },
         onPrevPage = { fcitx.launchOnReady { it.offsetCandidatePage(-1) } },
-        onNextPage = { fcitx.launchOnReady { it.offsetCandidatePage(1) } }
+        onNextPage = { fcitx.launchOnReady { it.offsetCandidatePage(1) } },
+        highlightRadius = dp(highlightRadius).toFloat()
     )
 
     override fun onStartHandleFcitxEvent() {

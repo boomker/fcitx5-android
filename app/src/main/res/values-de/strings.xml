@@ -301,6 +301,7 @@
     <string name="bottom_right">Unten rechts</string>
     <string name="candidates_font_size">Schriftgröße Kandidaten</string>
     <string name="candidates_padding">Abstand Kandidaten</string>
+    <string name="candidate_highlight_radius">Eckradius Kandidaten-Hervorhebung</string>
     <string name="candidates_window_min_width">Minimale Breite Kandidatenfenster</string>
     <string name="candidates_window_padding">Abstand Kandidatenfenster</string>
     <string name="restart_fcitx_instance">Fcitx-Instanz neu starten</string>

@@ -7,23 +7,29 @@ package org.fcitx.fcitx5.android.input.candidates.floating
 
 import android.content.Context
 import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.widget.TextView
 import androidx.core.text.buildSpannedString
 import androidx.core.text.color
 import org.fcitx.fcitx5.android.core.FcitxEvent
 import org.fcitx.fcitx5.android.data.theme.Theme
-import splitties.views.backgroundColor
 import splitties.views.dsl.core.Ui
 import splitties.views.dsl.core.textView
 
 class LabeledCandidateItemUi(
     override val ctx: Context,
     val theme: Theme,
-    setupTextView: TextView.() -> Unit
+    setupTextView: TextView.() -> Unit,
+    private val highlightRadius: Float
 ) : Ui {
 
     override val root = textView {
         setupTextView(this)
+    }
+
+    private val highlightDrawable = GradientDrawable().apply {
+        setColor(theme.genericActiveBackgroundColor)
+        cornerRadius = highlightRadius
     }
 
     fun update(candidate: FcitxEvent.Candidate, active: Boolean) {
@@ -38,7 +44,6 @@ class LabeledCandidateItemUi(
                 color(altFg) { append(candidate.comment) }
             }
         }
-        val bg = if (active) theme.genericActiveBackgroundColor else Color.TRANSPARENT
-        root.backgroundColor = bg
+        root.background = if (active) highlightDrawable else null
     }
 }

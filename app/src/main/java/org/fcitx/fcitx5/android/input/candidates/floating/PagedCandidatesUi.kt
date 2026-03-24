@@ -30,7 +30,8 @@ class PagedCandidatesUi(
     private val setupTextView: TextView.() -> Unit,
     private val onCandidateClick: (Int) -> Unit,
     private val onPrevPage: () -> Unit,
-    private val onNextPage: () -> Unit
+    private val onNextPage: () -> Unit,
+    private val highlightRadius: Float
 ) : Ui {
 
     private var data = FcitxEvent.PagedCandidateEvent.Data.Empty
@@ -57,7 +58,7 @@ class PagedCandidatesUi(
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): UiHolder {
             return when (viewType) {
-                0 -> UiHolder.Candidate(LabeledCandidateItemUi(ctx, theme, setupTextView))
+                0 -> UiHolder.Candidate(LabeledCandidateItemUi(ctx, theme, setupTextView, highlightRadius))
                 else -> UiHolder.Pagination(PaginationUi(ctx, theme)).apply {
                     ui.prevIcon.setOnClickListener {
                         onPrevPage.invoke()

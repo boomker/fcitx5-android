@@ -353,6 +353,9 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
         val windowRadius =
             int(R.string.candidates_window_radius, "candidates_window_radius", 0, 0, 48, "dp")
 
+        val candidateHighlightRadius =
+            int(R.string.candidate_highlight_radius, "candidate_highlight_radius", 2, 0, 48, "dp")
+
         val itemPaddingVertical: ManagedPreference.PInt
         val itemPaddingHorizontal: ManagedPreference.PInt
 

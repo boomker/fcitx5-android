@@ -405,6 +405,7 @@
     <string name="bottom_right">Bottom Right</string>
     <string name="candidates_font_size">Candidate word font size</string>
     <string name="candidates_padding">Candidate word padding</string>
+    <string name="candidate_highlight_radius">Candidate highlight radius</string>
     <string name="candidates_window_min_width">Candidate window minimum width</string>
     <string name="candidates_window_padding">Candidate window padding</string>
     <string name="restart_fcitx_instance">Restart fcitx instance</string>
