@@ -3,7 +3,10 @@
     "allow": [
       "Bash(git stash:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git cherry-pick:*)",
+      "Bash(./gradlew assembleDebug --no-daemon)",
+      "Bash(git push:*)"
     ]
   }
 }
