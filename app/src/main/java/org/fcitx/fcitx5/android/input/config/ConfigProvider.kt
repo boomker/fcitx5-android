@@ -149,6 +149,8 @@ object ConfigProviders {
             ) {
                 configWatcher?.stopWatching()
                 // Use String path for API 28 compatibility (HarmonyOS 9.1.0)
+                // Suppress deprecation warning: deprecated constants are still supported on all API levels
+                @Suppress("DEPRECATION")
                 configWatcher = object : FileObserver(
                     dirPath,
                     CLOSE_WRITE or MODIFY or MOVED_TO or CREATE or DELETE or DELETE_SELF or MOVE_SELF
@@ -192,6 +194,8 @@ object ConfigProviders {
             if (!(fontWatcher != null && watchedFontDir == dirPath && watchedFontsetFileName == fileName)) {
                 fontWatcher?.stopWatching()
                 // Use String path for API 28 compatibility (HarmonyOS 9.1.0)
+                // Suppress deprecation warning: deprecated constants are still supported on all API levels
+                @Suppress("DEPRECATION")
                 fontWatcher = object : FileObserver(
                     dirPath,
                     CLOSE_WRITE or MODIFY or MOVED_TO or CREATE or DELETE or DELETE_SELF or MOVE_SELF

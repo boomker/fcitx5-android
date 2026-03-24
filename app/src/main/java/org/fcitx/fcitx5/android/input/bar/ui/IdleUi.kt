@@ -19,8 +19,8 @@ import org.fcitx.fcitx5.android.input.bar.ui.idle.ButtonsBarUi
 import org.fcitx.fcitx5.android.input.bar.ui.idle.ClipboardSuggestionUi
 import org.fcitx.fcitx5.android.input.bar.ui.idle.InlineSuggestionsUi
 import org.fcitx.fcitx5.android.input.bar.ui.idle.NumberRow
+import org.fcitx.fcitx5.android.input.config.ButtonsLayoutConfig
 import org.fcitx.fcitx5.android.input.config.ConfigurableButton
-import org.fcitx.fcitx5.android.input.config.KawaiiBarButtonsConfig
 import org.fcitx.fcitx5.android.input.keyboard.CommonKeyActionListener
 import org.fcitx.fcitx5.android.input.popup.PopupComponent
 import splitties.dimensions.dp
@@ -44,7 +44,7 @@ class IdleUi(
     private val theme: Theme,
     private val popup: PopupComponent,
     private val commonKeyActionListener: CommonKeyActionListener,
-    private val buttonsConfig: List<ConfigurableButton> = KawaiiBarButtonsConfig.default().buttons
+    private val buttonsConfig: List<ConfigurableButton> = ButtonsLayoutConfig.default().kawaiiBarButtons
 ) : Ui {
 
     enum class State {

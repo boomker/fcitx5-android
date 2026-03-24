@@ -91,6 +91,7 @@ object DeviceInfoCollector {
                     display.flags and android.view.Display.FLAG_PRIVATE != 0
                 ) {
                     val metrics = android.util.DisplayMetrics()
+                    @Suppress("DEPRECATION")
                     display.getRealMetrics(metrics)
 
                     val widthDp = (metrics.widthPixels / metrics.density).toInt()

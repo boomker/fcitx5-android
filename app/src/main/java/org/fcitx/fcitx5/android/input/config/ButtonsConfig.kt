@@ -109,6 +109,7 @@ data class KawaiiBarButtonsConfig(
          * Note: 'more' button is always added automatically and is not part of this default config.
          */
         @Deprecated("Use ButtonsLayoutConfig.default() instead")
+        @Suppress("DEPRECATION")
         fun default(): KawaiiBarButtonsConfig = KawaiiBarButtonsConfig(
             buttons = listOf(
                 ConfigurableButton("undo"),
@@ -140,6 +141,7 @@ data class StatusAreaButtonsConfig(
          * Default Status Area button configuration.
          */
         @Deprecated("Use ButtonsLayoutConfig.default() instead")
+        @Suppress("DEPRECATION")
         fun default(): StatusAreaButtonsConfig = StatusAreaButtonsConfig(
             // Note: input_method_options is always added automatically at the end of Status Area
             buttons = listOf(
