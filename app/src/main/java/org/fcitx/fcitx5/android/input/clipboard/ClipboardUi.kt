@@ -76,7 +76,7 @@ class ClipboardUi(override val ctx: Context, private val theme: Theme) : Ui {
                     ).apply { rightMargin = dp(6) }
                 )
             }
-        }, lParams(wrapContent, matchParent))
+        })
     }
 
     private val keyBorder by ThemeManager.prefs.keyBorder
