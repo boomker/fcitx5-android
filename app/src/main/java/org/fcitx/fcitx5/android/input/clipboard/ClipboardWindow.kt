@@ -5,6 +5,7 @@
 package org.fcitx.fcitx5.android.input.clipboard
 
 import android.annotation.SuppressLint
+import android.app.SearchManager
 import android.content.Intent
 import android.net.Uri
 import android.view.View
@@ -113,6 +114,26 @@ class ClipboardWindow : InputWindow.ExtendedInputWindow<ClipboardWindow>() {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
                 service.startActivity(chooser)
+            }
+
+            override fun onSearch(query: String) {
+                val webSearchIntent = Intent(Intent.ACTION_WEB_SEARCH).apply {
+                    putExtra(SearchManager.QUERY, query)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                runCatching {
+                    service.startActivity(webSearchIntent)
+                }
+            }
+
+            override fun onDial(number: String) {
+                val intent = Intent(Intent.ACTION_DIAL).apply {
+                    data = Uri.fromParts("tel", number, null)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                runCatching {
+                    service.startActivity(intent)
+                }
             }
 
             override fun onOpenLink(uri: android.net.Uri) {

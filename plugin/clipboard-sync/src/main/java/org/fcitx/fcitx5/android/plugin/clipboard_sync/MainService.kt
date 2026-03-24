@@ -47,6 +47,7 @@ import org.fcitx.fcitx5.android.plugin.clipboard_sync.network.OneClipEventClient
 import org.fcitx.fcitx5.android.plugin.clipboard_sync.network.SyncClient
 import org.fcitx.fcitx5.android.plugin.clipboard_sync.network.SyncClient.ServerBackend
 import org.fcitx.fcitx5.android.plugin.clipboard_sync.service.QuickSyncTileService
+import org.fcitx.fcitx5.android.plugin.clipboard_sync.ui.ClipboardCaptureActivity
 import org.fcitx.fcitx5.android.plugin.clipboard_sync.ui.StoragePathUtils
 import java.io.IOException
 import java.util.Locale
@@ -95,8 +96,10 @@ class MainService : FcitxPluginService() {
         private const val ACTION_START_SYNC = "org.fcitx.fcitx5.android.plugin.clipboard_sync.action.START"
         private const val ACTION_RECONNECT_SYNC = "org.fcitx.fcitx5.android.plugin.clipboard_sync.action.RECONNECT"
         private const val ACTION_PAUSE_SYNC = "org.fcitx.fcitx5.android.plugin.clipboard_sync.action.PAUSE"
+        private const val ACTION_INGEST_CAPTURED_CLIPBOARD = "org.fcitx.fcitx5.android.plugin.clipboard_sync.action.INGEST_CAPTURED_CLIPBOARD"
         private const val EXTRA_START_REASON = "start_reason"
         private const val EXTRA_FORCE_ENABLE_SYNC = "force_enable_sync"
+        private const val EXTRA_CAPTURED_CLIPBOARD_CONTENT = "captured_clipboard_content"
         private const val PREF_PENDING_UPLOADS = "pending_uploads"
         private const val PREF_REMOTE_REVISIONS = "remote_revisions"
         private const val PREF_LAST_SYNCED_CONTENT = "last_synced_content"
@@ -113,6 +116,21 @@ class MainService : FcitxPluginService() {
                 action = ACTION_START_SYNC
                 putExtra(EXTRA_START_REASON, reason)
                 putExtra(EXTRA_FORCE_ENABLE_SYNC, forceEnableSync)
+            }
+            if (prefs.getBoolean(PREF_BACKGROUND_KEEP_ALIVE, true) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                ContextCompat.startForegroundService(context, intent)
+            } else {
+                context.startService(intent)
+            }
+        }
+
+        fun submitCapturedClipboard(context: Context, content: String, reason: String = "manual-capture") {
+            if (content.isBlank()) return
+            val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+            val intent = Intent(context, MainService::class.java).apply {
+                action = ACTION_INGEST_CAPTURED_CLIPBOARD
+                putExtra(EXTRA_START_REASON, reason)
+                putExtra(EXTRA_CAPTURED_CLIPBOARD_CONTENT, content)
             }
             if (prefs.getBoolean(PREF_BACKGROUND_KEEP_ALIVE, true) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 ContextCompat.startForegroundService(context, intent)
@@ -172,6 +190,7 @@ class MainService : FcitxPluginService() {
     private var lastUploadedContent: String? = null
     private var lastSuccessfulRemoteSyncAt = 0L
     private var lastBackendActivityAt = 0L
+    private var lastClipboardReadFailureLoggedAt = 0L
     private val remoteFetchMutex = Mutex()
     private val pendingUploadMutex = Mutex()
     private val pendingUploadDrainMutex = Mutex()
@@ -838,7 +857,20 @@ class MainService : FcitxPluginService() {
     }
 
     private fun readClipboardContent(): String? {
-        val clip = clipboardManager.primaryClip ?: return null
+        val clip = runCatching { clipboardManager.primaryClip }
+            .onFailure { error ->
+                val now = SystemClock.elapsedRealtime()
+                if (now - lastClipboardReadFailureLoggedAt >= 60_000L) {
+                    lastClipboardReadFailureLoggedAt = now
+                    Log.w(
+                        TAG,
+                        "[Push] Failed to read system clipboard. On Android 10+, non-default-IME background access can be blocked by platform policy.",
+                        error
+                    )
+                }
+            }
+            .getOrNull()
+            ?: return null
         if (clip.itemCount == 0) return null
         val item = clip.getItemAt(0)
         item.uri?.toString()?.let { return it }
@@ -989,6 +1021,13 @@ class MainService : FcitxPluginService() {
                     QuickSyncTileService.requestTileRefresh(this)
                 }
             }
+
+            ACTION_INGEST_CAPTURED_CLIPBOARD -> {
+                val content = intent.getStringExtra(EXTRA_CAPTURED_CLIPBOARD_CONTENT).orEmpty()
+                if (content.isNotBlank()) {
+                    handleLocalClipboardUpdate(content, "manual-capture")
+                }
+            }
         }
     }
 
@@ -1090,6 +1129,18 @@ class MainService : FcitxPluginService() {
                 this,
                 3,
                 Intent(this, MainService::class.java).apply { action = ACTION_PAUSE_SYNC },
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+        )
+        .addAction(
+            android.R.drawable.ic_menu_send,
+            getString(R.string.keep_alive_notification_capture),
+            PendingIntent.getActivity(
+                this,
+                4,
+                Intent(this, ClipboardCaptureActivity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                },
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
         )

@@ -59,6 +59,13 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".ui.ClipboardCaptureActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:finishOnTaskLaunch="true"
+            android:theme="@style/Theme.ClipboardSync.Capture" />
+
         <service
             android:name=".service.QuickSyncTileService"
             android:exported="true"

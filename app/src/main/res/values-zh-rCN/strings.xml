@@ -68,7 +68,7 @@
     <string name="clipboard">剪贴板</string>
     <string name="clipboard_category_all">全部</string>
     <string name="clipboard_category_local">本机</string>
-    <string name="clipboard_category_media">图片文件</string>
+    <string name="clipboard_category_media">图片・文件</string>
     <string name="clipboard_category_remote">其他设备</string>
     <string name="clipboard_entry_image">图片</string>
     <string name="clipboard_entry_image_named">图片 · %1$s</string>
@@ -422,6 +422,8 @@
     <string name="share">分享</string>
     <string name="view_image">查看图片</string>
     <string name="open_link">打开链接</string>
+    <string name="search">搜索</string>
+    <string name="dial">拨号</string>
     <string name="emoji_and_symbols">表情和符号</string>
     <string name="default_emoji_skin_tone">默认表情肤色</string>
     <string name="emoji_skin_tone_none">无</string>

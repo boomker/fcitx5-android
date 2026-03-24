@@ -27,7 +27,7 @@
     <string name="clipboard_permission_title">系统剪贴板授权</string>
     <string name="clipboard_permission_summary">请授权应用读取/写入系统剪贴板及相关后台权限</string>
     <string name="clipboard_permission_dialog_title">授权系统剪贴板访问</string>
-    <string name="clipboard_permission_dialog_message">Android 没有统一的剪贴板运行时授权弹窗，通常需要在系统的应用权限或隐私设置里手动允许本插件访问系统剪贴板。若你的系统提供了“读取剪贴板”“访问剪贴板”“后台读取剪贴板”或类似选项，请为 ClipboardSync 打开；同时建议保留后台运行权限。</string>
+    <string name="clipboard_permission_dialog_message">Android 没有统一的剪贴板运行时授权弹窗，通常需要在系统的应用权限或隐私设置里手动允许本插件访问系统剪贴板。若你的系统提供了“读取剪贴板”“访问剪贴板”“后台读取剪贴板”或类似选项，请为 ClipboardSync 打开；同时建议保留后台运行权限。注意：Android 10+ 在“非默认输入法且应用不在前台”时会限制读取系统剪贴板，这是平台策略而非插件 bug。此时可使用通知里的“抓取并同步”进行前台单次抓取。</string>
     <string name="clipboard_permission_open_app_info">打开应用信息</string>
     <string name="clipboard_permission_open_permissions">打开权限设置</string>
     <string name="sync_account_title">同步账户</string>
@@ -113,4 +113,7 @@
     <string name="keep_alive_notification_text_battery">当前服务端：%1$s，建议放行电池优化</string>
     <string name="keep_alive_notification_reconnect">重连</string>
     <string name="keep_alive_notification_pause">暂停</string>
+    <string name="keep_alive_notification_capture">抓取并同步</string>
+    <string name="manual_capture_empty">当前系统剪贴板为空或不可读</string>
+    <string name="manual_capture_success">已读取系统剪贴板并加入同步队列</string>
 </resources>

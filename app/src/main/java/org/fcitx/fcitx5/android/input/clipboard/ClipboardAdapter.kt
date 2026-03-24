@@ -41,6 +41,7 @@ abstract class ClipboardAdapter(
 
     companion object {
         private val thumbnailCache = object : LruCache<String, Bitmap>(24) {}
+        private val cnMainlandMobilePattern = Regex("^1[3-9]\\d{9}$")
 
         private val diffCallback = object : DiffUtil.ItemCallback<ClipboardEntry>() {
             override fun areItemsTheSame(
@@ -119,6 +120,8 @@ abstract class ClipboardAdapter(
                 excerptText(entry.text, entry.sensitive && maskSensitive)
             }
             val linkUri = entry.openableLinkUri()
+            val searchQuery = entry.searchableQuery()
+            val dialNumber = entry.dialableCnMobileNumber()
             val thumbnailKey = entry.imagePreviewKey()
             val cachedThumbnail = thumbnailKey?.let { thumbnailCache.get(it) }
             holder.thumbnailJob?.cancel()
@@ -167,6 +170,16 @@ abstract class ClipboardAdapter(
                         onOpenLink(linkUri)
                     }
                 }
+                if (searchQuery != null) {
+                    menu.item(R.string.search, R.drawable.ic_baseline_search_24, iconTint) {
+                        onSearch(searchQuery)
+                    }
+                }
+                if (dialNumber != null) {
+                    menu.item(R.string.dial, R.drawable.ic_baseline_call_24, iconTint) {
+                        onDial(dialNumber)
+                    }
+                }
                 menu.item(R.string.delete, R.drawable.ic_baseline_delete_24, iconTint) {
                     onDelete(entry.id)
                 }
@@ -208,6 +221,10 @@ abstract class ClipboardAdapter(
     abstract fun onEdit(id: Int)
 
     abstract fun onShare(entry: ClipboardEntry)
+
+    abstract fun onSearch(query: String)
+
+    abstract fun onDial(number: String)
 
     abstract fun onOpenLink(uri: Uri)
 
@@ -255,6 +272,32 @@ abstract class ClipboardAdapter(
         } else {
             null
         }
+    }
+
+    private fun ClipboardEntry.searchableQuery(): String? {
+        if (isUriEntry()) return null
+        val raw = text.trim()
+        return raw.takeIf { it.isNotEmpty() }
+    }
+
+    private fun ClipboardEntry.dialableCnMobileNumber(): String? {
+        if (isUriEntry()) return null
+        val raw = text.trim()
+        if (raw.isEmpty() || raw.contains('\n')) return null
+        val compact = raw
+            .replace(" ", "")
+            .replace("-", "")
+            .replace("(", "")
+            .replace(")", "")
+            .replace("（", "")
+            .replace("）", "")
+        val normalized = when {
+            compact.startsWith("+86") -> compact.removePrefix("+86")
+            compact.startsWith("86") && compact.length > 11 -> compact.removePrefix("86")
+            else -> compact
+        }
+        if (!normalized.all { it.isDigit() }) return null
+        return normalized.takeIf { cnMainlandMobilePattern.matches(it) }
     }
 
     private fun ClipboardEntry.imagePreviewKey(): String? {
