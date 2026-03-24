@@ -322,7 +322,26 @@ object SyncClient {
 
         val sortedRecords = filterAndSortHistoryRecords(queriedRecords, cursor)
         if (sortedRecords.isEmpty()) {
-            return FetchResult(emptyList(), encodeSyncClipboardHistoryCursor(cursor))
+            val historyRevision = encodeSyncClipboardHistoryCursor(cursor)
+
+            // SyncClipboard can switch the current clipboard back to an existing
+            // history entry without bumping that entry's LastModified timestamp.
+            // When that happens the history API returns no delta, but
+            // SyncClipboard.json still changes and must be reconciled.
+            val currentResult = fetchSyncClipboardCurrent(
+                context = context,
+                serverUrl = serverUrl,
+                username = username,
+                pass = pass,
+                lastRevision = null,
+                downloadDirUri = downloadDirUri,
+                preDownloadFilter = preDownloadFilter
+            )
+            return if (currentResult.items.isEmpty()) {
+                FetchResult(emptyList(), historyRevision)
+            } else {
+                currentResult.copy(revision = historyRevision)
+            }
         }
 
         val nextCursor = advanceSyncClipboardHistoryCursor(cursor, sortedRecords)
@@ -376,7 +395,7 @@ object SyncClient {
             if (item.id.isBlank()) {
                 return fetchResult(null, lastRevision)
             }
-            val revision = REVISION_ONECLIP_PREFIX + item.id
+            val revision = buildOneClipRevision(item)
 
             if (revision == lastRevision) {
                 return fetchResult(null, revision)
@@ -1176,6 +1195,30 @@ object SyncClient {
             data.hash.isNotBlank() -> REVISION_HASH_PREFIX + data.hash
             data.text.isNotBlank() -> REVISION_TEXT_PREFIX + HashUtils.sha256(data.text)
             else -> null
+        }
+    }
+
+    private fun buildOneClipRevision(data: ClipboardData): String {
+        val timestampPart = data.timestamp
+            .takeIf { it > 0.0 }
+            ?.toString()
+            .orEmpty()
+        val contentPart = when {
+            data.text.isNotBlank() -> HashUtils.sha256(data.text)
+            data.hasImage -> "image"
+            else -> data.type.lowercase(Locale.ROOT)
+        }
+        return buildString {
+            append(REVISION_ONECLIP_PREFIX)
+            append(data.id)
+            if (timestampPart.isNotEmpty()) {
+                append(':')
+                append(timestampPart)
+            }
+            if (contentPart.isNotEmpty()) {
+                append(':')
+                append(contentPart)
+            }
         }
     }
 

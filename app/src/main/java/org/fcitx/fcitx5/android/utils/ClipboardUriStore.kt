@@ -7,6 +7,7 @@ package org.fcitx.fcitx5.android.utils
 import android.content.ContentResolver
 import android.content.Context
 import android.net.Uri
+import android.provider.DocumentsContract
 import android.webkit.MimeTypeMap
 import androidx.core.content.FileProvider
 import timber.log.Timber
@@ -17,6 +18,11 @@ import java.util.Locale
 data class ClipboardSharedContent(
     val uri: Uri,
     val mimeType: String
+)
+
+data class ClipboardSourceDeletionTarget(
+    val rawUri: String,
+    val rootUri: String
 )
 
 object ClipboardUriStore {
@@ -63,6 +69,39 @@ object ClipboardUriStore {
 
     fun normalizeClipboardText(context: Context, raw: String): String {
         return stageForCommit(context, raw)?.uri?.toString() ?: raw
+    }
+
+    fun originalClipboardTextOrEmpty(raw: String, normalized: String): String {
+        return if (raw != normalized && raw.toClipboardUriOrNull() != null) raw else ""
+    }
+
+    fun deleteClipboardSourceFile(context: Context, target: ClipboardSourceDeletionTarget): Boolean {
+        if (!isClipboardSourceWithinRoot(context, target.rawUri, target.rootUri)) return false
+        val uri = target.rawUri.toClipboardUriOrNull() ?: return false
+        return when (uri.scheme?.lowercase(Locale.ROOT)) {
+            ContentResolver.SCHEME_CONTENT -> {
+                runCatching { DocumentsContract.deleteDocument(context.contentResolver, uri) }
+                    .recoverCatching { context.contentResolver.delete(uri, null, null) > 0 }
+                    .getOrDefault(false)
+            }
+
+            ContentResolver.SCHEME_FILE -> {
+                uri.path?.let { File(it).delete() } ?: false
+            }
+
+            else -> false
+        }
+    }
+
+    fun isClipboardSourceWithinRoot(context: Context, raw: String, root: String): Boolean {
+        val uri = raw.toClipboardUriOrNull() ?: return false
+        val rootUri = root.toClipboardUriOrNull() ?: return false
+        if (!uri.scheme.equals(rootUri.scheme, ignoreCase = true)) return false
+        return when (uri.scheme?.lowercase(Locale.ROOT)) {
+            ContentResolver.SCHEME_CONTENT -> isContentUriWithinRoot(context, uri, rootUri)
+            ContentResolver.SCHEME_FILE -> isFileUriWithinRoot(uri, rootUri)
+            else -> false
+        }
     }
 
     private fun cacheRoot(context: Context): File {
@@ -116,5 +155,30 @@ object ClipboardUriStore {
                 ?.takeIf { it.isNotBlank() }
                 ?.let { MimeTypeMap.getSingleton().getMimeTypeFromExtension(it) }
             ?: DEFAULT_MIME_TYPE
+    }
+
+    private fun isContentUriWithinRoot(context: Context, uri: Uri, rootUri: Uri): Boolean {
+        if (uri.authority != rootUri.authority) return false
+        val childId = runCatching { DocumentsContract.getDocumentId(uri) }.getOrNull() ?: return false
+        val rootId = runCatching {
+            if (DocumentsContract.isTreeUri(rootUri)) {
+                DocumentsContract.getTreeDocumentId(rootUri)
+            } else {
+                DocumentsContract.getDocumentId(rootUri)
+            }
+        }.getOrNull() ?: return false
+        return isDocumentIdWithinRoot(childId, rootId)
+    }
+
+    private fun isFileUriWithinRoot(uri: Uri, rootUri: Uri): Boolean {
+        val childPath = uri.path?.let(::File)?.canonicalPath ?: return false
+        val rootPath = rootUri.path?.let(::File)?.canonicalPath ?: return false
+        return childPath == rootPath || childPath.startsWith(rootPath.trimEnd('/') + "/")
+    }
+
+    private fun isDocumentIdWithinRoot(childId: String, rootId: String): Boolean {
+        if (childId == rootId) return true
+        if (rootId.endsWith(":")) return childId.startsWith(rootId)
+        return childId.startsWith("$rootId/")
     }
 }

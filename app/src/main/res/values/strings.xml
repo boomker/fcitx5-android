@@ -62,11 +62,12 @@
     <string name="real_time_logs">Real-time logs</string>
     <string name="developer">Developer</string>
     <string name="clear_clb_db">Clear clipboard database</string>
-    <string name="pin">Pin</string>
-    <string name="unpin">Unpin</string>
+    <string name="pin">Favorite</string>
+    <string name="unpin">Unfavorite</string>
     <string name="delete">Delete</string>
     <string name="clipboard">Clipboard</string>
     <string name="clipboard_category_all">All</string>
+    <string name="clipboard_category_favorites">Favorites</string>
     <string name="clipboard_category_local">Local</string>
     <string name="clipboard_category_media">Images &amp; Files</string>
     <string name="clipboard_category_remote">Other Devices</string>
@@ -419,6 +420,7 @@
     <string name="move_cursor_to_end">Move cursor to end</string>
     <string name="open_input_method_settings">Open input method settings</string>
     <string name="delete_all">Delete all</string>
+    <string name="delete_entries_and_files">Delete Entries and Files</string>
     <string name="share">Share</string>
     <string name="view_image">View image</string>
     <string name="open_link">Open link</string>

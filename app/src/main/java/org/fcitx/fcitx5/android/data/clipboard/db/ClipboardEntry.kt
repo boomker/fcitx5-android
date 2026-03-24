@@ -18,6 +18,10 @@ data class ClipboardEntry(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
     val text: String,
+    @ColumnInfo(defaultValue = "")
+    val originalText: String = "",
+    @ColumnInfo(defaultValue = "")
+    val originalRootUri: String = "",
     val pinned: Boolean = false,
     @ColumnInfo(defaultValue = "-1")
     val timestamp: Long = System.currentTimeMillis(),
@@ -65,8 +69,15 @@ data class ClipboardEntry(
             } else {
                 SOURCE_LOCAL
             }
+            val originalRootUri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && source == SOURCE_REMOTE) {
+                desc.extras?.getString(ClipboardMetadata.EXTRA_REMOTE_ROOT_URI).orEmpty()
+            } else {
+                ""
+            }
             return ClipboardEntry(
                 text = if (transformer != null) transformer(str) else str,
+                originalText = "",
+                originalRootUri = originalRootUri,
                 timestamp = clipData.timestamp(),
                 type = desc.getMimeType(0),
                 source = source,

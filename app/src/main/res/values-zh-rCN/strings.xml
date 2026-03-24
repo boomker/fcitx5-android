@@ -62,11 +62,12 @@
     <string name="real_time_logs">实时日志</string>
     <string name="developer">开发者</string>
     <string name="clear_clb_db">清空剪贴板数据库</string>
-    <string name="pin">置顶</string>
-    <string name="unpin">取消置顶</string>
+    <string name="pin">收藏</string>
+    <string name="unpin">取消收藏</string>
     <string name="delete">删除</string>
     <string name="clipboard">剪贴板</string>
     <string name="clipboard_category_all">全部</string>
+    <string name="clipboard_category_favorites">收藏</string>
     <string name="clipboard_category_local">本机</string>
     <string name="clipboard_category_media">图片・文件</string>
     <string name="clipboard_category_remote">其他设备</string>
@@ -419,6 +420,7 @@
     <string name="move_cursor_to_end">把光标移动到结尾</string>
     <string name="open_input_method_settings">打开输入法设置</string>
     <string name="delete_all">全部删除</string>
+    <string name="delete_entries_and_files">同时删除文件</string>
     <string name="share">分享</string>
     <string name="view_image">查看图片</string>
     <string name="open_link">打开链接</string>

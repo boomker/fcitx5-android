@@ -580,7 +580,7 @@ class MainService : FcitxPluginService() {
                             return@connect
                         }
                         scope.launch {
-                            runCatching { checkRemoteClipboard() }
+                            runCatching { checkRemoteClipboard(forceRefresh = true) }
                                 .onFailure { error ->
                                     Log.e(TAG, "[OneClip] Failed to refresh clipboard after SSE event", error)
                                 }
@@ -621,7 +621,7 @@ class MainService : FcitxPluginService() {
         }
     }
 
-    private suspend fun checkRemoteClipboard() {
+    private suspend fun checkRemoteClipboard(forceRefresh: Boolean = false) {
         remoteFetchMutex.withLock {
             val endpoint = currentEndpoint()
             ensureEndpointState(endpoint)
@@ -644,7 +644,7 @@ class MainService : FcitxPluginService() {
                 username = user,
                 pass = pass,
                 backend = backend,
-                lastRevision = lastRemoteRevision,
+                lastRevision = if (forceRefresh && backend == ServerBackend.ONECLIP) null else lastRemoteRevision,
                 downloadDirUri = downloadUri,
                 preDownloadFilter = ::shouldAcceptIncomingMetadata
             )
@@ -685,7 +685,7 @@ class MainService : FcitxPluginService() {
                         if (data.type == "Text") {
                             updateSystemClipboard(remoteText)
                         } else {
-                            updateSystemClipboardWithUri(Uri.parse(remoteText))
+                            updateSystemClipboardWithUri(Uri.parse(remoteText), downloadUri)
                         }
                     }
                 }
@@ -704,10 +704,12 @@ class MainService : FcitxPluginService() {
         }
     }
 
-    private fun updateSystemClipboardWithUri(uri: Uri) {
+    private fun updateSystemClipboardWithUri(uri: Uri, rootUri: Uri? = null) {
         try {
             val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-            val clip = ClipData.newUri(contentResolver, "SyncClipboard", uri).also(::markRemoteClip)
+            val clip = ClipData.newUri(contentResolver, "SyncClipboard", uri).also {
+                markRemoteClip(it, rootUri)
+            }
             clipboard.setPrimaryClip(clip)
             Log.d(TAG, "[Pull] System clipboard updated with URI: $uri")
         } catch (e: Exception) {
@@ -715,10 +717,13 @@ class MainService : FcitxPluginService() {
         }
     }
 
-    private fun markRemoteClip(clip: ClipData) {
+    private fun markRemoteClip(clip: ClipData, rootUri: Uri? = null) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return
         clip.description.extras = PersistableBundle().apply {
             putString(ClipboardMetadata.EXTRA_SOURCE, ClipboardMetadata.SOURCE_REMOTE)
+            rootUri?.toString()?.takeIf { it.isNotBlank() }?.let {
+                putString(ClipboardMetadata.EXTRA_REMOTE_ROOT_URI, it)
+            }
         }
     }
 
@@ -796,7 +801,7 @@ class MainService : FcitxPluginService() {
         if (savedUri != null) {
             rememberAcceptedRemotePayload(payloadFingerprint)
             withContext(Dispatchers.Main) {
-                updateSystemClipboardWithUri(savedUri)
+                updateSystemClipboardWithUri(savedUri, downloadUri)
             }
         }
     }
@@ -825,7 +830,7 @@ class MainService : FcitxPluginService() {
         if (savedUri != null) {
             rememberAcceptedRemotePayload(payloadFingerprint)
             withContext(Dispatchers.Main) {
-                updateSystemClipboardWithUri(savedUri)
+                updateSystemClipboardWithUri(savedUri, downloadUri)
             }
         }
     }
