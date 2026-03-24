@@ -45,6 +45,7 @@ imagecropper = { module = "com.vanniktech:android-image-cropper", version = "4.7
 flexbox = { module = "com.google.android.flexbox:flexbox", version = "3.0.0" }
 dependency = { module = "org.mechdancer:dependency", version = "0.1.2" }
 timber = { module = "com.jakewharton.timber:timber", version = "5.0.1" }
+jieba = { module = "com.huaban:jieba-analysis", version = "1.0.2" }
 splitties-bitflags = { module = "com.louiscad.splitties:splitties-bitflags", version.ref = "splitties" }
 splitties-dimensions = { module = "com.louiscad.splitties:splitties-dimensions", version.ref = "splitties" }
 splitties-resources = { module = "com.louiscad.splitties:splitties-resources", version.ref = "splitties" }

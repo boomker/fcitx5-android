@@ -40,8 +40,8 @@ interface ClipboardDao {
 
     @Query(
         "SELECT * FROM ${ClipboardEntry.TABLE_NAME} " +
-                "WHERE source=:source AND text NOT LIKE 'content://%' AND text NOT LIKE 'file://%' AND deleted=0 " +
-                "ORDER BY pinned DESC, timestamp DESC"
+                "WHERE source=:source AND text NOT LIKE 'content://%' AND text NOT LIKE 'file://%' AND pinned=0 AND deleted=0 " +
+                "ORDER BY timestamp DESC"
     )
     fun textEntriesBySource(source: String): PagingSource<Int, ClipboardEntry>
 

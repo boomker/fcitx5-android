@@ -27,11 +27,13 @@ import splitties.views.dsl.coordinatorlayout.defaultLParams
 import splitties.views.dsl.core.Ui
 import splitties.views.dsl.core.add
 import splitties.views.dsl.core.horizontalLayout
+import splitties.views.dsl.core.horizontalScrollView
 import splitties.views.dsl.core.lParams
 import splitties.views.dsl.core.matchParent
 import splitties.views.dsl.core.textView
 import splitties.views.dsl.core.view
 import splitties.views.dsl.core.verticalLayout
+import splitties.views.dsl.core.wrapContent
 import splitties.views.dsl.recyclerview.recyclerView
 import splitties.views.gravityCenter
 import splitties.views.setPaddingDp
@@ -61,17 +63,20 @@ class ClipboardUi(override val ctx: Context, private val theme: Theme) : Ui {
         ClipboardCategory.Remote to createCategoryButton(R.string.clipboard_category_remote)
     )
 
-    val categoryBar = horizontalLayout {
-        setPaddingDp(8, 8, 8, 4)
-        categoryButtons.forEach { (_, button) ->
-            add(
-                button,
-                LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    dp(30)
-                ).apply { rightMargin = dp(6) }
-            )
-        }
+    val categoryBar = horizontalScrollView {
+        isHorizontalScrollBarEnabled = false
+        add(horizontalLayout {
+            setPaddingDp(8, 8, 8, 4)
+            categoryButtons.forEach { (_, button) ->
+                add(
+                    button,
+                    LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        dp(30)
+                    ).apply { rightMargin = dp(6) }
+                )
+            }
+        }, lParams(wrapContent, matchParent))
     }
 
     private val keyBorder by ThemeManager.prefs.keyBorder

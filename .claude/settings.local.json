@@ -6,7 +6,11 @@
       "Bash(git commit:*)",
       "Bash(git cherry-pick:*)",
       "Bash(./gradlew assembleDebug --no-daemon)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(git log:*)",
+      "Bash(./gradlew :app:compileDebugKotlin)",
+      "Bash(echo:*)",
+      "Bash(kotlinc -version)"
     ]
   }
 }

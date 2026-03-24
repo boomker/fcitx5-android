@@ -117,6 +117,10 @@ class ClipboardWindow : InputWindow.ExtendedInputWindow<ClipboardWindow>() {
                 service.startActivity(chooser)
             }
 
+            override fun onSplitText(text: String) {
+                windowManager.attachWindow(TokenizedClipboardWindow(text))
+            }
+
             override fun onSearch(query: String) {
                 val webSearchIntent = Intent(Intent.ACTION_WEB_SEARCH).apply {
                     putExtra(SearchManager.QUERY, query)

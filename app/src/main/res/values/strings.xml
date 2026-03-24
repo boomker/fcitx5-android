@@ -438,6 +438,14 @@
     <string name="search">Search</string>
     <string name="dial">Dial</string>
     <string name="emoji_and_symbols">Emoji &amp; Symbols</string>
+    <string name="tokenized_clipboard">Tokenize</string>
+    <string name="tokenized_clipboard_send">Send</string>
+    <string name="tokenized_clipboard_select_all">Select all</string>
+    <string name="tokenized_clipboard_unselect_all">Clear all</string>
+    <string name="tokenized_clipboard_copied">Copied selected tokens</string>
+    <string name="tokenized_clipboard_empty_selection">Select one or more tokens first</string>
+    <string name="tokenized_clipboard_empty_state">No tokens available</string>
+    <string name="split_words">Split words</string>
     <string name="default_emoji_skin_tone">Default emoji skin tone modifier</string>
     <string name="emoji_skin_tone_none">No modifier</string>
     <string name="emoji_skin_tone_type_1_2">🏻 Type-1-2</string>

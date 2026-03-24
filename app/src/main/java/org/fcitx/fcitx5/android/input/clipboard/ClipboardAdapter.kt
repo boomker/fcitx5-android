@@ -122,6 +122,7 @@ abstract class ClipboardAdapter(
             val linkUri = entry.openableLinkUri()
             val searchQuery = entry.searchableQuery()
             val dialNumber = entry.dialableCnMobileNumber()
+            val splittableText = entry.splittableText()
             val thumbnailKey = entry.imagePreviewKey()
             val cachedThumbnail = thumbnailKey?.let { thumbnailCache.get(it) }
             holder.thumbnailJob?.cancel()
@@ -159,6 +160,11 @@ abstract class ClipboardAdapter(
                 }
                 menu.item(R.string.share, R.drawable.ic_baseline_share_24, iconTint) {
                     onShare(entry)
+                }
+                if (splittableText != null) {
+                    menu.item(R.string.split_words, R.drawable.ic_baseline_spellcheck_24, iconTint) {
+                        onSplitText(splittableText)
+                    }
                 }
                 entry.viewableImageUri()?.let { imageUri ->
                     menu.item(R.string.view_image, R.drawable.ic_baseline_image_24, iconTint) {
@@ -222,6 +228,8 @@ abstract class ClipboardAdapter(
 
     abstract fun onShare(entry: ClipboardEntry)
 
+    abstract fun onSplitText(text: String)
+
     abstract fun onSearch(query: String)
 
     abstract fun onDial(number: String)
@@ -278,6 +286,12 @@ abstract class ClipboardAdapter(
         if (isUriEntry()) return null
         val raw = text.trim()
         return raw.takeIf { it.isNotEmpty() }
+    }
+
+    private fun ClipboardEntry.splittableText(): String? {
+        if (isUriEntry()) return null
+        val raw = text.trim()
+        return raw.takeIf { it.length > 10 }
     }
 
     private fun ClipboardEntry.dialableCnMobileNumber(): String? {
