@@ -14,8 +14,8 @@ import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.input.action.ButtonAction
 import org.fcitx.fcitx5.android.input.bar.ui.ToolButton
+import org.fcitx.fcitx5.android.input.config.ButtonsLayoutConfig
 import org.fcitx.fcitx5.android.input.config.ConfigurableButton
-import org.fcitx.fcitx5.android.input.config.KawaiiBarButtonsConfig
 import splitties.dimensions.dp
 import splitties.views.dsl.core.Ui
 import splitties.views.dsl.core.view
@@ -23,7 +23,7 @@ import splitties.views.dsl.core.view
 class ButtonsBarUi(
     override val ctx: Context,
     private val theme: Theme,
-    private var buttons: List<ConfigurableButton> = KawaiiBarButtonsConfig.default().buttons
+    private var buttons: List<ConfigurableButton> = ButtonsLayoutConfig.default().kawaiiBarButtons
 ) : Ui {
 
     @DrawableRes

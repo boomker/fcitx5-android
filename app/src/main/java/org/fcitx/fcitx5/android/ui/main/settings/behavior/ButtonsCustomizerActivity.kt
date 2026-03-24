@@ -316,11 +316,6 @@ class ButtonsCustomizerActivity : AppCompatActivity() {
                     return false
                 }
 
-                // Can't move AddButtonPlaceholder or StatusAreaAddButtonPlaceholder
-                if (fromItem is ListItem.AddButtonPlaceholder || fromItem is ListItem.StatusAreaAddButtonPlaceholder) {
-                    return false
-                }
-
                 // Allow moving between KawaiiBar and StatusArea sections
                 // But not to/from AddButtons section
                 if (toItem is ListItem.AddButtonItem) {
