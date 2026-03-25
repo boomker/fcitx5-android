@@ -82,11 +82,12 @@ class KeyboardLayoutAdapter(
     }
 
     /**
-     * Update rows data
+     * Update rows data.
+     * Posts the update to avoid calling notifyDataSetChanged() during RecyclerView layout/scroll.
      */
     fun updateRows(newRows: List<MutableList<MutableMap<String, Any?>>>) {
         rows = newRows
-        notifyDataSetChanged()
+        rowsRecyclerView?.post { notifyDataSetChanged() }
     }
 
     override fun getItemViewType(position: Int): Int {
