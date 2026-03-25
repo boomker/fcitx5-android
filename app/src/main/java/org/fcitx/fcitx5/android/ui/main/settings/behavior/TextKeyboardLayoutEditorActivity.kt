@@ -970,15 +970,18 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                 }
 
                 override fun onRowDragEnded() {
-                    rowsAdapter?.notifyDataSetChanged()
-                    run { val name = currentLayout ?: return@run; previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection) }
-                    updateSaveButtonState()
+                    // Post to avoid calling notifyDataSetChanged() during RecyclerView layout
+                    rowsRecyclerView.post {
+                        rowsAdapter?.notifyDataSetChanged()
+                        run { val name = currentLayout ?: return@post; previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection) }
+                        updateSaveButtonState()
+                    }
                 }
 
                 override fun onKeyPositionChanged(rowIndex: Int, from: Int, to: Int) {
-                    val layoutName = currentLayout ?: return
-                    val rows = entries[layoutName] ?: return
-                    val currentRow = rows[rowIndex]
+                    // Use currentRowsRef to ensure we modify the correct layout (including submode-specific layouts)
+                    if (rowIndex < 0 || rowIndex >= currentRowsRef.size) return
+                    val currentRow = currentRowsRef[rowIndex]
 
                     if (from >= 0 && from < currentRow.size && to >= 0 && to < currentRow.size) {
                         val item = currentRow.removeAt(from)
@@ -988,8 +991,12 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                 }
 
                 override fun onKeyDragEnded(rowIndex: Int) {
-                    buildRows()
-                    run { val name = currentLayout ?: return@run; previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection) }
+                    // Post to avoid calling notifyDataSetChanged() during RecyclerView layout.
+                    // Use currentRowsRef directly to preserve the current editing target (avoids re-resolving layout in buildRows()).
+                    rowsRecyclerView.post {
+                        rowsAdapter?.updateRows(currentRowsRef)
+                        run { val name = currentLayout ?: return@post; previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection) }
+                    }
                 }
             })
             rowsRecyclerView.adapter = rowsAdapter
@@ -1134,7 +1141,15 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
 
     private fun confirmDeleteKey(rowIndex: Int, keyIndex: Int) {
         val layoutName = currentLayout ?: return
-        val row = entries[layoutName] ?: return
+
+        // Get the correct layout to edit (submode or default)
+        val subModeKey = previewSubModeLabel?.let { "$layoutName:$it" }
+        val row = if (subModeKey != null && entries.containsKey(subModeKey)) {
+            entries[subModeKey]
+        } else {
+            entries[layoutName]
+        } ?: return
+
         val key = row.getOrNull(rowIndex)?.getOrNull(keyIndex)
         val keyLabel = key?.let { buildKeyLabel(it) } ?: "?"
 
