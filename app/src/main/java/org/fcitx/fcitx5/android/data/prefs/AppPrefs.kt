@@ -420,7 +420,7 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
         val clipboardItemTimeout = int(
             R.string.clipboard_suggestion_timeout,
             "clipboard_item_timeout",
-            30,
+            3,
             -1,
             Int.MAX_VALUE,
             "s"

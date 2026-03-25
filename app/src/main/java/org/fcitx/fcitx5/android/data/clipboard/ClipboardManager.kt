@@ -321,9 +321,17 @@ object ClipboardManager : ClipboardManager.OnPrimaryClipChangedListener,
     }
 
     private fun ClipboardEntry.remoteMediaDeletionSource(): ClipboardSourceDeletionTarget? {
-        if (source != ClipboardEntry.SOURCE_REMOTE) return null
-        val rawUri = originalText.takeIf { it.startsWith("content://") || it.startsWith("file://") } ?: return null
-        val rootUri = originalRootUri.takeIf { it.startsWith("content://") || it.startsWith("file://") } ?: return null
+        if (!isUriEntry()) return null
+        val rawUri = if (source == ClipboardEntry.SOURCE_REMOTE && originalText.isNotEmpty()) {
+            originalText.takeIf { it.startsWith("content://") || it.startsWith("file://") }
+        } else {
+            text.takeIf { it.startsWith("content://") || it.startsWith("file://") }
+        } ?: return null
+        val rootUri = if (source == ClipboardEntry.SOURCE_REMOTE && originalRootUri.isNotEmpty()) {
+            originalRootUri.takeIf { it.startsWith("content://") || it.startsWith("file://") }
+        } else {
+            rawUri
+        } ?: return null
         return ClipboardSourceDeletionTarget(rawUri = rawUri, rootUri = rootUri)
     }
 

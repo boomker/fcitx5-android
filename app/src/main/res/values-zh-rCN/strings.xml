@@ -428,7 +428,7 @@
     <string name="move_cursor_to_end">把光标移动到结尾</string>
     <string name="open_input_method_settings">打开输入法设置</string>
     <string name="delete_all">全部删除</string>
-    <string name="delete_entries_and_files">同时删除文件</string>
+    <string name="delete_entries_and_files">确定，同时删除文件</string>
     <string name="share">分享</string>
     <string name="view_image">查看图片</string>
     <string name="open_link">打开链接</string>
@@ -442,7 +442,7 @@
     <string name="tokenized_clipboard_copied">已复制选中的词块</string>
     <string name="tokenized_clipboard_empty_selection">请先选择一个或多个词块</string>
     <string name="tokenized_clipboard_empty_state">没有可用的词块</string>
-    <string name="split_words">拆分词块</string>
+    <string name="split_words">拆词</string>
     <string name="default_emoji_skin_tone">默认表情肤色</string>
     <string name="emoji_skin_tone_none">无</string>
     <string name="emoji_skin_tone_type_1_2">🏻 浅肤色 (Type-1-2)</string>

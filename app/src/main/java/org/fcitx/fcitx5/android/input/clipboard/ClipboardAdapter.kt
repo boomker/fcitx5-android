@@ -244,7 +244,7 @@ abstract class ClipboardAdapter(
         val uri = runCatching { Uri.parse(entry.text) }.getOrNull()
         val fileName = uri?.let { resolveUriFileName(context, it) }
         return if (entry.type.startsWith("image/")) {
-            context.getString(R.string.clipboard_entry_image)
+            ""
         } else {
             if (fileName.isNullOrBlank()) {
                 context.getString(R.string.clipboard_entry_file)
