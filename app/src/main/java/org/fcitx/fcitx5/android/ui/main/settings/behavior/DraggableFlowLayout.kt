@@ -230,6 +230,50 @@ open class DraggableFlowLayout @JvmOverloads constructor(
     }
     
     private fun findClosestPositionToCoordinates(x: Float, y: Float): Int {
+        // 首先尝试找到与拖拽位置在同一行的 chip
+        // 使用水平中线判断，而不是欧几里得距离
+
+        // 获取拖拽视图的垂直中心（相对于父容器）
+        val dragViewCenterY = (dragView?.y ?: 0f) + (dragView?.height ?: 0) / 2
+
+        // 找到与拖拽视图在同一行的所有 chip
+        val sameRowChildren = mutableListOf<Pair<Int, View>>()
+        for (i in 0 until childCount) {
+            val child = getChildAt(i)
+            if (child === dragView) continue
+
+            val childCenterY = child.y + child.height / 2
+
+            // 判断是否在同一行：垂直中心距离小于 chip 高度的 0.6 倍
+            if (kotlin.math.abs(dragViewCenterY - childCenterY) < child.height * 0.6f) {
+                sameRowChildren.add(i to child)
+            }
+        }
+
+        if (sameRowChildren.isNotEmpty()) {
+            // 在同一行内查找目标位置
+            // 按 x 坐标排序
+            sameRowChildren.sortBy { it.second.x }
+
+            // 查找拖拽位置应该插入的位置
+            // 逻辑：找到第一个中心点在拖拽位置右侧的 chip，插入到它前面
+            // 如果拖拽位置在所有 chip 的右侧，插入到最后
+            for ((_, pair) in sameRowChildren.withIndex()) {
+                val (originalIndex, child) = pair
+                val childCenterX = child.x + child.width / 2
+
+                // 如果拖拽位置在 chip 中心的左侧，插入到这个位置
+                if (x < childCenterX) {
+                    return originalIndex
+                }
+            }
+
+            // 如果拖拽位置在所有 chip 的右侧，插入到最后一个 chip 之后
+            val lastChildIndexInOriginal = sameRowChildren.last().first
+            return lastChildIndexInOriginal + 1
+        }
+
+        // 如果没有找到同一行的 chip，使用原来的逻辑
         var closestDistance = Float.MAX_VALUE
         var closestPosition = -1
 

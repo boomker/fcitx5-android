@@ -301,7 +301,7 @@
     <string name="popup_editor_key">按键</string>
     <string name="popup_editor_key_input_hint">请输入按键标签，例如：q</string>
     <string name="popup_editor_values">弹出候选</string>
-    <string name="popup_editor_hint_click_edit_long_press_delete">点击编辑，长按删除</string>
+    <string name="popup_editor_hint_click_edit_long_press_delete">点击编辑，长按删除，拖拽排序</string>
     <string name="popup_editor_key_empty">按键不能为空</string>
     <string name="popup_editor_key_exists">按键已存在：%1$s</string>
     <string name="popup_editor_delete_confirm">确认删除映射"%1$s"？</string>

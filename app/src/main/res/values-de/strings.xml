@@ -188,7 +188,7 @@
     <string name="popup_editor_key">Taste</string>
     <string name="popup_editor_key_input_hint">Geben Sie ein Tastenlabel ein, z. B. q</string>
     <string name="popup_editor_values">Popup-Kandidaten</string>
-    <string name="popup_editor_hint_click_edit_long_press_delete">Tippen zum Bearbeiten, lange drücken zum Löschen</string>
+    <string name="popup_editor_hint_click_edit_long_press_delete">Tippen zum Bearbeiten, lange drücken zum Löschen, Ziehen zum Neuanordnen</string>
     <string name="popup_editor_key_empty">Taste darf nicht leer sein</string>
     <string name="popup_editor_key_exists">Taste existiert bereits: %1$s</string>
     <string name="popup_editor_delete_confirm">Zuordnung "%1$s" löschen?</string>

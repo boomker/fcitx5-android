@@ -11,7 +11,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.LinearLayout
-import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
@@ -21,6 +20,8 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.input.config.ConfigProviders
 import org.fcitx.fcitx5.android.input.config.ConfigProvider
@@ -34,9 +35,6 @@ import kotlinx.serialization.json.*
 import kotlinx.serialization.encodeToString
 import java.io.File
 
-// Import the draggable flow layout
-import org.fcitx.fcitx5.android.ui.main.settings.behavior.DraggableFlowLayout
-
 private val prettyJson = Json { prettyPrint = true }
 
 class PopupEditorActivity : AppCompatActivity() {
@@ -48,24 +46,41 @@ class PopupEditorActivity : AppCompatActivity() {
         }
     }
 
-    private val listContainer by lazy {
+    private val recyclerView by lazy {
+        RecyclerView(this).apply {
+            layoutManager = LinearLayoutManager(this@PopupEditorActivity)
+            isNestedScrollingEnabled = false
+        }
+    }
+
+    private val addRowButton by lazy {
+        TextView(this).apply {
+            text = getString(R.string.popup_editor_add_mapping)
+            textSize = 16f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            setTextColor(styledColor(android.R.attr.textColorPrimary))
+            setPadding(dp(8), dp(8), dp(8), dp(8))
+            setBackgroundColor(styledColor(android.R.attr.colorButtonNormal))
+        }
+    }
+
+    private val usageHint by lazy {
+        TextView(this).apply {
+            text = getString(R.string.popup_editor_hint)
+            textSize = 12f
+            setTextColor(styledColor(android.R.attr.textColorSecondary))
+            setPadding(0, 0, 0, dp(12))
+        }
+    }
+
+    private val mainContainer by lazy {
         LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             val pad = dp(16)
             setPadding(pad, pad, pad, pad)
-        }
-    }
-
-    private val scrollView by lazy {
-        ScrollView(this).apply {
-            isFillViewport = true
-            addView(
-                listContainer,
-                android.widget.FrameLayout.LayoutParams(
-                    android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-                    android.view.ViewGroup.LayoutParams.WRAP_CONTENT
-                )
-            )
+            addView(addRowButton)
+            addView(usageHint)
+            addView(recyclerView)
         }
     }
 
@@ -77,7 +92,7 @@ class PopupEditorActivity : AppCompatActivity() {
                 LinearLayout.LayoutParams(matchParent, wrapContent)
             )
             addView(
-                scrollView,
+                mainContainer,
                 LinearLayout.LayoutParams(matchParent, 0).apply { weight = 1f }
             )
         }
@@ -90,6 +105,7 @@ class PopupEditorActivity : AppCompatActivity() {
     private val entries: MutableMap<String, MutableList<String>> = linkedMapOf()
     private var originalEntries: Map<String, List<String>> = emptyMap()
     private var saveMenuItem: MenuItem? = null
+    private var adapter: PopupAdapter? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -108,7 +124,7 @@ class PopupEditorActivity : AppCompatActivity() {
         ViewCompat.requestApplyInsets(toolbar)
 
         loadState()
-        buildRows()
+        setupRecyclerView()
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -184,111 +200,15 @@ class PopupEditorActivity : AppCompatActivity() {
         android.util.Log.e("PopupEditor", "Failed to read default popup preset", e)
     }.getOrDefault(emptyMap())
 
-    private fun buildRows() {
-        listContainer.removeAllViews()
-        val addRow = TextView(this).apply {
-            text = getString(R.string.popup_editor_add_mapping)
-            textSize = 16f
-            setTypeface(null, android.graphics.Typeface.BOLD)
-            setTextColor(styledColor(android.R.attr.textColorPrimary))
-            setPadding(dp(8), dp(8), dp(8), dp(8))
-            setBackgroundColor(styledColor(android.R.attr.colorButtonNormal))
-            setOnClickListener { openEditor(null) }
-        }
-        listContainer.addView(addRow)
-
-        val usageHint = TextView(this).apply {
-            text = getString(R.string.popup_editor_hint)
-            textSize = 12f
-            setTextColor(styledColor(android.R.attr.textColorSecondary))
-            setPadding(0, 0, 0, dp(12))
-        }
-        listContainer.addView(usageHint)
-
-        entries.toSortedMap().forEach { (key, values) ->
-            val rowLayout = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-                setPadding(0, dp(8), 0, dp(8))
+    private fun setupRecyclerView() {
+        adapter = PopupAdapter()
+        recyclerView.adapter = adapter
+        recyclerView.addItemDecoration(object : RecyclerView.ItemDecoration() {
+            override fun getItemOffsets(outRect: android.graphics.Rect, view: android.view.View, parent: RecyclerView, state: RecyclerView.State) {
+                outRect.bottom = dp(1)
             }
-
-            val keyBadge = TextView(this).apply {
-                text = key
-                textSize = 14f
-                setTypeface(null, android.graphics.Typeface.BOLD)
-                setPadding(dp(10), dp(5), dp(10), dp(5))  // Same padding as candidate chip
-                gravity = android.view.Gravity.CENTER
-                background = android.graphics.drawable.GradientDrawable().apply {
-                    setColor(styledColor(android.R.attr.colorPrimary))
-                    setStroke(dp(1), styledColor(android.R.attr.colorControlNormal))
-                    cornerRadius = dp(4).toFloat()
-                }
-            }
-
-            val candidatesFlow = FlowLayout(this).apply {
-                setPadding(dp(8), 0, 0, 0)
-            }
-
-            values.forEach { value ->
-                val candidateChip = TextView(this).apply {
-                    text = value
-                    textSize = 14f
-                    setPadding(dp(10), dp(5), dp(10), dp(5))
-                    gravity = android.view.Gravity.CENTER
-                    background = android.graphics.drawable.GradientDrawable().apply {
-                        setColor(styledColor(android.R.attr.colorButtonNormal))
-                        setStroke(dp(1), styledColor(android.R.attr.colorControlNormal))
-                        cornerRadius = dp(4).toFloat()
-                    }
-                    setOnClickListener { openEditor(key) }
-                    setOnLongClickListener {
-                        confirmDelete(key)
-                        true
-                    }
-                }
-                candidatesFlow.addView(candidateChip, ViewGroup.MarginLayoutParams(
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-                ).apply {
-                    leftMargin = dp(4)
-                    topMargin = dp(4)
-                    rightMargin = dp(4)
-                    bottomMargin = dp(4)
-                })
-            }
-
-            rowLayout.addView(keyBadge, LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                gravity = android.view.Gravity.CENTER_VERTICAL
-                setMargins(0, dp(4), dp(8), dp(4))
-            })
-            rowLayout.addView(candidatesFlow, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-                weight = 1f
-                gravity = android.view.Gravity.CENTER_VERTICAL
-            })
-
-            rowLayout.setOnClickListener { openEditor(key) }
-            rowLayout.setOnLongClickListener {
-                confirmDelete(key)
-                true
-            }
-
-            listContainer.addView(rowLayout)
-
-            val divider = View(this).apply {
-                setBackgroundColor(
-                    runCatching { styledColor(android.R.attr.colorControlNormal) }
-                        .getOrDefault(0x33000000)
-                )
-                alpha = 0.35f
-            }
-            listContainer.addView(
-                divider,
-                LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(1))
-            )
-        }
-
+        })
+        addRowButton.setOnClickListener { openEditor(null) }
     }
 
     private fun openEditor(originalKey: String?) {
@@ -307,11 +227,6 @@ class PopupEditorActivity : AppCompatActivity() {
             setTextColor(styledColor(android.R.attr.textColorSecondary))
         }
 
-        // Key edit as a chip with border
-        val keyEditContainer = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-        }
-
         var currentKeyValue = currentKey
 
         val keyEdit = TextView(this@PopupEditorActivity).apply {
@@ -325,7 +240,6 @@ class PopupEditorActivity : AppCompatActivity() {
                 cornerRadius = dp(4).toFloat()
             }
             setOnClickListener {
-                // Show edit dialog for key
                 val edit = EditText(this@PopupEditorActivity).apply {
                     setText(currentKeyValue)
                     setSelection(text.length)
@@ -346,10 +260,8 @@ class PopupEditorActivity : AppCompatActivity() {
             }
         }
 
-        keyEditContainer.addView(keyEdit, LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.WRAP_CONTENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        ))
+        container.addView(keyLabel)
+        container.addView(keyEdit)
 
         val valueLabel = TextView(this).apply {
             text = "${getString(R.string.popup_editor_values)} (${getString(R.string.popup_editor_hint_click_edit_long_press_delete)})"
@@ -357,24 +269,18 @@ class PopupEditorActivity : AppCompatActivity() {
             setPadding(0, dp(10), 0, 0)
             setTextColor(styledColor(android.R.attr.textColorSecondary))
         }
-
-        val candidatesScroll = android.widget.ScrollView(this).apply {
-            isFillViewport = false
-        }
+        container.addView(valueLabel)
 
         val candidatesFlow = DraggableFlowLayout(this)
+        container.addView(candidatesFlow, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        ).apply {
+            topMargin = dp(8)
+        })
 
-        candidatesScroll.addView(candidatesFlow, android.widget.LinearLayout.LayoutParams(
-            android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
-            android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
-        ))
-
-        container.addView(keyLabel)
-        container.addView(keyEditContainer)
-        container.addView(valueLabel)
-        container.addView(candidatesScroll)
-
-        fun doRebuildCandidates() {
+        // 构建候选词列表 - 只构建一次
+        fun buildCandidates() {
             candidatesFlow.removeAllViews()
             values.forEachIndexed { index, value ->
                 val candidateChip = TextView(this@PopupEditorActivity).apply {
@@ -387,108 +293,128 @@ class PopupEditorActivity : AppCompatActivity() {
                         setStroke(dp(1), styledColor(android.R.attr.colorControlNormal))
                         cornerRadius = dp(4).toFloat()
                     }
+                    // 设置固定高度确保所有候选词高度一致
+                    // dp(40) 能容纳大多数特殊字符（阿拉伯文、梵文等），gravity=CENTER 确保文字垂直居中
+                    layoutParams = ViewGroup.MarginLayoutParams(
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                        dp(40)
+                    ).apply {
+                        setMargins(dp(4), dp(4), dp(4), dp(4))
+                    }
+                    // 使用 tag 标记原始索引，用于拖拽结束后追踪
+                    tag = index
                     setOnClickListener {
-                        // Edit candidate
-                        val edit = EditText(this@PopupEditorActivity).apply {
+                        EditText(this@PopupEditorActivity).apply {
                             setText(value)
                             setSelection(text.length)
-                        }
-                        AlertDialog.Builder(this@PopupEditorActivity)
-                            .setTitle(R.string.edit)
-                            .setView(edit)
-                            .setPositiveButton(android.R.string.ok) { _, _ ->
-                                val newValue = edit.text.toString().trim()
-                                if (newValue.isNotEmpty()) {
-                                    values[index] = newValue
-                                    doRebuildCandidates()
+                        }.let { edit ->
+                            AlertDialog.Builder(this@PopupEditorActivity)
+                                .setTitle(R.string.edit)
+                                .setView(edit)
+                                .setPositiveButton(android.R.string.ok) { _, _ ->
+                                    val newValue = edit.text.toString().trim()
+                                    if (newValue.isNotEmpty()) {
+                                        values[index] = newValue
+                                        buildCandidates()
+                                    }
                                 }
-                            }
-                            .setNegativeButton(android.R.string.cancel, null)
-                            .show()
+                                .setNegativeButton(android.R.string.cancel, null)
+                                .show()
+                        }
                     }
                     setOnLongClickListener {
-                        // Delete candidate
                         AlertDialog.Builder(this@PopupEditorActivity)
                             .setTitle(R.string.delete)
                             .setMessage(getString(R.string.popup_editor_delete_candidate_confirm, value))
                             .setPositiveButton(R.string.delete) { _, _ ->
                                 values.removeAt(index)
-                                doRebuildCandidates()
+                                buildCandidates()
                             }
                             .setNegativeButton(android.R.string.cancel, null)
                             .show()
                         true
                     }
                 }
-
-                candidatesFlow.addView(candidateChip, ViewGroup.MarginLayoutParams(
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-                ).apply {
-                    leftMargin = dp(4)
-                    topMargin = dp(4)
-                    rightMargin = dp(4)
-                    bottomMargin = dp(4)
-                })
+                candidatesFlow.addView(candidateChip)
             }
 
-            candidatesFlow.onDragListener = object : DraggableFlowLayout.OnDragListener {
-                override fun onDragStarted(view: View, position: Int) {
-                }
-
-                override fun onDragPositionChanged(from: Int, to: Int) {
-                    if (from >= 0 && from < values.size && to >= 0 && to < values.size) {
-                        val item = values.removeAt(from)
-                        values.add(to, item)
-                        updateSaveButtonState()
-                    }
-                }
-
-                override fun onDragEnded(view: View, position: Int) {
-                    doRebuildCandidates()
-                }
-            }
-
+            // 添加按钮 - 与候选词保持一致的高度和样式
             val addChip = TextView(this@PopupEditorActivity).apply {
                 text = getString(R.string.popup_editor_add_candidate_button)
                 textSize = 14f
-                setPadding(dp(12), dp(5), dp(12), dp(5))
+                setPadding(dp(10), dp(5), dp(10), dp(5))  // 与候选词相同的 padding
                 gravity = android.view.Gravity.CENTER
                 background = android.graphics.drawable.GradientDrawable().apply {
                     setColor(styledColor(android.R.attr.colorPrimary))
                     setStroke(dp(1), styledColor(android.R.attr.colorControlNormal))
                     cornerRadius = dp(4).toFloat()
                 }
+                // 设置固定高度与候选词一致（dp(40) 能容纳特殊字符）
+                layoutParams = ViewGroup.MarginLayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    dp(40)
+                ).apply {
+                    setMargins(dp(4), dp(4), dp(4), dp(4))
+                }
                 setOnClickListener {
-                    val edit = EditText(this@PopupEditorActivity).apply {
+                    EditText(this@PopupEditorActivity).apply {
                         hint = getString(R.string.popup_editor_candidate_input_hint)
-                    }
-                    AlertDialog.Builder(this@PopupEditorActivity)
-                        .setTitle(R.string.popup_editor_add_candidate)
-                        .setView(edit)
-                        .setPositiveButton(android.R.string.ok) { _, _ ->
-                            val newValue = edit.text.toString().trim()
-                            if (newValue.isNotEmpty()) {
-                                values.add(newValue)
-                                doRebuildCandidates()
+                    }.let { edit ->
+                        AlertDialog.Builder(this@PopupEditorActivity)
+                            .setTitle(R.string.popup_editor_add_candidate)
+                            .setView(edit)
+                            .setPositiveButton(android.R.string.ok) { _, _ ->
+                                val newValue = edit.text.toString().trim()
+                                if (newValue.isNotEmpty()) {
+                                    values.add(newValue)
+                                    buildCandidates()
+                                }
                             }
-                        }
-                        .setNegativeButton(android.R.string.cancel, null)
-                        .show()
+                            .setNegativeButton(android.R.string.cancel, null)
+                            .show()
+                    }
                 }
             }
-            candidatesFlow.addView(addChip, ViewGroup.MarginLayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            ).apply {
-                leftMargin = dp(4)
-                topMargin = dp(4)
-                rightMargin = dp(4)
-                bottomMargin = dp(4)
-            })
+            candidatesFlow.addView(addChip)
         }
 
-        doRebuildCandidates()
+        buildCandidates()
+
+        // 设置拖拽监听器
+        candidatesFlow.onDragListener = object : DraggableFlowLayout.OnDragListener {
+            override fun onDragStarted(view: View, position: Int) {}
+
+            override fun onDragPositionChanged(from: Int, to: Int) {
+                // 不在这里更新数据，只在 onDragEnded 时根据最终位置更新
+            }
+
+            override fun onDragEnded(view: View, position: Int) {
+                // 等待 Drag 动画完成后重建 UI
+                candidatesFlow.postDelayed({
+                    // 根据 FlowLayout 中视图的最终顺序更新数据
+                    val newOrder = mutableListOf<String>()
+                    val addButtonText = getString(R.string.popup_editor_add_candidate_button)
+                    for (i in 0 until candidatesFlow.childCount) {
+                        val child = candidatesFlow.getChildAt(i)
+                        if (child is TextView) {
+                            val text = child.text.toString()
+                            // 跳过添加按钮
+                            if (text != addButtonText) {
+                                newOrder.add(text)
+                            }
+                        }
+                    }
+                    // 验证：新列表长度应该等于原列表长度，且内容相同（顺序可能不同）
+                    if (newOrder.size == values.size && 
+                        newOrder.groupingBy { it }.eachCount() == values.groupingBy { it }.eachCount()) {
+                        values.clear()
+                        values.addAll(newOrder)
+                        updateSaveButtonState()
+                    }
+                    buildCandidates()
+                }, 300)
+            }
+        }
 
         val dialog = AlertDialog.Builder(this)
             .setTitle(if (originalKey == null) R.string.add else R.string.edit)
@@ -509,11 +435,35 @@ class PopupEditorActivity : AppCompatActivity() {
                     return@setOnClickListener
                 }
 
-                if (originalKey != null && originalKey != newKey) {
+                val positionChanged = originalKey != null && originalKey != newKey
+                val oldPosition = if (positionChanged) {
+                    entries.keys.indexOf(originalKey)
+                } else {
+                    entries.keys.indexOf(newKey)
+                }
+
+                if (positionChanged) {
                     entries.remove(originalKey)
                 }
                 entries[newKey] = values
-                buildRows()
+
+                // 通知 adapter 数据变化
+                adapter?.let { adapter ->
+                    if (positionChanged && oldPosition >= 0) {
+                        // Key 改变：先删除旧位置，再插入新位置
+                        adapter.notifyItemRemoved(oldPosition)
+                        val newPosition = entries.keys.indexOf(newKey)
+                        adapter.notifyItemInserted(newPosition)
+                    } else if (originalKey == null) {
+                        // 新增条目
+                        val newPosition = entries.keys.indexOf(newKey)
+                        adapter.notifyItemInserted(newPosition)
+                    } else {
+                        // 仅值改变
+                        adapter.notifyItemChanged(oldPosition)
+                    }
+                }
+
                 updateSaveButtonState()
                 dialog.dismiss()
             }
@@ -522,12 +472,13 @@ class PopupEditorActivity : AppCompatActivity() {
     }
 
     private fun confirmDelete(key: String) {
+        val position = entries.keys.indexOf(key)
         AlertDialog.Builder(this)
             .setTitle(R.string.delete)
             .setMessage(getString(R.string.popup_editor_delete_confirm, key))
             .setPositiveButton(R.string.delete) { _, _ ->
                 entries.remove(key)
-                buildRows()
+                adapter?.notifyItemRemoved(position)
                 updateSaveButtonState()
             }
             .setNegativeButton(android.R.string.cancel, null)
@@ -550,12 +501,9 @@ class PopupEditorActivity : AppCompatActivity() {
         })
 
         file.writeText(prettyJson.encodeToString(jsonElement) + "\n")
-        // notify provider watcher
         ConfigProviders.ensureWatching()
         showToast(getString(R.string.popup_preset_saved_at, file.absolutePath))
-        // Update original entries to reflect current state, so button becomes inactive
         originalEntries = normalizedEntries()
-        // Update save button state
         updateSaveButtonState()
     }
 
@@ -564,24 +512,135 @@ class PopupEditorActivity : AppCompatActivity() {
     }
 
     private fun normalizedEntries(): Map<String, List<String>> =
-        entries
-            .toSortedMap()
-            .mapValues { (_, value) -> value.toList() }
+        entries.toSortedMap().mapValues { (_, value) -> value.toList() }
 
     private fun hasChanges(): Boolean = normalizedEntries() != originalEntries
 
     private fun updateSaveButtonState() {
         saveMenuItem?.let { menuItem ->
-            if (hasChanges()) {
-                // Use active color when there are changes
-                menuItem.isEnabled = true
-                // Set title color to accent color
-                menuItem.title = getString(R.string.save)
-            } else {
-                // Use inactive color when there are no changes
-                menuItem.isEnabled = false
-                // Set title color to secondary text color
-                menuItem.title = getString(R.string.save)
+            menuItem.isEnabled = hasChanges()
+            menuItem.title = getString(R.string.save)
+        }
+    }
+
+    /**
+     * RecyclerView Adapter for popup entries
+     */
+    private inner class PopupAdapter : RecyclerView.Adapter<PopupAdapter.ViewHolder>() {
+
+        private val sortedKeys: List<String>
+            get() = entries.keys.toList()
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+            val container = LinearLayout(this@PopupEditorActivity).apply {
+                orientation = LinearLayout.VERTICAL
+            }
+            val rowLayout = LinearLayout(this@PopupEditorActivity).apply {
+                orientation = LinearLayout.HORIZONTAL
+                setPadding(0, dp(8), 0, dp(8))
+            }
+            container.addView(rowLayout)
+            // 分隔线
+            val divider = View(this@PopupEditorActivity).apply {
+                setBackgroundColor(
+                    runCatching { styledColor(android.R.attr.colorControlNormal) }
+                        .getOrDefault(0x33000000)
+                )
+                alpha = 0.35f
+            }
+            container.addView(divider, LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dp(1)
+            ))
+            return ViewHolder(container, rowLayout)
+        }
+
+        override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+            val key = sortedKeys[position]
+            val values = entries[key].orEmpty()
+
+            holder.bind(key, values)
+        }
+
+        override fun getItemCount(): Int = entries.size
+
+        inner class ViewHolder(
+            private val container: LinearLayout,
+            private val rowLayout: LinearLayout
+        ) : RecyclerView.ViewHolder(container) {
+
+            private val keyBadge: TextView
+            private val candidatesFlow: FlowLayout
+
+            init {
+                keyBadge = TextView(rowLayout.context).apply {
+                    textSize = 14f
+                    setTypeface(null, android.graphics.Typeface.BOLD)
+                    setPadding(dp(10), dp(5), dp(10), dp(5))
+                    gravity = android.view.Gravity.CENTER
+                    background = android.graphics.drawable.GradientDrawable().apply {
+                        setColor(styledColor(android.R.attr.colorPrimary))
+                        setStroke(dp(1), styledColor(android.R.attr.colorControlNormal))
+                        cornerRadius = dp(4).toFloat()
+                    }
+                }
+
+                candidatesFlow = FlowLayout(rowLayout.context).apply {
+                    setPadding(dp(8), 0, 0, 0)
+                }
+
+                // keyBadge 设置固定高度与候选词一致
+                rowLayout.addView(keyBadge, LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    dp(40)
+                ).apply {
+                    gravity = android.view.Gravity.CENTER_VERTICAL
+                    setMargins(0, dp(4), dp(8), dp(4))
+                })
+                rowLayout.addView(candidatesFlow, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                    weight = 1f
+                    gravity = android.view.Gravity.CENTER_VERTICAL
+                })
+
+                rowLayout.setOnClickListener {
+                    val pos = bindingAdapterPosition
+                    if (pos != RecyclerView.NO_POSITION) {
+                        openEditor(sortedKeys[pos])
+                    }
+                }
+                rowLayout.setOnLongClickListener {
+                    val pos = bindingAdapterPosition
+                    if (pos != RecyclerView.NO_POSITION) {
+                        confirmDelete(sortedKeys[pos])
+                    }
+                    true
+                }
+            }
+
+            fun bind(key: String, values: List<String>) {
+                keyBadge.text = key
+                candidatesFlow.removeAllViews()
+                values.forEach { value ->
+                    val candidateChip = TextView(rowLayout.context).apply {
+                        text = value
+                        textSize = 14f
+                        setPadding(dp(10), dp(5), dp(10), dp(5))
+                        gravity = android.view.Gravity.CENTER
+                        background = android.graphics.drawable.GradientDrawable().apply {
+                            setColor(styledColor(android.R.attr.colorButtonNormal))
+                            setStroke(dp(1), styledColor(android.R.attr.colorControlNormal))
+                            cornerRadius = dp(4).toFloat()
+                        }
+                        // 设置固定高度确保所有候选词高度一致（dp(40) 能容纳特殊字符）
+                        layoutParams = ViewGroup.MarginLayoutParams(
+                            ViewGroup.LayoutParams.WRAP_CONTENT,
+                            dp(40)
+                        ).apply {
+                            setMargins(dp(4), dp(4), dp(4), dp(4))
+                        }
+                    }
+                    candidatesFlow.addView(candidateChip)
+                }
             }
         }
     }
