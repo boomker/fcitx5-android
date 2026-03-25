@@ -22,7 +22,8 @@
       "Bash(tee -a /tmp/build.log)",
       "Bash(./gradlew clean:*)",
       "Bash(tee /tmp/build-clean.log)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(./gradlew assembleDebug)"
     ]
   }
 }
