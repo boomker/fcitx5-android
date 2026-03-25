@@ -94,6 +94,11 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
 
     private var jobs = Channel<Job>(capacity = Channel.UNLIMITED)
 
+    /**
+     * Marks if we're in a critical input lifecycle phase to delay theme changes and avoid race conditions.
+     */
+    private var isInInputLifecycleCriticalPhase = false
+
     private val cachedKeyEvents = LruCache<Int, KeyEvent>(78)
     private var cachedKeyEventIndex = 0
 
@@ -332,9 +337,20 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         replaceCandidateView(ThemeManager.activeTheme)
     }
 
+    /**
+     * Theme change listener that delays InputView replacement during critical lifecycle phases.
+     */
     @Keep
-    private val onThemeChangeListener = ThemeManager.OnThemeChangeListener {
-        replaceInputViews(it)
+    private val onThemeChangeListener = ThemeManager.OnThemeChangeListener { theme ->
+        if (isInInputLifecycleCriticalPhase) {
+            contentView.post {
+                if (!isInInputLifecycleCriticalPhase) {
+                    replaceInputViews(theme)
+                }
+            }
+        } else {
+            replaceInputViews(theme)
+        }
     }
 
     /**
@@ -945,53 +961,51 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     }
 
     override fun onStartInput(attribute: EditorInfo, restarting: Boolean) {
-        // update selection as soon as possible
-        // sometimes when restarting input, onUpdateSelection happens before onStartInput, and
-        // initialSel{Start,End} is outdated. but it's the client app's responsibility to send
-        // right cursor position, try to workaround this would simply introduce more bugs.
-        selection.resetTo(attribute.initialSelStart, attribute.initialSelEnd)
-        resetComposingState()
-        val flags = CapabilityFlags.fromEditorInfo(attribute)
-        capabilityFlags = flags
-        // EditorInfo may change between onStartInput and onStartInputView
-        inputDeviceManager.notifyOnStartInput(attribute)
-        Timber.d("onStartInput: initialSel=${selection.current}, restarting=$restarting")
-        val isNullType = attribute.isTypeNull()
-        // wait until InputContext created/activated
-        postFcitxJob {
-            if (restarting) {
-                // when input restarts in the same editor, focus out to clear previous state
-                focus(false)
-                // try focus out before changing CapabilityFlags,
-                // to avoid confusing state of different text fields
+        isInInputLifecycleCriticalPhase = true
+        try {
+            selection.resetTo(attribute.initialSelStart, attribute.initialSelEnd)
+            resetComposingState()
+            val flags = CapabilityFlags.fromEditorInfo(attribute)
+            capabilityFlags = flags
+            inputDeviceManager.notifyOnStartInput(attribute)
+            Timber.d("onStartInput: initialSel=${selection.current}, restarting=$restarting")
+            val isNullType = attribute.isTypeNull()
+            postFcitxJob {
+                if (restarting) {
+                    focus(false)
+                }
+                setCapFlags(flags)
+                if (!isNullType) {
+                    focus(true)
+                }
             }
-            // EditorInfo can be different in onStartInput and onStartInputView,
-            // especially in browsers
-            setCapFlags(flags)
-            // for hardware keyboard, focus to allow switching input methods before onStartInputView
-            if (!isNullType) {
-                focus(true)
+        } finally {
+            contentView.post {
+                isInInputLifecycleCriticalPhase = false
             }
         }
     }
 
     override fun onStartInputView(info: EditorInfo, restarting: Boolean) {
-        Timber.d("onStartInputView: restarting=$restarting")
-        postFcitxJob {
-            focus(true)
-        }
-        if (inputDeviceManager.evaluateOnStartInputView(info, this)) {
-            // because onStartInputView will always be called after onStartInput,
-            // editorInfo and capFlags should be up-to-date
-            inputView?.startInput(info, capabilityFlags, restarting)
-        } else {
-            if (currentInputConnection?.monitorCursorAnchor() != true) {
-                if (!decorLocationUpdated) {
-                    updateDecorLocation()
+        isInInputLifecycleCriticalPhase = true
+        try {
+            Timber.d("onStartInputView: restarting=$restarting")
+            postFcitxJob {
+                focus(true)
+            }
+            if (inputDeviceManager.evaluateOnStartInputView(info, this)) {
+                inputView?.startInput(info, capabilityFlags, restarting)
+            } else {
+                if (currentInputConnection?.monitorCursorAnchor() != true) {
+                    if (!decorLocationUpdated) {
+                        updateDecorLocation()
+                    }
+                    workaroundNullCursorAnchorInfo()
                 }
-                // anchor CandidatesView to bottom-left corner in case InputConnection does not
-                // support monitoring CursorAnchorInfo
-                workaroundNullCursorAnchorInfo()
+            }
+        } finally {
+            contentView.post {
+                isInInputLifecycleCriticalPhase = false
             }
         }
     }
