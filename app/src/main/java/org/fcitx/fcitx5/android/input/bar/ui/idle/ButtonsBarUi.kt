@@ -6,13 +6,17 @@ package org.fcitx.fcitx5.android.input.bar.ui.idle
 
 import android.content.Context
 import android.view.View
+import android.view.ViewGroup
 import androidx.annotation.DrawableRes
+import androidx.recyclerview.widget.RecyclerView
 import com.google.android.flexbox.AlignItems
-import com.google.android.flexbox.FlexboxLayout
+import com.google.android.flexbox.FlexWrap
+import com.google.android.flexbox.FlexboxLayoutManager
 import com.google.android.flexbox.JustifyContent
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.input.action.ButtonAction
+import org.fcitx.fcitx5.android.input.bar.KawaiiBarComponent
 import org.fcitx.fcitx5.android.input.bar.ui.ToolButton
 import org.fcitx.fcitx5.android.input.config.ButtonsLayoutConfig
 import org.fcitx.fcitx5.android.input.config.ConfigurableButton
@@ -32,42 +36,42 @@ class ButtonsBarUi(
     @DrawableRes
     private val floatingOnIcon = R.drawable.ic_baseline_keyboard_24
 
-    override val root = view(::FlexboxLayout) {
-        alignItems = AlignItems.CENTER
-        justifyContent = JustifyContent.SPACE_AROUND
+    override val root = view(::RecyclerView) {
+        layoutManager = FlexboxLayoutManager(ctx, RecyclerView.HORIZONTAL).apply {
+            alignItems = AlignItems.CENTER
+            // Use FLEX_START to let buttons flow naturally and scroll when needed
+            justifyContent = JustifyContent.FLEX_START
+            // Disable wrapping to ensure single row horizontal scrolling
+            flexWrap = FlexWrap.NOWRAP
+        }
+        // Disable nested scrolling to prevent conflicts with parent touch handling
+        isNestedScrollingEnabled = false
+        // Ensure RecyclerView can scroll horizontally
+        overScrollMode = View.OVER_SCROLL_NEVER
+        // Set fixed height to match KawaiiBar height
+        layoutParams = ViewGroup.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ctx.dp(KawaiiBarComponent.HEIGHT)
+        )
     }
 
-    private fun toolButton(@DrawableRes icon: Int) = ToolButton(ctx, icon, theme).also {
-        val size = ctx.dp(40)
-        root.addView(it, FlexboxLayout.LayoutParams(size, size))
-    }
+    private val adapter = ButtonsBarAdapter()
 
     // Map to store button references by ID
     private val buttonMap = mutableMapOf<String, ToolButton>()
-    
+
     // Click listeners for each button
     private val clickListeners = mutableMapOf<String, View.OnClickListener>()
     private val longClickListeners = mutableMapOf<String, View.OnLongClickListener>()
 
     init {
+        (root as RecyclerView).adapter = adapter
         buildButtons()
     }
 
     private fun buildButtons() {
         buttonMap.clear()
-        root.removeAllViews()
-        buttons.forEach { config ->
-            val iconRes = getIconResForButton(config.id, config.icon)
-            val button = toolButton(iconRes).apply {
-                contentDescription = config.label ?: getDefaultLabel(config.id)
-                tag = config.id
-                // Apply existing click listener if any
-                clickListeners[config.id]?.let { setOnClickListener(it) }
-                // Apply existing long click listener if any
-                longClickListeners[config.id]?.let { setOnLongClickListener(it) }
-            }
-            buttonMap[config.id] = button
-        }
+        adapter.notifyDataSetChanged()
     }
 
     fun updateConfig(newButtons: List<ConfigurableButton>) {
@@ -76,7 +80,7 @@ class ButtonsBarUi(
             buildButtons()
         }
     }
-    
+
     fun setOnClickListener(buttonId: String, listener: View.OnClickListener?) {
         if (listener != null) {
             clickListeners[buttonId] = listener
@@ -85,7 +89,7 @@ class ButtonsBarUi(
         }
         buttonMap[buttonId]?.setOnClickListener(listener)
     }
-    
+
     fun setOnLongClickListener(buttonId: String, listener: View.OnLongClickListener?) {
         if (listener != null) {
             longClickListeners[buttonId] = listener
@@ -122,5 +126,45 @@ class ButtonsBarUi(
 
     fun setFloatingState(isFloating: Boolean) {
         buttonMap["floating_toggle"]?.setIcon(if (isFloating) floatingOnIcon else floatingOffIcon)
+    }
+
+    private inner class ButtonsBarAdapter : RecyclerView.Adapter<ButtonsBarAdapter.ButtonViewHolder>() {
+
+        inner class ButtonViewHolder(val button: ToolButton) : RecyclerView.ViewHolder(button)
+
+        override fun getItemCount(): Int = buttons.size
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ButtonViewHolder {
+            val config = buttons[viewType]
+            val iconRes = getIconResForButton(config.id, config.icon)
+            val button = ToolButton(ctx, iconRes, theme).apply {
+                contentDescription = config.label ?: getDefaultLabel(config.id)
+                tag = config.id
+                layoutParams = FlexboxLayoutManager.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+                ).apply {
+                    // Set minimum width to prevent button from shrinking too small
+                    // Using 32dp as minimum to ensure icon is still clearly visible
+                    minWidth = ctx.dp(32)
+                    // Add horizontal margin for spacing between buttons
+                    marginStart = ctx.dp(2)
+                    marginEnd = ctx.dp(2)
+                }
+
+                // Apply click listeners
+                clickListeners[config.id]?.let { setOnClickListener(it) }
+                longClickListeners[config.id]?.let { setOnLongClickListener(it) }
+            }
+            buttonMap[config.id] = button
+            return ButtonViewHolder(button)
+        }
+
+        override fun onBindViewHolder(holder: ButtonViewHolder, position: Int) {
+            val config = buttons[position]
+            // Update button state if needed
+        }
+
+        override fun getItemViewType(position: Int): Int = position
     }
 }
