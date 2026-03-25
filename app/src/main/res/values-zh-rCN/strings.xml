@@ -430,7 +430,7 @@
     <string name="delete_all">全部删除</string>
     <string name="delete_entries_and_files">确定，同时删除文件</string>
     <string name="share">分享</string>
-    <string name="view_image">查看图片</string>
+    <string name="view_image">查看</string>
     <string name="open_link">打开链接</string>
     <string name="search">搜索</string>
     <string name="dial">拨号</string>

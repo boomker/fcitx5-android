@@ -49,7 +49,6 @@ import org.fcitx.fcitx5.android.input.keyboard.KeyboardWindow
 import org.fcitx.fcitx5.android.input.wm.InputWindow
 import org.fcitx.fcitx5.android.input.wm.InputWindowManager
 import org.fcitx.fcitx5.android.utils.AppUtil
-import org.fcitx.fcitx5.android.utils.ClipboardSourceDeletionTarget
 import org.fcitx.fcitx5.android.utils.EventStateMachine
 import org.fcitx.fcitx5.android.utils.item
 import org.mechdancer.dependency.manager.must
@@ -263,13 +262,6 @@ class ClipboardWindow : InputWindow.ExtendedInputWindow<ClipboardWindow>() {
                     deleteEntries(skipPinned, deleteFiles = false)
                 }
             }
-            if (currentCategory == ClipboardCategory.Media) {
-                menu.item(R.string.delete_entries_and_files) {
-                    service.lifecycleScope.launch {
-                        deleteEntries(skipPinned, deleteFiles = true)
-                    }
-                }
-            }
             setOnDismissListener {
                 if (it === promptMenu) promptMenu = null
             }
@@ -278,12 +270,8 @@ class ClipboardWindow : InputWindow.ExtendedInputWindow<ClipboardWindow>() {
     }
 
     private val pendingDeleteIds = arrayListOf<Int>()
-    private val pendingDeleteFileTargets = linkedMapOf<Int, ClipboardSourceDeletionTarget>()
 
     private suspend fun deleteEntries(skipPinned: Boolean, deleteFiles: Boolean) {
-        if (deleteFiles && currentCategory == ClipboardCategory.Media) {
-            pendingDeleteFileTargets.putAll(ClipboardManager.mediaDeletionTargets(skipPinned))
-        }
         val ids = ClipboardManager.deleteAll(currentCategory, skipPinned)
         showUndoSnackbar(*ids)
     }
@@ -312,19 +300,14 @@ class ClipboardWindow : InputWindow.ExtendedInputWindow<ClipboardWindow>() {
                         BaseCallback.DISMISS_EVENT_MANUAL,
                         BaseCallback.DISMISS_EVENT_TIMEOUT -> {
                             service.lifecycleScope.launch {
-                                ClipboardManager.deleteClipboardSourceFiles(pendingDeleteFileTargets.values)
                                 ClipboardManager.realDelete()
                                 pendingDeleteIds.clear()
-                                pendingDeleteFileTargets.clear()
                             }
                         }
 
                         BaseCallback.DISMISS_EVENT_ACTION,
                         BaseCallback.DISMISS_EVENT_CONSECUTIVE -> {
                             // user clicked "undo" or deleted more items which makes a new snackbar
-                            if (event == BaseCallback.DISMISS_EVENT_ACTION) {
-                                pendingDeleteFileTargets.clear()
-                            }
                         }
                     }
                 }

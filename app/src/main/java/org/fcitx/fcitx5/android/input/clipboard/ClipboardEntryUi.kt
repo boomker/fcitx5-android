@@ -97,12 +97,21 @@ class ClipboardEntryUi(override val ctx: Context, private val theme: Theme, radi
         if (previewBitmap != null) {
             preview.setImageBitmap(previewBitmap)
             preview.visibility = View.VISIBLE
-            textView.maxLines = 2
-            textView.setPaddingDp(8, 82, 8, 6)
-            root.minimumHeight = ctx.dp(122)
+            if (text.isEmpty()) {
+                // Image only, no text
+                textView.visibility = View.GONE
+                root.minimumHeight = ctx.dp(84)
+            } else {
+                // Image with text
+                textView.visibility = View.VISIBLE
+                textView.maxLines = 2
+                textView.setPaddingDp(8, 82, 8, 6)
+                root.minimumHeight = ctx.dp(122)
+            }
         } else {
             preview.setImageDrawable(null)
             preview.visibility = View.GONE
+            textView.visibility = View.VISIBLE
             textView.maxLines = 4
             textView.setPaddingDp(8, 4, 8, 4)
             root.minimumHeight = ctx.dp(30)
