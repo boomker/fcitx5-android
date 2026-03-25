@@ -7,12 +7,14 @@ package org.fcitx.fcitx5.android.input.config
 import android.os.FileObserver
 import android.os.Handler
 import android.os.Looper
+import kotlinx.serialization.json.JsonObject
 import java.io.File
 
 typealias ConfigChangeListener = () -> Unit
 
 interface ConfigProvider {
     fun textKeyboardLayoutFile(): File?
+    fun textKeyboardLayoutJson(): JsonObject? = null
     fun popupPresetFile(): File?
     fun fontsetFile(): File?
     fun buttonsLayoutConfigFile(): File?
@@ -26,6 +28,26 @@ object DefaultConfigProvider : ConfigProvider {
     override fun buttonsLayoutConfigFile(): File? = UserConfigFiles.buttonsLayoutConfig()
     override fun writeFontsetPathMap(pathMap: Map<String, List<String>>): Result<File> =
         UserJsonConfigStore.writeFontsetPathMap(pathMap)
+}
+
+/**
+ * A [ConfigProvider] that uses in-memory JSON data instead of file-based storage.
+ * This is useful for preview scenarios to avoid disk I/O.
+ *
+ * @param textKeyboardLayoutJson The in-memory JSON data for text keyboard layout
+ * @param delegate The delegate provider for other config files
+ */
+class MemoryConfigProvider(
+    private val textKeyboardLayoutJson: JsonObject,
+    private val delegate: ConfigProvider
+) : ConfigProvider {
+    override fun textKeyboardLayoutFile(): File? = null
+    override fun textKeyboardLayoutJson(): JsonObject = textKeyboardLayoutJson
+    override fun popupPresetFile(): File? = delegate.popupPresetFile()
+    override fun fontsetFile(): File? = delegate.fontsetFile()
+    override fun buttonsLayoutConfigFile(): File? = delegate.buttonsLayoutConfigFile()
+    override fun writeFontsetPathMap(pathMap: Map<String, List<String>>): Result<File> =
+        delegate.writeFontsetPathMap(pathMap)
 }
 
 object ConfigProviders {
@@ -124,6 +146,12 @@ object ConfigProviders {
 
     @Synchronized
     fun ensureWatching() {
+        // Skip file watching when provider uses in-memory JSON (e.g., preview scenarios)
+        // This avoids null pointer exceptions and unnecessary file monitoring
+        if (provider.textKeyboardLayoutJson() != null) {
+            return
+        }
+
         val hasConfigListeners = textLayoutListeners.isNotEmpty() || popupPresetListeners.isNotEmpty() ||
                 buttonsLayoutListeners.isNotEmpty()
         val hasFontsetListeners = fontsetListeners.isNotEmpty()
@@ -219,8 +247,15 @@ object ConfigProviders {
         }
     }
 
-    inline fun <reified T> readTextKeyboardLayout(): UserJsonConfigStore.JsonSnapshot<T>? =
-        UserJsonConfigStore.readJson<T>(provider.textKeyboardLayoutFile()).also { ensureWatching() }
+    inline fun <reified T> readTextKeyboardLayout(): UserJsonConfigStore.JsonSnapshot<T>? {
+        // Try to read from in-memory JSON first to avoid disk I/O
+        val memoryJson = provider.textKeyboardLayoutJson()
+        if (memoryJson != null) {
+            return UserJsonConfigStore.readJson<T>(memoryJson).also { ensureWatching() }
+        }
+        // Fallback to file-based reading
+        return UserJsonConfigStore.readJson<T>(provider.textKeyboardLayoutFile()).also { ensureWatching() }
+    }
 
     inline fun <reified T> readPopupPreset(): UserJsonConfigStore.JsonSnapshot<T>? =
         UserJsonConfigStore.readJson<T>(provider.popupPresetFile()).also { ensureWatching() }

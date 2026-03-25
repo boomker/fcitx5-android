@@ -18,7 +18,7 @@ object UserJsonConfigStore {
     data class JsonSnapshot<T>(
         val value: T,
         val lastModified: Long,
-        val file: File
+        val file: File?
     )
 
     @PublishedApi
@@ -42,6 +42,28 @@ object UserJsonConfigStore {
             val content = cleanJson(file.readText(), stripLineComments)
             val decoded = parser.decodeFromString<T>(content)
             JsonSnapshot(decoded, file.lastModified(), file)
+        } catch (exception: Exception) {
+            exception.printStackTrace()
+            null
+        }
+    }
+
+    /**
+     * Read JSON from memory [JsonObject] instead of file.
+     * This avoids disk I/O for temporary/preview data.
+     *
+     * @param json The in-memory JSON object
+     * @param stripLineComments Whether to strip line comments (not applicable for in-memory JSON)
+     * @return JsonSnapshot with a synthetic lastModified time (current timestamp)
+     */
+    inline fun <reified T> readJson(
+        json: JsonObject?,
+        stripLineComments: Boolean = false
+    ): JsonSnapshot<T>? {
+        if (json == null) return null
+        return try {
+            val decoded = parser.decodeFromJsonElement<T>(json)
+            JsonSnapshot(decoded, System.currentTimeMillis(), null)
         } catch (exception: Exception) {
             exception.printStackTrace()
             null

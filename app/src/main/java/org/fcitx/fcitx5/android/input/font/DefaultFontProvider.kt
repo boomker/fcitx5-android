@@ -59,7 +59,7 @@ class DefaultFontProvider : FontProviderApi {
                 cachedFontTypefaceMap = null
                 return mutableMapOf()
             }
-            val fontsDir = fontset.file.parentFile ?: run {
+            val fontsDir = fontset.file?.parentFile ?: run {
                 cachedFontTypefaceMap = null
                 return mutableMapOf()
             }

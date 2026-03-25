@@ -22,25 +22,26 @@ import org.fcitx.fcitx5.android.data.theme.ThemeManager
 import org.fcitx.fcitx5.android.input.config.ConfigProvider
 import org.fcitx.fcitx5.android.input.config.ConfigProviders
 import org.fcitx.fcitx5.android.input.config.DefaultConfigProvider
+import org.fcitx.fcitx5.android.input.config.MemoryConfigProvider
 import org.fcitx.fcitx5.android.input.keyboard.TextKeyboard
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.utils.LayoutJsonUtils
 import splitties.dimensions.dp
 import java.io.File
 
 /**
- * 键盘预览管理器，负责键盘布局的预览功能。
- * 
- * 主要功能：
- * - [updatePreview] - 更新键盘预览
- * - [clear] - 清除预览键盘
- * 
- * 工作原理：
- * 1. 创建临时 JSON 文件存储当前布局
- * 2. 临时替换 ConfigProvider 指向临时文件
- * 3. 加载 TextKeyboard 进行预览
- * 4. 恢复原始 ConfigProvider 并删除临时文件
- * 
- * 使用示例：
+ * Keyboard preview manager, responsible for previewing keyboard layouts.
+ *
+ * Main functions:
+ * - [updatePreview] - Update keyboard preview
+ * - [clear] - Clear preview keyboard
+ *
+ * How it works:
+ * 1. Build in-memory JSON to store current layout
+ * 2. Temporarily replace ConfigProvider with PreviewConfigProvider (provides in-memory JSON)
+ * 3. Load TextKeyboard for preview (reads from in-memory JSON, no disk I/O)
+ * 4. Restore original ConfigProvider
+ *
+ * Usage example:
  * ```kotlin
  * val previewManager = KeyboardPreviewManager(context, container, entries)
  * previewManager.updatePreview(layoutName, subModeLabel, fcitxConnection)
@@ -54,11 +55,11 @@ class KeyboardPreviewManager(
     private var previewKeyboard: TextKeyboard? = null
 
     /**
-     * 更新键盘预览。
+     * Update keyboard preview.
      *
-     * @param layoutName 布局名称
-     * @param previewSubModeLabel 子模式标签，null 表示默认
-     * @param fcitxConnection Fcitx 连接，用于获取当前输入法
+     * @param layoutName Layout name
+     * @param previewSubModeLabel Submode label, null for default
+     * @param fcitxConnection Fcitx connection for getting current input method
      */
     fun updatePreview(
         layoutName: String,
@@ -77,18 +78,14 @@ class KeyboardPreviewManager(
             previewKeyboard = null
         }
 
-        // Create a temporary layout file for preview
-        val tempFile = File(context.cacheDir, "temp_layout.json")
-
         // Build submode map with all available submodes for this layout
         val subModeMap = buildSubModeMap(layoutName, subModeKey, rows, previewSubModeLabel)
 
         val tempJson = JsonObject(mapOf(layoutName to JsonObject(subModeMap)))
-        tempFile.writeText(Json.encodeToString(tempJson))
 
         // Temporarily replace the layout file and reload
         val provider = ConfigProviders.provider
-        val tempProvider = PreviewConfigProvider(tempFile, provider)
+        val tempProvider = PreviewConfigProvider(tempJson, provider)
 
         ConfigProviders.provider = tempProvider
         TextKeyboard.clearCachedKeyDefLayouts()
@@ -106,11 +103,6 @@ class KeyboardPreviewManager(
             ConfigProviders.provider = DefaultConfigProvider
             TextKeyboard.clearCachedKeyDefLayouts()
             TextKeyboard.ime = originalIme
-            
-            // Clean up temp file with error logging
-            if (!tempFile.delete()) {
-                android.util.Log.w("KeyboardPreview", "Failed to delete temporary layout file: ${tempFile.absolutePath}")
-            }
         }
     }
 
@@ -243,7 +235,7 @@ class KeyboardPreviewManager(
     }
 
     /**
-     * 清除预览键盘。
+     * Clear preview keyboard.
      */
     fun clear() {
         previewKeyboard?.let {
@@ -253,13 +245,14 @@ class KeyboardPreviewManager(
     }
 
     /**
-     * Temporary config provider for preview.
+     * Temporary config provider for preview using in-memory JSON.
      */
     private class PreviewConfigProvider(
-        private val tempFile: File,
+        private val tempJson: JsonObject,
         private val delegate: ConfigProvider
     ) : ConfigProvider {
-        override fun textKeyboardLayoutFile(): File? = tempFile
+        override fun textKeyboardLayoutFile(): File? = null
+        override fun textKeyboardLayoutJson(): JsonObject = tempJson
         override fun popupPresetFile(): File? = delegate.popupPresetFile()
         override fun fontsetFile(): File? = delegate.fontsetFile()
         override fun buttonsLayoutConfigFile(): File? = delegate.buttonsLayoutConfigFile()
