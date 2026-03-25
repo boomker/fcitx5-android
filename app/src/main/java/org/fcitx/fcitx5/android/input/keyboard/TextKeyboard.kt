@@ -410,6 +410,12 @@ class TextKeyboard(
         updateSpaceLabel(TextKeyboard.ime)
     }
 
+    override fun onThemeUpdate(newTheme: Theme) {
+        ensureSpecialKeyViewsInitialized()
+        updateCapsButtonIcon()
+        // Note: returnDrawable is managed by KeyboardWindow
+    }
+
     private fun transformPopupPreview(c: String): String {
         if (c.length != 1) return c
         if (c[0].isLetter()) return transformAlphabet(c)

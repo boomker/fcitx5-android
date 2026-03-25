@@ -53,7 +53,7 @@ import kotlin.math.roundToInt
 
 abstract class BaseKeyboard(
     context: Context,
-    protected val theme: Theme,
+    protected var theme: Theme,
     private val layoutProvider: () ->List<List<KeyDef>>
 ) : ConstraintLayout(context) {
 
@@ -507,6 +507,14 @@ abstract class BaseKeyboard(
         updateBounds()
     }
 
+    /**
+     * Lightweight style refresh, updates colors without rebuilding layout
+     */
+    fun refreshStyleLight() {
+        onStyleRefreshFinished()
+        invalidate()
+    }
+
     fun setHorizontalGapScale(scale: Float) {
         val target = scale.coerceIn(0.5f, 1f)
         if (kotlin.math.abs(horizontalGapScale - target) < 0.01f) return
@@ -516,6 +524,31 @@ abstract class BaseKeyboard(
 
     protected open fun onStyleRefreshFinished() {
         // do nothing by default
+    }
+
+    /**
+     * Update theme without rebuilding views.
+     * Iterates all KeyViews and updates their theme properties.
+     */
+    fun updateTheme(newTheme: Theme) {
+        theme = newTheme
+
+        if (::keyRows.isInitialized) {
+            keyRows.forEach { row ->
+                row.children.forEach { child ->
+                    (child as? KeyView)?.updateTheme(newTheme)
+                }
+            }
+        }
+
+        onThemeUpdate(newTheme)
+    }
+
+    /**
+     * Called after theme update for keyboard-specific updates
+     */
+    protected open fun onThemeUpdate(newTheme: Theme) {
+        // default: no-op
     }
 
     private fun createKeyView(def: KeyDef): KeyView {

@@ -54,7 +54,7 @@ import kotlin.math.roundToInt
 
 abstract class KeyView(
     ctx: Context,
-    val theme: Theme,
+    var theme: Theme,
     val def: KeyDef.Appearance,
     horizontalGapScale: Float = 1f
 ) :
@@ -263,6 +263,39 @@ abstract class KeyView(
             }
         }
     }
+
+    /**
+     * Update theme without rebuilding view
+     */
+    open fun updateTheme(newTheme: Theme) {
+        theme = newTheme
+
+        // Update key background (only when bordered)
+        if ((bordered && def.border != Border.Off) || def.border == Border.On) {
+            val bkgColor = when (def.variant) {
+                Variant.Normal, Variant.AltForeground -> newTheme.keyBackgroundColor
+                Variant.Alternative -> newTheme.altKeyBackgroundColor
+                Variant.Accent -> newTheme.accentKeyBackgroundColor
+            }
+            val borderOrShadowWidth = dp(1)
+            appearanceView.background = if (borderStroke) borderedKeyBackgroundDrawable(
+                bkgColor, newTheme.keyShadowColor,
+                radius, borderOrShadowWidth, hMargin, vMargin
+            ) else shadowedKeyBackgroundDrawable(
+                bkgColor, newTheme.keyShadowColor,
+                radius, borderOrShadowWidth, hMargin, vMargin
+            )
+        }
+        // Update press highlight for all keys
+        setupPressHighlight()
+
+        // Update special backgrounds for spaceBar and returnKey
+        val w = appearanceView.width
+        val h = appearanceView.height
+        if (w > 0 && h > 0) {
+            onSizeChanged(w, h, w, h)
+        }
+    }
 }
 
 @SuppressLint("ViewConstructor")
@@ -331,6 +364,17 @@ open class TextKeyView(
             mainText.setTextSize(TypedValue.COMPLEX_UNIT_SP, fontSize * scale)
             mainText.requestLayout()
         }
+    }
+
+    override fun updateTheme(newTheme: Theme) {
+        super.updateTheme(newTheme)
+        mainText.setTextColor(
+            when (def.variant) {
+                Variant.Normal -> newTheme.keyTextColor
+                Variant.AltForeground, Variant.Alternative -> newTheme.altKeyTextColor
+                Variant.Accent -> newTheme.accentKeyTextColor
+            }
+        )
     }
 }
 
@@ -448,6 +492,16 @@ class AltTextKeyView(
         }
         applyLayout(newConfig.orientation)
     }
+
+    override fun updateTheme(newTheme: Theme) {
+        super.updateTheme(newTheme)
+        altText.setTextColor(
+            when (def.variant) {
+                Variant.Normal, Variant.AltForeground, Variant.Alternative -> newTheme.altKeyTextColor
+                Variant.Accent -> newTheme.accentKeyTextColor
+            }
+        )
+    }
 }
 
 @SuppressLint("ViewConstructor")
@@ -466,6 +520,17 @@ class ImageKeyView(
                 centerInParent()
             })
         }
+    }
+
+    override fun updateTheme(newTheme: Theme) {
+        super.updateTheme(newTheme)
+        img.imageTintList = ColorStateList.valueOf(
+            when (def.variant) {
+                Variant.Normal -> newTheme.keyTextColor
+                Variant.AltForeground, Variant.Alternative -> newTheme.altKeyTextColor
+                Variant.Accent -> newTheme.accentKeyTextColor
+            }
+        )
     }
 }
 
@@ -534,5 +599,16 @@ class ImageTextKeyView(
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         updateMargins(newConfig.orientation)
+    }
+
+    override fun updateTheme(newTheme: Theme) {
+        super.updateTheme(newTheme)
+        img.imageTintList = ColorStateList.valueOf(
+            when (def.variant) {
+                Variant.Normal -> newTheme.keyTextColor
+                Variant.AltForeground, Variant.Alternative -> newTheme.altKeyTextColor
+                Variant.Accent -> newTheme.accentKeyTextColor
+            }
+        )
     }
 }

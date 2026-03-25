@@ -93,6 +93,8 @@ class KeyboardPreviewUi(override val ctx: Context, val theme: Theme) : Ui {
     private var keyboardHeight = -1
     private var sizeScale = 1f
     private lateinit var fakeKeyboardWindow: TextKeyboard
+    private var currentTheme: Theme? = null
+    private var isUpdatingTheme = false
 
     private val fakeInputView = constraintLayout {
         add(bkg, lParams {
@@ -199,30 +201,65 @@ class KeyboardPreviewUi(override val ctx: Context, val theme: Theme) : Ui {
         bkg.imageDrawable = drawable
     }
 
-    fun setTheme(theme: Theme, background: Drawable? = null) {
+    fun setTheme(theme: Theme, background: Drawable? = null, forceRefresh: Boolean = false) {
+        // Prevent re-entrant calls that could cause infinite loops
+        if (isUpdatingTheme) return
+        
+        val sameTheme = currentTheme != null && currentTheme == theme
+
+        // Skip update if theme unchanged and not forcing refresh
+        if (!forceRefresh && sameTheme) {
+            return
+        }
+
         setBackground(background ?: theme.backgroundDrawable(keyBorder))
-        if (this::fakeKeyboardWindow.isInitialized) {
-            fakeInputView.removeView(fakeKeyboardWindow)
-        }
-        // Match the actual KawaiiBar behavior: use barColor only when keyBorder is false and theme is Builtin
-        fakeKawaiiBar.backgroundColor = if (!keyBorder && theme is Theme.Builtin) theme.barColor else theme.backgroundColor
-        fakeKeyboardWindow = TextKeyboard(ctx, theme)
-        fakeInputView.apply {
-            add(fakeKeyboardWindow, lParams(matchConstraints, keyboardHeight) {
-                below(fakeKawaiiBar)
-                centerHorizontally(keyboardSidePaddingPx)
-            })
-        }
-        // ensure onAttach() runs after the view is attached and measured
-        fakeKeyboardWindow.post {
-            fakeKeyboardWindow.onAttach()
-            // provide a default IME so space label and displayText resolution run
-            fakeKeyboardWindow.onInputMethodUpdate(InputMethodEntry("Preview"))
-            // Apply text scale that matches the keyboard size scale
-            // This ensures text size is proportional to keyboard size
-            fakeKeyboardWindow.setTextScale(sizeScale)
-            fakeKeyboardWindow.requestLayout()
-            fakeKeyboardWindow.invalidate()
+
+        // First-time setup: create new keyboard view
+        if (!this::fakeKeyboardWindow.isInitialized) {
+            isUpdatingTheme = true
+            fakeKeyboardWindow = TextKeyboard(ctx, theme)
+            currentTheme = theme
+
+            // Match KawaiiBar behavior: use barColor for Builtin themes without border
+            fakeKawaiiBar.backgroundColor = if (!keyBorder && theme is Theme.Builtin) theme.barColor else theme.backgroundColor
+
+            fakeInputView.apply {
+                add(fakeKeyboardWindow, lParams(matchConstraints, keyboardHeight) {
+                    below(fakeKawaiiBar)
+                    centerHorizontally(keyboardSidePaddingPx)
+                })
+            }
+
+            fakeKeyboardWindow.post {
+                fakeKeyboardWindow.onAttach()
+                fakeKeyboardWindow.onInputMethodUpdate(InputMethodEntry("Preview"))
+                fakeKeyboardWindow.setTextScale(sizeScale)
+                fakeKeyboardWindow.requestLayout()
+                fakeKeyboardWindow.invalidate()
+                isUpdatingTheme = false
+            }
+        } else {
+            // Update KawaiiBar background color
+            fakeKawaiiBar.backgroundColor = if (!keyBorder && theme is Theme.Builtin) theme.barColor else theme.backgroundColor
+
+            fakeKeyboardWindow.post {
+                try {
+                    isUpdatingTheme = true
+                    if (forceRefresh) {
+                        // Config changed: rebuild layout
+                        // refreshStyle() reads latest config from ThemeManager.prefs
+                        fakeKeyboardWindow.refreshStyle()
+                    } else if (sameTheme) {
+                        fakeKeyboardWindow.invalidate()
+                    } else {
+                        // Theme changed: update colors without rebuilding
+                        currentTheme = theme
+                        fakeKeyboardWindow.updateTheme(theme)
+                    }
+                } finally {
+                    isUpdatingTheme = false
+                }
+            }
         }
     }
 }
