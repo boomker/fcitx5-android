@@ -252,7 +252,7 @@
     <string name="popup_editor_key">按鍵</string>
     <string name="popup_editor_key_input_hint">請輸入按鍵標籤，例如：q</string>
     <string name="popup_editor_values">彈出候選</string>
-    <string name="popup_editor_hint_click_edit_long_press_delete">點擊編輯，長按刪除</string>
+    <string name="popup_editor_hint_click_edit_long_press_delete">點擊編輯，長按刪除，拖拽排序</string>
     <string name="popup_editor_key_empty">按鍵不可為空</string>
     <string name="popup_editor_key_exists">按鍵已存在：%1$s</string>
     <string name="popup_editor_delete_confirm">確定刪除映射「%1$s」？</string>

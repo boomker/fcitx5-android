@@ -107,6 +107,10 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         idleUi.buttonsUi.setFloatingState(isFloating)
     }
 
+    fun setOneHandKeyboardState(isOneHanded: Boolean) {
+        idleUi.buttonsUi.setOneHandKeyboardState(isOneHanded)
+    }
+
     private val prefs = AppPrefs.getInstance()
 
     private val clipboardSuggestion = prefs.clipboard.clipboardSuggestion
@@ -285,9 +289,10 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
                         windowManager = windowManager,
                         view = null,
                         onActionComplete = {
-                            // Refresh UI state after action completion (for floating toggle, etc.)
-                            if (action.id == "floating_toggle") {
-                                evalIdleUiState()
+                            // Refresh UI state after action completion
+                            when (action.id) {
+                                "floating_toggle" -> evalIdleUiState()
+                                "one_handed_keyboard" -> updateButtonsState(service)
                             }
                         }
                     )

@@ -321,8 +321,7 @@ class FontsetEditorActivity : AppCompatActivity() {
         class FontItemHolder(
             row: LinearLayout,
             val order: TextView,
-            val checkbox: CheckBox,
-            val hint: TextView
+            val checkbox: CheckBox
         ) : RecyclerView.ViewHolder(row)
 
         val adapter = object : RecyclerView.Adapter<FontItemHolder>() {
@@ -337,23 +336,16 @@ class FontsetEditorActivity : AppCompatActivity() {
                     width = dp(24)
                 }
                 val checkBox = CheckBox(this@FontsetEditorActivity)
-                val dragHint = TextView(this@FontsetEditorActivity).apply {
-                    text = "☰"
-                    textSize = 18f
-                    alpha = 0.5f
-                    width = dp(28)
-                    gravity = android.view.Gravity.CENTER
-                }
                 row.addView(orderLabel)
                 row.addView(
                     checkBox,
-                    LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-                        weight = 1f
-                    }
+                    LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    )
                 )
-                row.addView(dragHint)
 
-                return FontItemHolder(row, orderLabel, checkBox, dragHint)
+                return FontItemHolder(row, orderLabel, checkBox)
             }
 
             override fun getItemCount(): Int = allOrdered.size
@@ -364,7 +356,6 @@ class FontsetEditorActivity : AppCompatActivity() {
                 val selected = selectedIndex >= 0
 
                 holder.order.text = if (selected) "${selectedIndex + 1}." else ""
-                holder.hint.alpha = if (selected) 0.8f else 0.25f
 
                 holder.checkbox.setOnCheckedChangeListener(null)
                 holder.checkbox.text = fontName
@@ -380,15 +371,20 @@ class FontsetEditorActivity : AppCompatActivity() {
                             val insertPos = selectedOrder.size
                             selectedOrder.add(name)
                             allOrdered.add(insertPos, name)
+                            // 精确刷新受影响的 item
+                            notifyItemRemoved(adapterPos)
+                            notifyItemInserted(insertPos)
                         }
                     } else {
                         if (currentlySelected) {
                             selectedOrder.remove(name)
                             allOrdered.removeAt(adapterPos)
                             allOrdered.add(name)
+                            // 精确刷新受影响的 item
+                            notifyItemRemoved(adapterPos)
+                            notifyItemInserted(allOrdered.size - 1)
                         }
                     }
-                    notifyDataSetChanged()
                 }
             }
         }
@@ -422,11 +418,38 @@ class FontsetEditorActivity : AppCompatActivity() {
                 selectedOrder.addAll(allOrdered.take(selectedCount))
 
                 adapter.notifyItemMoved(from, to)
-                adapter.notifyItemRangeChanged(0, allOrdered.size)
+                // 只刷新受影响的 item 范围
+                val minPos = minOf(from, to)
+                val maxPos = maxOf(from, to)
+                adapter.notifyItemRangeChanged(minPos, maxPos - minPos + 1)
                 return true
             }
 
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {}
+
+            override fun onSelectedChanged(viewHolder: RecyclerView.ViewHolder?, actionState: Int) {
+                super.onSelectedChanged(viewHolder, actionState)
+                if (actionState == ItemTouchHelper.ACTION_STATE_DRAG && viewHolder != null) {
+                    // 高亮拖拽中的 item
+                    viewHolder.itemView.alpha = 0.85f
+                    viewHolder.itemView.translationZ = 10f
+                    // 添加背景色增强反馈
+                    viewHolder.itemView.setBackgroundColor(
+                        this@FontsetEditorActivity.styledColor(android.R.attr.colorControlHighlight)
+                    )
+                }
+            }
+
+            override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
+                super.clearView(recyclerView, viewHolder)
+                // 恢复外观
+                viewHolder.itemView.alpha = 1.0f
+                viewHolder.itemView.translationZ = 0f
+                viewHolder.itemView.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+            }
+
+            // 启用长按拖拽
+            override fun isLongPressDragEnabled(): Boolean = true
         })
         itemTouchHelper.attachToRecyclerView(recycler)
 

@@ -349,6 +349,10 @@ data object OneHandedKeyboardAction : ButtonAction() {
     override val defaultIcon = R.drawable.ic_baseline_keyboard_tab_24
     override val defaultLabelRes = R.string.one_handed_keyboard
 
+    override fun isActive(service: FcitxInputMethodService): Boolean {
+        return service.isOneHandKeyboardEnabled()
+    }
+
     override fun execute(
         context: Context,
         service: FcitxInputMethodService,

@@ -313,7 +313,7 @@
     <string name="popup_editor_key">Key</string>
     <string name="popup_editor_key_input_hint">Enter a key label, for example: q</string>
     <string name="popup_editor_values">Popup candidates</string>
-    <string name="popup_editor_hint_click_edit_long_press_delete">tap to edit, long press to delete</string>
+    <string name="popup_editor_hint_click_edit_long_press_delete">tap to edit, long press to delete, drag to reorder</string>
     <string name="popup_editor_key_empty">Key cannot be empty</string>
     <string name="popup_editor_key_exists">Key already exists: %1$s</string>
     <string name="popup_editor_delete_confirm">Delete mapping "%1$s"?</string>

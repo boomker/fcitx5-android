@@ -399,8 +399,7 @@ class ButtonsCustomizerActivity : AppCompatActivity() {
                 viewHolder.itemView.alpha = 1.0f
                 viewHolder.itemView.translationZ = 0f
                 viewHolder.itemView.setBackgroundColor(android.graphics.Color.TRANSPARENT)
-                // Refresh adapter to ensure correct appearance
-                adapter?.notifyDataSetChanged()
+                // 不需要调用 notifyDataSetChanged，视图会自动恢复
             }
 
             // Enable long press to start drag
@@ -504,7 +503,7 @@ class ButtonsCustomizerActivity : AppCompatActivity() {
                 items.add(insertPosition, ListItem.ButtonItem(newButton, targetSection))
                 adapter?.notifyItemInserted(insertPosition)
                 updateAddButtonsSection()
-                adapter?.notifyDataSetChanged()
+                adapter?.notifyDataSetChanged() // 更新 AddButtons 区域
                 updateSaveButtonState()
             }
             .show()
@@ -564,7 +563,7 @@ class ButtonsCustomizerActivity : AppCompatActivity() {
                             items.removeAt(position)
                             adapter?.notifyItemRemoved(position)
                             updateAddButtonsSection()
-                            adapter?.notifyDataSetChanged()
+                            adapter?.notifyDataSetChanged() // 更新 AddButtons 区域
                             updateSaveButtonState()
                         }
                         .setNegativeButton(R.string.cancel, null)

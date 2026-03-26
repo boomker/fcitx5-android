@@ -143,7 +143,7 @@
     <string name="popup_editor_key">Tecla</string>
     <string name="popup_editor_key_input_hint">Ingrese una etiqueta de tecla, por ejemplo: q</string>
     <string name="popup_editor_values">Candidatos de popup</string>
-    <string name="popup_editor_hint_click_edit_long_press_delete">toque para editar, mantenga presionado para eliminar</string>
+    <string name="popup_editor_hint_click_edit_long_press_delete">toque para editar, mantenga presionado para eliminar, arrastre para reordenar</string>
     <string name="popup_editor_key_empty">La tecla no puede estar vacía</string>
     <string name="popup_editor_key_exists">La tecla ya existe: %1$s</string>
     <string name="popup_editor_delete_confirm">¿Eliminar asignación "%1$s"?</string>

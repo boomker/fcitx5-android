@@ -51,9 +51,6 @@ class KeyboardLayoutAdapter(
         /** Called when a key is clicked */
         fun onKeyClick(rowIndex: Int, keyIndex: Int)
 
-        /** Called when a key is long-clicked for deletion */
-        fun onKeyLongClick(rowIndex: Int, keyIndex: Int): Boolean
-
         /** Called when the add key button is clicked */
         fun onAddKeyClick(rowIndex: Int)
 
@@ -88,6 +85,46 @@ class KeyboardLayoutAdapter(
     fun updateRows(newRows: List<MutableList<MutableMap<String, Any?>>>) {
         rows = newRows
         rowsRecyclerView?.post { notifyDataSetChanged() }
+    }
+
+    /**
+     * Notify that a single key has changed (call after modifying key data).
+     * Uses notifyItemChanged to trigger RecyclerView to re-measure the row (handles key size changes).
+     */
+    fun notifyKeyChanged(rowIndex: Int, keyIndex: Int) {
+        notifyItemChanged(rowIndex)
+    }
+
+    /**
+     * Notify that an entire row has changed (call after adding/removing keys).
+     */
+    fun notifyRowChanged(rowIndex: Int) {
+        notifyItemChanged(rowIndex)
+    }
+
+    /**
+     * Notify that a new row has been inserted.
+     */
+    fun notifyRowInserted(position: Int) {
+        notifyItemInserted(position)
+        // Notify that the "add row" button position has changed
+        notifyItemChanged(itemCount - 1)
+    }
+
+    /**
+     * Notify that a row has been removed.
+     */
+    fun notifyRowRemoved(position: Int) {
+        notifyItemRemoved(position)
+        // Notify that the "add row" button position has changed
+        notifyItemChanged(itemCount - 1)
+    }
+
+    /**
+     * Notify that a row has been moved (drag-to-reorder).
+     */
+    fun notifyRowMoved(fromPosition: Int, toPosition: Int) {
+        notifyItemMoved(fromPosition, toPosition)
     }
 
     override fun getItemViewType(position: Int): Int {
@@ -153,7 +190,10 @@ class KeyboardLayoutAdapter(
             gravity = Gravity.CENTER_VERTICAL
         })
 
-        return RowViewHolder(rowContainer, dragHandle, keysFlow, deleteRowButton)
+        val viewHolder = RowViewHolder(rowContainer, dragHandle, keysFlow, deleteRowButton)
+        // Setup listeners for fixed parts (called only once)
+        setupRowViewHolder(viewHolder)
+        return viewHolder
     }
 
     private fun createAddRowViewHolder(parent: ViewGroup): AddRowViewHolder {
@@ -189,94 +229,43 @@ class KeyboardLayoutAdapter(
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         when (holder) {
-            is RowViewHolder -> bindRowViewHolder(holder, position)
+            is RowViewHolder -> {
+                // Rebind keys (listeners for fixed parts like delete button are already set in createRowViewHolder)
+                bindRowKeys(holder, position)
+            }
             is AddRowViewHolder -> {
                 // Add row button doesn't need binding, click listener is set in onCreateViewHolder
             }
         }
     }
 
-    private fun bindRowViewHolder(holder: RowViewHolder, position: Int) {
-        val row = rows[position]
-        holder.keysFlow.removeAllViews()
-
-        // Setup drag listener for key reordering (once per row, not per key)
-        if (holder.keysFlow is DraggableFlowLayout) {
-            holder.keysFlow.onDragListener = object : DraggableFlowLayout.OnDragListener {
-                override fun onDragStarted(view: View, position: Int) {
-                }
-
-                override fun onDragPositionChanged(from: Int, to: Int) {
-                    listener.onKeyPositionChanged(position, from, to)
-                }
-
-                override fun onDragEnded(view: View, position: Int) {
-                    listener.onKeyDragEnded(position)
-                }
+    /**
+     * Setup fixed parts of RowViewHolder (drag handle, delete button, etc.).
+     * Called only once during creation, uses bindingAdapterPosition to get current position dynamically.
+     */
+    private fun setupRowViewHolder(holder: RowViewHolder) {
+        // Delete button click listener - uses bindingAdapterPosition to get current position dynamically
+        holder.deleteButton.setOnClickListener {
+            val adapterPosition = holder.bindingAdapterPosition
+            if (adapterPosition != RecyclerView.NO_POSITION) {
+                listener.onDeleteRowClick(adapterPosition)
             }
         }
-
-        // Add keys - short click to edit, with drag support (directly on the key)
-        row.forEachIndexed { keyIndex, key ->
-            val keyChip = TextView(context).apply {
-                text = buildKeyLabel(key)
-                textSize = 14f
-                setPadding(context.dp(10), context.dp(8), context.dp(10), context.dp(8))
-                gravity = Gravity.CENTER
-                background = android.graphics.drawable.GradientDrawable().apply {
-                    setColor(context.styledColor(android.R.attr.colorButtonNormal))
-                    setStroke(context.dp(1), context.styledColor(android.R.attr.colorControlNormal))
-                    cornerRadius = context.dp(4).toFloat()
-                }
-                setOnClickListener { listener.onKeyClick(position, keyIndex) }
-                setOnLongClickListener { listener.onKeyLongClick(position, keyIndex) }
-            }
-
-            holder.keysFlow.addView(keyChip, ViewGroup.MarginLayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            ).apply {
-                rightMargin = context.dp(6)
-                bottomMargin = context.dp(4)
-                topMargin = context.dp(4)
-            })
-        }
-
-        // Add button (same style as other keys)
-        val addKeyChip = TextView(context).apply {
-            text = "+"
-            textSize = 14f
-            setTypeface(null, android.graphics.Typeface.BOLD)
-            setPadding(context.dp(10), context.dp(8), context.dp(10), context.dp(8))
-            gravity = Gravity.CENTER
-            background = android.graphics.drawable.GradientDrawable().apply {
-                setColor(context.styledColor(android.R.attr.colorPrimary))
-                setStroke(context.dp(1), context.styledColor(android.R.attr.colorControlNormal))
-                cornerRadius = context.dp(4).toFloat()
-            }
-            setOnClickListener { listener.onAddKeyClick(position) }
-        }
-        holder.keysFlow.addView(addKeyChip, ViewGroup.MarginLayoutParams(
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        ).apply {
-            rightMargin = context.dp(6)
-            bottomMargin = context.dp(4)
-            topMargin = context.dp(4)
-        })
-
-        // Delete row button
-        holder.deleteButton.setOnClickListener { listener.onDeleteRowClick(position) }
 
         var downOnKeyChip = false
         val startRowDragIfAllowed: () -> Boolean = {
             if (holder.keysFlow is DraggableFlowLayout && holder.keysFlow.isDragging) {
                 false
             } else {
-                rowsRecyclerView?.findViewHolderForAdapterPosition(position)?.let { viewHolder ->
-                    rowTouchHelper?.startDrag(viewHolder)
-                    true
-                } ?: false
+                val adapterPosition = holder.bindingAdapterPosition
+                if (adapterPosition != RecyclerView.NO_POSITION) {
+                    rowsRecyclerView?.findViewHolderForAdapterPosition(adapterPosition)?.let { viewHolder ->
+                        rowTouchHelper?.startDrag(viewHolder)
+                        true
+                    } ?: false
+                } else {
+                    false
+                }
             }
         }
 
@@ -311,6 +300,94 @@ class KeyboardLayoutAdapter(
             }
             false
         }
+    }
+
+    /**
+     * Bind keys in a row (can be called multiple times for partial refresh).
+     */
+    private fun bindRowKeys(holder: RowViewHolder, position: Int) {
+        val row = rows[position]
+        holder.keysFlow.removeAllViews()
+
+        // Setup drag listener for key reordering (once per row, not per key)
+        if (holder.keysFlow is DraggableFlowLayout && holder.keysFlow.onDragListener == null) {
+            holder.keysFlow.onDragListener = object : DraggableFlowLayout.OnDragListener {
+                override fun onDragStarted(view: View, position: Int) {
+                }
+
+                override fun onDragPositionChanged(from: Int, to: Int) {
+                    val adapterPosition = holder.bindingAdapterPosition
+                    if (adapterPosition != RecyclerView.NO_POSITION) {
+                        listener.onKeyPositionChanged(adapterPosition, from, to)
+                    }
+                }
+
+                override fun onDragEnded(view: View, position: Int) {
+                    val adapterPosition = holder.bindingAdapterPosition
+                    if (adapterPosition != RecyclerView.NO_POSITION) {
+                        listener.onKeyDragEnded(adapterPosition)
+                    }
+                }
+            }
+        }
+
+        // Add keys - short click to edit, with drag support (directly on the key)
+        row.forEachIndexed { keyIndex, key ->
+            val keyChip = TextView(context).apply {
+                text = buildKeyLabel(key)
+                textSize = 14f
+                setPadding(context.dp(10), context.dp(8), context.dp(10), context.dp(8))
+                gravity = Gravity.CENTER
+                background = android.graphics.drawable.GradientDrawable().apply {
+                    setColor(context.styledColor(android.R.attr.colorButtonNormal))
+                    setStroke(context.dp(1), context.styledColor(android.R.attr.colorControlNormal))
+                    cornerRadius = context.dp(4).toFloat()
+                }
+                setOnClickListener {
+                    val adapterPosition = holder.bindingAdapterPosition
+                    if (adapterPosition != RecyclerView.NO_POSITION) {
+                        listener.onKeyClick(adapterPosition, keyIndex)
+                    }
+                }
+            }
+
+            holder.keysFlow.addView(keyChip, ViewGroup.MarginLayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply {
+                rightMargin = context.dp(6)
+                bottomMargin = context.dp(4)
+                topMargin = context.dp(4)
+            })
+        }
+
+        // Add button (same style as other keys)
+        val addKeyChip = TextView(context).apply {
+            text = "+"
+            textSize = 14f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            setPadding(context.dp(10), context.dp(8), context.dp(10), context.dp(8))
+            gravity = Gravity.CENTER
+            background = android.graphics.drawable.GradientDrawable().apply {
+                setColor(context.styledColor(android.R.attr.colorPrimary))
+                setStroke(context.dp(1), context.styledColor(android.R.attr.colorControlNormal))
+                cornerRadius = context.dp(4).toFloat()
+            }
+            setOnClickListener {
+                val adapterPosition = holder.bindingAdapterPosition
+                if (adapterPosition != RecyclerView.NO_POSITION) {
+                    listener.onAddKeyClick(adapterPosition)
+                }
+            }
+        }
+        holder.keysFlow.addView(addKeyChip, ViewGroup.MarginLayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        ).apply {
+            rightMargin = context.dp(6)
+            bottomMargin = context.dp(4)
+            topMargin = context.dp(4)
+        })
     }
 
     override fun getItemCount(): Int = rows.size + 1  // +1 for add row button

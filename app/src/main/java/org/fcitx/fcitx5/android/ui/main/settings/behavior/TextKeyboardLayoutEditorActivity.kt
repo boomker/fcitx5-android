@@ -99,7 +99,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            val pad = dp(8)
+            val pad = dp(4)
             setPadding(0, pad, 0, pad)
         }
     }
@@ -108,6 +108,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         Spinner(this).apply {
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
                 weight = 1f
+                setMargins(0, 0, 0, 0)
             }
         }
     }
@@ -116,6 +117,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         Spinner(this).apply {
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
                 weight = 1f
+                setMargins(0, 0, 0, 0)
             }
         }
     }
@@ -125,7 +127,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             text = "+"
             textSize = 14f
             setTypeface(null, android.graphics.Typeface.BOLD)
-            setPadding(dp(12), dp(6), dp(12), dp(6))
+            setPadding(dp(12), dp(4), dp(12), dp(4))
             minWidth = dp(40)
             gravity = Gravity.CENTER
             setOnClickListener { openLayoutEditor(null) }
@@ -136,7 +138,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         TextView(this).apply {
             text = "🗑"
             textSize = 14f
-            setPadding(dp(12), dp(6), dp(12), dp(6))
+            setPadding(dp(12), dp(4), dp(12), dp(4))
             minWidth = dp(40)
             gravity = Gravity.CENTER
             setOnClickListener { confirmDeleteCurrentEditingLayout() }
@@ -907,7 +909,6 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                 buildSubModeSpinner(forceResetSelection = true)
                 currentRowsRef = entries[validLayout] ?: mutableListOf()
                 rowsAdapter?.updateRows(currentRowsRef)
-                rowsRecyclerView.requestLayout()
                 run { val name = currentLayout ?: return@run; previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection) }
                 updateSaveButtonState()
             } else {
@@ -948,11 +949,6 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                     openKeyEditor(rowIndex, keyIndex)
                 }
 
-                override fun onKeyLongClick(rowIndex: Int, keyIndex: Int): Boolean {
-                    confirmDeleteKey(rowIndex, keyIndex)
-                    return true
-                }
-
                 override fun onAddKeyClick(rowIndex: Int) {
                     openKeyEditor(rowIndex, null)
                 }
@@ -970,11 +966,13 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                 }
 
                 override fun onRowDragEnded() {
-                    // Post to avoid calling notifyDataSetChanged() during RecyclerView layout
+                    // Refresh only affected rows after drag ends
                     rowsRecyclerView.post {
                         rowsAdapter?.notifyDataSetChanged()
-                        run { val name = currentLayout ?: return@post; previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection) }
-                        updateSaveButtonState()
+                        currentLayout?.let { name ->
+                            previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection)
+                            updateSaveButtonState()
+                        }
                     }
                 }
 
@@ -991,11 +989,12 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                 }
 
                 override fun onKeyDragEnded(rowIndex: Int) {
-                    // Post to avoid calling notifyDataSetChanged() during RecyclerView layout.
-                    // Use currentRowsRef directly to preserve the current editing target (avoids re-resolving layout in buildRows()).
+                    // Refresh only the affected row after key drag ends
                     rowsRecyclerView.post {
-                        rowsAdapter?.updateRows(currentRowsRef)
-                        run { val name = currentLayout ?: return@post; previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection) }
+                        rowsAdapter?.notifyRowChanged(rowIndex)
+                        currentLayout?.let { name ->
+                            previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection)
+                        }
                     }
                 }
             })
@@ -1011,7 +1010,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                     if (viewHolder is KeyboardLayoutAdapter.AddRowViewHolder || target is KeyboardLayoutAdapter.AddRowViewHolder) {
                         return false
                     }
-                    
+
                     // Check if either the current or target ViewHolder contains a DraggableFlowLayout that is currently dragging
                     // Cast the ViewHolder to RowViewHolder to access the keysFlow field
                     if (viewHolder is KeyboardLayoutAdapter.RowViewHolder && target is KeyboardLayoutAdapter.RowViewHolder) {
@@ -1035,7 +1034,8 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                     currentRowsRef[fromPosition] = currentRowsRef[toPosition]
                     currentRowsRef[toPosition] = temp
 
-                    recyclerView.adapter?.notifyItemMoved(fromPosition, toPosition)
+                    // Use partial refresh
+                    rowsAdapter?.notifyRowMoved(fromPosition, toPosition)
                     return true
                 }
 
@@ -1079,15 +1079,12 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                 }
             })
             rowTouchHelper?.attachToRecyclerView(rowsRecyclerView)
-            
+
             // Setup row drag trigger in adapter
             rowsAdapter?.setupRowDragTrigger(rowsRecyclerView, rowTouchHelper)
         } else {
             rowsAdapter?.updateRows(rows)
         }
-
-        // Force RecyclerView to re-measure
-        rowsRecyclerView.requestLayout()
 
         // Update button behavior based on current submode state
         updateLayoutButtonBehavior()
@@ -1120,80 +1117,41 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             fcitxLabels.size > 1
         }
 
+        val isEditing = keyIndex != null
         keyEditorDialog.show(
             keyData = keyData.toMutableMap(),
             isEditingSubModeLayout = isEditingSubModeLayout,
             currentSubModeLabel = previewSubModeLabel,
-            hasMultiSubmodeSupport = hasMultiSubmodeSupport
-        ) { newKey ->
-            // 保存键数据
-            if (keyIndex != null) {
-                row[rowIndex][keyIndex] = newKey
-            } else {
-                row[rowIndex].add(newKey)
-            }
-            buildRows()
-            val name = currentLayout ?: return@show
-            previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection)
-            updateSaveButtonState()
-        }
-    }
-
-    private fun confirmDeleteKey(rowIndex: Int, keyIndex: Int) {
-        val layoutName = currentLayout ?: return
-
-        // Get the correct layout to edit (submode or default)
-        val subModeKey = previewSubModeLabel?.let { "$layoutName:$it" }
-        val row = if (subModeKey != null && entries.containsKey(subModeKey)) {
-            entries[subModeKey]
-        } else {
-            entries[layoutName]
-        } ?: return
-
-        val key = row.getOrNull(rowIndex)?.getOrNull(keyIndex)
-        val keyLabel = key?.let { buildKeyLabel(it) } ?: "?"
-
-        val dialog = AlertDialog.Builder(this)
-            .setTitle(R.string.delete)
-            .setMessage(getString(R.string.text_keyboard_layout_delete_key_confirm_with_label, keyLabel))
-            .setPositiveButton(R.string.delete) { _, _ ->
-                if (rowIndex < row.size && keyIndex < row[rowIndex].size) {
-                    row[rowIndex].removeAt(keyIndex)
-                    buildRows()
-                    run { val name = currentLayout ?: return@run; previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection) }
+            hasMultiSubmodeSupport = hasMultiSubmodeSupport,
+            onSave = { newKey ->
+                // Save key data
+                if (keyIndex != null) {
+                    row[rowIndex][keyIndex] = newKey
+                    // Refresh only this row's keys, not the entire list
+                    rowsAdapter?.notifyKeyChanged(rowIndex, keyIndex)
+                } else {
+                    row[rowIndex].add(newKey)
+                    // Refresh only this row (added new key)
+                    rowsAdapter?.notifyRowChanged(rowIndex)
+                }
+                // Only update preview and save button state, don't call buildRows()
+                currentLayout?.let { name ->
+                    previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection)
                     updateSaveButtonState()
                 }
+            },
+            onDelete = {
+                if (keyIndex != null) {
+                    row[rowIndex].removeAt(keyIndex)
+                    // Refresh only this row (deleted key)
+                    rowsAdapter?.notifyRowChanged(rowIndex)
+                    currentLayout?.let { name ->
+                        previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection)
+                        updateSaveButtonState()
+                    }
+                }
             }
-            .setNegativeButton(android.R.string.cancel, null)
-            .create()
-        dialog.setOnShowListener { styleDialogTypography(dialog) }
-        dialog.show()
-    }
-
-    /**
-     * 构建键的显示标签（用于删除确认对话框）
-     */
-    private fun buildKeyLabel(key: Map<String, Any?>): String {
-        val type = key["type"] as? String ?: "?"
-        return when (type) {
-            "AlphabetKey" -> {
-                val main = key["main"] as? String ?: ""
-                main.ifEmpty { "?" }
-            }
-            "CapsKey" -> getString(R.string.text_keyboard_layout_key_label_caps)
-            "LayoutSwitchKey" -> {
-                val label = key["label"] as? String ?: "?123"
-                val subLabel = key["subLabel"] as? String ?: ""
-                if (subLabel.isNotEmpty()) "$label→$subLabel" else label
-            }
-            "CommaKey" -> ","
-            "LanguageKey" -> getString(R.string.text_keyboard_layout_key_label_lang)
-            "SpaceKey" -> getString(R.string.text_keyboard_layout_key_label_space)
-            "SymbolKey" -> key["label"] as? String ?: "."
-            "ReturnKey" -> getString(R.string.text_keyboard_layout_key_label_enter)
-            "BackspaceKey" -> "⌫"
-            else -> type
-        }
+        )
     }
 
     private fun confirmDeleteRow(rowIndex: Int) {
@@ -1202,7 +1160,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             .setMessage(getString(R.string.text_keyboard_layout_delete_row_confirm, rowIndex + 1))
             .setPositiveButton(R.string.delete) { _, _ ->
                 val layoutName = currentLayout ?: return@setPositiveButton
-                
+
                 // Get the correct layout to edit (submode or default)
                 val subModeKey = previewSubModeLabel?.let { "$layoutName:$it" }
                 val row = if (subModeKey != null && entries.containsKey(subModeKey)) {
@@ -1210,12 +1168,16 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                 } else {
                     entries[layoutName]
                 } ?: return@setPositiveButton
-                
+
                 if (rowIndex < row.size) {
                     row.removeAt(rowIndex)
-                    buildRows()
-                    run { val layoutName = currentLayout ?: return@run; previewManager.updatePreview(layoutName, previewSubModeLabel, fcitxConnection) }
-                    updateSaveButtonState() // Update save button state
+                    // Use partial refresh, only notify the deleted row
+                    rowsAdapter?.notifyRowRemoved(rowIndex)
+                    // Update preview
+                    currentLayout?.let { name ->
+                        previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection)
+                        updateSaveButtonState()
+                    }
                 }
             }
             .setNegativeButton(android.R.string.cancel, null)
@@ -1227,7 +1189,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
 
     private fun addRow() {
         val layoutName = currentLayout ?: return
-        
+
         // Get the correct layout to edit (submode or default)
         val subModeKey = previewSubModeLabel?.let { "$layoutName:$it" }
         val rows = if (subModeKey != null && entries.containsKey(subModeKey)) {
@@ -1235,11 +1197,18 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         } else {
             entries[layoutName]
         } ?: return
-        
+
         rows.add(mutableListOf())
-        buildRows()
-        run { val layoutName = currentLayout ?: return@run; previewManager.updatePreview(layoutName, previewSubModeLabel, fcitxConnection) }
-        updateSaveButtonState()
+        val newPosition = rows.size - 1
+        // Notify only the inserted row
+        rowsAdapter?.notifyRowInserted(newPosition)
+        // Scroll to the new row
+        rowsRecyclerView.scrollToPosition(newPosition)
+        // Update preview
+        currentLayout?.let { name ->
+            previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection)
+            updateSaveButtonState()
+        }
     }
 
     private fun openLayoutEditor(originalLayoutName: String?) {

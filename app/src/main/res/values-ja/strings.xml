@@ -279,7 +279,7 @@
     <string name="popup_editor_key">キー</string>
     <string name="popup_editor_key_input_hint">キーラベルを入力（例：q）</string>
     <string name="popup_editor_values">ポップアップ候補</string>
-    <string name="popup_editor_hint_click_edit_long_press_delete">タップして編集、長押しして削除</string>
+    <string name="popup_editor_hint_click_edit_long_press_delete">タップして編集、長押しして削除、ドラッグして並べ替え</string>
     <string name="popup_editor_key_empty">キーは空にできません</string>
     <string name="popup_editor_key_exists">キーは既に存在します：%1$s</string>
     <string name="popup_editor_delete_confirm">マッピング "%1$s" を削除しますか？</string>

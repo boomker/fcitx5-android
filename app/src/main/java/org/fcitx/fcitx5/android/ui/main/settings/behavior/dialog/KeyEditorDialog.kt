@@ -44,13 +44,15 @@ class KeyEditorDialog(private val activity: AppCompatActivity) {
      * @param currentSubModeLabel Current submode label
      * @param hasMultiSubmodeSupport Whether IME supports multi-submode
      * @param onSave Save callback, returns new key data
+     * @param onDelete Delete callback (only called when editing existing key)
      */
     fun show(
         keyData: Map<String, Any?>,
         isEditingSubModeLayout: Boolean,
         currentSubModeLabel: String?,
         hasMultiSubmodeSupport: Boolean,
-        onSave: (MutableMap<String, Any?>) -> Unit
+        onSave: (MutableMap<String, Any?>) -> Unit,
+        onDelete: (() -> Unit)? = null
     ) {
         val isEdit = keyData.isNotEmpty()
 
@@ -231,12 +233,18 @@ class KeyEditorDialog(private val activity: AppCompatActivity) {
         rebuildFields()
 
         // 创建对话框
-        val dialog = AlertDialog.Builder(activity)
+        val dialogBuilder = AlertDialog.Builder(activity)
             .setTitle(if (isEdit) R.string.edit else R.string.text_keyboard_layout_add_key)
             .setView(container)
             .setPositiveButton(android.R.string.ok, null)
             .setNegativeButton(android.R.string.cancel, null)
-            .create()
+
+        // Add delete button when editing existing key
+        if (isEdit && onDelete != null) {
+            dialogBuilder.setNeutralButton(R.string.delete, null)
+        }
+
+        val dialog = dialogBuilder.create()
 
         dialog.setOnShowListener {
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
@@ -262,6 +270,21 @@ class KeyEditorDialog(private val activity: AppCompatActivity) {
                 if (result != null) {
                     onSave(result)
                     dialog.dismiss()
+                }
+            }
+
+            // Setup delete button
+            if (isEdit && onDelete != null) {
+                dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
+                    AlertDialog.Builder(activity)
+                        .setTitle(R.string.delete)
+                        .setMessage(R.string.text_keyboard_layout_delete_key_confirm)
+                        .setPositiveButton(R.string.delete) { _, _ ->
+                            onDelete()
+                            dialog.dismiss()
+                        }
+                        .setNegativeButton(android.R.string.cancel, null)
+                        .show()
                 }
             }
         }
