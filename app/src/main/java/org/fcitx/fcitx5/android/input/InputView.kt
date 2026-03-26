@@ -1224,6 +1224,7 @@ class InputView(
             kawaiiBar.setFloatingState(false)
         }
         isOneHanded = !isOneHanded
+        kawaiiBar.setOneHandKeyboardState(isOneHanded)
         if (isOneHanded) {
             resolveOneHandWidth()
         }

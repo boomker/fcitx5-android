@@ -36,7 +36,11 @@ class ToolButton(context: Context) : CustomGestureView(context) {
         scaleType = ImageView.ScaleType.CENTER_INSIDE
     }
 
+    private var theme: Theme? = null
+    private var isActive: Boolean = false
+
     constructor(context: Context, @DrawableRes icon: Int, theme: Theme) : this(context) {
+        this.theme = theme
         image.imageTintList = ColorStateList.valueOf(theme.altKeyTextColor)
         setIcon(icon)
         setPressHighlightColor(theme.keyPressHighlightColor)
@@ -53,5 +57,24 @@ class ToolButton(context: Context) : CustomGestureView(context) {
         } else {
             borderlessRippleDrawable(color, dp(20))
         }
+    }
+
+    /**
+     * Set the active state of this button.
+     * When active, the button icon color changes, background remains transparent.
+     */
+    fun setActive(active: Boolean) {
+        if (isActive == active || theme == null) return
+        isActive = active
+        updateAppearance()
+    }
+
+    private fun updateAppearance() {
+        val theme = theme ?: return
+        // Only change icon color when active, background remains transparent
+        // Use accentKeyBackgroundColor to match the one-handed handle color
+        val iconColor = if (isActive) theme.accentKeyBackgroundColor else theme.altKeyTextColor
+
+        image.imageTintList = ColorStateList.valueOf(iconColor)
     }
 }

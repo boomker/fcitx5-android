@@ -13,6 +13,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.flexbox.FlexboxLayoutManager
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.data.theme.Theme
+import org.fcitx.fcitx5.android.input.FcitxInputMethodService
 import org.fcitx.fcitx5.android.input.action.ButtonAction
 import org.fcitx.fcitx5.android.input.bar.KawaiiBarComponent
 import org.fcitx.fcitx5.android.input.bar.ui.ToolButton
@@ -29,10 +30,7 @@ class ButtonsBarUi(
 ) : Ui {
 
     @DrawableRes
-    private val floatingOffIcon = R.drawable.ic_floating_toggle_24
-
-    @DrawableRes
-    private val floatingOnIcon = R.drawable.ic_baseline_keyboard_24
+    private val floatingIcon = R.drawable.ic_floating_toggle_24
 
     override val root = view(::KawaiiBarRecyclerView) {
         // Set fixed height to match KawaiiBar height
@@ -113,7 +111,20 @@ class ButtonsBarUi(
     fun getButton(buttonId: String): ToolButton? = buttonMap[buttonId]
 
     fun setFloatingState(isFloating: Boolean) {
-        buttonMap["floating_toggle"]?.setIcon(if (isFloating) floatingOnIcon else floatingOffIcon)
+        buttonMap["floating_toggle"]?.setActive(isFloating)
+    }
+
+    fun setOneHandKeyboardState(isOneHanded: Boolean) {
+        buttonMap["one_handed_keyboard"]?.setActive(isOneHanded)
+    }
+
+    /**
+     * Update all buttons' active state based on their ButtonAction.isActive() method.
+     */
+    fun updateButtonsState(service: FcitxInputMethodService) {
+        ButtonAction.allConfigurableActions.forEach { action ->
+            buttonMap[action.id]?.setActive(action.isActive(service))
+        }
     }
 
     private inner class ButtonsBarAdapter : RecyclerView.Adapter<ButtonsBarAdapter.ButtonViewHolder>() {
