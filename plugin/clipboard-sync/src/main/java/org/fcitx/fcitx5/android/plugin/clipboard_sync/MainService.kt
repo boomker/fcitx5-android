@@ -198,6 +198,8 @@ class MainService : FcitxPluginService() {
     private val ignoredRemoteClipboardContents = linkedSetOf<String>()
     private val pendingUploads = mutableListOf<PendingUploadEntry>()
     private val storedRemoteRevisions = mutableMapOf<String, String>()
+    // Track imported profile IDs to avoid duplicate imports within a sync cycle
+    private val importedProfileIdsInCurrentSync = mutableSetOf<String>()
     private val stateJson = Json {
         ignoreUnknownKeys = true
         encodeDefaults = true
@@ -628,6 +630,7 @@ class MainService : FcitxPluginService() {
 
     private suspend fun checkRemoteClipboard(forceRefresh: Boolean = false) {
         remoteFetchMutex.withLock {
+            importedProfileIdsInCurrentSync.clear()
             val endpoint = currentEndpoint()
             ensureEndpointState(endpoint)
             val url = endpoint.address
@@ -672,6 +675,14 @@ class MainService : FcitxPluginService() {
                     if (data.text.isBlank() && !data.type.equals("Text", ignoreCase = true)) {
                         Log.d(TAG, "[Pull] Skipping remote binary clipboard item without a readable local URI: type=${data.type} name=${data.dataName}")
                         continue
+                    }
+                    val profileId = data.id
+                    if (profileId.isNotBlank() && profileId in importedProfileIdsInCurrentSync) {
+                        Log.d(TAG, "[Pull] Skipping duplicate profileId: $profileId")
+                        continue
+                    }
+                    if (profileId.isNotBlank()) {
+                        importedProfileIdsInCurrentSync.add(profileId)
                     }
                     add(data)
                 }

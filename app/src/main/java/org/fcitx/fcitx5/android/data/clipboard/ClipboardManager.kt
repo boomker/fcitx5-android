@@ -91,6 +91,9 @@ object ClipboardManager : ClipboardManager.OnPrimaryClipChangedListener,
     }
 
     private fun normalizeEntry(entry: ClipboardEntry): ClipboardEntry {
+        if (entry.text.startsWith("content://") || entry.text.startsWith("file://")) {
+            return entry
+        }
         val normalizedText = normalizeClipboardText(appContext, entry.text)
         val normalizedOriginalText = when {
             entry.originalText.isNotEmpty() -> entry.originalText
