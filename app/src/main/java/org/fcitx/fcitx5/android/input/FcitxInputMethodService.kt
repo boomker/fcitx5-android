@@ -22,6 +22,7 @@ import android.util.LruCache
 import android.util.Size
 import android.view.KeyCharacterMap
 import android.view.KeyEvent
+import android.view.InputDevice
 import android.graphics.Rect
 import android.graphics.Region
 import android.inputmethodservice.InputMethodService.Insets
@@ -73,6 +74,7 @@ import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.data.theme.ThemeManager
 import org.fcitx.fcitx5.android.input.cursor.CursorRange
 import org.fcitx.fcitx5.android.input.cursor.CursorTracker
+import org.fcitx.fcitx5.android.input.keyboard.TextKeyboard
 import org.fcitx.fcitx5.android.utils.InputMethodUtil
 import org.fcitx.fcitx5.android.utils.ClipboardUriStore
 import org.fcitx.fcitx5.android.utils.alpha
@@ -866,6 +868,8 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         val timestamp = cachedKeyEventIndex++
         cachedKeyEvents.put(timestamp, event)
         val sym = KeySym.fromKeyEvent(event)
+        Timber.v("forwardKeyEvent: keyCode=%d scanCode=%d action=%d unicodeChar=%d sym=%s",
+            event.keyCode, event.scanCode, event.action, event.unicodeChar, sym)
         if (sym != null) {
             val states = KeyStates.fromKeyEvent(event)
             val up = event.action == KeyEvent.ACTION_UP
@@ -874,11 +878,76 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             }
             return true
         }
-        Timber.d("Skipped KeyEvent: $event")
+        Timber.v("Skipped KeyEvent: $event")
         return false
     }
 
+    /**
+     * Send simulated KeyEvent (for macros)
+     * Route through the physical-keyboard path so Rime can recognize it correctly
+     */
+    private var simulatedCapsLockOn = false
+    private var simulatedNumLockOn = false
+    private var simulatedCapsLockPressed = false
+    private var simulatedNumLockPressed = false
+
+    public fun isSimulatedCapsLockOn(): Boolean = simulatedCapsLockOn
+
+    public fun sendSimulatedKeyEvent(keyCode: Int, scanCode: Int, action: Int) {
+        val eventTime = SystemClock.uptimeMillis()
+        if (action == KeyEvent.ACTION_DOWN) {
+            when (keyCode) {
+                KeyEvent.KEYCODE_CAPS_LOCK -> simulatedCapsLockPressed = true
+                KeyEvent.KEYCODE_NUM_LOCK -> simulatedNumLockPressed = true
+            }
+        }
+        var metaState = 0
+        if (simulatedCapsLockOn) metaState = metaState or KeyEvent.META_CAPS_LOCK_ON
+        if (simulatedNumLockOn) metaState = metaState or KeyEvent.META_NUM_LOCK_ON
+        // Use InputDevice.SOURCE_KEYBOARD so the system uses the physical keyboard KeyCharacterMap
+        // This makes function keys (F1-F12) return unicodeChar = 0 and follow the keyCodeToSym path
+        val event = KeyEvent(
+            eventTime, // downTime
+            eventTime, // eventTime
+            action,
+            keyCode,
+            0, // repeatCount
+            metaState,
+            0, // deviceId
+            scanCode,
+            KeyEvent.FLAG_FROM_SYSTEM, // flags: mark as coming from system hardware
+            InputDevice.SOURCE_KEYBOARD // source: physical keyboard
+        )
+        Timber.v("sendSimulatedKeyEvent: keyCode=%d scanCode=%d action=%d unicodeChar=%d",
+            keyCode, scanCode, action, event.unicodeChar)
+        forwardKeyEvent(event)
+
+        if (action == KeyEvent.ACTION_UP) {
+            when (keyCode) {
+                KeyEvent.KEYCODE_CAPS_LOCK -> {
+                    val old = simulatedCapsLockOn
+                    if (simulatedCapsLockPressed) {
+                        simulatedCapsLockOn = !simulatedCapsLockOn
+                    }
+                    simulatedCapsLockPressed = false
+                    if (old != simulatedCapsLockOn) {
+                        TextKeyboard.refreshCapsPresentationOnAll()
+                    }
+                }
+                KeyEvent.KEYCODE_NUM_LOCK -> {
+                    if (simulatedNumLockPressed) {
+                        simulatedNumLockOn = !simulatedNumLockOn
+                    }
+                    simulatedNumLockPressed = false
+                }
+            }
+        }
+    }
+
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        if (keyCode == KeyEvent.KEYCODE_CAPS_LOCK) {
+            simulatedCapsLockPressed = true
+        }
         // request to show floating CandidatesView when pressing physical keyboard
         if (inputDeviceManager.evaluateOnKeyDown(event, this)) {
             postFcitxJob {
@@ -890,6 +959,14 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     }
 
     override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
+        if (keyCode == KeyEvent.KEYCODE_CAPS_LOCK) {
+            val old = simulatedCapsLockOn
+            simulatedCapsLockOn = event.isCapsLockOn
+            simulatedCapsLockPressed = false
+            if (old != simulatedCapsLockOn) {
+                TextKeyboard.refreshCapsPresentationOnAll()
+            }
+        }
         return forwardKeyEvent(event) || super.onKeyUp(keyCode, event)
     }
 

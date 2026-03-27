@@ -20,15 +20,15 @@ class SimpleDividerItemDecoration(context: Context) : RecyclerView.ItemDecoratio
     private val dividerHeight = context.dp(1)
     private val paint = android.graphics.Paint().apply {
         color = context.styledColor(android.R.attr.colorControlNormal)
-        alpha = 90 // 0.35 * 255
+        alpha = 180 // 0.7 * 255，提高不透明度
     }
 
     override fun onDraw(c: Canvas, parent: RecyclerView, state: RecyclerView.State) {
         val left = parent.paddingLeft
         val right = parent.width - parent.paddingRight
 
-        // 不在最后一项（添加行按钮）后绘制分割线
-        val childCount = parent.childCount - 1
+        // 在每个 item 底部绘制分割线
+        val childCount = parent.childCount
         for (i in 0 until childCount) {
             val child = parent.getChildAt(i)
             val params = child.layoutParams as RecyclerView.LayoutParams
@@ -39,13 +39,7 @@ class SimpleDividerItemDecoration(context: Context) : RecyclerView.ItemDecoratio
     }
 
     override fun getItemOffsets(outRect: Rect, view: View, parent: RecyclerView, state: RecyclerView.State) {
-        // 不为最后一项（添加行按钮）添加偏移
-        val position = parent.getChildAdapterPosition(view)
-        val adapter = parent.adapter
-        if (adapter != null && position == adapter.itemCount - 1) {
-            outRect.set(0, 0, 0, 0)
-        } else {
-            outRect.set(0, 0, 0, dividerHeight)
-        }
+        // 所有 item 底部都添加偏移
+        outRect.set(0, 0, 0, dividerHeight)
     }
 }

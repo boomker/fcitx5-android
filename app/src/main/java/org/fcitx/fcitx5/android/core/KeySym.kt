@@ -29,6 +29,26 @@ value class KeySym(val sym: Int) {
             ) {
                 return KeySym(charCode)
             }
+            // Special handling for function keys (F1-F12) to ensure correct mapping
+            // On some devices, KeyCharacterMap may not map function keys correctly
+            val functionKeySym = when (event.keyCode) {
+                KeyEvent.KEYCODE_F1 -> 0xffbe
+                KeyEvent.KEYCODE_F2 -> 0xffbf
+                KeyEvent.KEYCODE_F3 -> 0xffc0
+                KeyEvent.KEYCODE_F4 -> 0xffc1
+                KeyEvent.KEYCODE_F5 -> 0xffc2
+                KeyEvent.KEYCODE_F6 -> 0xffc3
+                KeyEvent.KEYCODE_F7 -> 0xffc4
+                KeyEvent.KEYCODE_F8 -> 0xffc5
+                KeyEvent.KEYCODE_F9 -> 0xffc6
+                KeyEvent.KEYCODE_F10 -> 0xffc7
+                KeyEvent.KEYCODE_F11 -> 0xffc8
+                KeyEvent.KEYCODE_F12 -> 0xffc9
+                else -> null
+            }
+            if (functionKeySym != null) {
+                return KeySym(functionKeySym)
+            }
             return KeySym(FcitxKeyMapping.keyCodeToSym(event.keyCode) ?: return null)
         }
 

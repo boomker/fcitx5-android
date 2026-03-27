@@ -7,6 +7,7 @@ package org.fcitx.fcitx5.android.input.keyboard
 import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Rect
+import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
 import androidx.annotation.CallSuper
@@ -17,10 +18,16 @@ import androidx.constraintlayout.widget.Guideline
 import androidx.core.view.allViews
 import androidx.core.view.children
 import androidx.core.view.updateLayoutParams
+import androidx.lifecycle.findViewTreeLifecycleOwner
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.fcitx.fcitx5.android.core.FcitxKeyMapping
 import org.fcitx.fcitx5.android.core.InputMethodEntry
+import org.fcitx.fcitx5.android.core.KeyState
 import org.fcitx.fcitx5.android.core.KeyStates
 import org.fcitx.fcitx5.android.core.KeySym
+import org.fcitx.fcitx5.android.core.ScancodeMapping
 import org.fcitx.fcitx5.android.data.InputFeedbacks
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.data.prefs.ManagedPreference
@@ -33,6 +40,11 @@ import org.fcitx.fcitx5.android.input.keyboard.CustomGestureView.SwipeAxis
 import org.fcitx.fcitx5.android.input.popup.PopupAction
 import org.fcitx.fcitx5.android.input.popup.PopupActionListener
 import org.fcitx.fcitx5.android.utils.DeviceInfoCollector
+
+// Import Macro types
+import org.fcitx.fcitx5.android.input.keyboard.MacroAction
+import org.fcitx.fcitx5.android.input.keyboard.MacroStep
+import org.fcitx.fcitx5.android.input.keyboard.KeyRef
 import splitties.dimensions.dp
 import splitties.views.dsl.constraintlayout.above
 import splitties.views.dsl.constraintlayout.below
@@ -655,6 +667,8 @@ abstract class BaseKeyboard(
                     }
                 }
             }
+            // Track if LongPress behavior is configured (for MacroKey longPress feature)
+            var hasLongPressBehavior = false
             def.behaviors.forEach {
                 when (it) {
                     is KeyDef.Behavior.Press -> {
@@ -663,6 +677,7 @@ abstract class BaseKeyboard(
                         }
                     }
                     is KeyDef.Behavior.LongPress -> {
+                        hasLongPressBehavior = true
                         setOnLongClickListener { _ ->
                             onAction(it.action)
                             true
@@ -706,11 +721,15 @@ abstract class BaseKeyboard(
                 when (it) {
                     // TODO: gesture processing middleware
                     is KeyDef.Popup.Menu -> {
-                        setOnLongClickListener { view ->
-                            view as KeyView
-                            onPopupAction(PopupAction.ShowMenuAction(view.id, it, view.bounds))
-                            // do not consume this LongClick gesture
-                            false
+                        // If LongPress behavior is configured (e.g., MacroKey longPress),
+                        // don't override the long click listener - let the macro execute instead
+                        if (!hasLongPressBehavior) {
+                            setOnLongClickListener { view ->
+                                view as KeyView
+                                onPopupAction(PopupAction.ShowMenuAction(view.id, it, view.bounds))
+                                // do not consume this LongClick gesture
+                                false
+                            }
                         }
                         val oldOnGestureListener = onGestureListener ?: OnGestureListener.Empty
                         swipeEnabled = true
@@ -728,11 +747,15 @@ abstract class BaseKeyboard(
                         }
                     }
                     is KeyDef.Popup.Keyboard -> {
-                        setOnLongClickListener { view ->
-                            view as KeyView
-                            onPopupAction(PopupAction.ShowKeyboardAction(view.id, it, view.bounds))
-                            // do not consume this LongClick gesture
-                            false
+                        // If LongPress behavior is configured (e.g., MacroKey longPress),
+                        // don't override the long click listener - let the macro execute instead
+                        if (!hasLongPressBehavior) {
+                            setOnLongClickListener { view ->
+                                view as KeyView
+                                onPopupAction(PopupAction.ShowKeyboardAction(view.id, it, view.bounds))
+                                // do not consume this LongClick gesture
+                                false
+                            }
                         }
                         val oldOnGestureListener = onGestureListener ?: OnGestureListener.Empty
                         swipeEnabled = true
@@ -932,7 +955,693 @@ abstract class BaseKeyboard(
         action: KeyAction,
         source: KeyActionListener.Source = KeyActionListener.Source.Keyboard
     ) {
-        keyActionListener?.onKeyAction(action, source)
+        when (action) {
+            is MacroAction -> executeMacro(action)
+            else -> keyActionListener?.onKeyAction(action, source)
+        }
+    }
+
+    /**
+     * Execute a Macro action
+     * @param macroAction the MacroAction to execute
+     */
+    private fun executeMacro(macroAction: MacroAction) {
+        findViewTreeLifecycleOwner()?.lifecycleScope?.launch {
+            Timber.v("executeMacro: steps=%d", macroAction.steps.size)
+            
+            // Check for simple shortcut pattern (down modifier -> tap key -> up modifier)
+            val steps = macroAction.steps
+            if (steps.size == 3) {
+                val downStep = steps.getOrNull(0) as? MacroStep.Down
+                val tapStep = steps.getOrNull(1) as? MacroStep.Tap
+                val upStep = steps.getOrNull(2) as? MacroStep.Up
+
+                if (downStep != null && tapStep != null && upStep != null &&
+                    downStep.keys.size == 1 && tapStep.keys.size == 1 && upStep.keys.size == 1
+                ) {
+                    val downKey = downStep.keys[0]
+                    val tapKey = tapStep.keys[0]
+                    val upKey = upStep.keys[0]
+
+                    // Check whether it's a modifier combination
+                    val modifier = getModifierKeyCode(downKey)
+                    if (modifier != null && downKey == upKey) {
+                        // It's a shortcut; use executeShortcutMacro
+                        val tapKeyCode = when (tapKey) {
+                            is KeyRef.Fcitx -> mapFcitxToAndroidKey(tapKey.code)
+                            is KeyRef.Android -> tapKey.code
+                        }
+                        Timber.v("executeMacro: detected shortcut modifier=%d tapKeyCode=%d", modifier, tapKeyCode)
+                        if (tapKeyCode >= 0) {
+                            executeShortcutMacro(modifier, tapKeyCode)
+                            return@launch
+                        }
+                    }
+                }
+            }
+
+            // General macro execution
+            for ((index, step) in macroAction.steps.withIndex()) {
+                Timber.v("executeMacro: executing step %d type=%s", index, step::class.java.simpleName)
+                when (step) {
+                    is MacroStep.Down -> {
+                        step.keys.forEach { keyRef ->
+                            when (keyRef) {
+                                is KeyRef.Fcitx -> {
+                                    // Fcitx keys follow the Fcitx path:
+                                    // - Mappable keys are sent by simulating physical keyboard events
+                                    // - Unmappable keys fall back to Fcitx sendKey to avoid silent drops
+                                    Timber.v("executeMacro: Down Fcitx key=%s", keyRef.code)
+                                    sendFcitxKeyDown(keyRef.code)
+                                }
+                                is KeyRef.Android -> sendAndroidKeyDown(keyRef.code)
+                            }
+                        }
+                        delay(50) // key interval
+                    }
+                    is MacroStep.Up -> {
+                        step.keys.forEach { keyRef ->
+                            when (keyRef) {
+                                is KeyRef.Fcitx -> {
+                                    Timber.v("executeMacro: Up Fcitx key=%s", keyRef.code)
+                                    sendFcitxKeyUp(keyRef.code)
+                                }
+                                is KeyRef.Android -> sendAndroidKeyUp(keyRef.code)
+                            }
+                        }
+                        delay(50) // key interval
+                    }
+                    is MacroStep.Tap -> {
+                        step.keys.forEach { keyRef ->
+                            when (keyRef) {
+                                is KeyRef.Fcitx -> {
+                                    Timber.v("executeMacro: Tap Fcitx key=%s", keyRef.code)
+                                    sendFcitxKeyTap(keyRef.code)
+                                }
+                                is KeyRef.Android -> sendAndroidKeyTap(keyRef.code)
+                            }
+                        }
+                        delay(50) // key interval
+                    }
+                    is MacroStep.Text -> {
+                        Timber.v("executeMacro: Text length=%d", step.text.length)
+                        commitText(step.text)
+                    }
+                    is MacroStep.Edit -> {
+                        Timber.v("executeMacro: Edit action=%s", step.action)
+                        executeEditAction(step.action)
+                    }
+                    is MacroStep.Shortcut -> {
+                        Timber.v("executeMacro: Shortcut modifiers=%d key=%s", step.modifiers.size, step.key)
+                        executeShortcut(step.modifiers, step.key)
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Execute shortcut (automatically expanded to modifiers down + key tap + modifiers up)
+     * For Ctrl/Alt/Shift + letter combinations, use executeShortcutMacro for better compatibility
+     */
+    private suspend fun executeShortcut(modifiers: List<KeyRef>, key: KeyRef) {
+        // Get Android META values for all modifier keys
+        var combinedMeta = 0
+        val modifierDownSteps = mutableListOf<KeyRef>()
+        val modifierUpSteps = mutableListOf<KeyRef>()
+        
+        for (mod in modifiers) {
+            val meta = when ((mod as? KeyRef.Fcitx)?.code) {
+                "Ctrl_L", "Ctrl_R" -> {
+                    combinedMeta = combinedMeta or android.view.KeyEvent.META_CTRL_ON
+                    android.view.KeyEvent.META_CTRL_ON
+                }
+                "Alt_L", "Alt_R" -> {
+                    combinedMeta = combinedMeta or android.view.KeyEvent.META_ALT_ON
+                    android.view.KeyEvent.META_ALT_ON
+                }
+                "Shift_L", "Shift_R" -> {
+                    combinedMeta = combinedMeta or android.view.KeyEvent.META_SHIFT_ON
+                    android.view.KeyEvent.META_SHIFT_ON
+                }
+                "Meta_L", "Meta_R" -> {
+                    combinedMeta = combinedMeta or android.view.KeyEvent.META_META_ON
+                    android.view.KeyEvent.META_META_ON
+                }
+                else -> null
+            }
+            if (meta != null) {
+                modifierDownSteps.add(mod)
+                modifierUpSteps.add(mod)
+            }
+        }
+        
+        // Get Android key code for the key
+        val keyCode = when (key) {
+            is KeyRef.Fcitx -> mapFcitxToAndroidKey(key.code)
+            is KeyRef.Android -> key.code
+        }
+        
+        // If modifiers exist and key is valid, use executeShortcutMacro
+        if (combinedMeta != 0 && keyCode >= 0) {
+            executeShortcutMacro(combinedMeta, keyCode)
+            return
+        }
+        
+        // Otherwise use the generic down/tap/up flow
+        // Press all modifiers down
+        for (mod in modifierDownSteps) {
+            when (mod) {
+                is KeyRef.Fcitx -> sendFcitxKeyDown(mod.code)
+                is KeyRef.Android -> sendAndroidKeyDown(mod.code)
+            }
+            delay(50)
+        }
+        
+        // key tap
+        when (key) {
+            is KeyRef.Fcitx -> {
+                if (isAlphaNumeric(key.code)) {
+                    sendFcitxKeyTap(key.code)
+                } else {
+                    // For symbol keys without Android key codes (e.g. Exclam, Dollar), send via Fcitx
+                    val androidCode = mapFcitxToAndroidKey(key.code)
+                    if (androidCode >= 0) {
+                        sendAndroidKeyTap(androidCode)
+                    } else {
+                        sendFcitxKeyTap(key.code)
+                    }
+                }
+            }
+            is KeyRef.Android -> sendAndroidKeyTap(key.code)
+        }
+        delay(50)
+        
+        // Release all modifiers (reverse order)
+        for (mod in modifierUpSteps.asReversed()) {
+            when (mod) {
+                is KeyRef.Fcitx -> sendFcitxKeyUp(mod.code)
+                is KeyRef.Android -> sendAndroidKeyUp(mod.code)
+            }
+            delay(50)
+        }
+    }
+
+    /**
+     * Execute edit actions (copy/cut/paste/selectAll/undo/redo)
+     */
+    private suspend fun executeEditAction(action: String) {
+        val service = getService() ?: return
+        val ic = service.currentInputConnection ?: return
+
+        when (action.lowercase()) {
+            "copy" -> ic.performContextMenuAction(android.R.id.copy)
+            "cut" -> ic.performContextMenuAction(android.R.id.cut)
+            "paste" -> ic.performContextMenuAction(android.R.id.paste)
+            "selectall", "select_all" -> ic.performContextMenuAction(android.R.id.selectAll)
+            "undo" -> ic.performContextMenuAction(android.R.id.undo)
+            "redo" -> ic.performContextMenuAction(android.R.id.redo)
+        }
+    }
+
+    /**
+     * Check whether it is an alphanumeric key
+     */
+    private fun isAlphaNumeric(code: String): Boolean {
+        return code.length == 1 && (code[0].isLetter() || code[0].isDigit())
+    }
+
+    /**
+     * Check whether it is a function key (F1-F12)
+     */
+    private fun isFunctionKey(code: String): Boolean {
+        return code.matches(Regex("^F(1[0-2]|[1-9])$"))
+    }
+
+    /**
+     * Check whether it is a modifier key
+     * Includes Ctrl, Alt, Shift, Meta, Super, Hyper, and Mode_switch
+     */
+    private fun isModifierKey(code: String): Boolean {
+        return code in arrayOf(
+            "Ctrl_L", "Ctrl_R",
+            "Alt_L", "Alt_R",
+            "Shift_L", "Shift_R",
+            "Meta_L", "Meta_R",
+            "Super_L", "Super_R",
+            "Hyper_L", "Hyper_R",
+            "Mode_switch",
+            "ISO_Level3_Shift",
+            "ISO_Level5_Shift"
+        )
+    }
+
+    /**
+     * Get Android META value for a modifier key
+     */
+    private fun getModifierKeyCode(keyRef: KeyRef): Int? {
+        val code = (keyRef as? KeyRef.Fcitx)?.code ?: return null
+        return when (code) {
+            "Ctrl_L", "Ctrl_R" -> android.view.KeyEvent.META_CTRL_ON
+            "Shift_L", "Shift_R" -> android.view.KeyEvent.META_SHIFT_ON
+            "Alt_L", "Alt_R" -> android.view.KeyEvent.META_ALT_ON
+            "Meta_L", "Meta_R", "Super_L", "Super_R" -> android.view.KeyEvent.META_META_ON
+            "Hyper_L", "Hyper_R" -> android.view.KeyEvent.META_FUNCTION_ON
+            "Mode_switch", "ISO_Level3_Shift", "ISO_Level5_Shift" -> android.view.KeyEvent.META_ALT_RIGHT_ON
+            else -> null
+        }
+    }
+
+    /**
+     * Execute shortcut macros (e.g. Ctrl+C, Ctrl+V)
+     * Use performContextMenuAction for better compatibility
+     */
+    private suspend fun executeShortcutMacro(modifier: Int, key: Int) {
+        val service = getService() ?: return
+        val ic = service.currentInputConnection ?: return
+
+        // Detect common shortcut combinations
+        val isCtrl = (modifier and android.view.KeyEvent.META_CTRL_ON) != 0
+        val isShift = (modifier and android.view.KeyEvent.META_SHIFT_ON) != 0
+
+        when {
+            // Ctrl+A = Select All
+            isCtrl && key == android.view.KeyEvent.KEYCODE_A -> {
+                ic.performContextMenuAction(android.R.id.selectAll)
+                return
+            }
+            // Ctrl+C = Copy
+            isCtrl && key == android.view.KeyEvent.KEYCODE_C -> {
+                ic.performContextMenuAction(android.R.id.copy)
+                return
+            }
+            // Ctrl+X = Cut
+            isCtrl && key == android.view.KeyEvent.KEYCODE_X -> {
+                ic.performContextMenuAction(android.R.id.cut)
+                return
+            }
+            // Ctrl+V = Paste
+            isCtrl && key == android.view.KeyEvent.KEYCODE_V -> {
+                ic.performContextMenuAction(android.R.id.paste)
+                return
+            }
+            // Ctrl+Z = Undo
+            isCtrl && key == android.view.KeyEvent.KEYCODE_Z -> {
+                ic.performContextMenuAction(android.R.id.undo)
+                return
+            }
+            // Ctrl+Y = Redo
+            isCtrl && key == android.view.KeyEvent.KEYCODE_Y -> {
+                ic.performContextMenuAction(android.R.id.redo)
+                return
+            }
+        }
+
+        // Use sendKeyEvent for other shortcut combinations
+        if (isCtrl) {
+            val ctrlDown = android.view.KeyEvent(
+                android.view.KeyEvent.ACTION_DOWN,
+                android.view.KeyEvent.KEYCODE_CTRL_LEFT
+            )
+            val ctrlUp = android.view.KeyEvent(
+                android.view.KeyEvent.ACTION_UP,
+                android.view.KeyEvent.KEYCODE_CTRL_LEFT
+            )
+            val keyDown = android.view.KeyEvent(
+                android.view.KeyEvent.ACTION_DOWN,
+                key
+            )
+            val keyUp = android.view.KeyEvent(
+                android.view.KeyEvent.ACTION_UP,
+                key
+            )
+            ic.sendKeyEvent(ctrlDown)
+            ic.sendKeyEvent(keyDown)
+            delay(50)
+            ic.sendKeyEvent(keyUp)
+            ic.sendKeyEvent(ctrlUp)
+        } else if (isShift) {
+            val shiftDown = android.view.KeyEvent(
+                android.view.KeyEvent.ACTION_DOWN,
+                android.view.KeyEvent.KEYCODE_SHIFT_LEFT
+            )
+            val shiftUp = android.view.KeyEvent(
+                android.view.KeyEvent.ACTION_UP,
+                android.view.KeyEvent.KEYCODE_SHIFT_LEFT
+            )
+            val keyDown = android.view.KeyEvent(
+                android.view.KeyEvent.ACTION_DOWN,
+                key
+            )
+            val keyUp = android.view.KeyEvent(
+                android.view.KeyEvent.ACTION_UP,
+                key
+            )
+            ic.sendKeyEvent(shiftDown)
+            ic.sendKeyEvent(keyDown)
+            delay(50)
+            ic.sendKeyEvent(keyUp)
+            ic.sendKeyEvent(shiftUp)
+        } else {
+            // Single key
+            sendAndroidKeyTap(key)
+        }
+    }
+
+    /**
+     * Map Fcitx key name to Android key code
+     */
+    private fun mapFcitxToAndroidKey(code: String): Int {
+        return when (code) {
+            "Ctrl_L" -> android.view.KeyEvent.KEYCODE_CTRL_LEFT
+            "Ctrl_R" -> android.view.KeyEvent.KEYCODE_CTRL_RIGHT
+            "Shift_L" -> android.view.KeyEvent.KEYCODE_SHIFT_LEFT
+            "Shift_R" -> android.view.KeyEvent.KEYCODE_SHIFT_RIGHT
+            "Alt_L" -> android.view.KeyEvent.KEYCODE_ALT_LEFT
+            "Alt_R" -> android.view.KeyEvent.KEYCODE_ALT_RIGHT
+            "Meta_L" -> android.view.KeyEvent.KEYCODE_META_LEFT
+            "Meta_R" -> android.view.KeyEvent.KEYCODE_META_RIGHT
+            "Enter" -> android.view.KeyEvent.KEYCODE_ENTER
+            "Tab" -> android.view.KeyEvent.KEYCODE_TAB
+            "Escape" -> android.view.KeyEvent.KEYCODE_ESCAPE
+            "Space" -> android.view.KeyEvent.KEYCODE_SPACE
+            "Delete" -> android.view.KeyEvent.KEYCODE_DEL
+            "BackSpace" -> android.view.KeyEvent.KEYCODE_DEL
+            "Home" -> android.view.KeyEvent.KEYCODE_MOVE_HOME
+            "End" -> android.view.KeyEvent.KEYCODE_MOVE_END
+            "Page_Up" -> android.view.KeyEvent.KEYCODE_PAGE_UP
+            "Page_Down" -> android.view.KeyEvent.KEYCODE_PAGE_DOWN
+            "Left" -> android.view.KeyEvent.KEYCODE_DPAD_LEFT
+            "Right" -> android.view.KeyEvent.KEYCODE_DPAD_RIGHT
+            "Up" -> android.view.KeyEvent.KEYCODE_DPAD_UP
+            "Down" -> android.view.KeyEvent.KEYCODE_DPAD_DOWN
+            "F1" -> android.view.KeyEvent.KEYCODE_F1
+            "F2" -> android.view.KeyEvent.KEYCODE_F2
+            "F3" -> android.view.KeyEvent.KEYCODE_F3
+            "F4" -> android.view.KeyEvent.KEYCODE_F4
+            "F5" -> android.view.KeyEvent.KEYCODE_F5
+            "F6" -> android.view.KeyEvent.KEYCODE_F6
+            "F7" -> android.view.KeyEvent.KEYCODE_F7
+            "F8" -> android.view.KeyEvent.KEYCODE_F8
+            "F9" -> android.view.KeyEvent.KEYCODE_F9
+            "F10" -> android.view.KeyEvent.KEYCODE_F10
+            "F11" -> android.view.KeyEvent.KEYCODE_F11
+            "F12" -> android.view.KeyEvent.KEYCODE_F12
+            "A" -> android.view.KeyEvent.KEYCODE_A
+            "B" -> android.view.KeyEvent.KEYCODE_B
+            "C" -> android.view.KeyEvent.KEYCODE_C
+            "D" -> android.view.KeyEvent.KEYCODE_D
+            "E" -> android.view.KeyEvent.KEYCODE_E
+            "F" -> android.view.KeyEvent.KEYCODE_F
+            "G" -> android.view.KeyEvent.KEYCODE_G
+            "H" -> android.view.KeyEvent.KEYCODE_H
+            "I" -> android.view.KeyEvent.KEYCODE_I
+            "J" -> android.view.KeyEvent.KEYCODE_J
+            "K" -> android.view.KeyEvent.KEYCODE_K
+            "L" -> android.view.KeyEvent.KEYCODE_L
+            "M" -> android.view.KeyEvent.KEYCODE_M
+            "N" -> android.view.KeyEvent.KEYCODE_N
+            "O" -> android.view.KeyEvent.KEYCODE_O
+            "P" -> android.view.KeyEvent.KEYCODE_P
+            "Q" -> android.view.KeyEvent.KEYCODE_Q
+            "R" -> android.view.KeyEvent.KEYCODE_R
+            "S" -> android.view.KeyEvent.KEYCODE_S
+            "T" -> android.view.KeyEvent.KEYCODE_T
+            "U" -> android.view.KeyEvent.KEYCODE_U
+            "V" -> android.view.KeyEvent.KEYCODE_V
+            "W" -> android.view.KeyEvent.KEYCODE_W
+            "X" -> android.view.KeyEvent.KEYCODE_X
+            "Y" -> android.view.KeyEvent.KEYCODE_Y
+            "Z" -> android.view.KeyEvent.KEYCODE_Z
+            "0" -> android.view.KeyEvent.KEYCODE_0
+            "1" -> android.view.KeyEvent.KEYCODE_1
+            "2" -> android.view.KeyEvent.KEYCODE_2
+            "3" -> android.view.KeyEvent.KEYCODE_3
+            "4" -> android.view.KeyEvent.KEYCODE_4
+            "5" -> android.view.KeyEvent.KEYCODE_5
+            "6" -> android.view.KeyEvent.KEYCODE_6
+            "7" -> android.view.KeyEvent.KEYCODE_7
+            "8" -> android.view.KeyEvent.KEYCODE_8
+            "9" -> android.view.KeyEvent.KEYCODE_9
+            // Symbol keys (only Android-supported keycodes)
+            "At" -> android.view.KeyEvent.KEYCODE_AT
+            "Numbersign" -> android.view.KeyEvent.KEYCODE_POUND
+            // Special keys
+            "Print" -> android.view.KeyEvent.KEYCODE_SYSRQ
+            "Menu" -> android.view.KeyEvent.KEYCODE_MENU
+            "Scroll_Lock" -> android.view.KeyEvent.KEYCODE_SCROLL_LOCK
+            "Pause" -> android.view.KeyEvent.KEYCODE_BREAK
+            "Break" -> android.view.KeyEvent.KEYCODE_BREAK
+            "Insert" -> android.view.KeyEvent.KEYCODE_INSERT
+            "Caps_Lock" -> android.view.KeyEvent.KEYCODE_CAPS_LOCK
+            "Num_Lock" -> android.view.KeyEvent.KEYCODE_NUM_LOCK
+            "Super_L" -> android.view.KeyEvent.KEYCODE_META_LEFT
+            "Super_R" -> android.view.KeyEvent.KEYCODE_META_RIGHT
+            // Numpad keys
+            "KP_Space" -> android.view.KeyEvent.KEYCODE_SPACE
+            "KP_Tab" -> android.view.KeyEvent.KEYCODE_TAB
+            "KP_0" -> android.view.KeyEvent.KEYCODE_NUMPAD_0
+            "KP_1" -> android.view.KeyEvent.KEYCODE_NUMPAD_1
+            "KP_2" -> android.view.KeyEvent.KEYCODE_NUMPAD_2
+            "KP_3" -> android.view.KeyEvent.KEYCODE_NUMPAD_3
+            "KP_4" -> android.view.KeyEvent.KEYCODE_NUMPAD_4
+            "KP_5" -> android.view.KeyEvent.KEYCODE_NUMPAD_5
+            "KP_6" -> android.view.KeyEvent.KEYCODE_NUMPAD_6
+            "KP_7" -> android.view.KeyEvent.KEYCODE_NUMPAD_7
+            "KP_8" -> android.view.KeyEvent.KEYCODE_NUMPAD_8
+            "KP_9" -> android.view.KeyEvent.KEYCODE_NUMPAD_9
+            "KP_Enter" -> android.view.KeyEvent.KEYCODE_NUMPAD_ENTER
+            "KP_Add" -> android.view.KeyEvent.KEYCODE_NUMPAD_ADD
+            "KP_Subtract" -> android.view.KeyEvent.KEYCODE_NUMPAD_SUBTRACT
+            "KP_Multiply" -> android.view.KeyEvent.KEYCODE_NUMPAD_MULTIPLY
+            "KP_Divide" -> android.view.KeyEvent.KEYCODE_NUMPAD_DIVIDE
+            "KP_Decimal" -> android.view.KeyEvent.KEYCODE_NUMPAD_DOT
+            "KP_Equal" -> android.view.KeyEvent.KEYCODE_NUMPAD_EQUALS
+            "KP_Separator" -> android.view.KeyEvent.KEYCODE_NUMPAD_COMMA
+            else -> {
+                // For other keys, try converting to lowercase letters
+                val lower = code.lowercase()
+                if (lower.length == 1 && lower[0] in 'a'..'z') {
+                    android.view.KeyEvent.KEYCODE_A + (lower[0] - 'a')
+                } else {
+                    // Unknown key: default to Fcitx
+                    -1
+                }
+            }
+        }
+    }
+
+    private fun mapSpecialFcitxToAndroidKey(code: String): Int? {
+        return when (code) {
+            "Shift_L" -> KeyEvent.KEYCODE_SHIFT_LEFT
+            "Shift_R" -> KeyEvent.KEYCODE_SHIFT_RIGHT
+            "Ctrl_L" -> KeyEvent.KEYCODE_CTRL_LEFT
+            "Ctrl_R" -> KeyEvent.KEYCODE_CTRL_RIGHT
+            "Alt_L" -> KeyEvent.KEYCODE_ALT_LEFT
+            "Alt_R" -> KeyEvent.KEYCODE_ALT_RIGHT
+            "Meta_L" -> KeyEvent.KEYCODE_META_LEFT
+            "Meta_R" -> KeyEvent.KEYCODE_META_RIGHT
+            else -> null
+        }
+    }
+
+    private fun mapFcitxToScanCode(code: String, keyCode: Int): Int {
+        val known = when (code) {
+            "Shift_L" -> 42
+            "Shift_R" -> 54
+            "Ctrl_L" -> 29
+            "Ctrl_R" -> 97
+            "Alt_L" -> 56
+            "Alt_R" -> 100
+            "Meta_L" -> 125
+            "Meta_R" -> 126
+            "F1" -> 59
+            "F2" -> 60
+            "F3" -> 61
+            "F4" -> 62
+            "F5" -> 63
+            "F6" -> 64
+            "F7" -> 65
+            "F8" -> 66
+            "F9" -> 67
+            "F10" -> 68
+            "F11" -> 87
+            "F12" -> 88
+            else -> null
+        }
+        if (known != null) {
+            return known
+        }
+        return if (keyCode >= 0) {
+            // Use try-catch to handle potential exceptions from generated code
+            try {
+                ScancodeMapping.keyCodeToScancode(keyCode).takeIf { it != 0 } ?: 0
+            } catch (e: Exception) {
+                Timber.w("keyCodeToScancode failed for keyCode=$keyCode: ${e.message}")
+                0
+            }
+        } else 0
+    }
+
+    /**
+     * Send Fcitx key tap event (down + up)
+     * For letter keys, convert to lowercase before sending to Fcitx; Fcitx handles case based on Caps/Shift state
+     */
+    private suspend fun sendFcitxKeyTap(code: String) {
+        // For single letters, convert to lowercase before sending to Fcitx so Fcitx can handle Caps/Shift state
+        val actualCode = if (code.length == 1 && code[0].isLetter()) {
+            code.lowercase()
+        } else {
+            code
+        }
+        // For modifier keys (e.g. Shift), keep press time longer so Rime can recognize standalone Shift
+        val isMod = isModifierKey(code)
+
+        val keyCode = mapSpecialFcitxToAndroidKey(code) ?: mapFcitxToAndroidKey(code)
+        val scanCode = mapFcitxToScanCode(code, keyCode)
+
+        // Send through the physical keyboard path so Rime can recognize correctly
+        val service = getService()
+        if (service != null && keyCode >= 0) {
+            // Key down
+            service.sendSimulatedKeyEvent(keyCode, scanCode, KeyEvent.ACTION_DOWN)
+            delay(if (isMod) 150 else 50)
+            // Key up
+            service.sendSimulatedKeyEvent(keyCode, scanCode, KeyEvent.ACTION_UP)
+        } else {
+            // Fall back to original method
+            onAction(
+                KeyAction.FcitxKeyAction(act = actualCode, code = scanCode, states = KeyStates.Empty, up = false),
+                KeyActionListener.Source.Keyboard
+            )
+            delay(if (isMod) 150 else 50)
+            onAction(
+                KeyAction.FcitxKeyAction(act = actualCode, code = scanCode, states = KeyStates.Empty, up = true),
+                KeyActionListener.Source.Keyboard
+            )
+        }
+    }
+
+    /**
+     * Send Fcitx key down event
+     * For letter keys, convert to lowercase before sending to Fcitx; Fcitx handles case based on Caps/Shift state
+     */
+    private fun sendFcitxKeyDown(code: String) {
+        val actualCode = if (code.length == 1 && code[0].isLetter()) {
+            code.lowercase()
+        } else {
+            code
+        }
+        val keyCode = mapSpecialFcitxToAndroidKey(code) ?: mapFcitxToAndroidKey(code)
+        val scanCode = mapFcitxToScanCode(code, keyCode)
+
+        // Send through the physical keyboard path so Rime can recognize correctly
+        val service = getService()
+        if (service != null && keyCode >= 0) {
+            service.sendSimulatedKeyEvent(keyCode, scanCode, KeyEvent.ACTION_DOWN)
+        } else {
+            // Fall back to original method
+            onAction(
+                KeyAction.FcitxKeyAction(act = actualCode, code = scanCode, states = KeyStates.Empty, up = false),
+                KeyActionListener.Source.Keyboard
+            )
+        }
+    }
+
+    /**
+     * Send Fcitx key up event
+     * For letter keys, convert to lowercase before sending to Fcitx; Fcitx handles case based on Caps/Shift state
+     */
+    private fun sendFcitxKeyUp(code: String) {
+        val actualCode = if (code.length == 1 && code[0].isLetter()) {
+            code.lowercase()
+        } else {
+            code
+        }
+        val keyCode = mapSpecialFcitxToAndroidKey(code) ?: mapFcitxToAndroidKey(code)
+        val scanCode = mapFcitxToScanCode(code, keyCode)
+
+        // Send through the physical keyboard path so Rime can recognize correctly
+        val service = getService()
+        if (service != null && keyCode >= 0) {
+            service.sendSimulatedKeyEvent(keyCode, scanCode, KeyEvent.ACTION_UP)
+        } else {
+            // Fall back to original method
+            onAction(
+                KeyAction.FcitxKeyAction(act = actualCode, code = scanCode, states = KeyStates.Empty, up = true),
+                KeyActionListener.Source.Keyboard
+            )
+        }
+    }
+
+    /**
+     * Get FcitxInputMethodService instance
+     */
+    private fun getService(): org.fcitx.fcitx5.android.input.FcitxInputMethodService? {
+        // Try obtaining directly from context
+        var ctx = context
+        while (ctx is android.content.ContextWrapper) {
+            if (ctx is org.fcitx.fcitx5.android.input.FcitxInputMethodService) {
+                return ctx
+            }
+            ctx = ctx.baseContext
+        }
+        return context as? org.fcitx.fcitx5.android.input.FcitxInputMethodService
+    }
+
+    protected fun isSimulatedCapsLockOn(): Boolean {
+        return getService()?.isSimulatedCapsLockOn() == true
+    }
+
+    /**
+     * Send Android key down event
+     */
+    private fun sendAndroidKeyDown(keyCode: Int) {
+        if (keyCode < 0) return
+        val service = getService() ?: return
+        val event = android.view.KeyEvent(
+            android.view.KeyEvent.ACTION_DOWN,
+            keyCode
+        )
+        service.currentInputConnection?.sendKeyEvent(event)
+    }
+
+    /**
+     * Send Android key up event
+     */
+    private fun sendAndroidKeyUp(keyCode: Int) {
+        if (keyCode < 0) return
+        val service = getService() ?: return
+        val event = android.view.KeyEvent(
+            android.view.KeyEvent.ACTION_UP,
+            keyCode
+        )
+        service.currentInputConnection?.sendKeyEvent(event)
+    }
+
+    /**
+     * Send Android key tap event (down + up)
+     */
+    private fun sendAndroidKeyTap(keyCode: Int) {
+        if (keyCode < 0) return
+        val service = getService() ?: return
+        val downEvent = android.view.KeyEvent(
+            android.view.KeyEvent.ACTION_DOWN,
+            keyCode
+        )
+        val upEvent = android.view.KeyEvent(
+            android.view.KeyEvent.ACTION_UP,
+            keyCode
+        )
+        service.currentInputConnection?.sendKeyEvent(downEvent)
+        service.currentInputConnection?.sendKeyEvent(upEvent)
+    }
+
+    /**
+     * Commit text
+     */
+    private fun commitText(text: String) {
+        keyActionListener?.onKeyAction(KeyAction.CommitAction(text), KeyActionListener.Source.Keyboard)
     }
 
     @CallSuper

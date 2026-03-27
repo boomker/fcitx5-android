@@ -241,4 +241,46 @@
     <string name="ignore_system_window_insets">시스템 WindowInsets 무시</string>
     <string name="browse_user_data_dir">사용자 데이터 디렉터리 탐색</string>
     <string name="haptic_on_repeat">키 반복 시 햅틱 피드백</string>
+
+    <!-- KeyEditorDialog -->
+    <string name="text_keyboard_layout_key_alt_label">대체 레이블 (스와이프)</string>
+    <string name="text_keyboard_layout_macro_text">매크로 텍스트</string>
+    <string name="text_keyboard_layout_macro_key_label_required">레이블은 비어 있을 수 없습니다</string>
+    <string name="text_keyboard_layout_macro_key_text_required">매크로 텍스트는 비어 있을 수 없습니다</string>
+    <string name="text_keyboard_layout_macro_tap_event">탭 이벤트</string>
+    <string name="text_keyboard_layout_macro_swipe_event">스와이프 이벤트</string>
+    <string name="text_keyboard_layout_macro_no_event">이벤트가 구성되지 않았습니다</string>
+    <string name="text_keyboard_layout_macro_event_preview">%1$s → … (총 %2$d 단계)</string>
+    <string name="text_keyboard_layout_alt_label">대체 레이블</string>
+
+    <!-- Macro Editor -->
+    <string name="macro_editor_title">%1$s 편집</string>
+    <string name="macro_editor_add_step">+ 단계 추가</string>
+    <string name="macro_editor_step_type_tap">키 탭</string>
+    <string name="macro_editor_step_type_shortcut">바로 가기</string>
+    <string name="macro_editor_step_type_edit">작업 편집</string>
+    <string name="macro_editor_step_type_down">키 누르기</string>
+    <string name="macro_editor_step_type_up">키 떼기</string>
+    <string name="macro_editor_step_type_text">텍스트 입력</string>
+    <string name="macro_editor_action_copy">복사</string>
+    <string name="macro_editor_action_cut">잘라내기</string>
+    <string name="macro_editor_action_paste">붙여넣기</string>
+    <string name="macro_editor_action_select_all">전체 선택</string>
+    <string name="macro_editor_action_undo">실행 취소</string>
+    <string name="macro_editor_action_redo">다시 실행</string>
+    <string name="macro_editor_picker_title">편집 작업 선택</string>
+    <string name="macro_editor_picker_cancel">취소</string>
+    <string name="macro_editor_key_type_label">키 유형</string>
+    <string name="macro_editor_key_value_label">키 값</string>
+    <string name="macro_editor_edit_key_title">키 편집</string>
+    <string name="macro_editor_confirm">확인</string>
+    <string name="macro_editor_cancel">취소</string>
+    <string name="macro_editor_delete">삭제</string>
+    <string name="macro_editor_key_duplicate">키 %1$s 이 (가) 이미 존재합니다</string>
+    <string name="macro_editor_step_text_empty">텍스트는 비어 있을 수 없습니다</string>
+    <string name="macro_editor_step_keys_empty">%1$d 단계에는 최소한 하나의 키가 필요합니다</string>
+    <string name="macro_editor_step_shortcut_modifiers_empty">%1$d 단계에는 최소한 하나의 수정 키 (Ctrl/Alt/Shift/Meta) 가 필요합니다</string>
+    <string name="macro_editor_step_shortcut_multiple_keys">%1$d 단계는 하나의 대상 키만 가질 수 있습니다</string>
+    <string name="macro_editor_step_edit_action_required">%1$d 단계에는 작업이 필요합니다</string>
+    <string name="macro_editor_key_event_unmatched">키 이벤트 불일치: %1$s의 누름과 뗌 이벤트 수가 일치하지 않습니다</string>
 </resources>

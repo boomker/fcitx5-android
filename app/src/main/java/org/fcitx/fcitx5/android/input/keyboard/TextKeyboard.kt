@@ -71,6 +71,15 @@ class TextKeyboard(
             }
         }
 
+        @Synchronized
+        fun refreshCapsPresentationOnAll() {
+            val living = attachedKeyboards.mapNotNull { it.get() }
+            attachedKeyboards.removeAll { it.get() == null }
+            living.forEach { keyboard ->
+                keyboard.refreshCapsPresentation()
+            }
+        }
+
         // Cache for raw JSON layout (preserves submode structure)
         internal var cachedRawLayoutJson: JsonObject? = null
         private var lastRawModified = 0L
@@ -285,6 +294,10 @@ class TextKeyboard(
 
     private var capsState: CapsState = CapsState.None
 
+    private fun isDisplayCapsOn(): Boolean {
+        return capsState != CapsState.None || isSimulatedCapsLockOn()
+    }
+
     private fun transformAlphabet(c: String): String {
         return when (capsState) {
             CapsState.None -> c.lowercase()
@@ -314,7 +327,14 @@ class TextKeyboard(
                 KeyActionListener.Source.Keyboard -> {
                     when (capsState) {
                         CapsState.None -> {
-                            transformed = action.copy(act = action.act.lowercase())
+                            transformed = if (isSimulatedCapsLockOn()) {
+                                action.copy(
+                                    act = action.act.uppercase(),
+                                    states = KeyStates(KeyState.Virtual, KeyState.CapsLock)
+                                )
+                            } else {
+                                action.copy(act = action.act.lowercase())
+                            }
                         }
                         CapsState.Once -> {
                             transformed = action.copy(
@@ -450,15 +470,20 @@ class TextKeyboard(
                     else -> CapsState.None
                 }
             }
+        refreshCapsPresentation()
+    }
+
+    private fun refreshCapsPresentation() {
         updateCapsButtonIcon()
         updateAlphabetKeys()
     }
 
     private fun updateCapsButtonIcon() {
+        val displayLock = isDisplayCapsOn()
         specialKeyViews.caps.forEach { cap ->
             cap.img.apply {
                 imageResource = when (capsState) {
-                    CapsState.None -> R.drawable.ic_capslock_none
+                    CapsState.None -> if (displayLock) R.drawable.ic_capslock_lock else R.drawable.ic_capslock_none
                     CapsState.Once -> R.drawable.ic_capslock_once
                     CapsState.Lock -> R.drawable.ic_capslock_lock
                 }
@@ -467,16 +492,14 @@ class TextKeyboard(
     }
 
     private fun updateAlphabetKeys() {
+        val displayUppercase = isDisplayCapsOn()
         textKeys.forEach {
             val keyDef = it.def
             if (keyDef is KeyDef.Appearance.AltText) {
                 it.mainText.text = if (keepLettersUppercase) {
                     keyDef.character.uppercase()
                 } else {
-                    when (capsState) {
-                        CapsState.None -> keyDef.displayText.lowercase()
-                        else -> keyDef.character.uppercase()
-                    }
+                    if (displayUppercase) keyDef.character.uppercase() else keyDef.displayText.lowercase()
                 }
             } else if (keyDef is KeyDef.Appearance.Text) {
                 // handle other text keys if necessary, but mainly AlphabetKey is AltText
@@ -485,10 +508,17 @@ class TextKeyboard(
                      it.mainText.text = if (keepLettersUppercase) {
                         str.uppercase()
                     } else {
-                        when (capsState) {
-                            CapsState.None -> str.lowercase()
-                            else -> str.uppercase()
-                        }
+                        if (displayUppercase) str.uppercase() else str.lowercase()
+                    }
+                }
+            } else if (keyDef is MacroKey) {
+                // MacroKey: update display text based on capsState (only if label is a single letter)
+                val label = keyDef.label
+                if (label.length == 1 && label[0].isLetter()) {
+                    it.mainText.text = if (keepLettersUppercase) {
+                        label.uppercase()
+                    } else {
+                        if (displayUppercase) label.uppercase() else label.lowercase()
                     }
                 }
             }
