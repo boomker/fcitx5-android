@@ -423,7 +423,8 @@ object SyncClient {
             return fetchResult(
                 item.copy(
                     type = "Text",
-                    hash = item.id
+                    hash = item.id,
+                    remoteTimestamp = (item.timestamp * 1000).toLong()
                 ),
                 revision
             )
@@ -591,16 +592,24 @@ object SyncClient {
             }
 
             if (data.type.equals("Text", ignoreCase = true)) {
-                newData = data.copy(text = String(bytes, Charsets.UTF_8))
+                newData = data.copy(
+                    text = String(bytes, Charsets.UTF_8),
+                    mimeType = "text/plain"
+                )
             } else if (downloadDirUri != null) {
+                val mimeType = response.body?.contentType()?.toString().orEmpty()
                 val savedUri = saveFile(
                     context = context,
                     dirUri = downloadDirUri,
                     fileName = data.dataName,
-                    bytes = bytes
+                    bytes = bytes,
+                    mimeType = mimeType.ifBlank { "*/*" }
                 )
                 if (savedUri != null) {
-                    newData = data.copy(text = savedUri.toString())
+                    newData = data.copy(
+                        text = savedUri.toString(),
+                        mimeType = mimeType
+                    )
                 }
             } else {
                 Log.w(TAG, "[Pull] No download directory set, skipping file save")
@@ -724,7 +733,8 @@ object SyncClient {
                 hash = itemId,
                 hasData = true,
                 dataName = fileName,
-                size = bytes.size.toLong()
+                size = bytes.size.toLong(),
+                mimeType = mimeType
             )
         }
     }
@@ -1015,7 +1025,8 @@ object SyncClient {
             text = record.text,
             hash = record.hash,
             hasData = record.hasData,
-            size = record.size
+            size = record.size,
+            remoteTimestamp = historyRecordModifiedAtMillis(record)
         )
     }
 
@@ -1054,7 +1065,8 @@ object SyncClient {
                 return metadata.copy(
                     text = String(bytes, Charsets.UTF_8),
                     dataName = fileName,
-                    size = bytes.size.toLong()
+                    size = bytes.size.toLong(),
+                    mimeType = "text/plain"
                 )
             }
 
@@ -1076,7 +1088,8 @@ object SyncClient {
             return metadata.copy(
                 text = savedUri?.toString().orEmpty(),
                 dataName = fileName,
-                size = bytes.size.toLong()
+                size = bytes.size.toLong(),
+                mimeType = mimeType
             )
         }
     }

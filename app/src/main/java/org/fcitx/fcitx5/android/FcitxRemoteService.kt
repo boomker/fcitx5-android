@@ -136,6 +136,32 @@ class FcitxRemoteService : Service() {
             }
         }
 
+        override fun importRemoteClipboardEntry(
+            text: String,
+            originalText: String,
+            originalRootUri: String,
+            type: String,
+            timestamp: Long,
+            sensitive: Boolean
+        ) {
+            val callingPackages = getCallingPackages()
+            if (!isCallerAllowed(callingPackages)) {
+                Timber.w("Rejected remote clipboard import from $callingPackages (allowOriginalPlugins=${AppPrefs.getInstance().advanced.allowOriginalPlugins.getValue()})")
+                throw SecurityException("IPC compatibility mode does not allow access from $callingPackages")
+            }
+            runBlocking {
+                ClipboardManager.importRemoteEntry(
+                    text = text,
+                    originalText = originalText,
+                    originalRootUri = originalRootUri,
+                    type = type,
+                    timestamp = timestamp,
+                    sensitive = sensitive,
+                    notifyListeners = false
+                )
+            }
+        }
+
         override fun reloadPinyinDict() {
             FcitxDaemon.getFirstConnectionOrNull()?.runIfReady { reloadPinyinDict() }
         }

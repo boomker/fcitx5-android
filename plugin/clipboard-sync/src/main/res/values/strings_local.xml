@@ -13,7 +13,7 @@
     <string name="server_alias_title">类型</string>
     <string name="server_custom_alias_hint">输入自定义别名</string>
     <string name="server_address_field_title">服务器地址</string>
-    <string name="server_address_field_hint">例如 http://192.168.10.11:5003</string>
+    <string name="server_address_field_hint">例如 http://192.168.10.45:5033</string>
     <string name="server_profile_syncclipboard">SyncClipboard</string>
     <string name="server_profile_oneclip">OneClip</string>
     <string name="server_profile_clipcascade">ClipCascade</string>

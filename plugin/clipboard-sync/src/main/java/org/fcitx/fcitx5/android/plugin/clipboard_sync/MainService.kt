@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.ClipData
+import android.content.ClipDescription
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
@@ -71,9 +72,9 @@ class MainService : FcitxPluginService() {
         private const val PROFILE_ONE_CLIP = "oneclip"
         private const val PROFILE_CLIP_CASCADE = "clipcascade"
         private const val PROFILE_CUSTOM = "custom"
-        private const val DEFAULT_SYNC_CLIPBOARD_URL = "http://192.168.10.11:5003"
-        private const val DEFAULT_ONE_CLIP_URL = "http://192.168.10.11:8899"
-        private const val DEFAULT_CLIP_CASCADE_URL = "http://192.168.10.11:8080"
+        private const val DEFAULT_SYNC_CLIPBOARD_URL = "http://192.168.10.45:5033"
+        private const val DEFAULT_ONE_CLIP_URL = "http://192.168.10.45:8899"
+        private const val DEFAULT_CLIP_CASCADE_URL = "http://192.168.10.45:8080"
         private val CONNECTIVITY_RETRY_DELAYS_MS = longArrayOf(3_000L, 10_000L, 30_000L)
         private const val EVENT_BACKEND_HEALTH_CHECK_MS = 30_000L
         private const val EVENT_BACKEND_FALLBACK_PULL_MS = 60_000L
@@ -194,6 +195,7 @@ class MainService : FcitxPluginService() {
     private val remoteFetchMutex = Mutex()
     private val pendingUploadMutex = Mutex()
     private val pendingUploadDrainMutex = Mutex()
+    private val ignoredRemoteClipboardContents = linkedSetOf<String>()
     private val pendingUploads = mutableListOf<PendingUploadEntry>()
     private val storedRemoteRevisions = mutableMapOf<String, String>()
     private val stateJson = Json {
@@ -361,6 +363,9 @@ class MainService : FcitxPluginService() {
 
     private fun handleLocalClipboardUpdate(content: String, origin: String) {
         if (content.isBlank()) return
+        if (consumeIgnoredRemoteClipboardContent(content)) {
+            return
+        }
         if (content == lastRemoteContent || content == lastUploadedContent) {
             return
         }
@@ -650,47 +655,108 @@ class MainService : FcitxPluginService() {
             )
             noteRemoteSyncSuccess()
 
-            if (result.revision != null) {
-                lastRemoteRevision = result.revision
-                persistRemoteRevision(endpoint, result.revision)
-            }
-
             val fetchedItems = result.items
             if (fetchedItems.isEmpty()) {
+                result.revision?.let {
+                    lastRemoteRevision = it
+                    persistRemoteRevision(endpoint, it)
+                }
                 return
             }
-            for (data in fetchedItems) {
-                if (!shouldAcceptIncomingClipboard(data)) {
-                    Log.d(TAG, "[Pull] Incoming clipboard rejected by receive filter: type=${data.type} name=${data.dataName}")
-                    continue
+            val acceptedItems = buildList {
+                for (data in fetchedItems) {
+                    if (!shouldAcceptIncomingClipboard(data)) {
+                        Log.d(TAG, "[Pull] Incoming clipboard rejected by receive filter: type=${data.type} name=${data.dataName}")
+                        continue
+                    }
+                    if (data.text.isBlank() && !data.type.equals("Text", ignoreCase = true)) {
+                        Log.d(TAG, "[Pull] Skipping remote binary clipboard item without a readable local URI: type=${data.type} name=${data.dataName}")
+                        continue
+                    }
+                    add(data)
                 }
+            }
+            if (acceptedItems.isEmpty()) {
+                result.revision?.let {
+                    lastRemoteRevision = it
+                    persistRemoteRevision(endpoint, it)
+                }
+                return
+            }
 
+            var importedAll = true
+            acceptedItems.forEach { data ->
                 val remoteText = data.text
                 Log.d(TAG, "[Pull] Processed data: type=${data.type}, text=$remoteText")
                 acknowledgePendingUploads(remoteText)
+                importedAll = importRemoteClipboardEntry(data, downloadUri) && importedAll
+            }
 
-                if (
-                    remoteText.isNotEmpty() &&
-                    remoteText != lastLocalContent &&
-                    remoteText != lastRemoteContent &&
-                    remoteText != lastUploadedContent
-                ) {
-                    Log.d(TAG, "[Pull] Remote content changed, updating local")
-                    lastRemoteContent = remoteText
-                    lastLocalContent = remoteText
-                    lastUploadedContent = remoteText
-                    persistLastSyncedContent(remoteText)
+            if (endpoint.backend == ServerBackend.SYNCCLIPBOARD && !importedAll) {
+                Log.d(TAG, "[Pull] Remote history import is not ready yet; keeping SyncClipboard revision unchanged")
+                ensureRemoteBinding()
+                return
+            }
 
-                    withContext(Dispatchers.Main) {
-                        if (data.type == "Text") {
-                            updateSystemClipboard(remoteText)
-                        } else {
-                            updateSystemClipboardWithUri(Uri.parse(remoteText), downloadUri)
-                        }
+            val latestItem = acceptedItems.last()
+            val remoteText = latestItem.text
+            if (
+                remoteText.isNotEmpty() &&
+                remoteText != lastLocalContent &&
+                remoteText != lastRemoteContent &&
+                remoteText != lastUploadedContent
+            ) {
+                Log.d(TAG, "[Pull] Remote content changed, updating local")
+                lastRemoteContent = remoteText
+                lastLocalContent = remoteText
+                lastUploadedContent = remoteText
+                persistLastSyncedContent(remoteText)
+                rememberIgnoredRemoteClipboardContent(remoteText)
+
+                withContext(Dispatchers.Main) {
+                    if (latestItem.type.equals("Text", ignoreCase = true)) {
+                        updateSystemClipboard(remoteText)
+                    } else {
+                        updateSystemClipboardWithUri(Uri.parse(remoteText), downloadUri)
                     }
                 }
             }
+
+            result.revision?.let {
+                lastRemoteRevision = it
+                persistRemoteRevision(endpoint, it)
+            }
         }
+    }
+
+    private fun importRemoteClipboardEntry(data: ClipboardData, downloadUri: Uri?): Boolean {
+        val remoteService = connection?.remoteService ?: return false
+        val remoteText = data.text.takeIf { it.isNotBlank() } ?: return false
+        return runCatching {
+            remoteService.importRemoteClipboardEntry(
+                remoteText,
+                if (remoteText.startsWith("content://") || remoteText.startsWith("file://")) remoteText else "",
+                downloadUri?.toString().orEmpty(),
+                importedClipboardMimeType(data),
+                data.remoteTimestamp.takeIf { it > 0L } ?: System.currentTimeMillis(),
+                false
+            )
+        }.onFailure { error ->
+            Log.w(TAG, "[Pull] Failed to import remote clipboard entry into Fcitx history", error)
+        }.isSuccess
+    }
+
+    private fun importedClipboardMimeType(data: ClipboardData): String {
+        data.mimeType.takeIf { it.isNotBlank() }?.let { return it }
+        if (data.type.equals("Text", ignoreCase = true)) {
+            return ClipDescription.MIMETYPE_TEXT_PLAIN
+        }
+        val text = data.text
+        if (text.startsWith("content://") || text.startsWith("file://")) {
+            return contentResolver.getType(Uri.parse(text))
+                ?: ClipDescription.MIMETYPE_TEXT_URILIST
+        }
+        return ClipDescription.MIMETYPE_TEXT_URILIST
     }
 
     private fun updateSystemClipboard(text: String) {
@@ -980,6 +1046,14 @@ class MainService : FcitxPluginService() {
                 }.onSuccess {
                     transformerRegistered = true
                     Log.d(TAG, "Clipboard transformer registered")
+                    if (currentEndpoint().backend == ServerBackend.SYNCCLIPBOARD) {
+                        scope.launch {
+                            runCatching { checkRemoteClipboard() }
+                                .onFailure { error ->
+                                    Log.w(TAG, "Failed to refresh SyncClipboard after Fcitx IPC connected", error)
+                                }
+                        }
+                    }
                 }.onFailure { error ->
                     transformerRegistered = false
                     Log.e(TAG, "Failed to register transformer; pull sync will continue", error)
@@ -1184,7 +1258,26 @@ class MainService : FcitxPluginService() {
         lastLocalContent = payloadFingerprint
         lastUploadedContent = payloadFingerprint
         persistLastSyncedContent(payloadFingerprint)
+        rememberIgnoredRemoteClipboardContent(payloadFingerprint)
         noteRemoteSyncSuccess()
+    }
+
+    private fun rememberIgnoredRemoteClipboardContent(content: String) {
+        if (content.isBlank()) return
+        synchronized(ignoredRemoteClipboardContents) {
+            ignoredRemoteClipboardContents.remove(content)
+            ignoredRemoteClipboardContents.add(content)
+            while (ignoredRemoteClipboardContents.size > 8) {
+                val first = ignoredRemoteClipboardContents.firstOrNull() ?: break
+                ignoredRemoteClipboardContents.remove(first)
+            }
+        }
+    }
+
+    private fun consumeIgnoredRemoteClipboardContent(content: String): Boolean {
+        synchronized(ignoredRemoteClipboardContents) {
+            return ignoredRemoteClipboardContents.remove(content)
+        }
     }
 
     private fun disconnectClipCascadeClient() {
@@ -1549,9 +1642,8 @@ class MainService : FcitxPluginService() {
         return if (stored.isNotBlank() || profileKey == PROFILE_ONE_CLIP) {
             stored
         } else when (profileKey) {
-            PROFILE_CLIP_CASCADE -> "admin123"
             PROFILE_ONE_CLIP -> ""
-            else -> "123456"
+            else -> "admin123"
         }
     }
 

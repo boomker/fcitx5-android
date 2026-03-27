@@ -97,9 +97,9 @@ class SettingsActivity : AppCompatActivity() {
             private const val PROFILE_ONE_CLIP = "oneclip"
             private const val PROFILE_CLIP_CASCADE = "clipcascade"
             private const val PROFILE_CUSTOM = "custom"
-            private const val DEFAULT_SYNC_CLIPBOARD_URL = "http://192.168.10.11:5003"
-            private const val DEFAULT_ONE_CLIP_URL = "http://192.168.10.11:8899"
-            private const val DEFAULT_CLIP_CASCADE_URL = "http://192.168.10.11:8080"
+            private const val DEFAULT_SYNC_CLIPBOARD_URL = "http://192.168.10.45:5033"
+            private const val DEFAULT_ONE_CLIP_URL = "http://192.168.10.45:8899"
+            private const val DEFAULT_CLIP_CASCADE_URL = "http://192.168.10.45:8080"
             private const val SOURCE_REPOSITORY_URL = "https://github.com/boomker/fcitx5-android"
             private const val ONECLIP_URL = "https://oneclip.cloud/"
             private const val CLIPCASCADE_URL = "https://github.com/NOBB2333/ClipCascade_go"
@@ -805,8 +805,7 @@ class SettingsActivity : AppCompatActivity() {
         private fun defaultPasswordForProfile(profileKey: String?): String {
             return when (profileKey) {
                 PROFILE_ONE_CLIP -> ""
-                PROFILE_CLIP_CASCADE -> "admin123"
-                else -> "123456"
+                else -> "admin123"
             }
         }
 

@@ -39,7 +39,11 @@ data class ClipboardData(
     val hasImage: Boolean = false,
 
     @JsonNames("timestamp")
-    val timestamp: Double = 0.0
+    val timestamp: Double = 0.0,
+
+    val remoteTimestamp: Long = 0L,
+
+    val mimeType: String = ""
 )
 
 @OptIn(ExperimentalSerializationApi::class)

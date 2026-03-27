@@ -90,6 +90,61 @@ object ClipboardManager : ClipboardManager.OnPrimaryClipChangedListener,
         onUpdateListeners.forEach { it.onUpdate(entry) }
     }
 
+    private fun normalizeEntry(entry: ClipboardEntry): ClipboardEntry {
+        val normalizedText = normalizeClipboardText(appContext, entry.text)
+        val normalizedOriginalText = when {
+            entry.originalText.isNotEmpty() -> entry.originalText
+            normalizedText == entry.text -> ""
+            else -> originalClipboardTextOrEmpty(entry.text, normalizedText)
+        }
+        return if (normalizedText == entry.text && normalizedOriginalText == entry.originalText) {
+            entry
+        } else {
+            entry.copy(text = normalizedText, originalText = normalizedOriginalText)
+        }
+    }
+
+    private suspend fun insertOrUpdateEntry(
+        entry: ClipboardEntry,
+        notifyListeners: Boolean
+    ): ClipboardEntry {
+        val normalizedEntry = normalizeEntry(entry)
+        if (normalizedEntry.text.isBlank()) return normalizedEntry
+        return try {
+            clbDao.find(normalizedEntry.text, normalizedEntry.sensitive, normalizedEntry.source)?.let {
+                val updated = it.copy(
+                    timestamp = normalizedEntry.timestamp,
+                    originalText = normalizedEntry.originalText,
+                    originalRootUri = normalizedEntry.originalRootUri,
+                    type = normalizedEntry.type
+                )
+                if (notifyListeners) {
+                    updateLastEntry(updated)
+                }
+                clbDao.updateTime(it.id, normalizedEntry.timestamp)
+                updated
+            } ?: run {
+                val insertedEntry = clbDb.withTransaction {
+                    val rowId = clbDao.insert(normalizedEntry)
+                    removeOutdated()
+                    // new entry can be deleted immediately if clipboard limit == 0
+                    clbDao.get(rowId) ?: normalizedEntry
+                }
+                if (notifyListeners) {
+                    updateLastEntry(insertedEntry)
+                }
+                updateItemCount()
+                insertedEntry
+            }
+        } catch (exception: Exception) {
+            Timber.w("Failed to update clipboard database: $exception")
+            if (notifyListeners) {
+                updateLastEntry(normalizedEntry)
+            }
+            normalizedEntry
+        }
+    }
+
     fun init(context: Context) {
         clbDb = Room
             .databaseBuilder(context, ClipboardDatabase::class.java, "clbdb")
@@ -218,6 +273,32 @@ object ClipboardManager : ClipboardManager.OnPrimaryClipChangedListener,
         }
     }
 
+    suspend fun importRemoteEntry(
+        text: String,
+        originalText: String = "",
+        originalRootUri: String = "",
+        type: String = android.content.ClipDescription.MIMETYPE_TEXT_PLAIN,
+        timestamp: Long = System.currentTimeMillis(),
+        sensitive: Boolean = false,
+        notifyListeners: Boolean = false
+    ): ClipboardEntry? {
+        if (text.isBlank()) return null
+        return mutex.withLock {
+            insertOrUpdateEntry(
+                ClipboardEntry(
+                    text = text,
+                    originalText = originalText,
+                    originalRootUri = originalRootUri,
+                    timestamp = timestamp,
+                    type = type,
+                    source = ClipboardEntry.SOURCE_REMOTE,
+                    sensitive = sensitive
+                ),
+                notifyListeners = notifyListeners
+            )
+        }
+    }
+
     private var lastClipTimestamp = -1L
     private var lastClipHash = 0
 
@@ -240,34 +321,8 @@ object ClipboardManager : ClipboardManager.OnPrimaryClipChangedListener,
         }
         launch {
             mutex.withLock {
-                val entry = ClipboardEntry.fromClipData(clip, transformer)?.let {
-                    val normalizedText = normalizeClipboardText(appContext, it.text)
-                    val originalText = originalClipboardTextOrEmpty(it.text, normalizedText)
-                    if (normalizedText == it.text && originalText.isEmpty()) {
-                        it
-                    } else {
-                        it.copy(text = normalizedText, originalText = originalText)
-                    }
-                } ?: return@withLock
-                if (entry.text.isBlank()) return@withLock
-                try {
-                    clbDao.find(entry.text, entry.sensitive, entry.source)?.let {
-                        updateLastEntry(it.copy(timestamp = entry.timestamp))
-                        clbDao.updateTime(it.id, entry.timestamp)
-                        return@withLock
-                    }
-                    val insertedEntry = clbDb.withTransaction {
-                        val rowId = clbDao.insert(entry)
-                        removeOutdated()
-                        // new entry can be deleted immediately if clipboard limit == 0
-                        clbDao.get(rowId) ?: entry
-                    }
-                    updateLastEntry(insertedEntry)
-                    updateItemCount()
-                } catch (exception: Exception) {
-                    Timber.w("Failed to update clipboard database: $exception")
-                    updateLastEntry(entry)
-                }
+                val entry = ClipboardEntry.fromClipData(clip, transformer) ?: return@withLock
+                insertOrUpdateEntry(entry, notifyListeners = true)
             }
         }
     }
