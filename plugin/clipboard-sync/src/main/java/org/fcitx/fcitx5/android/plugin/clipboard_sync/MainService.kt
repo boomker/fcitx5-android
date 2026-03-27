@@ -1786,6 +1786,16 @@ class MainService : FcitxPluginService() {
                         persistPendingUploadsLocked()
                     }
                     Log.d(TAG, "[Push] Uploaded queued clipboard item from $reason")
+                } catch (e: SyncClient.StaleClipboardContentException) {
+                    Log.w(TAG, "[Push] Dropping stale clipboard item from queue: ${next.content}", e)
+                    pendingUploadMutex.withLock {
+                        if (pendingUploads.firstOrNull() == next) {
+                            pendingUploads.removeAt(0)
+                        } else {
+                            pendingUploads.removeAll { it.content == next.content }
+                        }
+                        persistPendingUploadsLocked()
+                    }
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {

@@ -25,6 +25,8 @@ import java.util.Locale
 import java.util.concurrent.TimeUnit
 
 object SyncClient {
+    class StaleClipboardContentException(message: String, cause: Throwable? = null) : IOException(message, cause)
+
     enum class ServerBackend {
         SYNCCLIPBOARD,
         ONECLIP,
@@ -445,35 +447,34 @@ object SyncClient {
         try {
             if (uri != null) {
                 val fileName = getFileName(context, uri) ?: "unknown_file"
-                val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                val bytes = readClipboardUriBytes(context, uri)
+                    ?: throw StaleClipboardContentException("Clipboard URI is no longer readable: $uri")
 
-                if (bytes != null) {
-                    Log.d(TAG, "[Push] Uploading file $fileName (${bytes.size} bytes)")
-                    val fileUrl = "${baseUrl}file/$fileName"
-                    val fileBody = bytes.toRequestBody(OCTET_STREAM_TYPE)
-                    val fileReq = Request.Builder()
-                        .url(fileUrl)
-                        .header("Authorization", credential)
-                        .put(fileBody)
-                        .build()
+                Log.d(TAG, "[Push] Uploading file $fileName (${bytes.size} bytes)")
+                val fileUrl = "${baseUrl}file/$fileName"
+                val fileBody = bytes.toRequestBody(OCTET_STREAM_TYPE)
+                val fileReq = Request.Builder()
+                    .url(fileUrl)
+                    .header("Authorization", credential)
+                    .put(fileBody)
+                    .build()
 
-                    client.newCall(fileReq).execute().use {
-                        if (!it.isSuccessful) throw IOException("File upload failed: ${it.code}")
-                    }
-
-                    val data = ClipboardData(
-                        type = "File",
-                        text = fileName,
-                        // SyncClipboard server rejects Android-side file hashes here.
-                        // Leave it empty and let the server accept the uploaded file metadata.
-                        hash = "",
-                        hasData = true,
-                        dataName = fileName,
-                        size = bytes.size.toLong()
-                    )
-
-                    uploadSyncClipboardJson(jsonUrl, credential, data)
+                client.newCall(fileReq).execute().use {
+                    if (!it.isSuccessful) throw IOException("File upload failed: ${it.code}")
                 }
+
+                val data = ClipboardData(
+                    type = "File",
+                    text = fileName,
+                    // SyncClipboard server rejects Android-side file hashes here.
+                    // Leave it empty and let the server accept the uploaded file metadata.
+                    hash = "",
+                    hasData = true,
+                    dataName = fileName,
+                    size = bytes.size.toLong()
+                )
+
+                uploadSyncClipboardJson(jsonUrl, credential, data)
             } else {
                 Log.d(TAG, "[Push] Uploading text (${content.length} chars)")
                 val hash = HashUtils.sha256(content)
@@ -501,9 +502,11 @@ object SyncClient {
         try {
             primeOneClipSession(serverUrl)
             if (uri != null && isImageUri(context, uri)) {
-                val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                    ?: throw IOException("Unable to read image from clipboard URI")
+                val bytes = readClipboardUriBytes(context, uri)
+                    ?: throw StaleClipboardContentException("Clipboard image URI is no longer readable: $uri")
                 uploadOneClipImage(serverUrl, bytes)
+            } else if (uri != null && !isReadableClipboardUri(context, uri)) {
+                throw StaleClipboardContentException("Clipboard URI is no longer readable: $uri")
             } else {
                 uploadOneClipText(serverUrl, content)
             }
@@ -1164,7 +1167,9 @@ object SyncClient {
     private fun getFileName(context: Context, uri: Uri): String? {
         var result: String? = null
         if (uri.scheme == "content") {
-            context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+            runCatching {
+                context.contentResolver.query(uri, null, null, null, null)
+            }.getOrNull()?.use { cursor ->
                 if (cursor.moveToFirst()) {
                     val index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
                     if (index != -1) {
@@ -1184,7 +1189,7 @@ object SyncClient {
     }
 
     private fun isImageUri(context: Context, uri: Uri): Boolean {
-        val mimeType = context.contentResolver.getType(uri)
+        val mimeType = runCatching { context.contentResolver.getType(uri) }.getOrNull()
             ?: getFileName(context, uri)?.substringAfterLast('.', "")?.let { extension ->
                 when (extension.lowercase(Locale.ROOT)) {
                     "png" -> "image/png"
@@ -1196,6 +1201,18 @@ object SyncClient {
             }
 
         return mimeType?.startsWith("image/") == true
+    }
+
+    private fun isReadableClipboardUri(context: Context, uri: Uri): Boolean {
+        return runCatching {
+            context.contentResolver.openInputStream(uri)?.use { true } == true
+        }.getOrDefault(false)
+    }
+
+    private fun readClipboardUriBytes(context: Context, uri: Uri): ByteArray? {
+        return runCatching {
+            context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+        }.getOrNull()
     }
 
     private fun String.toClipboardUriOrNull(): Uri? {
