@@ -8,6 +8,11 @@ import android.util.Log
 import kotlinx.serialization.json.*
 import org.fcitx.fcitx5.android.input.keyboard.*
 
+// Import Macro types explicitly
+import org.fcitx.fcitx5.android.input.keyboard.MacroAction
+import org.fcitx.fcitx5.android.input.keyboard.MacroStep
+import org.fcitx.fcitx5.android.input.keyboard.KeyRef
+
 /**
  * JSON 转换工具类，用于键盘布局数据与 JSON 之间的双向转换。
  *
@@ -111,10 +116,9 @@ object LayoutJsonUtils {
         subModeLabel: String,
         subModeName: String
     ): String? {
-        // 优先级：subModeLabel → subModeName → "" (空键)
+        // 优先级：subModeLabel → subModeName
         return map[subModeLabel]?.takeIf { it is JsonPrimitive && it !is JsonNull }?.jsonPrimitive?.content
             ?: map[subModeName]?.takeIf { it is JsonPrimitive && it !is JsonNull }?.jsonPrimitive?.content
-            ?: map[""]?.takeIf { it is JsonPrimitive && it !is JsonNull }?.jsonPrimitive?.content
     }
 
     /**
@@ -129,11 +133,77 @@ object LayoutJsonUtils {
             type = type,
             main = obj["main"]?.jsonPrimitive?.content,
             alt = obj["alt"]?.jsonPrimitive?.content,
-            displayText = obj["displayText"],
+            displayText = obj["displayText"],  // AlphabetKey 和 MacroKey 共用
             label = obj["label"]?.jsonPrimitive?.content,
+            altLabel = obj["altLabel"]?.jsonPrimitive?.content,
             subLabel = obj["subLabel"]?.jsonPrimitive?.content,
-            weight = parseOptionalFloat(obj["weight"])
+            weight = parseOptionalFloat(obj["weight"]),
+            tap = obj["tap"]?.jsonObject?.let { parseMacroAction(it) },
+            swipe = obj["swipe"]?.jsonObject?.let { parseMacroAction(it) },
+            longPress = obj["longPress"]?.jsonObject?.let { parseMacroAction(it) }
         )
+    }
+
+    /**
+     * 解析 KeyRef（按键引用）
+     * @param obj JSON 对象，包含 "fcitx" 或 "android" 字段
+     * @return 解析后的 KeyRef
+     */
+    fun parseKeyRef(obj: JsonObject): KeyRef {
+        // 优先解析 fcitx 类型
+        obj["fcitx"]?.jsonPrimitive?.content?.let { return KeyRef.Fcitx(it) }
+        
+        // 解析 android 类型（只接受整数键码）
+        obj["android"]?.let { androidValue ->
+            val keyCode = androidValue.jsonPrimitive.intOrNull
+                ?: androidValue.jsonPrimitive.content.toIntOrNull()
+            if (keyCode != null) {
+                return KeyRef.Android(keyCode)
+            }
+        }
+        
+        // 如果 android 值不是整数，可能是数据错误（如 {"android": "Left"}）
+        // 尝试将其作为 fcitx 键名处理
+        obj["android"]?.jsonPrimitive?.content?.let {
+            return KeyRef.Fcitx(it)
+        }
+        
+        throw IllegalArgumentException("Invalid KeyRef: $obj")
+    }
+
+    /**
+     * 解析 MacroStep（宏步骤）
+     * @param obj JSON 对象，包含 "type" 字段和其他参数字段
+     * @return 解析后的 MacroStep
+     */
+    fun parseMacroStep(obj: JsonObject): MacroStep {
+        val type = obj["type"]?.jsonPrimitive?.content ?: throw IllegalArgumentException("Missing step type")
+        return when (type) {
+            "down" -> MacroStep.Down(obj["keys"]?.jsonArray?.map { parseKeyRef(it.jsonObject) } ?: emptyList())
+            "up" -> MacroStep.Up(obj["keys"]?.jsonArray?.map { parseKeyRef(it.jsonObject) } ?: emptyList())
+            "tap" -> MacroStep.Tap(obj["keys"]?.jsonArray?.map { parseKeyRef(it.jsonObject) } ?: emptyList())
+            "text" -> MacroStep.Text(obj["text"]?.jsonPrimitive?.content ?: "")
+            "edit" -> MacroStep.Edit(obj["action"]?.jsonPrimitive?.content ?: "copy")
+            "shortcut" -> {
+                val modifiers = obj["modifiers"]?.jsonArray?.map { parseKeyRef(it.jsonObject) }
+                    ?: obj["modifier"]?.jsonObject?.let { listOf(parseKeyRef(it)) }
+                    ?: throw IllegalArgumentException("Missing modifiers for shortcut")
+                val key = obj["key"]?.jsonObject?.let { parseKeyRef(it) }
+                    ?: throw IllegalArgumentException("Missing key for shortcut")
+                MacroStep.Shortcut(modifiers, key)
+            }
+            else -> throw IllegalArgumentException("Unknown step type: $type")
+        }
+    }
+
+    /**
+     * 解析 MacroAction（宏动作）
+     * @param obj JSON 对象，包含 "macro" 字段
+     * @return 解析后的 MacroAction
+     */
+    fun parseMacroAction(obj: JsonObject): MacroAction {
+        val steps = obj["macro"]?.jsonArray?.map { parseMacroStep(it.jsonObject) } ?: emptyList()
+        return MacroAction(steps)
     }
 
     /**
@@ -240,18 +310,26 @@ object LayoutJsonUtils {
      * @property main 主要字符（AlphabetKey）
      * @property alt 备选字符（AlphabetKey）
      * @property displayText 显示文本（支持子模式）
-     * @property label 标签（LayoutSwitchKey, SymbolKey）
+     * @property label 标签（LayoutSwitchKey, SymbolKey, MacroKey）
+     * @property altLabel 备选标签（MacroKey）
      * @property subLabel 子标签（LayoutSwitchKey）
      * @property weight 权重
+     * @property tap 点击宏（MacroKey）
+     * @property swipe 划动宏（MacroKey）
+     * @property longPress 长按宏（MacroKey）
      */
     data class KeyJson(
         val type: String,
         val main: String? = null,
         val alt: String? = null,
-        val displayText: JsonElement? = null,
-        val label: String? = null,
-        val subLabel: String? = null,
-        val weight: Float? = null
+        val displayText: JsonElement? = null,  // AlphabetKey 和 MacroKey 共用
+        val label: String? = null,  // MacroKey/SymbolKey/LayoutSwitchKey 使用
+        val altLabel: String? = null,  // MacroKey 使用
+        val subLabel: String? = null,  // LayoutSwitchKey 使用
+        val weight: Float? = null,
+        val tap: MacroAction? = null,  // MacroKey 使用
+        val swipe: MacroAction? = null,  // MacroKey 使用
+        val longPress: MacroAction? = null  // MacroKey 使用
     )
 
     /**
@@ -271,6 +349,7 @@ object LayoutJsonUtils {
             is SymbolKey -> "SymbolKey"
             is ReturnKey -> "ReturnKey"
             is BackspaceKey -> "BackspaceKey"
+            is MacroKey -> "MacroKey"
             else -> "SpaceKey"
         }
 
@@ -311,9 +390,79 @@ object LayoutJsonUtils {
             is BackspaceKey -> {
                 json["weight"] = appearance.percentWidth
             }
+            is MacroKey -> {
+                json["label"] = keyDef.label
+                if (keyDef.altLabel != null) {
+                    json["altLabel"] = keyDef.altLabel
+                }
+                json["tap"] = macroActionToJson(keyDef.tap)
+                keyDef.swipe?.let { json["swipe"] = macroActionToJson(it) }
+                keyDef.longPress?.let { json["longPress"] = macroActionToJson(it) }
+                json["weight"] = appearance.percentWidth.takeIf { it != 0.1f }
+            }
         }
 
         return json
+    }
+
+    /**
+     * 将 MacroAction 转换为 JSON 对象。
+     *
+     * @param action MacroAction 对象
+     * @return JSON 对象，包含 "macro" 字段
+     */
+    fun macroActionToJson(action: MacroAction): JsonObject {
+        val steps = JsonArray(action.steps.map { macroStepToJson(it) })
+        return JsonObject(mapOf("macro" to steps))
+    }
+
+    /**
+     * 将 MacroStep 转换为 JSON 对象。
+     *
+     * @param step MacroStep 对象
+     * @return JSON 对象
+     */
+    fun macroStepToJson(step: MacroStep): JsonObject {
+        return when (step) {
+            is MacroStep.Down -> JsonObject(mapOf(
+                "type" to JsonPrimitive("down"),
+                "keys" to JsonArray(step.keys.map { keyRefToJson(it) })
+            ))
+            is MacroStep.Up -> JsonObject(mapOf(
+                "type" to JsonPrimitive("up"),
+                "keys" to JsonArray(step.keys.map { keyRefToJson(it) })
+            ))
+            is MacroStep.Tap -> JsonObject(mapOf(
+                "type" to JsonPrimitive("tap"),
+                "keys" to JsonArray(step.keys.map { keyRefToJson(it) })
+            ))
+            is MacroStep.Text -> JsonObject(mapOf(
+                "type" to JsonPrimitive("text"),
+                "text" to JsonPrimitive(step.text)
+            ))
+            is MacroStep.Edit -> JsonObject(mapOf(
+                "type" to JsonPrimitive("edit"),
+                "action" to JsonPrimitive(step.action)
+            ))
+            is MacroStep.Shortcut -> JsonObject(mapOf(
+                "type" to JsonPrimitive("shortcut"),
+                "modifiers" to JsonArray(step.modifiers.map { keyRefToJson(it) }),
+                "key" to keyRefToJson(step.key)
+            ))
+        }
+    }
+
+    /**
+     * 将 KeyRef 转换为 JSON 对象。
+     *
+     * @param ref KeyRef 对象
+     * @return JSON 对象
+     */
+    fun keyRefToJson(ref: KeyRef): JsonObject {
+        return when (ref) {
+            is KeyRef.Fcitx -> JsonObject(mapOf("fcitx" to JsonPrimitive(ref.code)))
+            is KeyRef.Android -> JsonObject(mapOf("android" to JsonPrimitive(ref.code)))
+        }
     }
 
     /**
@@ -366,6 +515,28 @@ object LayoutJsonUtils {
             "BackspaceKey" -> BackspaceKey(
                 percentWidth = key.weight ?: 0.15f
             )
+            "MacroKey" -> {
+                val tap = key.tap ?: throw IllegalArgumentException("MacroKey requires 'tap' action")
+                // 解析 label：基础 label + displayText 多模式覆盖
+                // 优先使用 displayText 中当前 submode 的值，否则使用基础 label
+                val baseLabel = key.label ?: ""
+                val label = resolveDisplayText(
+                    key.displayText,
+                    subModeLabel,
+                    subModeName,
+                    baseLabel  // 默认值为基础 label（displayText 中不需要 default 键）
+                )
+                // altLabel 不随 submode 变化（像 AlphabetKey 的 alt 那样）
+                val altLabel = key.altLabel ?: ""
+                MacroKey(
+                    label = label,
+                    altLabel = altLabel.ifEmpty { null },
+                    tap = tap,
+                    swipe = key.swipe,
+                    longPress = key.longPress,
+                    percentWidth = key.weight ?: 0.1f
+                )
+            }
             else -> SpaceKey() // Fallback
         }
     }

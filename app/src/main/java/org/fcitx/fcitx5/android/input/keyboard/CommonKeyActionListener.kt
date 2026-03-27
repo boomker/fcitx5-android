@@ -93,7 +93,7 @@ class CommonKeyActionListener :
         KeyActionListener { action, _ ->
             when (action) {
                 is FcitxKeyAction -> service.postFcitxJob {
-                    sendKey(action.act, action.states.states, action.code)
+                    sendKey(action.act, action.states.states, action.code, action.up)
                 }
                 is SymAction -> service.postFcitxJob {
                     sendKey(action.sym, action.states)

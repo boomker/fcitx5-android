@@ -22,6 +22,9 @@ import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.utils.LayoutJsonUtils
 import splitties.dimensions.dp
 import splitties.resources.styledColor
+import splitties.views.backgroundColor
+import splitties.views.dsl.core.matchParent
+import splitties.views.dsl.core.wrapContent
 
 /**
  * Key editor dialog for adding or editing keys in keyboard layouts.
@@ -30,11 +33,98 @@ import splitties.resources.styledColor
  * - AlphabetKey: Letter key, requires main and alt fields
  * - LayoutSwitchKey: Layout switch key, requires label and optional subLabel
  * - SymbolKey: Symbol key, requires label
+ * - MacroKey: Macro key with tap/swipe/longPress actions
  * - CapsKey, CommaKey, LanguageKey, SpaceKey, ReturnKey, BackspaceKey: Simple keys
  */
 class KeyEditorDialog(private val activity: AppCompatActivity) {
 
     private val uiBuilder = KeyboardEditorUiBuilder(activity)
+
+    // Macro editor data
+    private var macroTapStepsData: List<Any> = emptyList()
+    private var macroSwipeStepsData: List<Any> = emptyList()
+    
+    companion object {
+        const val REQUEST_MACRO_EDITOR = 1001
+    }
+
+    /**
+     * Open Macro editor
+     */
+    private fun openMacroEditor(
+        initialSteps: List<*>,
+        eventType: String = "Tap Event",
+        callback: (List<Any>) -> Unit
+    ) {
+        android.util.Log.d("MacroEditor", "openMacroEditor called with ${initialSteps.size} steps: $initialSteps")
+        val intent = android.content.Intent(activity, MacroEditorActivity::class.java)
+        if (initialSteps.isNotEmpty()) {
+            @Suppress("UNCHECKED_CAST")
+            intent.putExtra(MacroEditorActivity.EXTRA_MACRO_STEPS, ArrayList(initialSteps as ArrayList<Map<*, *>>))
+        }
+        // Pass event type (tap/swipe) for title display
+        intent.putExtra(MacroEditorActivity.EXTRA_EVENT_TYPE, eventType)
+        activity.startActivityForResult(intent, REQUEST_MACRO_EDITOR)
+        // Save callback
+        macroEditCallback = callback
+    }
+
+    // Callback reference - internal for Activity access
+    internal var macroEditCallback: ((List<Any>) -> Unit)? = null
+
+    /**
+     * Build Macro steps preview text (single line + smart folding)
+     */
+    private fun buildMacroPreview(macroSteps: List<*>?): String {
+        if (macroSteps == null || macroSteps.isEmpty()) {
+            return activity.getString(R.string.text_keyboard_layout_macro_no_event)
+        }
+
+        // Build short description for each step
+        val stepTexts = macroSteps.mapNotNull { step ->
+            val stepMap = step as? Map<String, Any?>
+            val type = stepMap?.get("type") as? String ?: return@mapNotNull null
+            when (type) {
+                "tap", "down", "up" -> {
+                    val keys = stepMap?.get("keys") as? List<*>
+                    val keysStr = keys?.mapNotNull { key ->
+                        (key as? Map<String, Any?>)?.let {
+                            it["fcitx"] as? String ?: it["android"] as? String
+                        }
+                    }?.joinToString(", ")
+                    if (keysStr.isNullOrBlank()) null else "$type:[$keysStr]"
+                }
+                "edit" -> {
+                    val action = stepMap?.get("action") as? String ?: return@mapNotNull null
+                    "$type:$action"
+                }
+                "shortcut" -> {
+                    val modifiers = (stepMap?.get("modifiers") as? List<*>)?.mapNotNull {
+                        (it as? Map<String, Any?>)?.let { m ->
+                            m["fcitx"] as? String ?: m["android"] as? String
+                        }
+                    } ?: emptyList()
+                    val key = (stepMap?.get("key") as? Map<String, Any?>)?.let {
+                        it["fcitx"] as? String ?: it["android"] as? String
+                    } ?: return@mapNotNull null
+                    "$type:${modifiers.joinToString("+")}+$key"
+                }
+                "text" -> {
+                    val text = stepMap?.get("text") as? String ?: return@mapNotNull null
+                    val displayText = if (text.length > 10) "${text.take(10)}..." else text
+                    "$type:\"$displayText\""
+                }
+                else -> type
+            }
+        }
+
+        // Smart folding: if more than 3 steps, only show first 2 steps
+        return if (stepTexts.size <= 3) {
+            stepTexts.joinToString(" → ")
+        } else {
+            activity.getString(R.string.text_keyboard_layout_macro_event_preview, stepTexts.take(2).joinToString(" → "), stepTexts.size)
+        }
+    }
 
     /**
      * Show key editor dialog
@@ -92,20 +182,22 @@ class KeyEditorDialog(private val activity: AppCompatActivity) {
         var symbolLabelEdit: EditText? = null
         var symbolWeightEdit: EditText? = null
 
+        // MacroKey fields
+        var macroLabelEdit: EditText? = null
+        var macroDisplayTextSimpleEdit: EditText? = null
+        var macroDisplayTextModeSpecific = false
+        var macroDisplayTextSimpleValue = ""
+        val macroDisplayTextModeItems = mutableListOf<KeyboardEditorUiBuilder.DisplayTextItem>()
+        val macroDisplayTextRowBindings = mutableListOf<KeyboardEditorUiBuilder.DisplayTextRowBinding>()
+        var macroAltLabelEdit: EditText? = null
+        var macroWeightEdit: EditText? = null
+        var macroTypeSpinner: Spinner? = null
+        var macroTextEdit: EditText? = null
+        var macroModifierSpinner: Spinner? = null
+        var macroKeySpinner: Spinner? = null
+
         // Simple key weight field
         var simpleWeightEdit: EditText? = null
-
-        // Initialize displayText data
-        initDisplayText(
-            keyData,
-            isEditingSubModeLayout,
-            currentSubModeLabel
-        ) { modeSpecific, simpleValue, items ->
-            alphabetDisplayTextModeSpecific = modeSpecific
-            alphabetDisplayTextSimpleValue = simpleValue
-            alphabetDisplayTextModeItems.clear()
-            alphabetDisplayTextModeItems.addAll(items)
-        }
 
         // Build fields
         fun rebuildFields() {
@@ -127,7 +219,45 @@ class KeyEditorDialog(private val activity: AppCompatActivity) {
             layoutSwitchWeightEdit = null
             symbolLabelEdit = null
             symbolWeightEdit = null
+            macroLabelEdit = null
+            macroDisplayTextSimpleEdit = null
+            macroDisplayTextModeSpecific = false
+            macroDisplayTextSimpleValue = ""
+            macroDisplayTextModeItems.clear()
+            macroDisplayTextRowBindings.clear()
+            macroAltLabelEdit = null
+            macroWeightEdit = null
+            macroTypeSpinner = null
+            macroTextEdit = null
+            macroModifierSpinner = null
+            macroKeySpinner = null
             simpleWeightEdit = null
+
+            // Initialize displayText data (must be inside rebuildFields to persist state)
+            initDisplayText(
+                keyData,
+                isEditingSubModeLayout,
+                currentSubModeLabel
+            ) { modeSpecific, simpleValue, items ->
+                alphabetDisplayTextModeSpecific = modeSpecific
+                alphabetDisplayTextSimpleValue = simpleValue
+                alphabetDisplayTextModeItems.clear()
+                alphabetDisplayTextModeItems.addAll(items)
+            }
+
+            // Initialize MacroKey displayText data (must be inside rebuildFields to persist state)
+            initDisplayText(
+                keyData,
+                isEditingSubModeLayout,
+                currentSubModeLabel,
+                labelTextKey = "displayText",
+                labelKey = "label"
+            ) { modeSpecific, simpleValue, items ->
+                macroDisplayTextModeSpecific = modeSpecific
+                macroDisplayTextSimpleValue = simpleValue
+                macroDisplayTextModeItems.clear()
+                macroDisplayTextModeItems.addAll(items)
+            }
 
             when (selectedType) {
                 "AlphabetKey" -> {
@@ -210,6 +340,148 @@ class KeyEditorDialog(private val activity: AppCompatActivity) {
                     fieldsContainer.addView(labelEdit.first)
                     fieldsContainer.addView(weightEdit.first)
                 }
+                "MacroKey" -> {
+                    val labelEdit = uiBuilder.createEditField(
+                        activity.getString(R.string.text_keyboard_layout_key_label),
+                        keyData["label"] as? String ?: "Macro"
+                    )
+                    val altLabelEdit = uiBuilder.createEditField(
+                        activity.getString(R.string.text_keyboard_layout_alt_label),
+                        keyData["altLabel"] as? String ?: ""
+                    )
+                    val weightEdit = uiBuilder.createEditField(
+                        activity.getString(R.string.text_keyboard_layout_key_weight),
+                        (keyData["weight"] as? Number)?.toString() ?: ""
+                    )
+
+                    fieldsContainer.addView(labelEdit.first)
+                    fieldsContainer.addView(altLabelEdit.first)
+                    fieldsContainer.addView(weightEdit.first)
+
+                    macroLabelEdit = labelEdit.second
+                    macroAltLabelEdit = altLabelEdit.second
+                    macroWeightEdit = weightEdit.second
+
+                    // labelText editor (multi-mode support)
+                    val labelTextContainer = LinearLayout(activity).apply {
+                        orientation = LinearLayout.VERTICAL
+                    }
+                    fieldsContainer.addView(labelTextContainer)
+
+                    uiBuilder.renderDisplayTextEditor(
+                        labelTextContainer,
+                        macroDisplayTextModeSpecific,
+                        macroDisplayTextSimpleValue,
+                        macroDisplayTextModeItems,
+                        macroDisplayTextRowBindings,
+                        isEditingSubModeLayout,
+                        hasMultiSubmodeSupport = !isEditingSubModeLayout,
+                        callback = { modeSpecific, simpleValue, items, bindings, simpleTextEdit ->
+                            macroDisplayTextModeSpecific = modeSpecific
+                            macroDisplayTextSimpleValue = simpleValue
+                            macroDisplayTextModeItems.clear()
+                            macroDisplayTextModeItems.addAll(items)
+                            macroDisplayTextRowBindings.clear()
+                            macroDisplayTextRowBindings.addAll(bindings)
+                            macroDisplayTextSimpleEdit = simpleTextEdit
+                        }
+                    )
+
+                    // Extract existing macro data
+                    val tapAction = keyData["tap"] as? Map<*, *>
+                    val swipeAction = keyData["swipe"] as? Map<*, *>
+
+                    val tapMacroSteps = (tapAction?.get("macro") as? List<*>)?.filterNotNull() ?: emptyList()
+                    val swipeMacroSteps = (swipeAction?.get("macro") as? List<*>)?.filterNotNull() ?: emptyList()
+
+                    // Initialize Macro editor data
+                    macroTapStepsData = tapMacroSteps as List<Any>
+                    macroSwipeStepsData = swipeMacroSteps as List<Any>
+
+                    // Tap event editor button
+                    val editTapMacroButton = TextView(activity).apply {
+                        text = activity.getString(R.string.text_keyboard_layout_macro_tap_event)
+                        textSize = 14f
+                        setTypeface(null, android.graphics.Typeface.BOLD)
+                        gravity = Gravity.CENTER
+                        minWidth = activity.dp(120)
+                        setPadding(activity.dp(12), activity.dp(8), activity.dp(12), activity.dp(8))
+                        background = android.graphics.drawable.GradientDrawable().apply {
+                            setColor(activity.styledColor(android.R.attr.colorButtonNormal))
+                            setStroke(activity.dp(1), activity.styledColor(android.R.attr.colorControlNormal))
+                            cornerRadius = activity.dp(4).toFloat()
+                        }
+                        layoutParams = LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.WRAP_CONTENT,
+                            LinearLayout.LayoutParams.WRAP_CONTENT
+                        ).apply {
+                            gravity = Gravity.CENTER_HORIZONTAL
+                            topMargin = activity.dp(8)
+                        }
+                    }
+                    fieldsContainer.addView(editTapMacroButton)
+
+                    val tapStepsPreview = TextView(activity).apply {
+                        text = buildMacroPreview(tapMacroSteps)
+                        textSize = 12f
+                        setTextColor(activity.styledColor(android.R.attr.textColorSecondary))
+                        setPadding(activity.dp(8), activity.dp(8), activity.dp(8), activity.dp(8))
+                        layoutParams = LinearLayout.LayoutParams(matchParent, wrapContent).apply {
+                            topMargin = activity.dp(4)
+                        }
+                    }
+                    fieldsContainer.addView(tapStepsPreview)
+
+                    // Swipe event editor button
+                    val editSwipeMacroButton = TextView(activity).apply {
+                        text = activity.getString(R.string.text_keyboard_layout_macro_swipe_event)
+                        textSize = 14f
+                        setTypeface(null, android.graphics.Typeface.BOLD)
+                        gravity = Gravity.CENTER
+                        minWidth = activity.dp(120)
+                        setPadding(activity.dp(12), activity.dp(8), activity.dp(12), activity.dp(8))
+                        background = android.graphics.drawable.GradientDrawable().apply {
+                            setColor(activity.styledColor(android.R.attr.colorButtonNormal))
+                            setStroke(activity.dp(1), activity.styledColor(android.R.attr.colorControlNormal))
+                            cornerRadius = activity.dp(4).toFloat()
+                        }
+                        layoutParams = LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.WRAP_CONTENT,
+                            LinearLayout.LayoutParams.WRAP_CONTENT
+                        ).apply {
+                            gravity = Gravity.CENTER_HORIZONTAL
+                            topMargin = activity.dp(8)
+                        }
+                    }
+                    fieldsContainer.addView(editSwipeMacroButton)
+
+                    val swipeStepsPreview = TextView(activity).apply {
+                        text = buildMacroPreview(swipeMacroSteps)
+                        textSize = 12f
+                        setTextColor(activity.styledColor(android.R.attr.textColorSecondary))
+                        setPadding(activity.dp(8), activity.dp(8), activity.dp(8), activity.dp(8))
+                        layoutParams = LinearLayout.LayoutParams(matchParent, wrapContent).apply {
+                            topMargin = activity.dp(4)
+                        }
+                    }
+                    fieldsContainer.addView(swipeStepsPreview)
+
+                    // Click editor button - Tap
+                    editTapMacroButton.setOnClickListener {
+                        openMacroEditor(macroTapStepsData, activity.getString(R.string.text_keyboard_layout_macro_tap_event)) { newSteps ->
+                            macroTapStepsData = newSteps
+                            tapStepsPreview.text = buildMacroPreview(newSteps.map { it as Map<*, *> })
+                        }
+                    }
+
+                    // Click editor button - Swipe
+                    editSwipeMacroButton.setOnClickListener {
+                        openMacroEditor(macroSwipeStepsData, activity.getString(R.string.text_keyboard_layout_macro_swipe_event)) { newSteps ->
+                            macroSwipeStepsData = newSteps
+                            swipeStepsPreview.text = buildMacroPreview(newSteps.map { it as Map<*, *> })
+                        }
+                    }
+                }
                 "CapsKey", "CommaKey", "LanguageKey", "SpaceKey", "ReturnKey", "BackspaceKey" -> {
                     val weightEdit = uiBuilder.createEditField(
                         activity.getString(R.string.text_keyboard_layout_key_weight),
@@ -221,7 +493,7 @@ class KeyEditorDialog(private val activity: AppCompatActivity) {
             }
         }
 
-        // 类型切换监听
+        // Type change listener
         typeSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 selectedType = KeyboardEditorUiBuilder.KEY_TYPES[position]
@@ -232,7 +504,7 @@ class KeyEditorDialog(private val activity: AppCompatActivity) {
 
         rebuildFields()
 
-        // 创建对话框
+        // Create dialog
         val dialogBuilder = AlertDialog.Builder(activity)
             .setTitle(if (isEdit) R.string.edit else R.string.text_keyboard_layout_add_key)
             .setView(container)
@@ -264,6 +536,14 @@ class KeyEditorDialog(private val activity: AppCompatActivity) {
                     layoutSwitchWeightEdit,
                     symbolLabelEdit,
                     symbolWeightEdit,
+                    macroLabelEdit,
+                    macroDisplayTextModeSpecific,
+                    macroDisplayTextSimpleEdit,
+                    macroDisplayTextSimpleValue,
+                    macroDisplayTextModeItems,
+                    macroDisplayTextRowBindings,
+                    macroAltLabelEdit,
+                    macroWeightEdit,
                     simpleWeightEdit
                 )
 
@@ -295,9 +575,11 @@ class KeyEditorDialog(private val activity: AppCompatActivity) {
         keyData: Map<String, Any?>,
         isEditingSubModeLayout: Boolean,
         currentSubModeLabel: String?,
+        labelTextKey: String = "displayText",
+        labelKey: String = "label",
         callback: (Boolean, String, MutableList<KeyboardEditorUiBuilder.DisplayTextItem>) -> Unit
     ) {
-        val displayTextData = keyData["displayText"]
+        val displayTextData = keyData[labelTextKey]
         val displayTextMap = when (displayTextData) {
             is JsonObject -> displayTextData.mapValues { entry ->
                 LayoutJsonUtils.toAny(entry.value)
@@ -322,7 +604,16 @@ class KeyEditorDialog(private val activity: AppCompatActivity) {
                 callback(true, "", items)
             }
         } else {
-            callback(false, displayTextData?.toString().orEmpty(), mutableListOf())
+            // No labelText map, check if labelText is a simple string
+            val labelTextSimple = keyData[labelTextKey] as? String
+            if (!labelTextSimple.isNullOrBlank()) {
+                // labelText is a simple string
+                callback(false, labelTextSimple, mutableListOf())
+            } else {
+                // No labelText, use label as fallback
+                val labelValue = keyData[labelKey] as? String
+                callback(false, labelValue.orEmpty(), mutableListOf())
+            }
         }
     }
 
@@ -341,13 +632,21 @@ class KeyEditorDialog(private val activity: AppCompatActivity) {
         layoutSwitchWeightEdit: EditText?,
         symbolLabelEdit: EditText?,
         symbolWeightEdit: EditText?,
+        macroLabelEdit: EditText?,
+        macroDisplayTextModeSpecific: Boolean,
+        macroDisplayTextSimpleEdit: EditText?,
+        macroDisplayTextSimpleValue: String,
+        macroDisplayTextModeItems: List<KeyboardEditorUiBuilder.DisplayTextItem>,
+        macroDisplayTextRowBindings: List<KeyboardEditorUiBuilder.DisplayTextRowBinding>,
+        macroAltLabelEdit: EditText?,
+        macroWeightEdit: EditText?,
         simpleWeightEdit: EditText?
     ): MutableMap<String, Any?>? {
-        // 验证 AlphabetKey 字段
+        // Validate AlphabetKey fields
         if (selectedType == "AlphabetKey") {
             val main = alphabetMainEdit?.text?.toString()?.trim().orEmpty()
             val alt = alphabetAltEdit?.text?.toString()?.trim().orEmpty()
-            
+
             if (main.isEmpty()) {
                 Toast.makeText(activity, R.string.text_keyboard_layout_alphabet_key_main_required, Toast.LENGTH_SHORT).show()
                 return null
@@ -364,6 +663,17 @@ class KeyEditorDialog(private val activity: AppCompatActivity) {
                 Toast.makeText(activity, activity.getString(R.string.text_keyboard_layout_alphabet_key_alt_length_invalid), Toast.LENGTH_SHORT).show()
                 return null
             }
+        }
+
+        // Validate MacroKey fields
+        if (selectedType == "MacroKey") {
+            val label = macroLabelEdit?.text?.toString()?.trim().orEmpty()
+
+            if (label.isEmpty()) {
+                Toast.makeText(activity, R.string.text_keyboard_layout_macro_key_label_required, Toast.LENGTH_SHORT).show()
+                return null
+            }
+            // Macro steps validation is done in MacroEditorActivity
         }
 
         val newKey = mutableMapOf<String, Any?>()
@@ -405,6 +715,53 @@ class KeyEditorDialog(private val activity: AppCompatActivity) {
             "SymbolKey" -> {
                 newKey["label"] = symbolLabelEdit?.text?.toString()?.ifEmpty { "." }.orEmpty()
                 parseWeight(symbolWeightEdit?.text?.toString())?.let { newKey["weight"] = it }
+            }
+            "MacroKey" -> {
+                val baseLabel = macroLabelEdit?.text?.toString().orEmpty()
+                newKey["label"] = baseLabel
+                val altLabel = macroAltLabelEdit?.text?.toString().orEmpty()
+                if (altLabel.isNotEmpty()) newKey["altLabel"] = altLabel
+                parseWeight(macroWeightEdit?.text?.toString())?.let { newKey["weight"] = it }
+
+                // Save displayText (multi-mode) - use displayText field uniformly
+                if (macroDisplayTextModeSpecific) {
+                    // In mode-specific mode, read from row bindings
+                    val displayTextMap = mutableMapOf<String, String>()
+                    macroDisplayTextRowBindings.forEach { binding ->
+                        val modeName = binding.modeEdit.text?.toString()?.trim().orEmpty()
+                        val modeValue = binding.valueEdit.text?.toString()?.trim().orEmpty()
+                        if (modeName.isNotEmpty() && modeValue.isNotEmpty()) {
+                            displayTextMap[modeName] = modeValue
+                        }
+                    }
+                    if (displayTextMap.isNotEmpty()) {
+                        newKey["displayText"] = displayTextMap
+                    }
+                } else {
+                    // Simple mode: save displayText value
+                    val displayText = macroDisplayTextSimpleEdit?.text?.toString()?.trim()
+                        ?: macroDisplayTextSimpleValue.trim()
+                    if (displayText.isNotEmpty()) {
+                        newKey["displayText"] = displayText
+                    }
+                }
+
+                // Use step data returned from Macro editor - Tap
+                if (macroTapStepsData.isNotEmpty()) {
+                    newKey["tap"] = mapOf("macro" to macroTapStepsData)
+                } else {
+                    // Default: add an empty text step
+                    newKey["tap"] = mapOf(
+                        "macro" to listOf(
+                            mapOf("type" to "text", "text" to "")
+                        )
+                    )
+                }
+
+                // Use step data returned from Macro editor - Swipe
+                if (macroSwipeStepsData.isNotEmpty()) {
+                    newKey["swipe"] = mapOf("macro" to macroSwipeStepsData)
+                }
             }
             "CapsKey", "CommaKey", "LanguageKey", "SpaceKey", "ReturnKey", "BackspaceKey" -> {
                 parseWeight(simpleWeightEdit?.text?.toString())?.let { newKey["weight"] = it }

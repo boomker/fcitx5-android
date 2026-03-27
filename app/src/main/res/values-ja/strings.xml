@@ -302,8 +302,10 @@
     <string name="text_keyboard_layout_key_alt">代替文字</string>
     <string name="text_keyboard_layout_key_display_text">表示テキスト</string>
     <string name="text_keyboard_layout_key_label">ラベル</string>
+    <string name="text_keyboard_layout_key_alt_label">代替ラベル（スワイプ）</string>
     <string name="text_keyboard_layout_key_sub_label">サブラベル</string>
     <string name="text_keyboard_layout_key_weight">重み幅</string>
+    <string name="text_keyboard_layout_macro_text">マクロテキスト</string>
     <string name="text_keyboard_layout_layout_name">レイアウト名</string>
     <string name="text_keyboard_layout_layout_name_hint">例：rime、pinyin</string>
     <string name="text_keyboard_layout_copy_from">既存レイアウトからコピー</string>
@@ -323,6 +325,11 @@
     <string name="text_keyboard_layout_add_mode">モードを追加</string>
     <string name="text_keyboard_layout_display_text_mode_specific">%1$s（モード別）：</string>
     <string name="text_keyboard_layout_mode_name_hint">モード名</string>
+    <string name="text_keyboard_layout_macro_tap_event">タップイベント</string>
+    <string name="text_keyboard_layout_macro_swipe_event">スワイプイベント</string>
+    <string name="text_keyboard_layout_macro_no_event">イベントが設定されていません</string>
+    <string name="text_keyboard_layout_macro_event_preview">%1$s → … (全 %2$d ステップ)</string>
+    <string name="text_keyboard_layout_alt_label">代替ラベル</string>
     <string name="text_keyboard_layout_display_value_hint">表示値</string>
     <string name="text_keyboard_layout_key_label_caps">Caps</string>
     <string name="text_keyboard_layout_key_label_lang">Lang</string>
@@ -332,6 +339,8 @@
     <string name="text_keyboard_layout_alphabet_key_alt_required">代替文字は空にできません</string>
     <string name="text_keyboard_layout_alphabet_key_main_length_invalid">メイン文字は単一の文字である必要があります</string>
     <string name="text_keyboard_layout_alphabet_key_alt_length_invalid">代替文字は単一の文字である必要があります</string>
+    <string name="text_keyboard_layout_macro_key_label_required">ラベルは空にできません</string>
+    <string name="text_keyboard_layout_macro_key_text_required">マクロテキストは空にできません</string>
     <string name="text_keyboard_layout_validation_error">検証エラー</string>
     <string name="text_keyboard_layout_display_text_mode_invalid">新しいモードを追加する前に、行 %1$d を入力してください</string>
     <string name="text_keyboard_layout_display_text_mode_duplicate">モード名 "%1$s" は既に使用されています</string>
@@ -405,4 +414,35 @@
     <string name="fontset_save_failed_io_error">フォントセットの保存に失敗しました：I/O エラーが発生しました</string>
     <string name="fontset_save_failed_permission_error">フォントセットの保存に失敗しました：権限がありません</string>
     <string name="fontset_save_failed_unknown_error">フォントセットの保存に失敗しました：%1$s</string>
+
+    <!-- Macro Editor -->
+    <string name="macro_editor_title">%1$s を編集</string>
+    <string name="macro_editor_add_step">+ ステップを追加</string>
+    <string name="macro_editor_step_type_tap">キーをタップ</string>
+    <string name="macro_editor_step_type_shortcut">ショートカット</string>
+    <string name="macro_editor_step_type_edit">アクションを編集</string>
+    <string name="macro_editor_step_type_down">キーを押す</string>
+    <string name="macro_editor_step_type_up">キーを離す</string>
+    <string name="macro_editor_step_type_text">テキストを入力</string>
+    <string name="macro_editor_action_copy">コピー</string>
+    <string name="macro_editor_action_cut">切り取り</string>
+    <string name="macro_editor_action_paste">貼り付け</string>
+    <string name="macro_editor_action_select_all">すべて選択</string>
+    <string name="macro_editor_action_undo">元に戻す</string>
+    <string name="macro_editor_action_redo">やり直し</string>
+    <string name="macro_editor_picker_title">アクションを選択</string>
+    <string name="macro_editor_picker_cancel">キャンセル</string>
+    <string name="macro_editor_key_type_label">キータイプ</string>
+    <string name="macro_editor_key_value_label">キー値</string>
+    <string name="macro_editor_edit_key_title">キーを編集</string>
+    <string name="macro_editor_confirm">OK</string>
+    <string name="macro_editor_cancel">キャンセル</string>
+    <string name="macro_editor_delete">削除</string>
+    <string name="macro_editor_key_duplicate">キー %1$s は既に存在します</string>
+    <string name="macro_editor_step_text_empty">テキストは空にできません</string>
+    <string name="macro_editor_step_keys_empty">ステップ %1$d には少なくとも 1 つのキーが必要です</string>
+    <string name="macro_editor_step_shortcut_modifiers_empty">ステップ %1$d には少なくとも 1 つの修飾キー (Ctrl/Alt/Shift/Meta) が必要です</string>
+    <string name="macro_editor_step_shortcut_multiple_keys">ステップ %1$d のターゲットキーは 1 つだけです</string>
+    <string name="macro_editor_step_edit_action_required">ステップ %1$d にはアクションが必要です</string>
+    <string name="macro_editor_key_event_unmatched">キーイベントの不一致：%1$s の押下と解放の回数が一致しません</string>
 </resources>

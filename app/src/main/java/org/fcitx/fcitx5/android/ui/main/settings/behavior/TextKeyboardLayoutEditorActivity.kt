@@ -48,6 +48,7 @@ import org.fcitx.fcitx5.android.ui.main.settings.behavior.dialog.KeyEditorDialog
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.manager.SubModeManager
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.preview.KeyboardPreviewManager
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.utils.LayoutJsonUtils
+import org.fcitx.fcitx5.android.ui.main.settings.behavior.dialog.MacroEditorActivity
 import org.fcitx.fcitx5.android.utils.InputMethodUtil
 import splitties.dimensions.dp
 import splitties.resources.styledColor
@@ -226,11 +227,26 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             val subModeLabel = previewSubModeLabel
             val subModeKey = subModeLabel?.let { "$layoutName:$it" }
             val hasDedicatedSubModeLayout = subModeKey != null && entries.containsKey(subModeKey)
-            
+
             if (hasDedicatedSubModeLayout) {
                 showToast(getString(R.string.text_keyboard_layout_editing_submode, subModeLabel))
             } else {
                 showToast(getString(R.string.text_keyboard_layout_editing_default, layoutName))
+            }
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: android.content.Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (resultCode == RESULT_OK && data != null) {
+            when (requestCode) {
+                KeyEditorDialog.REQUEST_MACRO_EDITOR -> {
+                    @Suppress("UNCHECKED_CAST")
+                    val result = data.getSerializableExtra(MacroEditorActivity.EXTRA_MACRO_RESULT) as? ArrayList<Map<*, *>>
+                    result?.let {
+                        keyEditorDialog.macroEditCallback?.invoke(it as List<Any>)
+                    }
+                }
             }
         }
     }

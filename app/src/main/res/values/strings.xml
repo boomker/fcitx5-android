@@ -452,8 +452,10 @@
     <string name="text_keyboard_layout_key_alt">Alt Character</string>
     <string name="text_keyboard_layout_key_display_text">Display Text</string>
     <string name="text_keyboard_layout_key_label">Label</string>
+    <string name="text_keyboard_layout_key_alt_label">Alt Label (Swipe)</string>
     <string name="text_keyboard_layout_key_sub_label">Sub Label</string>
     <string name="text_keyboard_layout_key_weight">Weight Width</string>
+    <string name="text_keyboard_layout_macro_text">Macro Text</string>
     <string name="text_keyboard_layout_layout_name">Layout Name</string>
     <string name="text_keyboard_layout_layout_name_hint">e.g., rime, pinyin</string>
     <string name="text_keyboard_layout_copy_from">Copy from existing layout</string>
@@ -474,6 +476,11 @@
     <string name="text_keyboard_layout_add_mode">Add mode</string>
     <string name="text_keyboard_layout_display_text_mode_specific">%1$s (Mode-specific):</string>
     <string name="text_keyboard_layout_mode_name_hint">Mode name</string>
+    <string name="text_keyboard_layout_macro_tap_event">Tap Event</string>
+    <string name="text_keyboard_layout_macro_swipe_event">Swipe Event</string>
+    <string name="text_keyboard_layout_macro_no_event">No event configured</string>
+    <string name="text_keyboard_layout_macro_event_preview">%1$s → … (%2$d steps total)</string>
+    <string name="text_keyboard_layout_alt_label">Alt Label</string>
     <string name="text_keyboard_layout_display_value_hint">Display value</string>
     <string name="text_keyboard_layout_key_label_caps">Caps</string>
     <string name="text_keyboard_layout_key_label_lang">Lang</string>
@@ -483,7 +490,41 @@
     <string name="text_keyboard_layout_alphabet_key_alt_required">Alt character must not be empty</string>
     <string name="text_keyboard_layout_alphabet_key_main_length_invalid">Main character must be a single character</string>
     <string name="text_keyboard_layout_alphabet_key_alt_length_invalid">Alt character must be a single character</string>
+    <string name="text_keyboard_layout_macro_key_label_required">Label must not be empty</string>
+    <string name="text_keyboard_layout_macro_key_text_required">Macro text must not be empty</string>
     <string name="text_keyboard_layout_validation_error">Validation Error</string>
+
+    <!-- Macro Editor -->
+    <string name="macro_editor_title">Edit %1$s</string>
+    <string name="macro_editor_add_step">+ Add Step</string>
+    <string name="macro_editor_step_type_tap">Tap Keys</string>
+    <string name="macro_editor_step_type_shortcut">Shortcut</string>
+    <string name="macro_editor_step_type_edit">Edit Action</string>
+    <string name="macro_editor_step_type_down">Press Key</string>
+    <string name="macro_editor_step_type_up">Release Key</string>
+    <string name="macro_editor_step_type_text">Input Text</string>
+    <string name="macro_editor_action_copy">Copy</string>
+    <string name="macro_editor_action_cut">Cut</string>
+    <string name="macro_editor_action_paste">Paste</string>
+    <string name="macro_editor_action_select_all">Select All</string>
+    <string name="macro_editor_action_undo">Undo</string>
+    <string name="macro_editor_action_redo">Redo</string>
+    <string name="macro_editor_picker_title">Select Edit Action</string>
+    <string name="macro_editor_picker_cancel">Cancel</string>
+    <string name="macro_editor_key_type_label">Key Type</string>
+    <string name="macro_editor_key_value_label">Key Value</string>
+    <string name="macro_editor_edit_key_title">Edit Key</string>
+    <string name="macro_editor_confirm">OK</string>
+    <string name="macro_editor_cancel">Cancel</string>
+    <string name="macro_editor_delete">Delete</string>
+    <string name="macro_editor_key_duplicate">Key %1$s already exists</string>
+    <string name="macro_editor_step_text_empty">Text must not be empty</string>
+    <string name="macro_editor_step_keys_empty">Step %1$d requires at least one key</string>
+    <string name="macro_editor_step_shortcut_modifiers_empty">Step %1$d requires at least one modifier key (Ctrl/Alt/Shift/Meta)</string>
+    <string name="macro_editor_step_shortcut_multiple_keys">Step %1$d can only have one target key</string>
+    <string name="macro_editor_step_edit_action_required">Step %1$d requires an action</string>
+    <string name="macro_editor_type_change_title">Change Step Type</string>
+    <string name="macro_editor_type_change_message">Changing step type will clear current data. Continue?</string>
     <string name="text_keyboard_layout_display_text_mode_invalid">Please fill in row %1$d before adding a new mode</string>
     <string name="text_keyboard_layout_display_text_mode_duplicate">Mode name "%1$s" is already in use</string>
     <string name="text_keyboard_layout_add_submode">Add submode layout</string>
@@ -504,4 +545,5 @@
     <string name="cannot_resolve_text_keyboard_layout">Unable to resolve text keyboard layout file</string>
     <string name="text_keyboard_layout_saved_at">TextKeyboardLayout.json saved at: %1$s</string>
     <string name="text_keyboard_layout_save_failed">Failed to save layout. Check logcat for details.</string>
+    <string name="macro_editor_key_event_unmatched">Key event mismatch: The number of key down and up events for %1$s does not match</string>
 </resources>

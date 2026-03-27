@@ -489,7 +489,46 @@
     <string name="text_keyboard_layout_alphabet_key_alt_required">副字符不能为空</string>
     <string name="text_keyboard_layout_alphabet_key_main_length_invalid">主字符必须是单个字符</string>
     <string name="text_keyboard_layout_alphabet_key_alt_length_invalid">副字符必须是单个字符</string>
+    <string name="text_keyboard_layout_key_alt_label">副标签（划动）</string>
+    <string name="text_keyboard_layout_macro_text">宏文本</string>
+    <string name="text_keyboard_layout_macro_key_label_required">标签不能为空</string>
+    <string name="text_keyboard_layout_macro_key_text_required">宏文本不能为空</string>
+    <string name="text_keyboard_layout_macro_tap_event">点击事件</string>
+    <string name="text_keyboard_layout_macro_swipe_event">划动事件</string>
+    <string name="text_keyboard_layout_macro_no_event">未配置事件</string>
+    <string name="text_keyboard_layout_macro_event_preview">%1$s → … (共 %2$d 步)</string>
+    <string name="text_keyboard_layout_alt_label">副标签</string>
     <string name="text_keyboard_layout_validation_error">验证错误</string>
+
+    <!-- Macro Editor -->
+    <string name="macro_editor_title">编辑 %1$s</string>
+    <string name="macro_editor_add_step">+ 添加步骤</string>
+    <string name="macro_editor_step_type_tap">点击按键</string>
+    <string name="macro_editor_step_type_shortcut">快捷键</string>
+    <string name="macro_editor_step_type_edit">编辑操作</string>
+    <string name="macro_editor_step_type_down">按下按键</string>
+    <string name="macro_editor_step_type_up">释放按键</string>
+    <string name="macro_editor_step_type_text">输入文本</string>
+    <string name="macro_editor_action_copy">复制</string>
+    <string name="macro_editor_action_cut">剪切</string>
+    <string name="macro_editor_action_paste">粘贴</string>
+    <string name="macro_editor_action_select_all">全选</string>
+    <string name="macro_editor_action_undo">撤销</string>
+    <string name="macro_editor_action_redo">重做</string>
+    <string name="macro_editor_picker_title">选择编辑操作</string>
+    <string name="macro_editor_picker_cancel">取消</string>
+    <string name="macro_editor_key_type_label">按键类型</string>
+    <string name="macro_editor_key_value_label">按键值</string>
+    <string name="macro_editor_edit_key_title">编辑按键</string>
+    <string name="macro_editor_confirm">确定</string>
+    <string name="macro_editor_cancel">取消</string>
+    <string name="macro_editor_delete">删除</string>
+    <string name="macro_editor_key_duplicate">按键 %1$s 已存在</string>
+    <string name="macro_editor_step_text_empty">文本不能为空</string>
+    <string name="macro_editor_step_keys_empty">步骤 %1$d 至少需要一个按键</string>
+    <string name="macro_editor_step_shortcut_modifiers_empty">步骤 %1$d 需要至少一个修饰键（Ctrl/Alt/Shift/Meta）</string>
+    <string name="macro_editor_step_shortcut_multiple_keys">步骤 %1$d 只能有一个目标按键</string>
+    <string name="macro_editor_step_edit_action_required">步骤 %1$d 需要选择一个操作</string>
     <string name="text_keyboard_layout_display_text_mode_invalid">请先填写第 %1$d 行的模式名称和显示文本</string>
     <string name="text_keyboard_layout_display_text_mode_duplicate">模式名称 "%1$s" 已被使用</string>
     <string name="cannot_resolve_text_keyboard_layout">无法定位文本键盘布局文件</string>
@@ -498,4 +537,5 @@
     <string name="fontset_save_failed_io_error">保存字体集失败：发生 I/O 错误</string>
     <string name="fontset_save_failed_permission_error">保存字体集失败：权限被拒绝</string>
     <string name="fontset_save_failed_unknown_error">保存字体集失败：%1$s</string>
+    <string name="macro_editor_key_event_unmatched">按键事件不匹配：%1$s 的按下和释放次数不等</string>
 </resources>

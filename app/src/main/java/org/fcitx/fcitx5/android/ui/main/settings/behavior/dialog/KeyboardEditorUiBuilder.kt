@@ -38,7 +38,8 @@ class KeyboardEditorUiBuilder(private val activity: AppCompatActivity) {
             "SpaceKey",
             "SymbolKey",
             "ReturnKey",
-            "BackspaceKey"
+            "BackspaceKey",
+            "MacroKey"
         )
     }
 
@@ -190,7 +191,7 @@ class KeyboardEditorUiBuilder(private val activity: AppCompatActivity) {
                         LinearLayout.LayoutParams.WRAP_CONTENT
                     ).apply {
                         gravity = Gravity.CENTER_HORIZONTAL
-                        topMargin = activity.dp(4)
+                        topMargin = activity.dp(8)  // 增加与上方内容的间距
                     }
                     setOnClickListener {
                         val newValue = simpleText.second.text?.toString().orEmpty()
@@ -230,7 +231,9 @@ class KeyboardEditorUiBuilder(private val activity: AppCompatActivity) {
         displayTextContainer.addView(modeEntriesContainer)
 
         val items = modeItems.toMutableList()
-        val bindings = rowBindings
+        // Use a new local list to accumulate bindings, then sync back via callback
+        // This avoids the issue of clearing the same list reference
+        val bindings = mutableListOf<DisplayTextRowBinding>()
 
         modeItems.forEachIndexed { index, item ->
             val entryRow = createDisplayTextEntryRow(
@@ -246,6 +249,11 @@ class KeyboardEditorUiBuilder(private val activity: AppCompatActivity) {
                 callback
             )
             modeEntriesContainer.addView(entryRow)
+        }
+        
+        // 在 mode-specific 模式下，调用 callback 同步外部状态
+        if (modeSpecific) {
+            callback(modeSpecific, simpleValue, items, bindings, null)
         }
 
         val addModeBtn = TextView(activity).apply {

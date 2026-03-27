@@ -207,8 +207,10 @@
     <string name="text_keyboard_layout_key_alt">Alternatives Zeichen</string>
     <string name="text_keyboard_layout_key_display_text">Anzeigetext</string>
     <string name="text_keyboard_layout_key_label">Beschriftung</string>
+    <string name="text_keyboard_layout_key_alt_label">Alternatives Etikett (Wischen)</string>
     <string name="text_keyboard_layout_key_sub_label">Unterbeschriftung</string>
     <string name="text_keyboard_layout_key_weight">Gewichtungsbreite</string>
+    <string name="text_keyboard_layout_macro_text">Makro-Text</string>
     <string name="text_keyboard_layout_layout_name">Layoutname</string>
     <string name="text_keyboard_layout_layout_name_hint">z. B.: rime, pinyin</string>
     <string name="text_keyboard_layout_copy_from">Aus bestehendem Layout kopieren</string>
@@ -228,6 +230,11 @@
     <string name="text_keyboard_layout_add_mode">Modus hinzufügen</string>
     <string name="text_keyboard_layout_display_text_mode_specific">%1$s (modusabhängig):</string>
     <string name="text_keyboard_layout_mode_name_hint">Modusname</string>
+    <string name="text_keyboard_layout_macro_tap_event">Tippen-Ereignis</string>
+    <string name="text_keyboard_layout_macro_swipe_event">Wisch-Ereignis</string>
+    <string name="text_keyboard_layout_macro_no_event">Kein Ereignis konfiguriert</string>
+    <string name="text_keyboard_layout_macro_event_preview">%1$s → … (insgesamt %2$d Schritte)</string>
+    <string name="text_keyboard_layout_alt_label">Alternatives Etikett</string>
     <string name="text_keyboard_layout_display_value_hint">Anzeigewert</string>
     <string name="text_keyboard_layout_key_label_caps">Caps</string>
     <string name="text_keyboard_layout_key_label_lang">Lang</string>
@@ -237,6 +244,8 @@
     <string name="text_keyboard_layout_alphabet_key_alt_required">Alternatives Zeichen darf nicht leer sein</string>
     <string name="text_keyboard_layout_alphabet_key_main_length_invalid">Hauptzeichen muss ein einzelnes Zeichen sein</string>
     <string name="text_keyboard_layout_alphabet_key_alt_length_invalid">Alternatives Zeichen muss ein einzelnes Zeichen sein</string>
+    <string name="text_keyboard_layout_macro_key_label_required">Beschriftung darf nicht leer sein</string>
+    <string name="text_keyboard_layout_macro_key_text_required">Makro-Text darf nicht leer sein</string>
     <string name="text_keyboard_layout_validation_error">Validierungsfehler</string>
     <string name="text_keyboard_layout_display_text_mode_invalid">Bitte füllen Sie Zeile %1$d aus, bevor Sie einen neuen Modus hinzufügen</string>
     <string name="text_keyboard_layout_display_text_mode_duplicate">Modusname "%1$s" wird bereits verwendet</string>
@@ -313,4 +322,34 @@
     <string name="fontset_save_failed_io_error">Schriftartensatz speichern fehlgeschlagen: E/A-Fehler</string>
     <string name="fontset_save_failed_permission_error">Schriftartensatz speichern fehlgeschlagen: Berechtigung verweigert</string>
     <string name="fontset_save_failed_unknown_error">Schriftartensatz speichern fehlgeschlagen: %1$s</string>
+
+    <!-- Macro Editor -->
+    <string name="macro_editor_title">%1$s bearbeiten</string>
+    <string name="macro_editor_add_step">+ Schritt hinzufügen</string>
+    <string name="macro_editor_step_type_tap">Tasten tippen</string>
+    <string name="macro_editor_step_type_shortcut">Tastenkombination</string>
+    <string name="macro_editor_step_type_edit">Aktion bearbeiten</string>
+    <string name="macro_editor_step_type_down">Taste drücken</string>
+    <string name="macro_editor_step_type_up">Taste loslassen</string>
+    <string name="macro_editor_step_type_text">Text eingeben</string>
+    <string name="macro_editor_action_copy">Kopieren</string>
+    <string name="macro_editor_action_cut">Ausschneiden</string>
+    <string name="macro_editor_action_paste">Einfügen</string>
+    <string name="macro_editor_action_select_all">Alles auswählen</string>
+    <string name="macro_editor_action_undo">Widerrufen</string>
+    <string name="macro_editor_action_redo">Wiederherstellen</string>
+    <string name="macro_editor_picker_title">Aktion auswählen</string>
+    <string name="macro_editor_picker_cancel">Abbrechen</string>
+    <string name="macro_editor_key_type_label">Tastentyp</string>
+    <string name="macro_editor_key_value_label">Tastenwert</string>
+    <string name="macro_editor_edit_key_title">Taste bearbeiten</string>
+    <string name="macro_editor_confirm">OK</string>
+    <string name="macro_editor_cancel">Abbrechen</string>
+    <string name="macro_editor_delete">Löschen</string>
+    <string name="macro_editor_key_duplicate">Taste %1$s existiert bereits</string>
+    <string name="macro_editor_step_text_empty">Text darf nicht leer sein</string>
+    <string name="macro_editor_step_keys_empty">Schritt %1$d benötigt mindestens eine Taste</string>
+    <string name="macro_editor_step_shortcut_modifiers_empty">Schritt %1$d benötigt mindestens eine Modifikatortaste (Strg/Alt/Umschalt/Meta)</string>
+    <string name="macro_editor_step_shortcut_multiple_keys">Schritt %1$d kann nur eine Zieltaste haben</string>
+    <string name="macro_editor_step_edit_action_required">Schritt %1$d benötigt eine Aktion</string>
 </resources>

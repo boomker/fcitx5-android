@@ -16,6 +16,11 @@ import org.fcitx.fcitx5.android.input.keyboard.KeyDef.Appearance.Border
 import org.fcitx.fcitx5.android.input.keyboard.KeyDef.Appearance.Variant
 import org.fcitx.fcitx5.android.input.picker.PickerWindow
 
+// Import Macro types
+import org.fcitx.fcitx5.android.input.keyboard.MacroAction
+import org.fcitx.fcitx5.android.input.keyboard.MacroStep
+import org.fcitx.fcitx5.android.input.keyboard.KeyRef
+
 val NumLockState = KeyStates(KeyState.NumLock, KeyState.Virtual)
 
 class SymbolKey(
@@ -359,3 +364,116 @@ class NumPadKey(
         Behavior.Press(KeyAction.SymAction(KeySym(sym), NumLockState))
     )
 )
+
+/**
+ * Macro 按键，支持自定义 tap/swipe/longPress 行为
+ * @param label 显示文本（点击行为）
+ * @param altLabel 备选显示文本（划动行为，可选）
+ * @param tap 点击时执行的 macro
+ * @param swipe 划动时执行的 macro（可选）
+ * @param longPress 长按时执行的 macro（可选）
+ * @param percentWidth 按键宽度比例
+ * @param variant 样式变体
+ * @param popup 弹出菜单（可选）
+ */
+class MacroKey(
+    val label: String,
+    val altLabel: String? = null,
+    val tap: MacroAction,
+    val swipe: MacroAction? = null,
+    val longPress: MacroAction? = null,
+    percentWidth: Float = 0.1f,
+    variant: Variant = Variant.Normal,
+    popup: Array<Popup>? = null
+) : KeyDef(
+    Appearance.AltText(
+        displayText = label,
+        altText = altLabel ?: "",
+        character = label,
+        textSize = 23f,
+        percentWidth = percentWidth,
+        variant = variant
+    ),
+    buildBehaviors(tap, swipe, longPress),
+    buildPopup(popup, tap, label, longPress)
+) {
+    private companion object {
+        fun buildBehaviors(
+            tap: MacroAction,
+            swipe: MacroAction?,
+            longPress: MacroAction?
+        ): Set<Behavior> {
+            return buildSet {
+                add(Behavior.Press(tap))
+                swipe?.let { add(Behavior.Swipe(it)) }
+                longPress?.let { add(Behavior.LongPress(it)) }
+            }
+        }
+
+        /**
+         * Build popup based on macro content
+         * - If longPress macro is configured, no popup is generated (to avoid long click listener conflict)
+         * - If tap macro has only one tap key, generate popup for that key
+         * - Otherwise, generate popup based on label (preview on press, menu on long press)
+         */
+        fun buildPopup(
+            explicitPopup: Array<Popup>?,
+            tap: MacroAction,
+            label: String,
+            longPress: MacroAction? = null
+        ): Array<Popup>? {
+            // If explicit popup is provided, use it
+            if (explicitPopup != null) {
+                return explicitPopup
+            }
+
+            // If longPress macro is configured, don't generate any popup (let long press listener work)
+            if (longPress != null) {
+                return null
+            }
+
+            // Check if there's exactly one tap step with one key
+            val singleTapKey = if (tap.steps.size == 1 && tap.steps[0] is MacroStep.Tap) {
+                val tapStep = tap.steps[0] as MacroStep.Tap
+                if (tapStep.keys.size == 1) tapStep.keys[0] else null
+            } else null
+
+            return if (singleTapKey != null) {
+                // Generate popup based on the single key
+                when (singleTapKey) {
+                    is KeyRef.Fcitx -> {
+                        val code = singleTapKey.code
+                        // If single letter, generate same popup as AlphabetKey
+                        if (code.length == 1 && code[0].isLetter()) {
+                            val upper = code.uppercase()
+                            arrayOf(
+                                Popup.AltPreview(code, upper),
+                                Popup.Keyboard(code)
+                            )
+                        } else {
+                            // Other fcitx keys only show preview
+                            arrayOf(Popup.Preview(code))
+                        }
+                    }
+                    is KeyRef.Android -> {
+                        // Android key codes show as numbers
+                        arrayOf(Popup.Preview(singleTapKey.code.toString()))
+                    }
+                }
+            } else {
+                // Non-single-tap case: generate popup based on label
+                // If label is single letter, generate same popup as AlphabetKey
+                if (label.length == 1 && label[0].isLetter()) {
+                    val upper = label.uppercase()
+                    arrayOf(
+                        Popup.AltPreview(label, upper),
+                        Popup.Keyboard(label)
+                    )
+                } else {
+                    // Other labels only show preview
+                    arrayOf(Popup.Preview(label))
+                }
+            }
+        }
+    }
+}

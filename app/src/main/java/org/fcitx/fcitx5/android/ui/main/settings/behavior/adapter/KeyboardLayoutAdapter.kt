@@ -333,14 +333,24 @@ class KeyboardLayoutAdapter(
 
         // Add keys - short click to edit, with drag support (directly on the key)
         row.forEachIndexed { keyIndex, key ->
+            val type = key["type"] as? String ?: ""
+            val isMacroKey = type == "MacroKey"
             val keyChip = TextView(context).apply {
                 text = buildKeyLabel(key)
                 textSize = 14f
                 setPadding(context.dp(10), context.dp(8), context.dp(10), context.dp(8))
                 gravity = Gravity.CENTER
                 background = android.graphics.drawable.GradientDrawable().apply {
-                    setColor(context.styledColor(android.R.attr.colorButtonNormal))
-                    setStroke(context.dp(1), context.styledColor(android.R.attr.colorControlNormal))
+                    if (isMacroKey) {
+                        // MacroKey: 使用主题强调色区分
+                        setColor(context.styledColor(android.R.attr.colorAccent))
+                        setStroke(context.dp(2), context.styledColor(android.R.attr.colorControlHighlight))
+                        setTextColor(context.styledColor(android.R.attr.textColorPrimaryInverse))
+                    } else {
+                        setColor(context.styledColor(android.R.attr.colorButtonNormal))
+                        setStroke(context.dp(1), context.styledColor(android.R.attr.colorControlNormal))
+                        setTextColor(context.styledColor(android.R.attr.textColorPrimary))
+                    }
                     cornerRadius = context.dp(4).toFloat()
                 }
                 setOnClickListener {
@@ -414,6 +424,18 @@ class KeyboardLayoutAdapter(
             "SymbolKey" -> key["label"] as? String ?: "."
             "ReturnKey" -> context.getString(R.string.text_keyboard_layout_key_label_enter)
             "BackspaceKey" -> "⌫"
+            "MacroKey" -> {
+                // 显示 label 值，如果有 labelText 且当前在 submode 中，优先显示 labelText
+                val label = key["label"] as? String ?: "M"
+                val labelText = key["labelText"]
+                if (labelText is Map<*, *>) {
+                    // 如果有 labelText Map，尝试获取当前 submode 的值
+                    // 但由于这里没有 submode 上下文，返回 label 并依靠 UI 样式区分
+                    label.ifEmpty { "M" }
+                } else {
+                    label.ifEmpty { "M" }
+                }
+            }
             else -> type
         }
     }
