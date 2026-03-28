@@ -1504,10 +1504,10 @@ abstract class BaseKeyboard(
         val service = getService()
         if (service != null && keyCode >= 0) {
             // Key down
-            service.sendSimulatedKeyEvent(keyCode, scanCode, KeyEvent.ACTION_DOWN)
+            service.sendSimulatedKeyEvent(keyCode, scanCode, KeyEvent.ACTION_DOWN, fromMacro = true)
             delay(if (isMod) 150 else 50)
             // Key up
-            service.sendSimulatedKeyEvent(keyCode, scanCode, KeyEvent.ACTION_UP)
+            service.sendSimulatedKeyEvent(keyCode, scanCode, KeyEvent.ACTION_UP, fromMacro = true)
         } else {
             // Fall back to original method
             onAction(
@@ -1538,7 +1538,7 @@ abstract class BaseKeyboard(
         // Send through the physical keyboard path so Rime can recognize correctly
         val service = getService()
         if (service != null && keyCode >= 0) {
-            service.sendSimulatedKeyEvent(keyCode, scanCode, KeyEvent.ACTION_DOWN)
+            service.sendSimulatedKeyEvent(keyCode, scanCode, KeyEvent.ACTION_DOWN, fromMacro = true)
         } else {
             // Fall back to original method
             onAction(
@@ -1564,7 +1564,7 @@ abstract class BaseKeyboard(
         // Send through the physical keyboard path so Rime can recognize correctly
         val service = getService()
         if (service != null && keyCode >= 0) {
-            service.sendSimulatedKeyEvent(keyCode, scanCode, KeyEvent.ACTION_UP)
+            service.sendSimulatedKeyEvent(keyCode, scanCode, KeyEvent.ACTION_UP, fromMacro = true)
         } else {
             // Fall back to original method
             onAction(
