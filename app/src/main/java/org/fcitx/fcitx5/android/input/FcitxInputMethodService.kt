@@ -860,14 +860,20 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     private var simulatedNumLockOn = false
     private var simulatedCapsLockPressed = false
     private var simulatedNumLockPressed = false
+    private var simulatedCapsLockPressedFromMacro = false
+    private var simulatedCapsLockOnByMacroTap = false
 
     public fun isSimulatedCapsLockOn(): Boolean = simulatedCapsLockOn
+    public fun isSimulatedCapsLockOnByMacroTap(): Boolean = simulatedCapsLockOnByMacroTap
 
-    public fun sendSimulatedKeyEvent(keyCode: Int, scanCode: Int, action: Int) {
+    public fun sendSimulatedKeyEvent(keyCode: Int, scanCode: Int, action: Int, fromMacro: Boolean = false) {
         val eventTime = SystemClock.uptimeMillis()
         if (action == KeyEvent.ACTION_DOWN) {
             when (keyCode) {
-                KeyEvent.KEYCODE_CAPS_LOCK -> simulatedCapsLockPressed = true
+                KeyEvent.KEYCODE_CAPS_LOCK -> {
+                    simulatedCapsLockPressed = true
+                    simulatedCapsLockPressedFromMacro = fromMacro
+                }
                 KeyEvent.KEYCODE_NUM_LOCK -> simulatedNumLockPressed = true
             }
         }
@@ -898,8 +904,11 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
                     val old = simulatedCapsLockOn
                     if (simulatedCapsLockPressed) {
                         simulatedCapsLockOn = !simulatedCapsLockOn
+                        simulatedCapsLockOnByMacroTap =
+                            simulatedCapsLockOn && simulatedCapsLockPressedFromMacro
                     }
                     simulatedCapsLockPressed = false
+                    simulatedCapsLockPressedFromMacro = false
                     if (old != simulatedCapsLockOn) {
                         TextKeyboard.refreshCapsPresentationOnAll()
                     }
@@ -917,6 +926,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         if (keyCode == KeyEvent.KEYCODE_CAPS_LOCK) {
             simulatedCapsLockPressed = true
+            simulatedCapsLockPressedFromMacro = false
         }
         // request to show floating CandidatesView when pressing physical keyboard
         if (inputDeviceManager.evaluateOnKeyDown(event, this)) {
@@ -933,11 +943,25 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             val old = simulatedCapsLockOn
             simulatedCapsLockOn = event.isCapsLockOn
             simulatedCapsLockPressed = false
+            simulatedCapsLockPressedFromMacro = false
+            simulatedCapsLockOnByMacroTap = false
             if (old != simulatedCapsLockOn) {
                 TextKeyboard.refreshCapsPresentationOnAll()
             }
         }
         return forwardKeyEvent(event) || super.onKeyUp(keyCode, event)
+    }
+
+    public fun sendSimulatedCapsLockTapFromMacro() {
+        val keyCode = KeyEvent.KEYCODE_CAPS_LOCK
+        val scanCode = try {
+            ScancodeMapping.keyCodeToScancode(keyCode).takeIf { it != 0 } ?: 0
+        } catch (e: Exception) {
+            Timber.w("keyCodeToScancode failed for keyCode=$keyCode: ${e.message}")
+            0
+        }
+        sendSimulatedKeyEvent(keyCode, scanCode, KeyEvent.ACTION_DOWN, fromMacro = true)
+        sendSimulatedKeyEvent(keyCode, scanCode, KeyEvent.ACTION_UP, fromMacro = true)
     }
 
     // Added in API level 14, deprecated in 29

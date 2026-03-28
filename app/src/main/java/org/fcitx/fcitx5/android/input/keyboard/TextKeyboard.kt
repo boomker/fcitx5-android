@@ -14,6 +14,7 @@ import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.core.InputMethodEntry
 import org.fcitx.fcitx5.android.core.KeyState
 import org.fcitx.fcitx5.android.core.KeyStates
+import org.fcitx.fcitx5.android.input.FcitxInputMethodService
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.data.prefs.ManagedPreference
 import org.fcitx.fcitx5.android.data.theme.Theme
@@ -357,10 +358,34 @@ class TextKeyboard(
                     }
                 }
             }
-            is KeyAction.CapsAction -> switchCapsState(action.lock)
+            is KeyAction.CapsAction -> {
+                if (!action.lock && source == KeyActionListener.Source.Keyboard && tryConsumeMacroCapsLock()) {
+                    // MacroKey tap Caps_Lock opened lock state: single tap on CapsKey should send Caps_Lock again.
+                } else {
+                    switchCapsState(action.lock)
+                }
+            }
             else -> {}
         }
         super.onAction(transformed, source)
+    }
+
+    private fun tryConsumeMacroCapsLock(): Boolean {
+        val service = getService() ?: return false
+        if (!service.isSimulatedCapsLockOnByMacroTap()) return false
+        service.sendSimulatedCapsLockTapFromMacro()
+        return true
+    }
+
+    private fun getService(): FcitxInputMethodService? {
+        var ctx = context
+        while (ctx is android.content.ContextWrapper) {
+            if (ctx is FcitxInputMethodService) {
+                return ctx
+            }
+            ctx = ctx.baseContext
+        }
+        return context as? FcitxInputMethodService
     }
 
     override fun onAttach() {
