@@ -24,7 +24,6 @@ import splitties.views.gravityCenter
 import splitties.views.gravityEnd
 import splitties.views.gravityStart
 import kotlin.math.ceil
-import kotlin.math.floor
 import kotlin.math.roundToInt
 
 /**
@@ -154,12 +153,12 @@ class PopupKeyboardUi(
         IntArray(columnCount) { col -> row * columnCount + columnOrder[col] }
     }
 
-    private var focusedIndex = keyOrders[focusRow][focusColumn]
+    private var focusedRow = focusRow
+    private var focusedColumn = focusColumn
+    private var focusedIndex = keyOrders[focusedRow][focusedColumn]
 
-    // Direction-based highlight tracking: accumulate delta until threshold to trigger highlight change
-    private var lastTouchY = Float.MIN_VALUE
+    private var lastTouchY: Float? = null
     private var cumulativeDeltaY = 0f
-    // Movement threshold: fraction of keyHeight needed to trigger highlight change
     private val moveThreshold = 0.4f
 
     private val keyUis = labels.map {
@@ -208,36 +207,54 @@ class PopupKeyboardUi(
     }
 
     override fun onChangeFocus(x: Float, y: Float): Boolean {
-        if (lastTouchY == Float.MIN_VALUE) {
-            lastTouchY = y
-            return false
+        val result = PopupKeyboardFocusResolver.resolve(
+            x = x,
+            y = y,
+            rowCount = rowCount,
+            columnCount = columnCount,
+            keyWidth = keyWidth,
+            keyHeight = keyHeight,
+            focusedRow = focusedRow,
+            focusedColumn = focusedColumn,
+            lastTouchY = lastTouchY,
+            cumulativeDeltaY = cumulativeDeltaY,
+            moveThreshold = moveThreshold
+        )
+        lastTouchY = result.lastTouchY
+        cumulativeDeltaY = result.cumulativeDeltaY
+        if (result.dismiss) {
+            onDismissSelf(this)
+            return true
         }
-        val deltaY = y - lastTouchY
-        lastTouchY = y
-        cumulativeDeltaY += deltaY
-        val threshold = keyHeight * moveThreshold
-        val direction = when {
-            cumulativeDeltaY <= -threshold -> {
-                cumulativeDeltaY = 0f
-                -1
-            }
-            cumulativeDeltaY >= threshold -> {
-                cumulativeDeltaY = 0f
-                1
-            }
-            else -> return false
-        }
-        val currentRow = focusedIndex / columnCount
-        val currentCol = focusedIndex % columnCount
-        val newRow = (currentRow + direction).coerceIn(0, rowCount - 1)
-        val newColumn = floor(x / keyWidth).toInt().coerceIn(0, columnCount - 1)
-        val newFocus = keyOrders[newRow][newColumn]
-        if (newFocus < keyUis.size) {
+        val targetRow = result.targetRow ?: return false
+        val targetColumn = findNearestValidColumn(targetRow, result.targetColumn ?: focusedColumn) ?: return false
+        val newFocus = keyOrders[targetRow][targetColumn]
+        if (newFocus != focusedIndex) {
             markInactive(focusedIndex)
             markFocus(newFocus)
+            focusedRow = targetRow
+            focusedColumn = targetColumn
             focusedIndex = newFocus
         }
         return false
+    }
+
+    private fun findNearestValidColumn(row: Int, preferredColumn: Int): Int? {
+        val order = keyOrders[row]
+        if (order[preferredColumn] < keyUis.size) {
+            return preferredColumn
+        }
+        for (delta in 1 until columnCount) {
+            val left = preferredColumn - delta
+            if (left >= 0 && order[left] < keyUis.size) {
+                return left
+            }
+            val right = preferredColumn + delta
+            if (right < columnCount && order[right] < keyUis.size) {
+                return right
+            }
+        }
+        return null
     }
 
     override fun onTrigger(): KeyAction? {

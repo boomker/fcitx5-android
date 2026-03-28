@@ -68,7 +68,9 @@ class PopupComponent :
     private val hideThreshold = 100L
 
     private val rootLocation = intArrayOf(0, 0)
+    private val rootScreenLocation = intArrayOf(0, 0)
     val rootBounds: Rect = Rect()
+    private val rootScreenBounds: Rect = Rect()
 
     companion object {
         private var lastModified = 0L
@@ -106,9 +108,11 @@ class PopupComponent :
 
             addOnLayoutChangeListener { v, left, top, right, bottom, _, _, _, _ ->
                 val (x, y) = rootLocation.also { v.getLocationInWindow(it) }
+                val (screenX, screenY) = rootScreenLocation.also { v.getLocationOnScreen(it) }
                 val width = right - left
                 val height = bottom - top
                 rootBounds.set(x, y, x + width, y + height)
+                rootScreenBounds.set(screenX, screenY, screenX + width, screenY + height)
             }
         }
     }
@@ -206,9 +210,8 @@ class PopupComponent :
 
     private fun changeFocus(viewId: Int, x: Float, y: Float, screenX: Float, screenY: Float): Boolean {
         val container = showingContainerUi[viewId] ?: return false
-        // Convert screen coordinates to popup container coordinates
-        val containerX = screenX - rootBounds.left
-        val containerY = screenY - rootBounds.top
+        val containerX = screenX - rootScreenBounds.left
+        val containerY = screenY - rootScreenBounds.top
         return container.changeFocus(containerX, containerY)
     }
 
