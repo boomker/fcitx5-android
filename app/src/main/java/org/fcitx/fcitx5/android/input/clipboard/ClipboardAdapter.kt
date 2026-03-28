@@ -161,6 +161,11 @@ abstract class ClipboardAdapter(
                 menu.item(R.string.share, R.drawable.ic_baseline_share_24, iconTint) {
                     onShare(entry)
                 }
+                if (shouldShowUpload(entry)) {
+                    menu.item(R.string.upload, R.drawable.ic_baseline_send_24, iconTint) {
+                        onUpload(entry)
+                    }
+                }
                 if (splittableText != null) {
                     menu.item(R.string.split_words, R.drawable.ic_baseline_spellcheck_24, iconTint) {
                         onSplitText(splittableText)
@@ -227,6 +232,10 @@ abstract class ClipboardAdapter(
     abstract fun onEdit(id: Int)
 
     abstract fun onShare(entry: ClipboardEntry)
+
+    open fun shouldShowUpload(entry: ClipboardEntry): Boolean = false
+
+    open fun onUpload(entry: ClipboardEntry) = Unit
 
     abstract fun onSplitText(text: String)
 

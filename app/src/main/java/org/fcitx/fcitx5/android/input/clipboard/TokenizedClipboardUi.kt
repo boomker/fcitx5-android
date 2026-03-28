@@ -48,6 +48,8 @@ class TokenizedClipboardUi(
 
     val copyButton = createActionButton(R.string.copy)
     val selectAllButton = createActionButton(R.string.tokenized_clipboard_select_all)
+    val invertSelectionButton = createActionButton(R.string.tokenized_clipboard_invert_selection)
+    val clearSelectionButton = createActionButton(R.string.tokenized_clipboard_clear_selection)
     val sendButton = createActionButton(R.string.tokenized_clipboard_send)
 
     val recyclerView = recyclerView {
@@ -64,7 +66,7 @@ class TokenizedClipboardUi(
         isVisible = false
     }
 
-    private val topBar = constraintLayout {
+    private val titleBar = constraintLayout {
         add(backButton, lParams(dp(40), dp(40)) {
             startOfParent()
             topOfParent()
@@ -79,22 +81,23 @@ class TokenizedClipboardUi(
             after(backButton, dp(8))
             centerVertically()
         })
-        add(horizontalLayout {
-            gravity = Gravity.END or Gravity.CENTER_VERTICAL
-            add(copyButton, lParams(wrapContent, dp(32)))
-            add(selectAllButton, lParams(wrapContent, dp(32)))
-            add(sendButton, lParams(wrapContent, dp(32)))
-        }, lParams(wrapContent, wrapContent) {
-            endOfParent()
-            centerVertically()
-        })
+    }
+
+    private val actionBar = horizontalLayout {
+        gravity = Gravity.END or Gravity.CENTER_VERTICAL
+        add(copyButton, lParams(wrapContent, dp(32)))
+        add(selectAllButton, lParams(wrapContent, dp(32)))
+        add(invertSelectionButton, lParams(wrapContent, dp(32)))
+        add(clearSelectionButton, lParams(wrapContent, dp(32)))
+        add(sendButton, lParams(wrapContent, dp(32)))
     }
 
     override val root = verticalLayout {
         if (!keyBorder) {
             backgroundColor = theme.barColor
         }
-        add(topBar, lParams(matchParent, wrapContent))
+        add(titleBar, lParams(matchParent, wrapContent))
+        add(actionBar, lParams(matchParent, wrapContent))
         add(frameLayout {
             add(recyclerView, FrameLayout.LayoutParams(matchParent, matchParent))
             add(emptyView, FrameLayout.LayoutParams(matchParent, matchParent))
@@ -107,10 +110,14 @@ class TokenizedClipboardUi(
         val hasSelection = selectedCount > 0
         copyButton.isEnabled = hasSelection
         sendButton.isEnabled = hasSelection
+        clearSelectionButton.isEnabled = hasSelection
         copyButton.alpha = if (hasSelection) 1f else 0.5f
         sendButton.alpha = if (hasSelection) 1f else 0.5f
+        clearSelectionButton.alpha = if (hasSelection) 1f else 0.5f
         selectAllButton.isEnabled = totalCount > 0
+        invertSelectionButton.isEnabled = totalCount > 0
         selectAllButton.alpha = if (totalCount > 0) 1f else 0.5f
+        invertSelectionButton.alpha = if (totalCount > 0) 1f else 0.5f
         selectAllButton.text = ctx.getString(
             if (totalCount > 0 && selectedCount == totalCount) {
                 R.string.tokenized_clipboard_unselect_all

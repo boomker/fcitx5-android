@@ -67,6 +67,19 @@ class TokenizedClipboardAdapter(
         dispatchSelectionChanged()
     }
 
+    fun invertSelection() {
+        if (tokens.isEmpty()) return
+        val previous = selectedIndices.toSet()
+        selectedIndices.clear()
+        tokens.indices.forEach { index ->
+            if (index !in previous) {
+                selectedIndices.add(index)
+            }
+        }
+        notifyDataSetChanged()
+        dispatchSelectionChanged()
+    }
+
     fun selectedTokens(): List<ClipboardToken> =
         selectedIndices.sorted().map { tokens[it] }
 

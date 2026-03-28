@@ -6,8 +6,10 @@ package org.fcitx.fcitx5.android.input.clipboard
 
 import android.annotation.SuppressLint
 import android.app.SearchManager
+import android.os.Bundle
 import android.content.Intent
 import android.net.Uri
+import android.os.Message
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
@@ -28,7 +30,10 @@ import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.snackbar.SnackbarContentLayout
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import org.fcitx.fcitx5.android.common.PluginMessage
 import org.fcitx.fcitx5.android.R
+import org.fcitx.fcitx5.android.core.FcitxPluginServices
+import org.fcitx.fcitx5.android.core.data.DataManager
 import org.fcitx.fcitx5.android.data.clipboard.ClipboardCategory
 import org.fcitx.fcitx5.android.data.clipboard.ClipboardManager
 import org.fcitx.fcitx5.android.data.clipboard.db.ClipboardEntry
@@ -116,6 +121,23 @@ class ClipboardWindow : InputWindow.ExtendedInputWindow<ClipboardWindow>() {
                 service.startActivity(chooser)
             }
 
+            override fun shouldShowUpload(entry: ClipboardEntry): Boolean {
+                return entry.text.isNotBlank() &&
+                    clipboardSyncPluginAvailable() &&
+                    currentCategory in setOf(ClipboardCategory.Favorites, ClipboardCategory.Local)
+            }
+
+            override fun onUpload(entry: ClipboardEntry) {
+                FcitxPluginServices.sendMessage(
+                    Message.obtain().apply {
+                        what = PluginMessage.WHAT_LOCAL_CLIPBOARD_UPDATED
+                        data = Bundle().apply {
+                            putString(PluginMessage.KEY_CLIPBOARD_TEXT, entry.text)
+                        }
+                    }
+                )
+            }
+
             override fun onSplitText(text: String) {
                 windowManager.attachWindow(TokenizedClipboardWindow(text))
             }
@@ -195,6 +217,12 @@ class ClipboardWindow : InputWindow.ExtendedInputWindow<ClipboardWindow>() {
             entriesPager(category).flow.collect {
                 adapter.submitData(it)
             }
+        }
+    }
+
+    private fun clipboardSyncPluginAvailable(): Boolean {
+        return DataManager.getLoadedPlugins().any { plugin ->
+            plugin.hasService && plugin.name == "clipboard-sync"
         }
     }
 

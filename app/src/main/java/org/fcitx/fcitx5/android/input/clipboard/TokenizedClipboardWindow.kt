@@ -59,6 +59,12 @@ class TokenizedClipboardWindow(
         selectAllButton.setOnClickListener {
             adapter.toggleSelectAll()
         }
+        invertSelectionButton.setOnClickListener {
+            adapter.invertSelection()
+        }
+        clearSelectionButton.setOnClickListener {
+            adapter.clearSelection()
+        }
         sendButton.setOnClickListener {
             val joined = currentSelectionText()
             if (joined.isBlank()) {
