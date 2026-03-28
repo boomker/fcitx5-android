@@ -10,4 +10,7 @@ import androidx.recyclerview.widget.RecyclerView
 class CandidateViewHolder(val ui: CandidateItemUi) : RecyclerView.ViewHolder(ui.root) {
     var idx = -1
     var text = ""
+    var listenersAttached = false
+    var lastMinWidth = Int.MIN_VALUE
+    var lastFlexGrow = Float.NaN
 }

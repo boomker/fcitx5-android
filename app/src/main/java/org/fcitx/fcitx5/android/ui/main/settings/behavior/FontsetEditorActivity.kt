@@ -29,7 +29,6 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.input.AutoScaleTextView
-import org.fcitx.fcitx5.android.input.candidates.CandidateAutoScaleTextView
 import org.fcitx.fcitx5.android.input.font.FontProviders
 import splitties.dimensions.dp
 import splitties.resources.styledColor

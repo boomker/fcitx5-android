@@ -67,6 +67,17 @@ class HorizontalCandidateComponent :
     private var layoutMinWidth = 0
     private var layoutFlexGrow = 1f
 
+    /**
+     * (for [HorizontalCandidateMode.AutoFillWidth] only)
+     * Second layout pass is needed when:
+     * [^1] total candidates count < maxSpanCount && [^2] RecyclerView cannot display all of them
+     * In that case, displayed candidates should be stretched evenly (by setting flexGrow to 1.0f).
+     */
+    private var secondLayoutPassNeeded = false
+    private var secondLayoutPassDone = false
+
+    // Since expanded candidate window is created once the expand button was clicked,
+    // we need to replay the last offset
     private val _expandedCandidateOffset = MutableSharedFlow<Int>(
         replay = 1,
         onBufferOverflow = BufferOverflow.DROP_OLDEST
@@ -113,8 +124,27 @@ class HorizontalCandidateComponent :
             override fun canScrollHorizontally() = false
             override fun onLayoutCompleted(state: RecyclerView.State) {
                 super.onLayoutCompleted(state)
-                refreshExpanded(this.childCount)
+                val cnt = this.childCount
+                if (secondLayoutPassNeeded) {
+                    if (cnt < adapter.candidates.size) {
+                        // [^2] RecyclerView can't display all candidates
+                        // update LayoutParams in onLayoutCompleted would trigger another
+                        // onLayoutCompleted, skip the second one to avoid infinite loop
+                        if (secondLayoutPassDone) return
+                        secondLayoutPassDone = true
+                        for (i in 0 until cnt) {
+                            getChildAt(i)!!.updateLayoutParams<LayoutParams> {
+                                flexGrow = 1f
+                            }
+                        }
+                    } else {
+                        secondLayoutPassNeeded = false
+                    }
+                }
+                refreshExpanded(cnt)
             }
+            // no need to override `generate{,Default}LayoutParams`, because HorizontalCandidateViewAdapter
+            // guarantees ViewHolder's layoutParams to be `FlexboxLayoutManager.LayoutParams`
         }
     }
 
@@ -153,17 +183,23 @@ class HorizontalCandidateComponent :
             NeverFillWidth -> {
                 layoutMinWidth = 0
                 layoutFlexGrow = 0f
+                secondLayoutPassNeeded = false
             }
             AutoFillWidth -> {
                 layoutMinWidth = view.width / maxSpanCount - dividerDrawable.intrinsicWidth
                 layoutFlexGrow = if (candidates.size < maxSpanCount) 0f else 1f
+                // [^1] total candidates count < maxSpanCount
+                secondLayoutPassNeeded = candidates.size < maxSpanCount
+                secondLayoutPassDone = false
             }
             AlwaysFillWidth -> {
                 layoutMinWidth = 0
                 layoutFlexGrow = 1f
+                secondLayoutPassNeeded = false
             }
         }
         adapter.updateCandidates(candidates, total)
+        // not sure why empty candidates won't trigger `FlexboxLayoutManager#onLayoutCompleted()`
         if (candidates.isEmpty()) {
             refreshExpanded(0)
         }

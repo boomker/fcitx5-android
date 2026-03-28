@@ -306,22 +306,22 @@ open class TextKeyView(
     horizontalGapScale: Float = 1f
 ) :
     KeyView(ctx, theme, def, horizontalGapScale) {
+    private val baseMainTextSizeSp: Float = when (def.viewId) {
+        R.id.button_space -> def.textSize
+        R.id.button_layout_switch -> def.textSize
+        else -> org.fcitx.fcitx5.android.input.font.FontProviders.getFontSize(
+            "key_main_font", def.textSize
+        )
+    }
+
     val mainText = view(::AutoScaleTextView) {
         isClickable = false
         isFocusable = false
         background = null
         scaleMode = AutoScaleTextView.Mode.Proportional
+        gravity = Gravity.CENTER
         text = def.displayText
-        // Use configured font size with fallback to def.textSize
-        // SpaceKey and LayoutSwitchKey use hardcoded default textSize
-        val fontSize = when (def.viewId) {
-            R.id.button_space -> def.textSize  // SpaceKey uses hardcoded 13f
-            R.id.button_layout_switch -> def.textSize  // LayoutSwitchKey uses hardcoded 16f
-            else -> org.fcitx.fcitx5.android.input.font.FontProviders.getFontSize(
-                "key_main_font", def.textSize
-            )
-        }
-        setTextSize(TypedValue.COMPLEX_UNIT_SP, fontSize)
+        setTextSize(TypedValue.COMPLEX_UNIT_SP, baseMainTextSizeSp)
         textDirection = View.TEXT_DIRECTION_FIRST_STRONG_LTR
         // Set font key for batch setting in BaseKeyboard.reloadLayout()
         fontKey = "key_main_font"
@@ -338,14 +338,14 @@ open class TextKeyView(
     init {
         appearanceView.apply {
             if (def.viewId == R.id.button_space) {
-                mainText.gravity = Gravity.CENTER
                 val insetPadding = dp(10)
-                mainText.setPadding(insetPadding, 0, insetPadding, 0)
+                mainText.setPadding(insetPadding + hMargin, 0, insetPadding + hMargin, 0)
                 add(mainText, lParams(matchParent, wrapContent) {
                     centerInParent()
                 })
             } else {
-                add(mainText, lParams(wrapContent, wrapContent) {
+                mainText.setPadding(hMargin, 0, hMargin, 0)
+                add(mainText, lParams(matchParent, wrapContent) {
                     centerInParent()
                 })
             }
@@ -354,14 +354,7 @@ open class TextKeyView(
 
     override fun setTextScale(scale: Float) {
         if (def is KeyDef.Appearance.Text) {
-            val fontSize = when (def.viewId) {
-                R.id.button_space -> def.textSize
-                R.id.button_layout_switch -> def.textSize
-                else -> org.fcitx.fcitx5.android.input.font.FontProviders.getFontSize(
-                    "key_main_font", def.textSize
-                )
-            }
-            mainText.setTextSize(TypedValue.COMPLEX_UNIT_SP, fontSize * scale)
+            mainText.setTextSize(TypedValue.COMPLEX_UNIT_SP, baseMainTextSizeSp * scale)
             mainText.requestLayout()
         }
     }
@@ -386,14 +379,17 @@ class AltTextKeyView(
     horizontalGapScale: Float = 1f
 ) :
     TextKeyView(ctx, theme, def, horizontalGapScale) {
+    private val baseAltTextSizeSp = org.fcitx.fcitx5.android.input.font.FontProviders.getFontSize(
+        "key_alt_font", 10.666667f
+    )
+
     val altText = view(::AutoScaleTextView) {
         isClickable = false
         isFocusable = false
-        // Use configured font size with fallback to default (10.67f)
-        val fontSize = org.fcitx.fcitx5.android.input.font.FontProviders.getFontSize(
-            "key_alt_font", 10.666667f
-        )
-        setTextSize(TypedValue.COMPLEX_UNIT_SP, fontSize)
+        scaleMode = AutoScaleTextView.Mode.Proportional
+        gravity = Gravity.CENTER
+        setPadding(hMargin, 0, hMargin, 0)
+        setTextSize(TypedValue.COMPLEX_UNIT_SP, baseAltTextSizeSp)
         // Set font key for batch setting in BaseKeyboard.reloadLayout()
         fontKey = "key_alt_font"
         setTypeface(typeface, Typeface.BOLD)
@@ -409,17 +405,14 @@ class AltTextKeyView(
 
     init {
         appearanceView.apply {
-            add(altText, lParams(wrapContent, wrapContent))
+            add(altText, lParams(0, wrapContent))
         }
         applyLayout(resources.configuration.orientation)
     }
 
     override fun setTextScale(scale: Float) {
         super.setTextScale(scale)
-        val fontSize = org.fcitx.fcitx5.android.input.font.FontProviders.getFontSize(
-            "key_alt_font", 10.666667f
-        )
-        altText.setTextSize(TypedValue.COMPLEX_UNIT_SP, fontSize * scale)
+        altText.setTextSize(TypedValue.COMPLEX_UNIT_SP, baseAltTextSizeSp * scale)
         altText.requestLayout()
     }
 
@@ -435,12 +428,14 @@ class AltTextKeyView(
         altText.visibility = View.VISIBLE
         altText.updateLayoutParams<ConstraintLayout.LayoutParams> {
             // reset
+            width = 0
             bottomToBottom = unset; bottomMargin = 0
             // set
             topToTop = parentId; topMargin = vMargin
-            leftToLeft = unset
-            rightToRight = parentId; rightMargin = hMargin + dp(4)
+            leftToLeft = parentId; leftMargin = hMargin
+            rightToRight = parentId; rightMargin = hMargin
         }
+        altText.gravity = Gravity.END or Gravity.CENTER_VERTICAL
     }
 
     private fun applyBottomAltTextPosition() {
@@ -454,13 +449,16 @@ class AltTextKeyView(
         altText.visibility = View.VISIBLE
         altText.updateLayoutParams<ConstraintLayout.LayoutParams> {
             // reset
+            width = 0
             topToTop = unset; topMargin = 0
-            rightMargin = 0
+            leftMargin = hMargin
+            rightMargin = hMargin
             // set
             leftToLeft = parentId
             rightToRight = parentId
             bottomToBottom = parentId; bottomMargin = vMargin + dp(2)
         }
+        altText.gravity = Gravity.CENTER
     }
 
     private fun applyNoAltTextPosition() {
@@ -473,6 +471,7 @@ class AltTextKeyView(
             bottomToBottom = parentId
         }
         altText.visibility = View.GONE
+        altText.gravity = Gravity.CENTER
     }
 
     private fun applyLayout(orientation: Int) {

@@ -36,7 +36,7 @@ open class PagingCandidateViewAdapter(val theme: Theme) :
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CandidateViewHolder {
-        val ui = CandidateItemUi(parent.context, theme, enableScrollMode = true)
+        val ui = CandidateItemUi(parent.context, theme)
         return CandidateViewHolder(ui)
     }
 

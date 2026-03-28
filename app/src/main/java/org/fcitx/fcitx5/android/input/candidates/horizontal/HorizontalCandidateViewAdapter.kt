@@ -42,14 +42,9 @@ open class HorizontalCandidateViewAdapter(val theme: Theme) :
 
     override fun getItemId(position: Int) = candidates.getOrNull(position).hashCode().toLong()
 
-    override fun getItemViewType(position: Int): Int {
-        return if (position == 0) 1 else 0
-    }
-
     @CallSuper
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CandidateViewHolder {
-        val enableScrollMode = viewType == 1
-        val ui = CandidateItemUi(parent.context, theme, enableScrollMode = enableScrollMode)
+        val ui = CandidateItemUi(parent.context, theme)
         ui.root.apply {
             minimumWidth = dp(40)
             setPaddingDp(10, 0, 10, 0)

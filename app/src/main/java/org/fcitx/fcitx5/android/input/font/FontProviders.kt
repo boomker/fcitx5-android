@@ -15,9 +15,16 @@ interface FontProviderApi {
 object FontProviders {
     @Volatile
     var provider: FontProviderApi = DefaultFontProvider()
+        set(value) {
+            field = value
+            synchronized(fontSizeResultCache) {
+                fontSizeResultCache.clear()
+            }
+        }
 
     @Volatile
     private var needsRefresh = false
+    private val fontSizeResultCache = HashMap<String, Float>()
 
     init {
         ensureListenerRegistered()
@@ -31,6 +38,9 @@ object FontProviders {
 
     private fun handleFontsetChanged() {
         provider.clearCache()
+        synchronized(fontSizeResultCache) {
+            fontSizeResultCache.clear()
+        }
         needsRefresh = true
     }
 
@@ -40,6 +50,9 @@ object FontProviders {
      */
     fun markNeedsRefresh() {
         provider.clearCache()
+        synchronized(fontSizeResultCache) {
+            fontSizeResultCache.clear()
+        }
         needsRefresh = true
     }
 
@@ -55,6 +68,9 @@ object FontProviders {
 
     fun clearCache() {
         provider.clearCache()
+        synchronized(fontSizeResultCache) {
+            fontSizeResultCache.clear()
+        }
         needsRefresh = true
     }
 
@@ -71,18 +87,28 @@ object FontProviders {
      * @return Font size in sp
      */
     fun getFontSize(key: String, default: Float): Float {
-        // First try to get specific font size for this key (e.g., "key_main_font_size")
-        val specificSize = provider.fontSizeMap["${key}_size"]
-        if (specificSize != null && specificSize in 8f..72f) return specificSize
-        
-        // Then try to get font size for this key (backward compatibility)
-        val size = provider.fontSizeMap[key]
-        if (size != null && size in 8f..72f) return size
-        
-        // No custom size configured, use default
+        val cacheKey = "$key|$default"
+        synchronized(fontSizeResultCache) {
+            fontSizeResultCache[cacheKey]?.let { return it }
+        }
+
+        val sizeMap = provider.fontSizeMap
+
+        // First try to get specific font size for this key (e.g., "key_main_font_size"),
+        // then fallback to key itself (backward compatibility), finally default.
         // Note: We intentionally do NOT fallback to "font_size" to avoid
         // overriding specific defaults (e.g., key_main_font=23sp, key_alt_font=10.67sp)
-        return default
+        val specificSize = sizeMap["${key}_size"]
+        val size = sizeMap[key]
+        val resolved = when {
+            specificSize != null && specificSize in 8f..72f -> specificSize
+            size != null && size in 8f..72f -> size
+            else -> default
+        }
+        synchronized(fontSizeResultCache) {
+            fontSizeResultCache[cacheKey] = resolved
+        }
+        return resolved
     }
 
     /**

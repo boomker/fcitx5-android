@@ -23,17 +23,12 @@ import splitties.views.gravityCenter
 class CandidateItemUi(
     override val ctx: Context,
     theme: Theme,
-    private val enableScrollMode: Boolean = false,
     // Optional: external font for batch setting (avoids repeated FontProviders access)
     private val font: Typeface? = null
 ) : Ui {
 
-    val text = view(::CandidateAutoScaleTextView) {
-        scaleMode = if (enableScrollMode) {
-            AutoScaleTextView.Mode.Proportional
-        } else {
-            AutoScaleTextView.Mode.None
-        }
+    val text = view(::AutoScaleTextView) {
+        scaleMode = AutoScaleTextView.Mode.Proportional
         // Use configured font size with fallback to default (20f)
         val fontSize = org.fcitx.fcitx5.android.input.font.FontProviders.getFontSize(
             "cand_font", 20f
