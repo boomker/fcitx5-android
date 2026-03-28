@@ -156,6 +156,12 @@ class PopupKeyboardUi(
 
     private var focusedIndex = keyOrders[focusRow][focusColumn]
 
+    // Direction-based highlight tracking: accumulate delta until threshold to trigger highlight change
+    private var lastTouchY = Float.MIN_VALUE
+    private var cumulativeDeltaY = 0f
+    // Movement threshold: fraction of keyHeight needed to trigger highlight change
+    private val moveThreshold = 0.4f
+
     private val keyUis = labels.map {
         PopupKeyUi(ctx, theme, it)
     }
@@ -202,17 +208,29 @@ class PopupKeyboardUi(
     }
 
     override fun onChangeFocus(x: Float, y: Float): Boolean {
-        // move to next row when gesture moves above 30% from bottom of current row
-        var newRow = rowCount - (y / keyHeight - 0.2).roundToInt()
-        // move to next column when gesture moves out of current column
-        var newColumn = floor(x / keyWidth).toInt()
-        // retain focus when gesture moves between ±2 rows/columns of range
-        if (newRow < -2 || newRow > rowCount + 1 || newColumn < -2 || newColumn > columnCount + 1) {
-            onDismissSelf(this)
-            return true
+        if (lastTouchY == Float.MIN_VALUE) {
+            lastTouchY = y
+            return false
         }
-        newRow = limitIndex(newRow, rowCount)
-        newColumn = limitIndex(newColumn, columnCount)
+        val deltaY = y - lastTouchY
+        lastTouchY = y
+        cumulativeDeltaY += deltaY
+        val threshold = keyHeight * moveThreshold
+        val direction = when {
+            cumulativeDeltaY <= -threshold -> {
+                cumulativeDeltaY = 0f
+                -1
+            }
+            cumulativeDeltaY >= threshold -> {
+                cumulativeDeltaY = 0f
+                1
+            }
+            else -> return false
+        }
+        val currentRow = focusedIndex / columnCount
+        val currentCol = focusedIndex % columnCount
+        val newRow = (currentRow + direction).coerceIn(0, rowCount - 1)
+        val newColumn = floor(x / keyWidth).toInt().coerceIn(0, columnCount - 1)
         val newFocus = keyOrders[newRow][newColumn]
         if (newFocus < keyUis.size) {
             markInactive(focusedIndex)

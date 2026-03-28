@@ -35,7 +35,9 @@ open class CustomGestureView(ctx: Context) : FrameLayout(ctx) {
         val countX: Int,
         val countY: Int,
         val totalX: Int,
-        val totalY: Int
+        val totalY: Int,
+        val screenX: Float,
+        val screenY: Float
     )
 
     fun interface OnGestureListener {
@@ -91,6 +93,9 @@ open class CustomGestureView(ctx: Context) : FrameLayout(ctx) {
     var soundEffect: InputFeedbacks.SoundEffect = InputFeedbacks.SoundEffect.Standard
 
     private val touchSlop: Float = ViewConfiguration.get(ctx).scaledTouchSlop.toFloat()
+
+    private var touchScreenX: Float = 0f
+    private var touchScreenY: Float = 0f
 
     init {
         // disable system sound effect and haptic feedback
@@ -148,6 +153,8 @@ open class CustomGestureView(ctx: Context) : FrameLayout(ctx) {
                 isPressed = true
                 InputFeedbacks.hapticFeedback(this)
                 InputFeedbacks.soundEffect(soundEffect)
+                touchScreenX = event.rawX
+                touchScreenY = event.rawY
                 dispatchGestureEvent(GestureType.Down, x, y)
                 if (longPressEnabled) {
                     longPressJob?.cancel()
@@ -178,6 +185,7 @@ open class CustomGestureView(ctx: Context) : FrameLayout(ctx) {
                     swipeLastY = y
                 }
             }
+
             MotionEvent.ACTION_UP -> {
                 isPressed = false
                 InputFeedbacks.hapticFeedback(this, longPress = true, keyUp = true)
@@ -205,6 +213,7 @@ open class CustomGestureView(ctx: Context) : FrameLayout(ctx) {
                 }
                 return true
             }
+
             MotionEvent.ACTION_MOVE -> {
                 if (!isEnabled) return false
                 drawableHotspotChanged(x, y)
@@ -222,14 +231,26 @@ open class CustomGestureView(ctx: Context) : FrameLayout(ctx) {
                         isPressed = false
                     }
                 }
-                if (!swipeEnabled || longPressTriggered || repeatStarted) return true
+                if (!swipeEnabled || repeatStarted) {
+                    // When longPressTriggered is true, we still want to dispatch Move events
+                    // for popup gesture tracking, but we don't consume swipe events
+                    if (longPressTriggered) {
+                        touchScreenX = event.rawX
+                        touchScreenY = event.rawY
+                        dispatchGestureEvent(GestureType.Move, x, y, 0, 0)
+                    }
+                    return true
+                }
                 val countX = consumeSwipe(x, SwipeAxis.X)
                 val countY = consumeSwipe(y, SwipeAxis.Y)
+                touchScreenX = event.rawX
+                touchScreenY = event.rawY
                 dispatchGestureEvent(GestureType.Move, x, y, countX, countY)
                 swipeLastX = x
                 swipeLastY = y
                 return true
             }
+
             MotionEvent.ACTION_CANCEL -> {
                 isPressed = false
                 dispatchGestureEvent(GestureType.Up, event.x, event.y)
@@ -252,7 +273,8 @@ open class CustomGestureView(ctx: Context) : FrameLayout(ctx) {
         countX: Int = 0,
         countY: Int = 0
     ) {
-        val event = Event(type, gestureConsumed, x, y, countX, countY, swipeTotalX, swipeTotalY)
+        val event =
+            Event(type, gestureConsumed, x, y, countX, countY, swipeTotalX, swipeTotalY, touchScreenX, touchScreenY)
         val consumed = onGestureListener?.onGesture(this, event) ?: return
         if (consumed && !gestureConsumed) {
             gestureConsumed = true
@@ -267,6 +289,7 @@ open class CustomGestureView(ctx: Context) : FrameLayout(ctx) {
                 unconsumed = current - swipeLastX + swipeXUnconsumed
                 threshold = swipeThresholdX
             }
+
             SwipeAxis.Y -> {
                 unconsumed = current - swipeLastY + swipeYUnconsumed
                 threshold = swipeThresholdY
@@ -292,6 +315,7 @@ open class CustomGestureView(ctx: Context) : FrameLayout(ctx) {
                 swipeXUnconsumed = remains
                 swipeTotalX += count
             }
+
             SwipeAxis.Y -> {
                 swipeYUnconsumed = remains
                 swipeTotalY += count

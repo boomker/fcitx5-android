@@ -68,7 +68,7 @@ class PopupComponent :
     private val hideThreshold = 100L
 
     private val rootLocation = intArrayOf(0, 0)
-    private val rootBounds: Rect = Rect()
+    val rootBounds: Rect = Rect()
 
     companion object {
         private var lastModified = 0L
@@ -83,10 +83,12 @@ class PopupComponent :
         val popupPresetJson: Map<String, Array<String>>?
             @Synchronized
             get() {
-                val snapshot = org.fcitx.fcitx5.android.input.config.ConfigProviders.readPopupPreset<Map<String, List<String>>>() ?: run {
-                    cachedPopupPreset = null
-                    return null
-                }
+                val snapshot =
+                    org.fcitx.fcitx5.android.input.config.ConfigProviders.readPopupPreset<Map<String, List<String>>>()
+                        ?: run {
+                            cachedPopupPreset = null
+                            return null
+                        }
                 if (cachedPopupPreset == null || snapshot.lastModified != lastModified) {
                     lastModified = snapshot.lastModified
                     cachedPopupPreset = snapshot.value.mapValues { it.value.toTypedArray() }
@@ -202,8 +204,12 @@ class PopupComponent :
         showingContainerUi[viewId] = ui
     }
 
-    private fun changeFocus(viewId: Int, x: Float, y: Float): Boolean {
-        return showingContainerUi[viewId]?.changeFocus(x, y) ?: false
+    private fun changeFocus(viewId: Int, x: Float, y: Float, screenX: Float, screenY: Float): Boolean {
+        val container = showingContainerUi[viewId] ?: return false
+        // Convert screen coordinates to popup container coordinates
+        val containerX = screenX - rootBounds.left
+        val containerY = screenY - rootBounds.top
+        return container.changeFocus(containerX, containerY)
     }
 
     private fun triggerFocused(viewId: Int): KeyAction? {
@@ -261,7 +267,9 @@ class PopupComponent :
     val listener = PopupActionListener { action ->
         with(action) {
             when (this) {
-                is PopupAction.ChangeFocusAction -> outResult = changeFocus(viewId, x, y)
+                is PopupAction.ChangeFocusAction -> outResult =
+                    changeFocus(viewId, x, y, screenX, screenY)
+
                 is PopupAction.DismissAction -> dismissPopup(viewId)
                 is PopupAction.PreviewAction -> showPopup(viewId, content, bounds)
                 is PopupAction.PreviewUpdateAction -> updatePopup(viewId, content)

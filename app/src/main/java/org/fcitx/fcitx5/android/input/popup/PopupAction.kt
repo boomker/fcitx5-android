@@ -43,6 +43,8 @@ sealed class PopupAction {
         override val viewId: Int,
         val x: Float,
         val y: Float,
+        val screenX: Float,
+        val screenY: Float,
         var outResult: Boolean = false
     ) : PopupAction()
 

@@ -54,7 +54,7 @@ import kotlin.math.roundToInt
 abstract class BaseKeyboard(
     context: Context,
     protected var theme: Theme,
-    private val layoutProvider: () ->List<List<KeyDef>>
+    private val layoutProvider: () -> List<List<KeyDef>>
 ) : ConstraintLayout(context) {
 
     private val keyLayout: List<List<KeyDef>>
@@ -148,6 +148,7 @@ abstract class BaseKeyboard(
                             keyView.mainText.setFontTypeFace("key_main_font")
                             keyView.altText.setFontTypeFace("key_alt_font")
                         }
+
                         is TextKeyView -> keyView.mainText.setFontTypeFace("key_main_font")
                     }
                 }
@@ -606,6 +607,7 @@ abstract class BaseKeyboard(
                                         false
                                     }
                                 }
+
                                 SwipeAxis.Y -> {
                                     if (countY != 0) {
                                         val sym =
@@ -620,15 +622,18 @@ abstract class BaseKeyboard(
                                         false
                                     }
                                 }
+
                                 null -> false
                             }
                             handled
                         }
+
                         GestureType.Up -> {
                             // Reset direction lock on finger up
                             swipeDirectionLocked = null
                             false
                         }
+
                         else -> false
                     }
                 }
@@ -647,10 +652,12 @@ abstract class BaseKeyboard(
                                 true
                             } else false
                         }
+
                         GestureType.Up -> {
                             onAction(KeyAction.DeleteSelectionAction(event.totalX))
                             false
                         }
+
                         else -> false
                     }
                 }
@@ -662,12 +669,14 @@ abstract class BaseKeyboard(
                             onAction(it.action)
                         }
                     }
+
                     is KeyDef.Behavior.LongPress -> {
                         setOnLongClickListener { _ ->
                             onAction(it.action)
                             true
                         }
                     }
+
                     is KeyDef.Behavior.Repeat -> {
                         repeatEnabled = true
                         onRepeatListener = { view ->
@@ -675,6 +684,7 @@ abstract class BaseKeyboard(
                             if (hapticOnRepeat) InputFeedbacks.hapticFeedback(view)
                         }
                     }
+
                     is KeyDef.Behavior.Swipe -> {
                         swipeEnabled = true
                         swipeThresholdX = disabledSwipeThreshold
@@ -690,10 +700,12 @@ abstract class BaseKeyboard(
                                         false
                                     }
                                 }
+
                                 else -> false
                             } || oldOnGestureListener.onGesture(view, event)
                         }
                     }
+
                     is KeyDef.Behavior.DoubleTap -> {
                         doubleTapEnabled = true
                         onDoubleTapListener = { _ ->
@@ -718,15 +730,18 @@ abstract class BaseKeyboard(
                             view as KeyView
                             when (event.type) {
                                 GestureType.Move -> {
-                                    onPopupChangeFocus(view.id, event.x, event.y)
+                                    onPopupChangeFocus(view.id, event.x, event.y, event.screenX, event.screenY)
                                 }
+
                                 GestureType.Up -> {
                                     onPopupTrigger(view.id)
                                 }
+
                                 else -> false
                             } || oldOnGestureListener.onGesture(view, event)
                         }
                     }
+
                     is KeyDef.Popup.Keyboard -> {
                         setOnLongClickListener { view ->
                             view as KeyView
@@ -740,15 +755,18 @@ abstract class BaseKeyboard(
                             view as KeyView
                             when (event.type) {
                                 GestureType.Move -> {
-                                    onPopupChangeFocus(view.id, event.x, event.y)
+                                    onPopupChangeFocus(view.id, event.x, event.y, event.screenX, event.screenY)
                                 }
+
                                 GestureType.Up -> {
                                     onPopupTrigger(view.id)
                                 }
+
                                 else -> false
                             } || oldOnGestureListener.onGesture(view, event)
                         }
                     }
+
                     is KeyDef.Popup.AltPreview -> {
                         val oldOnGestureListener = onGestureListener ?: OnGestureListener.Empty
                         onGestureListener = OnGestureListener { view, event ->
@@ -758,6 +776,7 @@ abstract class BaseKeyboard(
                                     GestureType.Down -> onPopupAction(
                                         PopupAction.PreviewAction(view.id, it.content, view.bounds)
                                     )
+
                                     GestureType.Move -> {
                                         val triggered = swipeSymbolDirection.checkY(event.totalY)
                                         val text = if (triggered) it.alternative else it.content
@@ -765,6 +784,7 @@ abstract class BaseKeyboard(
                                             PopupAction.PreviewUpdateAction(view.id, text)
                                         )
                                     }
+
                                     GestureType.Up -> {
                                         onPopupAction(PopupAction.DismissAction(view.id))
                                     }
@@ -774,6 +794,7 @@ abstract class BaseKeyboard(
                             oldOnGestureListener.onGesture(view, event)
                         }
                     }
+
                     is KeyDef.Popup.Preview -> {
                         val oldOnGestureListener = onGestureListener ?: OnGestureListener.Empty
                         onGestureListener = OnGestureListener { view, event ->
@@ -783,9 +804,11 @@ abstract class BaseKeyboard(
                                     GestureType.Down -> onPopupAction(
                                         PopupAction.PreviewAction(view.id, it.content, view.bounds)
                                     )
+
                                     GestureType.Up -> {
                                         onPopupAction(PopupAction.DismissAction(view.id))
                                     }
+
                                     else -> {}
                                 }
                             }
@@ -874,6 +897,7 @@ abstract class BaseKeyboard(
                     )
                     return true
                 }
+
                 MotionEvent.ACTION_POINTER_DOWN -> {
                     val i = event.actionIndex
                     val target = findTargetChild(event.getX(i), event.getY(i)) ?: return false
@@ -883,6 +907,7 @@ abstract class BaseKeyboard(
                     )
                     return true
                 }
+
                 MotionEvent.ACTION_MOVE -> {
                     for (i in 0 until event.pointerCount) {
                         val target = touchTarget[event.getPointerId(i)] ?: continue
@@ -892,6 +917,7 @@ abstract class BaseKeyboard(
                     }
                     return true
                 }
+
                 MotionEvent.ACTION_UP -> {
                     val i = event.actionIndex
                     val pid = event.getPointerId(i)
@@ -902,6 +928,7 @@ abstract class BaseKeyboard(
                     touchTarget.remove(pid)
                     return true
                 }
+
                 MotionEvent.ACTION_POINTER_UP -> {
                     val i = event.actionIndex
                     val pid = event.getPointerId(i)
@@ -912,6 +939,7 @@ abstract class BaseKeyboard(
                     touchTarget.remove(pid)
                     return true
                 }
+
                 MotionEvent.ACTION_CANCEL -> {
                     val i = event.actionIndex
                     val pid = event.getPointerId(i)
@@ -940,8 +968,8 @@ abstract class BaseKeyboard(
         popupActionListener?.onPopupAction(action)
     }
 
-    private fun onPopupChangeFocus(viewId: Int, x: Float, y: Float): Boolean {
-        val changeFocusAction = PopupAction.ChangeFocusAction(viewId, x, y)
+    private fun onPopupChangeFocus(viewId: Int, x: Float, y: Float, screenX: Float, screenY: Float): Boolean {
+        val changeFocusAction = PopupAction.ChangeFocusAction(viewId, x, y, screenX, screenY)
         popupActionListener?.onPopupAction(changeFocusAction)
         return changeFocusAction.outResult
     }

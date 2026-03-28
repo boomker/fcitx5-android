@@ -234,7 +234,7 @@ class PickerPageUi(
                             }
 
                             CustomGestureView.GestureType.Move -> {
-                                onPopupChangeFocus(view.id, event.x, event.y)
+                                onPopupChangeFocus(view.id, event.x, event.y, event.screenX, event.screenY)
                             }
 
                             CustomGestureView.GestureType.Up -> {
@@ -253,8 +253,8 @@ class PickerPageUi(
         popupActionListener?.onPopupAction(action)
     }
 
-    private fun onPopupChangeFocus(viewId: Int, x: Float, y: Float): Boolean {
-        val changeFocusAction = PopupAction.ChangeFocusAction(viewId, x, y)
+    private fun onPopupChangeFocus(viewId: Int, x: Float, y: Float, screenX: Float, screenY: Float): Boolean {
+        val changeFocusAction = PopupAction.ChangeFocusAction(viewId, x, y, screenX, screenY)
         popupActionListener?.onPopupAction(changeFocusAction)
         return changeFocusAction.outResult
     }
