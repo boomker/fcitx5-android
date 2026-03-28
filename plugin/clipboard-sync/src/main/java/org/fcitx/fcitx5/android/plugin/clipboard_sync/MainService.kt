@@ -704,8 +704,8 @@ class MainService : FcitxPluginService() {
             acceptedItems.forEach { data ->
                 val remoteText = data.text
                 Log.d(TAG, "[Pull] Processed data: type=${data.type}, text=$remoteText")
-                val acknowledgedUpload = acknowledgePendingUploads(remoteText)
-                if (shouldSkipRemoteImportForLocalEcho(data, remoteText, acknowledgedUpload)) {
+                acknowledgePendingUploads(remoteText)
+                if (shouldSkipRemoteImportForLocalEcho(data, remoteText)) {
                     Log.d(TAG, "[Pull] Skipping echoed local clipboard item in remote history")
                     return@forEach
                 }
@@ -1763,10 +1763,8 @@ class MainService : FcitxPluginService() {
 
     private fun shouldSkipRemoteImportForLocalEcho(
         data: ClipboardData,
-        remoteText: String,
-        acknowledgedUpload: Boolean
+        remoteText: String
     ): Boolean {
-        if (!acknowledgedUpload) return false
         if (!data.type.equals("Text", ignoreCase = true)) return false
         if (remoteText.isBlank()) return false
         return remoteText == lastLocalContent || remoteText == lastUploadedContent

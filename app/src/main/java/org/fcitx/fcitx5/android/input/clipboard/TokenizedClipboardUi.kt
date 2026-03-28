@@ -5,6 +5,7 @@
 package org.fcitx.fcitx5.android.input.clipboard
 
 import android.content.Context
+import android.text.TextUtils
 import android.graphics.Typeface
 import android.view.Gravity
 import android.view.View
@@ -18,6 +19,7 @@ import org.fcitx.fcitx5.android.utils.pressHighlightDrawable
 import splitties.dimensions.dp
 import splitties.views.backgroundColor
 import splitties.views.dsl.constraintlayout.after
+import splitties.views.dsl.constraintlayout.before
 import splitties.views.dsl.constraintlayout.centerVertically
 import splitties.views.dsl.constraintlayout.constraintLayout
 import splitties.views.dsl.constraintlayout.endOfParent
@@ -66,38 +68,44 @@ class TokenizedClipboardUi(
         isVisible = false
     }
 
-    private val titleBar = constraintLayout {
+    private val actionBar = horizontalLayout {
+        gravity = Gravity.END or Gravity.CENTER_VERTICAL
+        add(copyButton, lParams(wrapContent, dp(28)))
+        add(selectAllButton, lParams(wrapContent, dp(28)))
+        add(invertSelectionButton, lParams(wrapContent, dp(28)))
+        add(clearSelectionButton, lParams(wrapContent, dp(28)))
+        add(sendButton, lParams(wrapContent, dp(28)))
+    }
+
+    private val topBar = constraintLayout {
         add(backButton, lParams(dp(40), dp(40)) {
             startOfParent()
             topOfParent()
         })
+        add(actionBar, lParams(wrapContent, wrapContent) {
+            endOfParent()
+            centerVertically()
+        })
         add(textView {
             text = ctx.getString(R.string.tokenized_clipboard)
             typeface = Typeface.defaultFromStyle(Typeface.BOLD)
-            textSize = 18f
-            gravity = gravityCenter
+            textSize = 16f
             setTextColor(theme.altKeyTextColor)
-        }, lParams(wrapContent, dp(40)) {
+            isSingleLine = true
+            maxLines = 1
+            ellipsize = TextUtils.TruncateAt.END
+        }, lParams(0, dp(40)) {
             after(backButton, dp(8))
+            before(actionBar, dp(8))
             centerVertically()
         })
-    }
-
-    private val actionBar = horizontalLayout {
-        gravity = Gravity.END or Gravity.CENTER_VERTICAL
-        add(copyButton, lParams(wrapContent, dp(32)))
-        add(selectAllButton, lParams(wrapContent, dp(32)))
-        add(invertSelectionButton, lParams(wrapContent, dp(32)))
-        add(clearSelectionButton, lParams(wrapContent, dp(32)))
-        add(sendButton, lParams(wrapContent, dp(32)))
     }
 
     override val root = verticalLayout {
         if (!keyBorder) {
             backgroundColor = theme.barColor
         }
-        add(titleBar, lParams(matchParent, wrapContent))
-        add(actionBar, lParams(matchParent, wrapContent))
+        add(topBar, lParams(matchParent, wrapContent))
         add(frameLayout {
             add(recyclerView, FrameLayout.LayoutParams(matchParent, matchParent))
             add(emptyView, FrameLayout.LayoutParams(matchParent, matchParent))
@@ -135,9 +143,9 @@ class TokenizedClipboardUi(
     private fun createActionButton(textRes: Int) = textView {
         text = ctx.getString(textRes)
         gravity = gravityCenter
-        minWidth = dp(52)
-        textSize = 14f
-        setPaddingDp(10, 0, 10, 0)
+        minWidth = dp(40)
+        textSize = 13f
+        setPaddingDp(6, 0, 6, 0)
         background = pressHighlightDrawable(theme.keyPressHighlightColor)
         setTextColor(theme.altKeyTextColor)
     }
