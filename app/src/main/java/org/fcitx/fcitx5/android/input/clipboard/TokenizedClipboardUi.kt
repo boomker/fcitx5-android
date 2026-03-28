@@ -90,10 +90,12 @@ class TokenizedClipboardUi(
             text = ctx.getString(R.string.tokenized_clipboard)
             typeface = Typeface.defaultFromStyle(Typeface.BOLD)
             textSize = 16f
+            gravity = Gravity.START or Gravity.CENTER_VERTICAL
             setTextColor(theme.altKeyTextColor)
             isSingleLine = true
             maxLines = 1
             ellipsize = TextUtils.TruncateAt.END
+            includeFontPadding = false
         }, lParams(0, dp(40)) {
             after(backButton, dp(8))
             before(actionBar, dp(8))
