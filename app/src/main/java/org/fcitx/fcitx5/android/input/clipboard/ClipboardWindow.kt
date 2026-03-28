@@ -6,15 +6,17 @@ package org.fcitx.fcitx5.android.input.clipboard
 
 import android.annotation.SuppressLint
 import android.app.SearchManager
-import android.os.Bundle
 import android.content.Intent
+import android.content.ComponentName
+import android.content.pm.PackageManager
 import android.net.Uri
-import android.os.Message
+import android.os.Build
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.PopupMenu
 import androidx.annotation.Keep
+import androidx.core.content.ContextCompat
 import androidx.core.text.bold
 import androidx.core.text.buildSpannedString
 import androidx.core.text.color
@@ -30,7 +32,6 @@ import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.snackbar.SnackbarContentLayout
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import org.fcitx.fcitx5.android.common.PluginMessage
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.core.FcitxPluginServices
 import org.fcitx.fcitx5.android.core.data.DataManager
@@ -128,14 +129,17 @@ class ClipboardWindow : InputWindow.ExtendedInputWindow<ClipboardWindow>() {
             }
 
             override fun onUpload(entry: ClipboardEntry) {
-                FcitxPluginServices.sendMessage(
-                    Message.obtain().apply {
-                        what = PluginMessage.WHAT_LOCAL_CLIPBOARD_UPDATED
-                        data = Bundle().apply {
-                            putString(PluginMessage.KEY_CLIPBOARD_TEXT, entry.text)
-                        }
-                    }
-                )
+                val component = clipboardSyncPluginServiceComponent() ?: return
+                val intent = Intent().apply {
+                    this.component = component
+                    action = ACTION_INGEST_CAPTURED_CLIPBOARD
+                    putExtra(EXTRA_CAPTURED_CLIPBOARD_CONTENT, entry.text)
+                }
+                runCatching {
+                    ContextCompat.startForegroundService(context, intent)
+                }.recoverCatching {
+                    context.startService(intent)
+                }
             }
 
             override fun onSplitText(text: String) {
@@ -224,6 +228,32 @@ class ClipboardWindow : InputWindow.ExtendedInputWindow<ClipboardWindow>() {
         return DataManager.getLoadedPlugins().any { plugin ->
             plugin.hasService && plugin.name == "clipboard-sync"
         }
+    }
+
+    private fun clipboardSyncPluginServiceComponent(): ComponentName? {
+        val pluginPackage = DataManager.getLoadedPlugins()
+            .firstOrNull { plugin -> plugin.hasService && plugin.name == "clipboard-sync" }
+            ?.packageName
+            ?: return null
+        val queryIntent = Intent(FcitxPluginServices.PLUGIN_SERVICE_ACTION).apply {
+            setPackage(pluginPackage)
+        }
+        val resolved = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.packageManager.queryIntentServices(
+                queryIntent,
+                PackageManager.ResolveInfoFlags.of(PackageManager.MATCH_ALL.toLong())
+            )
+        } else {
+            context.packageManager.queryIntentServices(queryIntent, PackageManager.MATCH_ALL)
+        }
+        val serviceInfo = resolved.firstOrNull()?.serviceInfo ?: return null
+        return ComponentName(serviceInfo.packageName, serviceInfo.name)
+    }
+
+    private companion object {
+        const val ACTION_INGEST_CAPTURED_CLIPBOARD =
+            "org.fcitx.fcitx5.android.plugin.clipboard_sync.action.INGEST_CAPTURED_CLIPBOARD"
+        const val EXTRA_CAPTURED_CLIPBOARD_CONTENT = "captured_clipboard_content"
     }
 
     private val ui by lazy {

@@ -150,6 +150,11 @@ class MainService : FcitxPluginService() {
                     handleLocalClipboardUpdate(content, "fcitx-plugin-message")
                 }
 
+                PluginMessage.WHAT_UPLOAD_CLIPBOARD_REQUEST -> {
+                    val content = msg.data?.getString(PluginMessage.KEY_CLIPBOARD_TEXT).orEmpty()
+                    forceUploadClipboard(content, "fcitx-upload-request")
+                }
+
                 else -> super.handleMessage(msg)
             }
         }
@@ -699,7 +704,11 @@ class MainService : FcitxPluginService() {
             acceptedItems.forEach { data ->
                 val remoteText = data.text
                 Log.d(TAG, "[Pull] Processed data: type=${data.type}, text=$remoteText")
-                acknowledgePendingUploads(remoteText)
+                val acknowledgedUpload = acknowledgePendingUploads(remoteText)
+                if (shouldSkipRemoteImportForLocalEcho(data, remoteText, acknowledgedUpload)) {
+                    Log.d(TAG, "[Pull] Skipping echoed local clipboard item in remote history")
+                    return@forEach
+                }
                 importedAll = importRemoteClipboardEntry(data, downloadUri) && importedAll
             }
 
@@ -1115,7 +1124,7 @@ class MainService : FcitxPluginService() {
             ACTION_INGEST_CAPTURED_CLIPBOARD -> {
                 val content = intent.getStringExtra(EXTRA_CAPTURED_CLIPBOARD_CONTENT).orEmpty()
                 if (content.isNotBlank()) {
-                    handleLocalClipboardUpdate(content, "manual-capture")
+                    forceUploadClipboard(content, "manual-capture")
                 }
             }
         }
@@ -1737,18 +1746,30 @@ class MainService : FcitxPluginService() {
         }
     }
 
-    private suspend fun acknowledgePendingUploads(content: String) {
-        if (content.isBlank()) return
-        pendingUploadMutex.withLock {
+    private suspend fun acknowledgePendingUploads(content: String): Boolean {
+        if (content.isBlank()) return false
+        return pendingUploadMutex.withLock {
             val matchedIndex = pendingUploads.indexOfLast { it.content == content }
             if (matchedIndex < 0) {
-                return@withLock
+                return@withLock false
             }
             repeat(matchedIndex + 1) {
                 pendingUploads.removeAt(0)
             }
             persistPendingUploadsLocked()
+            true
         }
+    }
+
+    private fun shouldSkipRemoteImportForLocalEcho(
+        data: ClipboardData,
+        remoteText: String,
+        acknowledgedUpload: Boolean
+    ): Boolean {
+        if (!acknowledgedUpload) return false
+        if (!data.type.equals("Text", ignoreCase = true)) return false
+        if (remoteText.isBlank()) return false
+        return remoteText == lastLocalContent || remoteText == lastUploadedContent
     }
 
     private fun ensureEndpointState(endpoint: ServerEndpoint) {
@@ -1765,8 +1786,8 @@ class MainService : FcitxPluginService() {
         persistRemoteRevisions()
     }
 
-    private suspend fun flushPendingUploads(reason: String) {
-        if (!prefs.getBoolean(PREF_QUICK_SYNC, true)) {
+    private suspend fun flushPendingUploads(reason: String, force: Boolean = false) {
+        if (!force && !prefs.getBoolean(PREF_QUICK_SYNC, true)) {
             return
         }
         pendingUploadDrainMutex.withLock {
@@ -1835,6 +1856,18 @@ class MainService : FcitxPluginService() {
         lastUploadedContent = text
         persistLastSyncedContent(text)
         markBackendActivity()
+    }
+
+    private fun forceUploadClipboard(content: String, origin: String) {
+        if (content.isBlank()) return
+        scope.launch {
+            val queued = enqueuePendingUpload(content)
+            if (!queued) {
+                return@launch
+            }
+            Log.d(TAG, "[Push] Received explicit upload request from $origin")
+            flushPendingUploads("explicit:$origin", force = true)
+        }
     }
 
     private enum class RuntimeMode {
