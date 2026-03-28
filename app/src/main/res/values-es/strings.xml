@@ -309,4 +309,21 @@
     <string name="macro_editor_step_shortcut_multiple_keys">El paso %1$d solo puede tener una tecla objetivo</string>
     <string name="macro_editor_step_edit_action_required">El paso %1$d requiere una acción</string>
     <string name="macro_editor_key_event_unmatched">Inconsistencia de eventos de tecla: el número de eventos down y up para %1$s no coincide</string>
+    <string name="text_keyboard_layout_qr_export">Compartir mediante imagen QR</string>
+    <string name="text_keyboard_layout_qr_import_scan">Importar escaneando QR</string>
+    <string name="text_keyboard_layout_qr_import_image">Importar desde imagen QR</string>
+    <string name="text_keyboard_layout_qr_chunk_label">Fragmento %1$d/%2$d · %3$s</string>
+    <string name="text_keyboard_layout_qr_share_title">Compartir imagen QR del diseño</string>
+    <string name="text_keyboard_layout_qr_exported">Imagen QR larga generada, elige una app para compartir</string>
+    <string name="text_keyboard_layout_qr_export_failed">No se pudo generar la imagen QR: %1$s</string>
+    <string name="text_keyboard_layout_qr_scan_prompt">Escanea todos los fragmentos QR en orden</string>
+    <string name="text_keyboard_layout_qr_camera_permission_denied">Permiso de cámara denegado</string>
+    <string name="text_keyboard_layout_qr_scan_progress">Escaneados %1$d/%2$d fragmentos</string>
+    <string name="text_keyboard_layout_qr_duplicate_chunk">Este fragmento ya fue escaneado</string>
+    <string name="text_keyboard_layout_qr_import_no_chunk">No se detectaron fragmentos QR en la imagen</string>
+    <string name="text_keyboard_layout_qr_invalid_payload">Carga QR no válida</string>
+    <string name="text_keyboard_layout_qr_import_confirm_title">Importar diseño desde QR</string>
+    <string name="text_keyboard_layout_qr_import_confirm_message">Se detectaron %1$d entradas de diseño. ¿Importar y reemplazar los datos en memoria que se están editando?</string>
+    <string name="text_keyboard_layout_qr_import_success">Diseño QR importado. Guarda para persistir los cambios.</string>
+    <string name="text_keyboard_layout_qr_import_failed">No se pudo importar la carga QR: %1$s</string>
 </resources>

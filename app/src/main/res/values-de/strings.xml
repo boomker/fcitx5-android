@@ -352,4 +352,21 @@
     <string name="macro_editor_step_shortcut_modifiers_empty">Schritt %1$d benötigt mindestens eine Modifikatortaste (Strg/Alt/Umschalt/Meta)</string>
     <string name="macro_editor_step_shortcut_multiple_keys">Schritt %1$d kann nur eine Zieltaste haben</string>
     <string name="macro_editor_step_edit_action_required">Schritt %1$d benötigt eine Aktion</string>
+    <string name="text_keyboard_layout_qr_export">Per QR-Bild teilen</string>
+    <string name="text_keyboard_layout_qr_import_scan">Per QR-Scan importieren</string>
+    <string name="text_keyboard_layout_qr_import_image">Aus QR-Bild importieren</string>
+    <string name="text_keyboard_layout_qr_chunk_label">Chunk %1$d/%2$d · %3$s</string>
+    <string name="text_keyboard_layout_qr_share_title">Layout-QR-Bild teilen</string>
+    <string name="text_keyboard_layout_qr_exported">QR-Langbild erstellt, bitte App zum Teilen wählen</string>
+    <string name="text_keyboard_layout_qr_export_failed">QR-Bild konnte nicht erstellt werden: %1$s</string>
+    <string name="text_keyboard_layout_qr_scan_prompt">Alle QR-Chunks der Reihe nach scannen</string>
+    <string name="text_keyboard_layout_qr_camera_permission_denied">Kameraberechtigung verweigert</string>
+    <string name="text_keyboard_layout_qr_scan_progress">%1$d/%2$d Chunks gescannt</string>
+    <string name="text_keyboard_layout_qr_duplicate_chunk">Dieser Chunk wurde bereits gescannt</string>
+    <string name="text_keyboard_layout_qr_import_no_chunk">Kein QR-Chunk im Bild erkannt</string>
+    <string name="text_keyboard_layout_qr_invalid_payload">Ungültige QR-Nutzlast</string>
+    <string name="text_keyboard_layout_qr_import_confirm_title">Layout aus QR importieren</string>
+    <string name="text_keyboard_layout_qr_import_confirm_message">%1$d Layouteinträge erkannt. Importieren und die aktuell im Speicher bearbeiteten Daten ersetzen?</string>
+    <string name="text_keyboard_layout_qr_import_success">QR-Layout importiert. Speichern, um Änderungen dauerhaft zu machen.</string>
+    <string name="text_keyboard_layout_qr_import_failed">QR-Nutzlast konnte nicht importiert werden: %1$s</string>
 </resources>

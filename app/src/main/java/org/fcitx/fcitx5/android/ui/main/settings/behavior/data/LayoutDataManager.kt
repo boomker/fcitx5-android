@@ -53,7 +53,7 @@ class LayoutDataManager(private val context: Context) {
         entries.clear()
         
         val parsed = if (file?.exists() == true && file.length() > 0) {
-            parseJsonFile(file)
+            parseJsonText(file.readText(), file.name)
         } else {
             loadDefaultPreset()
         }
@@ -84,7 +84,7 @@ class LayoutDataManager(private val context: Context) {
                 migrationManager.restoreFromBackup(file)
                 // 迁移失败恢复备份后，重新加载数据确保内存与文件一致
                 entries.clear()
-                val restoredParsed = parseJsonFile(file)
+                val restoredParsed = parseJsonText(file.readText(), file.name)
                 restoredParsed.toSortedMap().forEach { (k, v) ->
                     entries[k] = v.map { row ->
                         row.map { key -> key.toMutableMap() }.toMutableList()
@@ -112,13 +112,21 @@ class LayoutDataManager(private val context: Context) {
      * 解析 JSON 文件
      */
     private fun parseJsonFile(file: File): Map<String, List<List<Map<String, Any?>>>> {
+        return parseJsonText(file.readText(), file.name)
+    }
+
+    fun parseJsonText(
+        jsonText: String,
+        sourceName: String = "<memory>",
+        fallbackToDefault: Boolean = true
+    ): Map<String, List<List<Map<String, Any?>>>> {
         val lenientJson = Json {
             ignoreUnknownKeys = true
             isLenient = true
         }
 
         return runCatching {
-            var jsonStr = file.readText()
+            var jsonStr = jsonText
             // 移除 // 注释 - 使用统一的工具方法
             jsonStr = LayoutJsonUtils.removeJsonComments(jsonStr)
 
@@ -162,8 +170,14 @@ class LayoutDataManager(private val context: Context) {
             
             result
         }.onFailure { e ->
-            android.util.Log.e("LayoutDataManager", "Failed to parse JSON file: ${file.name}", e)
-        }.getOrNull() ?: loadDefaultPreset()
+            android.util.Log.e("LayoutDataManager", "Failed to parse JSON from: $sourceName", e)
+        }.getOrNull() ?: if (fallbackToDefault) loadDefaultPreset() else emptyMap()
+    }
+
+    fun exportCurrentJsonString(): String {
+        val jsonElement = LayoutJsonUtils.convertToSaveJson(entries)
+        val prettyJson = Json { prettyPrint = true }
+        return prettyJson.encodeToString(jsonElement) + "\n"
     }
     
     /**

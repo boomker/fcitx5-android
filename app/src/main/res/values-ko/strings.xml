@@ -283,4 +283,21 @@
     <string name="macro_editor_step_shortcut_multiple_keys">%1$d 단계는 하나의 대상 키만 가질 수 있습니다</string>
     <string name="macro_editor_step_edit_action_required">%1$d 단계에는 작업이 필요합니다</string>
     <string name="macro_editor_key_event_unmatched">키 이벤트 불일치: %1$s의 누름과 뗌 이벤트 수가 일치하지 않습니다</string>
+    <string name="text_keyboard_layout_qr_export">QR 이미지로 공유</string>
+    <string name="text_keyboard_layout_qr_import_scan">QR 스캔으로 가져오기</string>
+    <string name="text_keyboard_layout_qr_import_image">QR 이미지에서 가져오기</string>
+    <string name="text_keyboard_layout_qr_chunk_label">청크 %1$d/%2$d · %3$s</string>
+    <string name="text_keyboard_layout_qr_share_title">레이아웃 QR 이미지 공유</string>
+    <string name="text_keyboard_layout_qr_exported">QR 긴 이미지가 생성되었습니다. 공유할 앱을 선택하세요</string>
+    <string name="text_keyboard_layout_qr_export_failed">QR 이미지 생성 실패: %1$s</string>
+    <string name="text_keyboard_layout_qr_scan_prompt">모든 QR 청크를 순서대로 스캔하세요</string>
+    <string name="text_keyboard_layout_qr_camera_permission_denied">카메라 권한이 거부되었습니다</string>
+    <string name="text_keyboard_layout_qr_scan_progress">%1$d/%2$d 청크 스캔됨</string>
+    <string name="text_keyboard_layout_qr_duplicate_chunk">이 청크는 이미 스캔되었습니다</string>
+    <string name="text_keyboard_layout_qr_import_no_chunk">이미지에서 QR 청크를 찾지 못했습니다</string>
+    <string name="text_keyboard_layout_qr_invalid_payload">잘못된 QR 페이로드입니다</string>
+    <string name="text_keyboard_layout_qr_import_confirm_title">QR에서 레이아웃 가져오기</string>
+    <string name="text_keyboard_layout_qr_import_confirm_message">%1$d개의 레이아웃 항목을 감지했습니다. 현재 편집 중인 메모리 데이터를 교체하여 가져오시겠습니까?</string>
+    <string name="text_keyboard_layout_qr_import_success">QR 레이아웃을 가져왔습니다. 저장하면 파일에 반영됩니다.</string>
+    <string name="text_keyboard_layout_qr_import_failed">QR 페이로드 가져오기 실패: %1$s</string>
 </resources>

@@ -523,4 +523,21 @@
     <string name="macro_editor_step_shortcut_multiple_keys">步驟 %1$d 只能有一個目標按鍵</string>
     <string name="macro_editor_step_edit_action_required">步驟 %1$d 需要選擇一個操作</string>
     <string name="macro_editor_key_event_unmatched">按鍵事件不匹配：%1$s 的按下和釋放次數不等</string>
+    <string name="text_keyboard_layout_qr_export">透過二維碼圖片分享</string>
+    <string name="text_keyboard_layout_qr_import_scan">掃碼匯入</string>
+    <string name="text_keyboard_layout_qr_import_image">從二維碼圖片匯入</string>
+    <string name="text_keyboard_layout_qr_chunk_label">分包 %1$d/%2$d · %3$s</string>
+    <string name="text_keyboard_layout_qr_share_title">分享佈局二維碼圖片</string>
+    <string name="text_keyboard_layout_qr_exported">二維碼長圖已生成，請選擇應用分享</string>
+    <string name="text_keyboard_layout_qr_export_failed">生成二維碼圖片失敗：%1$s</string>
+    <string name="text_keyboard_layout_qr_scan_prompt">請按順序掃描全部二維碼分包</string>
+    <string name="text_keyboard_layout_qr_camera_permission_denied">相機權限被拒絕</string>
+    <string name="text_keyboard_layout_qr_scan_progress">已掃描 %1$d/%2$d 包</string>
+    <string name="text_keyboard_layout_qr_duplicate_chunk">此分包已掃描</string>
+    <string name="text_keyboard_layout_qr_import_no_chunk">圖片中未識別到二維碼分包</string>
+    <string name="text_keyboard_layout_qr_invalid_payload">無效的二維碼載荷</string>
+    <string name="text_keyboard_layout_qr_import_confirm_title">從二維碼匯入佈局</string>
+    <string name="text_keyboard_layout_qr_import_confirm_message">檢測到 %1$d 條佈局資料。是否匯入並覆蓋目前編輯中的記憶體資料？</string>
+    <string name="text_keyboard_layout_qr_import_success">二維碼佈局已匯入，點擊保存即可寫入檔案。</string>
+    <string name="text_keyboard_layout_qr_import_failed">匯入二維碼載荷失敗：%1$s</string>
 </resources>

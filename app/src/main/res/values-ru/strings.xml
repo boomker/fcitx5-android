@@ -495,4 +495,21 @@
     <string name="macro_editor_step_shortcut_multiple_keys">Шаг %1$d может иметь только одну целевую клавишу</string>
     <string name="macro_editor_step_edit_action_required">Шаг %1$d требует действие</string>
     <string name="macro_editor_key_event_unmatched">Несоответствие событий клавиш: количество нажатий и отпусканий для %1$s не совпадает</string>
+    <string name="text_keyboard_layout_qr_export">Поделиться через QR-изображение</string>
+    <string name="text_keyboard_layout_qr_import_scan">Импорт сканированием QR</string>
+    <string name="text_keyboard_layout_qr_import_image">Импорт из QR-изображения</string>
+    <string name="text_keyboard_layout_qr_chunk_label">Чанк %1$d/%2$d · %3$s</string>
+    <string name="text_keyboard_layout_qr_share_title">Поделиться QR-изображением раскладки</string>
+    <string name="text_keyboard_layout_qr_exported">Длинное QR-изображение создано, выберите приложение для отправки</string>
+    <string name="text_keyboard_layout_qr_export_failed">Не удалось создать QR-изображение: %1$s</string>
+    <string name="text_keyboard_layout_qr_scan_prompt">Сканируйте все QR-чанки по порядку</string>
+    <string name="text_keyboard_layout_qr_camera_permission_denied">Доступ к камере запрещен</string>
+    <string name="text_keyboard_layout_qr_scan_progress">Сканировано %1$d/%2$d чанков</string>
+    <string name="text_keyboard_layout_qr_duplicate_chunk">Этот чанк уже был отсканирован</string>
+    <string name="text_keyboard_layout_qr_import_no_chunk">QR-чанки на изображении не найдены</string>
+    <string name="text_keyboard_layout_qr_invalid_payload">Недопустимая QR-нагрузка</string>
+    <string name="text_keyboard_layout_qr_import_confirm_title">Импорт раскладки из QR</string>
+    <string name="text_keyboard_layout_qr_import_confirm_message">Обнаружено %1$d элементов раскладки. Импортировать и заменить текущие редактируемые данные в памяти?</string>
+    <string name="text_keyboard_layout_qr_import_success">QR-раскладка импортирована. Сохраните, чтобы записать изменения в файл.</string>
+    <string name="text_keyboard_layout_qr_import_failed">Не удалось импортировать QR-нагрузку: %1$s</string>
 </resources>

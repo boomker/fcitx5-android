@@ -445,4 +445,21 @@
     <string name="macro_editor_step_shortcut_multiple_keys">ステップ %1$d のターゲットキーは 1 つだけです</string>
     <string name="macro_editor_step_edit_action_required">ステップ %1$d にはアクションが必要です</string>
     <string name="macro_editor_key_event_unmatched">キーイベントの不一致：%1$s の押下と解放の回数が一致しません</string>
+    <string name="text_keyboard_layout_qr_export">QR画像で共有</string>
+    <string name="text_keyboard_layout_qr_import_scan">QRをスキャンしてインポート</string>
+    <string name="text_keyboard_layout_qr_import_image">QR画像からインポート</string>
+    <string name="text_keyboard_layout_qr_chunk_label">チャンク %1$d/%2$d · %3$s</string>
+    <string name="text_keyboard_layout_qr_share_title">レイアウトQR画像を共有</string>
+    <string name="text_keyboard_layout_qr_exported">QR長画像を生成しました。共有するアプリを選択してください</string>
+    <string name="text_keyboard_layout_qr_export_failed">QR画像の生成に失敗しました：%1$s</string>
+    <string name="text_keyboard_layout_qr_scan_prompt">すべてのQRチャンクを順番にスキャンしてください</string>
+    <string name="text_keyboard_layout_qr_camera_permission_denied">カメラ権限が拒否されました</string>
+    <string name="text_keyboard_layout_qr_scan_progress">%1$d/%2$d チャンクをスキャン済み</string>
+    <string name="text_keyboard_layout_qr_duplicate_chunk">このチャンクはすでにスキャン済みです</string>
+    <string name="text_keyboard_layout_qr_import_no_chunk">画像内にQRチャンクが見つかりませんでした</string>
+    <string name="text_keyboard_layout_qr_invalid_payload">無効なQRペイロードです</string>
+    <string name="text_keyboard_layout_qr_import_confirm_title">QRからレイアウトをインポート</string>
+    <string name="text_keyboard_layout_qr_import_confirm_message">%1$d 件のレイアウト項目を検出しました。現在編集中のメモリデータを置き換えてインポートしますか？</string>
+    <string name="text_keyboard_layout_qr_import_success">QRレイアウトをインポートしました。保存するとファイルに反映されます。</string>
+    <string name="text_keyboard_layout_qr_import_failed">QRペイロードのインポートに失敗しました：%1$s</string>
 </resources>

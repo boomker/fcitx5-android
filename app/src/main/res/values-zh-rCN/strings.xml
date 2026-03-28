@@ -566,4 +566,21 @@
     <string name="fontset_save_failed_permission_error">保存字体集失败：权限被拒绝</string>
     <string name="fontset_save_failed_unknown_error">保存字体集失败：%1$s</string>
     <string name="macro_editor_key_event_unmatched">按键事件不匹配：%1$s 的按下和释放次数不等</string>
+    <string name="text_keyboard_layout_qr_export">通过二维码图片分享</string>
+    <string name="text_keyboard_layout_qr_import_scan">扫码导入</string>
+    <string name="text_keyboard_layout_qr_import_image">从二维码图片导入</string>
+    <string name="text_keyboard_layout_qr_chunk_label">分包 %1$d/%2$d · %3$s</string>
+    <string name="text_keyboard_layout_qr_share_title">分享布局二维码图片</string>
+    <string name="text_keyboard_layout_qr_exported">二维码长图已生成，请选择应用分享</string>
+    <string name="text_keyboard_layout_qr_export_failed">生成二维码图片失败：%1$s</string>
+    <string name="text_keyboard_layout_qr_scan_prompt">请按顺序扫描全部二维码分包</string>
+    <string name="text_keyboard_layout_qr_camera_permission_denied">相机权限被拒绝</string>
+    <string name="text_keyboard_layout_qr_scan_progress">已扫描 %1$d/%2$d 包</string>
+    <string name="text_keyboard_layout_qr_duplicate_chunk">该分包已扫描</string>
+    <string name="text_keyboard_layout_qr_import_no_chunk">图片中未识别到二维码分包</string>
+    <string name="text_keyboard_layout_qr_invalid_payload">无效的二维码载荷</string>
+    <string name="text_keyboard_layout_qr_import_confirm_title">从二维码导入布局</string>
+    <string name="text_keyboard_layout_qr_import_confirm_message">检测到 %1$d 条布局数据。是否导入并替换当前编辑中的内存数据？</string>
+    <string name="text_keyboard_layout_qr_import_success">二维码布局已导入，点击保存即可写入文件。</string>
+    <string name="text_keyboard_layout_qr_import_failed">导入二维码载荷失败：%1$s</string>
 </resources>

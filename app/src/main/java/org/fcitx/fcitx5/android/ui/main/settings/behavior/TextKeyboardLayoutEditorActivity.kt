@@ -4,8 +4,12 @@
  */
 package org.fcitx.fcitx5.android.ui.main.settings.behavior
 
+import android.Manifest
+import android.content.Intent
 import android.content.Context
 import android.graphics.Color
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.view.Gravity
 import android.view.Menu
@@ -28,9 +32,14 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.core.Action
 import org.fcitx.fcitx5.android.core.InputMethodEntry
@@ -47,6 +56,8 @@ import org.fcitx.fcitx5.android.ui.main.settings.behavior.data.LayoutDataManager
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.dialog.KeyEditorDialog
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.manager.SubModeManager
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.preview.KeyboardPreviewManager
+import org.fcitx.fcitx5.android.ui.main.settings.behavior.share.JsonFileQrShareManager
+import org.fcitx.fcitx5.android.ui.main.settings.behavior.share.QrChunkCollector
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.utils.LayoutJsonUtils
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.dialog.MacroEditorActivity
 import org.fcitx.fcitx5.android.utils.InputMethodUtil
@@ -190,9 +201,33 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
     private var previewSubModeLabel: String? = null
     private var lastEditingTarget: String? = null
     private var saveMenuItem: MenuItem? = null
+    private val qrChunkCollector = QrChunkCollector()
 
     // 缓存 IMEs 用于 spinner 显示
     private var allImesFromJson: Array<InputMethodEntry> = emptyArray()
+
+    private val pickImageLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri == null) return@registerForActivityResult
+        importFromQrLongImage(uri)
+    }
+
+    private val cameraPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) {
+            cameraScanLauncher.launch(com.journeyapps.barcodescanner.ScanOptions().apply {
+                setDesiredBarcodeFormats(com.journeyapps.barcodescanner.ScanOptions.QR_CODE)
+                setPrompt(getString(R.string.text_keyboard_layout_qr_scan_prompt))
+                setBeepEnabled(false)
+                setOrientationLocked(true)
+            })
+        } else {
+            showToast(getString(R.string.text_keyboard_layout_qr_camera_permission_denied))
+        }
+    }
+
+    private val cameraScanLauncher = registerForActivityResult(com.journeyapps.barcodescanner.ScanContract()) { result ->
+        val content = result?.contents ?: return@registerForActivityResult
+        addImportedChunkFromText(content)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -259,6 +294,12 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         saveMenuItem = menu.add(Menu.NONE, MENU_SAVE_ID, Menu.NONE, "${getString(R.string.save)}")
         saveMenuItem?.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS or MenuItem.SHOW_AS_ACTION_WITH_TEXT)
+        menu.add(Menu.NONE, MENU_QR_EXPORT_ID, Menu.NONE, getString(R.string.text_keyboard_layout_qr_export))
+            .setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER)
+        menu.add(Menu.NONE, MENU_QR_IMPORT_SCAN_ID, Menu.NONE, getString(R.string.text_keyboard_layout_qr_import_scan))
+            .setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER)
+        menu.add(Menu.NONE, MENU_QR_IMPORT_IMAGE_ID, Menu.NONE, getString(R.string.text_keyboard_layout_qr_import_image))
+            .setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER)
         updateSaveButtonState()
         return true
     }
@@ -270,6 +311,18 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         }
         MENU_SAVE_ID -> {
             saveLayout()
+            true
+        }
+        MENU_QR_EXPORT_ID -> {
+            exportLayoutAsQrLongImage()
+            true
+        }
+        MENU_QR_IMPORT_SCAN_ID -> {
+            startCameraScanImport()
+            true
+        }
+        MENU_QR_IMPORT_IMAGE_ID -> {
+            pickImageLauncher.launch("image/*")
             true
         }
         else -> super.onOptionsItemSelected(item)
@@ -1452,9 +1505,13 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         dialog.show()
     }
 
-    private fun saveLayout() {
-        if (!hasChanges()) {
-            return
+    private fun saveLayout(): Boolean {
+        val file = layoutFile ?: run {
+            showToast(getString(R.string.cannot_resolve_text_keyboard_layout))
+            return false
+        }
+        if (!hasChanges() && file.exists() && file.length() > 0) {
+            return true
         }
 
         // 验证数据
@@ -1465,12 +1522,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                 .setMessage(validationErrors.joinToString("\n\n"))
                 .setPositiveButton(android.R.string.ok, null)
                 .show()
-            return
-        }
-
-        val file = layoutFile ?: run {
-            showToast(getString(R.string.cannot_resolve_text_keyboard_layout))
-            return
+            return false
         }
 
         // 使用 dataManager 保存
@@ -1478,6 +1530,8 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             showToast(getString(R.string.text_keyboard_layout_saved_at, file.absolutePath))
             // 通知 provider watcher 文件已更改
             ConfigProviders.ensureWatching()
+            updateSaveButtonState()
+            return true
         } else {
             // 显示详细错误信息
             AlertDialog.Builder(this)
@@ -1485,9 +1539,9 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                 .setMessage(getString(R.string.text_keyboard_layout_save_failed))
                 .setPositiveButton(android.R.string.ok, null)
                 .show()
+            updateSaveButtonState()
+            return false
         }
-
-        updateSaveButtonState()
     }
 
     private fun showToast(message: String) {
@@ -1545,8 +1599,149 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         }
     }
 
+    private fun exportLayoutAsQrLongImage() {
+        lifecycleScope.launch {
+            runCatching {
+                if (!saveLayout()) {
+                    throw IllegalStateException(getString(R.string.text_keyboard_layout_save_failed))
+                }
+                val file = layoutFile ?: throw IllegalStateException(getString(R.string.cannot_resolve_text_keyboard_layout))
+                withContext(Dispatchers.Default) { JsonFileQrShareManager.encodeSavedJsonFileToLongImage(file) }
+            }.onSuccess { (longImage, _) ->
+                shareLongImageUri(
+                    JsonFileQrShareManager.saveLongImageToShareCache(
+                        this@TextKeyboardLayoutEditorActivity,
+                        longImage,
+                        "text-keyboard-layout-qr"
+                    )
+                )
+            }.onFailure {
+                showToast(getString(R.string.text_keyboard_layout_qr_export_failed, it.localizedMessage ?: ""))
+            }
+        }
+    }
+
+    private fun shareLongImageUri(uri: Uri) {
+        val sendIntent = Intent(Intent.ACTION_SEND).apply {
+            type = "image/png"
+            putExtra(Intent.EXTRA_STREAM, uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        startActivity(Intent.createChooser(sendIntent, getString(R.string.text_keyboard_layout_qr_share_title)))
+        showToast(getString(R.string.text_keyboard_layout_qr_exported))
+    }
+
+    private fun startCameraScanImport() {
+        val granted = androidx.core.content.ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (granted) {
+            cameraScanLauncher.launch(com.journeyapps.barcodescanner.ScanOptions().apply {
+                setDesiredBarcodeFormats(com.journeyapps.barcodescanner.ScanOptions.QR_CODE)
+                setPrompt(getString(R.string.text_keyboard_layout_qr_scan_prompt))
+                setBeepEnabled(false)
+                setOrientationLocked(true)
+            })
+        } else {
+            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
+
+    private fun importFromQrLongImage(uri: Uri) {
+        lifecycleScope.launch {
+            runCatching {
+                withContext(Dispatchers.Default) { JsonFileQrShareManager.decodeQrChunksFromImage(this@TextKeyboardLayoutEditorActivity, uri) }
+            }.onSuccess { chunks ->
+                if (chunks.isEmpty()) {
+                    showToast(getString(R.string.text_keyboard_layout_qr_import_no_chunk))
+                    return@onSuccess
+                }
+                tryAssembleAndImport(chunks)
+            }.onFailure {
+                showToast(getString(R.string.text_keyboard_layout_qr_import_failed, it.localizedMessage ?: ""))
+            }
+        }
+    }
+
+    private fun addImportedChunkFromText(raw: String) {
+        val progress = runCatching { qrChunkCollector.addAndMaybeAssemble(raw) }.getOrNull()
+        if (progress == null) {
+            showToast(getString(R.string.text_keyboard_layout_qr_invalid_payload))
+            return
+        }
+        if (progress.duplicate) {
+            showToast(getString(R.string.text_keyboard_layout_qr_duplicate_chunk))
+        }
+        showToast(getString(R.string.text_keyboard_layout_qr_scan_progress, progress.current, progress.total))
+        progress.completedJson?.let { json ->
+            tryAssembleAndImportJson(json)
+            return
+        }
+        cameraScanLauncher.launch(com.journeyapps.barcodescanner.ScanOptions().apply {
+            setDesiredBarcodeFormats(com.journeyapps.barcodescanner.ScanOptions.QR_CODE)
+            setPrompt(getString(R.string.text_keyboard_layout_qr_scan_prompt))
+            setBeepEnabled(false)
+            setOrientationLocked(true)
+        })
+    }
+
+    private fun tryAssembleAndImport(chunks: List<String>) {
+        runCatching {
+            val json = JsonFileQrShareManager.decodeChunksToJson(chunks)
+            val parsed = dataManager.parseJsonText(json, "qr-import", fallbackToDefault = false)
+            if (parsed.isEmpty()) {
+                throw IllegalArgumentException("No valid layout in QR payload")
+            }
+            parsed
+        }.onSuccess { parsed ->
+            applyImportedLayouts(parsed)
+        }.onFailure {
+            showToast(getString(R.string.text_keyboard_layout_qr_import_failed, it.localizedMessage ?: ""))
+        }
+    }
+
+    private fun tryAssembleAndImportJson(json: String) {
+        runCatching {
+            val parsed = dataManager.parseJsonText(json, "qr-import", fallbackToDefault = false)
+            if (parsed.isEmpty()) {
+                throw IllegalArgumentException("No valid layout in QR payload")
+            }
+            parsed
+        }.onSuccess { parsed ->
+            applyImportedLayouts(parsed)
+        }.onFailure {
+            showToast(getString(R.string.text_keyboard_layout_qr_import_failed, it.localizedMessage ?: ""))
+        }
+    }
+
+    private fun applyImportedLayouts(parsed: Map<String, List<List<Map<String, Any?>>>>) {
+            AlertDialog.Builder(this)
+                .setTitle(R.string.text_keyboard_layout_qr_import_confirm_title)
+                .setMessage(getString(R.string.text_keyboard_layout_qr_import_confirm_message, parsed.size))
+                .setPositiveButton(android.R.string.ok) { _, _ ->
+                    entries.clear()
+                    parsed.toSortedMap().forEach { (k, v) ->
+                        entries[k] = v.map { row -> row.map { key -> key.toMutableMap() }.toMutableList() }.toMutableList()
+                    }
+                    currentLayout = entries.keys.firstOrNull { !it.contains(':') } ?: entries.keys.firstOrNull()
+                    previewSubModeLabel = null
+                    buildSpinner()
+                    buildSubModeSpinner(forceResetSelection = true)
+                    buildRows()
+                    currentLayout?.let { layoutName ->
+                        previewManager.updatePreview(layoutName, previewSubModeLabel, fcitxConnection)
+                    }
+                    updateSaveButtonState()
+                    showToast(getString(R.string.text_keyboard_layout_qr_import_success))
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+    }
+
     companion object {
         private const val MENU_SAVE_ID = 3001
+        private const val MENU_QR_EXPORT_ID = 3002
+        private const val MENU_QR_IMPORT_SCAN_ID = 3003
+        private const val MENU_QR_IMPORT_IMAGE_ID = 3004
         private const val FCITX_CONNECTION_NAME = "TextKeyboardLayoutEditorActivity"
         private const val DIALOG_LABEL_TEXT_SIZE_SP = 13f
         private const val DIALOG_CONTENT_TEXT_SIZE_SP = 14f

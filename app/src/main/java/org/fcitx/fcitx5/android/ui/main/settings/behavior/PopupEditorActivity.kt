@@ -4,6 +4,9 @@
  */
 package org.fcitx.fcitx5.android.ui.main.settings.behavior
 
+import android.Manifest
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
@@ -16,15 +19,22 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.input.config.ConfigProviders
 import org.fcitx.fcitx5.android.input.config.ConfigProvider
+import org.fcitx.fcitx5.android.ui.main.settings.behavior.share.JsonFileQrShareManager
+import org.fcitx.fcitx5.android.ui.main.settings.behavior.share.QrChunkCollector
 import splitties.dimensions.dp
 import splitties.resources.styledColor
 import splitties.views.backgroundColor
@@ -106,6 +116,30 @@ class PopupEditorActivity : AppCompatActivity() {
     private var originalEntries: Map<String, List<String>> = emptyMap()
     private var saveMenuItem: MenuItem? = null
     private var adapter: PopupAdapter? = null
+    private val qrChunkCollector = QrChunkCollector()
+
+    private val pickImageLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri == null) return@registerForActivityResult
+        importFromQrLongImage(uri)
+    }
+
+    private val cameraPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) {
+            cameraScanLauncher.launch(com.journeyapps.barcodescanner.ScanOptions().apply {
+                setDesiredBarcodeFormats(com.journeyapps.barcodescanner.ScanOptions.QR_CODE)
+                setPrompt(getString(R.string.text_keyboard_layout_qr_scan_prompt))
+                setBeepEnabled(false)
+                setOrientationLocked(true)
+            })
+        } else {
+            showToast(getString(R.string.text_keyboard_layout_qr_camera_permission_denied))
+        }
+    }
+
+    private val cameraScanLauncher = registerForActivityResult(com.journeyapps.barcodescanner.ScanContract()) { result ->
+        val content = result?.contents ?: return@registerForActivityResult
+        addImportedChunkFromText(content)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -130,6 +164,12 @@ class PopupEditorActivity : AppCompatActivity() {
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         saveMenuItem = menu.add(Menu.NONE, MENU_SAVE_ID, Menu.NONE, "${getString(R.string.save)}")
         saveMenuItem?.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS or MenuItem.SHOW_AS_ACTION_WITH_TEXT)
+        menu.add(Menu.NONE, MENU_QR_EXPORT_ID, Menu.NONE, getString(R.string.text_keyboard_layout_qr_export))
+            .setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER)
+        menu.add(Menu.NONE, MENU_QR_IMPORT_SCAN_ID, Menu.NONE, getString(R.string.text_keyboard_layout_qr_import_scan))
+            .setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER)
+        menu.add(Menu.NONE, MENU_QR_IMPORT_IMAGE_ID, Menu.NONE, getString(R.string.text_keyboard_layout_qr_import_image))
+            .setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER)
         updateSaveButtonState()
         return true
     }
@@ -141,6 +181,18 @@ class PopupEditorActivity : AppCompatActivity() {
         }
         MENU_SAVE_ID -> {
             savePopupPreset()
+            true
+        }
+        MENU_QR_EXPORT_ID -> {
+            exportPopupAsQrLongImage()
+            true
+        }
+        MENU_QR_IMPORT_SCAN_ID -> {
+            startCameraScanImport()
+            true
+        }
+        MENU_QR_IMPORT_IMAGE_ID -> {
+            pickImageLauncher.launch("image/*")
             true
         }
         else -> super.onOptionsItemSelected(item)
@@ -485,14 +537,13 @@ class PopupEditorActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun savePopupPreset() {
-        if (!hasChanges()) {
-            return
-        }
-
+    private fun savePopupPreset(): Boolean {
         val file = popupFile ?: run {
             showToast(getString(R.string.cannot_resolve_popup_preset))
-            return
+            return false
+        }
+        if (!hasChanges() && file.exists() && file.length() > 0) {
+            return true
         }
         file.parentFile?.mkdirs()
 
@@ -505,10 +556,113 @@ class PopupEditorActivity : AppCompatActivity() {
         showToast(getString(R.string.popup_preset_saved_at, file.absolutePath))
         originalEntries = normalizedEntries()
         updateSaveButtonState()
+        return true
     }
 
     private fun showToast(message: String) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun exportPopupAsQrLongImage() {
+        lifecycleScope.launch {
+            runCatching {
+                if (!savePopupPreset()) {
+                    throw IllegalStateException(getString(R.string.save_failed))
+                }
+                val file = popupFile ?: throw IllegalStateException(getString(R.string.cannot_resolve_popup_preset))
+                withContext(Dispatchers.Default) { JsonFileQrShareManager.encodeSavedJsonFileToLongImage(file) }
+            }.onSuccess { (longImage, _) ->
+                val uri = JsonFileQrShareManager.saveLongImageToShareCache(this@PopupEditorActivity, longImage, "popup-preset-qr")
+                val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                    type = "image/png"
+                    putExtra(Intent.EXTRA_STREAM, uri)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                startActivity(Intent.createChooser(sendIntent, getString(R.string.text_keyboard_layout_qr_share_title)))
+                showToast(getString(R.string.text_keyboard_layout_qr_exported))
+            }.onFailure {
+                showToast(getString(R.string.text_keyboard_layout_qr_export_failed, it.localizedMessage ?: ""))
+            }
+        }
+    }
+
+    private fun startCameraScanImport() {
+        val granted = androidx.core.content.ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (granted) {
+            cameraScanLauncher.launch(com.journeyapps.barcodescanner.ScanOptions().apply {
+                setDesiredBarcodeFormats(com.journeyapps.barcodescanner.ScanOptions.QR_CODE)
+                setPrompt(getString(R.string.text_keyboard_layout_qr_scan_prompt))
+                setBeepEnabled(false)
+                setOrientationLocked(true)
+            })
+        } else {
+            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
+
+    private fun importFromQrLongImage(uri: Uri) {
+        lifecycleScope.launch {
+            runCatching {
+                withContext(Dispatchers.Default) { JsonFileQrShareManager.decodeQrChunksFromImage(this@PopupEditorActivity, uri) }
+            }.onSuccess { chunks ->
+                if (chunks.isEmpty()) {
+                    showToast(getString(R.string.text_keyboard_layout_qr_import_no_chunk))
+                    return@onSuccess
+                }
+                val json = JsonFileQrShareManager.decodeChunksToJson(chunks)
+                applyImportedPopupJson(json)
+            }.onFailure {
+                showToast(getString(R.string.text_keyboard_layout_qr_import_failed, it.localizedMessage ?: ""))
+            }
+        }
+    }
+
+    private fun addImportedChunkFromText(raw: String) {
+        val progress = runCatching { qrChunkCollector.addAndMaybeAssemble(raw) }.getOrNull()
+        if (progress == null) {
+            showToast(getString(R.string.text_keyboard_layout_qr_invalid_payload))
+            return
+        }
+        if (progress.duplicate) {
+            showToast(getString(R.string.text_keyboard_layout_qr_duplicate_chunk))
+        }
+        showToast(getString(R.string.text_keyboard_layout_qr_scan_progress, progress.current, progress.total))
+        progress.completedJson?.let {
+            applyImportedPopupJson(it)
+            return
+        }
+        cameraScanLauncher.launch(com.journeyapps.barcodescanner.ScanOptions().apply {
+            setDesiredBarcodeFormats(com.journeyapps.barcodescanner.ScanOptions.QR_CODE)
+            setPrompt(getString(R.string.text_keyboard_layout_qr_scan_prompt))
+            setBeepEnabled(false)
+            setOrientationLocked(true)
+        })
+    }
+
+    private fun applyImportedPopupJson(json: String) {
+        runCatching {
+            val parsed = Json.parseToJsonElement(json).jsonObject.mapValues { (_, v) ->
+                v.jsonArray.mapNotNull { it.jsonPrimitive.contentOrNull?.trim() }.filter { it.isNotEmpty() }
+            }
+            if (parsed.isEmpty()) throw IllegalArgumentException("No valid popup entries")
+            parsed
+        }.onSuccess { parsed ->
+            AlertDialog.Builder(this)
+                .setTitle(R.string.text_keyboard_layout_qr_import_confirm_title)
+                .setMessage(getString(R.string.text_keyboard_layout_qr_import_confirm_message, parsed.size))
+                .setPositiveButton(android.R.string.ok) { _, _ ->
+                    entries.clear()
+                    parsed.toSortedMap().forEach { (k, v) -> entries[k] = v.toMutableList() }
+                    adapter?.notifyDataSetChanged()
+                    updateSaveButtonState()
+                    showToast(getString(R.string.text_keyboard_layout_qr_import_success))
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+        }.onFailure {
+            showToast(getString(R.string.text_keyboard_layout_qr_import_failed, it.localizedMessage ?: ""))
+        }
     }
 
     private fun normalizedEntries(): Map<String, List<String>> =
@@ -647,5 +801,8 @@ class PopupEditorActivity : AppCompatActivity() {
 
     companion object {
         private const val MENU_SAVE_ID = 2001
+        private const val MENU_QR_EXPORT_ID = 2002
+        private const val MENU_QR_IMPORT_SCAN_ID = 2003
+        private const val MENU_QR_IMPORT_IMAGE_ID = 2004
     }
 }
