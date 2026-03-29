@@ -47,27 +47,24 @@ internal object PopupKeyboardFocusResolver {
         val absoluteRow = absoluteTarget.targetRow ?: focusedRow
         val absoluteColumn = absoluteTarget.targetColumn ?: focusedColumn
         val deltaY = lastTouchY?.let { y - it } ?: 0f
-        var nextRowLockDirection = rowLockDirection
-        val moveDirection = when {
-            deltaY < 0f -> 1
-            deltaY > 0f -> -1
-            else -> 0
-        }
-        if (nextRowLockDirection != 0 && moveDirection != 0 && moveDirection != nextRowLockDirection) {
-            nextRowLockDirection = 0
-        }
-
-        val shouldHonorAbsoluteRow = when {
-            nextRowLockDirection == 0 -> absoluteRow != focusedRow
-            nextRowLockDirection > 0 -> absoluteRow >= focusedRow
-            else -> absoluteRow <= focusedRow
-        }
-        if (shouldHonorAbsoluteRow) {
+        val rowLockActive = rowLockDirection != 0
+        if (!rowLockActive && (absoluteRow != focusedRow || absoluteColumn != focusedColumn)) {
             return PopupKeyboardFocusResult(
                 dismiss = false,
                 targetRow = absoluteRow,
                 targetColumn = absoluteColumn,
-                lastTouchY = y
+                lastTouchY = y,
+                rowLockDirection = 0
+            )
+        }
+        if (rowLockActive && absoluteColumn != focusedColumn) {
+            return PopupKeyboardFocusResult(
+                dismiss = false,
+                targetRow = focusedRow,
+                targetColumn = absoluteColumn,
+                lastTouchY = y,
+                cumulativeDeltaY = cumulativeDeltaY,
+                rowLockDirection = rowLockDirection
             )
         }
 
@@ -81,7 +78,7 @@ internal object PopupKeyboardFocusResolver {
                 cumulativeDeltaY = nextCumulativeDeltaY,
                 targetRow = focusedRow,
                 targetColumn = absoluteColumn,
-                rowLockDirection = if (absoluteRow == focusedRow) 0 else nextRowLockDirection
+                rowLockDirection = rowLockDirection
             )
         }
 

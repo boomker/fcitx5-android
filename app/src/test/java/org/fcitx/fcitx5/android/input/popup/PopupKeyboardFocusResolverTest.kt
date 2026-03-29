@@ -110,6 +110,31 @@ class PopupKeyboardFocusResolverTest {
     }
 
     @Test
+    fun horizontalMoveKeepsFocusOnLockedRow() {
+        val result = PopupKeyboardFocusResolver.resolve(
+            x = 35f,
+            y = 75f,
+            rowCount = 3,
+            columnCount = 5,
+            keyWidth = 10,
+            keyHeight = 20,
+            focusedRow = 1,
+            focusedColumn = 2,
+            lastTouchY = 75f,
+            cumulativeDeltaY = 0f,
+            moveThreshold = 0.4f,
+            rowLockDirection = 1
+        )
+
+        assertFalse(result.dismiss)
+        assertEquals(1, result.targetRow)
+        assertEquals(3, result.targetColumn)
+        assertEquals(75f, result.lastTouchY)
+        assertEquals(0f, result.cumulativeDeltaY, 0.001f)
+        assertEquals(1, result.rowLockDirection)
+    }
+
+    @Test
     fun largeOutOfBoundsMovementDismissesPopup() {
         val result = PopupKeyboardFocusResolver.resolve(
             x = -25f,
