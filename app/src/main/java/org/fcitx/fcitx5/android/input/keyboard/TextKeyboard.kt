@@ -370,6 +370,114 @@ class TextKeyboard(
         super.onAction(transformed, source)
     }
 
+    override fun preprocessMacroAction(
+        action: MacroAction,
+        source: KeyActionListener.Source
+    ): MacroAction {
+        if (source != KeyActionListener.Source.Keyboard) return action
+
+        var consumeCapsOnce = false
+        val simulatedCapsOn = isSimulatedCapsLockOn()
+        val pendingUppercaseDown = mutableMapOf<String, Int>()
+
+        fun isLetter(code: String): Boolean = code.length == 1 && code[0].isLetter()
+
+        fun consumeUppercaseDecision(): Boolean {
+            return when (capsState) {
+                CapsState.None -> simulatedCapsOn
+                CapsState.Once -> {
+                    if (!consumeCapsOnce) {
+                        consumeCapsOnce = true
+                        true
+                    } else {
+                        simulatedCapsOn
+                    }
+                }
+                CapsState.Lock -> true
+            }
+        }
+
+        fun nonConsumingUppercaseDecision(): Boolean {
+            return when (capsState) {
+                CapsState.None -> simulatedCapsOn
+                CapsState.Once -> simulatedCapsOn
+                CapsState.Lock -> true
+            }
+        }
+
+        fun transformTapLetter(code: String): String {
+            if (!isLetter(code)) return code
+            val lower = code.lowercase()
+            return if (consumeUppercaseDecision()) lower.uppercase() else lower
+        }
+
+        fun transformDownLetter(code: String): String {
+            if (!isLetter(code)) return code
+            val lower = code.lowercase()
+            val transformed = if (consumeUppercaseDecision()) {
+                pendingUppercaseDown[lower] = (pendingUppercaseDown[lower] ?: 0) + 1
+                lower.uppercase()
+            } else {
+                lower
+            }
+            return transformed
+        }
+
+        fun transformUpLetter(code: String): String {
+            if (!isLetter(code)) return code
+            val lower = code.lowercase()
+            val pending = pendingUppercaseDown[lower] ?: 0
+            return if (pending > 0) {
+                if (pending == 1) pendingUppercaseDown.remove(lower) else pendingUppercaseDown[lower] = pending - 1
+                lower.uppercase()
+            } else {
+                if (nonConsumingUppercaseDecision()) lower.uppercase() else lower
+            }
+        }
+
+        fun transformShortcutKey(code: String): String {
+            if (code.length != 1 || !code[0].isLetter()) return code
+            val lower = code.lowercase()
+            return if (consumeUppercaseDecision()) lower.uppercase() else lower
+        }
+
+        fun transformKeyRef(keyRef: KeyRef, step: MacroStep): KeyRef {
+            return when (keyRef) {
+                is KeyRef.Fcitx -> keyRef.copy(
+                    code = when (step) {
+                        is MacroStep.Down -> transformDownLetter(keyRef.code)
+                        is MacroStep.Up -> transformUpLetter(keyRef.code)
+                        is MacroStep.Tap -> transformTapLetter(keyRef.code)
+                        else -> keyRef.code
+                    }
+                )
+                is KeyRef.Android -> keyRef
+            }
+        }
+
+        val transformedSteps = action.steps.map { step ->
+            when (step) {
+                is MacroStep.Down -> step.copy(keys = step.keys.map { transformKeyRef(it, step) })
+                is MacroStep.Up -> step.copy(keys = step.keys.map { transformKeyRef(it, step) })
+                is MacroStep.Tap -> step.copy(keys = step.keys.map { transformKeyRef(it, step) })
+                is MacroStep.Shortcut -> step.copy(
+                    modifiers = step.modifiers,
+                    key = when (step.key) {
+                        is KeyRef.Fcitx -> step.key.copy(code = transformShortcutKey(step.key.code))
+                        is KeyRef.Android -> step.key
+                    }
+                )
+                is MacroStep.Text, is MacroStep.Edit -> step
+            }
+        }
+
+        if (consumeCapsOnce) {
+            switchCapsState()
+        }
+
+        return action.copy(steps = transformedSteps)
+    }
+
     private fun tryConsumeMacroCapsLock(): Boolean {
         val service = getService() ?: return false
         if (!service.isSimulatedCapsLockOnByMacroTap()) return false
