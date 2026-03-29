@@ -118,7 +118,7 @@
     <string name="reload_config">重载配置</string>
     <string name="input_method_options">输入法设置</string>
     <string name="theme">主题</string>
-    <string name="toggle_day_night_theme">切换明暗主题</string>
+    <string name="toggle_day_night_theme">明暗主题</string>
     <string name="key_ripple_effect">启用按键水波纹特效</string>
     <string name="key_border">启用按键边框</string>
     <string name="brightness">亮度</string>
@@ -296,7 +296,7 @@
     <string name="edit_fontset_summary">编辑 fonts/fontset.json 并预览字体组合</string>
     <string name="edit_popup_preset">编辑弹出预设</string>
     <string name="edit_popup_preset_summary">编辑按键弹出映射（key -&gt; 候选列表）</string>
-    <string name="edit_buttons">编辑按钮</string>
+    <string name="edit_buttons">编辑工具栏按钮</string>
     <string name="edit_buttons_summary">自定义 Kawaii Bar 和 Status Area 中的按钮</string>
     <string name="buttons_customizer_hint">拖动按钮重新排序或在 Kawaii Bar（顶行）和 Status Area（菜单）之间移动。长按开始拖动。</string>
     <string name="kawaii_bar_section">Kawaii Bar（顶行）</string>

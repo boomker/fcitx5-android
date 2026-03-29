@@ -762,10 +762,7 @@ class ButtonsCustomizerActivity : AppCompatActivity() {
                         }
                     }
                     holder.ui.root.setOnLongClickListener {
-                        if (!isBuiltIn) {
-                            openButtonEditor(buttonItem.button, position, buttonItem.section)
-                        }
-                        true
+                        false
                     }
                 }
 

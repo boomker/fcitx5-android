@@ -118,7 +118,7 @@
     <string name="reload_config">Reload Config</string>
     <string name="input_method_options">Input Method Options</string>
     <string name="theme">Theme</string>
-    <string name="toggle_day_night_theme">Toggle Light/Dark Theme</string>
+    <string name="toggle_day_night_theme">Day/Night Theme</string>
     <string name="key_ripple_effect">Enable key ripple effect</string>
     <string name="key_border">Enable key border</string>
     <string name="brightness">Brightness</string>
@@ -296,7 +296,7 @@
     <string name="edit_fontset_summary">Edit fonts/fontset.json and preview font combinations</string>
     <string name="edit_popup_preset">Edit popup preset</string>
     <string name="edit_popup_preset_summary">Edit popup key mapping (key -&gt; popup candidates)</string>
-    <string name="edit_buttons">Edit Buttons</string>
+    <string name="edit_buttons">Edit Toolbar Buttons</string>
     <string name="edit_buttons_summary">Customize buttons on Kawaii Bar and Status Area</string>
     <string name="buttons_customizer_hint">Drag buttons to reorder or move between Kawaii Bar (top row) and Status Area (menu). Long press to start dragging.</string>
     <string name="kawaii_bar_section">Kawaii Bar (Top Row)</string>
