@@ -860,6 +860,12 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     private var simulatedNumLockOn = false
     private var simulatedCapsLockPressed = false
     private var simulatedNumLockPressed = false
+    private var simulatedShiftPressedCount = 0
+    private var simulatedCtrlPressedCount = 0
+    private var simulatedAltPressedCount = 0
+    private var simulatedMetaPressedCount = 0
+    private var simulatedFunctionPressedCount = 0
+    private var simulatedAltRightPressedCount = 0
     private var simulatedCapsLockPressedFromMacro = false
     private var simulatedCapsLockOnByMacroTap = false
 
@@ -875,11 +881,48 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
                     simulatedCapsLockPressedFromMacro = fromMacro
                 }
                 KeyEvent.KEYCODE_NUM_LOCK -> simulatedNumLockPressed = true
+                KeyEvent.KEYCODE_SHIFT_LEFT, KeyEvent.KEYCODE_SHIFT_RIGHT -> simulatedShiftPressedCount += 1
+                KeyEvent.KEYCODE_CTRL_LEFT, KeyEvent.KEYCODE_CTRL_RIGHT -> simulatedCtrlPressedCount += 1
+                KeyEvent.KEYCODE_ALT_LEFT -> simulatedAltPressedCount += 1
+                KeyEvent.KEYCODE_ALT_RIGHT -> {
+                    simulatedAltPressedCount += 1
+                    simulatedAltRightPressedCount += 1
+                }
+                KeyEvent.KEYCODE_META_LEFT, KeyEvent.KEYCODE_META_RIGHT -> simulatedMetaPressedCount += 1
+                KeyEvent.KEYCODE_FUNCTION -> simulatedFunctionPressedCount += 1
+            }
+        } else if (action == KeyEvent.ACTION_UP) {
+            when (keyCode) {
+                KeyEvent.KEYCODE_SHIFT_LEFT, KeyEvent.KEYCODE_SHIFT_RIGHT -> {
+                    simulatedShiftPressedCount = (simulatedShiftPressedCount - 1).coerceAtLeast(0)
+                }
+                KeyEvent.KEYCODE_CTRL_LEFT, KeyEvent.KEYCODE_CTRL_RIGHT -> {
+                    simulatedCtrlPressedCount = (simulatedCtrlPressedCount - 1).coerceAtLeast(0)
+                }
+                KeyEvent.KEYCODE_ALT_LEFT -> {
+                    simulatedAltPressedCount = (simulatedAltPressedCount - 1).coerceAtLeast(0)
+                }
+                KeyEvent.KEYCODE_ALT_RIGHT -> {
+                    simulatedAltPressedCount = (simulatedAltPressedCount - 1).coerceAtLeast(0)
+                    simulatedAltRightPressedCount = (simulatedAltRightPressedCount - 1).coerceAtLeast(0)
+                }
+                KeyEvent.KEYCODE_META_LEFT, KeyEvent.KEYCODE_META_RIGHT -> {
+                    simulatedMetaPressedCount = (simulatedMetaPressedCount - 1).coerceAtLeast(0)
+                }
+                KeyEvent.KEYCODE_FUNCTION -> {
+                    simulatedFunctionPressedCount = (simulatedFunctionPressedCount - 1).coerceAtLeast(0)
+                }
             }
         }
         var metaState = 0
         if (simulatedCapsLockOn) metaState = metaState or KeyEvent.META_CAPS_LOCK_ON
         if (simulatedNumLockOn) metaState = metaState or KeyEvent.META_NUM_LOCK_ON
+        if (simulatedShiftPressedCount > 0) metaState = metaState or KeyEvent.META_SHIFT_ON
+        if (simulatedCtrlPressedCount > 0) metaState = metaState or KeyEvent.META_CTRL_ON
+        if (simulatedAltPressedCount > 0) metaState = metaState or KeyEvent.META_ALT_ON
+        if (simulatedMetaPressedCount > 0) metaState = metaState or KeyEvent.META_META_ON
+        if (simulatedFunctionPressedCount > 0) metaState = metaState or KeyEvent.META_FUNCTION_ON
+        if (simulatedAltRightPressedCount > 0) metaState = metaState or KeyEvent.META_ALT_RIGHT_ON
         // Use InputDevice.SOURCE_KEYBOARD so the system uses the physical keyboard KeyCharacterMap
         // This makes function keys (F1-F12) return unicodeChar = 0 and follow the keyCodeToSym path
         val event = KeyEvent(
