@@ -158,6 +158,7 @@ class PopupKeyboardUi(
     private var focusedIndex = keyOrders[focusedRow][focusedColumn]
     private var lastTouchY: Float? = null
     private var cumulativeDeltaY = 0f
+    private var rowLockDirection = 0
     private val moveThreshold = 0.4f
 
     private val keyUis = labels.map {
@@ -217,10 +218,12 @@ class PopupKeyboardUi(
             focusedColumn = focusedColumn,
             lastTouchY = lastTouchY,
             cumulativeDeltaY = cumulativeDeltaY,
-            moveThreshold = moveThreshold
+            moveThreshold = moveThreshold,
+            rowLockDirection = rowLockDirection
         )
         lastTouchY = result.lastTouchY
         cumulativeDeltaY = result.cumulativeDeltaY
+        rowLockDirection = result.rowLockDirection
         if (result.dismiss) {
             onDismissSelf(this)
             return true

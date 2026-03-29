@@ -24,7 +24,8 @@ class PopupKeyboardFocusResolverTest {
             focusedColumn = 2,
             lastTouchY = null,
             cumulativeDeltaY = 0f,
-            moveThreshold = 0.4f
+            moveThreshold = 0.4f,
+            rowLockDirection = 0
         )
 
         assertFalse(result.dismiss)
@@ -47,7 +48,8 @@ class PopupKeyboardFocusResolverTest {
             focusedColumn = 2,
             lastTouchY = 66f,
             cumulativeDeltaY = 0f,
-            moveThreshold = 0.4f
+            moveThreshold = 0.4f,
+            rowLockDirection = 0
         )
 
         assertFalse(result.dismiss)
@@ -55,6 +57,7 @@ class PopupKeyboardFocusResolverTest {
         assertEquals(2, result.targetColumn)
         assertEquals(58f, result.lastTouchY)
         assertEquals(0f, result.cumulativeDeltaY, 0.001f)
+        assertEquals(1, result.rowLockDirection)
     }
 
     @Test
@@ -70,7 +73,8 @@ class PopupKeyboardFocusResolverTest {
             focusedColumn = 2,
             lastTouchY = 63f,
             cumulativeDeltaY = 0f,
-            moveThreshold = 0.4f
+            moveThreshold = 0.4f,
+            rowLockDirection = 0
         )
 
         assertFalse(result.dismiss)
@@ -78,6 +82,31 @@ class PopupKeyboardFocusResolverTest {
         assertEquals(3, result.targetColumn)
         assertEquals(63f, result.lastTouchY)
         assertEquals(0f, result.cumulativeDeltaY, 0.001f)
+    }
+
+    @Test
+    fun rowLockPreventsImmediateSnapBackWhileMovingUp() {
+        val result = PopupKeyboardFocusResolver.resolve(
+            x = 25f,
+            y = 56f,
+            rowCount = 3,
+            columnCount = 5,
+            keyWidth = 10,
+            keyHeight = 20,
+            focusedRow = 1,
+            focusedColumn = 2,
+            lastTouchY = 58f,
+            cumulativeDeltaY = 0f,
+            moveThreshold = 0.4f,
+            rowLockDirection = 1
+        )
+
+        assertFalse(result.dismiss)
+        assertEquals(1, result.targetRow)
+        assertEquals(2, result.targetColumn)
+        assertEquals(56f, result.lastTouchY)
+        assertEquals(-2f, result.cumulativeDeltaY, 0.001f)
+        assertEquals(1, result.rowLockDirection)
     }
 
     @Test
@@ -93,7 +122,8 @@ class PopupKeyboardFocusResolverTest {
             focusedColumn = 2,
             lastTouchY = 30f,
             cumulativeDeltaY = 0f,
-            moveThreshold = 0.4f
+            moveThreshold = 0.4f,
+            rowLockDirection = 0
         )
 
         assertTrue(result.dismiss)

@@ -13,7 +13,8 @@ internal data class PopupKeyboardFocusResult(
     val targetRow: Int? = null,
     val targetColumn: Int? = null,
     val lastTouchY: Float? = null,
-    val cumulativeDeltaY: Float = 0f
+    val cumulativeDeltaY: Float = 0f,
+    val rowLockDirection: Int = 0
 )
 
 internal object PopupKeyboardFocusResolver {
@@ -31,19 +32,37 @@ internal object PopupKeyboardFocusResolver {
         focusedColumn: Int,
         lastTouchY: Float?,
         cumulativeDeltaY: Float,
-        moveThreshold: Float
+        moveThreshold: Float,
+        rowLockDirection: Int
     ): PopupKeyboardFocusResult {
         val absoluteTarget = absoluteTarget(x, y, rowCount, columnCount, keyWidth, keyHeight)
         if (absoluteTarget.dismiss) {
             return PopupKeyboardFocusResult(
                 dismiss = true,
-                lastTouchY = y
+                lastTouchY = y,
+                rowLockDirection = 0
             )
         }
 
         val absoluteRow = absoluteTarget.targetRow ?: focusedRow
         val absoluteColumn = absoluteTarget.targetColumn ?: focusedColumn
-        if (absoluteRow != focusedRow || absoluteColumn != focusedColumn) {
+        val deltaY = lastTouchY?.let { y - it } ?: 0f
+        var nextRowLockDirection = rowLockDirection
+        val moveDirection = when {
+            deltaY < 0f -> 1
+            deltaY > 0f -> -1
+            else -> 0
+        }
+        if (nextRowLockDirection != 0 && moveDirection != 0 && moveDirection != nextRowLockDirection) {
+            nextRowLockDirection = 0
+        }
+
+        val shouldHonorAbsoluteRow = when {
+            nextRowLockDirection == 0 -> absoluteRow != focusedRow
+            nextRowLockDirection > 0 -> absoluteRow >= focusedRow
+            else -> absoluteRow <= focusedRow
+        }
+        if (shouldHonorAbsoluteRow) {
             return PopupKeyboardFocusResult(
                 dismiss = false,
                 targetRow = absoluteRow,
@@ -53,13 +72,16 @@ internal object PopupKeyboardFocusResolver {
         }
 
         val nextLastTouchY = y
-        val nextCumulativeDeltaY = cumulativeDeltaY + (lastTouchY?.let { y - it } ?: 0f)
+        val nextCumulativeDeltaY = cumulativeDeltaY + deltaY
         val threshold = keyHeight * moveThreshold
         if (threshold <= 0f || abs(nextCumulativeDeltaY) < threshold) {
             return PopupKeyboardFocusResult(
                 dismiss = false,
                 lastTouchY = nextLastTouchY,
-                cumulativeDeltaY = nextCumulativeDeltaY
+                cumulativeDeltaY = nextCumulativeDeltaY,
+                targetRow = focusedRow,
+                targetColumn = absoluteColumn,
+                rowLockDirection = if (absoluteRow == focusedRow) 0 else nextRowLockDirection
             )
         }
 
@@ -72,7 +94,8 @@ internal object PopupKeyboardFocusResolver {
             targetRow = targetRow,
             targetColumn = absoluteColumn,
             lastTouchY = nextLastTouchY,
-            cumulativeDeltaY = nextCumulativeDeltaY - consumedDelta
+            cumulativeDeltaY = nextCumulativeDeltaY - consumedDelta,
+            rowLockDirection = direction
         )
     }
 
