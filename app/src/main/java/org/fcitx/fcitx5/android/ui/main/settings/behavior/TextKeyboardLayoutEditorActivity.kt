@@ -38,6 +38,7 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.fcitx.fcitx5.android.R
@@ -57,6 +58,8 @@ import org.fcitx.fcitx5.android.ui.main.settings.behavior.dialog.KeyEditorDialog
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.manager.SubModeManager
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.preview.KeyboardPreviewManager
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.share.JsonFileQrShareManager
+import org.fcitx.fcitx5.android.ui.main.settings.behavior.share.LayoutQrBitmapUtil
+import org.fcitx.fcitx5.android.ui.main.settings.behavior.share.LayoutQrTransferCodec
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.share.QrChunkCollector
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.utils.LayoutJsonUtils
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.dialog.MacroEditorActivity
@@ -1601,17 +1604,51 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
 
     private fun exportLayoutAsQrLongImage() {
         lifecycleScope.launch {
-            runCatching {
+            val result = runCatching {
                 if (!saveLayout()) {
                     throw IllegalStateException(getString(R.string.text_keyboard_layout_save_failed))
                 }
                 val file = layoutFile ?: throw IllegalStateException(getString(R.string.cannot_resolve_text_keyboard_layout))
-                withContext(Dispatchers.Default) { JsonFileQrShareManager.encodeSavedJsonFileToLongImage(file) }
-            }.onSuccess { (longImage, _) ->
+                
+                // Get preview bitmap before generating QR codes
+                val previewBitmap = withContext(Dispatchers.Main) {
+                    previewKeyboardContainer.requestLayout()
+                    previewKeyboardContainer.invalidate()
+                    delay(16)
+                    previewManager.getPreviewBitmap()
+                }
+                
+                // Generate QR codes
+                val bundlePair: Pair<android.graphics.Bitmap, LayoutQrTransferCodec.ChunkBundle> = withContext(Dispatchers.Default) { 
+                    JsonFileQrShareManager.encodeSavedJsonFileToLongImage(file) 
+                }
+                
+                // Compose final image with preview at the top
+                val contents = bundlePair.second.chunks.map { it.encode() }
+                val labels = bundlePair.second.chunks.map { "Chunk ${it.index}/${it.total} · ${it.transferId}" }
+                val finalImage: android.graphics.Bitmap = withContext(Dispatchers.Default) {
+                    try {
+                        LayoutQrBitmapUtil.composeLongImageStreamingWithPreview(contents, labels, previewBitmap)
+                    } finally {
+                        if (previewBitmap != null && !previewBitmap.isRecycled) {
+                            previewBitmap.recycle()
+                        }
+                    }
+                }
+                
+                // Recycle intermediate QR long image
+                if (!bundlePair.first.isRecycled) {
+                    bundlePair.first.recycle()
+                }
+                
+                finalImage
+            }
+            
+            result.onSuccess { finalImage ->
                 shareLongImageUri(
                     JsonFileQrShareManager.saveLongImageToShareCache(
                         this@TextKeyboardLayoutEditorActivity,
-                        longImage,
+                        finalImage,
                         "text-keyboard-layout-qr"
                     )
                 )

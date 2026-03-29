@@ -5,7 +5,10 @@
 package org.fcitx.fcitx5.android.ui.main.settings.behavior.preview
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.Color
+import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -242,6 +245,30 @@ class KeyboardPreviewManager(
             previewContainer.removeView(it)
             previewKeyboard = null
         }
+    }
+
+    /**
+     * Get preview keyboard as bitmap.
+     * @return Bitmap of the preview keyboard, or null if no preview is available
+     */
+    fun getPreviewBitmap(): Bitmap? {
+        val keyboard = previewKeyboard ?: return null
+
+        val targetView = if (previewContainer.width > 0 && previewContainer.height > 0) {
+            previewContainer
+        } else {
+            keyboard
+        }
+        val width = targetView.width
+        val height = targetView.height
+        if (width <= 0 || height <= 0) return null
+
+        // Directly render the current view tree into bitmap
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        targetView.draw(canvas)
+
+        return bitmap
     }
 
     /**

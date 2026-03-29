@@ -25,6 +25,17 @@ object LayoutQrBitmapUtil {
     private const val TEXT_SIZE = 22f
     private const val TEXT_GAP = 12
 
+    private data class ScaledPreview(val bitmap: Bitmap, val heightWithPadding: Int)
+
+    private fun buildScaledPreviewOrNull(previewBitmap: Bitmap?, targetWidth: Int): ScaledPreview? {
+        val source = previewBitmap ?: return null
+        if (source.isRecycled || source.width <= 0 || source.height <= 0 || targetWidth <= 0) return null
+        val scale = targetWidth.toFloat() / source.width.toFloat()
+        val scaledHeight = maxOf(1, (source.height * scale).toInt())
+        val scaled = Bitmap.createScaledBitmap(source, targetWidth, scaledHeight, true)
+        return ScaledPreview(scaled, scaledHeight + PAGE_PADDING)
+    }
+
     fun createQrBitmap(content: String): Bitmap {
         val hints = mapOf<EncodeHintType, Any>(
             EncodeHintType.CHARACTER_SET to "UTF-8",
@@ -82,6 +93,102 @@ object LayoutQrBitmapUtil {
             canvas.drawText(labels[index], PAGE_PADDING.toFloat(), (top + PAGE_PADDING + QR_SIZE + TEXT_GAP + TEXT_SIZE), paint)
             qr.recycle()
         }
+        return merged
+    }
+
+    /**
+     * Compose a long image with QR codes and a preview image at the top.
+     * @param qrBitmaps List of QR code bitmaps
+     * @param labels List of labels for each QR code
+     * @param previewBitmap Optional preview bitmap to place at the top
+     * @return Composed bitmap with preview (if provided) followed by QR codes
+     */
+    fun composeLongImageWithPreview(
+        qrBitmaps: List<Bitmap>,
+        labels: List<String>,
+        previewBitmap: Bitmap?
+    ): Bitmap {
+        require(qrBitmaps.size == labels.size) { "Bitmap count must equal label count" }
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.BLACK
+            textSize = TEXT_SIZE
+            typeface = Typeface.DEFAULT_BOLD
+        }
+        val pageHeight = PAGE_PADDING + QR_SIZE + TEXT_GAP + TEXT_SIZE.toInt() + PAGE_PADDING
+        val width = QR_SIZE + PAGE_PADDING * 2
+
+        val scaledPreview = buildScaledPreviewOrNull(previewBitmap, width)
+        val previewSectionHeight = scaledPreview?.heightWithPadding ?: 0
+        val totalHeight = previewSectionHeight + pageHeight * qrBitmaps.size
+        val merged = Bitmap.createBitmap(width, totalHeight, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(merged)
+        canvas.drawColor(Color.WHITE)
+
+        var currentTop = 0
+
+        // Draw preview at the top if provided
+        scaledPreview?.let {
+            canvas.drawBitmap(it.bitmap, 0f, currentTop.toFloat(), null)
+            it.bitmap.recycle()
+            currentTop += it.heightWithPadding
+        }
+
+        // Draw QR codes below preview
+        qrBitmaps.forEachIndexed { index, bitmap ->
+            val top = currentTop + index * pageHeight
+            canvas.drawBitmap(bitmap, PAGE_PADDING.toFloat(), (top + PAGE_PADDING).toFloat(), null)
+            canvas.drawText(labels[index], PAGE_PADDING.toFloat(), (top + PAGE_PADDING + QR_SIZE + TEXT_GAP + TEXT_SIZE), paint)
+        }
+
+        return merged
+    }
+
+    /**
+     * Compose a long image with QR codes (generated from contents) and a preview image at the top.
+     * @param contents List of QR code contents
+     * @param labels List of labels for each QR code
+     * @param previewBitmap Optional preview bitmap to place at the top
+     * @return Composed bitmap with preview (if provided) followed by QR codes
+     */
+    fun composeLongImageStreamingWithPreview(
+        contents: List<String>,
+        labels: List<String>,
+        previewBitmap: Bitmap?
+    ): Bitmap {
+        require(contents.size == labels.size) { "Content count must equal label count" }
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.BLACK
+            textSize = TEXT_SIZE
+            typeface = Typeface.DEFAULT_BOLD
+        }
+        val pageHeight = PAGE_PADDING + QR_SIZE + TEXT_GAP + TEXT_SIZE.toInt() + PAGE_PADDING
+        val width = QR_SIZE + PAGE_PADDING * 2
+
+        val scaledPreview = buildScaledPreviewOrNull(previewBitmap, width)
+        val previewSectionHeight = scaledPreview?.heightWithPadding ?: 0
+        val totalHeight = previewSectionHeight + pageHeight * contents.size
+        val merged = Bitmap.createBitmap(width, totalHeight, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(merged)
+        canvas.drawColor(Color.WHITE)
+
+        var currentTop = 0
+
+        // Draw preview at the top if provided
+        scaledPreview?.let {
+            canvas.drawBitmap(it.bitmap, 0f, currentTop.toFloat(), null)
+            it.bitmap.recycle()
+            currentTop += it.heightWithPadding
+        }
+
+        // Draw QR codes below preview
+        contents.forEachIndexed { index, content ->
+            val top = currentTop + index * pageHeight
+            val qr = createQrBitmap(content)
+            canvas.drawBitmap(qr, PAGE_PADDING.toFloat(), (top + PAGE_PADDING).toFloat(), null)
+            canvas.drawText(labels[index], PAGE_PADDING.toFloat(), (top + PAGE_PADDING + QR_SIZE + TEXT_GAP + TEXT_SIZE), paint)
+            qr.recycle()
+        }
+
         return merged
     }
 
