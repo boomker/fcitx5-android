@@ -115,6 +115,22 @@ object ThemeManager {
         prefs.normalModeTheme.setValue(theme)
     }
 
+    fun isUsingConfiguredDarkTheme(): Boolean {
+        return activeTheme.name == prefs.darkModeTheme.getValue().name
+    }
+
+    fun toggleConfiguredDayNightTheme(): Theme {
+        val lightTheme = prefs.lightModeTheme.getValue()
+        val darkTheme = prefs.darkModeTheme.getValue()
+        val nextTheme = if (isUsingConfiguredDarkTheme()) lightTheme else darkTheme
+        _activeTheme = nextTheme
+        prefs.normalModeTheme.setValue(nextTheme)
+        if (prefs.followSystemDayNightTheme.getValue()) {
+            prefs.followSystemDayNightTheme.setValue(false)
+        }
+        return nextTheme
+    }
+
     private fun evaluateActiveTheme(): Theme {
         return if (prefs.followSystemDayNightTheme.getValue()) {
             if (isDarkMode) prefs.darkModeTheme else prefs.lightModeTheme

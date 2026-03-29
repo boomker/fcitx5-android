@@ -266,8 +266,11 @@ abstract class ClipboardAdapter(
     private fun resolveUriFileName(context: Context, uri: Uri): String? {
         return when (uri.scheme) {
             "content" -> context.contentResolver.queryFileName(uri)
-            "file" -> uri.lastPathSegment?.substringAfterLast('/')
-            else -> uri.lastPathSegment
+                ?: uri.lastPathSegment
+                ?: uri.path
+
+            "file" -> uri.lastPathSegment ?: uri.path
+            else -> uri.lastPathSegment ?: uri.path
         }?.let { Uri.decode(it).substringAfterLast('/').substringAfterLast(':') }
             ?.trim()
             ?.takeIf { it.isNotEmpty() }

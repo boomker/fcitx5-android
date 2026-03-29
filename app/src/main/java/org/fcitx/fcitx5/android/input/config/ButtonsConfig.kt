@@ -15,11 +15,12 @@ data class ConfigurableButton(
     /**
      * Unique identifier for the button action.
      * Examples: "undo", "redo", "cursor_move", "floating_toggle", "clipboard", "more",
-     *           "theme", "input_method_options", "reload_config", "virtual_keyboard", "one_handed_keyboard"
+     *           "theme_toggle", "theme", "input_method_options", "reload_config",
+     *           "virtual_keyboard", "one_handed_keyboard"
      */
     @SerialName("id")
     val id: String,
-    
+
     /**
      * Optional: Icon resource name (without extension) to use for this button.
      * If null, uses default icon for the action.
@@ -27,14 +28,14 @@ data class ConfigurableButton(
      */
     @SerialName("icon")
     val icon: String? = null,
-    
+
     /**
      * Optional: Custom label for accessibility/content description.
      * If null, uses default label for the action.
      */
     @SerialName("label")
     val label: String? = null,
-    
+
     /**
      * Optional: Long press action, if different from short press.
      * For buttons that support different long-press behavior.
@@ -76,7 +77,8 @@ data class ButtonsLayoutConfig(
                 ConfigurableButton("redo"),
                 ConfigurableButton("cursor_move"),
                 ConfigurableButton("floating_toggle"),
-                ConfigurableButton("clipboard")
+                ConfigurableButton("clipboard"),
+                ConfigurableButton("theme_toggle")
             ),
             // Note: input_method_options is always added automatically at the end of Status Area
             statusAreaButtons = listOf(

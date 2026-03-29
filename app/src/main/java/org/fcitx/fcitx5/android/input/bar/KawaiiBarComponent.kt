@@ -167,6 +167,7 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
                     // renew timeout when clipboard suggestion is present
                     launchClipboardTimeoutJob()
                 }
+
                 else -> {}
             }
         }
@@ -226,7 +227,7 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         return try {
             val snapshot = ConfigProviders.readButtonsLayoutConfig<ButtonsLayoutConfig>()
             val config = snapshot?.value ?: ButtonsLayoutConfig.default()
-            
+
             // Filter out 'more' button from config (it's always added automatically)
             val filteredButtons = config.kawaiiBarButtons.filter { it.id != "more" }
 
@@ -240,7 +241,7 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
 
     private var _idleUi: IdleUi? = null
     private var currentButtonsConfig: List<ConfigurableButton> = emptyList()
-    
+
     private val idleUi: IdleUi
         get() {
             if (_idleUi == null) {
@@ -258,10 +259,12 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
                     prefs.keyboard.toolbarManuallyToggled.setValue(!expandToolbarByDefault)
                     evalIdleUiState(fromUser = true)
                 }
+
                 IdleUi.State.Toolbar -> {
                     prefs.keyboard.toolbarManuallyToggled.setValue(expandToolbarByDefault)
                     evalIdleUiState(fromUser = true)
                 }
+
                 else -> {
                     prefs.keyboard.toolbarManuallyToggled.setValue(!expandToolbarByDefault)
                     ui.updateState(IdleUi.State.Toolbar, fromUser = true)
@@ -292,18 +295,18 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
                             // Refresh UI state after action completion
                             when (action.id) {
                                 "floating_toggle" -> evalIdleUiState()
-                                "one_handed_keyboard" -> updateButtonsState(service)
+                                "one_handed_keyboard", "theme_toggle" -> updateButtonsState(service)
                             }
                         }
                     )
                 }
             }
-            
+
             // Special handling for 'more' button
             setOnClickListener("more") {
                 windowManager.attachWindow(StatusAreaWindow())
             }
-            
+
             // Special handling for floating_toggle long press
             setOnLongClickListener("floating_toggle") {
                 ButtonAction.fromId("floating_toggle")?.onLongPress(
@@ -315,6 +318,17 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
                 )
                 true
             }
+            setOnLongClickListener("theme_toggle") {
+                ButtonAction.fromId("theme_toggle")?.onLongPress(
+                    context = context,
+                    service = service,
+                    fcitx = fcitx,
+                    windowManager = windowManager,
+                    view = ui.buttonsUi.root
+                )
+                true
+            }
+            updateButtonsState(service)
         }
         ui.clipboardUi.suggestionView.apply {
             setOnClickListener {
@@ -369,10 +383,12 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
                 setExpandButtonToAttach()
                 setExpandButtonEnabled(true)
             }
+
             ClickToDetachWindow -> {
                 setExpandButtonToDetach()
                 setExpandButtonEnabled(true)
             }
+
             Hidden -> {
                 setExpandButtonEnabled(false)
             }
@@ -489,6 +505,7 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
                 }
                 barStateMachine.push(ExtendedWindowAttached)
             }
+
             else -> {}
         }
     }

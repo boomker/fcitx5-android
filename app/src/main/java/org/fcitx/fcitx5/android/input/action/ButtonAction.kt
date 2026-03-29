@@ -15,6 +15,7 @@ import org.fcitx.fcitx5.android.core.SubtypeManager
 import org.fcitx.fcitx5.android.daemon.FcitxConnection
 import org.fcitx.fcitx5.android.daemon.launchOnReady
 import org.fcitx.fcitx5.android.data.clipboard.ClipboardManager
+import org.fcitx.fcitx5.android.data.theme.ThemeManager
 import org.fcitx.fcitx5.android.input.FcitxInputMethodService
 import org.fcitx.fcitx5.android.input.clipboard.ClipboardWindow
 import org.fcitx.fcitx5.android.input.editing.TextEditingWindow
@@ -101,6 +102,7 @@ sealed class ButtonAction {
             CursorMoveAction,
             FloatingToggleAction,
             ClipboardAction,
+            ThemeToggleAction,
             ThemeAction,
             InputMethodOptionsAction,
             ReloadConfigAction,
@@ -118,6 +120,7 @@ sealed class ButtonAction {
             CursorMoveAction,
             FloatingToggleAction,
             ClipboardAction,
+            ThemeToggleAction,
             MoreAction
         )
 
@@ -243,6 +246,38 @@ data object ClipboardAction : ButtonAction() {
         onActionComplete: (() -> Unit)?
     ) {
         windowManager.attachWindow(ClipboardWindow())
+    }
+}
+
+data object ThemeToggleAction : ButtonAction() {
+    override val id = "theme_toggle"
+    override val defaultIcon = R.drawable.ic_baseline_dark_mode_24
+    override val defaultLabelRes = R.string.toggle_day_night_theme
+
+    override fun isActive(service: FcitxInputMethodService): Boolean {
+        return ThemeManager.isUsingConfiguredDarkTheme()
+    }
+
+    override fun execute(
+        context: Context,
+        service: FcitxInputMethodService,
+        fcitx: FcitxConnection,
+        windowManager: InputWindowManager,
+        view: View?,
+        onActionComplete: (() -> Unit)?
+    ) {
+        ThemeManager.toggleConfiguredDayNightTheme()
+        onActionComplete?.invoke()
+    }
+
+    override fun onLongPress(
+        context: Context,
+        service: FcitxInputMethodService,
+        fcitx: FcitxConnection,
+        windowManager: InputWindowManager,
+        view: View
+    ) {
+        AppUtil.launchMainToThemeList(context)
     }
 }
 

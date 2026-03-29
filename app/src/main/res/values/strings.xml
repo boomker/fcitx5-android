@@ -118,6 +118,7 @@
     <string name="reload_config">Reload Config</string>
     <string name="input_method_options">Input Method Options</string>
     <string name="theme">Theme</string>
+    <string name="toggle_day_night_theme">Toggle Light/Dark Theme</string>
     <string name="key_ripple_effect">Enable key ripple effect</string>
     <string name="key_border">Enable key border</string>
     <string name="brightness">Brightness</string>
