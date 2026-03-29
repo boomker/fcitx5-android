@@ -38,14 +38,14 @@ class PopupKeyboardFocusResolverTest {
     fun upwardMoveCanAdvanceRowBeforeHoveringNextCandidate() {
         val result = PopupKeyboardFocusResolver.resolve(
             x = 25f,
-            y = 49f,
+            y = 58f,
             rowCount = 3,
             columnCount = 5,
             keyWidth = 10,
             keyHeight = 20,
             focusedRow = 0,
             focusedColumn = 2,
-            lastTouchY = 58f,
+            lastTouchY = 66f,
             cumulativeDeltaY = 0f,
             moveThreshold = 0.4f
         )
@@ -53,8 +53,31 @@ class PopupKeyboardFocusResolverTest {
         assertFalse(result.dismiss)
         assertEquals(1, result.targetRow)
         assertEquals(2, result.targetColumn)
-        assertEquals(49f, result.lastTouchY)
-        assertEquals(-1f, result.cumulativeDeltaY, 0.001f)
+        assertEquals(58f, result.lastTouchY)
+        assertEquals(0f, result.cumulativeDeltaY, 0.001f)
+    }
+
+    @Test
+    fun horizontalMoveStillWorksWithinSameRowTolerance() {
+        val result = PopupKeyboardFocusResolver.resolve(
+            x = 35f,
+            y = 63f,
+            rowCount = 3,
+            columnCount = 5,
+            keyWidth = 10,
+            keyHeight = 20,
+            focusedRow = 0,
+            focusedColumn = 2,
+            lastTouchY = 63f,
+            cumulativeDeltaY = 0f,
+            moveThreshold = 0.4f
+        )
+
+        assertFalse(result.dismiss)
+        assertEquals(0, result.targetRow)
+        assertEquals(3, result.targetColumn)
+        assertEquals(63f, result.lastTouchY)
+        assertEquals(0f, result.cumulativeDeltaY, 0.001f)
     }
 
     @Test

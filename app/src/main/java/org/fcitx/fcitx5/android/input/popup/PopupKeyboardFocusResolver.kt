@@ -6,6 +6,7 @@ package org.fcitx.fcitx5.android.input.popup
 
 import kotlin.math.abs
 import kotlin.math.floor
+import kotlin.math.roundToInt
 
 internal data class PopupKeyboardFocusResult(
     val dismiss: Boolean,
@@ -32,21 +33,21 @@ internal object PopupKeyboardFocusResolver {
         cumulativeDeltaY: Float,
         moveThreshold: Float
     ): PopupKeyboardFocusResult {
-        if (isDismissed(x, y, rowCount, columnCount, keyWidth, keyHeight)) {
+        val absoluteTarget = absoluteTarget(x, y, rowCount, columnCount, keyWidth, keyHeight)
+        if (absoluteTarget.dismiss) {
             return PopupKeyboardFocusResult(
                 dismiss = true,
                 lastTouchY = y
             )
         }
 
-        val hoveredColumn = hoveredColumn(x, columnCount, keyWidth)
-        val insideGrid = isInsideGrid(x, y, rowCount, columnCount, keyWidth, keyHeight)
-        val hoveredRow = if (insideGrid) hoveredRow(y, rowCount, keyHeight) else null
-        if (insideGrid && (hoveredRow != focusedRow || hoveredColumn != focusedColumn)) {
+        val absoluteRow = absoluteTarget.targetRow ?: focusedRow
+        val absoluteColumn = absoluteTarget.targetColumn ?: focusedColumn
+        if (absoluteRow != focusedRow || absoluteColumn != focusedColumn) {
             return PopupKeyboardFocusResult(
                 dismiss = false,
-                targetRow = hoveredRow,
-                targetColumn = hoveredColumn,
+                targetRow = absoluteRow,
+                targetColumn = absoluteColumn,
                 lastTouchY = y
             )
         }
@@ -69,46 +70,39 @@ internal object PopupKeyboardFocusResolver {
         return PopupKeyboardFocusResult(
             dismiss = false,
             targetRow = targetRow,
-            targetColumn = hoveredColumn,
+            targetColumn = absoluteColumn,
             lastTouchY = nextLastTouchY,
             cumulativeDeltaY = nextCumulativeDeltaY - consumedDelta
         )
     }
 
-    private fun isDismissed(
+    private fun absoluteTarget(
         x: Float,
         y: Float,
         rowCount: Int,
         columnCount: Int,
         keyWidth: Int,
         keyHeight: Int
-    ): Boolean {
-        return x < -(DismissPaddingCells * keyWidth) ||
-                x >= (columnCount + DismissPaddingCells) * keyWidth ||
-                y < -(DismissPaddingCells * keyHeight) ||
-                y >= (rowCount + DismissPaddingCells) * keyHeight
-    }
-
-    private fun isInsideGrid(
-        x: Float,
-        y: Float,
-        rowCount: Int,
-        columnCount: Int,
-        keyWidth: Int,
-        keyHeight: Int
-    ): Boolean {
-        return x >= 0f &&
-                x < columnCount * keyWidth &&
-                y >= 0f &&
-                y < rowCount * keyHeight
+    ): PopupKeyboardFocusResult {
+        var targetRow = rowCount - (y / keyHeight - 0.2f).roundToInt()
+        var targetColumn = floor(x / keyWidth).toInt()
+        val dismiss = targetRow < -DismissPaddingCells ||
+                targetRow > rowCount + DismissPaddingCells - 1 ||
+                targetColumn < -DismissPaddingCells ||
+                targetColumn > columnCount + DismissPaddingCells - 1
+        if (dismiss) {
+            return PopupKeyboardFocusResult(dismiss = true)
+        }
+        targetRow = PopupContainerUi.limitIndex(targetRow, rowCount)
+        targetColumn = PopupContainerUi.limitIndex(targetColumn, columnCount)
+        return PopupKeyboardFocusResult(
+            dismiss = false,
+            targetRow = targetRow,
+            targetColumn = targetColumn
+        )
     }
 
     private fun hoveredColumn(x: Float, columnCount: Int, keyWidth: Int): Int {
         return floor(x / keyWidth).toInt().coerceIn(0, columnCount - 1)
-    }
-
-    private fun hoveredRow(y: Float, rowCount: Int, keyHeight: Int): Int {
-        val visualRow = floor(y / keyHeight).toInt().coerceIn(0, rowCount - 1)
-        return rowCount - 1 - visualRow
     }
 }
