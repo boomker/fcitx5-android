@@ -589,7 +589,11 @@ object LayoutJsonUtils {
                     val rows = entries[key]!!
                     val jsonArray = JsonArray(rows.map { row ->
                         JsonArray(row.map { keyMap ->
-                            JsonObject(keyMap.mapValues { (_, v) -> convertToJsonProperty(v) })
+                            JsonObject(
+                                keyMap
+                                    .filterValues { it != null }
+                                    .mapValues { (_, v) -> convertToJsonProperty(v) }
+                            )
                         })
                     })
 
@@ -602,7 +606,11 @@ object LayoutJsonUtils {
                 val rows = entries[key] ?: continue
                 val jsonArray = JsonArray(rows.map { row ->
                     JsonArray(row.map { keyMap ->
-                        JsonObject(keyMap.mapValues { (_, v) -> convertToJsonProperty(v) })
+                        JsonObject(
+                            keyMap
+                                .filterValues { it != null }
+                                .mapValues { (_, v) -> convertToJsonProperty(v) }
+                        )
                     })
                 })
                 layoutMap[baseName] = jsonArray
