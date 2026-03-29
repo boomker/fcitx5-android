@@ -15,11 +15,35 @@ import java.io.File
 import java.io.FileOutputStream
 
 object JsonFileQrShareManager {
-    fun encodeSavedJsonFileToLongImage(file: File): Pair<Bitmap, LayoutQrTransferCodec.ChunkBundle> {
+    fun encodeSavedJsonFileToChunks(
+        file: File,
+        transferType: Char? = null
+    ): LayoutQrTransferCodec.ChunkBundle {
         val rawJson = file.readText()
-        val bundle = LayoutQrTransferCodec.encodeJsonToChunks(rawJson)
+        return LayoutQrTransferCodec.encodeJsonToChunks(rawJson, transferType = transferType)
+    }
+
+    fun buildChunkLabels(
+        bundle: LayoutQrTransferCodec.ChunkBundle,
+        typeLabel: String,
+        nameLabel: String
+    ): List<String> = bundle.chunks.map {
+        "$typeLabel · $nameLabel · Chunk ${it.index}/${it.total} · ${bundle.transferId}"
+    }
+
+    fun encodeSavedJsonFileToLongImage(
+        file: File,
+        transferType: Char? = null,
+        typeLabel: String? = null,
+        nameLabel: String? = null
+    ): Pair<Bitmap, LayoutQrTransferCodec.ChunkBundle> {
+        val bundle = encodeSavedJsonFileToChunks(file, transferType = transferType)
         val contents = bundle.chunks.map { it.encode() }
-        val labels = bundle.chunks.map { "Chunk ${it.index}/${it.total} · ${bundle.transferId}" }
+        val labels = if (typeLabel != null && !nameLabel.isNullOrBlank()) {
+            buildChunkLabels(bundle, typeLabel, nameLabel)
+        } else {
+            bundle.chunks.map { "Chunk ${it.index}/${it.total} · ${bundle.transferId}" }
+        }
         return LayoutQrBitmapUtil.composeLongImageStreaming(contents, labels) to bundle
     }
 

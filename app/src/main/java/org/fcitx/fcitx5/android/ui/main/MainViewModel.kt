@@ -12,7 +12,6 @@ import org.fcitx.fcitx5.android.daemon.FcitxDaemon
 import org.fcitx.fcitx5.android.utils.appContext
 
 class MainViewModel : ViewModel() {
-
     val toolbarTitle = MutableLiveData(appContext.getString(R.string.app_name))
 
     val toolbarShadow = MutableLiveData(true)

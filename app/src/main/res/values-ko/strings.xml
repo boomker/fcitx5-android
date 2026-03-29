@@ -300,4 +300,19 @@
     <string name="text_keyboard_layout_qr_import_confirm_message">%1$d개의 레이아웃 항목을 감지했습니다. 현재 편집 중인 메모리 데이터를 교체하여 가져오시겠습니까?</string>
     <string name="text_keyboard_layout_qr_import_success">QR 레이아웃을 가져왔습니다. 저장하면 파일에 반영됩니다.</string>
     <string name="text_keyboard_layout_qr_import_failed">QR 페이로드 가져오기 실패: %1$s</string>
+    <string name="text_keyboard_layout_qr_type_mismatch">QR 유형이 일치하지 않습니다. 예상: %1$s, 실제: %2$s.</string>
+    <string name="qr_payload_type_theme">테마</string>
+    <string name="qr_payload_type_layout">레이아웃</string>
+    <string name="qr_payload_type_popup">팝업</string>
+    <string name="qr_payload_type_unknown">알 수 없음</string>
+    <string name="theme_share_import_menu">테마 공유/가져오기</string>
+    <string name="theme_share_active">현재 활성 테마 공유</string>
+    <string name="theme_import_qr_scan">QR 스캔으로 테마 가져오기</string>
+    <string name="theme_import_qr_image">QR 이미지에서 테마 가져오기</string>
+    <string name="theme_share_has_background_zip_tip">이 테마에는 배경 이미지 리소스가 포함되어 있습니다. 기존 테마 ZIP 내보내기 형식으로 공유됩니다.</string>
+    <string name="theme_share_zip_title">테마 패키지 공유</string>
+    <string name="theme_share_qr_title">테마 QR 이미지 공유</string>
+    <string name="theme_import_overwrite_title">테마가 이미 존재합니다</string>
+    <string name="theme_import_overwrite_message">테마 \"%1$s\"가 이미 존재합니다. 덮어쓰시겠습니까?</string>
+    <string name="theme_imported_from_qr">테마를 가져와 저장했습니다.</string>
 </resources>

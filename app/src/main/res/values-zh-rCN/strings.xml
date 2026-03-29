@@ -555,4 +555,19 @@
     <string name="text_keyboard_layout_qr_import_confirm_message">检测到 %1$d 条布局数据。是否导入并替换当前编辑中的内存数据？</string>
     <string name="text_keyboard_layout_qr_import_success">二维码布局已导入，点击保存即可写入文件。</string>
     <string name="text_keyboard_layout_qr_import_failed">导入二维码载荷失败：%1$s</string>
+    <string name="text_keyboard_layout_qr_type_mismatch">二维码类型不匹配。期望 %1$s，实际为 %2$s。</string>
+    <string name="qr_payload_type_theme">主题</string>
+    <string name="qr_payload_type_layout">布局</string>
+    <string name="qr_payload_type_popup">Popup</string>
+    <string name="qr_payload_type_unknown">未知</string>
+    <string name="theme_share_import_menu">主题分享/导入</string>
+    <string name="theme_share_active">分享当前激活主题</string>
+    <string name="theme_import_qr_scan">扫码导入主题</string>
+    <string name="theme_import_qr_image">从二维码图片导入主题</string>
+    <string name="theme_share_has_background_zip_tip">该主题包含背景图片资源，将沿用现有主题导出压缩包格式进行分享。</string>
+    <string name="theme_share_zip_title">分享主题压缩包</string>
+    <string name="theme_share_qr_title">分享主题二维码图片</string>
+    <string name="theme_import_overwrite_title">主题已存在</string>
+    <string name="theme_import_overwrite_message">主题“%1$s”已存在，是否覆盖？</string>
+    <string name="theme_imported_from_qr">主题已导入并保存。</string>
 </resources>

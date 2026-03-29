@@ -1620,12 +1620,21 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                 
                 // Generate QR codes
                 val bundlePair: Pair<android.graphics.Bitmap, LayoutQrTransferCodec.ChunkBundle> = withContext(Dispatchers.Default) { 
-                    JsonFileQrShareManager.encodeSavedJsonFileToLongImage(file) 
+                    JsonFileQrShareManager.encodeSavedJsonFileToLongImage(
+                        file = file,
+                        transferType = LayoutQrTransferCodec.TRANSFER_TYPE_LAYOUT,
+                        typeLabel = getString(R.string.qr_payload_type_layout),
+                        nameLabel = file.name
+                    )
                 }
                 
                 // Compose final image with preview at the top
                 val contents = bundlePair.second.chunks.map { it.encode() }
-                val labels = bundlePair.second.chunks.map { "Chunk ${it.index}/${it.total} · ${it.transferId}" }
+                val labels = JsonFileQrShareManager.buildChunkLabels(
+                    bundle = bundlePair.second,
+                    typeLabel = getString(R.string.qr_payload_type_layout),
+                    nameLabel = file.name
+                )
                 val finalImage: android.graphics.Bitmap = withContext(Dispatchers.Default) {
                     try {
                         LayoutQrBitmapUtil.composeLongImageStreamingWithPreview(contents, labels, previewBitmap)
@@ -1700,6 +1709,23 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
     }
 
     private fun addImportedChunkFromText(raw: String) {
+        val headerChunk = JsonFileQrShareManager.parseQrPayload(raw)
+        val headerType = headerChunk?.let { LayoutQrTransferCodec.detectTransferType(it.transferId) }
+        if (headerType != null && headerType != LayoutQrTransferCodec.TRANSFER_TYPE_LAYOUT) {
+            showToast(
+                getString(
+                    R.string.text_keyboard_layout_qr_type_mismatch,
+                    getString(R.string.qr_payload_type_layout),
+                    when (headerType) {
+                        LayoutQrTransferCodec.TRANSFER_TYPE_THEME -> getString(R.string.qr_payload_type_theme)
+                        LayoutQrTransferCodec.TRANSFER_TYPE_POPUP -> getString(R.string.qr_payload_type_popup)
+                        LayoutQrTransferCodec.TRANSFER_TYPE_LAYOUT -> getString(R.string.qr_payload_type_layout)
+                        else -> getString(R.string.qr_payload_type_unknown)
+                    }
+                )
+            )
+            return
+        }
         val progress = runCatching { qrChunkCollector.addAndMaybeAssemble(raw) }.getOrNull()
         if (progress == null) {
             showToast(getString(R.string.text_keyboard_layout_qr_invalid_payload))
@@ -1723,6 +1749,11 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
 
     private fun tryAssembleAndImport(chunks: List<String>) {
         runCatching {
+            val firstChunk = LayoutQrTransferCodec.parseChunk(chunks.first())
+            val detectedType = LayoutQrTransferCodec.detectTransferType(firstChunk.transferId)
+            if (detectedType != null && detectedType != LayoutQrTransferCodec.TRANSFER_TYPE_LAYOUT) {
+                throw IllegalArgumentException("type_mismatch:$detectedType")
+            }
             val json = JsonFileQrShareManager.decodeChunksToJson(chunks)
             val parsed = dataManager.parseJsonText(json, "qr-import", fallbackToDefault = false)
             if (parsed.isEmpty()) {
@@ -1732,7 +1763,24 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         }.onSuccess { parsed ->
             applyImportedLayouts(parsed)
         }.onFailure {
-            showToast(getString(R.string.text_keyboard_layout_qr_import_failed, it.localizedMessage ?: ""))
+            val message = it.message.orEmpty()
+            if (message.startsWith("type_mismatch:")) {
+                val type = message.removePrefix("type_mismatch:").firstOrNull()
+                showToast(
+                    getString(
+                        R.string.text_keyboard_layout_qr_type_mismatch,
+                        getString(R.string.qr_payload_type_layout),
+                        when (type) {
+                            LayoutQrTransferCodec.TRANSFER_TYPE_THEME -> getString(R.string.qr_payload_type_theme)
+                            LayoutQrTransferCodec.TRANSFER_TYPE_POPUP -> getString(R.string.qr_payload_type_popup)
+                            LayoutQrTransferCodec.TRANSFER_TYPE_LAYOUT -> getString(R.string.qr_payload_type_layout)
+                            else -> getString(R.string.qr_payload_type_unknown)
+                        }
+                    )
+                )
+            } else {
+                showToast(getString(R.string.text_keyboard_layout_qr_import_failed, it.localizedMessage ?: ""))
+            }
         }
     }
 
