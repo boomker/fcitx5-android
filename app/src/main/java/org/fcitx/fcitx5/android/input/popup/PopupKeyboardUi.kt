@@ -24,7 +24,6 @@ import splitties.views.gravityCenter
 import splitties.views.gravityEnd
 import splitties.views.gravityStart
 import kotlin.math.ceil
-import kotlin.math.floor
 import kotlin.math.roundToInt
 
 /**
@@ -154,7 +153,12 @@ class PopupKeyboardUi(
         IntArray(columnCount) { col -> row * columnCount + columnOrder[col] }
     }
 
-    private var focusedIndex = keyOrders[focusRow][focusColumn]
+    private var focusedRow = focusRow
+    private var focusedColumn = focusColumn
+    private var focusedIndex = keyOrders[focusedRow][focusedColumn]
+    private var lastTouchY: Float? = null
+    private var cumulativeDeltaY = 0f
+    private val moveThreshold = 0.4f
 
     private val keyUis = labels.map {
         PopupKeyUi(ctx, theme, it)
@@ -202,24 +206,54 @@ class PopupKeyboardUi(
     }
 
     override fun onChangeFocus(x: Float, y: Float): Boolean {
-        // move to next row when gesture moves above 30% from bottom of current row
-        var newRow = rowCount - (y / keyHeight - 0.2).roundToInt()
-        // move to next column when gesture moves out of current column
-        var newColumn = floor(x / keyWidth).toInt()
-        // retain focus when gesture moves between ±2 rows/columns of range
-        if (newRow < -2 || newRow > rowCount + 1 || newColumn < -2 || newColumn > columnCount + 1) {
+        val result = PopupKeyboardFocusResolver.resolve(
+            x = x,
+            y = y,
+            rowCount = rowCount,
+            columnCount = columnCount,
+            keyWidth = keyWidth,
+            keyHeight = keyHeight,
+            focusedRow = focusedRow,
+            focusedColumn = focusedColumn,
+            lastTouchY = lastTouchY,
+            cumulativeDeltaY = cumulativeDeltaY,
+            moveThreshold = moveThreshold
+        )
+        lastTouchY = result.lastTouchY
+        cumulativeDeltaY = result.cumulativeDeltaY
+        if (result.dismiss) {
             onDismissSelf(this)
             return true
         }
-        newRow = limitIndex(newRow, rowCount)
-        newColumn = limitIndex(newColumn, columnCount)
-        val newFocus = keyOrders[newRow][newColumn]
-        if (newFocus < keyUis.size) {
+        val targetRow = result.targetRow ?: return false
+        val targetColumn = findNearestValidColumn(targetRow, result.targetColumn ?: focusedColumn) ?: return false
+        val newFocus = keyOrders[targetRow][targetColumn]
+        if (newFocus != focusedIndex) {
             markInactive(focusedIndex)
             markFocus(newFocus)
+            focusedRow = targetRow
+            focusedColumn = targetColumn
             focusedIndex = newFocus
         }
         return false
+    }
+
+    private fun findNearestValidColumn(row: Int, preferredColumn: Int): Int? {
+        val order = keyOrders[row]
+        if (order[preferredColumn] < keyUis.size) {
+            return preferredColumn
+        }
+        for (delta in 1 until columnCount) {
+            val left = preferredColumn - delta
+            if (left >= 0 && order[left] < keyUis.size) {
+                return left
+            }
+            val right = preferredColumn + delta
+            if (right < columnCount && order[right] < keyUis.size) {
+                return right
+            }
+        }
+        return null
     }
 
     override fun onTrigger(): KeyAction? {
