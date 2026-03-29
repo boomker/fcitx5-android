@@ -429,9 +429,11 @@ class ButtonsCustomizerActivity : AppCompatActivity() {
         val statusAreaEndIndex = items.indexOfFirst { it is ListItem.StatusAreaAddButtonPlaceholder }
 
         return when {
-            // Before or at KawaiiBar "+" button position -> KawaiiBar
-            position <= kawaiiBarEndIndex -> Section.KawaiiBar
-            // After KawaiiBar "+" but before StatusArea "+" -> StatusArea
+            // Before KawaiiBar "+" button position -> KawaiiBar
+            // Use < not <= because == kawaiiBarEndIndex is the placeholder itself
+            position < kawaiiBarEndIndex -> Section.KawaiiBar
+            // At or after KawaiiBar "+" but before StatusArea "+" -> StatusArea
+            // Use < not <= because == statusAreaEndIndex is the StatusArea placeholder
             position < statusAreaEndIndex -> Section.StatusArea
             // After StatusArea "+" -> StatusArea (default)
             else -> Section.StatusArea
@@ -756,14 +758,14 @@ class ButtonsCustomizerActivity : AppCompatActivity() {
                     val isBuiltIn = buttonItem.button.id in builtInButtonIds
 
                     holder.ui.setButton(label, iconRes)
-                    holder.ui.root.setOnClickListener {
-                        if (!isBuiltIn) {
+                    if (isBuiltIn) {
+                        holder.ui.root.setOnClickListener(null)
+                    } else {
+                        holder.ui.root.setOnClickListener {
                             openButtonEditor(buttonItem.button, position, buttonItem.section)
                         }
                     }
-                    holder.ui.root.setOnLongClickListener {
-                        false
-                    }
+                    holder.ui.root.setOnLongClickListener(null)
                 }
 
                 is AddButtonViewHolder -> {
