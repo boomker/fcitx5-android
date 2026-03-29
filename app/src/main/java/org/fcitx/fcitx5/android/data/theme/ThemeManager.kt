@@ -42,7 +42,9 @@ object ThemeManager {
     private val customThemes: MutableList<Theme.Custom> = ThemeFilesManager.listThemes()
 
     fun getTheme(name: String) =
-        customThemes.find { it.name == name } ?: BuiltinThemes.find { it.name == name }
+        customThemes.find { it.name == name }
+            ?: monetThemes.find { it.name == name }
+            ?: BuiltinThemes.find { it.name == name }
 
     fun getAllThemes() = customThemes + monetThemes + BuiltinThemes
 

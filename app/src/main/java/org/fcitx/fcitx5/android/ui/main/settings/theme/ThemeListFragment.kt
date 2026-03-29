@@ -21,6 +21,7 @@ import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.data.theme.ThemeFilesManager
 import org.fcitx.fcitx5.android.data.theme.ThemeManager
+import org.fcitx.fcitx5.android.data.theme.ThemeMonet
 import org.fcitx.fcitx5.android.ui.common.withLoadingDialog
 import org.fcitx.fcitx5.android.utils.applyNavBarInsetsBottomPadding
 import org.fcitx.fcitx5.android.utils.importErrorDialog
@@ -200,11 +201,17 @@ class ThemeListFragment : Fragment() {
                             .setNegativeButton(android.R.string.cancel, null)
                             .setView(view)
                             .create()
+                        val duplicableThemes =
+                            ThemeManager.BuiltinThemes + listOf(ThemeMonet.getLight(), ThemeMonet.getDark())
                         view.adapter = object :
-                            SimpleThemeListAdapter<Theme.Builtin>(ThemeManager.BuiltinThemes) {
-                            override fun onClick(theme: Theme.Builtin) {
+                            SimpleThemeListAdapter<Theme>(duplicableThemes) {
+                            override fun onClick(theme: Theme) {
                                 val newTheme =
-                                    theme.deriveCustomNoBackground(UUID.randomUUID().toString())
+                                    when (theme) {
+                                        is Theme.Builtin -> theme.deriveCustomNoBackground(UUID.randomUUID().toString())
+                                        is Theme.Monet -> theme.toCustom().copy(name = UUID.randomUUID().toString())
+                                        else -> return
+                                    }
                                 themeListAdapter.prependTheme(newTheme)
                                 ThemeManager.saveTheme(newTheme)
                                 dialog.dismiss()
