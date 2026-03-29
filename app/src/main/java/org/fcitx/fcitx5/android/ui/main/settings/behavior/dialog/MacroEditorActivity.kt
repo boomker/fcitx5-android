@@ -1258,7 +1258,17 @@ class MacroEditorActivity : AppCompatActivity() {
          * Show modifier key selector
          */
         private fun showModifierPicker(currentModifiers: List<KeyData>, onSelect: (String) -> Unit) {
-            val availableModifiers = arrayOf("Ctrl_L", "Ctrl_R", "Alt_L", "Alt_R", "Shift_L", "Shift_R", "Meta_L", "Meta_R")
+            val availableModifiers = arrayOf(
+                "Ctrl_L", "Ctrl_R",
+                "Alt_L", "Alt_R",
+                "Shift_L", "Shift_R",
+                "Meta_L", "Meta_R",
+                "Super_L", "Super_R",
+                "Hyper_L", "Hyper_R",
+                "Mode_switch",
+                "ISO_Level3_Shift",
+                "ISO_Level5_Shift"
+            )
                 .filter { it !in currentModifiers.map { m -> m.code } }
 
             if (availableModifiers.isEmpty()) {

@@ -968,37 +968,6 @@ abstract class BaseKeyboard(
     private fun executeMacro(macroAction: MacroAction) {
         findViewTreeLifecycleOwner()?.lifecycleScope?.launch {
             Timber.v("executeMacro: steps=%d", macroAction.steps.size)
-            
-            // Check for simple shortcut pattern (down modifier -> tap key -> up modifier)
-            val steps = macroAction.steps
-            if (steps.size == 3) {
-                val downStep = steps.getOrNull(0) as? MacroStep.Down
-                val tapStep = steps.getOrNull(1) as? MacroStep.Tap
-                val upStep = steps.getOrNull(2) as? MacroStep.Up
-
-                if (downStep != null && tapStep != null && upStep != null &&
-                    downStep.keys.size == 1 && tapStep.keys.size == 1 && upStep.keys.size == 1
-                ) {
-                    val downKey = downStep.keys[0]
-                    val tapKey = tapStep.keys[0]
-                    val upKey = upStep.keys[0]
-
-                    // Check whether it's a modifier combination
-                    val modifier = getModifierKeyCode(downKey)
-                    if (modifier != null && downKey == upKey) {
-                        // It's a shortcut; use executeShortcutMacro
-                        val tapKeyCode = when (tapKey) {
-                            is KeyRef.Fcitx -> mapFcitxToAndroidKey(tapKey.code)
-                            is KeyRef.Android -> tapKey.code
-                        }
-                        Timber.v("executeMacro: detected shortcut modifier=%d tapKeyCode=%d", modifier, tapKeyCode)
-                        if (tapKeyCode >= 0) {
-                            executeShortcutMacro(modifier, tapKeyCode)
-                            return@launch
-                        }
-                    }
-                }
-            }
 
             // General macro execution
             for ((index, step) in macroAction.steps.withIndex()) {
@@ -1061,54 +1030,33 @@ abstract class BaseKeyboard(
     }
 
     /**
-     * Execute shortcut (automatically expanded to modifiers down + key tap + modifiers up)
-     * For Ctrl/Alt/Shift + letter combinations, use executeShortcutMacro for better compatibility
+     * Execute shortcut as syntactic sugar:
+     * modifiers down + key tap + modifiers up.
      */
     private suspend fun executeShortcut(modifiers: List<KeyRef>, key: KeyRef) {
-        // Get Android META values for all modifier keys
-        var combinedMeta = 0
         val modifierDownSteps = mutableListOf<KeyRef>()
         val modifierUpSteps = mutableListOf<KeyRef>()
         
         for (mod in modifiers) {
-            val meta = when ((mod as? KeyRef.Fcitx)?.code) {
-                "Ctrl_L", "Ctrl_R" -> {
-                    combinedMeta = combinedMeta or android.view.KeyEvent.META_CTRL_ON
-                    android.view.KeyEvent.META_CTRL_ON
-                }
-                "Alt_L", "Alt_R" -> {
-                    combinedMeta = combinedMeta or android.view.KeyEvent.META_ALT_ON
-                    android.view.KeyEvent.META_ALT_ON
-                }
-                "Shift_L", "Shift_R" -> {
-                    combinedMeta = combinedMeta or android.view.KeyEvent.META_SHIFT_ON
-                    android.view.KeyEvent.META_SHIFT_ON
-                }
-                "Meta_L", "Meta_R" -> {
-                    combinedMeta = combinedMeta or android.view.KeyEvent.META_META_ON
-                    android.view.KeyEvent.META_META_ON
-                }
-                else -> null
+            val isSupportedModifier = when ((mod as? KeyRef.Fcitx)?.code) {
+                "Ctrl_L", "Ctrl_R",
+                "Alt_L", "Alt_R",
+                "Shift_L", "Shift_R",
+                "Meta_L", "Meta_R",
+                "Super_L", "Super_R",
+                "Hyper_L", "Hyper_R",
+                "Mode_switch",
+                "ISO_Level3_Shift",
+                "ISO_Level5_Shift" -> true
+                else -> false
             }
-            if (meta != null) {
+            if (isSupportedModifier || mod is KeyRef.Android) {
                 modifierDownSteps.add(mod)
                 modifierUpSteps.add(mod)
             }
         }
-        
-        // Get Android key code for the key
-        val keyCode = when (key) {
-            is KeyRef.Fcitx -> mapFcitxToAndroidKey(key.code)
-            is KeyRef.Android -> key.code
-        }
-        
-        // If modifiers exist and key is valid, use executeShortcutMacro
-        if (combinedMeta != 0 && keyCode >= 0) {
-            executeShortcutMacro(combinedMeta, keyCode)
-            return
-        }
-        
-        // Otherwise use the generic down/tap/up flow
+
+        // Generic down/tap/up flow
         // Press all modifiers down
         for (mod in modifierDownSteps) {
             when (mod) {
@@ -1194,118 +1142,6 @@ abstract class BaseKeyboard(
             "ISO_Level3_Shift",
             "ISO_Level5_Shift"
         )
-    }
-
-    /**
-     * Get Android META value for a modifier key
-     */
-    private fun getModifierKeyCode(keyRef: KeyRef): Int? {
-        val code = (keyRef as? KeyRef.Fcitx)?.code ?: return null
-        return when (code) {
-            "Ctrl_L", "Ctrl_R" -> android.view.KeyEvent.META_CTRL_ON
-            "Shift_L", "Shift_R" -> android.view.KeyEvent.META_SHIFT_ON
-            "Alt_L", "Alt_R" -> android.view.KeyEvent.META_ALT_ON
-            "Meta_L", "Meta_R", "Super_L", "Super_R" -> android.view.KeyEvent.META_META_ON
-            "Hyper_L", "Hyper_R" -> android.view.KeyEvent.META_FUNCTION_ON
-            "Mode_switch", "ISO_Level3_Shift", "ISO_Level5_Shift" -> android.view.KeyEvent.META_ALT_RIGHT_ON
-            else -> null
-        }
-    }
-
-    /**
-     * Execute shortcut macros (e.g. Ctrl+C, Ctrl+V)
-     * Use performContextMenuAction for better compatibility
-     */
-    private suspend fun executeShortcutMacro(modifier: Int, key: Int) {
-        val service = getService() ?: return
-        val ic = service.currentInputConnection ?: return
-
-        // Detect common shortcut combinations
-        val isCtrl = (modifier and android.view.KeyEvent.META_CTRL_ON) != 0
-        val isShift = (modifier and android.view.KeyEvent.META_SHIFT_ON) != 0
-
-        when {
-            // Ctrl+A = Select All
-            isCtrl && key == android.view.KeyEvent.KEYCODE_A -> {
-                ic.performContextMenuAction(android.R.id.selectAll)
-                return
-            }
-            // Ctrl+C = Copy
-            isCtrl && key == android.view.KeyEvent.KEYCODE_C -> {
-                ic.performContextMenuAction(android.R.id.copy)
-                return
-            }
-            // Ctrl+X = Cut
-            isCtrl && key == android.view.KeyEvent.KEYCODE_X -> {
-                ic.performContextMenuAction(android.R.id.cut)
-                return
-            }
-            // Ctrl+V = Paste
-            isCtrl && key == android.view.KeyEvent.KEYCODE_V -> {
-                ic.performContextMenuAction(android.R.id.paste)
-                return
-            }
-            // Ctrl+Z = Undo
-            isCtrl && key == android.view.KeyEvent.KEYCODE_Z -> {
-                ic.performContextMenuAction(android.R.id.undo)
-                return
-            }
-            // Ctrl+Y = Redo
-            isCtrl && key == android.view.KeyEvent.KEYCODE_Y -> {
-                ic.performContextMenuAction(android.R.id.redo)
-                return
-            }
-        }
-
-        // Use sendKeyEvent for other shortcut combinations
-        if (isCtrl) {
-            val ctrlDown = android.view.KeyEvent(
-                android.view.KeyEvent.ACTION_DOWN,
-                android.view.KeyEvent.KEYCODE_CTRL_LEFT
-            )
-            val ctrlUp = android.view.KeyEvent(
-                android.view.KeyEvent.ACTION_UP,
-                android.view.KeyEvent.KEYCODE_CTRL_LEFT
-            )
-            val keyDown = android.view.KeyEvent(
-                android.view.KeyEvent.ACTION_DOWN,
-                key
-            )
-            val keyUp = android.view.KeyEvent(
-                android.view.KeyEvent.ACTION_UP,
-                key
-            )
-            ic.sendKeyEvent(ctrlDown)
-            ic.sendKeyEvent(keyDown)
-            delay(50)
-            ic.sendKeyEvent(keyUp)
-            ic.sendKeyEvent(ctrlUp)
-        } else if (isShift) {
-            val shiftDown = android.view.KeyEvent(
-                android.view.KeyEvent.ACTION_DOWN,
-                android.view.KeyEvent.KEYCODE_SHIFT_LEFT
-            )
-            val shiftUp = android.view.KeyEvent(
-                android.view.KeyEvent.ACTION_UP,
-                android.view.KeyEvent.KEYCODE_SHIFT_LEFT
-            )
-            val keyDown = android.view.KeyEvent(
-                android.view.KeyEvent.ACTION_DOWN,
-                key
-            )
-            val keyUp = android.view.KeyEvent(
-                android.view.KeyEvent.ACTION_UP,
-                key
-            )
-            ic.sendKeyEvent(shiftDown)
-            ic.sendKeyEvent(keyDown)
-            delay(50)
-            ic.sendKeyEvent(keyUp)
-            ic.sendKeyEvent(shiftUp)
-        } else {
-            // Single key
-            sendAndroidKeyTap(key)
-        }
     }
 
     /**
@@ -1441,6 +1277,13 @@ abstract class BaseKeyboard(
             "Alt_R" -> KeyEvent.KEYCODE_ALT_RIGHT
             "Meta_L" -> KeyEvent.KEYCODE_META_LEFT
             "Meta_R" -> KeyEvent.KEYCODE_META_RIGHT
+            "Super_L" -> KeyEvent.KEYCODE_META_LEFT
+            "Super_R" -> KeyEvent.KEYCODE_META_RIGHT
+            "Hyper_L" -> KeyEvent.KEYCODE_FUNCTION
+            "Hyper_R" -> KeyEvent.KEYCODE_FUNCTION
+            "Mode_switch" -> KeyEvent.KEYCODE_ALT_RIGHT
+            "ISO_Level3_Shift" -> KeyEvent.KEYCODE_ALT_RIGHT
+            "ISO_Level5_Shift" -> KeyEvent.KEYCODE_ALT_RIGHT
             else -> null
         }
     }
