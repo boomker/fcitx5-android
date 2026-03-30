@@ -124,6 +124,40 @@ class MacroEditorActivity : AppCompatActivity() {
          * Symbol key friendly name mapping (key name -> symbol character)
          */
         val SYMBOL_KEY_MAP = mapOf(
+            // Canonical fcitx/X11 symbol key names (lowercase)
+            "exclam" to "!",
+            "at" to "@",
+            "numbersign" to "#",
+            "dollar" to "$",
+            "percent" to "%",
+            "asciicircum" to "^",
+            "ampersand" to "&",
+            "asterisk" to "*",
+            "parenleft" to "(",
+            "parenright" to ")",
+            "minus" to "-",
+            "underscore" to "_",
+            "equal" to "=",
+            "plus" to "+",
+            "bracketleft" to "[",
+            "braceleft" to "{",
+            "bracketright" to "]",
+            "braceright" to "}",
+            "backslash" to "\\",
+            "bar" to "|",
+            "semicolon" to ";",
+            "colon" to ":",
+            "apostrophe" to "'",
+            "quotedbl" to "\"",
+            "grave" to "`",
+            "asciitilde" to "~",
+            "comma" to ",",
+            "less" to "<",
+            "period" to ".",
+            "greater" to ">",
+            "slash" to "/",
+            "question" to "?",
+            // Legacy aliases kept for compatibility with existing macros
             "Exclam" to "!",
             "At" to "@",
             "Numbersign" to "#",
@@ -135,11 +169,17 @@ class MacroEditorActivity : AppCompatActivity() {
             "Bracket_R" to "]",
             "Backslash" to "\\",
             "Semicolon" to ";",
+            "Colon" to ":",
             "Apostrophe" to "'",
+            "Quotedbl" to "\"",
             "Grave" to "`",
+            "Tilde" to "~",
+            "Asciitilde" to "~",
             "Comma" to ",",
             "Period" to ".",
             "Slash" to "/",
+            "Bar" to "|",
+            "Question" to "?",
             "Multiply" to "*",
             "Add" to "+",
             "Subtract" to "-",
@@ -155,13 +195,30 @@ class MacroEditorActivity : AppCompatActivity() {
             "KP_Separator" to ","
         )
 
+        // Case-insensitive lookup for symbol display: build a lowercase-key map
+        private val SYMBOL_KEY_MAP_LOWER: Map<String, String> = SYMBOL_KEY_MAP.entries.associate { (k, v) -> k.lowercase() to v }
+
+        // Normalize legacy/non-canonical key names for consistent UI display.
+        private val FCITX_KEY_DISPLAY_NAME_ALIAS = mapOf(
+            "bracket_l" to "bracketleft",
+            "bracket_r" to "bracketright",
+            "multiply" to "asterisk",
+            "add" to "plus",
+            "subtract" to "minus",
+            "tilde" to "asciitilde"
+        )
+
         /**
-         * Get display name for Fcitx key with symbol hint
+         * Get display name for Fcitx key with symbol hint (case-insensitive)
          */
         fun getFcitxKeyDisplayName(keyName: String): String {
-            return SYMBOL_KEY_MAP[keyName]?.let { symbol ->
-                "$keyName ($symbol)"
-            } ?: keyName
+            val lower = keyName.lowercase()
+            val normalizedName = FCITX_KEY_DISPLAY_NAME_ALIAS[lower] ?: lower
+            val symbol = SYMBOL_KEY_MAP_LOWER[normalizedName] ?: SYMBOL_KEY_MAP_LOWER[lower]
+            val displayName = normalizedName.replaceFirstChar {
+                if (it.isLowerCase()) it.titlecase() else it.toString()
+            }
+            return symbol?.let { "$displayName ($it)" } ?: keyName
         }
 
         // Fcitx virtual key names
@@ -182,27 +239,32 @@ class MacroEditorActivity : AppCompatActivity() {
             "Left", "Right", "Up", "Down",
             "Insert", "Menu", "Print", "Scroll_Lock", "Pause",
             "Caps_Lock", "Num_Lock",
-            // Function keys
-            "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12",
-            "F13", "F14", "F15", "F16", "F17", "F18", "F19", "F20", "F21", "F22", "F23", "F24",
-            "F25", "F26", "F27", "F28", "F29", "F30", "F31", "F32", "F33", "F34", "F35",
-            // Symbol keys
-            "Minus", "Equal", "Bracket_L", "Bracket_R", "Backslash",
-            "Semicolon", "Apostrophe", "Grave", "Comma", "Period", "Slash",
-            "Exclam", "At", "Numbersign", "Dollar", "Percent",
-            "Multiply", "Add", "Subtract", "Divide", "Separator",
+            // Symbol keys (main 104-key area, includes shifted and unshifted symbols)
+            "grave", "asciitilde",
+            "minus", "underscore", "equal", "plus",
+            "bracketleft", "braceleft", "bracketright", "braceright",
+            "backslash", "bar",
+            "semicolon", "colon", "apostrophe", "quotedbl",
+            "comma", "less", "period", "greater", "slash", "question",
+            "exclam", "at", "numbersign", "dollar", "percent", "asciicircum", "ampersand", "asterisk",
+            "parenleft", "parenright",
+            // Extra aliases/symbol keys for compatibility
+            "Bracket_L", "Bracket_R", "Multiply", "Add", "Subtract", "Divide", "Separator",
             // Numpad keys
             "KP_0", "KP_1", "KP_2", "KP_3", "KP_4", "KP_5", "KP_6", "KP_7", "KP_8", "KP_9",
             "KP_Enter", "KP_Space", "KP_Tab", "KP_Equal", "KP_Multiply", "KP_Add",
             "KP_Subtract", "KP_Divide", "KP_Decimal", "KP_Separator",
+            // Function keys (moved after numpad since they're less commonly used)
+            "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12",
+            "F13", "F14", "F15", "F16", "F17", "F18", "F19", "F20", "F21", "F22", "F23", "F24",
+            "F25", "F26", "F27", "F28", "F29", "F30", "F31", "F32", "F33", "F34", "F35",
             // Multimedia keys
             "AudioMute", "AudioLowerVolume", "AudioRaiseVolume",
             "AudioPlay", "AudioStop", "AudioPrev", "AudioNext",
             "AudioRewind", "AudioForward", "AudioRepeat",
             "HomePage", "Mail", "Search", "WWW", "Favorites",
             "Calculator", "Calendar", "Contacts", "Memo", "Todo",
-            // Power management keys
-            "PowerOff", "Sleep", "WakeUp",
+            // Power management keys removed to avoid accidental assignment by users
             // Other special keys
             "Back", "Forward", "Refresh", "Reload", "Stop",
             "ZoomIn", "ZoomOut",
@@ -1014,7 +1076,7 @@ class MacroEditorActivity : AppCompatActivity() {
                 }
 
                 val keyChip = TextView(this@MacroEditorActivity).apply {
-                    text = key.code
+                    text = if (key.keyType == "fcitx") getFcitxKeyDisplayName(key.code) else key.code
                     textSize = 14f
                     setPadding(dp(10), dp(8), dp(10), dp(8))
                     gravity = Gravity.CENTER
@@ -1242,7 +1304,7 @@ class MacroEditorActivity : AppCompatActivity() {
                     val newKeysList = if (newKeyType == "fcitx") FCITX_KEYS else ANDROID_KEYS
                     // Use friendly names
                     val newDisplayList = if (newKeyType == "fcitx") {
-                        FCITX_KEYS
+                        FCITX_KEYS.map { getFcitxKeyDisplayName(it) }.toTypedArray()
                     } else {
                         ANDROID_KEYS.map { ANDROID_KEY_NAMES[it] ?: it }.toTypedArray()
                     }
