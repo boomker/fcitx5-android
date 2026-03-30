@@ -18,22 +18,6 @@ import org.fcitx.fcitx5.android.data.prefs.ManagedPreferenceEnum
 class ThemePrefs(sharedPreferences: SharedPreferences) :
     ManagedPreferenceCategory(R.string.theme, sharedPreferences) {
 
-    private fun themePreference(
-        @StringRes
-        title: Int,
-        key: String,
-        defaultValue: Theme,
-        @StringRes
-        summary: Int? = null,
-        enableUiOn: (() -> Boolean)? = null
-    ): ManagedThemePreference {
-        val pref = ManagedThemePreference(sharedPreferences, key, defaultValue)
-        val ui = ManagedThemePreferenceUi(title, key, defaultValue, summary, enableUiOn)
-        pref.register()
-        ui.registerUi()
-        return pref
-    }
-
     private fun themeMultiSelectPreference(
         @StringRes
         title: Int,
@@ -206,33 +190,11 @@ class ThemePrefs(sharedPreferences: SharedPreferences) :
         it.register()
     }
 
-    // Legacy single-theme preferences (kept for migration)
-    @Deprecated("Use lightModeThemes instead")
-    val lightModeTheme = themePreference(
-        R.string.light_mode_theme,
-        "light_mode_theme",
-        if (BuildConfig.DEBUG) ThemePreset.MaterialLight else ThemePreset.PixelLight,
-        enableUiOn = {
-            followSystemDayNightTheme.getValue()
-        })
-
-    @Deprecated("Use darkModeThemes instead")
-    val darkModeTheme = themePreference(
-        R.string.dark_mode_theme,
-        "dark_mode_theme",
-        if (BuildConfig.DEBUG) ThemePreset.MaterialDark else ThemePreset.PixelDark,
-        enableUiOn = {
-            followSystemDayNightTheme.getValue()
-        })
-
     val dayNightModePrefNames = setOf(
         followSystemDayNightTheme.key,
         lightModeThemes.key,
         darkModeThemes.key,
         currentLightThemeIndex.key,
-        currentDarkThemeIndex.key,
-        // Legacy keys for migration
-        lightModeTheme.key,
-        darkModeTheme.key
+        currentDarkThemeIndex.key
     )
 }

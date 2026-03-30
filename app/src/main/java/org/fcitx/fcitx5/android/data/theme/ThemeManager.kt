@@ -134,23 +134,35 @@ object ThemeManager {
     }
 
     /**
-     * Get the current light theme based on the current index.
+     * Get a random light theme from the selected light themes.
      */
     fun getCurrentLightTheme(): Theme {
         val themes = prefs.lightModeThemes.getThemes()
         if (themes.isEmpty()) return ThemePreset.PixelLight
-        val index = prefs.currentLightThemeIndex.getValue().coerceIn(0, themes.size - 1)
-        return themes[index]
+        return if (prefs.followSystemDayNightTheme.getValue()) {
+            // Random selection when following system
+            themes.random()
+        } else {
+            // Use stored index for manual selection
+            val index = prefs.currentLightThemeIndex.getValue().coerceIn(0, themes.size - 1)
+            themes[index]
+        }
     }
 
     /**
-     * Get the current dark theme based on the current index.
+     * Get a random dark theme from the selected dark themes.
      */
     fun getCurrentDarkTheme(): Theme {
         val themes = prefs.darkModeThemes.getThemes()
         if (themes.isEmpty()) return ThemePreset.PixelDark
-        val index = prefs.currentDarkThemeIndex.getValue().coerceIn(0, themes.size - 1)
-        return themes[index]
+        return if (prefs.followSystemDayNightTheme.getValue()) {
+            // Random selection when following system
+            themes.random()
+        } else {
+            // Use stored index for manual selection
+            val index = prefs.currentDarkThemeIndex.getValue().coerceIn(0, themes.size - 1)
+            themes[index]
+        }
     }
 
     /**
@@ -177,7 +189,7 @@ object ThemeManager {
      */
     private fun cycleToNextLightTheme(): Theme {
         val themes = prefs.lightModeThemes.getThemes()
-        if (themes.isEmpty()) return prefs.lightModeTheme.getValue()
+        if (themes.isEmpty()) return ThemePreset.PixelLight
         val currentIndex = prefs.currentLightThemeIndex.getValue()
         val nextIndex = (currentIndex + 1) % themes.size
         prefs.currentLightThemeIndex.setValue(nextIndex)
@@ -189,7 +201,7 @@ object ThemeManager {
      */
     private fun cycleToNextDarkTheme(): Theme {
         val themes = prefs.darkModeThemes.getThemes()
-        if (themes.isEmpty()) return prefs.darkModeTheme.getValue()
+        if (themes.isEmpty()) return ThemePreset.PixelDark
         val currentIndex = prefs.currentDarkThemeIndex.getValue()
         val nextIndex = (currentIndex + 1) % themes.size
         prefs.currentDarkThemeIndex.setValue(nextIndex)

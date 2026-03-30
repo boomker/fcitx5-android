@@ -142,7 +142,7 @@
     <string name="exception_theme_src_image">選択した画像をテーマの背景として保存できません</string>
     <string name="exception_theme_cropped_image">切り取った画像をテーマの背景として保存できません</string>
     <string name="follow_system_day_night_theme">システムのテーマに従う</string>
-    <string name="follow_system_day_night_theme_summary">選択したテーマに手動で上書きする</string>
+    <string name="follow_system_day_night_theme_summary">有効にすると、システムのモードに基づいて選択した明暗テーマからランダムに選択</string>
     <string name="light_mode_theme">ライトモードテーマ</string>
     <string name="light_mode_theme_summary">複数のテーマを選択し切り替え時に循環</string>
     <string name="dark_mode_theme">ダークモードテーマ</string>

@@ -146,7 +146,7 @@
     <string name="exception_theme_src_image">Не удалось сохранить исходное изображение фона темы</string>
     <string name="exception_theme_cropped_image">Не удалось сохранить обрезанное изображение фона темы</string>
     <string name="follow_system_day_night_theme">Следовать системной теме «день/ночь»</string>
-    <string name="follow_system_day_night_theme_summary">Переопределить выбор темы вручную</string>
+    <string name="follow_system_day_night_theme_summary">Если включено, случайный выбор из выбранных вручную тем на основе режима системы</string>
     <string name="light_mode_theme">Светлая тема</string>
     <string name="light_mode_theme_summary">Выберите несколько тем и переключайтесь между ними</string>
     <string name="dark_mode_theme">Темная тема</string>

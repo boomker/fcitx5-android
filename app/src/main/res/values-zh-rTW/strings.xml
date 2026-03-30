@@ -146,7 +146,7 @@
     <string name="exception_theme_src_image">無法儲存主題背景的原始影象</string>
     <string name="exception_theme_cropped_image">無法儲存主題背景剪裁後的影象</string>
     <string name="follow_system_day_night_theme">跟隨系統設定主題色調</string>
-    <string name="follow_system_day_night_theme_summary">覆蓋目前的主題</string>
+    <string name="follow_system_day_night_theme_summary">開啟後，根據系統明暗模式隨機選擇已勾選的明暗主題</string>
     <string name="light_mode_theme">日間模式主題</string>
     <string name="light_mode_theme_summary">選擇多個主題並在切換時輪詢</string>
     <string name="dark_mode_theme">夜間模式主題</string>
