@@ -77,7 +77,7 @@ abstract class DynamicListAdapter<T>(
         val item = entries[position]
         with(holder) {
             handleImage.setOnLongClickListener {
-                if (!multiselect && removable(item))
+                if (enableOrder && !multiselect && removable(item))
                     itemTouchHelper
                         ?.startDrag(this)
                         ?.run { true }
@@ -110,7 +110,9 @@ abstract class DynamicListAdapter<T>(
                     select(item, isChecked)
                 }
                 nameText.setOnLongClickListener {
-                    itemTouchHelper?.startDrag(holder)
+                    if (enableOrder) {
+                        itemTouchHelper?.startDrag(holder)
+                    }
                     true
                 }
                 nameText.setOnClickListener {

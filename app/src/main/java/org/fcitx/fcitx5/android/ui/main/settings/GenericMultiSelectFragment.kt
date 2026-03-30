@@ -66,7 +66,9 @@ class GenericMultiSelectFragment : Fragment() {
                 enableOrder = false,
                 initCheckBox = { item ->
                     visibility = View.VISIBLE
-                    text = item.label
+                    // Do not set text, checkbox width is only dp(30), text will overflow
+                    // nameText already displays the item label
+                    contentDescription = item.label
                     isChecked = item.selected
                     setOnCheckedChangeListener { _, checked ->
                         if (isLoading) return@setOnCheckedChangeListener
