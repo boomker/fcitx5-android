@@ -34,6 +34,22 @@ class ThemePrefs(sharedPreferences: SharedPreferences) :
         return pref
     }
 
+    private fun themeMultiSelectPreference(
+        @StringRes
+        title: Int,
+        key: String,
+        defaultSelected: Set<String>,
+        @StringRes
+        summary: Int? = null,
+        enableUiOn: (() -> Boolean)? = null
+    ): ManagedThemeSetPreference {
+        val pref = ManagedThemeSetPreference(sharedPreferences, key, defaultSelected)
+        val ui = ManagedThemeMultiSelectPreferenceUi(title, key, defaultSelected, summary, enableUiOn)
+        pref.register()
+        ui.registerUi()
+        return pref
+    }
+
     val keyBorder = switch(R.string.key_border, "key_border", false)
 
     val keyBorderStroke = switch(
@@ -140,6 +156,58 @@ class ThemePrefs(sharedPreferences: SharedPreferences) :
         summary = R.string.follow_system_day_night_theme_summary
     )
 
+    /**
+     * Selected themes for light mode. Multiple themes can be selected and cycled through.
+     */
+    val lightModeThemes = themeMultiSelectPreference(
+        R.string.light_mode_theme,
+        "light_mode_themes",
+        setOf(if (BuildConfig.DEBUG) ThemePreset.MaterialLight.name else ThemePreset.PixelLight.name),
+        summary = R.string.light_mode_theme_summary,
+        enableUiOn = {
+            followSystemDayNightTheme.getValue()
+        }
+    )
+
+    /**
+     * Selected themes for dark mode. Multiple themes can be selected and cycled through.
+     */
+    val darkModeThemes = themeMultiSelectPreference(
+        R.string.dark_mode_theme,
+        "dark_mode_themes",
+        setOf(if (BuildConfig.DEBUG) ThemePreset.MaterialDark.name else ThemePreset.PixelDark.name),
+        summary = R.string.dark_mode_theme_summary,
+        enableUiOn = {
+            followSystemDayNightTheme.getValue()
+        }
+    )
+
+    /**
+     * Index of the currently active light theme in the light mode themes list.
+     * Used for cycling through multiple light themes.
+     */
+    val currentLightThemeIndex = ManagedPreference.PInt(
+        sharedPreferences,
+        "current_light_theme_index",
+        0
+    ).also {
+        it.register()
+    }
+
+    /**
+     * Index of the currently active dark theme in the dark mode themes list.
+     * Used for cycling through multiple dark themes.
+     */
+    val currentDarkThemeIndex = ManagedPreference.PInt(
+        sharedPreferences,
+        "current_dark_theme_index",
+        0
+    ).also {
+        it.register()
+    }
+
+    // Legacy single-theme preferences (kept for migration)
+    @Deprecated("Use lightModeThemes instead")
     val lightModeTheme = themePreference(
         R.string.light_mode_theme,
         "light_mode_theme",
@@ -148,6 +216,7 @@ class ThemePrefs(sharedPreferences: SharedPreferences) :
             followSystemDayNightTheme.getValue()
         })
 
+    @Deprecated("Use darkModeThemes instead")
     val darkModeTheme = themePreference(
         R.string.dark_mode_theme,
         "dark_mode_theme",
@@ -158,6 +227,11 @@ class ThemePrefs(sharedPreferences: SharedPreferences) :
 
     val dayNightModePrefNames = setOf(
         followSystemDayNightTheme.key,
+        lightModeThemes.key,
+        darkModeThemes.key,
+        currentLightThemeIndex.key,
+        currentDarkThemeIndex.key,
+        // Legacy keys for migration
         lightModeTheme.key,
         darkModeTheme.key
     )

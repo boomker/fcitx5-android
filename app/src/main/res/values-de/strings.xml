@@ -113,7 +113,9 @@
     <string name="exception_theme_unknown">Thema %1$s ist unbekannt</string>
     <string name="exception_theme_json">Kann json-Thema nicht finden</string>
     <string name="light_mode_theme">Thema für hellen Modus</string>
+    <string name="light_mode_theme_summary">Mehrere Themen auswählen und beim Umschalten durchlaufen</string>
     <string name="dark_mode_theme">Thema für dunklen Modus</string>
+    <string name="dark_mode_theme_summary">Mehrere Themen auswählen und beim Umschalten durchlaufen</string>
     <string name="new_theme">Neues Thema</string>
     <string name="skip">Überspringen</string>
     <string name="none">Kein</string>

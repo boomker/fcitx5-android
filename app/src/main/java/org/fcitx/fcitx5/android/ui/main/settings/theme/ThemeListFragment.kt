@@ -192,8 +192,8 @@ class ThemeListFragment : Fragment() {
         var light: Theme? = null
         var dark: Theme? = null
         if (followSystemDayNightTheme) {
-            light = ThemeManager.prefs.lightModeTheme.getValue()
-            dark = ThemeManager.prefs.darkModeTheme.getValue()
+            light = ThemeManager.prefs.lightModeThemes.getFirstTheme()
+            dark = ThemeManager.prefs.darkModeThemes.getFirstTheme()
         }
         themeListAdapter.setSelectedThemes(active, light, dark)
     }

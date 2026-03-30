@@ -148,12 +148,16 @@
     <string name="follow_system_day_night_theme">跟隨系統設定主題色調</string>
     <string name="follow_system_day_night_theme_summary">覆蓋目前的主題</string>
     <string name="light_mode_theme">日間模式主題</string>
+    <string name="light_mode_theme_summary">選擇多個主題並在切換時輪詢</string>
     <string name="dark_mode_theme">夜間模式主題</string>
+    <string name="dark_mode_theme_summary">選擇多個主題並在切換時輪詢</string>
     <string name="new_theme">新主題</string>
     <string name="skip">跳過</string>
     <string name="horizontal_candidate_growth">拉伸橫向候選詞以填充寬度</string>
     <string name="none">無</string>
     <string name="theme_migrated">主題已遷移至目前版本</string>
+    <string name="theme_name">主題名稱</string>
+    <string name="theme_name_empty">主題名稱不能為空</string>
     <string name="text_keyboard_layout_migration_failed">數據遷移失敗，已恢復原始數據</string>
     <string name="keep_keyboard_letters_uppercase">鍵盤字母保持大寫</string>
     <string name="choose_input_method">選擇輸入法</string>

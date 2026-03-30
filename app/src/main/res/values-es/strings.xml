@@ -86,11 +86,15 @@
     <string name="disable_animation">Desactivar animación</string>
     <string name="import_from_file">Importar desde archivo...</string>
     <string name="light_mode_theme">Tema en modo claro</string>
+    <string name="light_mode_theme_summary">Seleccionar varios temas y alternar entre ellos</string>
     <string name="dark_mode_theme">Tema en modo oscuro</string>
+    <string name="dark_mode_theme_summary">Seleccionar varios temas y alternar entre ellos</string>
     <string name="new_theme">Tema nuevo</string>
     <string name="skip">Omitir</string>
     <string name="none">Ninguno</string>
     <string name="theme_migrated">El tema se migró a la versión actual</string>
+    <string name="theme_name">Nombre del tema</string>
+    <string name="theme_name_empty">El nombre del tema no puede estar vacío</string>
     <string name="text_keyboard_layout_migration_failed">Falló la migración de datos, se restauraron los datos originales</string>
     <string name="edit_clipboard">Editar portapapeles</string>
     <string name="clipboard_edit_text_hint">Contenido del portapapeles</string>

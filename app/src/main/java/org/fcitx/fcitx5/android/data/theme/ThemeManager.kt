@@ -117,14 +117,53 @@ object ThemeManager {
         prefs.normalModeTheme.setValue(theme)
     }
 
+    /**
+     * Check if the current active theme is in the dark mode themes list.
+     */
     fun isUsingConfiguredDarkTheme(): Boolean {
-        return activeTheme.name == prefs.darkModeTheme.getValue().name
+        val darkThemes = prefs.darkModeThemes.getValue()
+        return activeTheme.name in darkThemes
     }
 
+    /**
+     * Check if the current active theme is in the light mode themes list.
+     */
+    fun isUsingConfiguredLightTheme(): Boolean {
+        val lightThemes = prefs.lightModeThemes.getValue()
+        return activeTheme.name in lightThemes
+    }
+
+    /**
+     * Get the current light theme based on the current index.
+     */
+    fun getCurrentLightTheme(): Theme {
+        val themes = prefs.lightModeThemes.getThemes()
+        if (themes.isEmpty()) return ThemePreset.PixelLight
+        val index = prefs.currentLightThemeIndex.getValue().coerceIn(0, themes.size - 1)
+        return themes[index]
+    }
+
+    /**
+     * Get the current dark theme based on the current index.
+     */
+    fun getCurrentDarkTheme(): Theme {
+        val themes = prefs.darkModeThemes.getThemes()
+        if (themes.isEmpty()) return ThemePreset.PixelDark
+        val index = prefs.currentDarkThemeIndex.getValue().coerceIn(0, themes.size - 1)
+        return themes[index]
+    }
+
+    /**
+     * Toggle between light and dark mode themes, cycling to the next theme in the target mode.
+     */
     fun toggleConfiguredDayNightTheme(): Theme {
-        val lightTheme = prefs.lightModeTheme.getValue()
-        val darkTheme = prefs.darkModeTheme.getValue()
-        val nextTheme = if (isUsingConfiguredDarkTheme()) lightTheme else darkTheme
+        val nextTheme = if (isUsingConfiguredDarkTheme()) {
+            // Currently dark, switch to light (cycle light themes)
+            cycleToNextLightTheme()
+        } else {
+            // Currently light or not in either list, switch to dark (cycle dark themes)
+            cycleToNextDarkTheme()
+        }
         _activeTheme = nextTheme
         prefs.normalModeTheme.setValue(nextTheme)
         if (prefs.followSystemDayNightTheme.getValue()) {
@@ -133,12 +172,36 @@ object ThemeManager {
         return nextTheme
     }
 
+    /**
+     * Cycle to the next light theme in the list and return it.
+     */
+    private fun cycleToNextLightTheme(): Theme {
+        val themes = prefs.lightModeThemes.getThemes()
+        if (themes.isEmpty()) return prefs.lightModeTheme.getValue()
+        val currentIndex = prefs.currentLightThemeIndex.getValue()
+        val nextIndex = (currentIndex + 1) % themes.size
+        prefs.currentLightThemeIndex.setValue(nextIndex)
+        return themes[nextIndex]
+    }
+
+    /**
+     * Cycle to the next dark theme in the list and return it.
+     */
+    private fun cycleToNextDarkTheme(): Theme {
+        val themes = prefs.darkModeThemes.getThemes()
+        if (themes.isEmpty()) return prefs.darkModeTheme.getValue()
+        val currentIndex = prefs.currentDarkThemeIndex.getValue()
+        val nextIndex = (currentIndex + 1) % themes.size
+        prefs.currentDarkThemeIndex.setValue(nextIndex)
+        return themes[nextIndex]
+    }
+
     private fun evaluateActiveTheme(): Theme {
         return if (prefs.followSystemDayNightTheme.getValue()) {
-            if (isDarkMode) prefs.darkModeTheme else prefs.lightModeTheme
+            if (isDarkMode) getCurrentDarkTheme() else getCurrentLightTheme()
         } else {
-            prefs.normalModeTheme
-        }.getValue()
+            prefs.normalModeTheme.getValue()
+        }
     }
 
     @Keep
