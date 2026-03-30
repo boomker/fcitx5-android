@@ -320,7 +320,9 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     }
 
     private fun replaceInputViews(theme: Theme) {
-        navbarMgr.evaluate(window.window!!, inputDeviceManager.isVirtualKeyboard)
+        window.window?.let {
+            navbarMgr.evaluate(it, inputDeviceManager.isVirtualKeyboard)
+        }
         replaceInputView(theme)
         replaceCandidateView(theme)
     }
@@ -340,18 +342,16 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
      */
     @Keep
     private val onThemeChangeListener = ThemeManager.OnThemeChangeListener { theme ->
-        if (!isInputViewShown) return@OnThemeChangeListener
+        if (!this::contentView.isInitialized) return@OnThemeChangeListener
         if (isInInputLifecycleCriticalPhase) {
             contentView.post {
-                if (!isInInputLifecycleCriticalPhase && isInputViewShown) {
+                if (!isInInputLifecycleCriticalPhase) {
                     replaceInputViews(theme)
                 }
             }
         } else {
             contentView.post {
-                if (isInputViewShown) {
-                    replaceInputViews(theme)
-                }
+                replaceInputViews(theme)
             }
         }
     }
