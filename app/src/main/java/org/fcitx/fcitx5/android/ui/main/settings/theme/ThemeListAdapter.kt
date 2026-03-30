@@ -29,19 +29,19 @@ abstract class ThemeListAdapter : RecyclerView.Adapter<ThemeListAdapter.ViewHold
     fun setThemes(themes: List<Theme>) {
         entries.clear()
         entries.addAll(themes)
-        notifyItemRangeInserted(OFFSET, themes.size)
+        notifyDataSetChanged()
     }
 
     fun setSelectedThemes(active: Theme, light: Theme? = null, dark: Theme? = null) {
         val oldActive = entryAt(activeIndex)
         if (oldActive != active) {
-            notifyItemChanged(activeIndex)
+            if (activeIndex >= OFFSET) notifyItemChanged(activeIndex)
             activeIndex = positionOf(active)
-            notifyItemChanged(activeIndex)
+            if (activeIndex >= OFFSET) notifyItemChanged(activeIndex)
         }
         val oldLight = entryAt(lightIndex)
         if (oldLight != light) {
-            notifyItemChanged(lightIndex)
+            if (lightIndex >= OFFSET) notifyItemChanged(lightIndex)
             lightIndex = positionOf(light)
             if (lightIndex >= OFFSET) {
                 notifyItemChanged(lightIndex)
@@ -49,7 +49,7 @@ abstract class ThemeListAdapter : RecyclerView.Adapter<ThemeListAdapter.ViewHold
         }
         val oldDark = entryAt(darkIndex)
         if (oldDark != dark) {
-            notifyItemChanged(darkIndex)
+            if (darkIndex >= OFFSET) notifyItemChanged(darkIndex)
             darkIndex = positionOf(dark)
             if (darkIndex >= OFFSET) {
                 notifyItemChanged(darkIndex)
@@ -75,6 +75,7 @@ abstract class ThemeListAdapter : RecyclerView.Adapter<ThemeListAdapter.ViewHold
 
     fun removeTheme(name: String) {
         val index = entries.indexOfFirst { it.name == name }
+        if (index < 0) return
         entries.removeAt(index)
         notifyItemRemoved(index + OFFSET)
         activeIndex += removedOffset(index, activeIndex)
@@ -88,6 +89,25 @@ abstract class ThemeListAdapter : RecyclerView.Adapter<ThemeListAdapter.ViewHold
 
     fun replaceTheme(theme: Theme) {
         val index = entries.indexOfFirst { it.name == theme.name }
+        if (index < 0) {
+            prependTheme(theme)
+            return
+        }
+        entries.removeAt(index)
+        entries.add(0, theme)
+        activeIndex = replaceIndex(index, activeIndex)
+        lightIndex = replaceIndex(index, lightIndex)
+        darkIndex = replaceIndex(index, darkIndex)
+        notifyItemMoved(index + OFFSET, OFFSET)
+        notifyItemChanged(OFFSET)
+    }
+
+    fun replaceTheme(oldName: String, theme: Theme) {
+        val index = entries.indexOfFirst { it.name == oldName }
+        if (index < 0) {
+            replaceTheme(theme)
+            return
+        }
         entries.removeAt(index)
         entries.add(0, theme)
         activeIndex = replaceIndex(index, activeIndex)
