@@ -288,19 +288,6 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         }
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: android.content.Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (resultCode == RESULT_OK && data != null) {
-            when (requestCode) {
-                KeyEditorDialog.REQUEST_MACRO_EDITOR -> {
-                    val result = data.serializable<ArrayList<Map<*, *>>>(MacroEditorActivity.EXTRA_MACRO_RESULT)
-                    result?.let {
-                        keyEditorDialog.macroEditCallback?.invoke(it as List<Any>)
-                    }
-                }
-            }
-        }
-    }
     override fun onDestroy() {
         runCatching { FcitxDaemon.disconnect(FCITX_CONNECTION_NAME) }
         super.onDestroy()

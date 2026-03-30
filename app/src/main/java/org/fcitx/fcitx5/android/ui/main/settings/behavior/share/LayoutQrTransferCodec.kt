@@ -23,8 +23,6 @@ object LayoutQrTransferCodec {
         ignoreUnknownKeys = true
         isLenient = true
     }
-    private val prettyJson = Json { prettyPrint = true }
-
     private val prettyJson = Json {
         prettyPrint = true
     }
