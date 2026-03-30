@@ -23,6 +23,7 @@ object LayoutQrTransferCodec {
         ignoreUnknownKeys = true
         isLenient = true
     }
+    private val prettyJson = Json { prettyPrint = true }
 
     private const val MAGIC = "F5AQR1"
     private const val MAX_CHUNK_BYTES = 1500
@@ -106,11 +107,11 @@ object LayoutQrTransferCodec {
 
     fun normalizeLayoutJson(jsonText: String): String {
         val element = json.parseToJsonElement(jsonText)
-        return Json { prettyPrint = true }.encodeToString(element) + "\n"
+        return prettyJson.encodeToString(element) + "\n"
     }
 
     fun exportElementToJsonString(element: JsonElement): String =
-        Json { prettyPrint = true }.encodeToString(element) + "\n"
+        prettyJson.encodeToString(element) + "\n"
 
     fun importJsonStringToElement(raw: String): JsonElement = json.parseToJsonElement(raw)
 

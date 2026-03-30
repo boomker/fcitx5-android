@@ -25,6 +25,7 @@ import org.fcitx.fcitx5.android.data.theme.ThemeMonet
 import org.fcitx.fcitx5.android.ui.common.withLoadingDialog
 import org.fcitx.fcitx5.android.utils.applyNavBarInsetsBottomPadding
 import org.fcitx.fcitx5.android.utils.importErrorDialog
+import org.fcitx.fcitx5.android.utils.parcelable
 import org.fcitx.fcitx5.android.utils.queryFileName
 import org.fcitx.fcitx5.android.utils.toast
 import splitties.resources.styledDrawable
@@ -63,7 +64,7 @@ class ThemeListFragment : Fragment() {
             onThemeImported(newCreated, theme, migrated)
         }
         parentFragmentManager.setFragmentResultListener(REQUEST_THEME_IMPORTED, this) { _, bundle ->
-            val theme = bundle.getParcelable<Theme.Custom>(BUNDLE_THEME) ?: return@setFragmentResultListener
+            val theme = bundle.parcelable<Theme.Custom>(BUNDLE_THEME) ?: return@setFragmentResultListener
             val newCreated = bundle.getBoolean(BUNDLE_NEW_CREATED, false)
             val migrated = bundle.getBoolean(BUNDLE_MIGRATED, false)
             onThemeImported(newCreated, theme, migrated)

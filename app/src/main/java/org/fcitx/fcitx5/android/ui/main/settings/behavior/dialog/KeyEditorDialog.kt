@@ -36,7 +36,10 @@ import splitties.views.dsl.core.wrapContent
  * - MacroKey: Macro key with tap/swipe/longPress actions
  * - CapsKey, CommaKey, LanguageKey, SpaceKey, ReturnKey, BackspaceKey: Simple keys
  */
-class KeyEditorDialog(private val activity: AppCompatActivity) {
+class KeyEditorDialog(
+    private val activity: AppCompatActivity,
+    private val launchMacroEditor: (android.content.Intent) -> Unit
+) {
 
     private val uiBuilder = KeyboardEditorUiBuilder(activity)
 
@@ -44,10 +47,6 @@ class KeyEditorDialog(private val activity: AppCompatActivity) {
     private var macroTapStepsData: List<Any> = emptyList()
     private var macroSwipeStepsData: List<Any> = emptyList()
     
-    companion object {
-        const val REQUEST_MACRO_EDITOR = 1001
-    }
-
     /**
      * Open Macro editor
      */
@@ -59,12 +58,17 @@ class KeyEditorDialog(private val activity: AppCompatActivity) {
         android.util.Log.d("MacroEditor", "openMacroEditor called with ${initialSteps.size} steps: $initialSteps")
         val intent = android.content.Intent(activity, MacroEditorActivity::class.java)
         if (initialSteps.isNotEmpty()) {
-            @Suppress("UNCHECKED_CAST")
-            intent.putExtra(MacroEditorActivity.EXTRA_MACRO_STEPS, ArrayList(initialSteps as ArrayList<Map<*, *>>))
+            val serializableSteps = ArrayList<Map<*, *>>()
+            initialSteps.forEach { step ->
+                (step as? Map<*, *>)?.let { serializableSteps.add(it) }
+            }
+            if (serializableSteps.isNotEmpty()) {
+                intent.putExtra(MacroEditorActivity.EXTRA_MACRO_STEPS, serializableSteps)
+            }
         }
         // Pass event type (tap/swipe) for title display
         intent.putExtra(MacroEditorActivity.EXTRA_EVENT_TYPE, eventType)
-        activity.startActivityForResult(intent, REQUEST_MACRO_EDITOR)
+        launchMacroEditor(intent)
         // Save callback
         macroEditCallback = callback
     }
@@ -82,13 +86,13 @@ class KeyEditorDialog(private val activity: AppCompatActivity) {
 
         // Build short description for each step
         val stepTexts = macroSteps.mapNotNull { step ->
-            val stepMap = step as? Map<String, Any?>
+            val stepMap = step as? Map<*, *>
             val type = stepMap?.get("type") as? String ?: return@mapNotNull null
             when (type) {
                 "tap", "down", "up" -> {
                     val keys = stepMap?.get("keys") as? List<*>
                     val keysStr = keys?.mapNotNull { key ->
-                        (key as? Map<String, Any?>)?.let {
+                        (key as? Map<*, *>)?.let {
                             it["fcitx"] as? String ?: it["android"] as? String
                         }
                     }?.joinToString(", ")
@@ -100,11 +104,11 @@ class KeyEditorDialog(private val activity: AppCompatActivity) {
                 }
                 "shortcut" -> {
                     val modifiers = (stepMap?.get("modifiers") as? List<*>)?.mapNotNull {
-                        (it as? Map<String, Any?>)?.let { m ->
+                        (it as? Map<*, *>)?.let { m ->
                             m["fcitx"] as? String ?: m["android"] as? String
                         }
                     } ?: emptyList()
-                    val key = (stepMap?.get("key") as? Map<String, Any?>)?.let {
+                    val key = (stepMap?.get("key") as? Map<*, *>)?.let {
                         it["fcitx"] as? String ?: it["android"] as? String
                     } ?: return@mapNotNull null
                     "$type:${modifiers.joinToString("+")}+$key"

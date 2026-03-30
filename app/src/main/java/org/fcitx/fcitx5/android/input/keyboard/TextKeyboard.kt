@@ -665,16 +665,6 @@ class TextKeyboard(
                         if (displayUppercase) str.uppercase() else str.lowercase()
                     }
                 }
-            } else if (keyDef is MacroKey) {
-                // MacroKey: update display text based on capsState (only if label is a single letter)
-                val label = keyDef.label
-                if (label.length == 1 && label[0].isLetter()) {
-                    it.mainText.text = if (keepLettersUppercase) {
-                        label.uppercase()
-                    } else {
-                        if (displayUppercase) label.uppercase() else label.lowercase()
-                    }
-                }
             }
         }
     }

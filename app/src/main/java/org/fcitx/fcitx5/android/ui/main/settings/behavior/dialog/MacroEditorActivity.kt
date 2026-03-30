@@ -27,6 +27,7 @@ import androidx.core.view.updatePadding
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import org.fcitx.fcitx5.android.R
+import org.fcitx.fcitx5.android.utils.serializable
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.FlowLayout
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.adapter.SimpleDividerItemDecoration
 import splitties.dimensions.dp
@@ -533,8 +534,7 @@ class MacroEditorActivity : AppCompatActivity() {
         supportActionBar?.title = getString(R.string.macro_editor_title, eventType)
 
         // Receive macro data
-        @Suppress("UNCHECKED_CAST")
-        val initialSteps = intent.getSerializableExtra(EXTRA_MACRO_STEPS) as? List<Map<*, *>>
+        val initialSteps = intent.serializable<ArrayList<Map<*, *>>>(EXTRA_MACRO_STEPS)
         originalSteps = initialSteps
         android.util.Log.d("MacroEditor", "Received initialSteps: $originalSteps")
         if (originalSteps != null) {
