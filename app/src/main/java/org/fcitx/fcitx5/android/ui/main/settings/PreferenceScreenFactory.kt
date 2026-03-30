@@ -6,6 +6,7 @@ package org.fcitx.fcitx5.android.ui.main.settings
 
 import android.app.AlertDialog
 import android.content.Context
+import android.net.Uri
 import android.os.Build
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentManager
@@ -217,6 +218,14 @@ object PreferenceScreenFactory {
                 ConfigExternal.ETy.TableGlobal -> addonConfigPreference("table")
                 ConfigExternal.ETy.AndroidTable -> tableInputMethod()
                 ConfigExternal.ETy.PinyinCustomPhrase -> pinyinCustomPhrase()
+                ConfigExternal.ETy.MultiSelect -> Preference(context).apply {
+                    setOnPreferenceClickListener {
+                        val uri = descriptor.uri ?: return@setOnPreferenceClickListener false
+                        val parsed = parseMultiSelectRoute(uri, descriptor.description ?: descriptor.name)
+                            ?: return@setOnPreferenceClickListener false
+                        navigate(parsed)
+                    }
+                }
                 ConfigExternal.ETy.RimeUserDataDir -> rimeUserDataDir(
                     descriptor.description ?: descriptor.name
                 )
@@ -295,6 +304,33 @@ object PreferenceScreenFactory {
         descriptor.customTypeDef?.values?.forEach {
             general(context, fragmentManager, cfg?.findByName(it.name), screen, it, subStore, save)
         }
+    }
+
+    private fun parseMultiSelectRoute(
+        uriText: String,
+        title: String
+    ): SettingsRoute.MultiSelect? {
+        val uri = Uri.parse(uriText)
+        val segments = uri.pathSegments
+        if (segments.size < 3 || segments.first() != "addon") {
+            Timber.w("Invalid multi-select URI: $uriText")
+            return null
+        }
+        val addon = segments[1]
+        val path = segments.drop(2).joinToString("/")
+        val option = uri.getQueryParameter("option")
+        if (option.isNullOrBlank()) {
+            Timber.w("Missing option in multi-select URI: $uriText")
+            return null
+        }
+        val min = uri.getQueryParameter("min")?.toIntOrNull() ?: 0
+        return SettingsRoute.MultiSelect(
+            title = title,
+            addon = addon,
+            path = path,
+            option = option,
+            min = min
+        )
     }
 
 }

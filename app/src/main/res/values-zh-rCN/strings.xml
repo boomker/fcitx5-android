@@ -374,6 +374,7 @@
     <string name="clipboard_mask_sensitive">隐藏敏感信息（如密码）</string>
     <string name="open_rime_user_data_dir">即将打开应用数据目录。 RIME 用户数据目录位于“data/rime”。</string>
     <string name="restart_to_apply_settings">应用将重启以应用新设置。继续吗？</string>
+    <string name="generic_multiselect_min">至少需要选择 %1$d 项。</string>
     <string name="space_swipe_move_cursor">划动空格键以移动光标</string>
     <string name="please_wait">请稍候…</string>
     <string name="rotate">旋转</string>

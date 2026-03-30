@@ -318,6 +318,7 @@
     <string name="ignore_system_window_insets">System WindowInsets ignorieren</string>
     <string name="browse_user_data_dir">Benutzerverzeichnis durchsuchen</string>
     <string name="haptic_on_repeat">Haptisches Feedback bei Wiederholung</string>
+    <string name="generic_multiselect_min">Mindestens %1$d Eintrag(e) müssen ausgewählt werden.</string>
     <string name="text_keyboard_layout_switch_submode_failed">Wechsel zum Submodus "%1$s" fehlgeschlagen</string>
     <string name="fontset_save_failed_io_error">Schriftartensatz speichern fehlgeschlagen: E/A-Fehler</string>
     <string name="fontset_save_failed_permission_error">Schriftartensatz speichern fehlgeschlagen: Berechtigung verweigert</string>

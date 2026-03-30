@@ -180,6 +180,15 @@ sealed class SettingsRoute : Parcelable {
     @Serializable
     data object PinyinCustomPhrase : SettingsRoute()
 
+    @Serializable
+    data class MultiSelect(
+        val title: String,
+        val addon: String,
+        val path: String,
+        val option: String,
+        val min: Int = 0
+    ) : SettingsRoute()
+
     companion object {
         fun createGraph(controller: NavController) = controller.createGraph(Index) {
             val ctx = controller.context
@@ -254,6 +263,7 @@ sealed class SettingsRoute : Parcelable {
                 label = ctx.getString(R.string.table_im)
             }
             fragment<PinyinCustomPhraseFragment, PinyinCustomPhrase>()
+            fragment<GenericMultiSelectFragment, MultiSelect>()
         }
     }
 }

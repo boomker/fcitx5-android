@@ -184,6 +184,7 @@ sealed class ConfigDescriptor<T, U> : Parcelable {
             TableGlobal,
             PinyinCustomPhrase,
             RimeUserDataDir,
+            MultiSelect,
 
             // manually added on Android side for TableManager
             AndroidTable
@@ -317,7 +318,10 @@ sealed class ConfigDescriptor<T, U> : Parcelable {
                             raw.description,
                             raw.tooltip,
                             raw.findByName("External")?.value,
-                            when (raw.name) {
+                            when {
+                                raw.findByName("External")?.value?.startsWith("fcitx://multiselect/") == true ->
+                                    ConfigExternal.ETy.MultiSelect
+                                else -> when (raw.name) {
                                 "DictManager" -> ConfigExternal.ETy.PinyinDict
                                 "Punctuation" -> ConfigExternal.ETy.Punctuation
                                 "QuickPhrase", "Editor" -> ConfigExternal.ETy.QuickPhrase
@@ -325,8 +329,10 @@ sealed class ConfigDescriptor<T, U> : Parcelable {
                                 "TableGlobal" -> ConfigExternal.ETy.TableGlobal
                                 "CustomPhrase" -> ConfigExternal.ETy.PinyinCustomPhrase
                                 "UserDataDir" -> ConfigExternal.ETy.RimeUserDataDir
+                                "MultiSelect" -> ConfigExternal.ETy.MultiSelect
                                 "AndroidTable" -> ConfigExternal.ETy.AndroidTable
                                 else -> null
+                                }
                             }
                         )
                     }

@@ -477,4 +477,5 @@
     <string name="theme_import_overwrite_title">テーマは既に存在します</string>
     <string name="theme_import_overwrite_message">テーマ「%1$s」は既に存在します。上書きしますか？</string>
     <string name="theme_imported_from_qr">テーマをインポートして保存しました。</string>
+    <string name="generic_multiselect_min">少なくとも %1$d 項目を選択してください。</string>
 </resources>

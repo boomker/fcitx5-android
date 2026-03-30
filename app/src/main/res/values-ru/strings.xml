@@ -267,6 +267,7 @@
     <string name="clipboard_mask_sensitive">Маскировать конфиденциальные данные (например, пароли).</string>
     <string name="open_rime_user_data_dir">Будет открыт каталог данных приложения. Каталог пользовательских данных RIME находится в директории \"data/rime\".</string>
     <string name="restart_to_apply_settings">Для применения новых настроек, приложение будет перезапущено. Продолжить?</string>
+    <string name="generic_multiselect_min">Необходимо выбрать как минимум %1$d элемент(а).</string>
     <string name="space_swipe_move_cursor">Провести по клавише пробела, чтобы переместить курсор</string>
     <string name="please_wait">Пожалуйста, подождите…</string>
     <string name="rotate">Повернуть</string>

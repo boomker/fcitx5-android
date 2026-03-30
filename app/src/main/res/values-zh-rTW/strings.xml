@@ -299,6 +299,7 @@
     <string name="clipboard_mask_sensitive">隱藏敏感訊息（如密碼）</string>
     <string name="open_rime_user_data_dir">即將開啓應用資料目錄。RIME 用户資料目錄位於 “data/rime”。</string>
     <string name="restart_to_apply_settings">應用程式將重新啓動以應用新設定。是否繼續？</string>
+    <string name="generic_multiselect_min">至少需要選擇 %1$d 項。</string>
     <string name="space_swipe_move_cursor">划動空格以移動游標</string>
     <string name="please_wait">請稍候……</string>
     <string name="rotate">旋轉</string>
