@@ -324,6 +324,16 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         return newCandidatesView
     }
 
+    private fun refreshViewsForFontChange() {
+        val theme = ThemeManager.activeTheme
+        inputView?.let {
+            replaceInputView(theme)
+        }
+        candidatesView?.let {
+            replaceCandidateView(theme)
+        }
+    }
+
     private fun replaceInputViews(theme: Theme) {
         window.window?.let {
             navbarMgr.evaluate(it, inputDeviceManager.isVirtualKeyboard)
@@ -1189,6 +1199,9 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         isInInputLifecycleCriticalPhase = true
         try {
             Timber.d("onStartInputView: restarting=$restarting")
+            if (org.fcitx.fcitx5.android.input.font.FontProviders.needsRefresh()) {
+                refreshViewsForFontChange()
+            }
             postFcitxJob {
                 focus(true)
             }

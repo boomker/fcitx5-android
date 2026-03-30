@@ -13,13 +13,13 @@ import android.util.AttributeSet
 import android.view.Gravity
 import android.widget.TextView
 import androidx.core.graphics.withSave
+import org.fcitx.fcitx5.android.input.font.FontProviders
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 import android.graphics.Typeface
-import org.fcitx.fcitx5.android.input.font.FontProviders
 
 @SuppressLint("AppCompatCustomView")
 class AutoScaleTextView @JvmOverloads constructor(
@@ -67,12 +67,7 @@ class AutoScaleTextView @JvmOverloads constructor(
 
     fun setFontTypeFace(key: String) {
         fontTypeFaceKey = key
-        // Fallback: key → "font" → Typeface.DEFAULT
-        setTypeface(
-            FontProviders.fontTypefaceMap[key]
-                ?: FontProviders.fontTypefaceMap["font"]
-                ?: Typeface.DEFAULT
-        )
+        setTypeface(FontProviders.resolveTypeface(key, typeface))
     }
 
     /**
