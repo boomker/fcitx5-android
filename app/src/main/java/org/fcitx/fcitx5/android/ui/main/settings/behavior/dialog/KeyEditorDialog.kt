@@ -51,6 +51,7 @@ class KeyEditorDialog(private val activity: AppCompatActivity) {
     /**
      * Open Macro editor
      */
+    @Suppress("DEPRECATION")
     private fun openMacroEditor(
         initialSteps: List<*>,
         eventType: String = "Tap Event",
@@ -75,6 +76,7 @@ class KeyEditorDialog(private val activity: AppCompatActivity) {
     /**
      * Build Macro steps preview text (single line + smart folding)
      */
+    @Suppress("UNCHECKED_CAST")
     private fun buildMacroPreview(macroSteps: List<*>?): String {
         if (macroSteps == null || macroSteps.isEmpty()) {
             return activity.getString(R.string.text_keyboard_layout_macro_no_event)

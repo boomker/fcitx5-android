@@ -4,6 +4,7 @@
  */
 package org.fcitx.fcitx5.android.ui.main.settings.behavior.dialog
 
+import android.os.Build
 import android.os.Bundle
 import android.view.Gravity
 import android.view.Menu
@@ -471,8 +472,14 @@ class MacroEditorActivity : AppCompatActivity() {
         supportActionBar?.title = getString(R.string.macro_editor_title, eventType)
 
         // Receive macro data
+        @Suppress("UNCHECKED_CAST", "DEPRECATION")
+        val serializable = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            intent.getSerializableExtra(EXTRA_MACRO_STEPS, ArrayList::class.java)
+        } else {
+            intent.getSerializableExtra(EXTRA_MACRO_STEPS)
+        }
         @Suppress("UNCHECKED_CAST")
-        val initialSteps = intent.getSerializableExtra(EXTRA_MACRO_STEPS) as? List<Map<*, *>>
+        val initialSteps = serializable as? List<Map<*, *>>
         originalSteps = initialSteps
         android.util.Log.d("MacroEditor", "Received initialSteps: $originalSteps")
         if (originalSteps != null) {

@@ -4,6 +4,7 @@
  */
 package org.fcitx.fcitx5.android.ui.main.settings.theme
 
+import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -63,7 +64,12 @@ class ThemeListFragment : Fragment() {
             onThemeImported(newCreated, theme, migrated)
         }
         parentFragmentManager.setFragmentResultListener(REQUEST_THEME_IMPORTED, this) { _, bundle ->
-            val theme = bundle.getParcelable<Theme.Custom>(BUNDLE_THEME) ?: return@setFragmentResultListener
+            val theme = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                bundle.getParcelable(BUNDLE_THEME, Theme.Custom::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                bundle.getParcelable(BUNDLE_THEME)
+            } ?: return@setFragmentResultListener
             val newCreated = bundle.getBoolean(BUNDLE_NEW_CREATED, false)
             val migrated = bundle.getBoolean(BUNDLE_MIGRATED, false)
             onThemeImported(newCreated, theme, migrated)

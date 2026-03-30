@@ -279,8 +279,14 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         if (resultCode == RESULT_OK && data != null) {
             when (requestCode) {
                 KeyEditorDialog.REQUEST_MACRO_EDITOR -> {
+                    @Suppress("UNCHECKED_CAST", "DEPRECATION")
+                    val serializable = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        data.getSerializableExtra(MacroEditorActivity.EXTRA_MACRO_RESULT, ArrayList::class.java)
+                    } else {
+                        data.getSerializableExtra(MacroEditorActivity.EXTRA_MACRO_RESULT)
+                    }
                     @Suppress("UNCHECKED_CAST")
-                    val result = data.getSerializableExtra(MacroEditorActivity.EXTRA_MACRO_RESULT) as? ArrayList<Map<*, *>>
+                    val result = serializable as? ArrayList<Map<*, *>>
                     result?.let {
                         keyEditorDialog.macroEditCallback?.invoke(it as List<Any>)
                     }

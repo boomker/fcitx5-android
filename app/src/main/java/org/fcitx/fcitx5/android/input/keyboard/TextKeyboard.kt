@@ -626,34 +626,27 @@ class TextKeyboard(
 
     private fun updateAlphabetKeys() {
         val displayUppercase = isDisplayCapsOn()
-        textKeys.forEach {
-            val keyDef = it.def
-            if (keyDef is KeyDef.Appearance.AltText) {
-                it.mainText.text = if (keepLettersUppercase) {
-                    keyDef.character.uppercase()
-                } else {
-                    if (displayUppercase) keyDef.character.uppercase() else keyDef.displayText.lowercase()
-                }
-            } else if (keyDef is KeyDef.Appearance.Text) {
-                // handle other text keys if necessary, but mainly AlphabetKey is AltText
-                val str = keyDef.displayText
-                if (str.length == 1 && str[0].isLetter()) {
-                     it.mainText.text = if (keepLettersUppercase) {
-                        str.uppercase()
+        textKeys.forEach { keyView ->
+            val appearance = keyView.def
+            when (appearance) {
+                is KeyDef.Appearance.AltText -> {
+                    keyView.mainText.text = if (keepLettersUppercase) {
+                        appearance.character.uppercase()
                     } else {
-                        if (displayUppercase) str.uppercase() else str.lowercase()
+                        if (displayUppercase) appearance.character.uppercase() else appearance.displayText.lowercase()
                     }
                 }
-            } else if (keyDef is MacroKey) {
-                // MacroKey: update display text based on capsState (only if label is a single letter)
-                val label = keyDef.label
-                if (label.length == 1 && label[0].isLetter()) {
-                    it.mainText.text = if (keepLettersUppercase) {
-                        label.uppercase()
-                    } else {
-                        if (displayUppercase) label.uppercase() else label.lowercase()
+                is KeyDef.Appearance.Text -> {
+                    val str = appearance.displayText
+                    if (str.length == 1 && str[0].isLetter()) {
+                        keyView.mainText.text = if (keepLettersUppercase) {
+                            str.uppercase()
+                        } else {
+                            if (displayUppercase) str.uppercase() else str.lowercase()
+                        }
                     }
                 }
+                else -> { /* Other appearance types: Image, ImageText - do nothing */ }
             }
         }
     }
