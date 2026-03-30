@@ -29,8 +29,8 @@ import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.data.prefs.ManagedPreferenceProvider
 import org.fcitx.fcitx5.android.data.prefs.SplitKeyboardStateManager
 import org.fcitx.fcitx5.android.data.theme.ThemeManager
-import org.fcitx.fcitx5.android.core.InputMethodEntry
 import org.fcitx.fcitx5.android.input.keyboard.TextKeyboard
+import org.fcitx.fcitx5.android.ui.main.settings.preview.PreviewInputMethodEntry
 import org.fcitx.fcitx5.android.utils.DeviceInfoCollector
 import org.fcitx.fcitx5.android.utils.DeviceType
 import splitties.dimensions.dp
@@ -47,7 +47,7 @@ import splitties.views.backgroundColor
  * 4. Support for foldable devices with multiple DPI
  */
 class SplitKeyboardCalibrationActivity : AppCompatActivity() {
-    private val previewIme = InputMethodEntry("Preview")
+    private val previewIme = PreviewInputMethodEntry.create()
 
     private lateinit var toolbar: Toolbar
     private lateinit var previewKeyboardContainer: FrameLayout

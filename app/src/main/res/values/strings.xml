@@ -163,6 +163,8 @@
     <string name="light_mode_theme">Light mode theme</string>
     <string name="dark_mode_theme">Dark mode theme</string>
     <string name="new_theme">New theme</string>
+    <string name="theme_name">Theme name</string>
+    <string name="theme_name_empty">Theme name cannot be empty</string>
     <string name="skip">Skip</string>
     <string name="horizontal_candidate_growth">Stretch horizontal candidates to fill the remaining width</string>
     <string name="none">None</string>

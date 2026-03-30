@@ -92,8 +92,12 @@ class ThemeListFragment : Fragment() {
                     ThemeManager.deleteTheme(name)
                 }
                 is CustomThemeActivity.BackgroundResult.Updated -> {
+                    val oldName = result.oldName
                     val theme = result.theme
-                    themeListAdapter.replaceTheme(theme)
+                    themeListAdapter.replaceTheme(oldName, theme)
+                    if (oldName != theme.name) {
+                        ThemeManager.deleteTheme(oldName)
+                    }
                     ThemeManager.saveTheme(theme)
                 }
             }
@@ -261,10 +265,8 @@ class ThemeListFragment : Fragment() {
                 .setPositiveButton(android.R.string.ok, null)
                 .setNegativeButton(R.string.disable_it) { _, _ ->
                     followSystemDayNightTheme = false
-                    lifecycleScope.launch {
-                        ThemeManager.setNormalModeTheme(theme)
-                        updateSelectedThemes()
-                    }
+                    ThemeManager.setNormalModeTheme(theme)
+                    updateSelectedThemes()
                 }
                 .show()
             return
@@ -293,15 +295,15 @@ class ThemeListFragment : Fragment() {
         }
     }
 
-    override fun onDestroy() {
-        ThemeManager.removeOnChangedListener(onThemeChangeListener)
-        super.onDestroy()
-    }
-
     companion object {
         const val REQUEST_THEME_IMPORTED = "theme_list_request_imported"
         const val BUNDLE_THEME = "theme_list_bundle_theme"
         const val BUNDLE_NEW_CREATED = "theme_list_bundle_new_created"
         const val BUNDLE_MIGRATED = "theme_list_bundle_migrated"
+    }
+
+    override fun onDestroy() {
+        ThemeManager.removeOnChangedListener(onThemeChangeListener)
+        super.onDestroy()
     }
 }

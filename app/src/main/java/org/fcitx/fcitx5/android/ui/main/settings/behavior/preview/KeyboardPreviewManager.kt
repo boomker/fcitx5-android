@@ -18,7 +18,6 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import org.fcitx.fcitx5.android.R
-import org.fcitx.fcitx5.android.core.InputMethodEntry
 import org.fcitx.fcitx5.android.daemon.FcitxConnection
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.data.theme.ThemeManager
@@ -27,6 +26,7 @@ import org.fcitx.fcitx5.android.input.config.ConfigProviders
 import org.fcitx.fcitx5.android.input.config.DefaultConfigProvider
 import org.fcitx.fcitx5.android.input.config.MemoryConfigProvider
 import org.fcitx.fcitx5.android.input.keyboard.TextKeyboard
+import org.fcitx.fcitx5.android.ui.main.settings.preview.PreviewInputMethodEntry
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.utils.LayoutJsonUtils
 import splitties.dimensions.dp
 import java.io.File
@@ -195,25 +195,11 @@ class KeyboardPreviewManager(
                 fcitxConnection.runImmediately { inputMethodEntryCached }
             }.getOrNull()
 
-            val selectedSubModeLabel = previewSubModeLabel?.trim().orEmpty()
-            val previewIme = currentIme
-                ?.copy(
-                    uniqueName = layoutName,
-                    name = layoutName,
-                    subMode = if (selectedSubModeLabel.isNotEmpty()) {
-                        currentIme.subMode.copy(
-                            label = selectedSubModeLabel,
-                            name = selectedSubModeLabel
-                        )
-                    } else {
-                        currentIme.subMode.copy(
-                            name = "",
-                            label = "",
-                            icon = ""
-                        )
-                    }
-                )
-                ?: InputMethodEntry(layoutName)
+            val previewIme = PreviewInputMethodEntry.create(
+                layoutName = layoutName,
+                subModeLabel = previewSubModeLabel,
+                base = currentIme
+            )
 
             onInputMethodUpdate(previewIme)
             setTextScale(1.0f)

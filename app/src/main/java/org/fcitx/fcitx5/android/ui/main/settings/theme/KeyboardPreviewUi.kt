@@ -22,7 +22,7 @@ import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.data.theme.ThemeManager
 import org.fcitx.fcitx5.android.data.theme.ThemePrefs.NavbarBackground
 import org.fcitx.fcitx5.android.input.keyboard.TextKeyboard
-import org.fcitx.fcitx5.android.core.InputMethodEntry
+import org.fcitx.fcitx5.android.ui.main.settings.preview.PreviewInputMethodEntry
 import org.fcitx.fcitx5.android.utils.navbarFrameHeight
 import splitties.dimensions.dp
 import splitties.views.backgroundColor
@@ -207,11 +207,6 @@ class KeyboardPreviewUi(override val ctx: Context, val theme: Theme) : Ui {
         
         val sameTheme = currentTheme != null && currentTheme == theme
 
-        // Skip update if theme unchanged and not forcing refresh
-        if (!forceRefresh && sameTheme) {
-            return
-        }
-
         setBackground(background ?: theme.backgroundDrawable(keyBorder))
 
         // First-time setup: create new keyboard view
@@ -232,7 +227,7 @@ class KeyboardPreviewUi(override val ctx: Context, val theme: Theme) : Ui {
 
             fakeKeyboardWindow.post {
                 fakeKeyboardWindow.onAttach()
-                fakeKeyboardWindow.onInputMethodUpdate(InputMethodEntry("Preview"))
+                fakeKeyboardWindow.onInputMethodUpdate(PreviewInputMethodEntry.create())
                 fakeKeyboardWindow.setTextScale(sizeScale)
                 fakeKeyboardWindow.requestLayout()
                 fakeKeyboardWindow.invalidate()
@@ -245,12 +240,10 @@ class KeyboardPreviewUi(override val ctx: Context, val theme: Theme) : Ui {
             fakeKeyboardWindow.post {
                 try {
                     isUpdatingTheme = true
-                    if (forceRefresh) {
+                    if (forceRefresh || sameTheme) {
                         // Config changed: rebuild layout
                         // refreshStyle() reads latest config from ThemeManager.prefs
                         fakeKeyboardWindow.refreshStyle()
-                    } else if (sameTheme) {
-                        fakeKeyboardWindow.invalidate()
                     } else {
                         // Theme changed: update colors without rebuilding
                         currentTheme = theme

@@ -10,6 +10,7 @@ import androidx.annotation.CallSuper
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.Preference
 import androidx.preference.PreferenceScreen
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.fcitx.fcitx5.android.ui.common.PaddingPreferenceFragment
 
@@ -38,7 +39,9 @@ abstract class ManagedPreferenceFragment(private val preferenceProvider: Managed
 
     override fun onStop() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            AppPrefs.getInstance().syncToDeviceEncryptedStorage()
+            lifecycleScope.launch(Dispatchers.IO) {
+                AppPrefs.getInstance().syncToDeviceEncryptedStorage()
+            }
         }
         super.onStop()
     }

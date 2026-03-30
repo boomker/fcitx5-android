@@ -345,14 +345,19 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
      */
     @Keep
     private val onThemeChangeListener = ThemeManager.OnThemeChangeListener { theme ->
+        if (!isInputViewShown) return@OnThemeChangeListener
         if (isInInputLifecycleCriticalPhase) {
             contentView.post {
-                if (!isInInputLifecycleCriticalPhase) {
+                if (!isInInputLifecycleCriticalPhase && isInputViewShown) {
                     replaceInputViews(theme)
                 }
             }
         } else {
-            replaceInputViews(theme)
+            contentView.post {
+                if (isInputViewShown) {
+                    replaceInputViews(theme)
+                }
+            }
         }
     }
 

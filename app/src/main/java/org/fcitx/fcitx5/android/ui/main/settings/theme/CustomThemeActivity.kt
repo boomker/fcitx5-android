@@ -53,6 +53,7 @@ import kotlinx.parcelize.Parcelize
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.data.theme.ThemeFilesManager
+import org.fcitx.fcitx5.android.data.theme.ThemeManager
 import org.fcitx.fcitx5.android.data.theme.ThemePreset
 import org.fcitx.fcitx5.android.ui.common.withLoadingDialog
 import org.fcitx.fcitx5.android.ui.main.CropImageActivity.CropContract
@@ -61,6 +62,7 @@ import org.fcitx.fcitx5.android.ui.main.CropImageActivity.CropResult
 import org.fcitx.fcitx5.android.utils.DarkenColorFilter
 import org.fcitx.fcitx5.android.utils.item
 import org.fcitx.fcitx5.android.utils.parcelable
+import org.fcitx.fcitx5.android.utils.toast
 import splitties.dimensions.dp
 import splitties.resources.color
 import splitties.resources.resolveThemeAttribute
@@ -99,7 +101,10 @@ import java.io.File
 class CustomThemeActivity : AppCompatActivity() {
     sealed interface BackgroundResult : Parcelable {
         @Parcelize
-        data class Updated(val theme: Theme.Custom) : BackgroundResult
+        data class Updated(
+            val oldName: String,
+            val theme: Theme.Custom
+        ) : BackgroundResult
 
         @Parcelize
         data class Created(val theme: Theme.Custom) : BackgroundResult
@@ -137,6 +142,51 @@ class CustomThemeActivity : AppCompatActivity() {
         horizontalPadding = dp(16)
         if (ripple) {
             background = styledDrawable(android.R.attr.selectableItemBackground)
+        }
+    }
+
+    private fun promptRenameTheme() {
+        val input = EditText(this).apply {
+            setText(theme.name)
+            setSelection(text.length)
+            setSingleLine(true)
+        }
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.theme_name)
+            .setView(input)
+            .setPositiveButton(android.R.string.ok, null)
+            .setNegativeButton(android.R.string.cancel, null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val newName = input.text?.toString()?.trim().orEmpty()
+                if (newName.isEmpty()) {
+                    toast(R.string.theme_name_empty)
+                    return@setOnClickListener
+                }
+                if (newName == theme.name) {
+                    dialog.dismiss()
+                    return@setOnClickListener
+                }
+                val nameClashes = ThemeManager.getAllThemes().any { it.name == newName }
+                if (nameClashes) {
+                    toast(R.string.exception_theme_name_clash)
+                    return@setOnClickListener
+                }
+                theme = theme.copy(name = newName)
+                supportActionBar?.title = toThemeLabel(newName)
+                applyThemePreview(theme)
+                dialog.dismiss()
+            }
+        }
+        dialog.show()
+    }
+
+    private fun toThemeLabel(name: String): String {
+        return if (name.length == 36 && name.count { it == '-' } == 4) {
+            name.take(8)
+        } else {
+            name
         }
     }
 
@@ -734,6 +784,7 @@ class CustomThemeActivity : AppCompatActivity() {
     private var newCreated = true
 
     private lateinit var theme: Theme.Custom
+    private var originalThemeName: String? = null
 
     private class BackgroundStates {
         lateinit var launcher: ActivityResultLauncher<CropOption>
@@ -797,6 +848,7 @@ class CustomThemeActivity : AppCompatActivity() {
         // recover from bundle
         val originTheme = intent?.parcelable<Theme.Custom>(ORIGIN_THEME)?.also { t ->
             theme = t
+            originalThemeName = t.name
             whenHasBackground {
                 // Resolve relative path to absolute path
                 val croppedFile = resolveBackgroundFile(it.croppedFilePath)
@@ -844,6 +896,7 @@ class CustomThemeActivity : AppCompatActivity() {
         setSupportActionBar(toolbar)
         // show back button
         supportActionBar!!.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.title = toThemeLabel(theme.name)
         setContentView(ui)
         registerLayoutChangeObserver()
         applyThemePreview(theme)
@@ -983,7 +1036,10 @@ class CustomThemeActivity : AppCompatActivity() {
                         if (newCreated)
                             BackgroundResult.Created(newTheme)
                         else
-                            BackgroundResult.Updated(newTheme)
+                            BackgroundResult.Updated(
+                                oldName = originalThemeName ?: newTheme.name,
+                                theme = newTheme
+                            )
                     )
                 })
             finish()
@@ -1019,6 +1075,9 @@ class CustomThemeActivity : AppCompatActivity() {
             }
         }
         val iconTint = styledColor(android.R.attr.colorControlNormal)
+        menu.item(R.string.theme_name, R.drawable.ic_baseline_edit_24, iconTint, true) {
+            promptRenameTheme()
+        }
         menu.item(R.string.save, R.drawable.ic_baseline_check_24, iconTint, true) {
             done()
         }

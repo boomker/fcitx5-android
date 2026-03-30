@@ -19,7 +19,6 @@ import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
 import kotlinx.coroutines.launch
 import org.fcitx.fcitx5.android.R
-import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.data.theme.ThemeManager
 import splitties.dimensions.dp
 import splitties.resources.styledColor
@@ -43,19 +42,10 @@ class ThemeFragment : Fragment() {
 
     private lateinit var viewPager: ViewPager2
 
-    // Track visibility to avoid unnecessary updates during tab switch
-    private var isPreviewVisible = true
-    private var lastTheme: Theme? = null
-
     @Keep
-    private val onThemeChangeListener = ThemeManager.OnThemeChangeListener { theme ->
+    private val onThemeChangeListener = ThemeManager.OnThemeChangeListener {
         lifecycleScope.launch {
-            if (isPreviewVisible) {
-                val isThemeChange = lastTheme == null || lastTheme != theme
-                lastTheme = theme
-                // Theme change: update colors; Config change: rebuild layout
-                previewUi.setTheme(theme, forceRefresh = !isThemeChange)
-            }
+            previewUi.setTheme(it)
         }
     }
 
@@ -77,7 +67,6 @@ class ThemeFragment : Fragment() {
         tabLayout = TabLayout(this)
 
         viewPager = ViewPager2(this).apply {
-            isUserInputEnabled = false
             adapter = object : FragmentStateAdapter(this@ThemeFragment) {
                 override fun getItemCount() = 2
                 override fun createFragment(position: Int): Fragment = when (position) {
@@ -125,16 +114,6 @@ class ThemeFragment : Fragment() {
         }
     }
 
-    override fun onResume() {
-        super.onResume()
-        isPreviewVisible = true
-    }
-
-    override fun onPause() {
-        super.onPause()
-        isPreviewVisible = false
-    }
-
     override fun onStop() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             ThemeManager.syncToDeviceEncryptedStorage()
@@ -146,4 +125,5 @@ class ThemeFragment : Fragment() {
         ThemeManager.removeOnChangedListener(onThemeChangeListener)
         super.onDestroy()
     }
+
 }
