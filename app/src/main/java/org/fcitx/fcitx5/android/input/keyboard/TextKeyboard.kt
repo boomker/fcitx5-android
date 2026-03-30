@@ -81,6 +81,15 @@ class TextKeyboard(
             }
         }
 
+        @Synchronized
+        fun clearCapsStateOnAll() {
+            val living = attachedKeyboards.mapNotNull { it.get() }
+            attachedKeyboards.removeAll { it.get() == null }
+            living.forEach { keyboard ->
+                keyboard.clearLocalCapsState()
+            }
+        }
+
         // Cache for raw JSON layout (preserves submode structure)
         internal var cachedRawLayoutJson: JsonObject? = null
         private var lastRawModified = 0L
@@ -591,6 +600,7 @@ class TextKeyboard(
     }
 
     private fun switchCapsState(lock: Boolean = false) {
+        val oldCapsState = capsState
         capsState =
             if (lock) {
                 when (capsState) {
@@ -603,12 +613,23 @@ class TextKeyboard(
                     else -> CapsState.None
                 }
             }
+        val oldLocked = oldCapsState == CapsState.Lock
+        val newLocked = capsState == CapsState.Lock
+        if (oldLocked != newLocked) {
+            getService()?.setVirtualCapsLockState(newLocked)
+        }
         refreshCapsPresentation()
     }
 
     private fun refreshCapsPresentation() {
         updateCapsButtonIcon()
         updateAlphabetKeys()
+    }
+
+    private fun clearLocalCapsState() {
+        if (capsState == CapsState.None) return
+        capsState = CapsState.None
+        refreshCapsPresentation()
     }
 
     private fun updateCapsButtonIcon() {
