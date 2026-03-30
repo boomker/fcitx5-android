@@ -462,4 +462,19 @@
     <string name="text_keyboard_layout_qr_import_confirm_message">%1$d 件のレイアウト項目を検出しました。現在編集中のメモリデータを置き換えてインポートしますか？</string>
     <string name="text_keyboard_layout_qr_import_success">QRレイアウトをインポートしました。保存するとファイルに反映されます。</string>
     <string name="text_keyboard_layout_qr_import_failed">QRペイロードのインポートに失敗しました：%1$s</string>
+    <string name="text_keyboard_layout_qr_type_mismatch">QRタイプが一致しません。想定: %1$s、実際: %2$s。</string>
+    <string name="qr_payload_type_theme">テーマ</string>
+    <string name="qr_payload_type_layout">レイアウト</string>
+    <string name="qr_payload_type_popup">ポップアップ</string>
+    <string name="qr_payload_type_unknown">不明</string>
+    <string name="theme_share_import_menu">テーマ共有/インポート</string>
+    <string name="theme_share_active">現在の有効テーマを共有</string>
+    <string name="theme_import_qr_scan">QRスキャンでテーマをインポート</string>
+    <string name="theme_import_qr_image">QR画像からテーマをインポート</string>
+    <string name="theme_share_has_background_zip_tip">このテーマには背景画像リソースが含まれます。既存のテーマエクスポートZIP形式で共有します。</string>
+    <string name="theme_share_zip_title">テーマパッケージを共有</string>
+    <string name="theme_share_qr_title">テーマQR画像を共有</string>
+    <string name="theme_import_overwrite_title">テーマは既に存在します</string>
+    <string name="theme_import_overwrite_message">テーマ「%1$s」は既に存在します。上書きしますか？</string>
+    <string name="theme_imported_from_qr">テーマをインポートして保存しました。</string>
 </resources>

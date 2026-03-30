@@ -512,4 +512,19 @@
     <string name="text_keyboard_layout_qr_import_confirm_message">Обнаружено %1$d элементов раскладки. Импортировать и заменить текущие редактируемые данные в памяти?</string>
     <string name="text_keyboard_layout_qr_import_success">QR-раскладка импортирована. Сохраните, чтобы записать изменения в файл.</string>
     <string name="text_keyboard_layout_qr_import_failed">Не удалось импортировать QR-нагрузку: %1$s</string>
+    <string name="text_keyboard_layout_qr_type_mismatch">Несовпадение типа QR. Ожидался %1$s, получен %2$s.</string>
+    <string name="qr_payload_type_theme">Тема</string>
+    <string name="qr_payload_type_layout">Раскладка</string>
+    <string name="qr_payload_type_popup">Всплывающее окно</string>
+    <string name="qr_payload_type_unknown">Неизвестно</string>
+    <string name="theme_share_import_menu">Поделиться/импортировать тему</string>
+    <string name="theme_share_active">Поделиться текущей активной темой</string>
+    <string name="theme_import_qr_scan">Импортировать тему сканированием QR</string>
+    <string name="theme_import_qr_image">Импортировать тему из QR-изображения</string>
+    <string name="theme_share_has_background_zip_tip">Эта тема содержит ресурсы фонового изображения. Она будет отправлена как ZIP-пакет в существующем формате экспорта темы.</string>
+    <string name="theme_share_zip_title">Поделиться пакетом темы</string>
+    <string name="theme_share_qr_title">Поделиться QR-изображением темы</string>
+    <string name="theme_import_overwrite_title">Тема уже существует</string>
+    <string name="theme_import_overwrite_message">Тема \"%1$s\" уже существует. Перезаписать?</string>
+    <string name="theme_imported_from_qr">Тема импортирована и сохранена.</string>
 </resources>

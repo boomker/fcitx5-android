@@ -37,6 +37,7 @@ class ThemeListFragment : Fragment() {
     private lateinit var importLauncher: ActivityResultLauncher<String>
 
     private lateinit var exportLauncher: ActivityResultLauncher<String>
+    private lateinit var shareImportManager: ThemeShareImportManager
 
     private lateinit var themeListAdapter: ThemeListAdapter
 
@@ -53,6 +54,20 @@ class ThemeListFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        shareImportManager = ThemeShareImportManager(
+            fragment = this,
+            previewViewProvider = {
+                parentFragment?.view?.findViewWithTag<View>("theme_preview_capture")
+            }
+        ) { newCreated, theme, migrated ->
+            onThemeImported(newCreated, theme, migrated)
+        }
+        parentFragmentManager.setFragmentResultListener(REQUEST_THEME_IMPORTED, this) { _, bundle ->
+            val theme = bundle.getParcelable<Theme.Custom>(BUNDLE_THEME) ?: return@setFragmentResultListener
+            val newCreated = bundle.getBoolean(BUNDLE_NEW_CREATED, false)
+            val migrated = bundle.getBoolean(BUNDLE_MIGRATED, false)
+            onThemeImported(newCreated, theme, migrated)
+        }
 
         imageLauncher = registerForActivityResult(CustomThemeActivity.Contract()) { result ->
             if (result == null) return@registerForActivityResult
@@ -182,7 +197,10 @@ class ThemeListFragment : Fragment() {
         val actions = arrayOf(
             getString(R.string.choose_image),
             getString(R.string.import_from_file),
-            getString(R.string.duplicate_builtin_theme)
+            getString(R.string.duplicate_builtin_theme),
+            getString(R.string.theme_share_active),
+            getString(R.string.theme_import_qr_scan),
+            getString(R.string.theme_import_qr_image)
         )
         AlertDialog.Builder(ctx)
             .setTitle(R.string.new_theme)
@@ -219,6 +237,9 @@ class ThemeListFragment : Fragment() {
                         }
                         dialog.show()
                     }
+                    3 -> shareImportManager.shareActiveThemeFromMenu()
+                    4 -> shareImportManager.importThemeByQrScan()
+                    5 -> shareImportManager.importThemeByQrImage()
                 }
             }
             .show()
@@ -254,8 +275,27 @@ class ThemeListFragment : Fragment() {
         exportLauncher.launch(theme.name + ".zip")
     }
 
+    private fun onThemeImported(newCreated: Boolean, theme: Theme.Custom, migrated: Boolean) {
+        ThemeManager.refreshThemes()
+        if (newCreated) {
+            themeListAdapter.prependTheme(theme)
+        } else {
+            themeListAdapter.replaceTheme(theme)
+        }
+        if (migrated) {
+            requireContext().toast(R.string.theme_migrated)
+        }
+    }
+
     override fun onDestroy() {
         ThemeManager.removeOnChangedListener(onThemeChangeListener)
         super.onDestroy()
+    }
+
+    companion object {
+        const val REQUEST_THEME_IMPORTED = "theme_list_request_imported"
+        const val BUNDLE_THEME = "theme_list_bundle_theme"
+        const val BUNDLE_NEW_CREATED = "theme_list_bundle_new_created"
+        const val BUNDLE_MIGRATED = "theme_list_bundle_migrated"
     }
 }

@@ -326,4 +326,19 @@
     <string name="text_keyboard_layout_qr_import_confirm_message">Se detectaron %1$d entradas de diseño. ¿Importar y reemplazar los datos en memoria que se están editando?</string>
     <string name="text_keyboard_layout_qr_import_success">Diseño QR importado. Guarda para persistir los cambios.</string>
     <string name="text_keyboard_layout_qr_import_failed">No se pudo importar la carga QR: %1$s</string>
+    <string name="text_keyboard_layout_qr_type_mismatch">Tipo de QR no coincide. Se esperaba %1$s, pero se obtuvo %2$s.</string>
+    <string name="qr_payload_type_theme">Tema</string>
+    <string name="qr_payload_type_layout">Diseño</string>
+    <string name="qr_payload_type_popup">Popup</string>
+    <string name="qr_payload_type_unknown">Desconocido</string>
+    <string name="theme_share_import_menu">Compartir/Importar tema</string>
+    <string name="theme_share_active">Compartir tema activo actual</string>
+    <string name="theme_import_qr_scan">Importar tema escaneando QR</string>
+    <string name="theme_import_qr_image">Importar tema desde imagen QR</string>
+    <string name="theme_share_has_background_zip_tip">Este tema incluye recursos de imagen de fondo. Se compartirá como paquete ZIP usando el formato de exportación existente.</string>
+    <string name="theme_share_zip_title">Compartir paquete de tema</string>
+    <string name="theme_share_qr_title">Compartir imagen QR del tema</string>
+    <string name="theme_import_overwrite_title">El tema ya existe</string>
+    <string name="theme_import_overwrite_message">El tema \"%1$s\" ya existe. ¿Sobrescribirlo?</string>
+    <string name="theme_imported_from_qr">Tema importado y guardado.</string>
 </resources>

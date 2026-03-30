@@ -34,6 +34,7 @@ import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.input.config.ConfigProviders
 import org.fcitx.fcitx5.android.input.config.ConfigProvider
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.share.JsonFileQrShareManager
+import org.fcitx.fcitx5.android.ui.main.settings.behavior.share.LayoutQrTransferCodec
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.share.QrChunkCollector
 import splitties.dimensions.dp
 import splitties.resources.styledColor
@@ -570,7 +571,14 @@ class PopupEditorActivity : AppCompatActivity() {
                     throw IllegalStateException(getString(R.string.save_failed))
                 }
                 val file = popupFile ?: throw IllegalStateException(getString(R.string.cannot_resolve_popup_preset))
-                withContext(Dispatchers.Default) { JsonFileQrShareManager.encodeSavedJsonFileToLongImage(file) }
+                withContext(Dispatchers.Default) {
+                    JsonFileQrShareManager.encodeSavedJsonFileToLongImage(
+                        file = file,
+                        transferType = LayoutQrTransferCodec.TRANSFER_TYPE_POPUP,
+                        typeLabel = getString(R.string.qr_payload_type_popup),
+                        nameLabel = file.name
+                    )
+                }
             }.onSuccess { (longImage, _) ->
                 val uri = JsonFileQrShareManager.saveLongImageToShareCache(this@PopupEditorActivity, longImage, "popup-preset-qr")
                 val sendIntent = Intent(Intent.ACTION_SEND).apply {
@@ -610,6 +618,23 @@ class PopupEditorActivity : AppCompatActivity() {
                     showToast(getString(R.string.text_keyboard_layout_qr_import_no_chunk))
                     return@onSuccess
                 }
+                val firstChunk = runCatching { LayoutQrTransferCodec.parseChunk(chunks.first()) }.getOrNull()
+                val detectedType = firstChunk?.let { LayoutQrTransferCodec.detectTransferType(it.transferId) }
+                if (detectedType != null && detectedType != LayoutQrTransferCodec.TRANSFER_TYPE_POPUP) {
+                    showToast(
+                        getString(
+                            R.string.text_keyboard_layout_qr_type_mismatch,
+                            getString(R.string.qr_payload_type_popup),
+                            when (detectedType) {
+                                LayoutQrTransferCodec.TRANSFER_TYPE_THEME -> getString(R.string.qr_payload_type_theme)
+                                LayoutQrTransferCodec.TRANSFER_TYPE_LAYOUT -> getString(R.string.qr_payload_type_layout)
+                                LayoutQrTransferCodec.TRANSFER_TYPE_POPUP -> getString(R.string.qr_payload_type_popup)
+                                else -> getString(R.string.qr_payload_type_unknown)
+                            }
+                        )
+                    )
+                    return@onSuccess
+                }
                 val json = JsonFileQrShareManager.decodeChunksToJson(chunks)
                 applyImportedPopupJson(json)
             }.onFailure {
@@ -619,6 +644,23 @@ class PopupEditorActivity : AppCompatActivity() {
     }
 
     private fun addImportedChunkFromText(raw: String) {
+        val headerChunk = JsonFileQrShareManager.parseQrPayload(raw)
+        val headerType = headerChunk?.let { LayoutQrTransferCodec.detectTransferType(it.transferId) }
+        if (headerType != null && headerType != LayoutQrTransferCodec.TRANSFER_TYPE_POPUP) {
+            showToast(
+                getString(
+                    R.string.text_keyboard_layout_qr_type_mismatch,
+                    getString(R.string.qr_payload_type_popup),
+                    when (headerType) {
+                        LayoutQrTransferCodec.TRANSFER_TYPE_THEME -> getString(R.string.qr_payload_type_theme)
+                        LayoutQrTransferCodec.TRANSFER_TYPE_LAYOUT -> getString(R.string.qr_payload_type_layout)
+                        LayoutQrTransferCodec.TRANSFER_TYPE_POPUP -> getString(R.string.qr_payload_type_popup)
+                        else -> getString(R.string.qr_payload_type_unknown)
+                    }
+                )
+            )
+            return
+        }
         val progress = runCatching { qrChunkCollector.addAndMaybeAssemble(raw) }.getOrNull()
         if (progress == null) {
             showToast(getString(R.string.text_keyboard_layout_qr_invalid_payload))
@@ -643,9 +685,14 @@ class PopupEditorActivity : AppCompatActivity() {
     private fun applyImportedPopupJson(json: String) {
         runCatching {
             val parsed = Json.parseToJsonElement(json).jsonObject.mapValues { (_, v) ->
-                v.jsonArray.mapNotNull { it.jsonPrimitive.contentOrNull?.trim() }.filter { it.isNotEmpty() }
+                val arr = v.jsonArray
+                val values = arr.map { it.jsonPrimitive.contentOrNull?.trim() }
+                require(values.none { it == null }) { "Invalid popup entry payload" }
+                values.filterNotNull().filter { it.isNotEmpty() }
             }
-            if (parsed.isEmpty()) throw IllegalArgumentException("No valid popup entries")
+            if (parsed.isEmpty() || parsed.values.none { it.isNotEmpty() }) {
+                throw IllegalArgumentException("No valid popup entries")
+            }
             parsed
         }.onSuccess { parsed ->
             AlertDialog.Builder(this)
@@ -661,7 +708,24 @@ class PopupEditorActivity : AppCompatActivity() {
                 .setNegativeButton(android.R.string.cancel, null)
                 .show()
         }.onFailure {
-            showToast(getString(R.string.text_keyboard_layout_qr_import_failed, it.localizedMessage ?: ""))
+            val message = it.message.orEmpty()
+            if (message.startsWith("type_mismatch:")) {
+                val type = message.removePrefix("type_mismatch:").firstOrNull()
+                showToast(
+                    getString(
+                        R.string.text_keyboard_layout_qr_type_mismatch,
+                        getString(R.string.qr_payload_type_popup),
+                        when (type) {
+                            LayoutQrTransferCodec.TRANSFER_TYPE_THEME -> getString(R.string.qr_payload_type_theme)
+                            LayoutQrTransferCodec.TRANSFER_TYPE_LAYOUT -> getString(R.string.qr_payload_type_layout)
+                            LayoutQrTransferCodec.TRANSFER_TYPE_POPUP -> getString(R.string.qr_payload_type_popup)
+                            else -> getString(R.string.qr_payload_type_unknown)
+                        }
+                    )
+                )
+            } else {
+                showToast(getString(R.string.text_keyboard_layout_qr_import_failed, it.localizedMessage ?: ""))
+            }
         }
     }
 

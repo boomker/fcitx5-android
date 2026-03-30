@@ -26,6 +26,9 @@ object LayoutQrTransferCodec {
 
     private const val MAGIC = "F5AQR1"
     private const val MAX_CHUNK_BYTES = 1500
+    const val TRANSFER_TYPE_LAYOUT = 'L'
+    const val TRANSFER_TYPE_POPUP = 'P'
+    const val TRANSFER_TYPE_THEME = 'T'
 
     data class Chunk(
         val transferId: String,
@@ -45,10 +48,10 @@ object LayoutQrTransferCodec {
 
     data class ChunkBundle(val transferId: String, val total: Int, val chunks: List<Chunk>)
 
-    fun encodeJsonToChunks(rawJson: String): ChunkBundle {
+    fun encodeJsonToChunks(rawJson: String, transferType: Char? = null): ChunkBundle {
         val compressed = compress(rawJson.toByteArray(Charsets.UTF_8))
         val crc = crc32(compressed)
-        val transferId = UUID.randomUUID().toString().replace("-", "").take(12)
+        val transferId = buildTransferId(transferType)
         val chunkCount = (compressed.size + MAX_CHUNK_BYTES - 1) / MAX_CHUNK_BYTES
         val chunks = ArrayList<Chunk>(chunkCount)
         var i = 0
@@ -96,6 +99,11 @@ object LayoutQrTransferCodec {
 
     fun parseChunk(raw: String): Chunk = decodeChunkLine(raw)
 
+    fun detectTransferType(transferId: String): Char? = when (transferId.firstOrNull()) {
+        TRANSFER_TYPE_LAYOUT, TRANSFER_TYPE_POPUP, TRANSFER_TYPE_THEME -> transferId.first()
+        else -> null
+    }
+
     fun normalizeLayoutJson(jsonText: String): String {
         val element = json.parseToJsonElement(jsonText)
         return Json { prettyPrint = true }.encodeToString(element) + "\n"
@@ -122,6 +130,12 @@ object LayoutQrTransferCodec {
         if (index <= 0 || total <= 0 || index > total) throw IllegalArgumentException("Chunk sequence out of range")
         val crc = parts[3].toLongOrNull() ?: throw IllegalArgumentException("Invalid crc32")
         return Chunk(transferId, index, total, crc, parts[4])
+    }
+
+    private fun buildTransferId(transferType: Char?): String {
+        val random = UUID.randomUUID().toString().replace("-", "").lowercase()
+        val normalizedType = transferType?.uppercaseChar()
+        return if (normalizedType != null) "$normalizedType${random.take(11)}" else random.take(12)
     }
 
     private fun compress(raw: ByteArray): ByteArray {

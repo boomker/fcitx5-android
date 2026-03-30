@@ -540,4 +540,19 @@
     <string name="text_keyboard_layout_qr_import_confirm_message">檢測到 %1$d 條佈局資料。是否匯入並覆蓋目前編輯中的記憶體資料？</string>
     <string name="text_keyboard_layout_qr_import_success">二維碼佈局已匯入，點擊保存即可寫入檔案。</string>
     <string name="text_keyboard_layout_qr_import_failed">匯入二維碼載荷失敗：%1$s</string>
+    <string name="text_keyboard_layout_qr_type_mismatch">二維碼類型不相符。預期 %1$s，實際為 %2$s。</string>
+    <string name="qr_payload_type_theme">主題</string>
+    <string name="qr_payload_type_layout">佈局</string>
+    <string name="qr_payload_type_popup">Popup</string>
+    <string name="qr_payload_type_unknown">未知</string>
+    <string name="theme_share_import_menu">主題分享/匯入</string>
+    <string name="theme_share_active">分享目前啟用主題</string>
+    <string name="theme_import_qr_scan">掃碼匯入主題</string>
+    <string name="theme_import_qr_image">從二維碼圖片匯入主題</string>
+    <string name="theme_share_has_background_zip_tip">此主題包含背景圖片資源，將沿用現有主題匯出壓縮包格式進行分享。</string>
+    <string name="theme_share_zip_title">分享主題壓縮包</string>
+    <string name="theme_share_qr_title">分享主題二維碼圖片</string>
+    <string name="theme_import_overwrite_title">主題已存在</string>
+    <string name="theme_import_overwrite_message">主題「%1$s」已存在，是否覆蓋？</string>
+    <string name="theme_imported_from_qr">主題已匯入並保存。</string>
 </resources>

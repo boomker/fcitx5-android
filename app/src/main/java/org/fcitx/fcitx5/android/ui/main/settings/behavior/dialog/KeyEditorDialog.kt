@@ -250,8 +250,7 @@ class KeyEditorDialog(private val activity: AppCompatActivity) {
                 keyData,
                 isEditingSubModeLayout,
                 currentSubModeLabel,
-                labelTextKey = "displayText",
-                labelKey = "label"
+                labelTextKey = "displayText"
             ) { modeSpecific, simpleValue, items ->
                 macroDisplayTextModeSpecific = modeSpecific
                 macroDisplayTextSimpleValue = simpleValue
@@ -343,7 +342,7 @@ class KeyEditorDialog(private val activity: AppCompatActivity) {
                 "MacroKey" -> {
                     val labelEdit = uiBuilder.createEditField(
                         activity.getString(R.string.text_keyboard_layout_key_label),
-                        keyData["label"] as? String ?: "Macro"
+                        keyData["label"] as? String ?: ""
                     )
                     val altLabelEdit = uiBuilder.createEditField(
                         activity.getString(R.string.text_keyboard_layout_alt_label),
@@ -576,7 +575,6 @@ class KeyEditorDialog(private val activity: AppCompatActivity) {
         isEditingSubModeLayout: Boolean,
         currentSubModeLabel: String?,
         labelTextKey: String = "displayText",
-        labelKey: String = "label",
         callback: (Boolean, String, MutableList<KeyboardEditorUiBuilder.DisplayTextItem>) -> Unit
     ) {
         val displayTextData = keyData[labelTextKey]
@@ -610,9 +608,9 @@ class KeyEditorDialog(private val activity: AppCompatActivity) {
                 // labelText is a simple string
                 callback(false, labelTextSimple, mutableListOf())
             } else {
-                // No labelText, use label as fallback
-                val labelValue = keyData[labelKey] as? String
-                callback(false, labelValue.orEmpty(), mutableListOf())
+                // No explicit displayText (or null): keep it empty.
+                // Runtime rendering will naturally fallback to main/label.
+                callback(false, "", mutableListOf())
             }
         }
     }

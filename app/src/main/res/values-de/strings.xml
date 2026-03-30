@@ -369,4 +369,19 @@
     <string name="text_keyboard_layout_qr_import_confirm_message">%1$d Layouteinträge erkannt. Importieren und die aktuell im Speicher bearbeiteten Daten ersetzen?</string>
     <string name="text_keyboard_layout_qr_import_success">QR-Layout importiert. Speichern, um Änderungen dauerhaft zu machen.</string>
     <string name="text_keyboard_layout_qr_import_failed">QR-Nutzlast konnte nicht importiert werden: %1$s</string>
+    <string name="text_keyboard_layout_qr_type_mismatch">QR-Typ passt nicht. Erwartet: %1$s, erhalten: %2$s.</string>
+    <string name="qr_payload_type_theme">Theme</string>
+    <string name="qr_payload_type_layout">Layout</string>
+    <string name="qr_payload_type_popup">Popup</string>
+    <string name="qr_payload_type_unknown">Unbekannt</string>
+    <string name="theme_share_import_menu">Theme teilen/importieren</string>
+    <string name="theme_share_active">Aktives Theme teilen</string>
+    <string name="theme_import_qr_scan">Theme per QR-Scan importieren</string>
+    <string name="theme_import_qr_image">Theme aus QR-Bild importieren</string>
+    <string name="theme_share_has_background_zip_tip">Dieses Theme enthält Hintergrundbild-Ressourcen. Es wird als ZIP-Paket im bestehenden Theme-Exportformat geteilt.</string>
+    <string name="theme_share_zip_title">Theme-Paket teilen</string>
+    <string name="theme_share_qr_title">Theme-QR-Bild teilen</string>
+    <string name="theme_import_overwrite_title">Theme existiert bereits</string>
+    <string name="theme_import_overwrite_message">Das Theme \"%1$s\" existiert bereits. Überschreiben?</string>
+    <string name="theme_imported_from_qr">Theme importiert und gespeichert.</string>
 </resources>

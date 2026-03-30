@@ -37,7 +37,6 @@ import splitties.views.dsl.core.matchParent
 import splitties.views.dsl.core.wrapContent
 
 class ThemeFragment : Fragment() {
-
     private lateinit var previewUi: KeyboardPreviewUi
 
     private lateinit var tabLayout: TabLayout
@@ -72,6 +71,7 @@ class ThemeFragment : Fragment() {
             scaleY = 0.5f
             outlineProvider = ViewOutlineProvider.BOUNDS
             elevation = dp(4f)
+            tag = "theme_preview_capture"
         }
 
         tabLayout = TabLayout(this)
