@@ -27,6 +27,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
+import androidx.activity.result.ActivityResultLauncher
 import androidx.core.text.HtmlCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
@@ -64,6 +65,7 @@ import org.fcitx.fcitx5.android.ui.main.settings.behavior.share.QrChunkCollector
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.utils.LayoutJsonUtils
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.dialog.MacroEditorActivity
 import org.fcitx.fcitx5.android.utils.InputMethodUtil
+import org.fcitx.fcitx5.android.utils.serializable
 import splitties.dimensions.dp
 import splitties.resources.styledColor
 import splitties.views.backgroundColor
@@ -193,8 +195,20 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         KeyboardPreviewManager(this, previewKeyboardContainer, dataManager.entries)
     }
     
+    private val macroEditorLauncher: ActivityResultLauncher<Intent> =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        val data = result.data ?: return@registerForActivityResult
+        if (result.resultCode != RESULT_OK) return@registerForActivityResult
+        val steps = data.serializable<ArrayList<Map<*, *>>>(MacroEditorActivity.EXTRA_MACRO_RESULT) ?: return@registerForActivityResult
+        keyEditorDialog.macroEditCallback?.invoke(steps.map { it as Any })
+    }
+
     // 对话框
-    private val keyEditorDialog by lazy { KeyEditorDialog(this) }
+    private val keyEditorDialog: KeyEditorDialog by lazy {
+        KeyEditorDialog(this) { launchIntent: Intent ->
+            macroEditorLauncher.launch(launchIntent)
+        }
+    }
     
     // 子模式管理器
     private lateinit var subModeManager: SubModeManager
@@ -279,14 +293,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         if (resultCode == RESULT_OK && data != null) {
             when (requestCode) {
                 KeyEditorDialog.REQUEST_MACRO_EDITOR -> {
-                    @Suppress("UNCHECKED_CAST", "DEPRECATION")
-                    val serializable = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        data.getSerializableExtra(MacroEditorActivity.EXTRA_MACRO_RESULT, ArrayList::class.java)
-                    } else {
-                        data.getSerializableExtra(MacroEditorActivity.EXTRA_MACRO_RESULT)
-                    }
-                    @Suppress("UNCHECKED_CAST")
-                    val result = serializable as? ArrayList<Map<*, *>>
+                    val result = data.serializable<ArrayList<Map<*, *>>>(MacroEditorActivity.EXTRA_MACRO_RESULT)
                     result?.let {
                         keyEditorDialog.macroEditCallback?.invoke(it as List<Any>)
                     }
@@ -294,7 +301,6 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             }
         }
     }
-
     override fun onDestroy() {
         runCatching { FcitxDaemon.disconnect(FCITX_CONNECTION_NAME) }
         super.onDestroy()

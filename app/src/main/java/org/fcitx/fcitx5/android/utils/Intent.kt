@@ -12,6 +12,7 @@ import android.os.Parcelable
 import android.provider.DocumentsContract
 import androidx.annotation.RequiresApi
 import org.fcitx.fcitx5.android.BuildConfig
+import java.io.Serializable
 
 inline fun <reified T : Parcelable> Intent.parcelable(key: String): T? {
     // https://issuetracker.google.com/issues/240585930#comment6
@@ -29,6 +30,16 @@ inline fun <reified T : Parcelable> Intent.parcelableArray(key: String): Array<T
     } else {
         @Suppress("DEPRECATION", "UNCHECKED_CAST")
         getParcelableArrayExtra(key) as? Array<T>
+    }
+}
+
+inline fun <reified T : Serializable> Intent.serializable(key: String): T? {
+    // https://issuetracker.google.com/issues/240585930#comment6
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+        getSerializableExtra(key, T::class.java)
+    } else {
+        @Suppress("DEPRECATION")
+        getSerializableExtra(key) as? T
     }
 }
 
