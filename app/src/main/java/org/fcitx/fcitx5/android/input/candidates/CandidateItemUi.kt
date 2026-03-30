@@ -40,18 +40,14 @@ class CandidateItemUi(
     }
 
     init {
-        // Priority: external font > cand_font > font > default
-        if (font != null) {
-            text.typeface = font
-        } else {
-            val candFont = FontProviders.fontTypefaceMap["cand_font"]
-            if (candFont != null) {
-                text.typeface = candFont
-            } else {
-                // Fallback to "font" or default
-                val fallbackFont = FontProviders.fontTypefaceMap["font"]
-                text.typeface = fallbackFont ?: Typeface.DEFAULT
-            }
+        applyConfiguredTypeface()
+    }
+
+    fun applyConfiguredTypeface() {
+        // Priority: external font > cand_font > font > current/system default
+        val resolved = font ?: FontProviders.resolveTypeface("cand_font", text.typeface)
+        if (text.typeface !== resolved) {
+            text.typeface = resolved
         }
     }
 

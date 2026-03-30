@@ -112,6 +112,22 @@ object FontProviders {
     }
 
     /**
+     * Resolve typeface with fallback chain:
+     * specific key -> global "font" -> current view typeface (if provided) -> system default.
+     */
+    fun resolveTypeface(key: String, current: Typeface? = null): Typeface {
+        return fontTypefaceMap[key]
+            ?: fontTypefaceMap["font"]
+            ?: current
+            ?: Typeface.DEFAULT
+    }
+
+    /**
+     * Returns true if current refresh flag is set, without consuming it.
+     */
+    fun needsRefresh(): Boolean = needsRefresh
+
+    /**
      * Preload fonts asynchronously. Call this before keyboard is shown.
      */
     fun preloadFontsAsync(onComplete: ((MutableMap<String, Typeface?>) -> Unit)? = null) {

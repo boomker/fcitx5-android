@@ -17,13 +17,13 @@ import androidx.annotation.ColorInt
 import androidx.core.text.buildSpannedString
 import org.fcitx.fcitx5.android.core.FcitxEvent
 import org.fcitx.fcitx5.android.data.theme.Theme
+import org.fcitx.fcitx5.android.input.font.FontProviders
 import splitties.dimensions.dp
 import splitties.views.dsl.core.Ui
 import splitties.views.dsl.core.add
 import splitties.views.dsl.core.lParams
 import splitties.views.dsl.core.textView
 import splitties.views.dsl.core.verticalLayout
-import org.fcitx.fcitx5.android.input.AutoScaleTextView
 
 open class PreeditUi(
     override val ctx: Context,
@@ -54,10 +54,7 @@ open class PreeditUi(
             "preedit_font", 16f
         )
         setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, fontSize)
-        // Fallback: preedit_font → font → default
-        typeface = AutoScaleTextView.fontTypefaceMap["preedit_font"]
-            ?: AutoScaleTextView.fontTypefaceMap["font"]
-            ?: typeface
+        typeface = FontProviders.resolveTypeface("preedit_font", typeface)
     }
 
     private val upView = createTextView()

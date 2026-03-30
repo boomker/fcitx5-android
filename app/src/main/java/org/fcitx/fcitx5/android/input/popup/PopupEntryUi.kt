@@ -33,6 +33,7 @@ class PopupEntryUi(override val ctx: Context, theme: Theme, keyHeight: Int, radi
         setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, fontSize)
         gravity = gravityCenter
         setTextColor(theme.popupTextColor)
+        setFontTypeFace("popup_key_font")
     }
 
     override val root = constraintLayout {

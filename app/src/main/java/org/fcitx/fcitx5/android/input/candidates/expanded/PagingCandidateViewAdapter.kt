@@ -42,6 +42,7 @@ open class PagingCandidateViewAdapter(val theme: Theme) :
 
     override fun onBindViewHolder(holder: CandidateViewHolder, position: Int) {
         val text = getItem(position)!!
+        holder.ui.applyConfiguredTypeface()
         holder.ui.text.text = text
         holder.text = text
         holder.idx = position + offset

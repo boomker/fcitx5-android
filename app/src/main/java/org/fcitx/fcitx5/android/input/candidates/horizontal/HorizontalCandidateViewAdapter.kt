@@ -56,6 +56,7 @@ open class HorizontalCandidateViewAdapter(val theme: Theme) :
     @CallSuper
     override fun onBindViewHolder(holder: CandidateViewHolder, position: Int) {
         val text = candidates[position]
+        holder.ui.applyConfiguredTypeface()
         holder.ui.text.text = text
         holder.text = text
         holder.idx = position
