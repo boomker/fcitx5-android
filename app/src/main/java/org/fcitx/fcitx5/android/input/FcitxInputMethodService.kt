@@ -55,6 +55,7 @@ import org.fcitx.fcitx5.android.core.FcitxAPI
 import org.fcitx.fcitx5.android.core.FcitxEvent
 import org.fcitx.fcitx5.android.core.FcitxKeyMapping
 import org.fcitx.fcitx5.android.core.FormattedText
+import org.fcitx.fcitx5.android.core.KeyState
 import org.fcitx.fcitx5.android.core.KeyStates
 import org.fcitx.fcitx5.android.core.KeySym
 import org.fcitx.fcitx5.android.core.ScancodeMapping
@@ -836,20 +837,52 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         // reason to use a self increment index rather than timestamp:
         // KeyUp and KeyDown events actually can happen on the same time
         val timestamp = cachedKeyEventIndex++
-        cachedKeyEvents.put(timestamp, event)
-        val sym = KeySym.fromKeyEvent(event)
+        val forwardedEvent = if (simulatedCapsLockOn && !event.isCapsLockOn) {
+            KeyEvent(
+                event.downTime,
+                event.eventTime,
+                event.action,
+                event.keyCode,
+                event.repeatCount,
+                event.metaState or KeyEvent.META_CAPS_LOCK_ON,
+                event.deviceId,
+                event.scanCode,
+                event.flags,
+                event.source
+            )
+        } else {
+            event
+        }
+        cachedKeyEvents.put(timestamp, forwardedEvent)
+        val sym = KeySym.fromKeyEvent(forwardedEvent)
         Timber.v("forwardKeyEvent: keyCode=%d scanCode=%d action=%d unicodeChar=%d sym=%s",
-            event.keyCode, event.scanCode, event.action, event.unicodeChar, sym)
+            forwardedEvent.keyCode, forwardedEvent.scanCode, forwardedEvent.action, forwardedEvent.unicodeChar, sym)
         if (sym != null) {
-            val states = KeyStates.fromKeyEvent(event)
-            val up = event.action == KeyEvent.ACTION_UP
+            var states = KeyStates.fromKeyEvent(forwardedEvent)
+            if (simulatedCapsLockOn && !states.has(KeyState.CapsLock)) {
+                states = KeyStates(states.states or KeyState.CapsLock.state)
+            }
+            val adjustedSym = adjustAlphabetSymForCaps(sym, states)
+            val up = forwardedEvent.action == KeyEvent.ACTION_UP
             postFcitxJob {
-                sendKey(sym, states, event.scanCode, up, timestamp)
+                sendKey(adjustedSym, states, forwardedEvent.scanCode, up, timestamp)
             }
             return true
         }
-        Timber.v("Skipped KeyEvent: $event")
+        Timber.v("Skipped KeyEvent: $forwardedEvent")
         return false
+    }
+
+    private fun adjustAlphabetSymForCaps(sym: KeySym, states: KeyStates): KeySym {
+        val code = sym.sym
+        if (code !in 'a'.code..'z'.code && code !in 'A'.code..'Z'.code) return sym
+        val shouldUpper = states.capsLock.xor(states.shift)
+        val adjusted = if (shouldUpper) {
+            code.toChar().uppercaseChar().code
+        } else {
+            code.toChar().lowercaseChar().code
+        }
+        return KeySym(adjusted)
     }
 
     /**
@@ -871,6 +904,22 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
 
     public fun isSimulatedCapsLockOn(): Boolean = simulatedCapsLockOn
     public fun isSimulatedCapsLockOnByMacroTap(): Boolean = simulatedCapsLockOnByMacroTap
+
+    public fun setVirtualCapsLockState(enabled: Boolean) {
+        if (simulatedCapsLockOn == enabled) return
+        simulatedCapsLockOn = enabled
+        simulatedCapsLockPressed = false
+        simulatedCapsLockPressedFromMacro = false
+        simulatedCapsLockOnByMacroTap = false
+        TextKeyboard.refreshCapsPresentationOnAll()
+    }
+
+    private fun onHardwareTypingModeEnter(event: KeyEvent) {
+        if (event.keyCode == KeyEvent.KEYCODE_CAPS_LOCK) return
+        if (event.unicodeChar == 0) return
+        TextKeyboard.clearCapsStateOnAll()
+        setVirtualCapsLockState(event.isCapsLockOn)
+    }
 
     public fun sendSimulatedKeyEvent(keyCode: Int, scanCode: Int, action: Int, fromMacro: Boolean = false) {
         val eventTime = SystemClock.uptimeMillis()
@@ -971,6 +1020,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             simulatedCapsLockPressed = true
             simulatedCapsLockPressedFromMacro = false
         }
+        onHardwareTypingModeEnter(event)
         // request to show floating CandidatesView when pressing physical keyboard
         if (inputDeviceManager.evaluateOnKeyDown(event, this)) {
             postFcitxJob {
