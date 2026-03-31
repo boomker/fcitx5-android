@@ -81,6 +81,8 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         Toolbar(this).apply {
             backgroundColor = styledColor(android.R.attr.colorPrimary)
             elevation = dp(4f)
+            setSubtitleTextAppearance(context, android.R.style.TextAppearance_Small)
+            setSubtitleTextColor(styledColor(android.R.attr.textColorSecondary))
         }
     }
 
@@ -180,6 +182,22 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         }
     }
 
+    private fun updateToolbarSubtitle() {
+        toolbar.subtitle = currentEditingSubtitle()
+    }
+
+    private fun currentEditingSubtitle(): String? {
+        val layoutName = currentLayout?.takeIf { it.isNotBlank() } ?: return null
+        val subModeLabel = previewSubModeLabel?.takeIf { it.isNotBlank() }
+        val subModeKey = subModeLabel?.let { "$layoutName:$it" }
+        val hasDedicatedSubModeLayout = subModeKey != null && entries.containsKey(subModeKey)
+        return if (hasDedicatedSubModeLayout && subModeLabel != null) {
+            "$layoutName · $subModeLabel"
+        } else {
+            layoutName
+        }
+    }
+
     private val provider: ConfigProvider = ConfigProviders.provider
     private val layoutFile: File? by lazy { provider.textKeyboardLayoutFile() }
     private val fcitxConnection: FcitxConnection by lazy {
@@ -215,7 +233,15 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
 
     // 当前状态（委托给 dataManager）
     private var currentLayout: String? = null
+        set(value) {
+            field = value
+            updateToolbarSubtitle()
+        }
     private var previewSubModeLabel: String? = null
+        set(value) {
+            field = value
+            updateToolbarSubtitle()
+        }
     private var lastEditingTarget: String? = null
     private var saveMenuItem: MenuItem? = null
     private val qrChunkCollector = QrChunkCollector()
@@ -308,7 +334,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
         android.R.id.home -> {
-            finish()
+            attemptExit()
             true
         }
         MENU_SAVE_ID -> {
@@ -328,6 +354,27 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             true
         }
         else -> super.onOptionsItemSelected(item)
+    }
+
+    override fun onBackPressed() {
+        attemptExit()
+    }
+
+    private fun attemptExit() {
+        if (!hasChanges()) {
+            finish()
+            return
+        }
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.text_keyboard_layout_discard_changes_title)
+            .setMessage(R.string.text_keyboard_layout_discard_changes_message)
+            .setPositiveButton(R.string.text_keyboard_layout_discard_changes_positive) { _, _ ->
+                finish()
+            }
+            .setNegativeButton(R.string.text_keyboard_layout_discard_changes_negative, null)
+            .create()
+        dialog.setOnShowListener { styleDialogTypography(dialog) }
+        dialog.show()
     }
 
     private fun loadState() {

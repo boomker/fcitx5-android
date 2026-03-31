@@ -415,6 +415,10 @@
     <string name="haptic_on_repeat">キーリピート時に触覚フィードバック</string>
     <string name="redo">やり直し</string>
     <string name="text_keyboard_layout_switch_submode_failed">サブモード"%1$s"への切り替えに失敗しました</string>
+    <string name="text_keyboard_layout_discard_changes_title">未保存のレイアウト変更を破棄しますか？</string>
+    <string name="text_keyboard_layout_discard_changes_message">保存されていない編集があります。今終了すると失われます。</string>
+    <string name="text_keyboard_layout_discard_changes_positive">破棄する</string>
+    <string name="text_keyboard_layout_discard_changes_negative">キャンセル</string>
     <string name="fontset_save_failed_io_error">フォントセットの保存に失敗しました：I/O エラーが発生しました</string>
     <string name="fontset_save_failed_permission_error">フォントセットの保存に失敗しました：権限がありません</string>
     <string name="fontset_save_failed_unknown_error">フォントセットの保存に失敗しました：%1$s</string>

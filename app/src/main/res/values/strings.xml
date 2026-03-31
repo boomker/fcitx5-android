@@ -579,6 +579,10 @@
     <string name="text_keyboard_layout_editing_submode">Editing layout for submode "%1$s"</string>
     <string name="text_keyboard_layout_editing_default">Editing default layout for "%1$s"</string>
     <string name="text_keyboard_layout_switch_submode_failed">Failed to switch to submode "%1$s"</string>
+    <string name="text_keyboard_layout_discard_changes_title">Discard unsaved layout changes?</string>
+    <string name="text_keyboard_layout_discard_changes_message">You have unsaved edits. Leaving now will lose them.</string>
+    <string name="text_keyboard_layout_discard_changes_positive">Discard</string>
+    <string name="text_keyboard_layout_discard_changes_negative">Cancel</string>
     <string name="text_keyboard_layout_cannot_delete_default_submode">Cannot delete default submode layout</string>
     <string name="text_keyboard_layout_no_additional_submodes">No additional submodes to add</string>
     <string name="text_keyboard_layout_select_submode_to_add">Select submode to add:</string>

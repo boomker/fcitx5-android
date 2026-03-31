@@ -269,6 +269,10 @@
     <string name="haptic_on_repeat">Retroalimentación háptica al repetir tecla</string>
     <string name="generic_multiselect_min">Debe seleccionar al menos %1$d elemento(s).</string>
     <string name="text_keyboard_layout_switch_submode_failed">Error al cambiar al submodo "%1$s"</string>
+    <string name="text_keyboard_layout_discard_changes_title">¿Descartar cambios no guardados?</string>
+    <string name="text_keyboard_layout_discard_changes_message">Tienes ediciones sin guardar. Si sales ahora las perderás.</string>
+    <string name="text_keyboard_layout_discard_changes_positive">Descartar</string>
+    <string name="text_keyboard_layout_discard_changes_negative">Cancelar</string>
     <string name="fontset_save_failed_io_error">Error al guardar el conjunto de fuentes: Error de E/S</string>
     <string name="fontset_save_failed_permission_error">Error al guardar el conjunto de fuentes: Permiso denegado</string>
     <string name="fontset_save_failed_unknown_error">Error al guardar el conjunto de fuentes: %1$s</string>

@@ -573,6 +573,10 @@
     <string name="cannot_resolve_text_keyboard_layout">无法定位文本键盘布局文件</string>
     <string name="text_keyboard_layout_saved_at">TextKeyboardLayout.json 已保存到：%1$s</string>
     <string name="text_keyboard_layout_switch_submode_failed">切换到子模式"%1$s"失败</string>
+    <string name="text_keyboard_layout_discard_changes_title">是否放弃未保存的布局更改？</string>
+    <string name="text_keyboard_layout_discard_changes_message">您有未保存的编辑。现在离开将会丢失它们。</string>
+    <string name="text_keyboard_layout_discard_changes_positive">放弃</string>
+    <string name="text_keyboard_layout_discard_changes_negative">取消</string>
     <string name="fontset_save_failed_io_error">保存字体集失败：发生 I/O 错误</string>
     <string name="fontset_save_failed_permission_error">保存字体集失败：权限被拒绝</string>
     <string name="fontset_save_failed_unknown_error">保存字体集失败：%1$s</string>

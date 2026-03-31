@@ -322,6 +322,10 @@
     <string name="haptic_on_repeat">Haptisches Feedback bei Wiederholung</string>
     <string name="generic_multiselect_min">Mindestens %1$d Eintrag(e) müssen ausgewählt werden.</string>
     <string name="text_keyboard_layout_switch_submode_failed">Wechsel zum Submodus "%1$s" fehlgeschlagen</string>
+    <string name="text_keyboard_layout_discard_changes_title">Ungespeicherte Layout-Änderungen verwerfen?</string>
+    <string name="text_keyboard_layout_discard_changes_message">Du hast ungespeicherte Änderungen. Wenn du jetzt gehst, gehen sie verloren.</string>
+    <string name="text_keyboard_layout_discard_changes_positive">Verwerfen</string>
+    <string name="text_keyboard_layout_discard_changes_negative">Abbrechen</string>
     <string name="fontset_save_failed_io_error">Schriftartensatz speichern fehlgeschlagen: E/A-Fehler</string>
     <string name="fontset_save_failed_permission_error">Schriftartensatz speichern fehlgeschlagen: Berechtigung verweigert</string>
     <string name="fontset_save_failed_unknown_error">Schriftartensatz speichern fehlgeschlagen: %1$s</string>
