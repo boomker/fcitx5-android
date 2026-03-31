@@ -60,6 +60,23 @@ abstract class KeyView(
 ) :
     CustomGestureView(ctx) {
 
+    private fun isMainKeyAreaById(viewId: Int): Boolean {
+        return viewId == R.id.button_space ||
+                viewId == R.id.button_mini_space ||
+                viewId == R.id.button_lang
+    }
+
+    private fun resolveKeyBackgroundColor(theme: Theme): Int {
+        if (isMainKeyAreaById(def.viewId)) {
+            return theme.keyBackgroundColor
+        }
+        return when (def.variant) {
+            Variant.Normal -> theme.keyBackgroundColor
+            Variant.AltForeground, Variant.Alternative -> theme.altKeyBackgroundColor
+            Variant.Accent -> theme.accentKeyBackgroundColor
+        }
+    }
+
     val bordered: Boolean
     val borderStroke: Boolean
     val rippled: Boolean
@@ -132,11 +149,7 @@ abstract class KeyView(
         }
         // key border
         if ((bordered && def.border != Border.Off) || def.border == Border.On) {
-            val bkgColor = when (def.variant) {
-                Variant.Normal -> theme.keyBackgroundColor
-                Variant.AltForeground, Variant.Alternative -> theme.altKeyBackgroundColor
-                Variant.Accent -> theme.accentKeyBackgroundColor
-            }
+            val bkgColor = resolveKeyBackgroundColor(theme)
             val borderOrShadowWidth = dp(1)
             // background: key border
             appearanceView.background = if (borderStroke) borderedKeyBackgroundDrawable(
@@ -232,7 +245,7 @@ abstract class KeyView(
             R.id.button_layout_switch -> {
                 val hInset = dp(4)
                 val vInset = dp(2)
-                val bkgRadius = min(dp(14f), ((h - vInset * 2).coerceAtLeast(0) / 2f))
+                val bkgRadius = ((h - vInset * 2).coerceAtLeast(0) / 2f)
                 appearanceView.background = insetRadiusDrawable(
                     hInset, vInset, bkgRadius, theme.altKeyBackgroundColor
                 )
@@ -267,7 +280,7 @@ abstract class KeyView(
             R.id.button_return -> {
                 val hInset = dp(4)
                 val vInset = dp(2)
-                val bkgRadius = min(dp(14f), ((h - vInset * 2).coerceAtLeast(0) / 2f))
+                val bkgRadius = ((h - vInset * 2).coerceAtLeast(0) / 2f)
                 appearanceView.background = insetRadiusDrawable(
                     hInset, vInset, bkgRadius, theme.altKeyBackgroundColor
                 )
@@ -290,11 +303,7 @@ abstract class KeyView(
 
         // Update key background (only when bordered)
         if ((bordered && def.border != Border.Off) || def.border == Border.On) {
-            val bkgColor = when (def.variant) {
-                Variant.Normal -> newTheme.keyBackgroundColor
-                Variant.AltForeground, Variant.Alternative -> newTheme.altKeyBackgroundColor
-                Variant.Accent -> newTheme.accentKeyBackgroundColor
-            }
+            val bkgColor = resolveKeyBackgroundColor(newTheme)
             val borderOrShadowWidth = dp(1)
             appearanceView.background = if (borderStroke) borderedKeyBackgroundDrawable(
                 bkgColor, newTheme.keyShadowColor,
@@ -549,7 +558,7 @@ class ImageKeyView(
 }
 
 private fun resolveForegroundColor(theme: Theme, variant: Variant, viewId: Int): Int {
-    if (viewId == R.id.button_return) {
+    if (viewId == R.id.button_return || viewId == R.id.button_lang) {
         return theme.keyTextColor
     }
     return when (variant) {

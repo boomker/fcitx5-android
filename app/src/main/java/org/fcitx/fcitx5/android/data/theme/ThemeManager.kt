@@ -212,36 +212,46 @@ object ThemeManager {
         } else {
             prefs.normalModeTheme.getValue()
         }
-        return normalizeBuiltinLightTheme(rawTheme)
+        return normalizeThemeKeyAreaColors(rawTheme)
     }
 
-    private fun normalizeBuiltinLightTheme(theme: Theme): Theme {
-        if (theme !is Theme.Builtin || theme.isDark) return theme
-        if (theme.name == ThemePreset.MinimalRainbow.name) return theme
-        val mainKeyColor = warmLightColorFromTone(
-            prefs.gboardLightMainKeyTone.getValue(),
-            greenOffset = 4,
-            blueOffset = 8
-        )
-        val otherKeyColor = warmLightColorFromTone(
-            prefs.gboardLightOtherKeyTone.getValue(),
-            greenOffset = 5,
-            blueOffset = 11
-        )
-        return theme.copy(
-            keyBackgroundColor = mainKeyColor,
-            altKeyBackgroundColor = otherKeyColor,
-            spaceBarColor = mainKeyColor,
-            clipboardEntryColor = mainKeyColor
-        )
+    private fun normalizeThemeKeyAreaColors(theme: Theme): Theme {
+        val mainTone = prefs.gboardMainKeyTone.getValue()
+        val nonMainTone = prefs.gboardNonMainKeyTone.getValue()
+        val darkOverrideEnabled =
+            mainTone != ThemePrefs.DefaultMainKeyTone || nonMainTone != ThemePrefs.DefaultNonMainKeyTone
+        if (theme.isDark && !darkOverrideEnabled) return theme
+
+        val mainKeyColor = toneToGrayColor(mainTone)
+        val nonMainKeyColor = toneToGrayColor(nonMainTone)
+        return when (theme) {
+            is Theme.Builtin -> theme.copy(
+                keyBackgroundColor = mainKeyColor,
+                altKeyBackgroundColor = nonMainKeyColor,
+                spaceBarColor = mainKeyColor,
+                clipboardEntryColor = mainKeyColor
+            )
+
+            is Theme.Custom -> theme.copy(
+                keyBackgroundColor = mainKeyColor,
+                altKeyBackgroundColor = nonMainKeyColor,
+                spaceBarColor = mainKeyColor,
+                clipboardEntryColor = mainKeyColor
+            )
+
+            is Theme.Monet -> theme.copy(
+                keyBackgroundColor = mainKeyColor,
+                altKeyBackgroundColor = nonMainKeyColor,
+                spaceBarColor = mainKeyColor,
+                clipboardEntryColor = mainKeyColor
+            )
+        }
     }
 
-    private fun warmLightColorFromTone(tone: Int, greenOffset: Int, blueOffset: Int): Int {
-        fun clamp(v: Int) = v.coerceIn(0, 255)
-        val r = clamp(tone)
-        val g = clamp(tone - greenOffset)
-        val b = clamp(tone - blueOffset)
-        return (0xff shl 24) or (r shl 16) or (g shl 8) or b
+    private fun toneToGrayColor(tone: Int): Int {
+        if (tone == -1) return -1
+        val v = tone.coerceIn(0, 255)
+        return (0xff shl 24) or (v shl 16) or (v shl 8) or v
     }
 
     @Keep

@@ -18,6 +18,11 @@ import org.fcitx.fcitx5.android.data.prefs.ManagedPreferenceEnum
 class ThemePrefs(sharedPreferences: SharedPreferences) :
     ManagedPreferenceCategory(R.string.theme, sharedPreferences) {
 
+    companion object {
+        const val DefaultMainKeyTone = 247
+        const val DefaultNonMainKeyTone = 221
+    }
+
     private fun themeMultiSelectPreference(
         @StringRes
         title: Int,
@@ -140,20 +145,22 @@ class ThemePrefs(sharedPreferences: SharedPreferences) :
         summary = R.string.follow_system_day_night_theme_summary
     )
 
-    val gboardLightMainKeyTone = int(
+    val gboardMainKeyTone = int(
         R.string.gboard_light_main_key_tone,
         "gboard_light_main_key_tone",
-        247,
-        200,
-        255
+        DefaultMainKeyTone,
+        -1,
+        255,
+        step = 4
     )
 
-    val gboardLightOtherKeyTone = int(
+    val gboardNonMainKeyTone = int(
         R.string.gboard_light_other_key_tone,
         "gboard_light_other_key_tone",
-        221,
-        180,
-        245
+        DefaultNonMainKeyTone,
+        -1,
+        255,
+        step = 4
     )
 
     val wallpaperBlendPercent = int(
@@ -163,6 +170,12 @@ class ThemePrefs(sharedPreferences: SharedPreferences) :
         0,
         100,
         "%"
+    )
+
+    val solidBackspaceIcon = switch(
+        R.string.solid_backspace_icon,
+        "solid_backspace_icon",
+        false
     )
 
     /**
@@ -221,7 +234,7 @@ class ThemePrefs(sharedPreferences: SharedPreferences) :
         darkModeThemes.key,
         currentLightThemeIndex.key,
         currentDarkThemeIndex.key,
-        gboardLightMainKeyTone.key,
-        gboardLightOtherKeyTone.key
+        gboardMainKeyTone.key,
+        gboardNonMainKeyTone.key
     )
 }
