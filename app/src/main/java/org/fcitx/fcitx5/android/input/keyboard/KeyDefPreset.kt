@@ -131,27 +131,28 @@ class LayoutSwitchKey(
         textStyle = Typeface.BOLD,
         percentWidth = percentWidth,
         variant = variant,
+        border = Border.Special,
         viewId = R.id.button_layout_switch
     ),
     setOf(
         Behavior.Press(KeyAction.LayoutSwitchAction(to))
     ),
     arrayOf(
-       Popup.Menu(
-        // PickerWindow symbols or numberkeyboard switch
-        arrayOf(
-            Popup.Menu.Item(
-                "Symbols",
-                R.drawable.ic_baseline_emoji_symbols_24,
-                KeyAction.LayoutSwitchAction(PickerWindow.Key.Symbol.name)
-            ),
-            Popup.Menu.Item(
-                "NumPad",
-                R.drawable.ic_number_pad,
-                KeyAction.LayoutSwitchAction(NumberKeyboard.Name)
+        Popup.Menu(
+            // PickerWindow symbols or numberkeyboard switch
+            arrayOf(
+                Popup.Menu.Item(
+                    "Symbols",
+                    R.drawable.ic_baseline_emoji_symbols_24,
+                    KeyAction.LayoutSwitchAction(PickerWindow.Key.Symbol.name)
+                ),
+                Popup.Menu.Item(
+                    "NumPad",
+                    R.drawable.ic_number_pad,
+                    KeyAction.LayoutSwitchAction(NumberKeyboard.Name)
+                )
             )
         )
-       )
     )
 )
 
@@ -258,7 +259,7 @@ class ReturnKey(percentWidth: Float = 0.15f) : KeyDef(
     Appearance.Image(
         src = R.drawable.ic_baseline_keyboard_return_24,
         percentWidth = percentWidth,
-        variant = Variant.Accent,
+        variant = Variant.Alternative,
         border = Border.Special,
         viewId = R.id.button_return,
         soundEffect = InputFeedbacks.SoundEffect.Return
@@ -455,6 +456,7 @@ class MacroKey(
                             arrayOf(Popup.Preview(code))
                         }
                     }
+
                     is KeyRef.Android -> {
                         // Android key codes show as numbers
                         arrayOf(Popup.Preview(singleTapKey.code.toString()))

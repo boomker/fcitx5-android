@@ -7,10 +7,13 @@ package org.fcitx.fcitx5.android.input
 
 import android.annotation.SuppressLint
 import android.content.res.Configuration
+import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.LayerDrawable
 import androidx.core.content.ContextCompat
 import android.graphics.Outline
+import android.graphics.drawable.ColorDrawable
+import android.graphics.drawable.Drawable
 import android.os.Build
 import android.os.SystemClock
 import android.view.View
@@ -23,6 +26,7 @@ import android.view.inputmethod.InlineSuggestionsResponse
 import android.widget.ImageView
 import androidx.annotation.Keep
 import androidx.annotation.RequiresApi
+import androidx.core.graphics.ColorUtils
 import androidx.core.view.updateLayoutParams
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.core.CapabilityFlags
@@ -34,6 +38,8 @@ import org.fcitx.fcitx5.android.data.prefs.SplitKeyboardStateManager
 import org.fcitx.fcitx5.android.data.prefs.ManagedPreferenceProvider
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.data.theme.ThemeManager
+import org.fcitx.fcitx5.android.data.theme.ThemeMonet
+import org.fcitx.fcitx5.android.data.theme.ThemePreset
 import org.fcitx.fcitx5.android.input.bar.KawaiiBarComponent
 import org.fcitx.fcitx5.android.input.config.ConfigChangeListener
 import org.fcitx.fcitx5.android.input.config.ConfigProviders
@@ -90,6 +96,37 @@ class InputView(
 ) : BaseInputView(service, fcitx, theme) {
 
     private val keyBorder by ThemeManager.prefs.keyBorder
+
+    private fun resolveKeyboardBackgroundDrawable(): Drawable {
+        if (theme.name == ThemePreset.MinimalRainbow.name) {
+            return GradientDrawable(
+                GradientDrawable.Orientation.LEFT_RIGHT,
+                intArrayOf(
+                    0xfff29a8f.toInt(),
+                    0xfff3be84.toInt(),
+                    0xffe9df7a.toInt(),
+                    0xff9fcb8b.toInt(),
+                    0xff7fc7b2.toInt(),
+                    0xff7fb5d2.toInt(),
+                    0xffb791c8.toInt()
+                )
+            ).apply {
+                setDither(true)
+            }
+        }
+        val baseDrawable = theme.backgroundDrawable(keyBorder)
+        if ((theme as? Theme.Custom)?.backgroundImage != null) {
+            return baseDrawable
+        }
+        val baseColor = if (keyBorder) theme.backgroundColor else theme.keyboardColor
+        if (Color.alpha(baseColor) == 0) {
+            return baseDrawable
+        }
+        val monet = if (theme.isDark) ThemeMonet.getDark() else ThemeMonet.getLight()
+        val wallpaperTone = if (keyBorder) monet.backgroundColor else monet.keyboardColor
+        val blendRatio = (ThemeManager.prefs.wallpaperBlendPercent.getValue().coerceIn(0, 100)) / 100f
+        return ColorDrawable(ColorUtils.blendARGB(baseColor, wallpaperTone, blendRatio))
+    }
 
     private val customBackground = imageView {
         scaleType = ImageView.ScaleType.CENTER_CROP
@@ -230,6 +267,7 @@ class InputView(
                     v.isPressed = true
                     true
                 }
+
                 MotionEvent.ACTION_MOVE -> {
                     val delta = (event.rawX - lastResizeTouchX).toInt()
                     floatingWidthPx =
@@ -238,6 +276,7 @@ class InputView(
                     // Handle position update is called in applyFloatingWidth
                     true
                 }
+
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     v.parent?.requestDisallowInterceptTouchEvent(false)
                     v.isPressed = false
@@ -249,6 +288,7 @@ class InputView(
                     )
                     true
                 }
+
                 else -> false
             }
         }
@@ -268,6 +308,7 @@ class InputView(
                     v.isPressed = true
                     true
                 }
+
                 MotionEvent.ACTION_MOVE -> {
                     val delta = (event.rawY - lastResizeTouchY).toInt()
                     floatingHeightPx =
@@ -276,6 +317,7 @@ class InputView(
                     // Handle position update is called in applyFloatingHeight
                     true
                 }
+
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     v.parent?.requestDisallowInterceptTouchEvent(false)
                     v.isPressed = false
@@ -287,6 +329,7 @@ class InputView(
                     )
                     true
                 }
+
                 else -> false
             }
         }
@@ -306,6 +349,7 @@ class InputView(
                         v.isPressed = true
                         true
                     }
+
                     MotionEvent.ACTION_MOVE -> {
                         val delta = (lastAdjustingTouchY - event.rawY).toInt()
                         // Scale: 100px drag = 20dp padding change
@@ -325,11 +369,13 @@ class InputView(
                         }
                         true
                     }
+
                     MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                         v.parent?.requestDisallowInterceptTouchEvent(false)
                         v.isPressed = false
                         true
                     }
+
                     else -> false
                 }
             } else if (isFloating) {
@@ -342,6 +388,7 @@ class InputView(
                         v.isPressed = true
                         true
                     }
+
                     MotionEvent.ACTION_MOVE -> {
                         val dx = event.rawX - lastTouchX
                         val dy = event.rawY - lastTouchY
@@ -359,6 +406,7 @@ class InputView(
                         lastTouchY = event.rawY
                         true
                     }
+
                     MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                         v.parent?.requestDisallowInterceptTouchEvent(false)
                         v.isPressed = false
@@ -369,6 +417,7 @@ class InputView(
                         )
                         true
                     }
+
                     else -> false
                 }
             } else {
@@ -398,6 +447,7 @@ class InputView(
                     v.isPressed = true
                     true
                 }
+
                 MotionEvent.ACTION_MOVE -> {
                     val delta = event.rawY - lastAdjustingTouchY
                     // Calculate percent change based on touch movement
@@ -424,11 +474,13 @@ class InputView(
                     }
                     true
                 }
+
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     v.parent?.requestDisallowInterceptTouchEvent(false)
                     v.isPressed = false
                     true
                 }
+
                 else -> false
             }
         }
@@ -446,6 +498,7 @@ class InputView(
                     v.isPressed = true
                     true
                 }
+
                 MotionEvent.ACTION_MOVE -> {
                     val delta = (event.rawX - lastAdjustingTouchX).toInt()
                     // Scale: 100px drag = 20dp padding change
@@ -465,11 +518,13 @@ class InputView(
                     }
                     true
                 }
+
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     v.parent?.requestDisallowInterceptTouchEvent(false)
                     v.isPressed = false
                     true
                 }
+
                 else -> false
             }
         }
@@ -487,6 +542,7 @@ class InputView(
                     v.isPressed = true
                     true
                 }
+
                 MotionEvent.ACTION_MOVE -> {
                     val delta = (lastAdjustingTouchX - event.rawX).toInt()
                     // Scale: 100px drag = 20dp padding change
@@ -506,11 +562,13 @@ class InputView(
                     }
                     true
                 }
+
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     v.parent?.requestDisallowInterceptTouchEvent(false)
                     v.isPressed = false
                     true
                 }
+
                 else -> false
             }
         }
@@ -683,6 +741,7 @@ class InputView(
                     v.isPressed = true
                     true
                 }
+
                 MotionEvent.ACTION_MOVE -> {
                     val delta = event.rawX - lastOneHandTouchX
                     if (!oneHandDragging && kotlin.math.abs(delta) > oneHandTouchSlop) {
@@ -700,6 +759,7 @@ class InputView(
                     }
                     true
                 }
+
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     v.parent?.requestDisallowInterceptTouchEvent(false)
                     v.isPressed = false
@@ -711,6 +771,7 @@ class InputView(
                     oneHandDragging = false
                     true
                 }
+
                 else -> false
             }
         }
@@ -919,7 +980,7 @@ class InputView(
             syncOneHandHandleUi()
         }
     }
-    
+
     private var floatingResizeStartWidth = 0
     private var floatingResizeStartHeight = 0
     private var lastResizeTouchX = 0f
@@ -1061,14 +1122,15 @@ class InputView(
         // Use keyboardView.top for vertical positioning (same as height handle)
         val contentLeft = windowManager.view.left
         val contentRight = windowManager.view.left + windowManager.view.width
-        
+
         adjustingLeftMarginHandle.updateLayoutParams {
             width = marginTouchAreaWidth
             height = marginTouchAreaHeight
         }
         // Position at the left edge of visible keyboard content
         adjustingLeftMarginHandle.translationX = (contentLeft - marginTouchAreaWidth / 2f)
-        adjustingLeftMarginHandle.translationY = (keyboardView.top + keyboardView.height / 2f - marginTouchAreaHeight / 2f)
+        adjustingLeftMarginHandle.translationY =
+            (keyboardView.top + keyboardView.height / 2f - marginTouchAreaHeight / 2f)
 
         adjustingRightMarginHandle.updateLayoutParams {
             width = marginTouchAreaWidth
@@ -1076,7 +1138,8 @@ class InputView(
         }
         // Position at the right edge of visible keyboard content
         adjustingRightMarginHandle.translationX = (contentRight - marginTouchAreaWidth / 2f)
-        adjustingRightMarginHandle.translationY = (keyboardView.top + keyboardView.height / 2f - marginTouchAreaHeight / 2f)
+        adjustingRightMarginHandle.translationY =
+            (keyboardView.top + keyboardView.height / 2f - marginTouchAreaHeight / 2f)
 
         // Position floatingMoveHandle (which also serves as bottom padding adjuster in adjusting mode) above kawaii bar
         if (isAdjustingMode) {
@@ -1088,7 +1151,7 @@ class InputView(
             adjustableHandle.translationX = (keyboardView.left + keyboardView.width / 2f - moveHandleSize / 2f)
             // Position above kawaii bar with a gap
             adjustableHandle.translationY = (kawaiiTopInParent - moveHandleSize - dp(8)).toFloat()
-            
+
             // Update layout params for adjusting mode
             adjustableHandle.updateLayoutParams {
                 width = moveHandleSize
@@ -1102,7 +1165,7 @@ class InputView(
             val moveHandleSize = dp(24)
             adjustableHandle.translationX = kX + (kWidth - moveHandleSize) / 2
             adjustableHandle.translationY = kY - moveHandleSize - dp(8)
-            
+
             // Update layout params for floating mode
             adjustableHandle.updateLayoutParams {
                 width = moveHandleSize
@@ -1336,9 +1399,9 @@ class InputView(
         keyboardView.getHitRect(rect)
 
         if (preedit.ui.root.visibility == View.VISIBLE) {
-             val preeditRect = Rect()
-             preedit.ui.root.getHitRect(preeditRect)
-             rect.union(preeditRect)
+            val preeditRect = Rect()
+            preedit.ui.root.getHitRect(preeditRect)
+            rect.union(preeditRect)
         }
 
         if (floatingRightHandle.visibility == View.VISIBLE) {
@@ -1580,7 +1643,8 @@ class InputView(
             // Refresh keyboard layout when split keyboard settings change
             if (key == keyboardPrefs.splitKeyboardEnabled.key ||
                 key == keyboardPrefs.splitKeyboardThreshold.key ||
-                key == keyboardPrefs.splitKeyboardGapPercent.key) {
+                key == keyboardPrefs.splitKeyboardGapPercent.key
+            ) {
                 (windowManager.getEssentialWindow(KeyboardWindow) as? KeyboardWindow)?.refreshAllKeyboards()
             }
         }
@@ -1613,7 +1677,7 @@ class InputView(
 
         broadcaster.onImeUpdate(fcitx.runImmediately { inputMethodEntryCached })
 
-        customBackground.imageDrawable = theme.backgroundDrawable(keyBorder)
+        customBackground.imageDrawable = resolveKeyboardBackgroundDrawable()
         if (windowManager.view.id == View.NO_ID) {
             windowManager.view.id = View.generateViewId()
         }
@@ -1745,6 +1809,7 @@ class InputView(
                     v.performClick()
                     true
                 }
+
                 MotionEvent.ACTION_MOVE -> {
                     val dx = event.rawX - lastTouchX
                     val dy = event.rawY - lastTouchY
@@ -1762,16 +1827,18 @@ class InputView(
                     lastTouchY = event.rawY
                     true
                 }
+
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                     v.parent?.requestDisallowInterceptTouchEvent(false)
-                     keyboardWindow.updateBounds() // Ensure bounds are correct after drag
-                     // Save position
-                     saveFloatingPosition(
+                    v.parent?.requestDisallowInterceptTouchEvent(false)
+                    keyboardWindow.updateBounds() // Ensure bounds are correct after drag
+                    // Save position
+                    saveFloatingPosition(
                         keyboardView.translationX.toInt(),
                         keyboardView.translationY.toInt()
-                     )
-                     true
+                    )
+                    true
                 }
+
                 else -> false
             }
         }
@@ -1905,21 +1972,26 @@ class InputView(
             is FcitxEvent.CandidateListEvent -> {
                 broadcaster.onCandidateUpdate(it.data)
             }
+
             is FcitxEvent.ClientPreeditEvent -> {
                 preeditEmptyState.updatePreeditEmptyState(clientPreedit = it.data)
                 broadcaster.onClientPreeditUpdate(it.data)
             }
+
             is FcitxEvent.InputPanelEvent -> {
                 preeditEmptyState.updatePreeditEmptyState(preedit = it.data.preedit)
                 broadcaster.onInputPanelUpdate(it.data)
             }
+
             is FcitxEvent.IMChangeEvent -> {
                 broadcaster.onImeUpdate(it.data)
             }
+
             is FcitxEvent.StatusAreaEvent -> {
                 punctuation.updatePunctuationMapping(it.data.actions)
                 broadcaster.onStatusAreaUpdate(it.data.actions)
             }
+
             else -> {}
         }
     }
@@ -1956,7 +2028,7 @@ class InputView(
      */
     internal fun updateSpaceLabelOnFloatingMode() {
         val ime = fcitx.runImmediately { inputMethodEntryCached }
-        
+
         // Try to notify KeyboardWindow to update space label
         val keyboardWindow = windowManager.getEssentialWindow(KeyboardWindow) as? InputBroadcastReceiver
         if (keyboardWindow != null) {

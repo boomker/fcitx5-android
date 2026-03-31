@@ -140,6 +140,31 @@ class ThemePrefs(sharedPreferences: SharedPreferences) :
         summary = R.string.follow_system_day_night_theme_summary
     )
 
+    val gboardLightMainKeyTone = int(
+        R.string.gboard_light_main_key_tone,
+        "gboard_light_main_key_tone",
+        247,
+        200,
+        255
+    )
+
+    val gboardLightOtherKeyTone = int(
+        R.string.gboard_light_other_key_tone,
+        "gboard_light_other_key_tone",
+        221,
+        180,
+        245
+    )
+
+    val wallpaperBlendPercent = int(
+        R.string.wallpaper_blend_percent,
+        "wallpaper_blend_percent",
+        55,
+        0,
+        100,
+        "%"
+    )
+
     /**
      * Selected themes for light mode. Multiple themes can be selected and cycled through.
      */
@@ -195,6 +220,8 @@ class ThemePrefs(sharedPreferences: SharedPreferences) :
         lightModeThemes.key,
         darkModeThemes.key,
         currentLightThemeIndex.key,
-        currentDarkThemeIndex.key
+        currentDarkThemeIndex.key,
+        gboardLightMainKeyTone.key,
+        gboardLightOtherKeyTone.key
     )
 }

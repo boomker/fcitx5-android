@@ -160,6 +160,9 @@
     <string name="exception_theme_cropped_image">无法保存裁切后的主题背景图片</string>
     <string name="follow_system_day_night_theme">跟随系统夜间模式</string>
     <string name="follow_system_day_night_theme_summary">开启后，根据系统明暗模式随机选择已勾选的明暗主题</string>
+    <string name="gboard_light_main_key_tone">Gboard 亮色主键色值</string>
+    <string name="gboard_light_other_key_tone">Gboard 亮色其他键色值</string>
+    <string name="wallpaper_blend_percent">键盘与壁纸混合比例</string>
     <string name="light_mode_theme">亮色模式主题</string>
     <string name="light_mode_theme_summary">选择多个主题并在切换时轮询</string>
     <string name="dark_mode_theme">暗色模式主题</string>

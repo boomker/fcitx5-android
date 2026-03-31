@@ -133,8 +133,8 @@ abstract class KeyView(
         // key border
         if ((bordered && def.border != Border.Off) || def.border == Border.On) {
             val bkgColor = when (def.variant) {
-                Variant.Normal, Variant.AltForeground -> theme.keyBackgroundColor
-                Variant.Alternative -> theme.altKeyBackgroundColor
+                Variant.Normal -> theme.keyBackgroundColor
+                Variant.AltForeground, Variant.Alternative -> theme.altKeyBackgroundColor
                 Variant.Accent -> theme.accentKeyBackgroundColor
             }
             val borderOrShadowWidth = dp(1)
@@ -229,6 +229,22 @@ abstract class KeyView(
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         if (bordered) return
         when (def.viewId) {
+            R.id.button_layout_switch -> {
+                val hInset = dp(4)
+                val vInset = dp(2)
+                val bkgRadius = min(dp(14f), ((h - vInset * 2).coerceAtLeast(0) / 2f))
+                appearanceView.background = insetRadiusDrawable(
+                    hInset, vInset, bkgRadius, theme.altKeyBackgroundColor
+                )
+                appearanceView.padding = 0
+                setupPressHighlight(
+                    insetRadiusDrawable(
+                        hInset, vInset, bkgRadius,
+                        if (rippled) Color.WHITE else theme.keyPressHighlightColor
+                    )
+                )
+            }
+
             R.id.button_space -> {
                 val bkgRadius = dp(3f)
                 val minHeight = dp(26)
@@ -247,17 +263,19 @@ abstract class KeyView(
                     )
                 )
             }
+
             R.id.button_return -> {
-                val drawableSize = min(min(w, h), dp(35))
-                val hInset = (w - drawableSize) / 2
-                val vInset = (h - drawableSize) / 2
-                appearanceView.background = insetOvalDrawable(
-                    hInset, vInset, theme.accentKeyBackgroundColor
+                val hInset = dp(4)
+                val vInset = dp(2)
+                val bkgRadius = min(dp(14f), ((h - vInset * 2).coerceAtLeast(0) / 2f))
+                appearanceView.background = insetRadiusDrawable(
+                    hInset, vInset, bkgRadius, theme.altKeyBackgroundColor
                 )
                 appearanceView.padding = 0
                 setupPressHighlight(
-                    insetOvalDrawable(
-                        hInset, vInset, if (rippled) Color.WHITE else theme.keyPressHighlightColor
+                    insetRadiusDrawable(
+                        hInset, vInset, bkgRadius,
+                        if (rippled) Color.WHITE else theme.keyPressHighlightColor
                     )
                 )
             }
@@ -273,8 +291,8 @@ abstract class KeyView(
         // Update key background (only when bordered)
         if ((bordered && def.border != Border.Off) || def.border == Border.On) {
             val bkgColor = when (def.variant) {
-                Variant.Normal, Variant.AltForeground -> newTheme.keyBackgroundColor
-                Variant.Alternative -> newTheme.altKeyBackgroundColor
+                Variant.Normal -> newTheme.keyBackgroundColor
+                Variant.AltForeground, Variant.Alternative -> newTheme.altKeyBackgroundColor
                 Variant.Accent -> newTheme.accentKeyBackgroundColor
             }
             val borderOrShadowWidth = dp(1)
@@ -480,6 +498,7 @@ class AltTextKeyView(
                 Configuration.ORIENTATION_LANDSCAPE -> applyTopRightAltTextPosition()
                 else -> applyBottomAltTextPosition()
             }
+
             PunctuationPosition.TopRight -> applyTopRightAltTextPosition()
             PunctuationPosition.None -> applyNoAltTextPosition()
         }
@@ -511,7 +530,7 @@ class ImageKeyView(
     horizontalGapScale: Float = 1f
 ) :
     KeyView(ctx, theme, def, horizontalGapScale) {
-    val img = imageView { configure(theme, def.src, def.variant) }
+    val img = imageView { configure(theme, def.src, def.variant, def.viewId) }
 
     init {
         appearanceView.apply {
@@ -524,25 +543,31 @@ class ImageKeyView(
     override fun updateTheme(newTheme: Theme) {
         super.updateTheme(newTheme)
         img.imageTintList = ColorStateList.valueOf(
-            when (def.variant) {
-                Variant.Normal -> newTheme.keyTextColor
-                Variant.AltForeground, Variant.Alternative -> newTheme.altKeyTextColor
-                Variant.Accent -> newTheme.accentKeyTextColor
-            }
+            resolveForegroundColor(newTheme, def.variant, def.viewId)
         )
     }
 }
 
-private fun ImageView.configure(theme: Theme, @DrawableRes src: Int, variant: Variant) = apply {
+private fun resolveForegroundColor(theme: Theme, variant: Variant, viewId: Int): Int {
+    if (viewId == R.id.button_return) {
+        return theme.keyTextColor
+    }
+    return when (variant) {
+        Variant.Normal -> theme.keyTextColor
+        Variant.AltForeground, Variant.Alternative -> theme.altKeyTextColor
+        Variant.Accent -> theme.accentKeyTextColor
+    }
+}
+
+private fun ImageView.configure(
+    theme: Theme,
+    @DrawableRes src: Int,
+    variant: Variant,
+    viewId: Int
+) = apply {
     isClickable = false
     isFocusable = false
-    imageTintList = ColorStateList.valueOf(
-        when (variant) {
-            Variant.Normal -> theme.keyTextColor
-            Variant.AltForeground, Variant.Alternative -> theme.altKeyTextColor
-            Variant.Accent -> theme.accentKeyTextColor
-        }
-    )
+    imageTintList = ColorStateList.valueOf(resolveForegroundColor(theme, variant, viewId))
     imageResource = src
 }
 
@@ -555,7 +580,7 @@ class ImageTextKeyView(
 ) :
     TextKeyView(ctx, theme, def, horizontalGapScale) {
     val img = imageView {
-        configure(theme, def.src, def.variant)
+        configure(theme, def.src, def.variant, def.viewId)
     }
 
     init {
@@ -585,6 +610,7 @@ class ImageTextKeyView(
                     topMargin = vMargin + dp(4)
                 }
             }
+
             else -> {
                 mainText.updateLayoutParams<ConstraintLayout.LayoutParams> {
                     bottomMargin = vMargin + dp(4)
@@ -602,12 +628,6 @@ class ImageTextKeyView(
 
     override fun updateTheme(newTheme: Theme) {
         super.updateTheme(newTheme)
-        img.imageTintList = ColorStateList.valueOf(
-            when (def.variant) {
-                Variant.Normal -> newTheme.keyTextColor
-                Variant.AltForeground, Variant.Alternative -> newTheme.altKeyTextColor
-                Variant.Accent -> newTheme.accentKeyTextColor
-            }
-        )
+        img.imageTintList = ColorStateList.valueOf(resolveForegroundColor(newTheme, def.variant, def.viewId))
     }
 }

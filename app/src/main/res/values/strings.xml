@@ -160,6 +160,9 @@
     <string name="exception_theme_cropped_image">Unable to save cropped image of theme background</string>
     <string name="follow_system_day_night_theme">Follow system day/night theme</string>
     <string name="follow_system_day_night_theme_summary">When enabled, randomly select from manually chosen dark/light themes based on system mode</string>
+    <string name="gboard_light_main_key_tone">Gboard light main key tone</string>
+    <string name="gboard_light_other_key_tone">Gboard light other key tone</string>
+    <string name="wallpaper_blend_percent">Keyboard/wallpaper blend</string>
     <string name="light_mode_theme">Light mode themes</string>
     <string name="light_mode_theme_summary">Select multiple themes and cycle through them</string>
     <string name="dark_mode_theme">Dark mode themes</string>

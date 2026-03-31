@@ -12,12 +12,12 @@ object ThemePreset {
         backgroundColor = 0xffeceff1,
         barColor = 0xffe4e7e9,
         keyboardColor = 0xffeceff1,
-        keyBackgroundColor = 0xfffbfbfc,
+        keyBackgroundColor = 0xfff7f3ef,
         keyTextColor = 0xff37474f,
         candidateTextColor = 0xff37474f,
         candidateLabelColor = 0xff37474f,
         candidateCommentColor = 0xff7a858a,
-        altKeyBackgroundColor = 0xffdfe2e4,
+        altKeyBackgroundColor = 0xffddd8d2,
         // Google Pinyin's symbol color on alphabet key: #727d82
         altKeyTextColor = 0xff7a858a,
         accentKeyBackgroundColor = 0xff5cb5ab,
@@ -26,9 +26,9 @@ object ThemePreset {
         keyShadowColor = 0xffc0c3c4,
         popupBackgroundColor = 0xffd9dbdd,
         popupTextColor = 0xff37474f,
-        spaceBarColor = 0xffc9ced1,
+        spaceBarColor = 0xfff7f3ef,
         dividerColor = 0x1f000000,
-        clipboardEntryColor = 0xfffbfbfc,
+        clipboardEntryColor = 0xfff7f3ef,
         genericActiveBackgroundColor = 0xff80cbc4,
         genericActiveForegroundColor = 0xff37474f
     )
@@ -66,12 +66,12 @@ object ThemePreset {
         backgroundColor = 0xffeeeeee,
         barColor = 0xffeeeeee,
         keyboardColor = 0xfffafafa,
-        keyBackgroundColor = 0xffffffff,
+        keyBackgroundColor = 0xfff7f3ef,
         keyTextColor = 0xff212121,
         candidateTextColor = 0xff212121,
         candidateLabelColor = 0xff212121,
         candidateCommentColor = 0xff6e6e6e,
-        altKeyBackgroundColor = 0xffe1e1e1,
+        altKeyBackgroundColor = 0xffddd8d2,
         // Google Pinyin's symbol color on alphabet key: #4e4e4e
         altKeyTextColor = 0xff6e6e6e,
         accentKeyBackgroundColor = 0xff4285f4,
@@ -80,9 +80,9 @@ object ThemePreset {
         keyShadowColor = 0xffc2c2c2,
         popupBackgroundColor = 0xffeeeeee,
         popupTextColor = 0xff212121,
-        spaceBarColor = 0xffdbdbdb,
+        spaceBarColor = 0xfff7f3ef,
         dividerColor = 0x1f000000,
-        clipboardEntryColor = 0xffffffff,
+        clipboardEntryColor = 0xfff7f3ef,
         genericActiveBackgroundColor = 0xff5e97f6,
         genericActiveForegroundColor = 0xffffffff
     )
@@ -112,6 +112,32 @@ object ThemePreset {
         clipboardEntryColor = 0xff464646,
         genericActiveBackgroundColor = 0xff5e97f6,
         genericActiveForegroundColor = 0xfffafafa
+    )
+
+    val MinimalRainbow = Theme.Builtin(
+        name = "极简彩虹",
+        isDark = false,
+        backgroundColor = 0xffcbc4bf.toInt(),
+        barColor = 0xffc5bfb9.toInt(),
+        keyboardColor = 0xffcbc4bf.toInt(),
+        keyBackgroundColor = 0xccffffff.toInt(),
+        keyTextColor = 0xff4a4a4a.toInt(),
+        candidateTextColor = 0xff4a4a4a.toInt(),
+        candidateLabelColor = 0xff4a4a4a.toInt(),
+        candidateCommentColor = 0xff7a7672.toInt(),
+        altKeyBackgroundColor = 0xffbdb6b1.toInt(),
+        altKeyTextColor = 0xff54514f.toInt(),
+        accentKeyBackgroundColor = 0xfff08b8f.toInt(),
+        accentKeyTextColor = 0xff4a4a4a.toInt(),
+        keyPressHighlightColor = 0x1f000000,
+        keyShadowColor = 0xffa49d98.toInt(),
+        popupBackgroundColor = 0xffd7d0ca.toInt(),
+        popupTextColor = 0xff4a4a4a.toInt(),
+        spaceBarColor = 0xffece8e4.toInt(),
+        dividerColor = 0x14000000,
+        clipboardEntryColor = 0xffece8e4.toInt(),
+        genericActiveBackgroundColor = 0xfff08b8f.toInt(),
+        genericActiveForegroundColor = 0xff4a4a4a.toInt()
     )
 
     val DeepBlue = Theme.Builtin(

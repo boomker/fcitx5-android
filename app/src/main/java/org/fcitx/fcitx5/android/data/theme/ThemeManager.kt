@@ -28,6 +28,7 @@ object ThemeManager {
         ThemePreset.MaterialDark,
         ThemePreset.PixelLight,
         ThemePreset.PixelDark,
+        ThemePreset.MinimalRainbow,
         ThemePreset.NordLight,
         ThemePreset.NordDark,
         ThemePreset.DeepBlue,
@@ -178,9 +179,6 @@ object ThemeManager {
         }
         _activeTheme = nextTheme
         prefs.normalModeTheme.setValue(nextTheme)
-        if (prefs.followSystemDayNightTheme.getValue()) {
-            prefs.followSystemDayNightTheme.setValue(false)
-        }
         return nextTheme
     }
 
@@ -209,11 +207,41 @@ object ThemeManager {
     }
 
     private fun evaluateActiveTheme(): Theme {
-        return if (prefs.followSystemDayNightTheme.getValue()) {
+        val rawTheme = if (prefs.followSystemDayNightTheme.getValue()) {
             if (isDarkMode) getCurrentDarkTheme() else getCurrentLightTheme()
         } else {
             prefs.normalModeTheme.getValue()
         }
+        return normalizeBuiltinLightTheme(rawTheme)
+    }
+
+    private fun normalizeBuiltinLightTheme(theme: Theme): Theme {
+        if (theme !is Theme.Builtin || theme.isDark) return theme
+        if (theme.name == ThemePreset.MinimalRainbow.name) return theme
+        val mainKeyColor = warmLightColorFromTone(
+            prefs.gboardLightMainKeyTone.getValue(),
+            greenOffset = 4,
+            blueOffset = 8
+        )
+        val otherKeyColor = warmLightColorFromTone(
+            prefs.gboardLightOtherKeyTone.getValue(),
+            greenOffset = 5,
+            blueOffset = 11
+        )
+        return theme.copy(
+            keyBackgroundColor = mainKeyColor,
+            altKeyBackgroundColor = otherKeyColor,
+            spaceBarColor = mainKeyColor,
+            clipboardEntryColor = mainKeyColor
+        )
+    }
+
+    private fun warmLightColorFromTone(tone: Int, greenOffset: Int, blueOffset: Int): Int {
+        fun clamp(v: Int) = v.coerceIn(0, 255)
+        val r = clamp(tone)
+        val g = clamp(tone - greenOffset)
+        val b = clamp(tone - blueOffset)
+        return (0xff shl 24) or (r shl 16) or (g shl 8) or b
     }
 
     @Keep
