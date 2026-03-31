@@ -19,8 +19,8 @@ class ThemePrefs(sharedPreferences: SharedPreferences) :
     ManagedPreferenceCategory(R.string.theme, sharedPreferences) {
 
     companion object {
-        const val DefaultMainKeyTone = 247
-        const val DefaultNonMainKeyTone = 221
+        const val DefaultMainKeyOpacity = 100
+        const val DefaultNonMainKeyOpacity = 100
     }
 
     private fun themeMultiSelectPreference(
@@ -145,22 +145,22 @@ class ThemePrefs(sharedPreferences: SharedPreferences) :
         summary = R.string.follow_system_day_night_theme_summary
     )
 
-    val gboardMainKeyTone = int(
+    val gboardMainKeyOpacity = int(
         R.string.gboard_light_main_key_tone,
         "gboard_light_main_key_tone",
-        DefaultMainKeyTone,
-        -1,
-        255,
-        step = 4
+        DefaultMainKeyOpacity,
+        0,
+        100,
+        "%"
     )
 
-    val gboardNonMainKeyTone = int(
+    val gboardNonMainKeyOpacity = int(
         R.string.gboard_light_other_key_tone,
         "gboard_light_other_key_tone",
-        DefaultNonMainKeyTone,
-        -1,
-        255,
-        step = 4
+        DefaultNonMainKeyOpacity,
+        0,
+        100,
+        "%"
     )
 
     val wallpaperBlendPercent = int(
@@ -172,9 +172,9 @@ class ThemePrefs(sharedPreferences: SharedPreferences) :
         "%"
     )
 
-    val solidBackspaceIcon = switch(
-        R.string.solid_backspace_icon,
-        "solid_backspace_icon",
+    val toolbarBorder = switch(
+        R.string.toolbar_border,
+        "toolbar_border",
         false
     )
 
@@ -234,7 +234,7 @@ class ThemePrefs(sharedPreferences: SharedPreferences) :
         darkModeThemes.key,
         currentLightThemeIndex.key,
         currentDarkThemeIndex.key,
-        gboardMainKeyTone.key,
-        gboardNonMainKeyTone.key
+        gboardMainKeyOpacity.key,
+        gboardNonMainKeyOpacity.key
     )
 }

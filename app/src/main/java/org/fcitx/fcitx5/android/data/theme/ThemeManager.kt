@@ -9,6 +9,7 @@ import android.os.Build
 import androidx.annotation.Keep
 import androidx.annotation.RequiresApi
 import androidx.core.content.edit
+import androidx.core.graphics.ColorUtils
 import androidx.preference.PreferenceManager
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.data.prefs.ManagedPreferenceProvider
@@ -216,42 +217,59 @@ object ThemeManager {
     }
 
     private fun normalizeThemeKeyAreaColors(theme: Theme): Theme {
-        val mainTone = prefs.gboardMainKeyTone.getValue()
-        val nonMainTone = prefs.gboardNonMainKeyTone.getValue()
-        val darkOverrideEnabled =
-            mainTone != ThemePrefs.DefaultMainKeyTone || nonMainTone != ThemePrefs.DefaultNonMainKeyTone
-        if (theme.isDark && !darkOverrideEnabled) return theme
+        val mainOpacity = normalizeOpacityPercent(
+            prefs.gboardMainKeyOpacity.getValue(),
+            ThemePrefs.DefaultMainKeyOpacity
+        )
+        val nonMainOpacity = normalizeOpacityPercent(
+            prefs.gboardNonMainKeyOpacity.getValue(),
+            ThemePrefs.DefaultNonMainKeyOpacity
+        )
 
-        val mainKeyColor = toneToGrayColor(mainTone)
-        val nonMainKeyColor = toneToGrayColor(nonMainTone)
+        val mainKeyColor = withOpacity(theme.keyBackgroundColor, mainOpacity)
+        val nonMainKeyColor = withOpacity(theme.altKeyBackgroundColor, nonMainOpacity)
+        val spaceBarColor = withOpacity(theme.spaceBarColor, mainOpacity)
+        val clipboardColor = withOpacity(theme.clipboardEntryColor, mainOpacity)
         return when (theme) {
             is Theme.Builtin -> theme.copy(
                 keyBackgroundColor = mainKeyColor,
                 altKeyBackgroundColor = nonMainKeyColor,
-                spaceBarColor = mainKeyColor,
-                clipboardEntryColor = mainKeyColor
+                spaceBarColor = spaceBarColor,
+                clipboardEntryColor = clipboardColor
             )
 
             is Theme.Custom -> theme.copy(
                 keyBackgroundColor = mainKeyColor,
                 altKeyBackgroundColor = nonMainKeyColor,
-                spaceBarColor = mainKeyColor,
-                clipboardEntryColor = mainKeyColor
+                spaceBarColor = spaceBarColor,
+                clipboardEntryColor = clipboardColor
             )
 
             is Theme.Monet -> theme.copy(
                 keyBackgroundColor = mainKeyColor,
                 altKeyBackgroundColor = nonMainKeyColor,
-                spaceBarColor = mainKeyColor,
-                clipboardEntryColor = mainKeyColor
+                spaceBarColor = spaceBarColor,
+                clipboardEntryColor = clipboardColor
             )
         }
     }
 
-    private fun toneToGrayColor(tone: Int): Int {
-        if (tone == -1) return -1
-        val v = tone.coerceIn(0, 255)
-        return (0xff shl 24) or (v shl 16) or (v shl 8) or v
+    private fun normalizeOpacityPercent(rawValue: Int, defaultValue: Int): Int {
+        return when {
+            rawValue in 0..100 -> rawValue
+            rawValue in -1..255 -> {
+                // Migration for previous "tone" values.
+                val tone = if (rawValue < 0) 255 else rawValue
+                (tone * 100 / 255).coerceIn(0, 100)
+            }
+
+            else -> defaultValue
+        }
+    }
+
+    private fun withOpacity(color: Int, opacityPercent: Int): Int {
+        val alpha = (opacityPercent.coerceIn(0, 100) * 255 / 100)
+        return ColorUtils.setAlphaComponent(color, alpha)
     }
 
     @Keep

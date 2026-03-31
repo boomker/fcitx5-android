@@ -176,6 +176,8 @@ class CustomThemeActivity : AppCompatActivity() {
                 theme = theme.copy(name = newName)
                 supportActionBar?.title = toThemeLabel(newName)
                 applyThemePreview(theme)
+                // Save theme name change immediately
+                ThemeManager.saveTheme(theme)
                 dialog.dismiss()
             }
         }

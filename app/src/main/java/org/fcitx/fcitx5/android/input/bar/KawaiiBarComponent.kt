@@ -5,6 +5,7 @@
 package org.fcitx.fcitx5.android.input.bar
 
 import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.os.Build
 import android.util.Size
 import android.view.KeyEvent
@@ -75,6 +76,7 @@ import org.fcitx.fcitx5.android.utils.AppUtil
 import org.fcitx.fcitx5.android.core.SubtypeManager
 import org.fcitx.fcitx5.android.daemon.launchOnReady
 import org.fcitx.fcitx5.android.utils.InputMethodUtil
+import org.fcitx.fcitx5.android.utils.borderDrawable
 import org.mechdancer.dependency.DynamicScope
 import org.mechdancer.dependency.manager.must
 import splitties.bitflags.hasFlag
@@ -177,10 +179,12 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         val timeout = clipboardItemTimeout.getValue() * 1000L
         // never transition to ClipboardTimedOut state when timeout < 0
         if (timeout < 0L) return
+        val effectiveTimeout = min(timeout, 3000L)
         clipboardTimeoutJob = service.lifecycleScope.launch {
-            delay(timeout)
+            delay(effectiveTimeout)
             isClipboardFresh = false
             clipboardTimeoutJob = null
+            evalIdleUiState()
         }
     }
 
@@ -437,9 +441,16 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
 
     override val view by lazy {
         ViewAnimator(context).apply {
-            backgroundColor =
-                if (ThemeManager.prefs.keyBorder.getValue()) Color.TRANSPARENT
-                else theme.barColor
+            background = run {
+                val backgroundColor =
+                    if (ThemeManager.prefs.keyBorder.getValue()) Color.TRANSPARENT
+                    else theme.barColor
+                if (ThemeManager.prefs.toolbarBorder.getValue()) {
+                    borderDrawable(dp(1), theme.keyShadowColor, backgroundColor)
+                } else {
+                    ColorDrawable(backgroundColor)
+                }
+            }
             add(idleUi.root, lParams(matchParent, matchParent))
             add(candidateUi.root, lParams(matchParent, matchParent))
             add(titleUi.root, lParams(matchParent, matchParent))
@@ -450,7 +461,8 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         ClipboardManager.lastEntry?.let {
             val now = System.currentTimeMillis()
             val clipboardTimeout = clipboardItemTimeout.getValue() * 1000L
-            if (now - it.timestamp < clipboardTimeout) {
+            val effectiveTimeout = if (clipboardTimeout < 0L) clipboardTimeout else min(clipboardTimeout, 3000L)
+            if (now - it.timestamp < effectiveTimeout) {
                 onClipboardUpdateListener.onUpdate(it)
             }
         }

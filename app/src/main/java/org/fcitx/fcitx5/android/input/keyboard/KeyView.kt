@@ -240,11 +240,15 @@ abstract class KeyView(
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
-        if (bordered) return
+        if (
+            bordered &&
+            def.viewId != R.id.button_layout_switch &&
+            def.viewId != R.id.button_return
+        ) return
         when (def.viewId) {
             R.id.button_layout_switch -> {
-                val hInset = dp(4)
-                val vInset = dp(2)
+                val hInset = dp(6)
+                val vInset = dp(4)
                 val bkgRadius = ((h - vInset * 2).coerceAtLeast(0) / 2f)
                 appearanceView.background = insetRadiusDrawable(
                     hInset, vInset, bkgRadius, theme.altKeyBackgroundColor
@@ -278,8 +282,8 @@ abstract class KeyView(
             }
 
             R.id.button_return -> {
-                val hInset = dp(4)
-                val vInset = dp(2)
+                val hInset = dp(6)
+                val vInset = dp(4)
                 val bkgRadius = ((h - vInset * 2).coerceAtLeast(0) / 2f)
                 appearanceView.background = insetRadiusDrawable(
                     hInset, vInset, bkgRadius, theme.altKeyBackgroundColor

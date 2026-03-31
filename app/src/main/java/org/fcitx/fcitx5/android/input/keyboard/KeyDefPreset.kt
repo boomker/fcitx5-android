@@ -12,7 +12,6 @@ import org.fcitx.fcitx5.android.core.KeyState
 import org.fcitx.fcitx5.android.core.KeyStates
 import org.fcitx.fcitx5.android.core.KeySym
 import org.fcitx.fcitx5.android.data.InputFeedbacks
-import org.fcitx.fcitx5.android.data.theme.ThemeManager
 import org.fcitx.fcitx5.android.input.keyboard.KeyDef.Appearance.Border
 import org.fcitx.fcitx5.android.input.keyboard.KeyDef.Appearance.Variant
 import org.fcitx.fcitx5.android.input.picker.PickerWindow
@@ -23,13 +22,6 @@ import org.fcitx.fcitx5.android.input.keyboard.MacroStep
 import org.fcitx.fcitx5.android.input.keyboard.KeyRef
 
 val NumLockState = KeyStates(KeyState.NumLock, KeyState.Virtual)
-
-private fun backspaceIconRes(): Int =
-    if (ThemeManager.prefs.solidBackspaceIcon.getValue()) {
-        R.drawable.ic_baseline_backspace_24
-    } else {
-        R.drawable.ic_outline_backspace_24
-    }
 
 class SymbolKey(
     val symbol: String,
@@ -169,7 +161,7 @@ class BackspaceKey(
     variant: Variant = Variant.Alternative
 ) : KeyDef(
     Appearance.Image(
-        src = backspaceIconRes(),
+        src = R.drawable.ic_outline_backspace_24,
         percentWidth = percentWidth,
         variant = variant,
         viewId = R.id.button_backspace,
