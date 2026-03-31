@@ -73,6 +73,7 @@
     <string name="clipboard_category_remote">其他设备</string>
     <string name="clipboard_entry_image">图片</string>
     <string name="clipboard_entry_image_named">图片 · %1$s</string>
+    <string name="clipboard_entry_image_loading">图片（加载中…）</string>
     <string name="clipboard_entry_file">文件</string>
     <string name="clipboard_entry_file_named">文件 · %1$s</string>
     <string name="keyboard_height">键盘高度</string>

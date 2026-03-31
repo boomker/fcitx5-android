@@ -37,11 +37,25 @@ class ClipboardEntryUi(override val ctx: Context, private val theme: Theme, radi
 
     val preview = imageView {
         visibility = View.GONE
-        scaleType = ImageView.ScaleType.CENTER_CROP
+        scaleType = ImageView.ScaleType.CENTER_INSIDE
         minimumHeight = dp(72)
         background = GradientDrawable().apply {
             cornerRadius = radius
             setColor(theme.keyBackgroundColor)
+        }
+    }
+
+    private val imagePlaceholder = imageView {
+        visibility = View.GONE
+        scaleType = ImageView.ScaleType.CENTER_INSIDE
+        minimumHeight = dp(72)
+        setPaddingDp(16, 8, 16, 8)
+        background = GradientDrawable().apply {
+            cornerRadius = radius
+            setColor(theme.keyBackgroundColor)
+        }
+        imageDrawable = drawable(R.drawable.ic_baseline_image_24)?.apply {
+            setTint(theme.altKeyTextColor)
         }
     }
 
@@ -63,6 +77,9 @@ class ClipboardEntryUi(override val ctx: Context, private val theme: Theme, radi
 
     val layout = constraintLayout {
         add(preview, lParams(matchParent, dp(72)) {
+            topOfParent(dp(6))
+        })
+        add(imagePlaceholder, lParams(matchParent, dp(72)) {
             topOfParent(dp(6))
         })
         add(textView, lParams(matchParent, wrapContent) {
@@ -97,6 +114,7 @@ class ClipboardEntryUi(override val ctx: Context, private val theme: Theme, radi
         if (previewBitmap != null) {
             preview.setImageBitmap(previewBitmap)
             preview.visibility = View.VISIBLE
+            imagePlaceholder.visibility = View.GONE
             if (text.isEmpty()) {
                 // Image only, no text
                 textView.visibility = View.GONE
@@ -109,12 +127,19 @@ class ClipboardEntryUi(override val ctx: Context, private val theme: Theme, radi
                 root.minimumHeight = ctx.dp(122)
             }
         } else {
-            preview.setImageDrawable(null)
             preview.visibility = View.GONE
-            textView.visibility = View.VISIBLE
-            textView.maxLines = 4
-            textView.setPaddingDp(8, 4, 8, 4)
-            root.minimumHeight = ctx.dp(30)
+            if (text.isEmpty()) {
+                // No image preview and no text - show image placeholder icon
+                imagePlaceholder.visibility = View.VISIBLE
+                textView.visibility = View.GONE
+                root.minimumHeight = ctx.dp(84)
+            } else {
+                imagePlaceholder.visibility = View.GONE
+                textView.visibility = View.VISIBLE
+                textView.maxLines = 4
+                textView.setPaddingDp(8, 4, 8, 4)
+                root.minimumHeight = ctx.dp(30)
+            }
         }
     }
 }

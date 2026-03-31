@@ -339,24 +339,36 @@ abstract class ClipboardAdapter(
         if (!entry.isUriEntry() || !entry.type.startsWith("image/")) return null
         val uri = runCatching { Uri.parse(entry.text) }.getOrNull() ?: return null
         return withContext(Dispatchers.IO) {
-            runCatching {
-                val resolver = context.contentResolver
-                val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-                resolver.openInputStream(uri)?.use { stream ->
-                    BitmapFactory.decodeStream(stream, null, bounds)
+            // Retry up to 3 times with delay between attempts
+            repeat(3) { attempt ->
+                val bitmap = runCatching {
+                    val resolver = context.contentResolver
+                    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                    resolver.openInputStream(uri)?.use { stream ->
+                        BitmapFactory.decodeStream(stream, null, bounds)
+                    }
+                    if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
+                        return@runCatching null
+                    }
+                    val sampleSize = calculateInSampleSize(bounds.outWidth, bounds.outHeight, 192, 192)
+                    val options = BitmapFactory.Options().apply {
+                        inSampleSize = sampleSize
+                        inPreferredConfig = Bitmap.Config.RGB_565
+                    }
+                    resolver.openInputStream(uri)?.use { stream ->
+                        BitmapFactory.decodeStream(stream, null, options)
+                    }
+                }.getOrNull()
+                if (bitmap != null) {
+                    return@withContext bitmap
                 }
-                if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
-                    return@runCatching null
+                // Wait a bit before retry (except on last attempt)
+                if (attempt < 2) {
+                    kotlinx.coroutines.delay(100L shl attempt) // 100ms, 200ms
                 }
-                val sampleSize = calculateInSampleSize(bounds.outWidth, bounds.outHeight, 192, 192)
-                val options = BitmapFactory.Options().apply {
-                    inSampleSize = sampleSize
-                    inPreferredConfig = Bitmap.Config.RGB_565
-                }
-                resolver.openInputStream(uri)?.use { stream ->
-                    BitmapFactory.decodeStream(stream, null, options)
-                }
-            }.getOrNull()
+            }
+            // All attempts failed
+            null
         }
     }
 

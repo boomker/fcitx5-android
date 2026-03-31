@@ -73,6 +73,7 @@
     <string name="clipboard_category_remote">Other Devices</string>
     <string name="clipboard_entry_image">Image</string>
     <string name="clipboard_entry_image_named">Image · %1$s</string>
+    <string name="clipboard_entry_image_loading">Image (loading…)</string>
     <string name="clipboard_entry_file">File</string>
     <string name="clipboard_entry_file_named">File · %1$s</string>
     <string name="keyboard_height">Keyboard height</string>
