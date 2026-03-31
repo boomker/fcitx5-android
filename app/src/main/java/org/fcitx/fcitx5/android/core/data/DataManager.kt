@@ -106,11 +106,11 @@ object DataManager {
         // Query for original Fcitx5 Android plugins
         val originalPluginIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             pm.queryIntentActivities(
-                Intent("org.fcitx.fcitx5.android.plugin.MANIFEST"),
+                Intent(BuildConfig.ORIGINAL_PLUGIN_MANIFEST_ACTION),
                 PackageManager.ResolveInfoFlags.of(PackageManager.MATCH_ALL.toLong())
             )
         } else {
-            pm.queryIntentActivities(Intent("org.fcitx.fcitx5.android.plugin.MANIFEST"), PackageManager.MATCH_ALL)
+            pm.queryIntentActivities(Intent(BuildConfig.ORIGINAL_PLUGIN_MANIFEST_ACTION), PackageManager.MATCH_ALL)
         }.map { it.activityInfo.packageName }
         
         pluginPackages.addAll(currentPluginIntent)

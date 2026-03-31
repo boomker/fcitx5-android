@@ -24,7 +24,7 @@
         </intent>
         <!-- Compatibility with original Fcitx5 Android plugins -->
         <intent>
-            <action android:name="org.fcitx.fcitx5.android.plugin.MANIFEST" />
+            <action android:name="${originalPluginManifestAction}" />
         </intent>
         <intent>
             <action android:name="android.view.InputMethod" />
@@ -47,7 +47,7 @@
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/full_backup_content"
         android:icon="@mipmap/app_icon"
-        android:label="@string/app_name"
+        android:label="${appLabel}"
         android:roundIcon="@mipmap/app_icon_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.FcitxAppTheme"
@@ -160,7 +160,7 @@
             android:name=".input.FcitxInputMethodService"
             android:directBootAware="true"
             android:exported="true"
-            android:label="@string/app_name"
+            android:label="${appLabel}"
             android:permission="android.permission.BIND_INPUT_METHOD">
             <intent-filter>
                 <action android:name="android.view.InputMethod" />
@@ -179,11 +179,11 @@
             </intent-filter>
             <!-- Compatibility with original Fcitx5 Android plugins -->
             <intent-filter>
-                <action android:name="org.fcitx.fcitx5.android.IPC" />
+                <action android:name="${originalIpcAction}" />
             </intent-filter>
             <!-- Compatibility with original Fcitx5 Android debug plugins -->
             <intent-filter>
-                <action android:name="org.fcitx.fcitx5.android.debug.IPC" />
+                <action android:name="${originalDebugIpcAction}" />
             </intent-filter>
         </service>
 

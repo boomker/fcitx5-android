@@ -15,6 +15,7 @@ import android.provider.DocumentsContract.Root
 import android.provider.DocumentsProvider
 import android.webkit.MimeTypeMap
 import org.fcitx.fcitx5.android.R
+import org.fcitx.fcitx5.android.utils.AppUtil
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.IOException
@@ -93,7 +94,7 @@ class FcitxDataProvider : DocumentsProvider() {
                     Root.FLAG_SUPPORTS_CREATE or Root.FLAG_LOCAL_ONLY or Root.FLAG_SUPPORTS_SEARCH or Root.FLAG_SUPPORTS_IS_CHILD
                 )
                 add(Root.COLUMN_ICON, R.mipmap.app_icon)
-                add(Root.COLUMN_TITLE, context!!.getString(R.string.app_name))
+                add(Root.COLUMN_TITLE, AppUtil.appLabel(context!!))
                 add(Root.COLUMN_DOCUMENT_ID, baseDir.docId)
                 add(Root.COLUMN_MIME_TYPES, MIME_TYPE_WILDCARD)
             }

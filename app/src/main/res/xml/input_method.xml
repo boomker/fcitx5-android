@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <input-method xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:settingsActivity="org.fcitx.fcitx5.android.ui.main.MainActivity"
+    android:settingsActivity="@string/ime_settings_activity"
     android:supportsInlineSuggestions="true"
     android:supportsSwitchingToNextInputMethod="true"
     tools:targetApi="30">

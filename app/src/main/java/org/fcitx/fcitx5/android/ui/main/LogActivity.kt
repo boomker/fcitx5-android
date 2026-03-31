@@ -19,6 +19,7 @@ import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
+import org.fcitx.fcitx5.android.BuildConfig
 import org.fcitx.fcitx5.android.FcitxApplication
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.databinding.ActivityLogBinding
@@ -104,7 +105,7 @@ class LogActivity : AppCompatActivity() {
             }
         }
         menu.item(R.string.export, R.drawable.ic_baseline_save_24, iconTint, true) {
-            launcher.launch("$packageName-${iso8601UTCDateTime()}.txt")
+            launcher.launch("${BuildConfig.APPLICATION_ID}-${iso8601UTCDateTime()}.txt")
         }
         return true
     }

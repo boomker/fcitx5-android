@@ -12,6 +12,9 @@ on:
       - '!*.md'
       - '!.gitignore'
 
+permissions:
+  contents: write
+
 jobs:
   build_commit:
     runs-on: ${{ matrix.os }}
@@ -102,6 +105,8 @@ jobs:
         run: |
           ./gradlew :app:assembleRelease
           ./gradlew :assembleReleasePlugins
+          ./gradlew -PincludeMainlineFlavor=true :app:assembleMainlineRelease
+          mv app/build/outputs/apk/mainline/release/*.apk app/build/outputs/apk/release/
       
       # move plugin apks to app/build/outputs/apk/release
       - name: Move plugin APKs

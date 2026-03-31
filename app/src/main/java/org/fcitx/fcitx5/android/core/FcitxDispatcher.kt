@@ -104,7 +104,8 @@ class FcitxDispatcher(private val controller: FcitxController) : CoroutineDispat
 
     override fun dispatch(context: CoroutineContext, block: Runnable) {
         if (!isRunning.get()) {
-            throw IllegalStateException("Dispatcher is not in running state!")
+            Timber.w("Drop runnable because dispatcher is not running: $block")
+            return
         }
         queue.offer(WrappedRunnable(block))
         // always call `nativeScheduleEmpty()` to prevent `nativeLoopOnce()` from blocking
