@@ -34,6 +34,7 @@ import org.fcitx.fcitx5.android.ui.main.settings.global.GlobalConfigFragment
 import org.fcitx.fcitx5.android.ui.main.settings.im.InputMethodConfigFragment
 import org.fcitx.fcitx5.android.ui.main.settings.im.InputMethodListFragment
 import org.fcitx.fcitx5.android.ui.main.settings.theme.ThemeFragment
+import org.fcitx.fcitx5.android.utils.AppUtil
 import org.fcitx.fcitx5.android.utils.config.ConfigDescriptor
 import org.fcitx.fcitx5.android.utils.parcelable
 import kotlin.reflect.typeOf
@@ -192,11 +193,12 @@ sealed class SettingsRoute : Parcelable {
     companion object {
         fun createGraph(controller: NavController) = controller.createGraph(Index) {
             val ctx = controller.context
+            val appLabel = AppUtil.appLabel(ctx)
 
             /* ========== Index ========== */
 
             fragment<MainFragment, Index> {
-                label = ctx.getString(R.string.app_name)
+                label = appLabel
             }
 
             /* ========== Fcitx ========== */

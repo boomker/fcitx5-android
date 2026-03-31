@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name_release">天鹅输入法</string>
+    <string name="app_name_mainline_release">小企鵝輸入法</string>
+    <string name="app_name_mainline_debug">小企鵝輸入法 (除錯)</string>
     <string name="app_name_debug">天鹅输入法 (除錯)</string>
     <string name="save">儲存</string>
     <string name="input_methods">輸入法</string>

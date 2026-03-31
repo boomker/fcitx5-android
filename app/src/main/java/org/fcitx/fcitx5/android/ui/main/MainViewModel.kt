@@ -9,10 +9,13 @@ import androidx.lifecycle.ViewModel
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.daemon.FcitxConnection
 import org.fcitx.fcitx5.android.daemon.FcitxDaemon
+import org.fcitx.fcitx5.android.utils.AppUtil
 import org.fcitx.fcitx5.android.utils.appContext
 
 class MainViewModel : ViewModel() {
-    val toolbarTitle = MutableLiveData(appContext.getString(R.string.app_name))
+    private val appLabel = AppUtil.appLabel(appContext)
+
+    val toolbarTitle = MutableLiveData(appLabel)
 
     val toolbarShadow = MutableLiveData(true)
 

@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name_release">天鹅输入法</string>
+    <string name="app_name_mainline_release">Fcitx5</string>
+    <string name="app_name_mainline_debug">Fcitx5 (depuración)</string>
     <string name="app_name_debug">天鹅输入法 (depuración)</string>
     <string name="save">Guardar</string>
     <string name="input_methods">Métodos de entrada</string>

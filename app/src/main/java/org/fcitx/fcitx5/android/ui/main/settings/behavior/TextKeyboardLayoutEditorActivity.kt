@@ -53,6 +53,7 @@ import org.fcitx.fcitx5.android.input.config.ConfigProviders
 import org.fcitx.fcitx5.android.input.config.ConfigProvider
 import org.fcitx.fcitx5.android.input.keyboard.TextKeyboard
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.adapter.KeyboardLayoutAdapter
+import org.fcitx.fcitx5.android.utils.AppUtil
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.adapter.SimpleDividerItemDecoration
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.data.LayoutDataManager
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.dialog.KeyEditorDialog
@@ -191,7 +192,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         val subModeLabel = previewSubModeLabel?.takeIf { it.isNotBlank() }
         val subModeKey = subModeLabel?.let { "$layoutName:$it" }
         val hasDedicatedSubModeLayout = subModeKey != null && entries.containsKey(subModeKey)
-        return if (hasDedicatedSubModeLayout && subModeLabel != null) {
+        return if (hasDedicatedSubModeLayout) {
             "$layoutName · $subModeLabel"
         } else {
             layoutName
@@ -356,6 +357,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         else -> super.onOptionsItemSelected(item)
     }
 
+    @Deprecated("Use onBackPressedDispatcher.dispatchOnBackPressed() when available", ReplaceWith("super.onBackPressed()"))
     override fun onBackPressed() {
         attemptExit()
     }
@@ -1602,7 +1604,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
 
         val imeEnabled = InputMethodUtil.isEnabled()
         val appLabel = runCatching { applicationInfo.loadLabel(packageManager).toString() }
-            .getOrDefault(getString(R.string.app_name_release))
+            .getOrDefault(AppUtil.appLabel(this))
         val appName = appLabel
         val messageRaw = if (imeEnabled) {
             getString(R.string.select_ime_hint, appName)

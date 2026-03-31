@@ -26,6 +26,7 @@ import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.databinding.ActivitySetupBinding
 import org.fcitx.fcitx5.android.ui.setup.SetupPage.Companion.firstUndonePage
 import org.fcitx.fcitx5.android.ui.setup.SetupPage.Companion.isLastPage
+import org.fcitx.fcitx5.android.utils.AppUtil
 import org.fcitx.fcitx5.android.utils.notificationManager
 
 class SetupActivity : FragmentActivity() {
@@ -116,7 +117,7 @@ class SetupActivity : FragmentActivity() {
         if (SetupPage.hasUndonePage())
             NotificationCompat.Builder(this, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_baseline_keyboard_24)
-                .setContentTitle(getText(R.string.app_name))
+                .setContentTitle(AppUtil.appLabel(this))
                 .setContentText(getText(R.string.setup_keyboard))
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setContentIntent(
