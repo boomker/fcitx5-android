@@ -68,6 +68,11 @@
             android:exported="false"
             android:label="@string/edit_theme" />
         <activity
+            android:name=".ui.main.settings.theme.MonetThemeEditorActivity"
+            android:configChanges="orientation|screenSize"
+            android:exported="false"
+            android:label="@string/edit_monet_theme" />
+        <activity
             android:name=".ui.main.settings.behavior.FontsetEditorActivity"
             android:exported="false"
             android:label="@string/edit_fontset" />

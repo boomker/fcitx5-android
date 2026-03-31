@@ -611,6 +611,19 @@
     <string name="theme_share_zip_title">分享主题压缩包</string>
     <string name="theme_share_qr_title">分享主题二维码图片</string>
     <string name="theme_import_overwrite_title">主题已存在</string>
-    <string name="theme_import_overwrite_message">主题“%1$s”已存在，是否覆盖？</string>
+    <string name="theme_import_overwrite_message">主题"%1$s"已存在，是否覆盖？</string>
     <string name="theme_imported_from_qr">主题已导入并保存。</string>
+
+    <!-- Monet Theme Editor -->
+    <string name="monet_editor_title">编辑 Monet 主题</string>
+    <string name="monet_editor_unsupported_title">不支持 Material You</string>
+    <string name="monet_editor_unsupported_message">Material You 动态颜色需要 Android 12 (SDK 31) 或更高版本。您的设备运行的是 Android %1$d。</string>
+    <string name="monet_editor_select_color_resource">选择颜色资源</string>
+    <string name="monet_editor_select">选择</string>
+    <string name="monet_editor_color_mapping_title">颜色映射</string>
+    <string name="monet_editor_description">为每个主题颜色映射一个 Material You 动态颜色资源。更改将自动保存并应用。</string>
+    <string name="edit_monet_theme">编辑 Monet 主题</string>
+    <string name="edit_monet_light_theme">编辑 MonetLight 映射</string>
+    <string name="edit_monet_dark_theme">编辑 MonetDark 映射</string>
+    <string name="edit_monet_theme_summary">自定义此 Monet 主题的 Material You 资源映射</string>
 </resources>

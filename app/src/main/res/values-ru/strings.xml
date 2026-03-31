@@ -536,4 +536,17 @@
     <string name="theme_import_overwrite_title">Тема уже существует</string>
     <string name="theme_import_overwrite_message">Тема \"%1$s\" уже существует. Перезаписать?</string>
     <string name="theme_imported_from_qr">Тема импортирована и сохранена.</string>
+
+    <!-- Monet Theme Editor -->
+    <string name="monet_editor_title">Редактировать тему Monet</string>
+    <string name="monet_editor_unsupported_title">Material You не поддерживается</string>
+    <string name="monet_editor_unsupported_message">Динамические цвета Material You требуют Android 12 (SDK 31) или выше. Ваше устройство работает под управлением Android %1$d.</string>
+    <string name="monet_editor_select_color_resource">Выбрать ресурс цвета</string>
+    <string name="monet_editor_select">Выбрать</string>
+    <string name="monet_editor_color_mapping_title">Сопоставление цветов</string>
+    <string name="monet_editor_description">Сопоставьте каждый цвет темы с ресурсом динамического цвета Material You. Изменения будут автоматически сохранены и применены.</string>
+    <string name="edit_monet_theme">Редактировать тему Monet</string>
+    <string name="edit_monet_light_theme">Редактировать сопоставление MonetLight</string>
+    <string name="edit_monet_dark_theme">Редактировать сопоставление MonetDark</string>
+    <string name="edit_monet_theme_summary">Настроить сопоставление ресурсов Material You для этой темы Monet</string>
 </resources>

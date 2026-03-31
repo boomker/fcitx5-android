@@ -35,6 +35,7 @@ import java.util.UUID
 class ThemeListFragment : Fragment() {
 
     private lateinit var imageLauncher: ActivityResultLauncher<Theme.Custom?>
+    private lateinit var monetEditorLauncher: ActivityResultLauncher<Theme.Monet>
 
     private lateinit var importLauncher: ActivityResultLauncher<String>
 
@@ -97,6 +98,11 @@ class ThemeListFragment : Fragment() {
                     ThemeManager.saveTheme(theme)
                 }
             }
+        }
+        monetEditorLauncher = registerForActivityResult(MonetThemeEditorActivity.Contract()) { result ->
+            if (result == null) return@registerForActivityResult
+            ThemeManager.refreshThemes()
+            updateSelectedThemes()
         }
         importLauncher =
             registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
@@ -175,6 +181,7 @@ class ThemeListFragment : Fragment() {
             override fun onAddNewTheme() = addTheme()
             override fun onSelectTheme(theme: Theme) = selectTheme(theme)
             override fun onEditTheme(theme: Theme.Custom) = editTheme(theme)
+            override fun onEditMonetTheme(theme: Theme.Monet) = editMonetTheme(theme)
             override fun onExportTheme(theme: Theme.Custom) = exportTheme(theme)
         }
         ThemeManager.refreshThemes()
@@ -272,6 +279,11 @@ class ThemeListFragment : Fragment() {
 
     private fun editTheme(theme: Theme.Custom) {
         imageLauncher.launch(theme)
+    }
+
+    private fun editMonetTheme(theme: Theme.Monet) {
+        if (!ThemeMonet.supportsCustomMappingEditor(requireContext())) return
+        monetEditorLauncher.launch(theme)
     }
 
     private fun exportTheme(theme: Theme.Custom) {

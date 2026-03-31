@@ -153,7 +153,11 @@ abstract class ThemeListAdapter : RecyclerView.Adapter<ThemeListAdapter.ViewHold
                     } else false
                 }
                 editButton.setOnClickListener {
-                    if (theme is Theme.Custom) onEditTheme(theme)
+                    when (theme) {
+                        is Theme.Custom -> onEditTheme(theme)
+                        is Theme.Monet -> onEditMonetTheme(theme)
+                        else -> Unit
+                    }
                 }
             }
             else -> throw IllegalArgumentException(INVALID_TYPE + it)
@@ -169,6 +173,8 @@ abstract class ThemeListAdapter : RecyclerView.Adapter<ThemeListAdapter.ViewHold
     abstract fun onSelectTheme(theme: Theme)
 
     abstract fun onEditTheme(theme: Theme.Custom)
+
+    abstract fun onEditMonetTheme(theme: Theme.Monet)
 
     abstract fun onExportTheme(theme: Theme.Custom)
 

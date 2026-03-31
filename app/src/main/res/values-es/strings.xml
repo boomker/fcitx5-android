@@ -350,4 +350,17 @@
     <string name="theme_import_overwrite_title">El tema ya existe</string>
     <string name="theme_import_overwrite_message">El tema \"%1$s\" ya existe. ¿Sobrescribirlo?</string>
     <string name="theme_imported_from_qr">Tema importado y guardado.</string>
+
+    <!-- Monet Theme Editor -->
+    <string name="monet_editor_title">Editar tema Monet</string>
+    <string name="monet_editor_unsupported_title">Material You no compatible</string>
+    <string name="monet_editor_unsupported_message">Los colores dinámicos de Material You requieren Android 12 (SDK 31) o superior. Su dispositivo ejecuta Android %1$d.</string>
+    <string name="monet_editor_select_color_resource">Seleccionar recurso de color</string>
+    <string name="monet_editor_select">Seleccionar</string>
+    <string name="monet_editor_color_mapping_title">Mapeo de colores</string>
+    <string name="monet_editor_description">Asocie cada color del tema a un recurso de color dinámico de Material You. Los cambios se guardarán y aplicarán automáticamente.</string>
+    <string name="edit_monet_theme">Editar tema Monet</string>
+    <string name="edit_monet_light_theme">Editar mapeo MonetLight</string>
+    <string name="edit_monet_dark_theme">Editar mapeo MonetDark</string>
+    <string name="edit_monet_theme_summary">Personalizar el mapeo de recursos de Material You para este tema Monet</string>
 </resources>

@@ -564,4 +564,17 @@
     <string name="theme_import_overwrite_title">主題已存在</string>
     <string name="theme_import_overwrite_message">主題「%1$s」已存在，是否覆蓋？</string>
     <string name="theme_imported_from_qr">主題已匯入並保存。</string>
+
+    <!-- Monet Theme Editor -->
+    <string name="monet_editor_title">編輯 Monet 主題</string>
+    <string name="monet_editor_unsupported_title">不支援 Material You</string>
+    <string name="monet_editor_unsupported_message">Material You 動態顏色需要 Android 12 (SDK 31) 或更高版本。您的裝置執行的是 Android %1$d。</string>
+    <string name="monet_editor_select_color_resource">選擇顏色資源</string>
+    <string name="monet_editor_select">選擇</string>
+    <string name="monet_editor_color_mapping_title">顏色對應</string>
+    <string name="monet_editor_description">為每個主題顏色對應一個 Material You 動態顏色資源。變更將自動儲存並套用。</string>
+    <string name="edit_monet_theme">編輯 Monet 主題</string>
+    <string name="edit_monet_light_theme">編輯 MonetLight 對應</string>
+    <string name="edit_monet_dark_theme">編輯 MonetDark 對應</string>
+    <string name="edit_monet_theme_summary">自訂此 Monet 主題的 Material You 資源對應</string>
 </resources>

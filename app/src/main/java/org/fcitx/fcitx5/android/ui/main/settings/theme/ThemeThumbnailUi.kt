@@ -10,7 +10,6 @@ import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.ShapeDrawable
 import android.graphics.drawable.shapes.OvalShape
 import android.os.Build
-import android.graphics.Color
 import android.view.Gravity
 import android.view.View
 import android.view.ViewOutlineProvider
@@ -19,6 +18,7 @@ import android.widget.TextView
 import androidx.core.view.isVisible
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.data.theme.Theme
+import org.fcitx.fcitx5.android.data.theme.ThemeMonet
 import org.fcitx.fcitx5.android.utils.rippleDrawable
 import splitties.dimensions.dp
 import splitties.views.backgroundColor
@@ -74,6 +74,7 @@ class ThemeThumbnailUi(override val ctx: Context) : Ui {
         setPaddingDp(16, 4, 4, 16)
         scaleType = ImageView.ScaleType.FIT_CENTER
         imageResource = R.drawable.ic_baseline_edit_24
+        contentDescription = "Edit theme"
     }
 
     val dynamicIcon = imageView {
@@ -99,16 +100,16 @@ class ThemeThumbnailUi(override val ctx: Context) : Ui {
             rightOfParent(dp(4))
             bottomOfParent(dp(4))
         })
+        add(dynamicIcon, lParams(dp(32), dp(32)) {
+            topOfParent(dp(2))
+            startOfParent(dp(2))
+        })
         add(checkMark, lParams(dp(60), dp(60)) {
             centerInParent()
         })
         add(editButton, lParams(dp(44), dp(44)) {
             topOfParent()
             endOfParent()
-        })
-        add(dynamicIcon, lParams(dp(32), dp(32)) {
-            topOfParent()
-            startOfParent()
         })
     }
 
@@ -135,13 +136,18 @@ class ThemeThumbnailUi(override val ctx: Context) : Ui {
         }
         val foregroundTint = ColorStateList.valueOf(theme.altKeyTextColor)
         editButton.apply {
-            visibility = if (theme is Theme.Custom) View.VISIBLE else View.GONE
+            visibility =
+                if (theme is Theme.Custom || (theme is Theme.Monet && ThemeMonet.supportsCustomMappingEditor(ctx))) {
+                    View.VISIBLE
+                } else {
+                    View.GONE
+                }
             background = rippleDrawable(theme.keyPressHighlightColor)
             imageTintList = foregroundTint
         }
         dynamicIcon.apply {
             visibility =
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && theme is Theme.Monet) View.VISIBLE else View.GONE
+                if (theme is Theme.Monet && ThemeMonet.supportsCustomMappingEditor(ctx)) View.VISIBLE else View.GONE
             imageTintList = foregroundTint
         }
         checkMark.imageTintList = foregroundTint

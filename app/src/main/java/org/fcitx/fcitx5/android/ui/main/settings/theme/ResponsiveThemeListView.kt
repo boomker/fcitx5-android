@@ -13,7 +13,7 @@ import kotlin.math.max
 class ResponsiveThemeListView(context: Context) : RecyclerView(context) {
 
     var itemWidth = dp(128)
-    var itemHeight = dp(92)
+    var itemHeight = dp(110)  // Increased from 92 to 110 to fit edit button
     var minMargin = dp(16)
 
     private lateinit var grid: GridLayoutManager

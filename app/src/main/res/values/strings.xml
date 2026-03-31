@@ -172,6 +172,17 @@
     <string name="new_theme">New theme</string>
     <string name="theme_name">Theme name</string>
     <string name="theme_name_empty">Theme name cannot be empty</string>
+    <string name="monet_editor_title">Edit Monet Theme</string>
+    <string name="monet_editor_unsupported_title">Material You Not Supported</string>
+    <string name="monet_editor_unsupported_message">Material You dynamic colors require Android 12 (SDK 31) or higher. Your device is running Android %1$d.</string>
+    <string name="monet_editor_select_color_resource">Select Color Resource</string>
+    <string name="monet_editor_select">Select</string>
+    <string name="monet_editor_color_mapping_title">Color Mapping</string>
+    <string name="monet_editor_description">Map each theme color to a Material You dynamic color resource. Changes will be saved and applied automatically.</string>
+    <string name="edit_monet_theme">Edit Monet Theme</string>
+    <string name="edit_monet_light_theme">Edit MonetLight mapping</string>
+    <string name="edit_monet_dark_theme">Edit MonetDark mapping</string>
+    <string name="edit_monet_theme_summary">Customize Material You resource mapping for this Monet theme</string>
     <string name="skip">Skip</string>
     <string name="horizontal_candidate_growth">Stretch horizontal candidates to fill the remaining width</string>
     <string name="none">None</string>

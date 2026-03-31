@@ -486,4 +486,17 @@
     <string name="theme_import_overwrite_message">テーマ「%1$s」は既に存在します。上書きしますか？</string>
     <string name="theme_imported_from_qr">テーマをインポートして保存しました。</string>
     <string name="generic_multiselect_min">少なくとも %1$d 項目を選択してください。</string>
+
+    <!-- Monet Theme Editor -->
+    <string name="monet_editor_title">Monet テーマを編集</string>
+    <string name="monet_editor_unsupported_title">Material You 非対応</string>
+    <string name="monet_editor_unsupported_message">Material You ダイナミックカラーには Android 12 (SDK 31) 以上が必要です。お使いのデバイスは Android %1$d です。</string>
+    <string name="monet_editor_select_color_resource">カラーリソースを選択</string>
+    <string name="monet_editor_select">選択</string>
+    <string name="monet_editor_color_mapping_title">カラーマッピング</string>
+    <string name="monet_editor_description">各テーマカラーを Material You ダイナミックカラーリソースにマッピングします。変更は自動的に保存され適用されます。</string>
+    <string name="edit_monet_theme">Monet テーマを編集</string>
+    <string name="edit_monet_light_theme">MonetLight マッピングを編集</string>
+    <string name="edit_monet_dark_theme">MonetDark マッピングを編集</string>
+    <string name="edit_monet_theme_summary">この Monet テーマの Material You リソースマッピングをカスタマイズ</string>
 </resources>
