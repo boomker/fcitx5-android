@@ -163,7 +163,7 @@
     <string name="gboard_light_main_key_tone">Gboard 主键区透明度</string>
     <string name="gboard_light_other_key_tone">Gboard 非主键区透明度</string>
     <string name="wallpaper_blend_percent">键盘与壁纸混合比例</string>
-    <string name="toolbar_border">顶部工具栏边框</string>
+    <string name="navbar_border">导航栏边框</string>
     <string name="light_mode_theme">亮色模式主题</string>
     <string name="light_mode_theme_summary">选择多个主题并在切换时轮询</string>
     <string name="dark_mode_theme">暗色模式主题</string>

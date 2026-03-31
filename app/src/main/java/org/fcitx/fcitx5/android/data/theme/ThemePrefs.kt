@@ -128,6 +128,12 @@ class ThemePrefs(sharedPreferences: SharedPreferences) :
         }
     }
 
+    val navbarBorder = switch(
+        R.string.navbar_border,
+        "navbar_border",
+        false
+    )
+
     /**
      * When [followSystemDayNightTheme] is disabled, this theme is used.
      * This is effectively an internal preference which does not need UI.
@@ -170,12 +176,6 @@ class ThemePrefs(sharedPreferences: SharedPreferences) :
         0,
         100,
         "%"
-    )
-
-    val toolbarBorder = switch(
-        R.string.toolbar_border,
-        "toolbar_border",
-        false
     )
 
     /**

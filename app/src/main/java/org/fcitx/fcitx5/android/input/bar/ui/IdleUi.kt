@@ -130,7 +130,7 @@ class IdleUi(
     private fun updateMenuButtonIcon() {
         menuButton.image.imageResource = when {
             inPrivate -> R.drawable.ic_view_private
-            currentState == State.Clipboard -> R.drawable.ic_baseline_arrow_back_24
+            currentState == State.Clipboard || currentState == State.InlineSuggestion -> R.drawable.ic_baseline_arrow_back_24
             else -> R.drawable.ic_baseline_apps_24
         }
     }

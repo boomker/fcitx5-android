@@ -163,7 +163,7 @@
     <string name="gboard_light_main_key_tone">Gboard main key area opacity</string>
     <string name="gboard_light_other_key_tone">Gboard non-main key area opacity</string>
     <string name="wallpaper_blend_percent">Keyboard/wallpaper blend</string>
-    <string name="toolbar_border">Toolbar border</string>
+    <string name="navbar_border">Navigation bar border</string>
     <string name="light_mode_theme">Light mode themes</string>
     <string name="light_mode_theme_summary">Select multiple themes and cycle through them</string>
     <string name="dark_mode_theme">Dark mode themes</string>

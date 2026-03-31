@@ -226,20 +226,17 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
     }
 
     // Load buttons config from file or use default
-    // Note: 'more' button is always added automatically at the end if not present in config
+    // Note: 'more' button is no longer added automatically
     private fun loadButtonsConfig(): List<ConfigurableButton> {
         return try {
             val snapshot = ConfigProviders.readButtonsLayoutConfig<ButtonsLayoutConfig>()
             val config = snapshot?.value ?: ButtonsLayoutConfig.default()
 
-            // Filter out 'more' button from config (it's always added automatically)
-            val filteredButtons = config.kawaiiBarButtons.filter { it.id != "more" }
-
-            // Always add 'more' button at the end
-            filteredButtons + ConfigurableButton("more")
+            // Filter out 'more' button (replaced by menuButton which opens StatusAreaWindow)
+            config.kawaiiBarButtons.filter { it.id != "more" }
         } catch (e: Exception) {
-            // Default config without 'more' (it will be added automatically)
-            ButtonsLayoutConfig.default().kawaiiBarButtons.filter { it.id != "more" } + ConfigurableButton("more")
+            // Default config without 'more'
+            ButtonsLayoutConfig.default().kawaiiBarButtons.filter { it.id != "more" }
         }
     }
 
@@ -258,26 +255,8 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
 
     private fun setupIdleUiCallbacks(ui: IdleUi) {
         ui.menuButton.setOnClickListener {
-            when (ui.currentState) {
-                IdleUi.State.Empty -> {
-                    prefs.keyboard.toolbarManuallyToggled.setValue(!expandToolbarByDefault)
-                    evalIdleUiState(fromUser = true)
-                }
-
-                IdleUi.State.Toolbar -> {
-                    prefs.keyboard.toolbarManuallyToggled.setValue(expandToolbarByDefault)
-                    evalIdleUiState(fromUser = true)
-                }
-
-                else -> {
-                    prefs.keyboard.toolbarManuallyToggled.setValue(!expandToolbarByDefault)
-                    ui.updateState(IdleUi.State.Toolbar, fromUser = true)
-                }
-            }
-            // reset timeout timer (if present) when user switch layout
-            if (clipboardTimeoutJob != null) {
-                launchClipboardTimeoutJob()
-            }
+            // menuButton now opens StatusAreaWindow (secondary menu) instead of toggling toolbar
+            windowManager.attachWindow(StatusAreaWindow())
         }
         ui.hideKeyboardButton.apply {
             setOnClickListener(hideKeyboardCallback)
@@ -445,7 +424,7 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
                 val backgroundColor =
                     if (ThemeManager.prefs.keyBorder.getValue()) Color.TRANSPARENT
                     else theme.barColor
-                if (ThemeManager.prefs.toolbarBorder.getValue()) {
+                if (ThemeManager.prefs.navbarBorder.getValue()) {
                     borderDrawable(dp(1), theme.keyShadowColor, backgroundColor)
                 } else {
                     ColorDrawable(backgroundColor)
