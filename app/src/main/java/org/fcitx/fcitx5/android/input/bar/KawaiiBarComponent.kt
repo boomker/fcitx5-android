@@ -76,6 +76,7 @@ import org.fcitx.fcitx5.android.utils.AppUtil
 import org.fcitx.fcitx5.android.core.SubtypeManager
 import org.fcitx.fcitx5.android.daemon.launchOnReady
 import org.fcitx.fcitx5.android.utils.InputMethodUtil
+import org.fcitx.fcitx5.android.utils.alpha
 import org.fcitx.fcitx5.android.utils.borderDrawable
 import org.mechdancer.dependency.DynamicScope
 import org.mechdancer.dependency.manager.must
@@ -88,6 +89,7 @@ import splitties.views.dsl.core.matchParent
 import java.util.concurrent.Executor
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
+import kotlin.math.max
 import kotlin.math.min
 
 class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(),
@@ -436,14 +438,37 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         view.displayedChild = index
     }
 
+    private fun resolveBarBackgroundColor(): Int {
+        return if (ThemeManager.prefs.keyBorder.getValue()) Color.TRANSPARENT else theme.barColor
+    }
+
+    private fun resolveBarBorderColor(backgroundColor: Int): Int {
+        val keyShadow = theme.keyShadowColor
+        if (Color.alpha(keyShadow) >= 0x26 && (keyShadow and 0x00ffffff) != (backgroundColor and 0x00ffffff)) {
+            return keyShadow
+        }
+
+        val divider = theme.dividerColor
+        if (Color.alpha(divider) >= 0x26 && (divider and 0x00ffffff) != (backgroundColor and 0x00ffffff)) {
+            return divider
+        }
+
+        // Fallback to a high-contrast stroke, so navbar border is always visible across themes.
+        return if (theme.isDark) Color.WHITE.alpha(0.30f) else Color.BLACK.alpha(0.22f)
+    }
+
     override val view by lazy {
         ViewAnimator(context).apply {
             background = run {
-                val backgroundColor =
-                    if (ThemeManager.prefs.keyBorder.getValue()) Color.TRANSPARENT
-                    else theme.barColor
+                val backgroundColor = resolveBarBackgroundColor()
                 if (ThemeManager.prefs.navbarBorder.getValue()) {
-                    borderDrawable(dp(1), theme.keyShadowColor, backgroundColor)
+                    val cornerRadius = dp(max(6f, ThemeManager.prefs.keyRadius.getValue().toFloat())).toFloat()
+                    borderDrawable(
+                        width = dp(1),
+                        stroke = resolveBarBorderColor(backgroundColor),
+                        background = backgroundColor,
+                        cornerRadius = cornerRadius
+                    )
                 } else {
                     ColorDrawable(backgroundColor)
                 }

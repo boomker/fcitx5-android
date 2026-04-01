@@ -45,8 +45,12 @@ fun circlePressHighlightDrawable(
 fun borderDrawable(
     width: Int,
     @ColorInt stroke: Int,
-    @ColorInt background: Int = Color.TRANSPARENT
+    @ColorInt background: Int = Color.TRANSPARENT,
+    cornerRadius: Float = 0f
 ): Drawable = GradientDrawable().apply {
     setStroke(width, stroke)
     setColor(background)
+    if (cornerRadius > 0f) {
+        this.cornerRadius = cornerRadius
+    }
 }
