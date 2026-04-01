@@ -285,6 +285,7 @@ class TextKeyboard(
     }
 
     private val showLangSwitchKey = AppPrefs.getInstance().keyboard.showLangSwitchKey
+    private val spaceKeyLabelMode = AppPrefs.getInstance().keyboard.spaceKeyLabelMode
 
     @Keep
     private val showLangSwitchKeyListener = ManagedPreference.OnChangeListener<Boolean> { _, _ ->
@@ -292,6 +293,11 @@ class TextKeyboard(
         cachedKeyDefLayouts.clear()
         // Reload layout to show/hide LanguageKey
         reloadLayout()
+    }
+
+    @Keep
+    private val spaceKeyLabelModeListener = ManagedPreference.OnChangeListener<SpaceKeyLabelMode> { _, _ ->
+        updateSpaceLabel(TextKeyboard.ime)
     }
 
     private val keepLettersUppercase by AppPrefs.getInstance().keyboard.keepLettersUppercase
@@ -516,11 +522,13 @@ class TextKeyboard(
         super.onAttachedToWindow()
         registerKeyboard(this)
         showLangSwitchKey.registerOnChangeListener(showLangSwitchKeyListener)
+        spaceKeyLabelMode.registerOnChangeListener(spaceKeyLabelModeListener)
     }
 
     override fun onDetachedFromWindow() {
         unregisterKeyboard(this)
         showLangSwitchKey.unregisterOnChangeListener(showLangSwitchKeyListener)
+        spaceKeyLabelMode.unregisterOnChangeListener(spaceKeyLabelModeListener)
         super.onDetachedFromWindow()
     }
 
@@ -537,9 +545,19 @@ class TextKeyboard(
 
     private fun updateSpaceLabel(ime: InputMethodEntry?) {
         if (ime == null) return
-        val newText = buildString {
-            append(ime.displayName)
-            ime.subMode.run { label.ifEmpty { name.ifEmpty { null } } }?.let { append(" ($it)") }
+        val subModeText = ime.subMode.run { label.ifEmpty { name.ifEmpty { "" } } }
+        val newText = when (spaceKeyLabelMode.getValue()) {
+            SpaceKeyLabelMode.Default -> {
+                buildString {
+                    append(ime.displayName)
+                    if (subModeText.isNotEmpty()) append(" ($subModeText)")
+                }
+            }
+            SpaceKeyLabelMode.CompactWhenSubMode -> {
+                val imeText = if (subModeText.isNotEmpty()) ime.label.ifEmpty { ime.displayName } else ime.displayName
+                val combined = if (subModeText.isNotEmpty()) "$imeText ($subModeText)" else imeText
+                if (subModeText.isNotEmpty() && combined.length > 10) subModeText else combined
+            }
         }
         ensureSpecialKeyViewsInitialized()
         specialKeyViews.space.forEach { spaceKey ->

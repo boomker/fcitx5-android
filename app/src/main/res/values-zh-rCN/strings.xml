@@ -281,6 +281,9 @@
     <string name="space_behavior_enumerate">轮换输入法</string>
     <string name="space_behavior_activate">在当前输入法和第一个输入法之间切换</string>
     <string name="space_behavior_picker">显示输入法选择对话框</string>
+    <string name="space_key_label_mode">空格键标签样式</string>
+    <string name="space_key_label_mode_default">默认</string>
+    <string name="space_key_label_mode_compact_when_submode">子模式激活时紧凑显示</string>
     <string name="show_lang_switch_key">显示语言切换键</string>
     <string name="horizontal_candidate_style">横向候选词样式</string>
     <string name="horizontal_candidate_never_fill">从不填充宽度</string>

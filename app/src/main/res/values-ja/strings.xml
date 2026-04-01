@@ -342,6 +342,9 @@
     <string name="text_keyboard_layout_key_label_lang">Lang</string>
     <string name="text_keyboard_layout_key_label_space">Space</string>
     <string name="text_keyboard_layout_key_label_enter">Enter</string>
+    <string name="space_key_label_mode">スペースキーのラベル表示</string>
+    <string name="space_key_label_mode_default">デフォルト</string>
+    <string name="space_key_label_mode_compact_when_submode">サブモード時にコンパクト表示</string>
     <string name="text_keyboard_layout_alphabet_key_main_required">メイン文字は空にできません</string>
     <string name="text_keyboard_layout_alphabet_key_alt_required">代替文字は空にできません</string>
     <string name="text_keyboard_layout_alphabet_key_main_length_invalid">メイン文字は単一の文字である必要があります</string>

@@ -195,6 +195,9 @@
     <string name="text_keyboard_layout_key_label_lang">Lang</string>
     <string name="text_keyboard_layout_key_label_space">Space</string>
     <string name="text_keyboard_layout_key_label_enter">Enter</string>
+    <string name="space_key_label_mode">Estilo de etiqueta de la barra espaciadora</string>
+    <string name="space_key_label_mode_default">Predeterminado</string>
+    <string name="space_key_label_mode_compact_when_submode">Compacto cuando hay submodo activo</string>
     <string name="text_keyboard_layout_alphabet_key_main_required">El carácter principal no debe estar vacío</string>
     <string name="text_keyboard_layout_alphabet_key_alt_required">El carácter alternativo no debe estar vacío</string>
     <string name="text_keyboard_layout_alphabet_key_main_length_invalid">El carácter principal debe ser un solo carácter</string>
