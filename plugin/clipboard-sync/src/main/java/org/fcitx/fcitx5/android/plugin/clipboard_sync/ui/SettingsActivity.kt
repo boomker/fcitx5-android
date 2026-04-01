@@ -29,6 +29,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.preference.EditTextPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
+import androidx.preference.SwitchPreferenceCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -90,6 +91,7 @@ class SettingsActivity : AppCompatActivity() {
             private const val DOWNLOAD_PATH_KEY = "download_path"
             private const val DOWNLOAD_PATH_URI_KEY = "download_path_uri"
             private const val BACKGROUND_KEEP_ALIVE_KEY = "background_keep_alive"
+            private const val QUICK_SYNC_KEY = "quick_sync"
             private const val BATTERY_OPTIMIZATION_KEY = "battery_optimization"
             private const val CLIPBOARD_PERMISSION_KEY = "clipboard_permission"
             private const val SYNC_ACCOUNT_KEY = "sync_account"
@@ -156,6 +158,11 @@ class SettingsActivity : AppCompatActivity() {
         private var testPushTextEdit: EditText? = null
         private var testPushSelectedFileView: TextView? = null
         private var testPushSelectedUri: Uri? = null
+        private val quickSyncPreferenceListener = SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
+            if (key != QUICK_SYNC_KEY) return@OnSharedPreferenceChangeListener
+            syncQuickSyncSwitchState(prefs)
+            context?.let { QuickSyncTileService.requestTileRefresh(it) }
+        }
 
         private val openTestPushDocument =
             registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -195,8 +202,7 @@ class SettingsActivity : AppCompatActivity() {
                 }
                 true
             }
-            findPreference<Preference>("quick_sync")?.setOnPreferenceChangeListener { _, newValue ->
-                QuickSyncTileService.requestTileRefresh(requireContext())
+            findPreference<Preference>(QUICK_SYNC_KEY)?.setOnPreferenceChangeListener { _, newValue ->
                 if (newValue == true) {
                     MainService.startSyncService(
                         requireContext(),
@@ -255,11 +261,25 @@ class SettingsActivity : AppCompatActivity() {
             requireActivity().title = getString(R.string.settings_title)
             updateBatteryOptimizationSummary()
             updateSyncFilterSummary(findPreference(SyncFilterPrefs.PREF_FILTER_ENTRY))
-            QuickSyncTileService.requestTileRefresh(requireContext())
             val prefs = preferenceManager.sharedPreferences
-            if (prefs?.getBoolean("quick_sync", true) == true) {
+            syncQuickSyncSwitchState(prefs)
+            QuickSyncTileService.requestTileRefresh(requireContext())
+            if (prefs?.getBoolean(QUICK_SYNC_KEY, true) == true) {
                 MainService.startSyncService(requireContext(), "settings-resume")
             }
+        }
+
+        override fun onStart() {
+            super.onStart()
+            val prefs = preferenceManager.sharedPreferences ?: return
+            prefs.registerOnSharedPreferenceChangeListener(quickSyncPreferenceListener)
+            syncQuickSyncSwitchState(prefs)
+        }
+
+        override fun onStop() {
+            preferenceManager.sharedPreferences
+                ?.unregisterOnSharedPreferenceChangeListener(quickSyncPreferenceListener)
+            super.onStop()
         }
 
         private fun initializeServerProfileState() {
@@ -306,6 +326,15 @@ class SettingsActivity : AppCompatActivity() {
             editor.putString("username", storedUsernameForProfile(prefs, resolvedType))
             editor.putString("password", storedPasswordForProfile(prefs, resolvedType))
             editor.apply()
+        }
+
+        private fun syncQuickSyncSwitchState(prefs: SharedPreferences?) {
+            val sharedPrefs = prefs ?: return
+            val enabled = sharedPrefs.getBoolean(QUICK_SYNC_KEY, true)
+            val preference = findPreference<SwitchPreferenceCompat>(QUICK_SYNC_KEY) ?: return
+            if (preference.isChecked != enabled) {
+                preference.isChecked = enabled
+            }
         }
 
         private fun migrateLegacyCredentialProfiles(

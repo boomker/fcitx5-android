@@ -225,6 +225,20 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         InputMethodUtil.switchInputMethod(service, id, subtype)
     }
 
+    private fun refreshHideKeyboardButtonState(
+        ui: IdleUi = idleUi,
+        capFlags: CapabilityFlags = CapabilityFlags.fromEditorInfo(service.currentInputEditorInfo)
+    ) {
+        isCapabilityFlagsPassword = toolbarNumRowOnPassword && capFlags.has(CapabilityFlag.Password)
+        voiceInputSubtype = InputMethodUtil.firstVoiceInput()
+        val shouldShowVoiceInput =
+            showVoiceInputButton && voiceInputSubtype != null && !capFlags.has(CapabilityFlag.Password)
+        ui.setHideKeyboardIsVoiceInput(
+            shouldShowVoiceInput,
+            if (shouldShowVoiceInput) switchToVoiceInputCallback else hideKeyboardCallback
+        )
+    }
+
     // Load buttons config from file or use default
     // Note: 'more' button is no longer added automatically
     private fun loadButtonsConfig(): List<ConfigurableButton> {
@@ -278,7 +292,10 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
                             // Refresh UI state after action completion
                             when (action.id) {
                                 "floating_toggle" -> evalIdleUiState()
-                                "one_handed_keyboard", "theme_toggle" -> updateButtonsState(service)
+                                "one_handed_keyboard", "theme_toggle" -> {
+                                    updateButtonsState(service)
+                                    refreshHideKeyboardButtonState(ui)
+                                }
                             }
                         }
                     )
@@ -313,6 +330,7 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
             }
             updateButtonsState(service)
         }
+        refreshHideKeyboardButtonState(ui)
         ui.clipboardUi.suggestionView.apply {
             setOnClickListener {
                 ClipboardManager.lastEntry?.let {
@@ -454,18 +472,11 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             idleUi.privateMode(info.imeOptions.hasFlag(EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING))
         }
-        isCapabilityFlagsPassword = toolbarNumRowOnPassword && capFlags.has(CapabilityFlag.Password)
         isInlineSuggestionPresent = false
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             idleUi.inlineSuggestionsBar.clear()
         }
-        voiceInputSubtype = InputMethodUtil.firstVoiceInput()
-        val shouldShowVoiceInput =
-            showVoiceInputButton && voiceInputSubtype != null && !capFlags.has(CapabilityFlag.Password)
-        idleUi.setHideKeyboardIsVoiceInput(
-            shouldShowVoiceInput,
-            if (shouldShowVoiceInput) switchToVoiceInputCallback else hideKeyboardCallback
-        )
+        refreshHideKeyboardButtonState(capFlags = capFlags)
         evalIdleUiState()
     }
 

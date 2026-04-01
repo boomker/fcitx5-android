@@ -62,7 +62,6 @@ abstract class KeyView(
 
     private fun isMainKeyAreaById(viewId: Int): Boolean {
         return viewId == R.id.button_space ||
-                viewId == R.id.button_mini_space ||
                 viewId == R.id.button_lang
     }
 
