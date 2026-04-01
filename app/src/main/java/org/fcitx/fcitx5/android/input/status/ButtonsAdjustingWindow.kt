@@ -18,6 +18,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.serialization.encodeToString
@@ -32,10 +33,8 @@ import org.fcitx.fcitx5.android.input.config.ButtonsLayoutConfig
 import org.fcitx.fcitx5.android.input.config.ConfigProviders
 import org.fcitx.fcitx5.android.input.config.ConfigurableButton
 import org.fcitx.fcitx5.android.input.dependency.inputMethodService
-import org.fcitx.fcitx5.android.input.dependency.theme
 import org.fcitx.fcitx5.android.input.wm.InputWindow
 import splitties.dimensions.dp
-import splitties.resources.styledColor
 import splitties.views.backgroundColor
 import splitties.views.dsl.core.add
 import splitties.views.dsl.core.frameLayout
@@ -50,8 +49,9 @@ private const val DRAG_END_DURATION_MS = 280L
 data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjustingWindow>() {
 
     private val service: FcitxInputMethodService by manager.inputMethodService()
-    private val theme: Theme by manager.theme()
     private val keyBorder by ThemeManager.prefs.keyBorder
+    private val currentTheme: Theme
+        get() = ThemeManager.activeTheme
 
     override fun enterAnimation(lastWindow: InputWindow) = null
 
@@ -112,7 +112,7 @@ data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjust
     }
 
     private val collapseButton by lazy {
-        ToolButton(context, R.drawable.ic_baseline_keyboard_arrow_left_24, theme).apply {
+        ToolButton(context, R.drawable.ic_baseline_keyboard_arrow_left_24, currentTheme).apply {
             layoutParams = LinearLayout.LayoutParams(
                 context.dp(KawaiiBarComponent.HEIGHT),
                 context.dp(KawaiiBarComponent.HEIGHT)
@@ -122,7 +122,7 @@ data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjust
     }
 
     private val moreButton by lazy {
-        ToolButton(context, R.drawable.ic_baseline_arrow_drop_down_24, theme).apply {
+        ToolButton(context, R.drawable.ic_baseline_arrow_drop_down_24, currentTheme).apply {
             layoutParams = LinearLayout.LayoutParams(
                 context.dp(KawaiiBarComponent.HEIGHT),
                 context.dp(KawaiiBarComponent.HEIGHT)
@@ -139,7 +139,7 @@ data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjust
                 context.dp(KawaiiBarComponent.HEIGHT)
             )
             if (!keyBorder) {
-                backgroundColor = theme.barColor
+                backgroundColor = currentTheme.barColor
             }
             addView(collapseButton)
             addView(topScroller, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f))
@@ -157,7 +157,6 @@ data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjust
             textSize = 11f
             gravity = Gravity.CENTER
             maxLines = 2
-            setTextColor(context.styledColor(android.R.attr.textColorPrimary))
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
                 topMargin = context.dp(4)
             }
@@ -172,9 +171,10 @@ data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjust
             layoutParams = RecyclerView.LayoutParams(LayoutParams.MATCH_PARENT, context.dp(72))
         }
 
-        fun bind(iconRes: Int, text: String, disabled: Boolean) {
-            icon.setImageDrawable(context.getDrawable(iconRes))
-            icon.drawable?.setTint(context.styledColor(android.R.attr.textColorPrimary))
+        fun bind(iconRes: Int, text: String, disabled: Boolean, theme: Theme) {
+            icon.setImageDrawable(ContextCompat.getDrawable(context, iconRes)?.mutate())
+            icon.drawable?.setTint(theme.keyTextColor)
+            label.setTextColor(theme.keyTextColor)
             label.text = text
             alpha = if (disabled) 0.45f else 1f
         }
@@ -194,6 +194,7 @@ data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjust
 
         override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
             val ui = holder.itemView as StatusButtonUi
+            val theme = outer.currentTheme
             if (position < outer.bottomButtons.size) {
                 val button = outer.bottomButtons[position]
                 val action = ButtonAction.fromId(button.id)
@@ -201,7 +202,7 @@ data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjust
                 val label = button.label
                     ?: action?.let { holder.itemView.context.getString(it.defaultLabelRes) }
                     ?: button.id
-                ui.bind(icon, label, disabled = false)
+                ui.bind(icon, label, disabled = false, theme = theme)
                 ui.setOnLongClickListener {
                     it.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                     it.animate()
@@ -223,7 +224,7 @@ data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjust
                 val action = ButtonAction.fromId("input_method_options")
                 val icon = action?.defaultIcon ?: R.drawable.ic_baseline_language_24
                 val label = action?.let { holder.itemView.context.getString(it.defaultLabelRes) } ?: "IME"
-                ui.bind(icon, label, disabled = true)
+                ui.bind(icon, label, disabled = true, theme = theme)
                 ui.setOnLongClickListener(null)
             }
         }
@@ -236,9 +237,6 @@ data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjust
             layoutManager = GridLayoutManager(context, 4)
             adapter = bottomAdapter
             itemAnimator = null
-            if (!keyBorder) {
-                backgroundColor = theme.barColor
-            }
         }
     }
 
@@ -257,7 +255,7 @@ data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjust
         topButtons.forEachIndexed { index, button ->
             val action = ButtonAction.fromId(button.id)
             val icon = action?.defaultIcon ?: R.drawable.ic_baseline_more_horiz_24
-            val view = ToolButton(context, icon, theme).apply {
+            val view = ToolButton(context, icon, currentTheme).apply {
                 layoutParams = LinearLayout.LayoutParams(
                     if (useEven) evenWidth else ViewGroup.LayoutParams.WRAP_CONTENT,
                     context.dp(KawaiiBarComponent.HEIGHT)
@@ -287,7 +285,7 @@ data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjust
             }
             topContainer.addView(view)
         }
-        val topMore = ToolButton(context, R.drawable.ic_baseline_more_horiz_24, theme).apply {
+        val topMore = ToolButton(context, R.drawable.ic_baseline_more_horiz_24, currentTheme).apply {
             layoutParams = LinearLayout.LayoutParams(
                 if (useEven) evenWidth else ViewGroup.LayoutParams.WRAP_CONTENT,
                 context.dp(KawaiiBarComponent.HEIGHT)
@@ -524,7 +522,7 @@ data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjust
     private val divider by lazy {
         View(context).apply {
             layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, context.dp(1))
-            setBackgroundColor(theme.dividerColor)
+            setBackgroundColor(currentTheme.dividerColor)
             alpha = 0f
         }
     }
@@ -540,9 +538,25 @@ data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjust
 
     private val root by lazy {
         context.frameLayout {
-            background = theme.backgroundDrawable(keyBorder)
+            background = currentTheme.backgroundDrawable(keyBorder)
             add(content, lParams(matchParent, matchParent))
         }
+    }
+
+    private fun refreshThemeUi() {
+        val theme = currentTheme
+        root.background = theme.backgroundDrawable(keyBorder)
+        if (!keyBorder) {
+            topRow.backgroundColor = theme.barColor
+        } else {
+            topRow.background = null
+        }
+        divider.setBackgroundColor(theme.dividerColor)
+        val iconTint = theme.altKeyTextColor
+        collapseButton.image.imageTintList = android.content.res.ColorStateList.valueOf(iconTint)
+        collapseButton.setPressHighlightColor(theme.keyPressHighlightColor)
+        moreButton.image.imageTintList = android.content.res.ColorStateList.valueOf(iconTint)
+        moreButton.setPressHighlightColor(theme.keyPressHighlightColor)
     }
 
     fun updateOverlayInsets(sidePadding: Int, bottomPadding: Int) {
@@ -558,6 +572,7 @@ data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjust
         val currentOrientation = context.resources.configuration.orientation
         val orientationChanged = currentOrientation != lastKnownOrientation
         lastKnownOrientation = currentOrientation
+        refreshThemeUi()
         loadState()
         if (topScroller.width > 0) {
             lastTopScrollerWidth = topScroller.width
