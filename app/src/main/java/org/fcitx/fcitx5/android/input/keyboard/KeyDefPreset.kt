@@ -399,6 +399,69 @@ class MacroKey(
     buildPopup(popup, tap, label, longPress)
 ) {
     private companion object {
+        private val FCITX_SYMBOL_LABELS = mapOf(
+            "grave" to "`",
+            "asciitilde" to "~",
+            "tilde" to "~",
+            "minus" to "-",
+            "underscore" to "_",
+            "equal" to "=",
+            "plus" to "+",
+            "bracketleft" to "[",
+            "braceleft" to "{",
+            "bracketright" to "]",
+            "braceright" to "}",
+            "backslash" to "\\",
+            "bar" to "|",
+            "semicolon" to ";",
+            "colon" to ":",
+            "apostrophe" to "'",
+            "quotedbl" to "\"",
+            "comma" to ",",
+            "less" to "<",
+            "period" to ".",
+            "greater" to ">",
+            "slash" to "/",
+            "question" to "?",
+            "exclam" to "!",
+            "at" to "@",
+            "numbersign" to "#",
+            "dollar" to "$",
+            "percent" to "%",
+            "asciicircum" to "^",
+            "ampersand" to "&",
+            "asterisk" to "*",
+            "parenleft" to "(",
+            "parenright" to ")",
+            "bracket_l" to "[",
+            "bracket_r" to "]",
+            "multiply" to "*",
+            "add" to "+",
+            "subtract" to "-",
+            "divide" to "/",
+            "separator" to ",",
+            "kp_0" to "0",
+            "kp_1" to "1",
+            "kp_2" to "2",
+            "kp_3" to "3",
+            "kp_4" to "4",
+            "kp_5" to "5",
+            "kp_6" to "6",
+            "kp_7" to "7",
+            "kp_8" to "8",
+            "kp_9" to "9",
+            "kp_add" to "+",
+            "kp_subtract" to "-",
+            "kp_multiply" to "*",
+            "kp_divide" to "/",
+            "kp_decimal" to ".",
+            "kp_equal" to "=",
+            "kp_separator" to ",",
+            "kp_tab" to "Tab",
+            "kp_space" to "Space",
+            "kp_enter" to "Enter"
+        )
+
         fun buildBehaviors(
             tap: MacroAction,
             swipe: MacroAction?,
@@ -443,17 +506,20 @@ class MacroKey(
                 // Generate popup based on the single key
                 when (singleTapKey) {
                     is KeyRef.Fcitx -> {
-                        val code = singleTapKey.code
-                        // If single letter, generate same popup as AlphabetKey
-                        if (code.length == 1 && code[0].isLetter()) {
-                            val upper = code.uppercase()
+                        val display = FCITX_SYMBOL_LABELS[singleTapKey.code.lowercase()] ?: singleTapKey.code
+                        // Keep AlphabetKey-like alt preview for letters.
+                        if (display.length == 1 && display[0].isLetter()) {
+                            val upper = display.uppercase()
                             arrayOf(
-                                Popup.AltPreview(code, upper),
-                                Popup.Keyboard(code)
+                                Popup.AltPreview(display, upper),
+                                Popup.Keyboard(display)
                             )
                         } else {
-                            // Other fcitx keys only show preview
-                            arrayOf(Popup.Preview(code))
+                            // Symbol/emoji/non-letter keys should still expose popup keyboard like SymbolKey.
+                            arrayOf(
+                                Popup.Preview(display),
+                                Popup.Keyboard(display)
+                            )
                         }
                     }
 
@@ -472,8 +538,11 @@ class MacroKey(
                         Popup.Keyboard(label)
                     )
                 } else {
-                    // Other labels only show preview
-                    arrayOf(Popup.Preview(label))
+                    // Non-letter labels should still expose popup keyboard.
+                    arrayOf(
+                        Popup.Preview(label),
+                        Popup.Keyboard(label)
+                    )
                 }
             }
         }

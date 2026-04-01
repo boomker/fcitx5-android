@@ -1073,19 +1073,7 @@ abstract class BaseKeyboard(
         
         // key tap
         when (key) {
-            is KeyRef.Fcitx -> {
-                if (isAlphaNumeric(key.code)) {
-                    sendFcitxKeyTap(key.code)
-                } else {
-                    // For symbol keys without Android key codes (e.g. Exclam, Dollar), send via Fcitx
-                    val androidCode = mapFcitxToAndroidKey(key.code)
-                    if (androidCode >= 0) {
-                        sendAndroidKeyTap(androidCode)
-                    } else {
-                        sendFcitxKeyTap(key.code)
-                    }
-                }
-            }
+            is KeyRef.Fcitx -> sendFcitxKeyTap(key.code)
             is KeyRef.Android -> sendAndroidKeyTap(key.code)
         }
         delay(50)
@@ -1115,13 +1103,6 @@ abstract class BaseKeyboard(
             "undo" -> ic.performContextMenuAction(android.R.id.undo)
             "redo" -> ic.performContextMenuAction(android.R.id.redo)
         }
-    }
-
-    /**
-     * Check whether it is an alphanumeric key
-     */
-    private fun isAlphaNumeric(code: String): Boolean {
-        return code.length == 1 && (code[0].isLetter() || code[0].isDigit())
     }
 
     /**
@@ -1225,8 +1206,28 @@ abstract class BaseKeyboard(
             "8" -> android.view.KeyEvent.KEYCODE_8
             "9" -> android.view.KeyEvent.KEYCODE_9
             // Symbol keys (only Android-supported keycodes)
+            "minus", "Minus" -> android.view.KeyEvent.KEYCODE_MINUS
+            "underscore", "Underscore" -> android.view.KeyEvent.KEYCODE_MINUS
+            "equal", "Equal" -> android.view.KeyEvent.KEYCODE_EQUALS
+            "plus", "Plus", "Add" -> android.view.KeyEvent.KEYCODE_EQUALS
+            "bracketleft", "Bracketleft", "Bracket_L" -> android.view.KeyEvent.KEYCODE_LEFT_BRACKET
+            "braceleft", "Braceleft" -> android.view.KeyEvent.KEYCODE_LEFT_BRACKET
+            "bracketright", "Bracketright", "Bracket_R" -> android.view.KeyEvent.KEYCODE_RIGHT_BRACKET
+            "braceright", "Braceright" -> android.view.KeyEvent.KEYCODE_RIGHT_BRACKET
+            "backslash", "Backslash" -> android.view.KeyEvent.KEYCODE_BACKSLASH
+            "bar", "Bar" -> android.view.KeyEvent.KEYCODE_BACKSLASH
+            "semicolon", "Semicolon" -> android.view.KeyEvent.KEYCODE_SEMICOLON
+            "colon", "Colon" -> android.view.KeyEvent.KEYCODE_SEMICOLON
+            "apostrophe", "Apostrophe" -> android.view.KeyEvent.KEYCODE_APOSTROPHE
+            "quotedbl", "Quotedbl" -> android.view.KeyEvent.KEYCODE_APOSTROPHE
+            "comma", "Comma", "less", "Less", "Separator" -> android.view.KeyEvent.KEYCODE_COMMA
+            "period", "Period", "greater", "Greater" -> android.view.KeyEvent.KEYCODE_PERIOD
+            "slash", "Slash", "question", "Question", "Divide" -> android.view.KeyEvent.KEYCODE_SLASH
             "At" -> android.view.KeyEvent.KEYCODE_AT
             "Numbersign" -> android.view.KeyEvent.KEYCODE_POUND
+            "grave", "Grave" -> android.view.KeyEvent.KEYCODE_GRAVE
+            // KEYCODE_GRAVE + Shift can produce '~', so map asciitilde aliases here too.
+            "asciitilde", "Asciitilde", "tilde", "Tilde" -> android.view.KeyEvent.KEYCODE_GRAVE
             // Special keys
             "Print" -> android.view.KeyEvent.KEYCODE_SYSRQ
             "Menu" -> android.view.KeyEvent.KEYCODE_MENU

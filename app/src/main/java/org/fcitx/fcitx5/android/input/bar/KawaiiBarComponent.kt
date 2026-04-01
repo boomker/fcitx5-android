@@ -274,6 +274,14 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
             // menuButton now opens StatusAreaWindow (secondary menu) instead of toggling toolbar
             windowManager.attachWindow(StatusAreaWindow())
         }
+        ui.menuButton.setOnLongClickListener {
+            if (service.inputView?.isButtonsAdjustingOverlayVisible == true) {
+                service.inputView?.hideButtonsAdjustingOverlay()
+            } else {
+                service.inputView?.showButtonsAdjustingOverlay()
+            }
+            true
+        }
         ui.hideKeyboardButton.apply {
             setOnClickListener(hideKeyboardCallback)
             swipeEnabled = true

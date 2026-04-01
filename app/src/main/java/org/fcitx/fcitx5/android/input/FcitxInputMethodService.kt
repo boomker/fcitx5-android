@@ -878,7 +878,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
 
     // override fun onEvaluateFullscreenMode() = false // Removed duplicate
 
-    private fun forwardKeyEvent(event: KeyEvent): Boolean {
+    private fun forwardKeyEvent(event: KeyEvent, preserveModifierState: Boolean = false): Boolean {
         // reason to use a self increment index rather than timestamp:
         // KeyUp and KeyDown events actually can happen on the same time
         val timestamp = cachedKeyEventIndex++
@@ -903,7 +903,11 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         Timber.v("forwardKeyEvent: keyCode=%d scanCode=%d action=%d unicodeChar=%d sym=%s",
             forwardedEvent.keyCode, forwardedEvent.scanCode, forwardedEvent.action, forwardedEvent.unicodeChar, sym)
         if (sym != null) {
-            var states = KeyStates.fromKeyEvent(forwardedEvent)
+            var states = if (preserveModifierState) {
+                keyStatesFromEventRaw(forwardedEvent)
+            } else {
+                KeyStates.fromKeyEvent(forwardedEvent)
+            }
             if (simulatedCapsLockOn && !states.has(KeyState.CapsLock)) {
                 states = KeyStates(states.states or KeyState.CapsLock.state)
             }
@@ -916,6 +920,17 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         }
         Timber.v("Skipped KeyEvent: $forwardedEvent")
         return false
+    }
+
+    private fun keyStatesFromEventRaw(event: KeyEvent): KeyStates {
+        var states = KeyState.NoState.state
+        if (event.isAltPressed) states = states or KeyState.Alt.state
+        if (event.isCtrlPressed) states = states or KeyState.Ctrl.state
+        if (event.isShiftPressed) states = states or KeyState.Shift.state
+        if (event.isCapsLockOn) states = states or KeyState.CapsLock.state
+        if (event.isNumLockOn) states = states or KeyState.NumLock.state
+        if (event.isMetaPressed) states = states or KeyState.Meta.state
+        return KeyStates(states)
     }
 
     private fun adjustAlphabetSymForCaps(sym: KeySym, states: KeyStates): KeySym {
@@ -1033,7 +1048,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         )
         Timber.v("sendSimulatedKeyEvent: keyCode=%d scanCode=%d action=%d unicodeChar=%d",
             keyCode, scanCode, action, event.unicodeChar)
-        forwardKeyEvent(event)
+        forwardKeyEvent(event, preserveModifierState = true)
 
         if (action == KeyEvent.ACTION_UP) {
             when (keyCode) {
