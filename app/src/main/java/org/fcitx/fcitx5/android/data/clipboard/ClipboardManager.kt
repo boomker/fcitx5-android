@@ -26,6 +26,8 @@ import org.fcitx.fcitx5.android.utils.ClipboardSourceDeletionTarget
 import org.fcitx.fcitx5.android.utils.ClipboardUriStore.deleteClipboardSourceFile
 import org.fcitx.fcitx5.android.utils.ClipboardUriStore.normalizeClipboardText
 import org.fcitx.fcitx5.android.utils.ClipboardUriStore.originalClipboardTextOrEmpty
+import org.fcitx.fcitx5.android.utils.ClipboardUriStore.stageForCommit
+import org.fcitx.fcitx5.android.utils.ClipboardUriStore.toClipboardUriOrNull
 import org.fcitx.fcitx5.android.utils.WeakHashSet
 import org.fcitx.fcitx5.android.utils.appContext
 import org.fcitx.fcitx5.android.utils.clipboardManager
@@ -92,7 +94,16 @@ object ClipboardManager : ClipboardManager.OnPrimaryClipChangedListener,
 
     private fun normalizeEntry(entry: ClipboardEntry): ClipboardEntry {
         if (entry.text.startsWith("content://") || entry.text.startsWith("file://")) {
-            return entry
+            // For URI entries (like clipboard images), try to stage the content
+            // so we have a local copy with proper permissions
+            val staged = normalizeClipboardText(appContext, entry.text)
+            return if (staged == entry.text) {
+                // Staging failed or returned same URI, keep original
+                entry
+            } else {
+                // Staging succeeded, use FileProvider URI
+                entry.copy(text = staged)
+            }
         }
         val normalizedText = normalizeClipboardText(appContext, entry.text)
         val normalizedOriginalText = when {
@@ -325,7 +336,19 @@ object ClipboardManager : ClipboardManager.OnPrimaryClipChangedListener,
         launch {
             mutex.withLock {
                 val entry = ClipboardEntry.fromClipData(clip, transformer) ?: return@withLock
-                insertOrUpdateEntry(entry, notifyListeners = true)
+                // For URI entries (clipboard images), try to stage the content immediately
+                // while we have clipboard permission, so we have a local copy
+                var finalEntry = entry
+                if (entry.isUriEntry() && entry.type.startsWith("image/")) {
+                    val staged = stageForCommit(appContext, entry.text.toClipboardUriOrNull()!!)
+                    if (staged != null) {
+                        finalEntry = entry.copy(text = staged.uri.toString())
+                        Timber.d("Staged clipboard image to local file: ${staged.uri}")
+                    } else {
+                        Timber.w("Failed to stage clipboard image URI: ${entry.text}")
+                    }
+                }
+                insertOrUpdateEntry(finalEntry, notifyListeners = true)
             }
         }
     }
