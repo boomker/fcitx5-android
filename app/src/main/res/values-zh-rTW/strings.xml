@@ -217,6 +217,7 @@
     <string name="space_key_label_mode">空格鍵標籤樣式</string>
     <string name="space_key_label_mode_default">預設</string>
     <string name="space_key_label_mode_compact_when_submode">子模式啟用時緊湊顯示</string>
+    <string name="space_key_label_mode_submode_only">僅顯示子模式</string>
     <string name="show_lang_switch_key">顯示語言切換鍵</string>
     <string name="horizontal_candidate_style">橫向候選詞樣式</string>
     <string name="horizontal_candidate_never_fill">從不填充寬度</string>

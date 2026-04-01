@@ -410,6 +410,7 @@
     <string name="space_key_label_mode">Стиль подписи клавиши пробела</string>
     <string name="space_key_label_mode_default">По умолчанию</string>
     <string name="space_key_label_mode_compact_when_submode">Компактно при активном подрежиме</string>
+    <string name="space_key_label_mode_submode_only">Только подрежим</string>
     <string name="text_keyboard_layout_alphabet_key_main_required">Основной символ не должен быть пустым</string>
     <string name="text_keyboard_layout_alphabet_key_alt_required">Альтернативный символ не должен быть пустым</string>
     <string name="text_keyboard_layout_alphabet_key_main_length_invalid">Основной символ должен быть одиночным</string>

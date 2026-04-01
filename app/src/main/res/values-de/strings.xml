@@ -164,6 +164,7 @@
     <string name="space_key_label_mode">Beschriftung der Leertaste</string>
     <string name="space_key_label_mode_default">Standard</string>
     <string name="space_key_label_mode_compact_when_submode">Kompakt bei aktivem Untermodus</string>
+    <string name="space_key_label_mode_submode_only">Nur Untermodus</string>
     <string name="show_lang_switch_key">Sprachwechseltaste anzeigen</string>
     <string name="horizontal_candidate_style">Stil der horizonttalen Kandidaten</string>
     <string name="num_items_deleted">%1$d Element(e) gelöscht</string>

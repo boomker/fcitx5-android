@@ -558,6 +558,9 @@ class TextKeyboard(
                 val combined = if (subModeText.isNotEmpty()) "$imeText ($subModeText)" else imeText
                 if (subModeText.isNotEmpty() && combined.length > 10) subModeText else combined
             }
+            SpaceKeyLabelMode.SubModeOnly -> {
+                if (subModeText.isNotEmpty()) subModeText else ime.displayName
+            }
         }
         ensureSpecialKeyViewsInitialized()
         specialKeyViews.space.forEach { spaceKey ->
