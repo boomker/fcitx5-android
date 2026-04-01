@@ -253,6 +253,10 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
 
     private fun setupIdleUiCallbacks(ui: IdleUi) {
         ui.menuButton.setOnClickListener {
+            if (service.inputView?.isButtonsAdjustingOverlayVisible == true) {
+                service.inputView?.hideButtonsAdjustingOverlay()
+                return@setOnClickListener
+            }
             when (ui.currentState) {
                 IdleUi.State.Empty -> {
                     prefs.keyboard.toolbarManuallyToggled.setValue(!expandToolbarByDefault)
@@ -271,6 +275,14 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
             if (clipboardTimeoutJob != null) {
                 launchClipboardTimeoutJob()
             }
+        }
+        ui.menuButton.setOnLongClickListener {
+            if (service.inputView?.isButtonsAdjustingOverlayVisible == true) {
+                service.inputView?.hideButtonsAdjustingOverlay()
+            } else {
+                service.inputView?.showButtonsAdjustingOverlay()
+            }
+            true
         }
         ui.hideKeyboardButton.apply {
             setOnClickListener(hideKeyboardCallback)

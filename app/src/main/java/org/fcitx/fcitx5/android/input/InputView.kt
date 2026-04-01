@@ -51,6 +51,7 @@ import org.fcitx.fcitx5.android.input.picker.emoticonPicker
 import org.fcitx.fcitx5.android.input.picker.symbolPicker
 import org.fcitx.fcitx5.android.input.popup.PopupComponent
 import org.fcitx.fcitx5.android.input.preedit.PreeditComponent
+import org.fcitx.fcitx5.android.input.status.ButtonsAdjustingWindow
 import android.graphics.Rect
 import android.graphics.Region
 import android.view.MotionEvent
@@ -732,6 +733,11 @@ class InputView(
     private val symbolPicker = symbolPicker()
     private val emojiPicker = emojiPicker()
     private val emoticonPicker = emoticonPicker()
+    private val buttonsAdjustingOverlayView by lazy {
+        ButtonsAdjustingWindow.onCreateView().apply {
+            visibility = GONE
+        }
+    }
 
     private fun setupScope() {
         scope += this@InputView.wrapToUniqueComponent()
@@ -749,6 +755,7 @@ class InputView(
         scope += windowManager
         scope += kawaiiBar
         scope += horizontalCandidate
+        scope += ButtonsAdjustingWindow
         broadcaster.onScopeSetupFinished(scope)
     }
 
@@ -1713,6 +1720,12 @@ class InputView(
             centerVertically()
             centerHorizontally()
         })
+        add(buttonsAdjustingOverlayView, lParams(matchParent, matchParent) {
+            topToTop = keyboardView.id
+            bottomToBottom = keyboardView.id
+            startToStart = keyboardView.id
+            endToEnd = keyboardView.id
+        })
         keyboardPrefs.registerOnChangeListener(onKeyboardSizeChangeListener)
         updateFloatingState()
         updateFloatingHandlesVisibility()
@@ -1777,8 +1790,28 @@ class InputView(
         }
     }
 
+    internal val isButtonsAdjustingOverlayVisible: Boolean
+        get() = buttonsAdjustingOverlayView.visibility == VISIBLE
+
+    internal fun showButtonsAdjustingOverlay() {
+        if (isButtonsAdjustingOverlayVisible) return
+        popup.dismissAll()
+        ButtonsAdjustingWindow.updateOverlayInsets(keyboardSidePaddingPx, keyboardBottomPaddingPx)
+        ButtonsAdjustingWindow.onAttached()
+        buttonsAdjustingOverlayView.bringToFront()
+        buttonsAdjustingOverlayView.visibility = VISIBLE
+    }
+
+    internal fun hideButtonsAdjustingOverlay() {
+        if (!isButtonsAdjustingOverlayVisible) return
+        ButtonsAdjustingWindow.onDetached()
+        buttonsAdjustingOverlayView.visibility = GONE
+    }
+
     private fun updateKeyboardSize() {
         applyStoredOneHandSideIfNeeded()
+
+        ButtonsAdjustingWindow.updateOverlayInsets(keyboardSidePaddingPx, keyboardBottomPaddingPx)
 
         val targetHeight = if (isFloating) {
             resolveFloatingHeight()
@@ -1879,6 +1912,7 @@ class InputView(
      * called when [InputView] is about to show, or restart
      */
     fun startInput(info: EditorInfo, capFlags: CapabilityFlags, restarting: Boolean = false) {
+        hideButtonsAdjustingOverlay()
         keyboardWindow.checkAndApplyFontRefresh()
         broadcaster.onStartInput(info, capFlags)
         returnKeyDrawable.updateDrawableOnEditorInfo(info)

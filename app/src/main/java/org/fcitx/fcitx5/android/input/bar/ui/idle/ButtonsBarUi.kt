@@ -187,7 +187,7 @@ class ButtonsBarUi(
                     // Scroll mode: WRAP_CONTENT with minimum width ensures buttons don't shrink
                     params.width = ViewGroup.LayoutParams.WRAP_CONTENT
                     params.minWidth = kawaiiBarLayout.minButtonWidth
-                    button.image.scaleType = ImageView.ScaleType.CENTER_CROP
+                    button.image.scaleType = ImageView.ScaleType.CENTER_INSIDE
                 } else {
                     // Switch to even distribution mode if not already
                     if (!kawaiiBarLayout.isEvenDistributionMode) {
@@ -203,8 +203,7 @@ class ButtonsBarUi(
                     // Even distribution mode: Set fixed width for each button
                     params.width = idealWidth
                     params.minWidth = 0
-                    // Use CENTER_CROP to ensure icon fills the button area
-                    button.image.scaleType = ImageView.ScaleType.CENTER_CROP
+                    button.image.scaleType = ImageView.ScaleType.CENTER_INSIDE
                 }
             } else {
                 // Fallback to scroll mode

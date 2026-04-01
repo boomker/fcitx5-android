@@ -123,6 +123,10 @@ class InputWindowManager : UniqueViewComponent<InputWindowManager, FrameLayout>(
             scope += window
             window.onCreateView()
         }
+        // allow the incoming window to adjust surrounding layout before the old one is removed,
+        // so switches that depend on external layout changes can land in the final position directly.
+        if (window is EssentialWindow)
+            window.beforeAttached()
         if (currentWindow != null) {
             val oldWindow = currentWindow!!
             val oldView = currentView!!
@@ -143,9 +147,6 @@ class InputWindowManager : UniqueViewComponent<InputWindowManager, FrameLayout>(
             if (oldWindow !is EssentialWindow)
                 scope -= oldWindow
         }
-        // call before attached for essential window
-        if (window is EssentialWindow)
-            window.beforeAttached()
         // add the new window to layout
         view.apply { add(newView, lParams(matchParent, matchParent)) }
         currentView = newView
