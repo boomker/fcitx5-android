@@ -6,7 +6,9 @@ package org.fcitx.fcitx5.android.data.clipboard
 
 import android.content.ClipboardManager
 import android.content.Context
+import android.net.Uri
 import android.os.Build
+import android.provider.DocumentsContract
 import androidx.annotation.Keep
 import androidx.room.Room
 import androidx.room.withTransaction
@@ -98,6 +100,18 @@ object ClipboardManager : ClipboardManager.OnPrimaryClipChangedListener,
             // so we have a local copy with proper permissions
             val staged = normalizeClipboardText(appContext, entry.text)
             return if (staged == entry.text) {
+                // Staging failed - check if this is an ExternalStorageProvider tree URI
+                // that we can handle by extracting the file path directly
+                val treeUri = entry.text.toClipboardUriOrNull()
+                if (treeUri != null && isExternalStorageProviderTreeUri(treeUri)) {
+                    val filePath = extractFilePathFromTreeUri(treeUri)
+                    if (filePath != null) {
+                        val stagedFromPath = normalizeClipboardText(appContext, "file://$filePath")
+                        if (stagedFromPath != entry.text && !stagedFromPath.startsWith("content://com.android.externalstorage")) {
+                            return entry.copy(text = stagedFromPath)
+                        }
+                    }
+                }
                 // Staging failed or returned same URI, keep original
                 entry
             } else {
@@ -115,6 +129,35 @@ object ClipboardManager : ClipboardManager.OnPrimaryClipChangedListener,
             entry
         } else {
             entry.copy(text = normalizedText, originalText = normalizedOriginalText)
+        }
+    }
+
+    private fun isExternalStorageProviderTreeUri(uri: Uri): Boolean {
+        return uri.authority == "com.android.externalstorage.documents" &&
+                uri.path?.startsWith("/tree/") == true
+    }
+
+    private fun extractFilePathFromTreeUri(treeUri: Uri): String? {
+        // Tree URI format: content://com.android.externalstorage.documents/tree/primary%3ADownload%2FFcitx5-clipboard/document/primary%3ADownload%2FFcitx5-clipboard%2FImage.png
+        // Document ID format: primary:Download/Fcitx5-clipboard/Image.png
+        val documentId = try {
+            DocumentsContract.getTreeDocumentId(treeUri)
+        } catch (e: Exception) {
+            Timber.w("Failed to get document ID from tree URI: $treeUri")
+            return null
+        }
+        val parts = documentId.split(":", limit = 2)
+        if (parts.size != 2) return null
+        val (volume, relativePath) = parts[0] to parts[1]
+        return when {
+            volume.equals("primary", ignoreCase = true) -> {
+                if (relativePath.isBlank()) {
+                    "/storage/emulated/0"
+                } else {
+                    "/storage/emulated/0/$relativePath"
+                }
+            }
+            else -> "/storage/$volume/$relativePath"
         }
     }
 

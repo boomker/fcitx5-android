@@ -31,7 +31,9 @@ import org.fcitx.fcitx5.android.utils.DeviceUtil
 import org.fcitx.fcitx5.android.utils.item
 import org.fcitx.fcitx5.android.utils.queryFileName
 import splitties.resources.styledColor
+import timber.log.Timber
 import kotlin.math.min
+import android.provider.DocumentsContract
 
 abstract class ClipboardAdapter(
     private val theme: Theme,
@@ -337,7 +339,22 @@ abstract class ClipboardAdapter(
 
     private suspend fun loadImagePreview(context: Context, entry: ClipboardEntry): Bitmap? {
         if (!entry.isUriEntry() || !entry.type.startsWith("image/")) return null
-        val uri = runCatching { Uri.parse(entry.text) }.getOrNull() ?: return null
+        val originalUri = runCatching { Uri.parse(entry.text) }.getOrNull() ?: run {
+            Timber.w("loadImagePreview: failed to parse URI from entry.text")
+            return null
+        }
+        Timber.d("loadImagePreview: attempting to load from URI: $originalUri")
+
+        // For ExternalStorageProvider tree URIs, try to convert to file path and load directly
+        var uri = originalUri
+        if (isExternalStorageProviderTreeUri(originalUri)) {
+            val filePath = extractFilePathFromTreeUri(originalUri)
+            if (filePath != null) {
+                uri = Uri.parse("file://$filePath")
+                Timber.d("loadImagePreview: converted tree URI to file path: $uri")
+            }
+        }
+
         return withContext(Dispatchers.IO) {
             // Retry up to 3 times with delay between attempts
             repeat(3) { attempt ->
@@ -348,6 +365,7 @@ abstract class ClipboardAdapter(
                         BitmapFactory.decodeStream(stream, null, bounds)
                     }
                     if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
+                        Timber.w("loadImagePreview: bounds invalid (${bounds.outWidth}x${bounds.outHeight})")
                         return@runCatching null
                     }
                     val sampleSize = calculateInSampleSize(bounds.outWidth, bounds.outHeight, 192, 192)
@@ -360,15 +378,45 @@ abstract class ClipboardAdapter(
                     }
                 }.getOrNull()
                 if (bitmap != null) {
+                    Timber.d("loadImagePreview: successfully loaded bitmap ${bitmap.width}x${bitmap.height}")
                     return@withContext bitmap
                 }
+                Timber.w("loadImagePreview: attempt ${attempt + 1} failed, retrying...")
                 // Wait a bit before retry (except on last attempt)
                 if (attempt < 2) {
                     kotlinx.coroutines.delay(100L shl attempt) // 100ms, 200ms
                 }
             }
             // All attempts failed
+            Timber.e("loadImagePreview: all 3 attempts failed for URI: $uri")
             null
+        }
+    }
+
+    private fun isExternalStorageProviderTreeUri(uri: Uri): Boolean {
+        return uri.authority == "com.android.externalstorage.documents" &&
+                uri.path?.startsWith("/tree/") == true
+    }
+
+    private fun extractFilePathFromTreeUri(treeUri: Uri): String? {
+        val documentId = try {
+            DocumentsContract.getTreeDocumentId(treeUri)
+        } catch (e: Exception) {
+            Timber.w("Failed to get document ID from tree URI: $treeUri")
+            return null
+        }
+        val parts = documentId.split(":", limit = 2)
+        if (parts.size != 2) return null
+        val (volume, relativePath) = parts[0] to parts[1]
+        return when {
+            volume.equals("primary", ignoreCase = true) -> {
+                if (relativePath.isBlank()) {
+                    "/storage/emulated/0"
+                } else {
+                    "/storage/emulated/0/$relativePath"
+                }
+            }
+            else -> "/storage/$volume/$relativePath"
         }
     }
 

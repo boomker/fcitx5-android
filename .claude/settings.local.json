@@ -23,7 +23,15 @@
       "Bash(./gradlew clean:*)",
       "Bash(tee /tmp/build-clean.log)",
       "Bash(grep:*)",
-      "Bash(./gradlew assembleDebug)"
+      "Bash(./gradlew assembleDebug)",
+      "Bash(adb connect:*)",
+      "Bash(~/Library/Android/sdk/platform-tools/adb connect:*)",
+      "Bash(~/Library/Android/sdk/platform-tools/adb pair:*)",
+      "Bash(~/Library/Android/sdk/platform-tools/adb devices:*)",
+      "Bash(~/Library/Android/sdk/platform-tools/adb -s 931e3c8d-bXYh4o shell \"dumpsys activity service org.fcitx.fcitx5.android | grep -i clipboard\")",
+      "Bash(~/Library/Android/sdk/platform-tools/adb:*)",
+      "Bash(scutil --dns)",
+      "Bash(nc -vz 192.168.10.12 43155)"
     ]
   }
 }
