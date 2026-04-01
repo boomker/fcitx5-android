@@ -98,13 +98,18 @@ class MainService : FcitxPluginService() {
         private const val ACTION_RECONNECT_SYNC = "org.fcitx.fcitx5.android.plugin.clipboard_sync.action.RECONNECT"
         private const val ACTION_PAUSE_SYNC = "org.fcitx.fcitx5.android.plugin.clipboard_sync.action.PAUSE"
         private const val ACTION_INGEST_CAPTURED_CLIPBOARD = "org.fcitx.fcitx5.android.plugin.clipboard_sync.action.INGEST_CAPTURED_CLIPBOARD"
+        private const val ACTION_SUPPRESS_REMOTE_CLIPBOARD =
+            "org.fcitx.fcitx5.android.plugin.clipboard_sync.action.SUPPRESS_REMOTE_CLIPBOARD"
         private const val EXTRA_START_REASON = "start_reason"
         private const val EXTRA_FORCE_ENABLE_SYNC = "force_enable_sync"
         private const val EXTRA_CAPTURED_CLIPBOARD_CONTENT = "captured_clipboard_content"
+        private const val EXTRA_SUPPRESSED_REMOTE_ITEMS = "suppressed_remote_items"
         private const val PREF_PENDING_UPLOADS = "pending_uploads"
         private const val PREF_REMOTE_REVISIONS = "remote_revisions"
         private const val PREF_LAST_SYNCED_CONTENT = "last_synced_content"
+        private const val PREF_SUPPRESSED_REMOTE_ITEMS = "suppressed_remote_items"
         private const val MAX_PENDING_UPLOADS = 50
+        private const val MAX_SUPPRESSED_REMOTE_ITEMS = 256
 
         fun shouldAutoStart(context: Context): Boolean {
             val prefs = PreferenceManager.getDefaultSharedPreferences(context)
@@ -203,6 +208,7 @@ class MainService : FcitxPluginService() {
     private val ignoredRemoteClipboardContents = linkedSetOf<String>()
     private val pendingUploads = mutableListOf<PendingUploadEntry>()
     private val storedRemoteRevisions = mutableMapOf<String, String>()
+    private val suppressedRemoteClipboardContents = linkedSetOf<String>()
     // Track imported profile IDs to avoid duplicate imports within a sync cycle
     private val importedProfileIdsInCurrentSync = mutableSetOf<String>()
     private val stateJson = Json {
@@ -677,6 +683,10 @@ class MainService : FcitxPluginService() {
                         Log.d(TAG, "[Pull] Incoming clipboard rejected by receive filter: type=${data.type} name=${data.dataName}")
                         continue
                     }
+                    if (isSuppressedRemoteClipboard(data)) {
+                        Log.d(TAG, "[Pull] Skipping locally suppressed remote clipboard item: type=${data.type} text=${data.text}")
+                        continue
+                    }
                     if (data.text.isBlank() && !data.type.equals("Text", ignoreCase = true)) {
                         Log.d(TAG, "[Pull] Skipping remote binary clipboard item without a readable local URI: type=${data.type} name=${data.dataName}")
                         continue
@@ -752,6 +762,7 @@ class MainService : FcitxPluginService() {
     private fun importRemoteClipboardEntry(data: ClipboardData, downloadUri: Uri?): Boolean {
         val remoteService = connection?.remoteService ?: return false
         val remoteText = data.text.takeIf { it.isNotBlank() } ?: return false
+        grantRemoteClipboardPermissions(remoteText, downloadUri)
         return runCatching {
             remoteService.importRemoteClipboardEntry(
                 remoteText,
@@ -766,6 +777,26 @@ class MainService : FcitxPluginService() {
         }.isSuccess
     }
 
+    private fun grantRemoteClipboardPermissions(remoteText: String, rootUri: Uri?) {
+        val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+        remoteText.takeIf { it.startsWith("content://") }
+            ?.let(Uri::parse)
+            ?.let { uri ->
+                runCatching {
+                    grantUriPermission(BuildConfig.MAIN_APPLICATION_ID, uri, flags)
+                }.onFailure { error ->
+                    Log.w(TAG, "[Pull] Failed to grant remote clipboard URI permission to main app: $uri", error)
+                }
+            }
+        rootUri?.let { uri ->
+            runCatching {
+                grantUriPermission(BuildConfig.MAIN_APPLICATION_ID, uri, flags)
+            }.onFailure { error ->
+                Log.w(TAG, "[Pull] Failed to grant remote clipboard root permission to main app: $uri", error)
+            }
+        }
+    }
+
     private fun importedClipboardMimeType(data: ClipboardData): String {
         data.mimeType.takeIf { it.isNotBlank() }?.let { return it }
         if (data.type.equals("Text", ignoreCase = true)) {
@@ -773,7 +804,7 @@ class MainService : FcitxPluginService() {
         }
         val text = data.text
         if (text.startsWith("content://") || text.startsWith("file://")) {
-            return contentResolver.getType(Uri.parse(text))
+            return runCatching { contentResolver.getType(Uri.parse(text)) }.getOrNull()
                 ?: ClipDescription.MIMETYPE_TEXT_URILIST
         }
         return ClipDescription.MIMETYPE_TEXT_URILIST
@@ -792,6 +823,7 @@ class MainService : FcitxPluginService() {
 
     private fun updateSystemClipboardWithUri(uri: Uri, rootUri: Uri? = null) {
         try {
+            grantRemoteClipboardPermissions(uri.toString(), rootUri)
             val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
             val clip = ClipData.newUri(contentResolver, "SyncClipboard", uri).also {
                 markRemoteClip(it, rootUri)
@@ -1127,6 +1159,13 @@ class MainService : FcitxPluginService() {
                     forceUploadClipboard(content, "manual-capture")
                 }
             }
+
+            ACTION_SUPPRESS_REMOTE_CLIPBOARD -> {
+                val contents = intent.getStringArrayListExtra(EXTRA_SUPPRESSED_REMOTE_ITEMS).orEmpty()
+                if (contents.isNotEmpty()) {
+                    suppressRemoteClipboardContents(contents)
+                }
+            }
         }
     }
 
@@ -1297,6 +1336,36 @@ class MainService : FcitxPluginService() {
     private fun consumeIgnoredRemoteClipboardContent(content: String): Boolean {
         synchronized(ignoredRemoteClipboardContents) {
             return ignoredRemoteClipboardContents.remove(content)
+        }
+    }
+
+    private fun suppressRemoteClipboardContents(contents: Collection<String>) {
+        val normalized = contents
+            .asSequence()
+            .map(String::trim)
+            .filter { it.startsWith("content://") || it.startsWith("file://") }
+            .distinct()
+            .toList()
+        if (normalized.isEmpty()) return
+        synchronized(suppressedRemoteClipboardContents) {
+            normalized.forEach { content ->
+                suppressedRemoteClipboardContents.remove(content)
+                suppressedRemoteClipboardContents.add(content)
+            }
+            while (suppressedRemoteClipboardContents.size > MAX_SUPPRESSED_REMOTE_ITEMS) {
+                val first = suppressedRemoteClipboardContents.firstOrNull() ?: break
+                suppressedRemoteClipboardContents.remove(first)
+            }
+        }
+        persistSuppressedRemoteClipboardContents()
+    }
+
+    private fun isSuppressedRemoteClipboard(data: ClipboardData): Boolean {
+        val remoteText = data.text
+            .takeIf { it.startsWith("content://") || it.startsWith("file://") }
+            ?: return false
+        synchronized(suppressedRemoteClipboardContents) {
+            return remoteText in suppressedRemoteClipboardContents
         }
     }
 
@@ -1708,6 +1777,23 @@ class MainService : FcitxPluginService() {
                     Log.w(TAG, "[State] Failed to restore remote revisions", error)
                 }
             }
+
+        suppressedRemoteClipboardContents.clear()
+        prefs.getString(PREF_SUPPRESSED_REMOTE_ITEMS, null)
+            ?.takeIf { it.isNotBlank() }
+            ?.let { serialized ->
+                runCatching {
+                    stateJson.decodeFromString<List<String>>(serialized)
+                }.onSuccess { restored ->
+                    restored.forEach { item ->
+                        if (item.startsWith("content://") || item.startsWith("file://")) {
+                            suppressedRemoteClipboardContents.add(item)
+                        }
+                    }
+                }.onFailure { error ->
+                    Log.w(TAG, "[State] Failed to restore suppressed remote clipboard items", error)
+                }
+            }
     }
 
     private fun persistPendingUploadsLocked() {
@@ -1719,6 +1805,15 @@ class MainService : FcitxPluginService() {
     private fun persistRemoteRevisions() {
         prefs.edit()
             .putString(PREF_REMOTE_REVISIONS, stateJson.encodeToString(storedRemoteRevisions))
+            .apply()
+    }
+
+    private fun persistSuppressedRemoteClipboardContents() {
+        prefs.edit()
+            .putString(
+                PREF_SUPPRESSED_REMOTE_ITEMS,
+                stateJson.encodeToString(suppressedRemoteClipboardContents.toList())
+            )
             .apply()
     }
 

@@ -186,6 +186,7 @@ class ClipboardWindow : InputWindow.ExtendedInputWindow<ClipboardWindow>() {
 
             override fun onDelete(id: Int) {
                 service.lifecycleScope.launch {
+                    maybeQueueRemoteMediaSuppression(id)
                     ClipboardManager.delete(id)
                     showUndoSnackbar(id)
                 }
@@ -253,7 +254,10 @@ class ClipboardWindow : InputWindow.ExtendedInputWindow<ClipboardWindow>() {
     private companion object {
         const val ACTION_INGEST_CAPTURED_CLIPBOARD =
             "org.fcitx.fcitx5.android.plugin.clipboard_sync.action.INGEST_CAPTURED_CLIPBOARD"
+        const val ACTION_SUPPRESS_REMOTE_CLIPBOARD =
+            "org.fcitx.fcitx5.android.plugin.clipboard_sync.action.SUPPRESS_REMOTE_CLIPBOARD"
         const val EXTRA_CAPTURED_CLIPBOARD_CONTENT = "captured_clipboard_content"
+        const val EXTRA_SUPPRESSED_REMOTE_ITEMS = "suppressed_remote_items"
     }
 
     private val ui by lazy {
@@ -284,6 +288,7 @@ class ClipboardWindow : InputWindow.ExtendedInputWindow<ClipboardWindow>() {
                 override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
                     val entry = adapter.getEntryAt(viewHolder.bindingAdapterPosition) ?: return
                     service.lifecycleScope.launch {
+                        maybeQueueRemoteMediaSuppression(entry.id)
                         ClipboardManager.delete(entry.id)
                         showUndoSnackbar(entry.id)
                     }
@@ -328,10 +333,35 @@ class ClipboardWindow : InputWindow.ExtendedInputWindow<ClipboardWindow>() {
     }
 
     private val pendingDeleteIds = arrayListOf<Int>()
+    private val pendingSuppressedRemoteContents = linkedSetOf<String>()
 
     private suspend fun deleteEntries(skipPinned: Boolean, deleteFiles: Boolean) {
+        if (currentCategory == ClipboardCategory.Media) {
+            pendingSuppressedRemoteContents += ClipboardManager.remoteMediaSuppressionContents(skipPinned)
+        }
         val ids = ClipboardManager.deleteAll(currentCategory, skipPinned)
         showUndoSnackbar(*ids)
+    }
+
+    private suspend fun maybeQueueRemoteMediaSuppression(id: Int) {
+        if (currentCategory != ClipboardCategory.Media) return
+        ClipboardManager.remoteMediaSuppressionContent(id)?.let { pendingSuppressedRemoteContents += it }
+    }
+
+    private fun notifyClipboardPluginSuppressedRemoteContents(contents: Collection<String>) {
+        if (contents.isEmpty()) return
+        val component = clipboardSyncPluginServiceComponent() ?: return
+        val normalized = contents.distinct()
+        val intent = Intent().apply {
+            this.component = component
+            action = ACTION_SUPPRESS_REMOTE_CLIPBOARD
+            putStringArrayListExtra(EXTRA_SUPPRESSED_REMOTE_ITEMS, ArrayList(normalized))
+        }
+        runCatching {
+            ContextCompat.startForegroundService(context, intent)
+        }.recoverCatching {
+            context.startService(intent)
+        }
     }
 
     @SuppressLint("RestrictedApi")
@@ -346,6 +376,7 @@ class ClipboardWindow : InputWindow.ExtendedInputWindow<ClipboardWindow>() {
                 service.lifecycleScope.launch {
                     ClipboardManager.undoDelete(*pendingDeleteIds.toIntArray())
                     pendingDeleteIds.clear()
+                    pendingSuppressedRemoteContents.clear()
                 }
             }
             .addCallback(object : Snackbar.Callback() {
@@ -358,8 +389,10 @@ class ClipboardWindow : InputWindow.ExtendedInputWindow<ClipboardWindow>() {
                         BaseCallback.DISMISS_EVENT_MANUAL,
                         BaseCallback.DISMISS_EVENT_TIMEOUT -> {
                             service.lifecycleScope.launch {
+                                notifyClipboardPluginSuppressedRemoteContents(pendingSuppressedRemoteContents)
                                 ClipboardManager.realDelete()
                                 pendingDeleteIds.clear()
+                                pendingSuppressedRemoteContents.clear()
                             }
                         }
 

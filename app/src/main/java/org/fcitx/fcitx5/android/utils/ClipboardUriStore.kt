@@ -29,6 +29,7 @@ object ClipboardUriStore {
     private const val CACHE_DIR = "clipboard_shared"
     private const val FILE_PROVIDER_SUFFIX = ".fileprovider"
     private const val DEFAULT_MIME_TYPE = "application/octet-stream"
+    private const val EXTERNAL_STORAGE_AUTHORITY = "com.android.externalstorage.documents"
     private const val OPEN_RETRY_COUNT = 5
     private const val OPEN_RETRY_DELAY_MS = 120L
 
@@ -114,7 +115,10 @@ object ClipboardUriStore {
     }
 
     private fun openInputStream(context: Context, uri: Uri) = when (uri.scheme?.lowercase(Locale.ROOT)) {
-        ContentResolver.SCHEME_CONTENT -> context.contentResolver.openInputStream(uri)
+        ContentResolver.SCHEME_CONTENT -> runCatching {
+            context.contentResolver.openInputStream(uri)
+        }.getOrNull() ?: resolveExternalStorageFile(uri)?.takeIf(File::exists)?.let(::FileInputStream)
+
         ContentResolver.SCHEME_FILE -> uri.path?.let { FileInputStream(it) }
         else -> null
     }
@@ -130,7 +134,10 @@ object ClipboardUriStore {
 
     private fun resolveDisplayName(context: Context, uri: Uri, mimeType: String): String {
         val sourceName = when (uri.scheme?.lowercase(Locale.ROOT)) {
-            ContentResolver.SCHEME_CONTENT -> context.contentResolver.queryFileName(uri)
+            ContentResolver.SCHEME_CONTENT -> runCatching {
+                context.contentResolver.queryFileName(uri)
+            }.getOrNull() ?: resolveExternalStorageFile(uri)?.name
+
             ContentResolver.SCHEME_FILE -> uri.path?.let { File(it).name }
             else -> null
         }
@@ -148,13 +155,42 @@ object ClipboardUriStore {
     }
 
     private fun resolveMimeType(context: Context, uri: Uri): String {
-        return context.contentResolver.getType(uri)
+        return runCatching { context.contentResolver.getType(uri) }.getOrNull()
             ?: uri.path
                 ?.substringAfterLast('.', "")
                 ?.lowercase(Locale.ROOT)
                 ?.takeIf { it.isNotBlank() }
                 ?.let { MimeTypeMap.getSingleton().getMimeTypeFromExtension(it) }
+            ?: resolveExternalStorageFile(uri)
+                ?.extension
+                ?.lowercase(Locale.ROOT)
+                ?.takeIf { it.isNotBlank() }
+                ?.let { MimeTypeMap.getSingleton().getMimeTypeFromExtension(it) }
             ?: DEFAULT_MIME_TYPE
+    }
+
+    private fun resolveExternalStorageFile(uri: Uri): File? {
+        if (uri.authority != EXTERNAL_STORAGE_AUTHORITY) return null
+        val documentPath = runCatching {
+            DocumentsContract.getDocumentId(uri)
+        }.getOrElse {
+            runCatching { DocumentsContract.getTreeDocumentId(uri) }.getOrNull()
+        } ?: return null
+        val parts = documentPath.split(":", limit = 2)
+        if (parts.size != 2) return null
+        val (volume, relativePath) = parts[0] to parts[1]
+        val absolutePath = when {
+            volume.equals("primary", ignoreCase = true) -> {
+                if (relativePath.isBlank()) "/storage/emulated/0" else "/storage/emulated/0/$relativePath"
+            }
+
+            volume.isNotBlank() -> {
+                if (relativePath.isBlank()) "/storage/$volume" else "/storage/$volume/$relativePath"
+            }
+
+            else -> return null
+        }
+        return File(absolutePath)
     }
 
     private fun isContentUriWithinRoot(context: Context, uri: Uri, rootUri: Uri): Boolean {

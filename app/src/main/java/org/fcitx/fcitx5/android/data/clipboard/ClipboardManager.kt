@@ -314,6 +314,19 @@ object ClipboardManager : ClipboardManager.OnPrimaryClipChangedListener,
         }.toMap()
     }
 
+    suspend fun remoteMediaSuppressionContent(id: Int): String? {
+        return clbDao.get(id)?.remoteMediaSuppressionContent()
+    }
+
+    suspend fun remoteMediaSuppressionContents(skipPinned: Boolean): List<String> {
+        val entries = if (skipPinned) {
+            clbDao.getAllUnpinnedMediaEntries()
+        } else {
+            clbDao.getAllMediaEntries()
+        }
+        return entries.mapNotNull { it.remoteMediaSuppressionContent() }.distinct()
+    }
+
     suspend fun undoDelete(vararg ids: Int) {
         clbDao.undoDelete(*ids)
         updateItemCount()
@@ -457,6 +470,13 @@ object ClipboardManager : ClipboardManager.OnPrimaryClipChangedListener,
             rawUri
         } ?: return null
         return ClipboardSourceDeletionTarget(rawUri = rawUri, rootUri = rootUri)
+    }
+
+    private fun ClipboardEntry.remoteMediaSuppressionContent(): String? {
+        if (source != ClipboardEntry.SOURCE_REMOTE || !isUriEntry()) return null
+        return originalText
+            .takeIf { it.startsWith("content://") || it.startsWith("file://") }
+            ?: text.takeIf { it.startsWith("content://") || it.startsWith("file://") }
     }
 
 }

@@ -5,7 +5,7 @@
 - The input method will show a floating candidates window and hide virtual keyboard when you start typing with a physical keyboard
 - Adopt fcitx5 "candidate action" API, to pin candidates in Pinyin/Shuangpin and forget words in RIME
 - The application now targets Android API 35, and handles navigation bar or system gesture insets more reliably
-- The application has been renamed to "小企鹅输入法" in Chinese, and "Fcitx5" for non-Chinese languages
+- The application has been renamed to "天鹅输入法" in Chinese, and "Fcitx5" for non-Chinese languages
 
 ### New plugins
 

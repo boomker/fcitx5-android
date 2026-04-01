@@ -2,8 +2,8 @@
 <resources>
     <string name="app_name">天鹅输入法</string>
     <string name="app_name_release">天鹅输入法</string>
-    <string name="app_name_mainline_release">小企鹅输入法</string>
-    <string name="app_name_mainline_debug">小企鹅输入法 (调试)</string>
+    <string name="app_name_mainline_release">天鹅输入法</string>
+    <string name="app_name_mainline_debug">天鹅输入法 (调试)</string>
     <string name="app_name_debug">天鹅输入法 (调试)</string>
     <string name="save">保存</string>
     <string name="input_methods">输入法</string>
