@@ -1294,6 +1294,18 @@ abstract class BaseKeyboard(
         }
     }
 
+    private fun shouldShiftSymbol(code: String): Boolean {
+        return when (code.lowercase()) {
+            "underscore", "plus", "braceleft", "braceright", "bar",
+            "colon", "quotedbl", "less", "greater", "question",
+            "exclam", "at", "numbersign", "dollar", "percent",
+            "asciicircum", "ampersand", "asterisk", "multiply", "parenleft", "parenright",
+            "add",
+            "asciitilde", "tilde" -> true
+            else -> false
+        }
+    }
+
     private fun mapFcitxToScanCode(code: String, keyCode: Int): Int {
         val known = when (code) {
             "Shift_L" -> 42
@@ -1338,7 +1350,8 @@ abstract class BaseKeyboard(
     private suspend fun sendFcitxKeyTap(code: String) {
         val isLetter = code.length == 1 && code[0].isLetter()
         val isUppercaseLetter = isLetter && code[0].isUpperCase()
-        val shouldPressShift = isLetter && (isUppercaseLetter.xor(isSimulatedCapsLockOn()))
+        val shouldPressShift =
+            (isLetter && (isUppercaseLetter.xor(isSimulatedCapsLockOn()))) || shouldShiftSymbol(code)
         val actualCode = code
         // For modifier keys (e.g. Shift), keep press time longer so Rime can recognize standalone Shift
         val isMod = isModifierKey(code)
@@ -1384,7 +1397,8 @@ abstract class BaseKeyboard(
     private fun sendFcitxKeyDown(code: String) {
         val isLetter = code.length == 1 && code[0].isLetter()
         val isUppercaseLetter = isLetter && code[0].isUpperCase()
-        val shouldPressShift = isLetter && (isUppercaseLetter.xor(isSimulatedCapsLockOn()))
+        val shouldPressShift =
+            (isLetter && (isUppercaseLetter.xor(isSimulatedCapsLockOn()))) || shouldShiftSymbol(code)
         val actualCode = code
         val keyCode = mapSpecialFcitxToAndroidKey(code) ?: mapFcitxToAndroidKey(code)
         val scanCode = mapFcitxToScanCode(code, keyCode)
@@ -1415,7 +1429,8 @@ abstract class BaseKeyboard(
     private fun sendFcitxKeyUp(code: String) {
         val isLetter = code.length == 1 && code[0].isLetter()
         val isUppercaseLetter = isLetter && code[0].isUpperCase()
-        val shouldPressShift = isLetter && (isUppercaseLetter.xor(isSimulatedCapsLockOn()))
+        val shouldPressShift =
+            (isLetter && (isUppercaseLetter.xor(isSimulatedCapsLockOn()))) || shouldShiftSymbol(code)
         val actualCode = code
         val keyCode = mapSpecialFcitxToAndroidKey(code) ?: mapFcitxToAndroidKey(code)
         val scanCode = mapFcitxToScanCode(code, keyCode)
