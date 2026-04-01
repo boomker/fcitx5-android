@@ -1210,16 +1210,21 @@ class MainService : FcitxPluginService() {
 
     private fun startForegroundCompat() {
         val notification = buildForegroundNotification()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(
-                NOTIFICATION_ID,
-                notification,
-                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
-            )
-        } else {
-            startForeground(NOTIFICATION_ID, notification)
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(
+                    NOTIFICATION_ID,
+                    notification,
+                    android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+                )
+            } else {
+                startForeground(NOTIFICATION_ID, notification)
+            }
+            foregroundActive = true
+        } catch (e: android.app.ForegroundServiceStartNotAllowedException) {
+            Log.w(TAG, "[Service] Foreground service start not allowed; system is likely in punishment state for dataSync. Running without foreground notification.", e)
+            foregroundActive = false
         }
-        foregroundActive = true
     }
 
     private fun stopForegroundState() {
