@@ -166,9 +166,6 @@ class AutoScaleTextView @JvmOverloads constructor(
         measureTextBounds()
         val textWidth = textBounds.width()
         val rawFontHeight = fontMetrics.bottom - fontMetrics.top
-        val leftAlignOffset = (paddingLeft - textBounds.left).toFloat()
-        val centerAlignOffset =
-            paddingLeft.toFloat() + (contentWidth - textWidth) / 2.0f - textBounds.left.toFloat()
 
         val widthScaleLimit = if (textWidth > 0 && contentWidth > 0) {
             contentWidth.toFloat() / textWidth.toFloat()
@@ -183,32 +180,37 @@ class AutoScaleTextView @JvmOverloads constructor(
         val shouldScaleByWidth = textWidth > contentWidth
         val shouldScaleByHeight = rawFontHeight > contentHeight
 
-        @SuppressLint("RtlHardcoded")
-        val shouldAlignLeft = gravity and Gravity.HORIZONTAL_GRAVITY_MASK == Gravity.LEFT
         if (shouldScaleByWidth || (scaleMode == Mode.Proportional && shouldScaleByHeight)) {
             when (scaleMode) {
                 Mode.None -> {
                     textScaleX = 1.0f
                     textScaleY = 1.0f
-                    translateX = if (shouldAlignLeft) leftAlignOffset else centerAlignOffset
                 }
                 Mode.Horizontal -> {
                     textScaleX = widthScaleLimit
                     textScaleY = 1.0f
-                    translateX = leftAlignOffset
                 }
                 Mode.Proportional -> {
                     val textScale = min(1.0f, min(widthScaleLimit, heightScaleLimit))
                     textScaleX = textScale
                     textScaleY = textScale
-                    translateX = leftAlignOffset
                 }
             }
         } else {
             textScaleX = 1.0f
             textScaleY = 1.0f
-            translateX = if (shouldAlignLeft) leftAlignOffset else centerAlignOffset
         }
+        val scaledTextWidth = textWidth.toFloat() * textScaleX
+        val absoluteGravity = Gravity.getAbsoluteGravity(gravity, layoutDirection)
+        val desiredLeft = when (absoluteGravity and Gravity.HORIZONTAL_GRAVITY_MASK) {
+            Gravity.RIGHT ->
+                paddingLeft.toFloat() + contentWidth.toFloat() - scaledTextWidth
+            Gravity.CENTER_HORIZONTAL ->
+                paddingLeft.toFloat() + (contentWidth.toFloat() - scaledTextWidth) / 2.0f
+            else -> paddingLeft.toFloat()
+        }
+        val safeScaleX = if (textScaleX == 0.0f) 1.0f else textScaleX
+        translateX = desiredLeft / safeScaleX - textBounds.left.toFloat()
         val fontHeight = (fontMetrics.bottom - fontMetrics.top) * textScaleY
         val fontOffsetY = fontMetrics.top * textScaleY
         translateY = (contentHeight.toFloat() - fontHeight) / 2.0f - fontOffsetY + paddingTop

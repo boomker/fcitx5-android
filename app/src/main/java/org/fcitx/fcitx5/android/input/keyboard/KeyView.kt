@@ -49,6 +49,7 @@ import splitties.views.dsl.core.wrapContent
 import splitties.views.existingOrNewId
 import splitties.views.imageResource
 import splitties.views.padding
+import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 
@@ -206,6 +207,10 @@ abstract class KeyView(
         // default implementation does nothing
     }
 
+    protected open fun onAppearanceLayoutChanged(width: Int, height: Int) {
+        // default implementation does nothing
+    }
+
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
         boundsValid = false
         if (layoutMarginLeft != 0f || layoutMarginRight != 0f) {
@@ -224,6 +229,7 @@ abstract class KeyView(
             )
         }
         super.onLayout(changed, left, top, right, bottom)
+        onAppearanceLayoutChanged(appearanceView.width, appearanceView.height)
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -379,9 +385,16 @@ class AltTextKeyView(
     horizontalGapScale: Float = 1f
 ) :
     TextKeyView(ctx, theme, def, horizontalGapScale) {
+    private enum class AltTextLayoutMode {
+        TopRight,
+        Bottom,
+        Hidden
+    }
+
     private val baseAltTextSizeSp = org.fcitx.fcitx5.android.input.font.FontProviders.getFontSize(
         "key_alt_font", 10.666667f
     )
+    private var lastLayoutMode: AltTextLayoutMode? = null
 
     val altText = view(::AutoScaleTextView) {
         isClickable = false
@@ -414,6 +427,8 @@ class AltTextKeyView(
         super.setTextScale(scale)
         altText.setTextSize(TypedValue.COMPLEX_UNIT_SP, baseAltTextSizeSp * scale)
         altText.requestLayout()
+        lastLayoutMode = null
+        applyLayout(resources.configuration.orientation)
     }
 
     private fun applyTopRightAltTextPosition() {
@@ -474,22 +489,58 @@ class AltTextKeyView(
         altText.gravity = Gravity.CENTER
     }
 
-    private fun applyLayout(orientation: Int) {
-        when (ThemeManager.prefs.punctuationPosition.getValue()) {
+    private fun resolveLayoutMode(orientation: Int, keyHeight: Int): AltTextLayoutMode {
+        val pref = ThemeManager.prefs.punctuationPosition.getValue()
+        if (pref == PunctuationPosition.None) return AltTextLayoutMode.Hidden
+
+        val preferred = when (pref) {
+            PunctuationPosition.TopRight -> AltTextLayoutMode.TopRight
             PunctuationPosition.Bottom -> when (orientation) {
-                Configuration.ORIENTATION_LANDSCAPE -> applyTopRightAltTextPosition()
-                else -> applyBottomAltTextPosition()
+                Configuration.ORIENTATION_LANDSCAPE -> AltTextLayoutMode.TopRight
+                else -> AltTextLayoutMode.Bottom
             }
-            PunctuationPosition.TopRight -> applyTopRightAltTextPosition()
-            PunctuationPosition.None -> applyNoAltTextPosition()
+            PunctuationPosition.None -> AltTextLayoutMode.Hidden
+        }
+        if (keyHeight <= 0) return preferred
+
+        val contentHeight = keyHeight - vMargin * 2
+        val mainHeight = mainText.paint.run { fontMetrics.bottom - fontMetrics.top }
+        val altHeight = altText.paint.run { fontMetrics.bottom - fontMetrics.top }
+        val compactMinHeight = max(mainHeight, altHeight + dp(4))
+        val stackedMinHeight = mainHeight + altHeight + dp(6)
+
+        return when (preferred) {
+            AltTextLayoutMode.Bottom -> when {
+                contentHeight >= stackedMinHeight -> AltTextLayoutMode.Bottom
+                contentHeight >= compactMinHeight -> AltTextLayoutMode.TopRight
+                else -> AltTextLayoutMode.Hidden
+            }
+            AltTextLayoutMode.TopRight -> when {
+                contentHeight >= compactMinHeight -> AltTextLayoutMode.TopRight
+                else -> AltTextLayoutMode.Hidden
+            }
+            AltTextLayoutMode.Hidden -> AltTextLayoutMode.Hidden
+        }
+    }
+
+    private fun applyLayout(orientation: Int, keyHeight: Int = appearanceView.height) {
+        val mode = resolveLayoutMode(orientation, keyHeight)
+        if (mode == lastLayoutMode) return
+        lastLayoutMode = mode
+        when (mode) {
+            AltTextLayoutMode.Bottom -> applyBottomAltTextPosition()
+            AltTextLayoutMode.TopRight -> applyTopRightAltTextPosition()
+            AltTextLayoutMode.Hidden -> applyNoAltTextPosition()
         }
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
-        if (ThemeManager.prefs.punctuationPosition.getValue() == PunctuationPosition.TopRight) {
-            return
-        }
+        lastLayoutMode = null
         applyLayout(newConfig.orientation)
+    }
+
+    override fun onAppearanceLayoutChanged(width: Int, height: Int) {
+        applyLayout(resources.configuration.orientation, height)
     }
 
     override fun updateTheme(newTheme: Theme) {
