@@ -623,6 +623,7 @@ class CustomThemeActivity : AppCompatActivity() {
                 Triple("Keyboard", { t: Theme.Custom -> t.keyboardColor }, { t: Theme.Custom, c: Int -> t.copy(keyboardColor = c) }),
                 Triple("Key Background", { t: Theme.Custom -> t.keyBackgroundColor }, { t: Theme.Custom, c: Int -> t.copy(keyBackgroundColor = c) }),
                 Triple("Key Text", { t: Theme.Custom -> t.keyTextColor }, { t: Theme.Custom, c: Int -> t.copy(keyTextColor = c) }),
+                Triple("Alt Key Background", { t: Theme.Custom -> t.altKeyBackgroundColor }, { t: Theme.Custom, c: Int -> t.copy(altKeyBackgroundColor = c) }),
                 Triple("Alt Key Text", { t: Theme.Custom -> t.altKeyTextColor }, { t: Theme.Custom, c: Int -> t.copy(altKeyTextColor = c) }),
                 Triple("Accent Key Background", { t: Theme.Custom -> t.accentKeyBackgroundColor }, { t: Theme.Custom, c: Int -> t.copy(accentKeyBackgroundColor = c) }),
                 Triple("Accent Key Text", { t: Theme.Custom -> t.accentKeyTextColor }, { t: Theme.Custom, c: Int -> t.copy(accentKeyTextColor = c) }),
