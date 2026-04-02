@@ -98,7 +98,6 @@
     <string name="theme_migrated">El tema se migró a la versión actual</string>
     <string name="theme_name">Nombre del tema</string>
     <string name="theme_name_empty">El nombre del tema no puede estar vacío</string>
-    <string name="text_keyboard_layout_migration_failed">Falló la migración de datos, se restauraron los datos originales</string>
     <string name="edit_clipboard">Editar portapapeles</string>
     <string name="clipboard_edit_text_hint">Contenido del portapapeles</string>
     <string name="portrait">Vertical</string>

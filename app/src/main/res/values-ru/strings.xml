@@ -161,7 +161,6 @@
     <string name="theme_migrated">Тема перенесена в текущую версию</string>
     <string name="theme_name">Название темы</string>
     <string name="theme_name_empty">Название темы не может быть пустым</string>
-    <string name="text_keyboard_layout_migration_failed">Сбой миграции данных, оригинальные данные восстановлены</string>
     <string name="keep_keyboard_letters_uppercase">Сохранять буквы клавиатуры прописными</string>
     <string name="choose_input_method">Выбор метода ввода</string>
     <string name="edit_clipboard">Редактировать буфер обмена</string>

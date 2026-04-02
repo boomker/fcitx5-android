@@ -157,7 +157,6 @@
     <string name="theme_migrated">テーマは現在のバージョンに以降されました</string>
     <string name="theme_name">テーマ名</string>
     <string name="theme_name_empty">テーマ名は空にできません</string>
-    <string name="text_keyboard_layout_migration_failed">データ移行に失敗しました。元のデータを復元しました</string>
     <string name="keep_keyboard_letters_uppercase">キーボードの文字を大文字にする</string>
     <string name="choose_input_method">インプットメゾッドを選択</string>
     <string name="edit_clipboard">クリップボードを編集</string>
