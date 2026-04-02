@@ -165,7 +165,6 @@
     <string name="text_keyboard_layout_add_layout">Añadir distribución</string>
     <string name="text_keyboard_layout_add_row">Añadir fila</string>
     <string name="text_keyboard_layout_add_key">Añadir tecla</string>
-    <string name="text_keyboard_layout_hint">Toque una tecla para editar. Mantenga pulsado para eliminar. Use el botón + para añadir una tecla a la fila.</string>
     <string name="text_keyboard_layout_key_type">Tipo de tecla</string>
     <string name="text_keyboard_layout_key_main">Carácter principal</string>
     <string name="text_keyboard_layout_key_alt">Carácter alternativo</string>
@@ -177,20 +176,14 @@
     <string name="text_keyboard_layout_layout_name_hint">p. ej., rime, pinyin</string>
     <string name="text_keyboard_layout_copy_from">Copiar de una distribución existente</string>
     <string name="text_keyboard_layout_name_empty">El nombre de la distribución no puede estar vacío</string>
-    <string name="text_keyboard_layout_name_exists">La distribución ya existe: %1$s</string>
     <string name="text_keyboard_layout_delete_key_confirm">¿Eliminar esta tecla?</string>
     <string name="text_keyboard_layout_delete_layout_confirm">¿Eliminar la distribución "%1$s"?</string>
-    <string name="text_keyboard_layout_delete_key_confirm_with_label">¿Eliminar la tecla "%1$s"?</string>
     <string name="text_keyboard_layout_delete_row_confirm">¿Eliminar la fila %1$d?</string>
-    <string name="text_keyboard_layout_key_title">Tecla "%1$s"</string>
-    <string name="text_keyboard_layout_move_left">← Mover a la izquierda</string>
-    <string name="text_keyboard_layout_move_right">→ Mover a la derecha</string>
     <string name="text_keyboard_layout_select_input_method_to_add">Seleccione el método de entrada que desea añadir:</string>
     <string name="text_keyboard_layout_no_additional_input_methods">No hay métodos de entrada adicionales disponibles</string>
     <string name="text_keyboard_layout_layout_exists_for_input_method">Ya existe una distribución para este método de entrada</string>
     <string name="text_keyboard_layout_preview_error">Error de vista previa: %1$s</string>
     <string name="text_keyboard_layout_add_mode">Añadir modo</string>
-    <string name="text_keyboard_layout_display_text_mode_specific">%1$s (específico del modo):</string>
     <string name="text_keyboard_layout_mode_name_hint">Nombre del modo</string>
     <string name="text_keyboard_layout_display_value_hint">Valor mostrado</string>
     <string name="text_keyboard_layout_key_label_caps">Caps</string>
@@ -287,10 +280,7 @@
     <string name="fontset_save_failed_unknown_error">Error al guardar el conjunto de fuentes: %1$s</string>
 
     <!-- KeyEditorDialog -->
-    <string name="text_keyboard_layout_key_alt_label">Etiqueta alternativa (Deslizar)</string>
-    <string name="text_keyboard_layout_macro_text">Texto macro</string>
     <string name="text_keyboard_layout_macro_key_label_required">La etiqueta no puede estar vacía</string>
-    <string name="text_keyboard_layout_macro_key_text_required">El texto macro no puede estar vacío</string>
     <string name="text_keyboard_layout_macro_tap_event">Evento de toque</string>
     <string name="text_keyboard_layout_macro_swipe_event">Evento de deslizamiento</string>
     <string name="text_keyboard_layout_macro_no_event">No hay evento configurado</string>
@@ -330,7 +320,6 @@
     <string name="text_keyboard_layout_qr_export">Compartir mediante imagen QR</string>
     <string name="text_keyboard_layout_qr_import_scan">Importar escaneando QR</string>
     <string name="text_keyboard_layout_qr_import_image">Importar desde imagen QR</string>
-    <string name="text_keyboard_layout_qr_chunk_label">Fragmento %1$d/%2$d · %3$s</string>
     <string name="text_keyboard_layout_qr_share_title">Compartir imagen QR del diseño</string>
     <string name="text_keyboard_layout_qr_exported">Imagen QR larga generada, elige una app para compartir</string>
     <string name="text_keyboard_layout_qr_export_failed">No se pudo generar la imagen QR: %1$s</string>
@@ -372,4 +361,11 @@
     <string name="edit_monet_light_theme">Editar mapeo MonetLight</string>
     <string name="edit_monet_dark_theme">Editar mapeo MonetDark</string>
     <string name="edit_monet_theme_summary">Personalizar el mapeo de recursos de Material You para este tema Monet</string>
+
+    <string name="text_keyboard_layout_add_submode">Agregar diseño de submodo</string>
+    <string name="text_keyboard_layout_add_submode_confirm">¿Agregar un diseño dedicado para el submodo "%1$s"?</string>
+    <string name="text_keyboard_layout_delete_submode">Eliminar diseño de submodo</string>
+    <string name="text_keyboard_layout_submode_added">Diseño de submodo agregado: %1$s</string>
+    <string name="text_keyboard_layout_no_submode_selected">No se seleccionó submodo</string>
+    <string name="text_keyboard_layout_save_failed">No se pudo guardar el diseño. Revisa logcat para más detalles.</string>
 </resources>

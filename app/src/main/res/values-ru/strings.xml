@@ -377,7 +377,6 @@
     <string name="text_keyboard_layout_add_layout">Добавить раскладку</string>
     <string name="text_keyboard_layout_add_row">Добавить ряд</string>
     <string name="text_keyboard_layout_add_key">Добавить клавишу</string>
-    <string name="text_keyboard_layout_hint">Нажмите клавишу для редактирования. Долгое нажатие — удалить. Используйте кнопку +, чтобы добавить клавишу в ряд.</string>
     <string name="text_keyboard_layout_key_type">Тип клавиши</string>
     <string name="text_keyboard_layout_key_main">Основной символ</string>
     <string name="text_keyboard_layout_key_alt">Альтернативный символ</string>
@@ -389,20 +388,14 @@
     <string name="text_keyboard_layout_layout_name_hint">например: rime, pinyin</string>
     <string name="text_keyboard_layout_copy_from">Скопировать из существующей раскладки</string>
     <string name="text_keyboard_layout_name_empty">Имя раскладки не может быть пустым</string>
-    <string name="text_keyboard_layout_name_exists">Раскладка уже существует: %1$s</string>
     <string name="text_keyboard_layout_delete_key_confirm">Удалить эту клавишу?</string>
     <string name="text_keyboard_layout_delete_layout_confirm">Удалить раскладку "%1$s"?</string>
-    <string name="text_keyboard_layout_delete_key_confirm_with_label">Удалить клавишу "%1$s"?</string>
     <string name="text_keyboard_layout_delete_row_confirm">Удалить ряд %1$d?</string>
-    <string name="text_keyboard_layout_key_title">Клавиша "%1$s"</string>
-    <string name="text_keyboard_layout_move_left">← Переместить влево</string>
-    <string name="text_keyboard_layout_move_right">→ Переместить вправо</string>
     <string name="text_keyboard_layout_select_input_method_to_add">Выберите метод ввода для добавления:</string>
     <string name="text_keyboard_layout_no_additional_input_methods">Нет дополнительных методов ввода</string>
     <string name="text_keyboard_layout_layout_exists_for_input_method">Раскладка для этого метода ввода уже существует</string>
     <string name="text_keyboard_layout_preview_error">Ошибка предпросмотра: %1$s</string>
     <string name="text_keyboard_layout_add_mode">Добавить режим</string>
-    <string name="text_keyboard_layout_display_text_mode_specific">%1$s (для режима):</string>
     <string name="text_keyboard_layout_mode_name_hint">Название режима</string>
     <string name="text_keyboard_layout_display_value_hint">Отображаемое значение</string>
     <string name="text_keyboard_layout_key_label_caps">Caps</string>
@@ -473,10 +466,7 @@
     <string name="fontset_save_failed_unknown_error">Ошибка сохранения набора шрифтов: %1$s</string>
 
     <!-- KeyEditorDialog -->
-    <string name="text_keyboard_layout_key_alt_label">Альтернативная метка (свайп)</string>
-    <string name="text_keyboard_layout_macro_text">Текст макроса</string>
     <string name="text_keyboard_layout_macro_key_label_required">Метка не может быть пустой</string>
-    <string name="text_keyboard_layout_macro_key_text_required">Текст макроса не может быть пустым</string>
     <string name="text_keyboard_layout_macro_tap_event">Событие нажатия</string>
     <string name="text_keyboard_layout_macro_swipe_event">Событие свайпа</string>
     <string name="text_keyboard_layout_macro_no_event">Событие не настроено</string>
@@ -516,7 +506,6 @@
     <string name="text_keyboard_layout_qr_export">Поделиться через QR-изображение</string>
     <string name="text_keyboard_layout_qr_import_scan">Импорт сканированием QR</string>
     <string name="text_keyboard_layout_qr_import_image">Импорт из QR-изображения</string>
-    <string name="text_keyboard_layout_qr_chunk_label">Чанк %1$d/%2$d · %3$s</string>
     <string name="text_keyboard_layout_qr_share_title">Поделиться QR-изображением раскладки</string>
     <string name="text_keyboard_layout_qr_exported">Длинное QR-изображение создано, выберите приложение для отправки</string>
     <string name="text_keyboard_layout_qr_export_failed">Не удалось создать QR-изображение: %1$s</string>
@@ -558,4 +547,11 @@
     <string name="edit_monet_light_theme">Редактировать сопоставление MonetLight</string>
     <string name="edit_monet_dark_theme">Редактировать сопоставление MonetDark</string>
     <string name="edit_monet_theme_summary">Настроить сопоставление ресурсов Material You для этой темы Monet</string>
+
+    <string name="text_keyboard_layout_add_submode">Добавить раскладку подрежима</string>
+    <string name="text_keyboard_layout_add_submode_confirm">Добавить отдельную раскладку для подрежима "%1$s"?</string>
+    <string name="text_keyboard_layout_delete_submode">Удалить раскладку подрежима</string>
+    <string name="text_keyboard_layout_submode_added">Раскладка подрежима добавлена: %1$s</string>
+    <string name="text_keyboard_layout_no_submode_selected">Подрежим не выбран</string>
+    <string name="text_keyboard_layout_save_failed">Не удалось сохранить раскладку. Подробности смотрите в logcat.</string>
 </resources>

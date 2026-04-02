@@ -190,7 +190,6 @@
     <string name="horizontal_candidate_growth">Stretch horizontal candidates to fill the remaining width</string>
     <string name="none">None</string>
     <string name="theme_migrated">Theme has been migrated to the current version</string>
-    <string name="text_keyboard_layout_migration_failed">Data migration failed, original data restored</string>
     <string name="keep_keyboard_letters_uppercase">Keep keyboard letters uppercase</string>
     <string name="choose_input_method">Choose input method</string>
     <string name="edit_clipboard">Edit clipboard</string>
@@ -506,35 +505,26 @@
     <string name="text_keyboard_layout_add_layout">Add Layout</string>
     <string name="text_keyboard_layout_add_row">Add Row</string>
     <string name="text_keyboard_layout_add_key">Add Key</string>
-    <string name="text_keyboard_layout_hint">Tap a key to edit. Long press to delete. Use + button to add a key to row.</string>
     <string name="text_keyboard_layout_key_type">Key Type</string>
     <string name="text_keyboard_layout_key_main">Main Character</string>
     <string name="text_keyboard_layout_key_alt">Alt Character</string>
     <string name="text_keyboard_layout_key_display_text">Display Text</string>
     <string name="text_keyboard_layout_key_label">Label</string>
-    <string name="text_keyboard_layout_key_alt_label">Alt Label (Swipe)</string>
     <string name="text_keyboard_layout_key_sub_label">Sub Label</string>
     <string name="text_keyboard_layout_key_weight">Weight Width</string>
-    <string name="text_keyboard_layout_macro_text">Macro Text</string>
     <string name="text_keyboard_layout_layout_name">Layout Name</string>
     <string name="text_keyboard_layout_layout_name_hint">e.g., rime, pinyin</string>
     <string name="text_keyboard_layout_copy_from">Copy from existing layout</string>
     <string name="text_keyboard_layout_name_empty">Layout name cannot be empty</string>
-    <string name="text_keyboard_layout_name_exists">Layout already exists: %1$s</string>
     <string name="text_keyboard_layout_delete_key_confirm">Delete this key?</string>
     <string name="text_keyboard_layout_delete_layout_confirm">Delete layout "%1$s"?</string>
     <string name="text_keyboard_layout_delete_submode_layout_confirm">Delete submode layout "%1$s"?</string>
-    <string name="text_keyboard_layout_delete_key_confirm_with_label">Delete key "%1$s"?</string>
     <string name="text_keyboard_layout_delete_row_confirm">Delete row %1$d?</string>
-    <string name="text_keyboard_layout_key_title">Key "%1$s"</string>
-    <string name="text_keyboard_layout_move_left">← Move Left</string>
-    <string name="text_keyboard_layout_move_right">→ Move Right</string>
     <string name="text_keyboard_layout_select_input_method_to_add">Select input method to add:</string>
     <string name="text_keyboard_layout_no_additional_input_methods">No additional input methods available</string>
     <string name="text_keyboard_layout_layout_exists_for_input_method">Layout for this input method already exists</string>
     <string name="text_keyboard_layout_preview_error">Preview error: %1$s</string>
     <string name="text_keyboard_layout_add_mode">Add mode</string>
-    <string name="text_keyboard_layout_display_text_mode_specific">%1$s (Mode-specific):</string>
     <string name="text_keyboard_layout_mode_name_hint">Mode name</string>
     <string name="text_keyboard_layout_macro_tap_event">Tap Event</string>
     <string name="text_keyboard_layout_macro_swipe_event">Swipe Event</string>
@@ -551,7 +541,6 @@
     <string name="text_keyboard_layout_alphabet_key_main_length_invalid">Main character must be a single character</string>
     <string name="text_keyboard_layout_alphabet_key_alt_length_invalid">Alt character must be a single character</string>
     <string name="text_keyboard_layout_macro_key_label_required">Label must not be empty</string>
-    <string name="text_keyboard_layout_macro_key_text_required">Macro text must not be empty</string>
     <string name="text_keyboard_layout_validation_error">Validation Error</string>
 
     <!-- Macro Editor -->
@@ -590,10 +579,7 @@
     <string name="text_keyboard_layout_add_submode">Add submode layout</string>
     <string name="text_keyboard_layout_add_submode_confirm">Add dedicated layout for submode "%1$s"?</string>
     <string name="text_keyboard_layout_delete_submode">Delete submode layout</string>
-    <string name="text_keyboard_layout_delete_submode_confirm">Delete submode "%1$s" dedicated layout?</string>
     <string name="text_keyboard_layout_submode_added">Added submode layout: %1$s</string>
-    <string name="text_keyboard_layout_submode_deleted">Deleted submode layout: %1$s</string>
-    <string name="text_keyboard_layout_submode_not_found">Submode layout not found</string>
     <string name="text_keyboard_layout_submode_already_exists">Submode "%1$s" already has a dedicated layout</string>
     <string name="text_keyboard_layout_no_submode_selected">No submode selected</string>
     <string name="text_keyboard_layout_editing_submode">Editing layout for submode "%1$s"</string>
@@ -603,9 +589,6 @@
     <string name="text_keyboard_layout_discard_changes_message">You have unsaved edits. Leaving now will lose them.</string>
     <string name="text_keyboard_layout_discard_changes_positive">Discard</string>
     <string name="text_keyboard_layout_discard_changes_negative">Cancel</string>
-    <string name="text_keyboard_layout_cannot_delete_default_submode">Cannot delete default submode layout</string>
-    <string name="text_keyboard_layout_no_additional_submodes">No additional submodes to add</string>
-    <string name="text_keyboard_layout_select_submode_to_add">Select submode to add:</string>
     <string name="cannot_resolve_text_keyboard_layout">Unable to resolve text keyboard layout file</string>
     <string name="text_keyboard_layout_saved_at">TextKeyboardLayout.json saved at: %1$s</string>
     <string name="text_keyboard_layout_save_failed">Failed to save layout. Check logcat for details.</string>
@@ -613,7 +596,6 @@
     <string name="text_keyboard_layout_qr_export">Share via QR image</string>
     <string name="text_keyboard_layout_qr_import_scan">Import by scanning QR</string>
     <string name="text_keyboard_layout_qr_import_image">Import from QR image</string>
-    <string name="text_keyboard_layout_qr_chunk_label">Chunk %1$d/%2$d · %3$s</string>
     <string name="text_keyboard_layout_qr_share_title">Share layout QR image</string>
     <string name="text_keyboard_layout_qr_exported">QR long image generated, choose an app to share</string>
     <string name="text_keyboard_layout_qr_export_failed">Failed to generate QR image: %1$s</string>
