@@ -16,6 +16,7 @@ import android.widget.FrameLayout
 import android.widget.HorizontalScrollView
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.ContextCompat
@@ -57,12 +58,13 @@ data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjust
 
     override fun exitAnimation(nextWindow: InputWindow) = null
 
-    private enum class Section { Top, Bottom }
+    private enum class Section { Top, Bottom, Available }
 
     private data class DragPayload(var section: Section, var index: Int, val sourceView: View)
 
     private val topButtons = mutableListOf<ConfigurableButton>()
     private val bottomButtons = mutableListOf<ConfigurableButton>()
+    private val availableButtons = mutableListOf<ConfigurableButton>()
     private var originalTop = listOf<ConfigurableButton>()
     private var originalBottom = listOf<ConfigurableButton>()
     private var dragInProgress = false
@@ -180,23 +182,33 @@ data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjust
         }
     }
 
-    private class BottomAdapter(
-        private val outer: ButtonsAdjustingWindow
+    private class SectionAdapter(
+        private val outer: ButtonsAdjustingWindow,
+        private val section: Section
     ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
-        override fun getItemViewType(position: Int): Int = if (position < outer.bottomButtons.size) 1 else 2
+        private val list: List<ConfigurableButton>
+            get() = when (section) {
+                Section.Top -> outer.topButtons
+                Section.Bottom -> outer.bottomButtons
+                Section.Available -> outer.availableButtons
+            }
+
+        override fun getItemViewType(position: Int): Int {
+            return if (section == Section.Bottom && position >= list.size) 2 else 1
+        }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
             return object : RecyclerView.ViewHolder(StatusButtonUi(parent.context)) {}
         }
 
-        override fun getItemCount(): Int = outer.bottomButtons.size + 1
+        override fun getItemCount(): Int = list.size + if (section == Section.Bottom) 1 else 0
 
         override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
             val ui = holder.itemView as StatusButtonUi
             val theme = outer.currentTheme
-            if (position < outer.bottomButtons.size) {
-                val button = outer.bottomButtons[position]
+            if (position < list.size) {
+                val button = list[position]
                 val action = ButtonAction.fromId(button.id)
                 val icon = action?.defaultIcon ?: R.drawable.ic_baseline_more_horiz_24
                 val label = button.label
@@ -212,9 +224,9 @@ data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjust
                         .setDuration(DRAG_FEEDBACK_DURATION_MS)
                         .setInterpolator(feedbackInterpolator)
                         .start()
-                    val payload = DragPayload(Section.Bottom, position, it)
+                    val payload = DragPayload(section, position, it)
                     it.startDragAndDrop(
-                        ClipData.newPlainText("button", "bottom"),
+                        ClipData.newPlainText("button", section.name.lowercase()),
                         View.DragShadowBuilder(it),
                         payload,
                         0
@@ -230,13 +242,27 @@ data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjust
         }
     }
 
-    private val bottomAdapter by lazy { BottomAdapter(this) }
+    private val bottomAdapter by lazy { SectionAdapter(this, Section.Bottom) }
+    private val availableAdapter by lazy { SectionAdapter(this, Section.Available) }
 
     private val bottomList by lazy {
         RecyclerView(context).apply {
             layoutManager = GridLayoutManager(context, 4)
             adapter = bottomAdapter
             itemAnimator = null
+            isNestedScrollingEnabled = false
+            overScrollMode = View.OVER_SCROLL_NEVER
+        }
+    }
+
+    private val availableList by lazy {
+        RecyclerView(context).apply {
+            layoutManager = GridLayoutManager(context, 4)
+            adapter = availableAdapter
+            itemAnimator = null
+            isNestedScrollingEnabled = false
+            overScrollMode = View.OVER_SCROLL_NEVER
+            minimumHeight = context.dp(80)
         }
     }
 
@@ -313,21 +339,34 @@ data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjust
         return topButtons.size
     }
 
-    private fun findBottomInsertIndex(x: Float, y: Float): Int {
-        val child = bottomList.findChildViewUnder(x, y) ?: return bottomButtons.size
-        val pos = bottomList.getChildAdapterPosition(child)
-        if (pos == RecyclerView.NO_POSITION) return bottomButtons.size
-        val capped = pos.coerceAtMost(bottomButtons.size)
+    private fun findRecyclerInsertIndex(
+        recycler: RecyclerView,
+        listSize: Int,
+        x: Float,
+        y: Float
+    ): Int {
+        val child = recycler.findChildViewUnder(x, y) ?: return listSize
+        val pos = recycler.getChildAdapterPosition(child)
+        if (pos == RecyclerView.NO_POSITION) return listSize
+        if (pos >= listSize) return listSize
         return if (x > child.left + child.width / 2f || y > child.top + child.height / 2f) {
-            (capped + 1).coerceAtMost(bottomButtons.size)
+            (pos + 1).coerceAtMost(listSize)
         } else {
-            capped
+            pos
         }
     }
 
     private fun move(payload: DragPayload, targetSection: Section, targetIndexRaw: Int): Boolean {
-        val sourceList = if (payload.section == Section.Top) topButtons else bottomButtons
-        val targetList = if (targetSection == Section.Top) topButtons else bottomButtons
+        val sourceList = when (payload.section) {
+            Section.Top -> topButtons
+            Section.Bottom -> bottomButtons
+            Section.Available -> availableButtons
+        }
+        val targetList = when (targetSection) {
+            Section.Top -> topButtons
+            Section.Bottom -> bottomButtons
+            Section.Available -> availableButtons
+        }
         if (payload.index !in sourceList.indices) return false
 
         if (sourceList === targetList && payload.index == targetIndexRaw.coerceIn(0, targetList.size)) {
@@ -346,11 +385,12 @@ data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjust
         payload.index = targetIndex
         renderTopButtons()
         bottomAdapter.notifyDataSetChanged()
+        availableAdapter.notifyDataSetChanged()
         updateInsertionIndicator(targetSection, targetIndex)
         return true
     }
 
-    private fun setDragTargetState(topActive: Boolean, bottomActive: Boolean) {
+    private fun setDragTargetState(topActive: Boolean, bottomActive: Boolean, availableActive: Boolean) {
         topRow.animate()
             .alpha(if (topActive) 0.94f else 1f)
             .setDuration(DRAG_FEEDBACK_DURATION_MS)
@@ -358,6 +398,11 @@ data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjust
             .start()
         bottomList.animate()
             .alpha(if (bottomActive) 0.94f else 1f)
+            .setDuration(DRAG_FEEDBACK_DURATION_MS)
+            .setInterpolator(feedbackInterpolator)
+            .start()
+        availableList.animate()
+            .alpha(if (availableActive) 0.94f else 1f)
             .setDuration(DRAG_FEEDBACK_DURATION_MS)
             .setInterpolator(feedbackInterpolator)
             .start()
@@ -386,6 +431,19 @@ data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjust
                 val childIndex = index.coerceAtMost(bottomButtons.size - 1)
                 if (childIndex >= 0) {
                     bottomList.findViewHolderForAdapterPosition(childIndex)?.itemView?.animate()
+                        ?.scaleX(1.04f)
+                        ?.scaleY(1.04f)
+                        ?.alpha(0.9f)
+                        ?.setDuration(DRAG_FEEDBACK_DURATION_MS)
+                        ?.setInterpolator(feedbackInterpolator)
+                        ?.start()
+                }
+            }
+
+            Section.Available -> {
+                val childIndex = index.coerceAtMost(availableButtons.size - 1)
+                if (childIndex >= 0) {
+                    availableList.findViewHolderForAdapterPosition(childIndex)?.itemView?.animate()
                         ?.scaleX(1.04f)
                         ?.scaleY(1.04f)
                         ?.alpha(0.9f)
@@ -425,6 +483,19 @@ data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjust
                 }
             }
 
+            Section.Available -> {
+                val childIndex = indicatorIndex.coerceAtMost(availableButtons.size - 1)
+                if (childIndex >= 0) {
+                    availableList.findViewHolderForAdapterPosition(childIndex)?.itemView?.animate()
+                        ?.scaleX(1f)
+                        ?.scaleY(1f)
+                        ?.alpha(1f)
+                        ?.setDuration(DRAG_FEEDBACK_DURATION_MS)
+                        ?.setInterpolator(feedbackInterpolator)
+                        ?.start()
+                }
+            }
+
             null -> {}
         }
         indicatorSection = null
@@ -436,35 +507,39 @@ data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjust
         when (event.action) {
             DragEvent.ACTION_DRAG_STARTED -> {
                 dragInProgress = true
-                setDragTargetState(topActive = false, bottomActive = false)
+                setDragTargetState(topActive = false, bottomActive = false, availableActive = false)
                 updateInsertionIndicator(payload.section, payload.index)
             }
 
             DragEvent.ACTION_DRAG_ENTERED -> {
                 when (v) {
-                    topScroller -> setDragTargetState(topActive = true, bottomActive = false)
-                    bottomList -> setDragTargetState(topActive = false, bottomActive = true)
+                    topScroller -> setDragTargetState(topActive = true, bottomActive = false, availableActive = false)
+                    bottomList -> setDragTargetState(topActive = false, bottomActive = true, availableActive = false)
+                    availableList -> setDragTargetState(topActive = false, bottomActive = false, availableActive = true)
                 }
             }
 
             DragEvent.ACTION_DRAG_EXITED -> {
-                setDragTargetState(topActive = false, bottomActive = false)
+                setDragTargetState(topActive = false, bottomActive = false, availableActive = false)
             }
 
             DragEvent.ACTION_DRAG_LOCATION -> {
                 val index = when (v) {
                     topScroller -> findTopInsertIndex(event.x)
-                    bottomList -> findBottomInsertIndex(event.x, event.y)
+                    bottomList -> findRecyclerInsertIndex(bottomList, bottomButtons.size, event.x, event.y)
+                    availableList -> findRecyclerInsertIndex(availableList, availableButtons.size, event.x, event.y)
                     else -> payload.index
                 }
                 when (v) {
                     topScroller -> updateInsertionIndicator(Section.Top, index)
                     bottomList -> updateInsertionIndicator(Section.Bottom, index)
+                    availableList -> updateInsertionIndicator(Section.Available, index)
                     else -> {}
                 }
                 val changed = when (v) {
                     topScroller -> move(payload, Section.Top, index)
                     bottomList -> move(payload, Section.Bottom, index)
+                    availableList -> move(payload, Section.Available, index)
                     else -> false
                 }
                 if (changed) {
@@ -474,13 +549,13 @@ data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjust
 
             DragEvent.ACTION_DROP -> {
                 // Final drop is already previewed during ACTION_DRAG_LOCATION.
-                setDragTargetState(topActive = false, bottomActive = false)
+                setDragTargetState(topActive = false, bottomActive = false, availableActive = false)
                 clearInsertionIndicator()
             }
 
             DragEvent.ACTION_DRAG_ENDED -> {
                 dragInProgress = false
-                setDragTargetState(topActive = false, bottomActive = false)
+                setDragTargetState(topActive = false, bottomActive = false, availableActive = false)
                 clearInsertionIndicator()
                 payload.sourceView.animate()
                     .alpha(1f)
@@ -497,10 +572,28 @@ data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjust
     private fun loadState() {
         val config = ConfigProviders.readButtonsLayoutConfig<ButtonsLayoutConfig>()?.value
             ?: ButtonsLayoutConfig.default()
+        val reservedIds = setOf("more", "input_method_options")
+        val configurableIds = ButtonAction.allConfigurableActions
+            .map { it.id }
+            .filterNot { it in reservedIds }
+            .toSet()
+        val seen = mutableSetOf<String>()
         topButtons.clear()
-        topButtons.addAll(config.kawaiiBarButtons)
+        config.kawaiiBarButtons.forEach { button ->
+            if (button.id in configurableIds && seen.add(button.id)) topButtons.add(button)
+        }
         bottomButtons.clear()
-        bottomButtons.addAll(config.statusAreaButtons.filter { it.id != "input_method_options" })
+        config.statusAreaButtons.forEach { button ->
+            if (button.id != "input_method_options" && button.id in configurableIds && seen.add(button.id)) {
+                bottomButtons.add(button)
+            }
+        }
+        availableButtons.clear()
+        ButtonAction.allConfigurableActions
+            .filterNot { it.id in reservedIds }
+            .forEach { action ->
+            if (action.id !in seen) availableButtons.add(ConfigurableButton(action.id))
+        }
         originalTop = topButtons.toList()
         originalBottom = bottomButtons.toList()
     }
@@ -527,19 +620,43 @@ data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjust
         }
     }
 
-    private val content by lazy {
+    private val sectionDivider by lazy {
+        View(context).apply {
+            layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, context.dp(1))
+            setBackgroundColor(currentTheme.dividerColor)
+            alpha = 0.42f
+        }
+    }
+
+    private val centerScroll by lazy {
+        ScrollView(context).apply {
+            isFillViewport = true
+            overScrollMode = View.OVER_SCROLL_NEVER
+            addView(
+                LinearLayout(context).apply {
+                    orientation = LinearLayout.VERTICAL
+                    addView(bottomList, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+                    addView(sectionDivider)
+                    addView(availableList, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+                },
+                ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            )
+        }
+    }
+
+    private val contentContainer by lazy {
         LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             addView(topRow)
             addView(divider)
-            addView(bottomList, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+            addView(centerScroll, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
         }
     }
 
     private val root by lazy {
         context.frameLayout {
             background = currentTheme.backgroundDrawable(keyBorder)
-            add(content, lParams(matchParent, matchParent))
+            add(contentContainer, lParams(matchParent, matchParent))
         }
     }
 
@@ -552,6 +669,7 @@ data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjust
             topRow.background = null
         }
         divider.setBackgroundColor(theme.dividerColor)
+        sectionDivider.setBackgroundColor(theme.dividerColor)
         val iconTint = theme.altKeyTextColor
         collapseButton.image.imageTintList = android.content.res.ColorStateList.valueOf(iconTint)
         collapseButton.setPressHighlightColor(theme.keyPressHighlightColor)
@@ -587,16 +705,19 @@ data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjust
             topScroller.requestLayout()
         }
         bottomAdapter.notifyDataSetChanged()
+        availableAdapter.notifyDataSetChanged()
         topScroller.removeOnLayoutChangeListener(topScrollerLayoutListener)
         topScroller.addOnLayoutChangeListener(topScrollerLayoutListener)
         topScroller.setOnDragListener(dragListener)
         bottomList.setOnDragListener(dragListener)
+        availableList.setOnDragListener(dragListener)
     }
 
     override fun onDetached() {
         topScroller.removeOnLayoutChangeListener(topScrollerLayoutListener)
         topScroller.setOnDragListener(null)
         bottomList.setOnDragListener(null)
+        availableList.setOnDragListener(null)
         if (topButtons != originalTop || bottomButtons != originalBottom) {
             saveConfig()
             Toast.makeText(context, R.string.saved, Toast.LENGTH_SHORT).show()

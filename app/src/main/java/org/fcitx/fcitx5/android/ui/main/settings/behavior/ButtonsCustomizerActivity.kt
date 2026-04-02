@@ -129,6 +129,7 @@ class ButtonsCustomizerActivity : AppCompatActivity() {
         ButtonDefinition("floating_toggle", R.drawable.ic_floating_toggle_24, R.string.floating_keyboard),
         ButtonDefinition("clipboard", R.drawable.ic_clipboard, R.string.clipboard),
         ButtonDefinition("theme_toggle", R.drawable.ic_baseline_dark_mode_24, R.string.toggle_day_night_theme),
+        ButtonDefinition("language_switch", R.drawable.ic_baseline_language_24, R.string.language_switch),
         ButtonDefinition("theme", R.drawable.ic_baseline_palette_24, R.string.theme),
         ButtonDefinition("reload_config", R.drawable.ic_baseline_sync_24, R.string.reload_config),
         ButtonDefinition("virtual_keyboard", R.drawable.ic_baseline_keyboard_24, R.string.virtual_keyboard),
@@ -324,12 +325,6 @@ class ButtonsCustomizerActivity : AppCompatActivity() {
                     return false
                 }
 
-                // Allow moving between KawaiiBar and StatusArea sections
-                // But not to/from AddButtons section
-                if (toItem is ListItem.AddButtonItem) {
-                    return false
-                }
-
                 val kawaiiBarEndIndex = items.indexOfFirst { it is ListItem.AddButtonPlaceholder }
                 val statusAreaEndIndex = items.indexOfFirst { it is ListItem.StatusAreaAddButtonPlaceholder }
 
@@ -350,8 +345,18 @@ class ButtonsCustomizerActivity : AppCompatActivity() {
                     }
                     // Dropping on StatusArea "+" placeholder -> insert before it (in StatusArea)
                     toItem is ListItem.StatusAreaAddButtonPlaceholder -> {
-                        targetSection = Section.StatusArea
-                        insertPosition = statusAreaEndIndex
+                        val dragCenterX = getViewCenterX(viewHolder.itemView)
+                        val plusCenterX = getViewCenterX(target.itemView)
+                        val (position, section) = determineDropPositionOnStatusAreaPlus(
+                            dragCenterX, plusCenterX, statusAreaEndIndex
+                        )
+                        insertPosition = position
+                        targetSection = section
+                    }
+                    // Dropping on an available item -> move to AddButtons section
+                    toItem is ListItem.AddButtonItem -> {
+                        targetSection = Section.AddButtons
+                        insertPosition = toPosition
                     }
                     // Dropping on a regular button - use drag position relative to target button center
                     else -> {
@@ -362,8 +367,8 @@ class ButtonsCustomizerActivity : AppCompatActivity() {
                     }
                 }
 
-                // Don't allow dropping after StatusArea "+"
-                if (statusAreaEndIndex >= 0 && insertPosition > statusAreaEndIndex) {
+                // Don't allow dropping after StatusArea "+" unless target is AddButtons section
+                if (targetSection != Section.AddButtons && statusAreaEndIndex >= 0 && insertPosition > statusAreaEndIndex) {
                     insertPosition = statusAreaEndIndex
                 }
 
@@ -435,8 +440,8 @@ class ButtonsCustomizerActivity : AppCompatActivity() {
             // At or after KawaiiBar "+" but before StatusArea "+" -> StatusArea
             // Use < not <= because == statusAreaEndIndex is the StatusArea placeholder
             position < statusAreaEndIndex -> Section.StatusArea
-            // After StatusArea "+" -> StatusArea (default)
-            else -> Section.StatusArea
+            // After StatusArea "+" -> AddButtons section
+            else -> Section.AddButtons
         }
     }
 
@@ -467,6 +472,22 @@ class ButtonsCustomizerActivity : AppCompatActivity() {
         } else {
             // Right of "+" -> StatusArea (insert after "+")
             Pair(kawaiiBarEndIndex + 1, Section.StatusArea)
+        }
+    }
+
+    /**
+     * Determine insert position and target section when dropping on StatusArea "+" placeholder.
+     * Left side keeps it in StatusArea; right side moves it to AddButtons section.
+     */
+    private fun determineDropPositionOnStatusAreaPlus(
+        dragCenterX: Float,
+        plusCenterX: Float,
+        statusAreaEndIndex: Int
+    ): Pair<Int, Section> {
+        return if (dragCenterX < plusCenterX) {
+            Pair(statusAreaEndIndex, Section.StatusArea)
+        } else {
+            Pair((statusAreaEndIndex + 1).coerceAtMost(items.size), Section.AddButtons)
         }
     }
 
@@ -626,7 +647,6 @@ class ButtonsCustomizerActivity : AppCompatActivity() {
             saveUnifiedConfigToFile(buttonsLayoutFile, kawaiiBarButtons, statusAreaButtons)
         }
 
-        Toast.makeText(this, R.string.saved, Toast.LENGTH_SHORT).show()
         originalItems = items.toList()
         updateSaveButtonState()
     }

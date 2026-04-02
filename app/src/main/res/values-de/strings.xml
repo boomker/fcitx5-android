@@ -184,6 +184,8 @@
     <string name="buttons_customizer_hint">Schaltflächen ziehen zum Umordnen oder Verschieben zwischen Kawaii Bar (obere Zeile) und Status Area (Menü). Lange drücken zum Starten des Ziehens.</string>
     <string name="kawaii_bar_section">Kawaii Bar (obere Zeile)</string>
     <string name="status_area_section">Status Area (Menü)</string>
+    <string name="available_buttons_section">Verfügbare Schaltflächen</string>
+    <string name="language_switch">Sprache wechseln</string>
     <string name="all_buttons_added">Alle verfügbaren Schaltflächen wurden hinzugefügt</string>
     <string name="add_button_to_section_title">Zu Abschnitt hinzufügen</string>
     <string name="custom_label_hint">Benutzerdefiniertes Label (optional)</string>

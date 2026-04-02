@@ -349,6 +349,8 @@
     <string name="buttons_customizer_hint">Перетаскивайте кнопки для изменения порядка или перемещения между Kawaii Bar (верхняя строка) и Status Area (меню). Долгое нажатие для начала перетаскивания.</string>
     <string name="kawaii_bar_section">Kawaii Bar (верхняя строка)</string>
     <string name="status_area_section">Status Area (меню)</string>
+    <string name="available_buttons_section">Доступные кнопки</string>
+    <string name="language_switch">Смена языка</string>
     <string name="all_buttons_added">Все доступные кнопки добавлены</string>
     <string name="add_button_to_section_title">Добавить в раздел</string>
     <string name="custom_label_hint">Пользовательская метка (необязательно)</string>

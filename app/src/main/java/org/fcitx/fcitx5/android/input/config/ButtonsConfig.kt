@@ -15,7 +15,7 @@ data class ConfigurableButton(
     /**
      * Unique identifier for the button action.
      * Examples: "undo", "redo", "cursor_move", "floating_toggle", "clipboard", "more",
-     *           "theme_toggle", "theme", "input_method_options", "reload_config",
+     *           "theme_toggle", "language_switch", "theme", "input_method_options", "reload_config",
      *           "virtual_keyboard", "one_handed_keyboard"
      */
     @SerialName("id")

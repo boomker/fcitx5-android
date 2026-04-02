@@ -137,6 +137,8 @@
     <string name="buttons_customizer_hint">Arrastre los botones para reordenar o mover entre Kawaii Bar (fila superior) y Status Area (menú). Mantenga presionado para comenzar a arrastrar.</string>
     <string name="kawaii_bar_section">Kawaii Bar (fila superior)</string>
     <string name="status_area_section">Status Area (menú)</string>
+    <string name="available_buttons_section">Botones disponibles</string>
+    <string name="language_switch">Cambiar idioma</string>
     <string name="all_buttons_added">Se han añadido todos los botones disponibles</string>
     <string name="add_button_to_section_title">Añadir a sección</string>
     <string name="custom_label_hint">Etiqueta personalizada (opcional)</string>

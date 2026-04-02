@@ -317,6 +317,8 @@
     <string name="buttons_customizer_hint">拖动按钮重新排序或在 Kawaii Bar（顶行）和 Status Area（菜单）之间移动。长按开始拖动。</string>
     <string name="kawaii_bar_section">Kawaii Bar（顶行）</string>
     <string name="status_area_section">Status Area（菜单）</string>
+    <string name="available_buttons_section">可用区</string>
+    <string name="language_switch">语言切换</string>
     <string name="all_buttons_added">所有可用按钮已添加</string>
     <string name="add_button_to_section_title">添加到区域</string>
     <string name="custom_label_hint">自定义标签（可选）</string>

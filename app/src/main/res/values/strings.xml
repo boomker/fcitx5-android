@@ -328,6 +328,8 @@
     <string name="buttons_customizer_hint">Drag buttons to reorder or move between Kawaii Bar (top row) and Status Area (menu). Long press to start dragging.</string>
     <string name="kawaii_bar_section">Kawaii Bar (Top Row)</string>
     <string name="status_area_section">Status Area (Menu)</string>
+    <string name="available_buttons_section">Available Buttons</string>
+    <string name="language_switch">Language Switch</string>
     <string name="all_buttons_added">All available buttons have been added</string>
     <string name="add_button_to_section_title">Add to Section</string>
     <string name="custom_label_hint">Custom label (optional)</string>

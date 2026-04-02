@@ -338,6 +338,18 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
                 )
                 true
             }
+
+            // Keep language switch long-press behavior aligned with keyboard globe key.
+            setOnLongClickListener("language_switch") {
+                ButtonAction.fromId("language_switch")?.onLongPress(
+                    context = context,
+                    service = service,
+                    fcitx = fcitx,
+                    windowManager = windowManager,
+                    view = ui.buttonsUi.root
+                )
+                true
+            }
             updateButtonsState(service)
         }
         refreshHideKeyboardButtonState(ui)
