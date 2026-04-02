@@ -20,6 +20,7 @@ open class DraggableFlowLayout @JvmOverloads constructor(
     interface OnDragListener {
         fun onDragStarted(view: View, position: Int)
         fun onDragPositionChanged(from: Int, to: Int)
+        fun onDragMoved(view: View, rawX: Float, rawY: Float) {}
         fun onDragEnded(view: View, position: Int)
     }
 
@@ -44,6 +45,11 @@ open class DraggableFlowLayout @JvmOverloads constructor(
     private var lastSwapTo = -1
     private var touchSlop = 0
     private var originalDragPosition = -1
+    private var suppressInternalReorder = false
+    var lastTouchRawX: Float = 0f
+        private set
+    var lastTouchRawY: Float = 0f
+        private set
 
 
     init {
@@ -52,6 +58,10 @@ open class DraggableFlowLayout @JvmOverloads constructor(
 
     fun setDragEnabled(enabled: Boolean) {
         dragEnabled = enabled
+    }
+
+    fun setInternalReorderSuppressed(suppressed: Boolean) {
+        suppressInternalReorder = suppressed
     }
 
     fun startDragForView(view: View) {
@@ -162,6 +172,8 @@ open class DraggableFlowLayout @JvmOverloads constructor(
         when (ev.actionMasked) {
             MotionEvent.ACTION_MOVE -> {
                 if (isDraggingInternal) {
+                    lastTouchRawX = ev.rawX
+                    lastTouchRawY = ev.rawY
                     val containerLocation = IntArray(2)
                     getLocationOnScreen(containerLocation)
 
@@ -182,21 +194,24 @@ open class DraggableFlowLayout @JvmOverloads constructor(
                         val dragCenterX = dragView?.let { it.x + it.width / 2f } ?: ev.x
                         val dragCenterY = dragView?.let { it.y + it.height / 2f } ?: ev.y
 
-                        val currentTime = System.currentTimeMillis()
-                        if (currentTime - lastSwapTime > SWAP_DEBOUNCE_TIME) {
-                            val targetView = findChildViewUnder(dragCenterX, dragCenterY, excludeDragView = true)
-                            if (targetView != null) {
-                                val targetPosition = indexOfChild(targetView)
-                                if (targetPosition != -1 && targetPosition != dragPosition) {
-                                    trySwapTo(targetPosition, currentTime)
-                                }
-                            } else {
-                                val closestPosition = findClosestPositionToCoordinates(dragCenterX, dragCenterY)
-                                if (closestPosition != -1 && closestPosition != dragPosition) {
-                                    trySwapTo(closestPosition, currentTime)
+                        if (!suppressInternalReorder) {
+                            val currentTime = System.currentTimeMillis()
+                            if (currentTime - lastSwapTime > SWAP_DEBOUNCE_TIME) {
+                                val targetView = findChildViewUnder(dragCenterX, dragCenterY, excludeDragView = true)
+                                if (targetView != null) {
+                                    val targetPosition = indexOfChild(targetView)
+                                    if (targetPosition != -1 && targetPosition != dragPosition) {
+                                        trySwapTo(targetPosition, currentTime)
+                                    }
+                                } else {
+                                    val closestPosition = findClosestPositionToCoordinates(dragCenterX, dragCenterY)
+                                    if (closestPosition != -1 && closestPosition != dragPosition) {
+                                        trySwapTo(closestPosition, currentTime)
+                                    }
                                 }
                             }
                         }
+                        dragView?.let { onDragListener?.onDragMoved(it, ev.rawX, ev.rawY) }
                     } else {
                         val boundaryPosition = when {
                             ev.rawX < containerLeft -> 0
@@ -211,6 +226,7 @@ open class DraggableFlowLayout @JvmOverloads constructor(
                             x = left.toFloat()
                             y = top.toFloat()
                         }
+                        dragView?.let { onDragListener?.onDragMoved(it, ev.rawX, ev.rawY) }
                     }
 
                     parent.requestDisallowInterceptTouchEvent(true)
@@ -219,6 +235,8 @@ open class DraggableFlowLayout @JvmOverloads constructor(
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 if (isDraggingInternal) {
+                    lastTouchRawX = ev.rawX
+                    lastTouchRawY = ev.rawY
                     finishDrag()
                     parent.requestDisallowInterceptTouchEvent(false)
                     return true
@@ -460,6 +478,7 @@ open class DraggableFlowLayout @JvmOverloads constructor(
 
         dragView = null
         dragPosition = -1
+        suppressInternalReorder = false
 
         parent.requestDisallowInterceptTouchEvent(false)
     }
