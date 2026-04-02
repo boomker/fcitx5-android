@@ -28,10 +28,16 @@ git -C "${RIME_DIR}" fetch -v gh master
 git -C "${RIME_DIR}" checkout gh/master
 # apply patches for fcitx5-rime
 echo "applying fcitx5-rime patches"
-git -C "${RIME_DIR}" apply --ignore-whitespace "${RIME_SCHEMA_NAME_PATCH}" || \
-    echo "schema name patch already applied or failed"
-git -C "${RIME_DIR}" apply --ignore-whitespace "${RIME_PREEDIT_LABEL_PATCH}" || \
-    echo "preedit cursor label patch already applied or failed"
+if git -C "${RIME_DIR}" apply --ignore-whitespace "${RIME_SCHEMA_NAME_PATCH}"; then
+    echo "✓ schema name patch applied successfully"
+else
+    echo "✗ schema name patch failed or already applied"
+fi
+if git -C "${RIME_DIR}" apply --ignore-whitespace "${RIME_PREEDIT_LABEL_PATCH}"; then
+    echo "✓ preedit cursor label patch applied successfully"
+else
+    echo "✗ preedit cursor label patch failed or already applied"
+fi
 # sed -i 's|/fcitx/|/fxliang/|g' plugin/rime/licenses/libraries/fcitx5-rime.json
 
 # apply fcitx5 patch from fcitx5-rime
