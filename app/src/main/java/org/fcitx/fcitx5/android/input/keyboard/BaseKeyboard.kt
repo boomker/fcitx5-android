@@ -1147,7 +1147,7 @@ abstract class BaseKeyboard(
             "Tab" -> android.view.KeyEvent.KEYCODE_TAB
             "Escape" -> android.view.KeyEvent.KEYCODE_ESCAPE
             "Space" -> android.view.KeyEvent.KEYCODE_SPACE
-            "Delete" -> android.view.KeyEvent.KEYCODE_DEL
+            "Delete" -> android.view.KeyEvent.KEYCODE_FORWARD_DEL
             "BackSpace" -> android.view.KeyEvent.KEYCODE_DEL
             "Home" -> android.view.KeyEvent.KEYCODE_MOVE_HOME
             "End" -> android.view.KeyEvent.KEYCODE_MOVE_END
