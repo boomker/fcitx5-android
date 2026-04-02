@@ -494,6 +494,28 @@
     <!-- Text Keyboard Layout Editor -->
     <string name="edit_text_keyboard_layout">Edit Text Keyboard Layout</string>
     <string name="edit_text_keyboard_layout_summary">Edit text keyboard layout (TextKeyboardLayout.json)</string>
+    <string name="edit_text_keyboard_layout_summary_with_file">Edit text keyboard layout (%1$s)</string>
+    <string name="text_keyboard_layout_file_select_title">Text keyboard layout file</string>
+    <string name="text_keyboard_layout_file_select_summary">Current profile: %1$s</string>
+    <string name="text_keyboard_layout_file_switch">Switch layout file</string>
+    <string name="text_keyboard_layout_file_create">Create layout file</string>
+    <string name="text_keyboard_layout_file_rename">Rename layout file</string>
+    <string name="text_keyboard_layout_file_delete">Delete layout file</string>
+    <string name="text_keyboard_layout_file_renamed">Renamed profile: %1$s → %2$s</string>
+    <string name="text_keyboard_layout_file_rename_failed">Failed to rename layout file</string>
+    <string name="text_keyboard_layout_file_delete_confirm">Delete layout file profile "%1$s" and its backups?</string>
+    <string name="text_keyboard_layout_file_deleted">Deleted profile: %1$s</string>
+    <string name="text_keyboard_layout_file_delete_failed">Failed to delete layout file</string>
+    <string name="text_keyboard_layout_file_name">File profile name</string>
+    <string name="text_keyboard_layout_file_name_hint">e.g., 个人布局, gaming, work</string>
+    <string name="text_keyboard_layout_file_name_invalid">Invalid profile name (cannot contain \\ / : * ? " &lt; &gt; |)</string>
+    <string name="text_keyboard_layout_file_copy_current">Copy current file content</string>
+    <string name="text_keyboard_layout_file_already_exists">Layout file already exists</string>
+    <string name="text_keyboard_layout_switch_file_discard_message">You have unsaved edits. Switching layout file will discard current changes.</string>
+    <string name="text_keyboard_layout_create_file_discard_message">You have unsaved edits. Creating a new layout file now will discard current changes.</string>
+    <string name="text_keyboard_layout_delete_file_discard_message">You have unsaved edits. Deleting layout file now will discard current changes.</string>
+    <string name="text_keyboard_layout_rename_file_discard_message">You have unsaved edits. Renaming layout file now will discard current changes.</string>
+    <string name="text_keyboard_layout_file_switched">Switched to: %1$s</string>
     <string name="text_keyboard_layout_preview">Preview</string>
 
     <!-- Common strings -->
@@ -591,6 +613,8 @@
     <string name="text_keyboard_layout_discard_changes_negative">Cancel</string>
     <string name="cannot_resolve_text_keyboard_layout">Unable to resolve text keyboard layout file</string>
     <string name="text_keyboard_layout_saved_at">TextKeyboardLayout.json saved at: %1$s</string>
+    <string name="text_keyboard_layout_file_saved_at">Layout file saved at: %1$s</string>
+    <string name="text_keyboard_layout_file_saved">Saved: %1$s</string>
     <string name="text_keyboard_layout_save_failed">Failed to save layout. Check logcat for details.</string>
     <string name="macro_editor_key_event_unmatched">Key event mismatch: The number of key down and up events for %1$s does not match</string>
     <string name="text_keyboard_layout_qr_export">Share via QR image</string>
@@ -607,8 +631,14 @@
     <string name="text_keyboard_layout_qr_invalid_payload">Invalid QR payload</string>
     <string name="text_keyboard_layout_qr_import_confirm_title">Import layout from QR</string>
     <string name="text_keyboard_layout_qr_import_confirm_message">Detected %1$d layout entries. Import and replace current in-memory editing data?</string>
+    <string name="text_keyboard_layout_qr_import_confirm_message_with_profile">Detected %1$d layout entries. Import into profile "%2$s" and replace current editing data?</string>
     <string name="text_keyboard_layout_qr_import_success">QR layout imported. Save to persist changes.</string>
+    <string name="text_keyboard_layout_qr_import_success_profile">QR layout imported into profile "%1$s". Save to persist changes.</string>
+    <string name="text_keyboard_layout_qr_import_success_new_profile">QR layout imported. New profile "%1$s" created. Save to persist changes.</string>
     <string name="text_keyboard_layout_qr_import_failed">Failed to import QR payload: %1$s</string>
+    <string name="text_keyboard_layout_import_unsaved_changes_message">You have unsaved edits in current profile. Save before importing QR?</string>
+    <string name="text_keyboard_layout_import_save_and_continue">Save and import</string>
+    <string name="text_keyboard_layout_import_discard_and_continue">Discard and import</string>
     <string name="text_keyboard_layout_qr_type_mismatch">QR type mismatch. Expected %1$s, but got %2$s.</string>
     <string name="qr_payload_type_theme">Theme</string>
     <string name="qr_payload_type_layout">Layout</string>

@@ -414,6 +414,25 @@
     <string name="text_keyboard_layout_display_text_mode_duplicate">Имя режима "%1$s" уже используется</string>
     <string name="cannot_resolve_text_keyboard_layout">Не удалось определить файл раскладки текстовой клавиатуры</string>
     <string name="text_keyboard_layout_saved_at">TextKeyboardLayout.json сохранён в: %1$s</string>
+    <string name="text_keyboard_layout_file_saved_at">Файл раскладки сохранён: %1$s</string>
+    <string name="edit_text_keyboard_layout_summary_with_file">Редактировать раскладку текстовой клавиатуры (%1$s)</string>
+    <string name="text_keyboard_layout_file_select_title">Файл раскладки текстовой клавиатуры</string>
+    <string name="text_keyboard_layout_file_select_summary">Текущий файл: %1$s</string>
+    <string name="text_keyboard_layout_file_switch">Переключить файл раскладки</string>
+    <string name="text_keyboard_layout_file_create">Создать файл раскладки</string>
+    <string name="text_keyboard_layout_file_rename">Переименовать файл раскладки</string>
+    <string name="text_keyboard_layout_file_name">Имя профиля файла</string>
+    <string name="text_keyboard_layout_file_name_hint">например: personal, gaming</string>
+    <string name="text_keyboard_layout_file_name_invalid">Недопустимое имя профиля</string>
+    <string name="text_keyboard_layout_file_copy_current">Скопировать содержимое текущего файла</string>
+    <string name="text_keyboard_layout_file_already_exists">Файл раскладки уже существует</string>
+    <string name="text_keyboard_layout_switch_file_discard_message">Есть несохранённые правки. При переключении файла раскладки текущие изменения будут потеряны.</string>
+    <string name="text_keyboard_layout_create_file_discard_message">Есть несохранённые правки. Если создать новый файл раскладки сейчас, текущие изменения будут потеряны.</string>
+    <string name="text_keyboard_layout_delete_file_discard_message">Есть несохранённые правки. Если удалить файл раскладки сейчас, текущие изменения будут потеряны.</string>
+    <string name="text_keyboard_layout_rename_file_discard_message">Есть несохранённые правки. Если переименовать файл раскладки сейчас, текущие изменения будут потеряны.</string>
+    <string name="text_keyboard_layout_file_renamed">Профиль переименован: %1$s → %2$s</string>
+    <string name="text_keyboard_layout_file_rename_failed">Не удалось переименовать файл раскладки</string>
+    <string name="text_keyboard_layout_file_switched">Переключено на: %1$s</string>
 
     <!-- Split keyboard calibration -->
     <string name="split_keyboard_device_info">📱 Информация об устройстве</string>

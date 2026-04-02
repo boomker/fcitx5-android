@@ -202,6 +202,25 @@
     <string name="text_keyboard_layout_display_text_mode_duplicate">El nombre del modo "%1$s" ya está en uso</string>
     <string name="cannot_resolve_text_keyboard_layout">No se puede localizar el archivo de distribución del teclado de texto</string>
     <string name="text_keyboard_layout_saved_at">TextKeyboardLayout.json guardado en: %1$s</string>
+    <string name="text_keyboard_layout_file_saved_at">Archivo de diseño guardado en: %1$s</string>
+    <string name="edit_text_keyboard_layout_summary_with_file">Editar diseño de teclado de texto (%1$s)</string>
+    <string name="text_keyboard_layout_file_select_title">Archivo de diseño de teclado de texto</string>
+    <string name="text_keyboard_layout_file_select_summary">Archivo actual: %1$s</string>
+    <string name="text_keyboard_layout_file_switch">Cambiar archivo de diseño</string>
+    <string name="text_keyboard_layout_file_create">Crear archivo de diseño</string>
+    <string name="text_keyboard_layout_file_rename">Cambiar nombre del archivo de diseño</string>
+    <string name="text_keyboard_layout_file_name">Nombre de perfil del archivo</string>
+    <string name="text_keyboard_layout_file_name_hint">p. ej., personal, gaming</string>
+    <string name="text_keyboard_layout_file_name_invalid">Nombre de perfil no válido</string>
+    <string name="text_keyboard_layout_file_copy_current">Copiar el contenido del archivo actual</string>
+    <string name="text_keyboard_layout_file_already_exists">El archivo de diseño ya existe</string>
+    <string name="text_keyboard_layout_switch_file_discard_message">Tienes ediciones sin guardar. Cambiar el archivo de diseño descartará los cambios actuales.</string>
+    <string name="text_keyboard_layout_create_file_discard_message">Tienes ediciones sin guardar. Crear un nuevo archivo de diseño ahora descartará los cambios actuales.</string>
+    <string name="text_keyboard_layout_delete_file_discard_message">Tienes ediciones sin guardar. Eliminar el archivo de diseño ahora descartará los cambios actuales.</string>
+    <string name="text_keyboard_layout_rename_file_discard_message">Tienes ediciones sin guardar. Cambiar el nombre del archivo de diseño ahora descartará los cambios actuales.</string>
+    <string name="text_keyboard_layout_file_renamed">Perfil renombrado: %1$s → %2$s</string>
+    <string name="text_keyboard_layout_file_rename_failed">No se pudo cambiar el nombre del archivo de diseño</string>
+    <string name="text_keyboard_layout_file_switched">Cambiado a: %1$s</string>
 
     <!-- Split keyboard calibration -->
     <string name="split_keyboard_device_info">📱 Información del dispositivo</string>

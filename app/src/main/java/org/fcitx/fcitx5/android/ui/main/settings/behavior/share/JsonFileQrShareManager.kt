@@ -93,6 +93,7 @@ class QrChunkCollector {
     data class Progress(
         val current: Int,
         val total: Int,
+        val transferId: String?,
         val completedJson: String?,
         val duplicate: Boolean
     )
@@ -115,9 +116,10 @@ class QrChunkCollector {
         chunks[chunk.index] = payload
         if (chunks.size == total) {
             val json = LayoutQrTransferCodec.decodeChunksToJson(chunks.values.toList())
+            val completedTransferId = transferId
             clear()
-            return Progress(total, total, json, duplicate)
+            return Progress(total, total, completedTransferId, json, duplicate)
         }
-        return Progress(chunks.size, total, null, duplicate)
+        return Progress(chunks.size, total, transferId, null, duplicate)
     }
 }

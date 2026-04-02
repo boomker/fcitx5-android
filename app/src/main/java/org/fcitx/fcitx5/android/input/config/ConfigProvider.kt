@@ -8,6 +8,7 @@ import android.os.FileObserver
 import android.os.Handler
 import android.os.Looper
 import kotlinx.serialization.json.JsonObject
+import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import java.io.File
 
 typealias ConfigChangeListener = () -> Unit
@@ -22,7 +23,10 @@ interface ConfigProvider {
 }
 
 object DefaultConfigProvider : ConfigProvider {
-    override fun textKeyboardLayoutFile(): File? = UserConfigFiles.textKeyboardLayoutJson()
+    override fun textKeyboardLayoutFile(): File? {
+        val profile = AppPrefs.getInstance().keyboard.textKeyboardLayoutProfile.getValue()
+        return UserConfigFiles.textKeyboardLayoutJson(profile)
+    }
     override fun popupPresetFile(): File? = UserConfigFiles.popupPresetJson()
     override fun fontsetFile(): File? = UserConfigFiles.fontsetJson()
     override fun buttonsLayoutConfigFile(): File? = UserConfigFiles.buttonsLayoutConfig()

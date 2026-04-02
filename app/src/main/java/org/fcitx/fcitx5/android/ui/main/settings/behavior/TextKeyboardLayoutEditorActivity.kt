@@ -48,10 +48,12 @@ import org.fcitx.fcitx5.android.core.Action
 import org.fcitx.fcitx5.android.core.InputMethodEntry
 import org.fcitx.fcitx5.android.daemon.FcitxDaemon
 import org.fcitx.fcitx5.android.daemon.FcitxConnection
+import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.data.theme.ThemeManager
 import org.fcitx.fcitx5.android.input.config.ConfigProviders
 import org.fcitx.fcitx5.android.input.config.ConfigProvider
+import org.fcitx.fcitx5.android.input.config.UserConfigFiles
 import org.fcitx.fcitx5.android.input.keyboard.TextKeyboard
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.adapter.KeyboardLayoutAdapter
 import org.fcitx.fcitx5.android.utils.AppUtil
@@ -192,15 +194,17 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         val subModeLabel = previewSubModeLabel?.takeIf { it.isNotBlank() }
         val subModeKey = subModeLabel?.let { "$layoutName:$it" }
         val hasDedicatedSubModeLayout = subModeKey != null && entries.containsKey(subModeKey)
-        return if (hasDedicatedSubModeLayout) {
-            "$layoutName · $subModeLabel"
+        val editing = if (hasDedicatedSubModeLayout) {
+            "$layoutName:$subModeLabel"
         } else {
             layoutName
         }
+        return "${displayProfile(currentLayoutProfile)}:$editing"
     }
 
     private val provider: ConfigProvider = ConfigProviders.provider
-    private val layoutFile: File? by lazy { provider.textKeyboardLayoutFile() }
+    private var layoutFile: File? = null
+    private var currentLayoutProfile: String = UserConfigFiles.DEFAULT_TEXT_KEYBOARD_LAYOUT_PROFILE
     private val fcitxConnection: FcitxConnection by lazy {
         FcitxDaemon.connect(FCITX_CONNECTION_NAME)
     }
@@ -331,6 +335,8 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
 
         // 初始化子模式管理器（必须在 loadState 之前）
         subModeManager = SubModeManager(fcitxConnection, allImesFromJson, dataManager.entries)
+        currentLayoutProfile = currentActiveProfile()
+        layoutFile = provider.textKeyboardLayoutFile()
 
         loadState()
 
@@ -363,6 +369,14 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         saveMenuItem = menu.add(Menu.NONE, MENU_SAVE_ID, Menu.NONE, "${getString(R.string.save)}")
         saveMenuItem?.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS or MenuItem.SHOW_AS_ACTION_WITH_TEXT)
+        menu.add(Menu.NONE, MENU_LAYOUT_FILE_SWITCH_ID, Menu.NONE, getString(R.string.text_keyboard_layout_file_switch))
+            .setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER)
+        menu.add(Menu.NONE, MENU_LAYOUT_FILE_CREATE_ID, Menu.NONE, getString(R.string.text_keyboard_layout_file_create))
+            .setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER)
+        menu.add(Menu.NONE, MENU_LAYOUT_FILE_RENAME_ID, Menu.NONE, getString(R.string.text_keyboard_layout_file_rename))
+            .setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER)
+        menu.add(Menu.NONE, MENU_LAYOUT_FILE_DELETE_ID, Menu.NONE, getString(R.string.text_keyboard_layout_file_delete))
+            .setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER)
         menu.add(Menu.NONE, MENU_QR_EXPORT_ID, Menu.NONE, getString(R.string.text_keyboard_layout_qr_export))
             .setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER)
         menu.add(Menu.NONE, MENU_QR_IMPORT_SCAN_ID, Menu.NONE, getString(R.string.text_keyboard_layout_qr_import_scan))
@@ -380,6 +394,30 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         }
         MENU_SAVE_ID -> {
             saveLayout()
+            true
+        }
+        MENU_LAYOUT_FILE_SWITCH_ID -> {
+            if (hasChanges()) {
+                confirmSwitchLayoutFile()
+            } else {
+                openSwitchLayoutFileDialog()
+            }
+            true
+        }
+        MENU_LAYOUT_FILE_CREATE_ID -> {
+            if (hasChanges()) {
+                confirmCreateLayoutFile()
+            } else {
+                openCreateLayoutFileDialog()
+            }
+            true
+        }
+        MENU_LAYOUT_FILE_RENAME_ID -> {
+            openRenameLayoutFileDialog()
+            true
+        }
+        MENU_LAYOUT_FILE_DELETE_ID -> {
+            confirmDeleteCurrentLayoutFile()
             true
         }
         MENU_QR_EXPORT_ID -> {
@@ -420,7 +458,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
     }
 
     private fun loadState() {
-        val file = ConfigProviders.provider.textKeyboardLayoutFile()
+        val file = layoutFile
 
         // 获取 IMEs 用于 spinner 显示
         allImesFromJson = runCatching {
@@ -474,6 +512,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         }
 
         originalEntries = dataManager.normalizedEntries()
+        updateToolbarSubtitle()
     }
 
     private fun readDefaultPresetFromTextKeyboardKt(): Map<String, List<List<Map<String, Any?>>>> {
@@ -1602,7 +1641,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
 
         // 使用 dataManager 保存
         if (dataManager.saveToFile(file)) {
-            showToast(getString(R.string.text_keyboard_layout_saved_at, file.absolutePath))
+            showToast(getString(R.string.text_keyboard_layout_file_saved, file.name))
             // 通知 provider watcher 文件已更改
             ConfigProviders.ensureWatching()
             updateSaveButtonState()
@@ -1619,8 +1658,359 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         }
     }
 
+    private fun currentActiveProfile(): String {
+        return UserConfigFiles.normalizeTextKeyboardLayoutProfile(
+            AppPrefs.getInstance().keyboard.textKeyboardLayoutProfile.getValue()
+        ) ?: UserConfigFiles.DEFAULT_TEXT_KEYBOARD_LAYOUT_PROFILE
+    }
+
+    private fun switchToLayoutProfile(profile: String) {
+        switchToLayoutProfile(profile, showSwitchToast = true)
+    }
+
+    private fun switchToLayoutProfile(profile: String, showSwitchToast: Boolean) {
+        val normalized = UserConfigFiles.normalizeTextKeyboardLayoutProfile(profile) ?: return
+        AppPrefs.getInstance().keyboard.textKeyboardLayoutProfile.setValue(normalized)
+        ConfigProviders.provider = ConfigProviders.provider
+        currentLayoutProfile = normalized
+        layoutFile = provider.textKeyboardLayoutFile()
+        loadState()
+        buildSpinner()
+        buildSubModeSpinner(forceResetSelection = true)
+        buildRows()
+        currentLayout?.let { layoutName ->
+            previewManager.updatePreview(layoutName, previewSubModeLabel, fcitxConnection)
+        }
+        updateSaveButtonState()
+        if (showSwitchToast) {
+            showToast(
+                getString(
+                    R.string.text_keyboard_layout_file_switched,
+                    displayProfile(normalized)
+                )
+            )
+        }
+    }
+
+    private fun confirmSwitchLayoutFile() {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.text_keyboard_layout_discard_changes_title)
+            .setMessage(R.string.text_keyboard_layout_switch_file_discard_message)
+            .setPositiveButton(R.string.text_keyboard_layout_discard_changes_positive) { _, _ ->
+                openSwitchLayoutFileDialog()
+            }
+            .setNegativeButton(R.string.text_keyboard_layout_discard_changes_negative, null)
+            .show()
+    }
+
+    private fun openSwitchLayoutFileDialog() {
+        val profiles = UserConfigFiles.listTextKeyboardLayoutProfiles().toMutableList()
+        if (currentLayoutProfile !in profiles) profiles += currentLayoutProfile
+        val sortedProfiles = profiles.distinct()
+            .sortedWith(compareBy({ it != UserConfigFiles.DEFAULT_TEXT_KEYBOARD_LAYOUT_PROFILE }, { it }))
+        val labels = sortedProfiles.map { displayProfile(it) }.toTypedArray()
+        val selected = sortedProfiles.indexOf(currentLayoutProfile).coerceAtLeast(0)
+        AlertDialog.Builder(this)
+            .setTitle(R.string.text_keyboard_layout_file_switch)
+            .setSingleChoiceItems(labels, selected) { dialog, which ->
+                val target = sortedProfiles.getOrNull(which) ?: return@setSingleChoiceItems
+                if (target != currentLayoutProfile) {
+                    switchToLayoutProfile(target)
+                }
+                dialog.dismiss()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun confirmDeleteCurrentLayoutFile() {
+        val profile = currentLayoutProfile
+        val file = layoutFile
+        val label = displayProfile(profile)
+        if (hasChanges()) {
+            AlertDialog.Builder(this)
+                .setTitle(R.string.text_keyboard_layout_discard_changes_title)
+                .setMessage(R.string.text_keyboard_layout_delete_file_discard_message)
+                .setPositiveButton(R.string.text_keyboard_layout_discard_changes_positive) { _, _ ->
+                    deleteCurrentLayoutFile(file, profile, label)
+                }
+                .setNegativeButton(R.string.text_keyboard_layout_discard_changes_negative, null)
+                .show()
+            return
+        }
+        deleteCurrentLayoutFile(file, profile, label)
+    }
+
+    private fun deleteCurrentLayoutFile(file: File?, profile: String, label: String) {
+        val targetFile = file ?: UserConfigFiles.textKeyboardLayoutJson(profile)
+        if (targetFile == null) {
+            showToast(getString(R.string.text_keyboard_layout_file_delete_failed))
+            return
+        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.text_keyboard_layout_file_delete)
+            .setMessage(getString(R.string.text_keyboard_layout_file_delete_confirm, label))
+            .setPositiveButton(R.string.text_keyboard_layout_discard_changes_positive) { _, _ ->
+                runCatching {
+                    val parent = targetFile.parentFile ?: throw IllegalStateException("Missing parent dir")
+                    val backups = parent.listFiles { candidate ->
+                        candidate.isFile &&
+                                candidate.name.startsWith("${targetFile.nameWithoutExtension}_backup_") &&
+                                candidate.name.endsWith(".json")
+                    }.orEmpty()
+                    val trashDir = File(parent, ".trash-${targetFile.nameWithoutExtension}-${System.currentTimeMillis()}")
+                    if (!trashDir.mkdirs()) throw IllegalStateException("Unable to create trash dir")
+                    val moved = mutableListOf<Pair<File, File>>()
+                    fun moveToTrash(source: File) {
+                        val trash = File(trashDir, source.name)
+                        if (!source.renameTo(trash)) {
+                            throw IllegalStateException("Unable to stage ${source.name} for deletion")
+                        }
+                        moved += source to trash
+                    }
+                    if (targetFile.exists()) moveToTrash(targetFile)
+                    backups.forEach(::moveToTrash)
+                    moved.forEach { (_, trash) ->
+                        if (!trash.delete()) {
+                            throw IllegalStateException("Unable to delete staged file ${trash.name}")
+                        }
+                    }
+                    trashDir.delete()
+                    val fallbackProfile = UserConfigFiles.DEFAULT_TEXT_KEYBOARD_LAYOUT_PROFILE
+                    switchToLayoutProfile(fallbackProfile)
+                    showToast(getString(R.string.text_keyboard_layout_file_deleted, label))
+                }.onFailure {
+                    showToast(getString(R.string.text_keyboard_layout_file_delete_failed))
+                }
+            }
+            .setNegativeButton(R.string.text_keyboard_layout_discard_changes_negative, null)
+            .show()
+    }
+
+    private fun openRenameLayoutFileDialog() {
+        val oldProfile = currentLayoutProfile
+        val oldFile = layoutFile ?: UserConfigFiles.textKeyboardLayoutJson(oldProfile)
+        if (oldFile == null) {
+            showToast(getString(R.string.text_keyboard_layout_file_rename_failed))
+            return
+        }
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            val pad = dp(12)
+            setPadding(pad, pad, pad, pad)
+        }
+        val nameLabel = TextView(this).apply {
+            text = getString(R.string.text_keyboard_layout_file_name)
+            textSize = DIALOG_LABEL_TEXT_SIZE_SP
+            setTextColor(styledColor(android.R.attr.textColorSecondary))
+        }
+        val nameEdit = EditText(this).apply {
+            hint = getString(R.string.text_keyboard_layout_file_name_hint)
+            setText(oldProfile)
+            setSelection(text?.length ?: 0)
+        }
+        container.addView(nameLabel)
+        container.addView(nameEdit)
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.text_keyboard_layout_file_rename)
+            .setView(container)
+            .setPositiveButton(android.R.string.ok, null)
+            .setNegativeButton(android.R.string.cancel, null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val newProfile = UserConfigFiles.normalizeTextKeyboardLayoutProfile(nameEdit.text?.toString().orEmpty())
+                if (newProfile == null) {
+                    showToast(getString(R.string.text_keyboard_layout_file_name_invalid))
+                    return@setOnClickListener
+                }
+                if (newProfile == oldProfile) {
+                    dialog.dismiss()
+                    return@setOnClickListener
+                }
+                val newFile = UserConfigFiles.textKeyboardLayoutJson(newProfile)
+                if (newFile == null) {
+                    showToast(getString(R.string.text_keyboard_layout_file_rename_failed))
+                    return@setOnClickListener
+                }
+                if (newFile.exists()) {
+                    showToast(getString(R.string.text_keyboard_layout_file_already_exists))
+                    return@setOnClickListener
+                }
+                if (hasChanges() && !saveLayout()) {
+                    showToast(getString(R.string.text_keyboard_layout_save_failed))
+                    return@setOnClickListener
+                }
+                runCatching {
+                    oldFile.parentFile?.mkdirs()
+                    val renameTargets = mutableListOf<Pair<File, File>>()
+                    if (oldFile.exists()) {
+                        renameTargets += oldFile to newFile
+                    }
+                    val oldPrefix = "${oldFile.nameWithoutExtension}_backup_"
+                    val newPrefix = "${newFile.nameWithoutExtension}_backup_"
+                    val backups = oldFile.parentFile?.listFiles { candidate ->
+                        candidate.isFile &&
+                                candidate.name.startsWith(oldPrefix) &&
+                                candidate.name.endsWith(".json")
+                    }.orEmpty()
+                    backups.forEach { backup ->
+                        val suffix = backup.name.removePrefix(oldPrefix)
+                        renameTargets += backup to File(backup.parentFile, "$newPrefix$suffix")
+                    }
+                    renameTargets.forEach { (from, to) ->
+                        if (!from.renameTo(to)) {
+                            throw IllegalStateException("rename ${from.name} failed")
+                        }
+                    }
+                }.onSuccess {
+                    switchToLayoutProfile(newProfile, showSwitchToast = false)
+                    showToast(
+                        getString(
+                            R.string.text_keyboard_layout_file_renamed,
+                            displayProfile(oldProfile),
+                            displayProfile(newProfile)
+                        )
+                    )
+                    dialog.dismiss()
+                }.onFailure {
+                    showToast(getString(R.string.text_keyboard_layout_file_rename_failed))
+                    runCatching {
+                        val currentFile = UserConfigFiles.textKeyboardLayoutJson(newProfile)
+                        val oldPrefix = "${oldFile.nameWithoutExtension}_backup_"
+                        val newPrefix = "${newFile.nameWithoutExtension}_backup_"
+                        if (currentFile?.exists() == true && !oldFile.exists()) {
+                            currentFile.renameTo(oldFile)
+                        }
+                        oldFile.parentFile?.listFiles { candidate ->
+                            candidate.isFile &&
+                                    candidate.name.startsWith(newPrefix) &&
+                                    candidate.name.endsWith(".json")
+                        }.orEmpty().forEach { candidate ->
+                            val suffix = candidate.name.removePrefix(newPrefix)
+                            candidate.renameTo(File(candidate.parentFile, "$oldPrefix$suffix"))
+                        }
+                    }
+                }
+            }
+        }
+        dialog.show()
+    }
+
+    private fun confirmCreateLayoutFile() {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.text_keyboard_layout_discard_changes_title)
+            .setMessage(R.string.text_keyboard_layout_create_file_discard_message)
+            .setPositiveButton(R.string.text_keyboard_layout_discard_changes_positive) { _, _ ->
+                openCreateLayoutFileDialog()
+            }
+            .setNegativeButton(R.string.text_keyboard_layout_discard_changes_negative, null)
+            .show()
+    }
+
+    private fun openCreateLayoutFileDialog() {
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            val pad = dp(12)
+            setPadding(pad, pad, pad, pad)
+        }
+        val nameLabel = TextView(this).apply {
+            text = getString(R.string.text_keyboard_layout_file_name)
+            textSize = DIALOG_LABEL_TEXT_SIZE_SP
+            setTextColor(styledColor(android.R.attr.textColorSecondary))
+        }
+        val nameEdit = EditText(this).apply {
+            hint = getString(R.string.text_keyboard_layout_file_name_hint)
+        }
+        val copySwitch = androidx.appcompat.widget.SwitchCompat(this).apply {
+            text = getString(R.string.text_keyboard_layout_file_copy_current)
+            isChecked = true
+        }
+        container.addView(nameLabel)
+        container.addView(nameEdit)
+        container.addView(copySwitch)
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.text_keyboard_layout_file_create)
+            .setView(container)
+            .setPositiveButton(android.R.string.ok, null)
+            .setNegativeButton(android.R.string.cancel, null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val normalized = UserConfigFiles.normalizeTextKeyboardLayoutProfile(nameEdit.text?.toString().orEmpty())
+                if (normalized == null) {
+                    showToast(getString(R.string.text_keyboard_layout_file_name_invalid))
+                    return@setOnClickListener
+                }
+                val targetFile = UserConfigFiles.textKeyboardLayoutJson(normalized)
+                if (targetFile == null) {
+                    showToast(getString(R.string.cannot_resolve_text_keyboard_layout))
+                    return@setOnClickListener
+                }
+                if (targetFile.exists()) {
+                    showToast(getString(R.string.text_keyboard_layout_file_already_exists))
+                    return@setOnClickListener
+                }
+                runCatching {
+                    targetFile.parentFile?.mkdirs()
+                    if (copySwitch.isChecked) {
+                        val source = layoutFile
+                        if (source?.exists() == true) {
+                            source.copyTo(targetFile, overwrite = false)
+                        } else {
+                            val json = dataManager.exportCurrentJsonString()
+                            targetFile.writeText(json)
+                        }
+                    } else {
+                        val templateManager = LayoutDataManager(this)
+                        templateManager.loadFromFile(null)
+                        targetFile.writeText(templateManager.exportCurrentJsonString())
+                    }
+                }.onSuccess {
+                    switchToLayoutProfile(normalized)
+                    dialog.dismiss()
+                }.onFailure {
+                    showToast(getString(R.string.text_keyboard_layout_save_failed))
+                }
+            }
+        }
+        dialog.show()
+    }
+
     private fun showToast(message: String) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun withImportPreparation(onReady: () -> Unit) {
+        if (!hasChanges()) {
+            onReady()
+            return
+        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.text_keyboard_layout_discard_changes_title)
+            .setMessage(R.string.text_keyboard_layout_import_unsaved_changes_message)
+            .setPositiveButton(R.string.text_keyboard_layout_import_save_and_continue) { _, _ ->
+                if (saveLayout()) {
+                    onReady()
+                }
+            }
+            .setNeutralButton(R.string.text_keyboard_layout_import_discard_and_continue) { _, _ ->
+                onReady()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun displayProfile(profile: String): String {
+        val normalized = UserConfigFiles.normalizeTextKeyboardLayoutProfile(profile)
+            ?: UserConfigFiles.DEFAULT_TEXT_KEYBOARD_LAYOUT_PROFILE
+        return if (normalized == UserConfigFiles.DEFAULT_TEXT_KEYBOARD_LAYOUT_PROFILE) {
+            getString(R.string.default_)
+        } else {
+            normalized
+        }
     }
 
     private fun maybePromptSwitchToFcitxIme() {
@@ -1691,21 +2081,20 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                 }
                 
                 // Generate QR codes
-                val bundlePair: Pair<android.graphics.Bitmap, LayoutQrTransferCodec.ChunkBundle> = withContext(Dispatchers.Default) { 
-                    JsonFileQrShareManager.encodeSavedJsonFileToLongImage(
-                        file = file,
+                val bundle: LayoutQrTransferCodec.ChunkBundle = withContext(Dispatchers.Default) {
+                    LayoutQrTransferCodec.encodeJsonToChunks(
+                        rawJson = file.readText(),
                         transferType = LayoutQrTransferCodec.TRANSFER_TYPE_LAYOUT,
-                        typeLabel = getString(R.string.qr_payload_type_layout),
-                        nameLabel = file.name
+                        transferProfile = currentLayoutProfile
                     )
                 }
                 
                 // Compose final image with preview at the top
-                val contents = bundlePair.second.chunks.map { it.encode() }
+                val contents = bundle.chunks.map { it.encode() }
                 val labels = JsonFileQrShareManager.buildChunkLabels(
-                    bundle = bundlePair.second,
+                    bundle = bundle,
                     typeLabel = getString(R.string.qr_payload_type_layout),
-                    nameLabel = file.name
+                    nameLabel = displayProfile(currentLayoutProfile)
                 )
                 val finalImage: android.graphics.Bitmap = withContext(Dispatchers.Default) {
                     try {
@@ -1716,12 +2105,6 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                         }
                     }
                 }
-                
-                // Recycle intermediate QR long image
-                if (!bundlePair.first.isRecycled) {
-                    bundlePair.first.recycle()
-                }
-                
                 finalImage
             }
             
@@ -1808,7 +2191,10 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         }
         showToast(getString(R.string.text_keyboard_layout_qr_scan_progress, progress.current, progress.total))
         progress.completedJson?.let { json ->
-            tryAssembleAndImportJson(json)
+            val importedProfile = progress.transferId
+                ?.let(LayoutQrTransferCodec::extractProfileFromTransferId)
+                ?.let(UserConfigFiles::normalizeTextKeyboardLayoutProfile)
+            tryAssembleAndImportJson(json, importedProfile)
             return
         }
         cameraScanLauncher.launch(com.journeyapps.barcodescanner.ScanOptions().apply {
@@ -1827,13 +2213,15 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                 throw IllegalArgumentException("type_mismatch:$detectedType")
             }
             val json = JsonFileQrShareManager.decodeChunksToJson(chunks)
+            val importedProfile = LayoutQrTransferCodec.extractProfileFromTransferId(firstChunk.transferId)
+                ?.let(UserConfigFiles::normalizeTextKeyboardLayoutProfile)
             val parsed = dataManager.parseJsonText(json, "qr-import", fallbackToDefault = false)
             if (parsed.isEmpty()) {
                 throw IllegalArgumentException("No valid layout in QR payload")
             }
-            parsed
+            ParsedImportResult(parsed, importedProfile)
         }.onSuccess { parsed ->
-            applyImportedLayouts(parsed)
+            applyImportedLayouts(parsed.parsedLayouts, parsed.profile)
         }.onFailure {
             val message = it.message.orEmpty()
             if (message.startsWith("type_mismatch:")) {
@@ -1856,25 +2244,42 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         }
     }
 
-    private fun tryAssembleAndImportJson(json: String) {
+    private fun tryAssembleAndImportJson(json: String, importedProfile: String? = null) {
         runCatching {
             val parsed = dataManager.parseJsonText(json, "qr-import", fallbackToDefault = false)
             if (parsed.isEmpty()) {
                 throw IllegalArgumentException("No valid layout in QR payload")
             }
-            parsed
+            ParsedImportResult(parsed, importedProfile)
         }.onSuccess { parsed ->
-            applyImportedLayouts(parsed)
+            applyImportedLayouts(parsed.parsedLayouts, parsed.profile)
         }.onFailure {
             showToast(getString(R.string.text_keyboard_layout_qr_import_failed, it.localizedMessage ?: ""))
         }
     }
 
-    private fun applyImportedLayouts(parsed: Map<String, List<List<Map<String, Any?>>>>) {
+    private fun applyImportedLayouts(
+        parsed: Map<String, List<List<Map<String, Any?>>>>,
+        importedProfile: String?
+    ) {
+        withImportPreparation {
+            val targetProfile = importedProfile ?: currentLayoutProfile
+            val existingProfiles = UserConfigFiles.listTextKeyboardLayoutProfiles().toSet()
+            val willCreateProfile = importedProfile != null && importedProfile !in existingProfiles
+
             AlertDialog.Builder(this)
                 .setTitle(R.string.text_keyboard_layout_qr_import_confirm_title)
-                .setMessage(getString(R.string.text_keyboard_layout_qr_import_confirm_message, parsed.size))
+                .setMessage(
+                    getString(
+                        R.string.text_keyboard_layout_qr_import_confirm_message_with_profile,
+                        parsed.size,
+                        displayProfile(targetProfile)
+                    )
+                )
                 .setPositiveButton(android.R.string.ok) { _, _ ->
+                    if (targetProfile != currentLayoutProfile) {
+                        switchToLayoutProfile(targetProfile, showSwitchToast = false)
+                    }
                     entries.clear()
                     parsed.toSortedMap().forEach { (k, v) ->
                         entries[k] = v.map { row -> row.map { key -> key.toMutableMap() }.toMutableList() }.toMutableList()
@@ -1888,19 +2293,36 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                         previewManager.updatePreview(layoutName, previewSubModeLabel, fcitxConnection)
                     }
                     updateSaveButtonState()
-                    showToast(getString(R.string.text_keyboard_layout_qr_import_success))
+                    val profileLabel = displayProfile(targetProfile)
+                    showToast(
+                        if (willCreateProfile) {
+                            getString(R.string.text_keyboard_layout_qr_import_success_new_profile, profileLabel)
+                        } else {
+                            getString(R.string.text_keyboard_layout_qr_import_success_profile, profileLabel)
+                        }
+                    )
                 }
                 .setNegativeButton(android.R.string.cancel, null)
                 .show()
+        }
     }
 
     companion object {
         private const val MENU_SAVE_ID = 3001
-        private const val MENU_QR_EXPORT_ID = 3002
-        private const val MENU_QR_IMPORT_SCAN_ID = 3003
-        private const val MENU_QR_IMPORT_IMAGE_ID = 3004
+        private const val MENU_LAYOUT_FILE_SWITCH_ID = 3002
+        private const val MENU_LAYOUT_FILE_CREATE_ID = 3003
+        private const val MENU_LAYOUT_FILE_RENAME_ID = 3004
+        private const val MENU_LAYOUT_FILE_DELETE_ID = 3005
+        private const val MENU_QR_EXPORT_ID = 3006
+        private const val MENU_QR_IMPORT_SCAN_ID = 3007
+        private const val MENU_QR_IMPORT_IMAGE_ID = 3008
         private const val FCITX_CONNECTION_NAME = "TextKeyboardLayoutEditorActivity"
         private const val DIALOG_LABEL_TEXT_SIZE_SP = 13f
         private const val DIALOG_CONTENT_TEXT_SIZE_SP = 14f
     }
+
+    private data class ParsedImportResult(
+        val parsedLayouts: Map<String, List<List<Map<String, Any?>>>>,
+        val profile: String?
+    )
 }

@@ -348,6 +348,25 @@
     <string name="text_keyboard_layout_display_text_mode_duplicate">モード名 "%1$s" は既に使用されています</string>
     <string name="cannot_resolve_text_keyboard_layout">テキストキーボードレイアウトファイルを解決できません</string>
     <string name="text_keyboard_layout_saved_at">TextKeyboardLayout.json を保存しました：%1$s</string>
+    <string name="text_keyboard_layout_file_saved_at">レイアウトファイルを保存しました：%1$s</string>
+    <string name="edit_text_keyboard_layout_summary_with_file">テキストキーボードレイアウトを編集（%1$s）</string>
+    <string name="text_keyboard_layout_file_select_title">テキストキーボードレイアウトファイル</string>
+    <string name="text_keyboard_layout_file_select_summary">現在のファイル：%1$s</string>
+    <string name="text_keyboard_layout_file_switch">レイアウトファイルを切り替え</string>
+    <string name="text_keyboard_layout_file_create">レイアウトファイルを作成</string>
+    <string name="text_keyboard_layout_file_rename">レイアウトファイル名を変更</string>
+    <string name="text_keyboard_layout_file_name">ファイルプロファイル名</string>
+    <string name="text_keyboard_layout_file_name_hint">例：personal、gaming</string>
+    <string name="text_keyboard_layout_file_name_invalid">無効なプロファイル名です</string>
+    <string name="text_keyboard_layout_file_copy_current">現在のファイル内容をコピー</string>
+    <string name="text_keyboard_layout_file_already_exists">レイアウトファイルは既に存在します</string>
+    <string name="text_keyboard_layout_switch_file_discard_message">未保存の編集があります。レイアウトファイルを切り替えると現在の変更は破棄されます。</string>
+    <string name="text_keyboard_layout_create_file_discard_message">未保存の編集があります。今新しいレイアウトファイルを作成すると現在の変更は破棄されます。</string>
+    <string name="text_keyboard_layout_delete_file_discard_message">未保存の編集があります。今レイアウトファイルを削除すると現在の変更は破棄されます。</string>
+    <string name="text_keyboard_layout_rename_file_discard_message">未保存の編集があります。今レイアウトファイル名を変更すると現在の変更は破棄されます。</string>
+    <string name="text_keyboard_layout_file_renamed">プロファイル名を変更しました: %1$s → %2$s</string>
+    <string name="text_keyboard_layout_file_rename_failed">レイアウトファイル名の変更に失敗しました</string>
+    <string name="text_keyboard_layout_file_switched">切り替え先：%1$s</string>
 
     <!-- Split keyboard calibration -->
     <string name="split_keyboard_device_info">📱 デバイス情報</string>

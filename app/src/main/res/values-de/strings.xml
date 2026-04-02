@@ -251,6 +251,25 @@
     <string name="text_keyboard_layout_display_text_mode_duplicate">Modusname "%1$s" wird bereits verwendet</string>
     <string name="cannot_resolve_text_keyboard_layout">Datei für Texttastatur-Layout kann nicht ermittelt werden</string>
     <string name="text_keyboard_layout_saved_at">TextKeyboardLayout.json gespeichert unter: %1$s</string>
+    <string name="text_keyboard_layout_file_saved_at">Layout-Datei gespeichert unter: %1$s</string>
+    <string name="edit_text_keyboard_layout_summary_with_file">Texttastaturlayout bearbeiten (%1$s)</string>
+    <string name="text_keyboard_layout_file_select_title">Texttastaturlayout-Datei</string>
+    <string name="text_keyboard_layout_file_select_summary">Aktuelle Datei: %1$s</string>
+    <string name="text_keyboard_layout_file_switch">Layout-Datei wechseln</string>
+    <string name="text_keyboard_layout_file_create">Layout-Datei erstellen</string>
+    <string name="text_keyboard_layout_file_rename">Layout-Datei umbenennen</string>
+    <string name="text_keyboard_layout_file_name">Dateiprofilname</string>
+    <string name="text_keyboard_layout_file_name_hint">z. B. personal, gaming</string>
+    <string name="text_keyboard_layout_file_name_invalid">Ungültiger Profilname</string>
+    <string name="text_keyboard_layout_file_copy_current">Inhalt der aktuellen Datei kopieren</string>
+    <string name="text_keyboard_layout_file_already_exists">Layout-Datei existiert bereits</string>
+    <string name="text_keyboard_layout_switch_file_discard_message">Sie haben ungespeicherte Änderungen. Beim Wechseln der Layout-Datei gehen die aktuellen Änderungen verloren.</string>
+    <string name="text_keyboard_layout_create_file_discard_message">Sie haben ungespeicherte Änderungen. Wenn Sie jetzt eine neue Layout-Datei erstellen, gehen die aktuellen Änderungen verloren.</string>
+    <string name="text_keyboard_layout_delete_file_discard_message">Sie haben ungespeicherte Änderungen. Wenn Sie jetzt die Layout-Datei löschen, gehen die aktuellen Änderungen verloren.</string>
+    <string name="text_keyboard_layout_rename_file_discard_message">Sie haben ungespeicherte Änderungen. Wenn Sie jetzt die Layout-Datei umbenennen, gehen die aktuellen Änderungen verloren.</string>
+    <string name="text_keyboard_layout_file_renamed">Profil umbenannt: %1$s → %2$s</string>
+    <string name="text_keyboard_layout_file_rename_failed">Layout-Datei konnte nicht umbenannt werden</string>
+    <string name="text_keyboard_layout_file_switched">Gewechselt zu: %1$s</string>
 
     <!-- Split keyboard calibration -->
     <string name="split_keyboard_device_info">📱 Geräteinfo</string>

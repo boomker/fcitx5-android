@@ -198,6 +198,11 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
             switch(R.string.space_swipe_move_cursor, "space_swipe_move_cursor", true)
         val showLangSwitchKey =
             switch(R.string.show_lang_switch_key, "show_lang_switch_key", true)
+        val textKeyboardLayoutProfile = ManagedPreference.PString(
+            sharedPreferences,
+            "text_keyboard_layout_profile",
+            "default"
+        ).apply { register() }
         val langSwitchKeyBehavior = enumList(
             R.string.lang_switch_key_behavior,
             "lang_switch_key_behavior",

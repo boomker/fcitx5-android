@@ -29,9 +29,11 @@ object LayoutQrTransferCodec {
 
     private const val MAGIC = "F5AQR1"
     private const val MAX_CHUNK_BYTES = 1500
+    private const val MAX_DECOMPRESSED_BYTES = 256 * 1024
     const val TRANSFER_TYPE_LAYOUT = 'L'
     const val TRANSFER_TYPE_POPUP = 'P'
     const val TRANSFER_TYPE_THEME = 'T'
+    private const val TRANSFER_PROFILE_SEPARATOR = "~"
 
     data class Chunk(
         val transferId: String,
@@ -51,10 +53,14 @@ object LayoutQrTransferCodec {
 
     data class ChunkBundle(val transferId: String, val total: Int, val chunks: List<Chunk>)
 
-    fun encodeJsonToChunks(rawJson: String, transferType: Char? = null): ChunkBundle {
+    fun encodeJsonToChunks(
+        rawJson: String,
+        transferType: Char? = null,
+        transferProfile: String? = null
+    ): ChunkBundle {
         val compressed = compress(rawJson.toByteArray(Charsets.UTF_8))
         val crc = crc32(compressed)
-        val transferId = buildTransferId(transferType)
+        val transferId = buildTransferId(transferType, transferProfile)
         val chunkCount = (compressed.size + MAX_CHUNK_BYTES - 1) / MAX_CHUNK_BYTES
         val chunks = ArrayList<Chunk>(chunkCount)
         var i = 0
@@ -107,6 +113,15 @@ object LayoutQrTransferCodec {
         else -> null
     }
 
+    fun extractProfileFromTransferId(transferId: String): String? {
+        val separatorIndex = transferId.indexOf(TRANSFER_PROFILE_SEPARATOR)
+        if (separatorIndex < 0 || separatorIndex == transferId.length - 1) return null
+        val encoded = transferId.substring(separatorIndex + 1)
+        return runCatching {
+            String(Base64.decode(encoded, Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING), Charsets.UTF_8)
+        }.getOrNull()?.takeIf { it.isNotBlank() }
+    }
+
     fun normalizeLayoutJson(jsonText: String): String {
         val element = json.parseToJsonElement(jsonText)
         return prettyJson.encodeToString(element) + "\n"
@@ -135,10 +150,16 @@ object LayoutQrTransferCodec {
         return Chunk(transferId, index, total, crc, parts[4])
     }
 
-    private fun buildTransferId(transferType: Char?): String {
+    private fun buildTransferId(transferType: Char?, transferProfile: String? = null): String {
         val random = UUID.randomUUID().toString().replace("-", "").lowercase()
         val normalizedType = transferType?.uppercaseChar()
-        return if (normalizedType != null) "$normalizedType${random.take(11)}" else random.take(12)
+        val baseId = if (normalizedType != null) "$normalizedType${random.take(11)}" else random.take(12)
+        val profile = transferProfile?.takeIf { it.isNotBlank() } ?: return baseId
+        val encodedProfile = Base64.encodeToString(
+            profile.toByteArray(Charsets.UTF_8),
+            Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING
+        )
+        return "$baseId$TRANSFER_PROFILE_SEPARATOR$encodedProfile"
     }
 
     private fun compress(raw: ByteArray): ByteArray {
@@ -164,8 +185,21 @@ object LayoutQrTransferCodec {
         throw IllegalStateException("LZMA2 compression failed", lastError)
     }
 
-    private fun decompress(raw: ByteArray): ByteArray =
-        XZInputStream(ByteArrayInputStream(raw)).use { it.readBytes() }
+    private fun decompress(raw: ByteArray): ByteArray {
+        val buffer = ByteArrayOutputStream()
+        val chunk = ByteArray(8 * 1024)
+        XZInputStream(ByteArrayInputStream(raw)).use { input ->
+            while (true) {
+                val read = input.read(chunk)
+                if (read < 0) break
+                buffer.write(chunk, 0, read)
+                if (buffer.size() > MAX_DECOMPRESSED_BYTES) {
+                    throw IllegalArgumentException("Decompressed QR payload too large")
+                }
+            }
+        }
+        return buffer.toByteArray()
+    }
 
     private fun crc32(bytes: ByteArray): Long = CRC32().apply { update(bytes) }.value
 }
