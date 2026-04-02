@@ -37,7 +37,7 @@ class QuickSyncTileService : TileService() {
 
     override fun onClick() {
         super.onClick()
-        val enabled = prefs.getBoolean(PREF_QUICK_SYNC, true)
+        val enabled = prefs.getBoolean(PREF_QUICK_SYNC, DEFAULT_QUICK_SYNC_ENABLED)
         val newValue = !enabled
         prefs.edit().putBoolean(PREF_QUICK_SYNC, newValue).apply()
         if (newValue) {
@@ -49,7 +49,7 @@ class QuickSyncTileService : TileService() {
     private fun refreshTile() {
         val tile = qsTile ?: return
         val enabled = PreferenceManager.getDefaultSharedPreferences(this)
-            .getBoolean(PREF_QUICK_SYNC, true)
+            .getBoolean(PREF_QUICK_SYNC, DEFAULT_QUICK_SYNC_ENABLED)
         tile.label = getString(R.string.quick_sync_tile_label)
         tile.state = if (enabled) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
         tile.updateTile()
@@ -57,6 +57,7 @@ class QuickSyncTileService : TileService() {
 
     companion object {
         private const val PREF_QUICK_SYNC = "quick_sync"
+        private const val DEFAULT_QUICK_SYNC_ENABLED = false
 
         fun requestTileRefresh(context: Context) {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return

@@ -264,7 +264,7 @@ class SettingsActivity : AppCompatActivity() {
             val prefs = preferenceManager.sharedPreferences
             syncQuickSyncSwitchState(prefs)
             QuickSyncTileService.requestTileRefresh(requireContext())
-            if (prefs?.getBoolean(QUICK_SYNC_KEY, true) == true) {
+            if (isQuickSyncEnabled(prefs)) {
                 MainService.startSyncService(requireContext(), "settings-resume")
             }
         }
@@ -330,11 +330,15 @@ class SettingsActivity : AppCompatActivity() {
 
         private fun syncQuickSyncSwitchState(prefs: SharedPreferences?) {
             val sharedPrefs = prefs ?: return
-            val enabled = sharedPrefs.getBoolean(QUICK_SYNC_KEY, true)
+            val enabled = isQuickSyncEnabled(sharedPrefs)
             val preference = findPreference<SwitchPreferenceCompat>(QUICK_SYNC_KEY) ?: return
             if (preference.isChecked != enabled) {
                 preference.isChecked = enabled
             }
+        }
+
+        private fun isQuickSyncEnabled(prefs: SharedPreferences?): Boolean {
+            return prefs?.getBoolean(QUICK_SYNC_KEY, false) == true
         }
 
         private fun migrateLegacyCredentialProfiles(
@@ -907,6 +911,14 @@ class SettingsActivity : AppCompatActivity() {
 
         private fun testConnection() {
             val prefs = preferenceManager.sharedPreferences ?: return
+            if (!isQuickSyncEnabled(prefs)) {
+                AlertDialog.Builder(requireContext())
+                    .setTitle(R.string.quick_sync_required_title)
+                    .setMessage(R.string.quick_sync_required_message)
+                    .setPositiveButton(android.R.string.ok, null)
+                    .show()
+                return
+            }
             val activeProfile = prefs.getString(SERVER_PROFILE_TYPE_KEY, PROFILE_SYNC_CLIPBOARD)
                 ?: PROFILE_SYNC_CLIPBOARD
             val address = prefs.getString(SERVER_ADDRESS_KEY, "") ?: ""

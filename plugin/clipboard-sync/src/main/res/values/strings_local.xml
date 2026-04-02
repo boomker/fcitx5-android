@@ -93,6 +93,8 @@
     <string name="local_test_push_success">测试推送成功</string>
     <string name="local_test_push_failed">测试推送失败</string>
     <string name="please_set_server_address">请先设置服务器地址</string>
+    <string name="quick_sync_required_title">请先开启同步</string>
+    <string name="quick_sync_required_message">测试连接前需要先打开“开启同步”。</string>
     <string name="testing_connection">正在测试连接...</string>
     <string name="connecting_to">正在连接到 %s...</string>
     <string name="connection_success">连接成功</string>

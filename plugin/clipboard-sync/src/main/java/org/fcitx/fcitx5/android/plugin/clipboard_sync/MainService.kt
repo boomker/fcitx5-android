@@ -58,6 +58,7 @@ class MainService : FcitxPluginService() {
     companion object {
         private const val TAG = "FcitxClipboardSync"
         private const val PREF_QUICK_SYNC = "quick_sync"
+        private const val DEFAULT_QUICK_SYNC_ENABLED = false
         private const val PREF_SYNC_INTERVAL = "sync_interval"
         private const val PREF_BACKGROUND_KEEP_ALIVE = "background_keep_alive"
         private const val PREF_USERNAME = "username"
@@ -113,7 +114,7 @@ class MainService : FcitxPluginService() {
 
         fun shouldAutoStart(context: Context): Boolean {
             val prefs = PreferenceManager.getDefaultSharedPreferences(context)
-            return prefs.getBoolean(PREF_QUICK_SYNC, true)
+            return prefs.getBoolean(PREF_QUICK_SYNC, DEFAULT_QUICK_SYNC_ENABLED)
         }
 
         fun startSyncService(context: Context, reason: String, forceEnableSync: Boolean = false) {
@@ -396,7 +397,7 @@ class MainService : FcitxPluginService() {
     }
 
     private fun refreshSyncRuntime() {
-        if (!prefs.getBoolean(PREF_QUICK_SYNC, true)) {
+        if (!prefs.getBoolean(PREF_QUICK_SYNC, DEFAULT_QUICK_SYNC_ENABLED)) {
             stopPeriodicSync()
             stopHealthMonitor()
             return
@@ -411,7 +412,7 @@ class MainService : FcitxPluginService() {
         healthMonitorJob = scope.launch {
             while (isActive) {
                 delay(currentHealthCheckDelayMs())
-                if (!prefs.getBoolean(PREF_QUICK_SYNC, true)) {
+                if (!prefs.getBoolean(PREF_QUICK_SYNC, DEFAULT_QUICK_SYNC_ENABLED)) {
                     continue
                 }
                 val endpoint = currentEndpoint()
@@ -464,7 +465,7 @@ class MainService : FcitxPluginService() {
     private fun startPeriodicSync() {
         stopPeriodicSync()
 
-        val quickSync = prefs.getBoolean(PREF_QUICK_SYNC, true)
+        val quickSync = prefs.getBoolean(PREF_QUICK_SYNC, DEFAULT_QUICK_SYNC_ENABLED)
         if (!quickSync) {
             Log.d(TAG, "[Pull] Quick sync disabled, stopping background polling")
             return
@@ -1170,7 +1171,7 @@ class MainService : FcitxPluginService() {
     }
 
     private fun scheduleReconnect(reason: String, immediate: Boolean = false) {
-        if (!prefs.getBoolean(PREF_QUICK_SYNC, true)) return
+        if (!prefs.getBoolean(PREF_QUICK_SYNC, DEFAULT_QUICK_SYNC_ENABLED)) return
         networkReconnectJob?.cancel()
         networkReconnectJob = scope.launch {
             if (!immediate) {
@@ -1190,7 +1191,7 @@ class MainService : FcitxPluginService() {
     }
 
     private fun shouldRunInForeground(): Boolean {
-        return prefs.getBoolean(PREF_QUICK_SYNC, true) &&
+        return prefs.getBoolean(PREF_QUICK_SYNC, DEFAULT_QUICK_SYNC_ENABLED) &&
                 prefs.getBoolean(PREF_BACKGROUND_KEEP_ALIVE, true)
     }
 
@@ -1885,7 +1886,7 @@ class MainService : FcitxPluginService() {
     }
 
     private suspend fun flushPendingUploads(reason: String, force: Boolean = false) {
-        if (!force && !prefs.getBoolean(PREF_QUICK_SYNC, true)) {
+        if (!force && !prefs.getBoolean(PREF_QUICK_SYNC, DEFAULT_QUICK_SYNC_ENABLED)) {
             return
         }
         pendingUploadDrainMutex.withLock {

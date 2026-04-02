@@ -52,6 +52,7 @@ object SyncClient {
     private const val SYNCCLIPBOARD_HISTORY_PAGE_SIZE = 50
     private const val SAVED_URI_READY_RETRY_COUNT = 10
     private const val SAVED_URI_READY_RETRY_DELAY_MS = 150L
+    private const val TRASH_ARTIFACT_PREFIX = ".trash"
     private val ONECLIP_UNSUPPORTED_FILE_TYPES = setOf("code", "file")
 
     private val json = Json {
@@ -824,12 +825,16 @@ object SyncClient {
         return try {
             val dir = DocumentFile.fromTreeUri(context, dirUri)
             if (dir != null && dir.isDirectory) {
-                val targetFile = dir.findFile(fileName) ?: dir.createFile(mimeType, fileName)
+                val existingFile = dir.findFile(fileName)?.takeIf { it.isFile }
+                if (existingFile != null && contentMatchesExisting(context, existingFile.uri, bytes)) {
+                    cleanupTrashArtifacts(dir)
+                    return waitUntilReadable(context, existingFile.uri, bytes.size)
+                }
+
+                val targetFile = existingFile ?: dir.createFile(mimeType, fileName)
                 if (targetFile != null) {
-                    context.contentResolver.openOutputStream(targetFile.uri, "wt")?.use {
-                        it.write(bytes)
-                        it.flush()
-                    }
+                    writeBytes(context, targetFile.uri, bytes)
+                    cleanupTrashArtifacts(dir)
                     waitUntilReadable(context, targetFile.uri, bytes.size)
                 } else {
                     null
@@ -840,6 +845,56 @@ object SyncClient {
         } catch (e: Exception) {
             Log.e(TAG, "[Pull] Failed to save file", e)
             null
+        }
+    }
+
+    private fun writeBytes(context: Context, uri: Uri, bytes: ByteArray) {
+        val resolver = context.contentResolver
+        val stream = runCatching { resolver.openOutputStream(uri, "rwt") }
+            .getOrNull()
+            ?: resolver.openOutputStream(uri, "wt")
+            ?: throw IOException("Failed to open output stream for $uri")
+
+        stream.use {
+            it.write(bytes)
+            it.flush()
+        }
+    }
+
+    private fun contentMatchesExisting(context: Context, uri: Uri, bytes: ByteArray): Boolean {
+        return runCatching {
+            context.contentResolver.openInputStream(uri)?.use { input ->
+                val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                var offset = 0
+                while (offset < bytes.size) {
+                    val toRead = minOf(buffer.size, bytes.size - offset)
+                    val read = input.read(buffer, 0, toRead)
+                    if (read != toRead) {
+                        return@use false
+                    }
+                    for (index in 0 until read) {
+                        if (buffer[index] != bytes[offset + index]) {
+                            return@use false
+                        }
+                    }
+                    offset += read
+                }
+                input.read() == -1
+            } == true
+        }.getOrDefault(false)
+    }
+
+    private fun cleanupTrashArtifacts(dir: DocumentFile) {
+        runCatching {
+            dir.listFiles()
+                .filter { it.name?.startsWith(TRASH_ARTIFACT_PREFIX) == true }
+                .forEach { trashEntry ->
+                    if (!trashEntry.delete()) {
+                        Log.w(TAG, "[Pull] Failed to delete trash artifact: ${trashEntry.name}")
+                    }
+                }
+        }.onFailure { error ->
+            Log.w(TAG, "[Pull] Failed to clean trash artifacts in ${dir.uri}", error)
         }
     }
 
@@ -856,7 +911,7 @@ object SyncClient {
                         if (total >= expectedSize) break
                     }
                     if (expectedSize <= 0) {
-                        total > 0
+                        total == 0 && input.read() == -1
                     } else {
                         total >= expectedSize
                     }

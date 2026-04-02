@@ -5,7 +5,7 @@
         app:key="quick_sync"
         app:title="@string/local_quick_sync"
         app:summary="@string/local_quick_sync_summary"
-        app:defaultValue="true" />
+        app:defaultValue="false" />
 
     <SwitchPreferenceCompat
         app:key="background_keep_alive"
