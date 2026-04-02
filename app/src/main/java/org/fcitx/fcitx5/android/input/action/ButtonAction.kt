@@ -358,6 +358,7 @@ data object LanguageSwitchAction : ButtonAction() {
     }
 }
 
+
 data object ThemeAction : ButtonAction() {
     override val id = "theme"
     override val defaultIcon = R.drawable.ic_baseline_palette_24
