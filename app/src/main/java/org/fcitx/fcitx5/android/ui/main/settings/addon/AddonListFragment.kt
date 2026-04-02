@@ -112,15 +112,16 @@ class AddonListFragment : ProgressFragment(), OnItemChangedListener<AddonInfo> {
             },
             initSettingsButton = { entry ->
                 visibility =
-                    if (entry.isConfigurable &&
-                        entry.enabled &&
-                        // we disable clipboard addon config since we take over the control
-                        entry.uniqueName != "clipboard"
-                    ) View.VISIBLE else View.INVISIBLE
+                    if (entry.isConfigurable && entry.enabled) View.VISIBLE else View.INVISIBLE
                 setOnClickListener {
-                    navigateWithAnim(
-                        SettingsRoute.AddonConfig(entry.displayName, entry.uniqueName)
-                    )
+                    // clipboard addon has its own settings page
+                    if (entry.uniqueName == "clipboard") {
+                        navigateWithAnim(SettingsRoute.Clipboard)
+                    } else {
+                        navigateWithAnim(
+                            SettingsRoute.AddonConfig(entry.displayName, entry.uniqueName)
+                        )
+                    }
                 }
             },
             show = { it.displayName }

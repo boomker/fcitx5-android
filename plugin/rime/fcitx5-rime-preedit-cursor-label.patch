@@ -1,0 +1,13 @@
+diff --git a/src/rimeengine.h b/src/rimeengine.h
+index a87c78b..5562ff1 100644
+--- a/src/rimeengine.h
++++ b/src/rimeengine.h
+@@ -88,7 +88,7 @@ FCITX_CONFIGURATION(
+     // so this is unnecessary. On Android there is no candidate window yet.
+     Option<bool> preeditCursorPositionAtBeginning{
+         this, "PreeditCursorPositionAtBeginning",
+-        _("Fix embedded preedit cursor at the beginning of the preedit"),
++        _("预编辑文本光标固定在开头"),
+         !isAndroid() && !isApple() && !isEmscripten()};
+     OptionWithAnnotation<SwitchInputMethodBehavior,
+                          SwitchInputMethodBehaviorI18NAnnotation>
