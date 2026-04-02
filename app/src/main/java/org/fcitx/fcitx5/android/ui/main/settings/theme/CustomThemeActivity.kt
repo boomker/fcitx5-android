@@ -178,6 +178,8 @@ class CustomThemeActivity : AppCompatActivity() {
                 applyThemePreview(theme)
                 // Save theme name change immediately
                 ThemeManager.saveTheme(theme)
+                // Update originalThemeName so the result will have the correct name
+                originalThemeName = newName
                 dialog.dismiss()
             }
         }
