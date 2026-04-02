@@ -20,11 +20,11 @@ import org.fcitx.fcitx5.android.data.theme.ThemeManager
 import org.fcitx.fcitx5.android.input.FcitxInputMethodService
 import org.fcitx.fcitx5.android.input.clipboard.ClipboardWindow
 import org.fcitx.fcitx5.android.input.dialog.AddMoreInputMethodsPrompt
+import org.fcitx.fcitx5.android.input.dialog.InputMethodPickerDialog
 import org.fcitx.fcitx5.android.input.editing.TextEditingWindow
 import org.fcitx.fcitx5.android.input.keyboard.LangSwitchBehavior
 import org.fcitx.fcitx5.android.input.wm.InputWindowManager
 import org.fcitx.fcitx5.android.utils.AppUtil
-import org.fcitx.fcitx5.android.utils.InputMethodUtil
 import org.fcitx.fcitx5.android.utils.switchToNextIME
 
 /**
@@ -350,7 +350,11 @@ data object LanguageSwitchAction : ButtonAction() {
         windowManager: InputWindowManager,
         view: View
     ) {
-        InputMethodUtil.showPicker()
+        fcitx.launchOnReady {
+            service.lifecycleScope.launch {
+                service.showDialog(InputMethodPickerDialog.build(it, service, context))
+            }
+        }
     }
 }
 
