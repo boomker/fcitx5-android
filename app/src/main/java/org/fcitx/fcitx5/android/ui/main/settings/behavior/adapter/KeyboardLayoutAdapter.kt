@@ -19,6 +19,7 @@ import org.fcitx.fcitx5.android.ui.main.settings.behavior.DraggableFlowLayout
 import splitties.dimensions.dp
 import splitties.resources.styledColor
 import splitties.views.backgroundColor
+import kotlin.math.abs
 
 /**
  * RecyclerView adapter for displaying and editing keyboard layout rows and keys.
@@ -34,10 +35,28 @@ class KeyboardLayoutAdapter(
     private var rows: List<MutableList<MutableMap<String, Any?>>>,
     internal val listener: Listener
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+    private data class KeyChildInfo(
+        val dataIndex: Int,
+        val centerX: Float,
+        val centerY: Float,
+        val height: Int
+    )
+
+    private data class CrossRowPreviewState(
+        var initialRow: Int = -1,
+        var initialIndex: Int = -1,
+        var currentRow: Int = -1,
+        var currentIndex: Int = -1,
+        var targetRow: Int = -1,
+        var targetIndex: Int = -1,
+        var draggedKey: MutableMap<String, Any?>? = null,
+        var lastStepAt: Long = 0L
+    )
 
     // These are set via setupRowDragTrigger
     private var rowsRecyclerView: RecyclerView? = null
     private var rowTouchHelper: ItemTouchHelper? = null
+    private val previewState = CrossRowPreviewState()
 
     /**
      * Setup row drag trigger - must be called after adapter is created
@@ -71,11 +90,15 @@ class KeyboardLayoutAdapter(
 
         /** Called when a key drag ends */
         fun onKeyDragEnded(rowIndex: Int)
+
+        /** Called when a key is moved across rows */
+        fun onKeyMovedAcrossRows(fromRow: Int, fromIndex: Int, toRow: Int, toIndex: Int)
     }
 
     private companion object {
         private const val VIEW_TYPE_ROW = 0
         private const val VIEW_TYPE_ADD_ROW = 1
+        private const val CROSS_ROW_STEP_DELAY_MS = 100L
     }
 
     /**
@@ -313,26 +336,65 @@ class KeyboardLayoutAdapter(
         if (holder.keysFlow is DraggableFlowLayout && holder.keysFlow.onDragListener == null) {
             holder.keysFlow.onDragListener = object : DraggableFlowLayout.OnDragListener {
                 override fun onDragStarted(view: View, position: Int) {
+                    val adapterPosition = holder.bindingAdapterPosition
+                    if (adapterPosition in rows.indices && position in rows[adapterPosition].indices) {
+                        clearCrossRowPreview()
+                        previewState.initialRow = adapterPosition
+                        previewState.initialIndex = position
+                        previewState.currentRow = adapterPosition
+                        previewState.currentIndex = position
+                        previewState.draggedKey = rows[adapterPosition][position]
+                    }
                 }
 
                 override fun onDragPositionChanged(from: Int, to: Int) {
                     val adapterPosition = holder.bindingAdapterPosition
                     if (adapterPosition != RecyclerView.NO_POSITION) {
+                        if (previewState.targetRow != -1 && previewState.targetRow != adapterPosition) return
                         listener.onKeyPositionChanged(adapterPosition, from, to)
+                        if (previewState.currentRow == adapterPosition) {
+                            previewState.currentIndex = to
+                        }
+                    }
+                }
+
+                override fun onDragMoved(view: View, rawX: Float, rawY: Float) {
+                    val adapterPosition = holder.bindingAdapterPosition
+                    if (adapterPosition != RecyclerView.NO_POSITION) {
+                        updateCrossRowPreview(holder, view, adapterPosition, rawX, rawY)
+                        (holder.keysFlow as? DraggableFlowLayout)
+                            ?.setInternalReorderSuppressed(previewState.targetRow != -1 && previewState.targetRow != adapterPosition)
                     }
                 }
 
                 override fun onDragEnded(view: View, position: Int) {
                     val adapterPosition = holder.bindingAdapterPosition
                     if (adapterPosition != RecyclerView.NO_POSITION) {
+                        val movedByPreview = commitCrossRowPreviewIfNeeded()
+                        if (!movedByPreview) {
+                            val flow = holder.keysFlow as? DraggableFlowLayout
+                            maybeMoveDraggedKeyAcrossRows(
+                                holder = holder,
+                                dragView = view,
+                                currentRowIndex = adapterPosition,
+                                currentIndex = position,
+                                touchRawX = flow?.lastTouchRawX,
+                                touchRawY = flow?.lastTouchRawY
+                            )
+                        }
                         listener.onKeyDragEnded(adapterPosition)
                     }
+                    (holder.keysFlow as? DraggableFlowLayout)?.setInternalReorderSuppressed(false)
+                    clearCrossRowPreviewAndRefresh()
                 }
             }
         }
 
+        val displayRow = buildDisplayRowForPreview(position, row)
+
         // Add keys - short click to edit, with drag support (directly on the key)
-        row.forEachIndexed { keyIndex, key ->
+        displayRow.forEachIndexed { keyIndex, key ->
+            val actualKeyIndex = resolveActualKeyIndex(position, keyIndex)
             val type = key["type"] as? String ?: ""
             val isMacroKey = type == "MacroKey"
             val keyChip = TextView(context).apply {
@@ -355,8 +417,8 @@ class KeyboardLayoutAdapter(
                 }
                 setOnClickListener {
                     val adapterPosition = holder.bindingAdapterPosition
-                    if (adapterPosition != RecyclerView.NO_POSITION) {
-                        listener.onKeyClick(adapterPosition, keyIndex)
+                    if (adapterPosition != RecyclerView.NO_POSITION && actualKeyIndex >= 0) {
+                        listener.onKeyClick(adapterPosition, actualKeyIndex)
                     }
                 }
             }
@@ -398,6 +460,262 @@ class KeyboardLayoutAdapter(
             bottomMargin = context.dp(4)
             topMargin = context.dp(4)
         })
+    }
+
+    private fun buildDisplayRowForPreview(
+        rowIndex: Int,
+        baseRow: MutableList<MutableMap<String, Any?>>
+    ): List<MutableMap<String, Any?>> {
+        if (previewState.draggedKey == null || previewState.targetRow == -1 || previewState.targetIndex == -1) return baseRow
+        if (previewState.targetRow == previewState.currentRow) return baseRow
+
+        val draggedKey = previewState.draggedKey ?: return baseRow
+        val display = baseRow.toMutableList()
+        if (rowIndex == previewState.currentRow && previewState.currentIndex in display.indices) {
+            display.removeAt(previewState.currentIndex)
+        }
+        if (rowIndex == previewState.targetRow) {
+            val insertAt = previewState.targetIndex.coerceIn(0, display.size)
+            display.add(insertAt, draggedKey)
+        }
+        return display
+    }
+
+    private fun resolveActualKeyIndex(rowIndex: Int, displayedIndex: Int): Int {
+        if (previewState.draggedKey == null || previewState.targetRow == -1 || previewState.targetIndex == -1) return displayedIndex
+        if (previewState.targetRow == previewState.currentRow) return displayedIndex
+        if (rowIndex == previewState.targetRow && displayedIndex == previewState.targetIndex) {
+            return -1
+        }
+        return displayedIndex
+    }
+
+    private fun clearCrossRowPreviewAndRefresh() {
+        val rowsToRefresh = setOf(
+            previewState.currentRow,
+            previewState.targetRow
+        ).filter { it in rows.indices }
+        clearCrossRowPreview()
+        rowsToRefresh.forEach { notifyItemChanged(it) }
+    }
+
+    private fun maybeMoveDraggedKeyAcrossRows(
+        holder: RowViewHolder,
+        dragView: View,
+        currentRowIndex: Int,
+        currentIndex: Int,
+        touchRawX: Float?,
+        touchRawY: Float?
+    ) {
+        if (rows.isEmpty() || currentRowIndex !in rows.indices) return
+        val targetRowIndex = detectTargetRowIndex(holder, dragView, currentRowIndex, touchRawX, touchRawY)
+        if (targetRowIndex == currentRowIndex) return
+
+        val sourceRow = rows[currentRowIndex]
+        if (currentIndex !in sourceRow.indices) return
+        val moving = sourceRow.removeAt(currentIndex)
+        val targetRow = rows[targetRowIndex]
+        val rawX = touchRawX ?: run {
+            val dragLoc = IntArray(2)
+            dragView.getLocationOnScreen(dragLoc)
+            dragLoc[0] + dragView.width / 2f
+        }
+        val rawY = touchRawY ?: run {
+            val dragLoc = IntArray(2)
+            dragView.getLocationOnScreen(dragLoc)
+            dragLoc[1] + dragView.height / 2f
+        }
+        val safeInsertIndex = computeInsertIndexForRow(targetRowIndex, rawX, rawY, holder.keysFlow.width)
+        targetRow.add(safeInsertIndex, moving)
+
+        notifyItemChanged(currentRowIndex)
+        notifyItemChanged(targetRowIndex)
+        listener.onKeyMovedAcrossRows(
+            currentRowIndex,
+            currentIndex,
+            targetRowIndex,
+            safeInsertIndex
+        )
+    }
+
+    private fun updateCrossRowPreview(
+        holder: RowViewHolder,
+        dragView: View,
+        currentRowIndex: Int,
+        rawX: Float,
+        rawY: Float
+    ) {
+        if (previewState.currentRow !in rows.indices || previewState.currentIndex !in rows[previewState.currentRow].indices) return
+        val targetRowIndex = detectTargetRowIndex(
+            holder = holder,
+            dragView = dragView,
+            currentRowIndex = currentRowIndex,
+            touchRawX = rawX,
+            touchRawY = rawY
+        )
+        if (targetRowIndex == currentRowIndex) {
+            if (previewState.targetRow != -1) {
+                val rowsToRefresh = setOf(previewState.targetRow).filter { it in rows.indices }
+                previewState.targetRow = -1
+                previewState.targetIndex = -1
+                rowsToRefresh.forEach { notifyItemChanged(it) }
+            }
+            return
+        }
+        if (targetRowIndex !in rows.indices) return
+
+        val safeTargetIndex = computeInsertIndexForRow(targetRowIndex, rawX, rawY, holder.keysFlow.width)
+        val steppedTargetIndex = stepPreviewTargetIndex(targetRowIndex, safeTargetIndex)
+
+        val previewChanged = previewState.targetRow != targetRowIndex || previewState.targetIndex != steppedTargetIndex
+        if (!previewChanged) return
+
+        val rowsToRefresh = setOf(
+            previewState.targetRow,
+            targetRowIndex
+        ).filter { it in rows.indices }
+        previewState.targetRow = targetRowIndex
+        previewState.targetIndex = steppedTargetIndex
+        rowsToRefresh.forEach { notifyItemChanged(it) }
+    }
+
+    private fun commitCrossRowPreviewIfNeeded(): Boolean {
+        val sourceRowIndex = previewState.currentRow
+        val sourceIndex = previewState.currentIndex
+        val targetRowIndex = previewState.targetRow
+        val targetIndex = previewState.targetIndex
+        if (sourceRowIndex !in rows.indices || sourceIndex !in rows[sourceRowIndex].indices) return false
+        if (targetRowIndex !in rows.indices || targetIndex < 0) return false
+        if (sourceRowIndex == targetRowIndex) return false
+
+        val moving = rows[sourceRowIndex].removeAt(sourceIndex)
+        val safeTargetIndex = targetIndex.coerceIn(0, rows[targetRowIndex].size)
+        rows[targetRowIndex].add(safeTargetIndex, moving)
+        notifyItemChanged(sourceRowIndex)
+        notifyItemChanged(targetRowIndex)
+        listener.onKeyMovedAcrossRows(sourceRowIndex, sourceIndex, targetRowIndex, safeTargetIndex)
+        return true
+    }
+
+    private fun clearCrossRowPreview() {
+        previewState.initialRow = -1
+        previewState.initialIndex = -1
+        previewState.currentRow = -1
+        previewState.currentIndex = -1
+        previewState.targetRow = -1
+        previewState.targetIndex = -1
+        previewState.draggedKey = null
+        previewState.lastStepAt = 0L
+    }
+
+    private fun detectTargetRowIndex(
+        holder: RowViewHolder,
+        dragView: View,
+        currentRowIndex: Int,
+        touchRawX: Float?,
+        touchRawY: Float?
+    ): Int {
+        val rv = rowsRecyclerView ?: return currentRowIndex
+        val rvLoc = IntArray(2)
+        rv.getLocationOnScreen(rvLoc)
+        val rawX = touchRawX ?: run {
+            val dragLoc = IntArray(2)
+            dragView.getLocationOnScreen(dragLoc)
+            dragLoc[0] + dragView.width / 2f
+        }
+        val rawY = touchRawY ?: run {
+            val dragLoc = IntArray(2)
+            dragView.getLocationOnScreen(dragLoc)
+            dragLoc[1] + dragView.height / 2f
+        }
+        val localX = rawX - rvLoc[0]
+        val localY = rawY - rvLoc[1]
+
+        val rowFromCenter = rv.findChildViewUnder(localX, localY)
+            ?.let { rv.getChildViewHolder(it) as? RowViewHolder }
+            ?.bindingAdapterPosition
+            ?.takeIf { it in rows.indices }
+        if (rowFromCenter != null) return rowFromCenter
+
+        val threshold = context.dp(12).toFloat()
+        return when {
+            dragView.y < -threshold && currentRowIndex > 0 -> currentRowIndex - 1
+            dragView.y + dragView.height > holder.keysFlow.height + threshold && currentRowIndex < rows.lastIndex -> currentRowIndex + 1
+            else -> currentRowIndex
+        }
+    }
+
+    private fun computeInsertIndexForRow(targetRowIndex: Int, rawX: Float, rawY: Float, fallbackFlowWidth: Int): Int {
+        val targetRow = rows.getOrNull(targetRowIndex) ?: return 0
+        val targetSize = targetRow.size
+        if (targetSize == 0) return 0
+
+        val targetHolder = rowsRecyclerView
+            ?.findViewHolderForAdapterPosition(targetRowIndex) as? RowViewHolder
+        val targetFlow = targetHolder?.keysFlow
+        if (targetFlow != null && targetFlow.width > 0) {
+            val flowLoc = IntArray(2)
+            targetFlow.getLocationOnScreen(flowLoc)
+            val localX = rawX - flowLoc[0]
+            val localY = rawY - flowLoc[1]
+            val keyChildCount = (targetFlow.childCount - 1).coerceAtLeast(0) // exclude trailing "+"
+            if (keyChildCount > 0) {
+                val hasPreviewPlaceholder =
+                    previewState.targetRow == targetRowIndex &&
+                        previewState.targetRow != previewState.currentRow &&
+                        previewState.targetIndex in 0..targetSize
+                var dataIndexCursor = 0
+                val keyChildren = mutableListOf<KeyChildInfo>()
+                for (i in 0 until keyChildCount) {
+                    if (hasPreviewPlaceholder && i == previewState.targetIndex) continue
+                    val child = targetFlow.getChildAt(i) ?: continue
+                    keyChildren.add(
+                        KeyChildInfo(
+                            dataIndex = dataIndexCursor,
+                            centerX = child.x + child.width / 2f,
+                            centerY = child.y + child.height / 2f,
+                            height = child.height
+                        )
+                    )
+                    dataIndexCursor++
+                }
+                if (keyChildren.isEmpty()) return 0
+
+                // Match the visual line first (y), then compute insertion in that line by x.
+                val anchor = keyChildren.minByOrNull { abs(it.centerY - localY) } ?: keyChildren.first()
+                val lineThreshold = maxOf(anchor.height * 0.6f, context.dp(8).toFloat())
+                val lineChildren = keyChildren.filter { abs(it.centerY - anchor.centerY) <= lineThreshold }
+                    .sortedBy { it.centerX }
+
+                val line = if (lineChildren.isNotEmpty()) lineChildren else keyChildren.sortedBy { it.centerX }
+                for (childInfo in line) {
+                    if (localX < childInfo.centerX) return childInfo.dataIndex
+                }
+                return (line.last().dataIndex + 1).coerceIn(0, targetSize)
+            }
+            val ratio = (localX / targetFlow.width).coerceIn(0f, 1f)
+            return (ratio * (targetSize + 1)).toInt().coerceIn(0, targetSize)
+        }
+
+        return if (rawX < fallbackFlowWidth / 2f) 0 else targetSize
+    }
+
+    private fun stepPreviewTargetIndex(targetRowIndex: Int, rawTargetIndex: Int): Int {
+        val targetSize = rows.getOrNull(targetRowIndex)?.size ?: return rawTargetIndex
+        val boundedRaw = rawTargetIndex.coerceIn(0, targetSize)
+        if (previewState.targetRow != targetRowIndex || previewState.targetIndex !in 0..targetSize) {
+            previewState.lastStepAt = 0L
+            return boundedRaw
+        }
+        val current = previewState.targetIndex
+        val now = System.currentTimeMillis()
+        if (now - previewState.lastStepAt < CROSS_ROW_STEP_DELAY_MS) return current
+        previewState.lastStepAt = now
+        return when {
+            boundedRaw > current -> (current + 1).coerceAtMost(boundedRaw)
+            boundedRaw < current -> (current - 1).coerceAtLeast(boundedRaw)
+            else -> current
+        }.coerceIn(0, targetSize)
     }
 
     override fun getItemCount(): Int = rows.size + 1  // +1 for add row button

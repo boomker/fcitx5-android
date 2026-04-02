@@ -441,6 +441,8 @@ class PopupEditorActivity : AppCompatActivity() {
                 // 不在这里更新数据，只在 onDragEnded 时根据最终位置更新
             }
 
+            override fun onDragMoved(view: View, rawX: Float, rawY: Float) {}
+
             override fun onDragEnded(view: View, position: Int) {
                 // 等待 Drag 动画完成后重建 UI
                 candidatesFlow.postDelayed({

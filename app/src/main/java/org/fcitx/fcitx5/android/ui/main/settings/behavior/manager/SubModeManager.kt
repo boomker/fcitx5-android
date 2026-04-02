@@ -91,7 +91,10 @@ class SubModeManager(
      */
     fun resolveSubModeState(layoutName: String, layoutLabels: List<String>): SubModeState {
         val (currentIme, fcitxLabels) = fetchCurrentImeAndSubModeLabels(layoutName)
-        val labels = (fcitxLabels + layoutLabels).distinct().filter { it.isNotBlank() }
+        val labels = (fcitxLabels + layoutLabels)
+            .map { it.trim() }
+            .distinct()
+            .filter { it.isNotBlank() }
         return SubModeState(currentIme, labels)
     }
 
@@ -236,6 +239,7 @@ class SubModeManager(
         ): List<String> {
             return pickSchemeMenu(actions, currentLabel)
                 ?.let { takeItemsBeforeSeparator(it) }
+                ?.drop(1) // The first scheme menu item is a pseudo entry (e.g. English mode), exclude by position.
                 ?.mapNotNull { toMenuLabel(it) }
                 .orEmpty()
         }

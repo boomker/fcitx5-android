@@ -38,6 +38,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.SimpleItemAnimator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -106,6 +107,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
     private val rowsRecyclerView by lazy {
         RecyclerView(this).apply {
             layoutManager = LinearLayoutManager(this@TextKeyboardLayoutEditorActivity)
+            (itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 0
@@ -1111,10 +1113,20 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                 override fun onKeyDragEnded(rowIndex: Int) {
                     // Refresh only the affected row after key drag ends
                     rowsRecyclerView.post {
-                        rowsAdapter?.notifyRowChanged(rowIndex)
+                        if (rowIndex in currentRowsRef.indices) {
+                            rowsAdapter?.notifyRowChanged(rowIndex)
+                        }
                         currentLayout?.let { name ->
                             previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection)
                         }
+                    }
+                }
+
+                override fun onKeyMovedAcrossRows(fromRow: Int, fromIndex: Int, toRow: Int, toIndex: Int) {
+                    updateSaveButtonState()
+                    rowsRecyclerView.post {
+                        if (fromRow in currentRowsRef.indices) rowsAdapter?.notifyRowChanged(fromRow)
+                        if (toRow in currentRowsRef.indices) rowsAdapter?.notifyRowChanged(toRow)
                     }
                 }
             })
