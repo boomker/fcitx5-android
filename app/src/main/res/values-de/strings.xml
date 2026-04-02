@@ -89,7 +89,6 @@
     <string name="added_x">%1$s hinzugefügt</string>
     <string name="edited_x">%1$s bearbeitet</string>
     <string name="invalid_value">Ungültiger Wert</string>
-    <string name="text_keyboard_layout_migration_failed">Datenmigration fehlgeschlagen, Originaldaten wiederhergestellt</string>
     <string name="keyboard_long_press_delay">Verzögerung bei langem Tastendruck</string>
     <string name="create_new">Neu erstellen</string>
     <string name="name">Name</string>
@@ -209,34 +208,25 @@
     <string name="text_keyboard_layout_add_layout">Layout hinzufügen</string>
     <string name="text_keyboard_layout_add_row">Zeile hinzufügen</string>
     <string name="text_keyboard_layout_add_key">Taste hinzufügen</string>
-    <string name="text_keyboard_layout_hint">Tippen Sie auf eine Taste zum Bearbeiten. Lange drücken zum Löschen. Mit der + Schaltfläche fügen Sie eine Taste zur Zeile hinzu.</string>
     <string name="text_keyboard_layout_key_type">Tastentyp</string>
     <string name="text_keyboard_layout_key_main">Hauptzeichen</string>
     <string name="text_keyboard_layout_key_alt">Alternatives Zeichen</string>
     <string name="text_keyboard_layout_key_display_text">Anzeigetext</string>
     <string name="text_keyboard_layout_key_label">Beschriftung</string>
-    <string name="text_keyboard_layout_key_alt_label">Alternatives Etikett (Wischen)</string>
     <string name="text_keyboard_layout_key_sub_label">Unterbeschriftung</string>
     <string name="text_keyboard_layout_key_weight">Gewichtungsbreite</string>
-    <string name="text_keyboard_layout_macro_text">Makro-Text</string>
     <string name="text_keyboard_layout_layout_name">Layoutname</string>
     <string name="text_keyboard_layout_layout_name_hint">z. B.: rime, pinyin</string>
     <string name="text_keyboard_layout_copy_from">Aus bestehendem Layout kopieren</string>
     <string name="text_keyboard_layout_name_empty">Layoutname darf nicht leer sein</string>
-    <string name="text_keyboard_layout_name_exists">Layout existiert bereits: %1$s</string>
     <string name="text_keyboard_layout_delete_key_confirm">Diese Taste löschen?</string>
     <string name="text_keyboard_layout_delete_layout_confirm">Layout "%1$s" löschen?</string>
-    <string name="text_keyboard_layout_delete_key_confirm_with_label">Taste "%1$s" löschen?</string>
     <string name="text_keyboard_layout_delete_row_confirm">Zeile %1$d löschen?</string>
-    <string name="text_keyboard_layout_key_title">Taste "%1$s"</string>
-    <string name="text_keyboard_layout_move_left">← Nach links verschieben</string>
-    <string name="text_keyboard_layout_move_right">→ Nach rechts verschieben</string>
     <string name="text_keyboard_layout_select_input_method_to_add">Eingabemethode zum Hinzufügen auswählen:</string>
     <string name="text_keyboard_layout_no_additional_input_methods">Keine weiteren Eingabemethoden verfügbar</string>
     <string name="text_keyboard_layout_layout_exists_for_input_method">Für diese Eingabemethode existiert bereits ein Layout</string>
     <string name="text_keyboard_layout_preview_error">Vorschaufehler: %1$s</string>
     <string name="text_keyboard_layout_add_mode">Modus hinzufügen</string>
-    <string name="text_keyboard_layout_display_text_mode_specific">%1$s (modusabhängig):</string>
     <string name="text_keyboard_layout_mode_name_hint">Modusname</string>
     <string name="text_keyboard_layout_macro_tap_event">Tippen-Ereignis</string>
     <string name="text_keyboard_layout_macro_swipe_event">Wisch-Ereignis</string>
@@ -253,7 +243,6 @@
     <string name="text_keyboard_layout_alphabet_key_main_length_invalid">Hauptzeichen muss ein einzelnes Zeichen sein</string>
     <string name="text_keyboard_layout_alphabet_key_alt_length_invalid">Alternatives Zeichen muss ein einzelnes Zeichen sein</string>
     <string name="text_keyboard_layout_macro_key_label_required">Beschriftung darf nicht leer sein</string>
-    <string name="text_keyboard_layout_macro_key_text_required">Makro-Text darf nicht leer sein</string>
     <string name="text_keyboard_layout_validation_error">Validierungsfehler</string>
     <string name="text_keyboard_layout_display_text_mode_invalid">Bitte füllen Sie Zeile %1$d aus, bevor Sie einen neuen Modus hinzufügen</string>
     <string name="text_keyboard_layout_display_text_mode_duplicate">Modusname "%1$s" wird bereits verwendet</string>
@@ -368,7 +357,6 @@
     <string name="text_keyboard_layout_qr_export">Per QR-Bild teilen</string>
     <string name="text_keyboard_layout_qr_import_scan">Per QR-Scan importieren</string>
     <string name="text_keyboard_layout_qr_import_image">Aus QR-Bild importieren</string>
-    <string name="text_keyboard_layout_qr_chunk_label">Chunk %1$d/%2$d · %3$s</string>
     <string name="text_keyboard_layout_qr_share_title">Layout-QR-Bild teilen</string>
     <string name="text_keyboard_layout_qr_exported">QR-Langbild erstellt, bitte App zum Teilen wählen</string>
     <string name="text_keyboard_layout_qr_export_failed">QR-Bild konnte nicht erstellt werden: %1$s</string>
@@ -410,4 +398,11 @@
     <string name="edit_monet_light_theme">MonetLight-Zuordnung bearbeiten</string>
     <string name="edit_monet_dark_theme">MonetDark-Zuordnung bearbeiten</string>
     <string name="edit_monet_theme_summary">Material You Ressourcenzuordnung für dieses Monet-Theme anpassen</string>
+
+    <string name="text_keyboard_layout_add_submode">Submodus-Layout hinzufügen</string>
+    <string name="text_keyboard_layout_add_submode_confirm">Dediziertes Layout für Submodus „%1$s“ hinzufügen?</string>
+    <string name="text_keyboard_layout_delete_submode">Submodus-Layout löschen</string>
+    <string name="text_keyboard_layout_submode_added">Submodus-Layout hinzugefügt: %1$s</string>
+    <string name="text_keyboard_layout_no_submode_selected">Kein Submodus ausgewählt</string>
+    <string name="text_keyboard_layout_save_failed">Layout konnte nicht gespeichert werden. Prüfen Sie Logcat für Details.</string>
 </resources>

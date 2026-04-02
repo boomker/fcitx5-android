@@ -156,7 +156,6 @@
     <string name="horizontal_candidate_growth">拉伸橫向候選詞以填充寬度</string>
     <string name="none">無</string>
     <string name="theme_migrated">主題已遷移至目前版本</string>
-    <string name="text_keyboard_layout_migration_failed">數據遷移失敗，已恢復原始數據</string>
     <string name="keep_keyboard_letters_uppercase">鍵盤字母保持大寫</string>
     <string name="choose_input_method">選擇輸入法</string>
     <string name="edit_clipboard">編輯剪貼簿</string>
@@ -379,7 +378,6 @@
     <string name="text_keyboard_layout_add_layout">新增佈局</string>
     <string name="text_keyboard_layout_add_row">新增列</string>
     <string name="text_keyboard_layout_add_key">新增按鍵</string>
-    <string name="text_keyboard_layout_hint">點擊按鍵可編輯，長按可刪除。使用 + 按鈕可在該列新增按鍵。</string>
     <string name="text_keyboard_layout_key_type">按鍵類型</string>
     <string name="text_keyboard_layout_key_main">主字元</string>
     <string name="text_keyboard_layout_key_alt">副字元</string>
@@ -391,20 +389,14 @@
     <string name="text_keyboard_layout_layout_name_hint">例如：rime、pinyin</string>
     <string name="text_keyboard_layout_copy_from">從現有佈局複製</string>
     <string name="text_keyboard_layout_name_empty">佈局名稱不能為空</string>
-    <string name="text_keyboard_layout_name_exists">佈局已存在：%1$s</string>
     <string name="text_keyboard_layout_delete_key_confirm">刪除此按鍵？</string>
     <string name="text_keyboard_layout_delete_layout_confirm">刪除佈局「%1$s」？</string>
-    <string name="text_keyboard_layout_delete_key_confirm_with_label">刪除按鍵「%1$s」？</string>
     <string name="text_keyboard_layout_delete_row_confirm">刪除第 %1$d 列？</string>
-    <string name="text_keyboard_layout_key_title">按鍵「%1$s」</string>
-    <string name="text_keyboard_layout_move_left">← 向左移動</string>
-    <string name="text_keyboard_layout_move_right">→ 向右移動</string>
     <string name="text_keyboard_layout_select_input_method_to_add">選擇要新增的輸入法：</string>
     <string name="text_keyboard_layout_no_additional_input_methods">沒有可新增的輸入法</string>
     <string name="text_keyboard_layout_layout_exists_for_input_method">此輸入法的佈局已存在</string>
     <string name="text_keyboard_layout_preview_error">預覽錯誤：%1$s</string>
     <string name="text_keyboard_layout_add_mode">新增模式</string>
-    <string name="text_keyboard_layout_display_text_mode_specific">%1$s（模式專用）：</string>
     <string name="text_keyboard_layout_mode_name_hint">模式名稱</string>
     <string name="text_keyboard_layout_display_value_hint">顯示值</string>
     <string name="text_keyboard_layout_key_label_caps">Caps</string>
@@ -496,10 +488,7 @@
     <string name="fontset_save_failed_unknown_error">儲存字體集失敗：%1$s</string>
 
     <!-- KeyEditorDialog -->
-    <string name="text_keyboard_layout_key_alt_label">副標籤（劃動）</string>
-    <string name="text_keyboard_layout_macro_text">巨集文字</string>
     <string name="text_keyboard_layout_macro_key_label_required">標籤不能為空</string>
-    <string name="text_keyboard_layout_macro_key_text_required">巨集文字不能為空</string>
     <string name="text_keyboard_layout_macro_tap_event">點擊事件</string>
     <string name="text_keyboard_layout_macro_swipe_event">劃動事件</string>
     <string name="text_keyboard_layout_macro_no_event">未配置事件</string>
@@ -539,7 +528,6 @@
     <string name="text_keyboard_layout_qr_export">透過二維碼圖片分享</string>
     <string name="text_keyboard_layout_qr_import_scan">掃碼匯入</string>
     <string name="text_keyboard_layout_qr_import_image">從二維碼圖片匯入</string>
-    <string name="text_keyboard_layout_qr_chunk_label">分包 %1$d/%2$d · %3$s</string>
     <string name="text_keyboard_layout_qr_share_title">分享佈局二維碼圖片</string>
     <string name="text_keyboard_layout_qr_exported">二維碼長圖已生成，請選擇應用分享</string>
     <string name="text_keyboard_layout_qr_export_failed">生成二維碼圖片失敗：%1$s</string>
@@ -581,4 +569,11 @@
     <string name="edit_monet_light_theme">編輯 MonetLight 對應</string>
     <string name="edit_monet_dark_theme">編輯 MonetDark 對應</string>
     <string name="edit_monet_theme_summary">自訂此 Monet 主題的 Material You 資源對應</string>
+
+    <string name="text_keyboard_layout_add_submode">新增子模式佈局</string>
+    <string name="text_keyboard_layout_add_submode_confirm">要為子模式「%1$s」新增專用佈局嗎？</string>
+    <string name="text_keyboard_layout_delete_submode">刪除子模式佈局</string>
+    <string name="text_keyboard_layout_submode_added">已新增子模式佈局：%1$s</string>
+    <string name="text_keyboard_layout_no_submode_selected">尚未選擇子模式</string>
+    <string name="text_keyboard_layout_save_failed">儲存佈局失敗。請查看 logcat 取得詳細資訊。</string>
 </resources>

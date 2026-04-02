@@ -57,7 +57,7 @@ import org.fcitx.fcitx5.android.ui.main.settings.behavior.adapter.KeyboardLayout
 import org.fcitx.fcitx5.android.utils.AppUtil
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.adapter.SimpleDividerItemDecoration
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.data.LayoutDataManager
-import org.fcitx.fcitx5.android.ui.main.settings.behavior.dialog.KeyEditorDialog
+import org.fcitx.fcitx5.android.ui.main.settings.behavior.dialog.KeyEditorActivity
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.manager.SubModeManager
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.preview.KeyboardPreviewManager
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.share.JsonFileQrShareManager
@@ -65,7 +65,6 @@ import org.fcitx.fcitx5.android.ui.main.settings.behavior.share.LayoutQrBitmapUt
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.share.LayoutQrTransferCodec
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.share.QrChunkCollector
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.utils.LayoutJsonUtils
-import org.fcitx.fcitx5.android.ui.main.settings.behavior.dialog.MacroEditorActivity
 import org.fcitx.fcitx5.android.utils.InputMethodUtil
 import org.fcitx.fcitx5.android.utils.serializable
 import splitties.dimensions.dp
@@ -74,7 +73,6 @@ import splitties.views.backgroundColor
 import splitties.views.dsl.core.add
 import splitties.views.dsl.core.matchParent
 import splitties.views.dsl.core.wrapContent
-import kotlinx.serialization.json.JsonObject
 import java.io.File
 
 class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
@@ -216,20 +214,60 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         KeyboardPreviewManager(this, previewKeyboardContainer, dataManager.entries)
     }
     
-    private val macroEditorLauncher: ActivityResultLauncher<Intent> =
+    private val keyEditorLauncher: ActivityResultLauncher<Intent> =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        val data = result.data ?: return@registerForActivityResult
-        if (result.resultCode != RESULT_OK) return@registerForActivityResult
-        val steps = data.serializable<ArrayList<Map<*, *>>>(MacroEditorActivity.EXTRA_MACRO_RESULT) ?: return@registerForActivityResult
-        keyEditorDialog.macroEditCallback?.invoke(steps.map { it as Any })
-    }
+            val data = result.data ?: return@registerForActivityResult
+            if (result.resultCode != RESULT_OK) return@registerForActivityResult
 
-    // 对话框
-    private val keyEditorDialog: KeyEditorDialog by lazy {
-        KeyEditorDialog(this) { launchIntent: Intent ->
-            macroEditorLauncher.launch(launchIntent)
+            val action = data.getStringExtra(KeyEditorActivity.EXTRA_RESULT_ACTION) ?: return@registerForActivityResult
+            val rowIndex = data.getIntExtra(KeyEditorActivity.EXTRA_ROW_INDEX, -1)
+            val keyIndex = data.takeIf { it.hasExtra(KeyEditorActivity.EXTRA_KEY_INDEX) }
+                ?.getIntExtra(KeyEditorActivity.EXTRA_KEY_INDEX, -1)
+                ?.takeIf { it >= 0 }
+
+            val layoutName = currentLayout ?: return@registerForActivityResult
+            val subModeKey = previewSubModeLabel?.let { "$layoutName:$it" }
+            val rows = if (subModeKey != null && entries.containsKey(subModeKey)) {
+                entries[subModeKey]
+            } else {
+                entries[layoutName]
+            } ?: return@registerForActivityResult
+
+            when (action) {
+                KeyEditorActivity.RESULT_ACTION_SAVE -> {
+                    val resultKeyData = data.serializable<HashMap<String, Any?>>(KeyEditorActivity.EXTRA_RESULT_KEY_DATA)
+                        ?.toMutableMap() ?: return@registerForActivityResult
+
+                    if (rowIndex !in rows.indices) return@registerForActivityResult
+
+                    if (keyIndex != null) {
+                        if (keyIndex in rows[rowIndex].indices) {
+                            rows[rowIndex][keyIndex] = resultKeyData
+                            rowsAdapter?.notifyKeyChanged(rowIndex, keyIndex)
+                        }
+                    } else {
+                        rows[rowIndex].add(resultKeyData)
+                        rowsAdapter?.notifyRowChanged(rowIndex)
+                    }
+
+                    currentLayout?.let { name ->
+                        previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection)
+                        updateSaveButtonState()
+                    }
+                }
+
+                KeyEditorActivity.RESULT_ACTION_DELETE -> {
+                    if (keyIndex != null && rowIndex in rows.indices && keyIndex in rows[rowIndex].indices) {
+                        rows[rowIndex].removeAt(keyIndex)
+                        rowsAdapter?.notifyRowChanged(rowIndex)
+                        currentLayout?.let { name ->
+                            previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection)
+                            updateSaveButtonState()
+                        }
+                    }
+                }
+            }
         }
-    }
     
     // 子模式管理器
     private lateinit var subModeManager: SubModeManager
@@ -1249,41 +1287,15 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             fcitxLabels.size > 1
         }
 
-        val isEditing = keyIndex != null
-        keyEditorDialog.show(
-            keyData = keyData.toMutableMap(),
-            isEditingSubModeLayout = isEditingSubModeLayout,
-            currentSubModeLabel = previewSubModeLabel,
-            hasMultiSubmodeSupport = hasMultiSubmodeSupport,
-            onSave = { newKey ->
-                // Save key data
-                if (keyIndex != null) {
-                    row[rowIndex][keyIndex] = newKey
-                    // Refresh only this row's keys, not the entire list
-                    rowsAdapter?.notifyKeyChanged(rowIndex, keyIndex)
-                } else {
-                    row[rowIndex].add(newKey)
-                    // Refresh only this row (added new key)
-                    rowsAdapter?.notifyRowChanged(rowIndex)
-                }
-                // Only update preview and save button state, don't call buildRows()
-                currentLayout?.let { name ->
-                    previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection)
-                    updateSaveButtonState()
-                }
-            },
-            onDelete = {
-                if (keyIndex != null) {
-                    row[rowIndex].removeAt(keyIndex)
-                    // Refresh only this row (deleted key)
-                    rowsAdapter?.notifyRowChanged(rowIndex)
-                    currentLayout?.let { name ->
-                        previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection)
-                        updateSaveButtonState()
-                    }
-                }
-            }
-        )
+        val launchIntent = Intent(this, KeyEditorActivity::class.java).apply {
+            putExtra(KeyEditorActivity.EXTRA_KEY_DATA, KeyEditorActivity.toSerializableMap(keyData.toMutableMap()))
+            putExtra(KeyEditorActivity.EXTRA_ROW_INDEX, rowIndex)
+            keyIndex?.let { putExtra(KeyEditorActivity.EXTRA_KEY_INDEX, it) }
+            putExtra(KeyEditorActivity.EXTRA_IS_EDITING_SUBMODE_LAYOUT, isEditingSubModeLayout)
+            putExtra(KeyEditorActivity.EXTRA_CURRENT_SUBMODE_LABEL, previewSubModeLabel)
+            putExtra(KeyEditorActivity.EXTRA_HAS_MULTI_SUBMODE_SUPPORT, hasMultiSubmodeSupport)
+        }
+        keyEditorLauncher.launch(launchIntent)
     }
 
     private fun confirmDeleteRow(rowIndex: Int) {

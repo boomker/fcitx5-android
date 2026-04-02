@@ -152,7 +152,6 @@
     <string name="horizontal_candidate_growth">残りの幅に合わせるため水平候補を引き伸ばす</string>
     <string name="none">なし</string>
     <string name="theme_migrated">テーマは現在のバージョンに以降されました</string>
-    <string name="text_keyboard_layout_migration_failed">データ移行に失敗しました。元のデータを復元しました</string>
     <string name="keep_keyboard_letters_uppercase">キーボードの文字を大文字にする</string>
     <string name="choose_input_method">インプットメゾッドを選択</string>
     <string name="edit_clipboard">クリップボードを編集</string>
@@ -300,34 +299,25 @@
     <string name="text_keyboard_layout_add_layout">レイアウトを追加</string>
     <string name="text_keyboard_layout_add_row">行を追加</string>
     <string name="text_keyboard_layout_add_key">キーを追加</string>
-    <string name="text_keyboard_layout_hint">キーをタップして編集、長押しで削除。+ ボタンで行にキーを追加します。</string>
     <string name="text_keyboard_layout_key_type">キータイプ</string>
     <string name="text_keyboard_layout_key_main">メイン文字</string>
     <string name="text_keyboard_layout_key_alt">代替文字</string>
     <string name="text_keyboard_layout_key_display_text">表示テキスト</string>
     <string name="text_keyboard_layout_key_label">ラベル</string>
-    <string name="text_keyboard_layout_key_alt_label">代替ラベル（スワイプ）</string>
     <string name="text_keyboard_layout_key_sub_label">サブラベル</string>
     <string name="text_keyboard_layout_key_weight">重み幅</string>
-    <string name="text_keyboard_layout_macro_text">マクロテキスト</string>
     <string name="text_keyboard_layout_layout_name">レイアウト名</string>
     <string name="text_keyboard_layout_layout_name_hint">例：rime、pinyin</string>
     <string name="text_keyboard_layout_copy_from">既存レイアウトからコピー</string>
     <string name="text_keyboard_layout_name_empty">レイアウト名は空にできません</string>
-    <string name="text_keyboard_layout_name_exists">レイアウトは既に存在します：%1$s</string>
     <string name="text_keyboard_layout_delete_key_confirm">このキーを削除しますか？</string>
     <string name="text_keyboard_layout_delete_layout_confirm">レイアウト「%1$s」を削除しますか？</string>
-    <string name="text_keyboard_layout_delete_key_confirm_with_label">キー「%1$s」を削除しますか？</string>
     <string name="text_keyboard_layout_delete_row_confirm">%1$d 行目を削除しますか？</string>
-    <string name="text_keyboard_layout_key_title">キー「%1$s」</string>
-    <string name="text_keyboard_layout_move_left">← 左へ移動</string>
-    <string name="text_keyboard_layout_move_right">→ 右へ移動</string>
     <string name="text_keyboard_layout_select_input_method_to_add">追加する入力メソッドを選択：</string>
     <string name="text_keyboard_layout_no_additional_input_methods">追加できる入力メソッドはありません</string>
     <string name="text_keyboard_layout_layout_exists_for_input_method">この入力メソッドのレイアウトは既に存在します</string>
     <string name="text_keyboard_layout_preview_error">プレビューエラー：%1$s</string>
     <string name="text_keyboard_layout_add_mode">モードを追加</string>
-    <string name="text_keyboard_layout_display_text_mode_specific">%1$s（モード別）：</string>
     <string name="text_keyboard_layout_mode_name_hint">モード名</string>
     <string name="text_keyboard_layout_macro_tap_event">タップイベント</string>
     <string name="text_keyboard_layout_macro_swipe_event">スワイプイベント</string>
@@ -348,7 +338,6 @@
     <string name="text_keyboard_layout_alphabet_key_main_length_invalid">メイン文字は単一の文字である必要があります</string>
     <string name="text_keyboard_layout_alphabet_key_alt_length_invalid">代替文字は単一の文字である必要があります</string>
     <string name="text_keyboard_layout_macro_key_label_required">ラベルは空にできません</string>
-    <string name="text_keyboard_layout_macro_key_text_required">マクロテキストは空にできません</string>
     <string name="text_keyboard_layout_validation_error">検証エラー</string>
     <string name="text_keyboard_layout_display_text_mode_invalid">新しいモードを追加する前に、行 %1$d を入力してください</string>
     <string name="text_keyboard_layout_display_text_mode_duplicate">モード名 "%1$s" は既に使用されています</string>
@@ -460,7 +449,6 @@
     <string name="text_keyboard_layout_qr_export">QR画像で共有</string>
     <string name="text_keyboard_layout_qr_import_scan">QRをスキャンしてインポート</string>
     <string name="text_keyboard_layout_qr_import_image">QR画像からインポート</string>
-    <string name="text_keyboard_layout_qr_chunk_label">チャンク %1$d/%2$d · %3$s</string>
     <string name="text_keyboard_layout_qr_share_title">レイアウトQR画像を共有</string>
     <string name="text_keyboard_layout_qr_exported">QR長画像を生成しました。共有するアプリを選択してください</string>
     <string name="text_keyboard_layout_qr_export_failed">QR画像の生成に失敗しました：%1$s</string>
@@ -503,4 +491,11 @@
     <string name="edit_monet_light_theme">MonetLight マッピングを編集</string>
     <string name="edit_monet_dark_theme">MonetDark マッピングを編集</string>
     <string name="edit_monet_theme_summary">この Monet テーマの Material You リソースマッピングをカスタマイズ</string>
+
+    <string name="text_keyboard_layout_add_submode">サブモードレイアウトを追加</string>
+    <string name="text_keyboard_layout_add_submode_confirm">サブモード「%1$s」用の専用レイアウトを追加しますか？</string>
+    <string name="text_keyboard_layout_delete_submode">サブモードレイアウトを削除</string>
+    <string name="text_keyboard_layout_submode_added">サブモードレイアウトを追加しました: %1$s</string>
+    <string name="text_keyboard_layout_no_submode_selected">サブモードが選択されていません</string>
+    <string name="text_keyboard_layout_save_failed">レイアウトの保存に失敗しました。詳細は logcat を確認してください。</string>
 </resources>

@@ -156,7 +156,6 @@
     <string name="horizontal_candidate_growth">拉伸横向候选词以填充宽度</string>
     <string name="none">无</string>
     <string name="theme_migrated">主题已迁移到当前版本</string>
-    <string name="text_keyboard_layout_migration_failed">数据迁移失败，已恢复原始数据</string>
     <string name="keep_keyboard_letters_uppercase">键盘字母保持大写</string>
     <string name="choose_input_method">选择输入法</string>
     <string name="edit_clipboard">编辑剪贴板</string>
@@ -445,7 +444,6 @@
     <string name="text_keyboard_layout_add_layout">添加布局</string>
     <string name="text_keyboard_layout_add_row">添加行</string>
     <string name="text_keyboard_layout_add_key">添加按键</string>
-    <string name="text_keyboard_layout_hint">点击按键可编辑，长按可删除。使用 + 按钮向行中添加按键。</string>
     <string name="text_keyboard_layout_key_type">按键类型</string>
     <string name="text_keyboard_layout_key_main">主字符</string>
     <string name="text_keyboard_layout_key_alt">副字符</string>
@@ -457,20 +455,14 @@
     <string name="text_keyboard_layout_layout_name_hint">例如：rime、pinyin</string>
     <string name="text_keyboard_layout_copy_from">从现有布局复制</string>
     <string name="text_keyboard_layout_name_empty">布局名称不能为空</string>
-    <string name="text_keyboard_layout_name_exists">布局已存在：%1$s</string>
     <string name="text_keyboard_layout_delete_key_confirm">删除这个按键？</string>
     <string name="text_keyboard_layout_delete_layout_confirm">删除布局“%1$s”？</string>
-    <string name="text_keyboard_layout_delete_key_confirm_with_label">删除按键“%1$s”？</string>
     <string name="text_keyboard_layout_delete_row_confirm">删除第 %1$d 行？</string>
-    <string name="text_keyboard_layout_key_title">按键“%1$s”</string>
-    <string name="text_keyboard_layout_move_left">← 左移</string>
-    <string name="text_keyboard_layout_move_right">→ 右移</string>
     <string name="text_keyboard_layout_select_input_method_to_add">选择要添加的输入法：</string>
     <string name="text_keyboard_layout_no_additional_input_methods">没有可添加的输入法</string>
     <string name="text_keyboard_layout_layout_exists_for_input_method">该输入法的布局已存在</string>
     <string name="text_keyboard_layout_preview_error">预览错误：%1$s</string>
     <string name="text_keyboard_layout_add_mode">添加模式</string>
-    <string name="text_keyboard_layout_display_text_mode_specific">%1$s（模式专用）：</string>
     <string name="text_keyboard_layout_mode_name_hint">模式名称</string>
     <string name="text_keyboard_layout_display_value_hint">显示值</string>
     <string name="text_keyboard_layout_key_label_caps">Caps</string>
@@ -479,18 +471,12 @@
     <string name="text_keyboard_layout_add_submode">添加子模式布局</string>
     <string name="text_keyboard_layout_add_submode_confirm">为子模式"%1$s"添加专用布局？</string>
     <string name="text_keyboard_layout_delete_submode">删除子模式布局</string>
-    <string name="text_keyboard_layout_delete_submode_confirm">删除子模式"%1$s"的专用布局？</string>
     <string name="text_keyboard_layout_submode_added">已添加子模式布局：%1$s</string>
-    <string name="text_keyboard_layout_submode_deleted">已删除子模式布局：%1$s</string>
-    <string name="text_keyboard_layout_submode_not_found">未找到子模式布局</string>
     <string name="text_keyboard_layout_submode_already_exists">子模式"%1$s"已有专用布局</string>
     <string name="text_keyboard_layout_delete_submode_layout_confirm">删除子模式布局"%1$s"？</string>
     <string name="text_keyboard_layout_no_submode_selected">未选择子模式</string>
     <string name="text_keyboard_layout_editing_submode">正在编辑子模式"%1$s"的专用布局</string>
     <string name="text_keyboard_layout_editing_default">正在编辑"%1$s"的默认布局</string>
-    <string name="text_keyboard_layout_cannot_delete_default_submode">无法删除默认子模式布局</string>
-    <string name="text_keyboard_layout_no_additional_submodes">没有可添加的子模式</string>
-    <string name="text_keyboard_layout_select_submode_to_add">选择要添加的子模式：</string>
     <string name="text_keyboard_layout_key_label_lang">Lang</string>
     <string name="text_keyboard_layout_key_label_space">Space</string>
     <string name="text_keyboard_layout_key_label_enter">Enter</string>
@@ -498,10 +484,7 @@
     <string name="text_keyboard_layout_alphabet_key_alt_required">副字符不能为空</string>
     <string name="text_keyboard_layout_alphabet_key_main_length_invalid">主字符必须是单个字符</string>
     <string name="text_keyboard_layout_alphabet_key_alt_length_invalid">副字符必须是单个字符</string>
-    <string name="text_keyboard_layout_key_alt_label">副标签（划动）</string>
-    <string name="text_keyboard_layout_macro_text">宏文本</string>
     <string name="text_keyboard_layout_macro_key_label_required">标签不能为空</string>
-    <string name="text_keyboard_layout_macro_key_text_required">宏文本不能为空</string>
     <string name="text_keyboard_layout_macro_tap_event">点击事件</string>
     <string name="text_keyboard_layout_macro_swipe_event">划动事件</string>
     <string name="text_keyboard_layout_macro_no_event">未配置事件</string>
@@ -554,7 +537,6 @@
     <string name="text_keyboard_layout_qr_export">通过二维码图片分享</string>
     <string name="text_keyboard_layout_qr_import_scan">扫码导入</string>
     <string name="text_keyboard_layout_qr_import_image">从二维码图片导入</string>
-    <string name="text_keyboard_layout_qr_chunk_label">分包 %1$d/%2$d · %3$s</string>
     <string name="text_keyboard_layout_qr_share_title">分享布局二维码图片</string>
     <string name="text_keyboard_layout_qr_exported">二维码长图已生成，请选择应用分享</string>
     <string name="text_keyboard_layout_qr_export_failed">生成二维码图片失败：%1$s</string>
@@ -596,4 +578,6 @@
     <string name="edit_monet_light_theme">编辑 MonetLight 映射</string>
     <string name="edit_monet_dark_theme">编辑 MonetDark 映射</string>
     <string name="edit_monet_theme_summary">自定义此 Monet 主题的 Material You 资源映射</string>
+
+    <string name="text_keyboard_layout_save_failed">保存布局失败。请查看 logcat 获取详细信息。</string>
 </resources>
