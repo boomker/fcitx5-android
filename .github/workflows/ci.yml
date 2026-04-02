@@ -124,6 +124,7 @@ jobs:
           SIGN_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           SIGN_KEY_PWD: ${{ secrets.KEY_PASSWORD }}
         run: |
+          ./gradlew clean
           ./gradlew -PincludeMainlineFlavor=true :app:assembleMainlineRelease
           ./gradlew :assembleReleasePlugins
           mkdir -p app/build/outputs/apk/release/
