@@ -23,8 +23,15 @@ class InputMethodListAdapter(
     override fun onBindViewHolder(holder: Holder, position: Int) {
         val ime = entries[position]
         holder.ui.root.apply {
-            isChecked = position == enabledIndex
-            text = ime.name
+            isActivated = position == enabledIndex
+            holder.ui.title.text = ime.name
+            holder.ui.subtitle.text = ime.secondaryName
+            val lp = layoutParams as? ViewGroup.MarginLayoutParams
+            lp?.let {
+                it.topMargin = if (ime.secondaryName == null) 0 else it.topMargin
+                it.bottomMargin = if (ime.secondaryName == null) 0 else it.bottomMargin
+                layoutParams = it
+            }
             setOnClickListener { onEntryClick(ime) }
         }
     }

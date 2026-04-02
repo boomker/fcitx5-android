@@ -13,6 +13,7 @@ import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.core.FcitxAPI
 import org.fcitx.fcitx5.android.input.FcitxInputMethodService
 import org.fcitx.fcitx5.android.utils.AppUtil
+import org.fcitx.fcitx5.android.utils.InputMethodUtil
 import splitties.dimensions.dp
 import splitties.resources.styledDrawable
 import splitties.views.dsl.core.matchParent
@@ -39,12 +40,21 @@ object InputMethodPickerDialog {
                 // add some padding because AlertDialog's `titleDividerNoCustom` won't show up...
                 // but why?
                 // https://android.googlesource.com/platform/frameworks/base.git/+/refs/tags/android-11.0.0_r48/core/res/res/layout/alert_dialog_title_material.xml#58
-                topPadding = dp(8) // android.R.dimen.dialog_title_divider_material
+                topPadding = dp(4) // android.R.dimen.dialog_title_divider_material
+                setPadding(dp(30), dp(0), dp(30), dp(4))
                 layoutManager = verticalLayoutManager()
                 adapter = InputMethodListAdapter(entries, enabledIndex) {
-                    val (uniqueName, _, ime) = it
-                    if (ime) service.switchInputMethod(uniqueName)
-                    else service.lifecycleScope.launch { fcitx.activateIme(uniqueName) }
+                    if (it.ime) {
+                        val imeId = it.imeId ?: return@InputMethodListAdapter
+                        val subtype = it.subtype
+                        if (subtype != null) {
+                            InputMethodUtil.switchInputMethod(service, imeId, subtype)
+                        } else {
+                            service.switchInputMethod(imeId)
+                        }
+                    } else {
+                        service.lifecycleScope.launch { fcitx.activateIme(it.uniqueName) }
+                    }
                     dialog.dismiss()
                 }
                 styledDrawable(android.R.attr.dividerHorizontal)?.let {
