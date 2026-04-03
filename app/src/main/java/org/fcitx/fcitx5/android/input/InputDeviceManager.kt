@@ -161,7 +161,7 @@ class InputDeviceManager(
 
     private fun evaluateOnKeyDownInner(service: FcitxInputMethodService) {
         isVirtualKeyboard = when (candidatesViewMode) {
-            FloatingCandidatesMode.SystemDefault -> service.superEvaluateInputViewShown()
+            FloatingCandidatesMode.SystemDefault -> false
             FloatingCandidatesMode.Always -> false
             FloatingCandidatesMode.InputDevice -> false
             FloatingCandidatesMode.Disabled -> true
