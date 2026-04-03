@@ -43,9 +43,9 @@ class CandidateItemUi(
         applyConfiguredTypeface()
     }
 
-    fun applyConfiguredTypeface() {
-        // Priority: external font > cand_font > font > current/system default
-        val resolved = font ?: FontProviders.resolveTypeface("cand_font", text.typeface)
+    fun applyConfiguredTypeface(fontOverride: Typeface? = font) {
+        // Priority: explicit override > constructor font > cand_font > font > current/system default
+        val resolved = fontOverride ?: FontProviders.resolveTypeface("cand_font", text.typeface)
         if (text.typeface !== resolved) {
             text.typeface = resolved
         }
