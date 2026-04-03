@@ -5,15 +5,26 @@
 
 package org.fcitx.fcitx5.android.input.candidates.expanded
 
+import android.graphics.Typeface
 import android.view.ViewGroup
 import androidx.paging.PagingDataAdapter
 import androidx.recyclerview.widget.DiffUtil
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.input.candidates.CandidateItemUi
 import org.fcitx.fcitx5.android.input.candidates.CandidateViewHolder
+import org.fcitx.fcitx5.android.input.font.FontProviders
 
 open class PagingCandidateViewAdapter(val theme: Theme) :
     PagingDataAdapter<String, CandidateViewHolder>(diffCallback) {
+
+    // Cache candidate font and refresh only when font configuration changes.
+    private var candFont: Typeface? = FontProviders.resolveTypeface("cand_font", null)
+
+    private fun refreshCandidateFontIfNeeded() {
+        if (FontProviders.needsRefresh()) {
+            candFont = FontProviders.resolveTypeface("cand_font", null)
+        }
+    }
 
     companion object {
         private val diffCallback = object : DiffUtil.ItemCallback<String>() {
@@ -31,18 +42,20 @@ open class PagingCandidateViewAdapter(val theme: Theme) :
         private set
 
     fun refreshWithOffset(offset: Int) {
+        refreshCandidateFontIfNeeded()
         this.offset = offset
         refresh()
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CandidateViewHolder {
-        val ui = CandidateItemUi(parent.context, theme)
+        val ui = CandidateItemUi(parent.context, theme, candFont)
         return CandidateViewHolder(ui)
     }
 
     override fun onBindViewHolder(holder: CandidateViewHolder, position: Int) {
+        refreshCandidateFontIfNeeded()
         val text = getItem(position)!!
-        holder.ui.applyConfiguredTypeface()
+        holder.ui.applyConfiguredTypeface(candFont)
         holder.ui.text.text = text
         holder.text = text
         holder.idx = position + offset
