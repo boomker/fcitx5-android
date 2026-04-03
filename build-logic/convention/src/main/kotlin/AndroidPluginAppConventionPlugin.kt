@@ -1,8 +1,9 @@
 /*
  * SPDX-License-Identifier: LGPL-2.1-or-later
- * SPDX-FileCopyrightText: Copyright 2021-2025 Fcitx5 for Android Contributors
+ * SPDX-FileCopyrightText: Copyright 2021-2026 Fcitx5 for Android Contributors
  */
-import com.android.build.gradle.internal.dsl.BaseAppModuleExtension
+import com.android.build.api.dsl.ApplicationExtension
+import com.android.build.api.variant.ApplicationAndroidComponentsExtension
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.configure
@@ -18,18 +19,22 @@ class AndroidPluginAppConventionPlugin : Plugin<Project> {
             ?: target.findProperty("applicationId")?.toString()
             ?: "org.fcitx.fcitx5.android"
 
-        target.extensions.configure<BaseAppModuleExtension> {
+        target.extensions.configure<ApplicationExtension> {
+            buildFeatures {
+                buildConfig = true
+            }
+            defaultConfig {
+                buildConfigField("String", "MAIN_APPLICATION_ID", "\"$mainApplicationId\"")
+                addManifestPlaceholders(
+                    mapOf(
+                        "mainApplicationId" to mainApplicationId,
+                    )
+                )
+            }
             buildTypes {
                 release {
-                    buildConfigField("String", "MAIN_APPLICATION_ID", "\"$mainApplicationId\"")
-                    addManifestPlaceholders(
-                        mapOf(
-                            "mainApplicationId" to mainApplicationId,
-                        )
-                    )
                 }
                 debug {
-                    // For debug, use the same application ID unless specified otherwise
                     val debugMainApplicationId = target.findProperty("mainApplicationId")?.toString()
                         ?: target.findProperty("applicationId")?.toString()?.let { "${it}.debug" }
                         ?: "org.fcitx.fcitx5.android.debug"
@@ -41,11 +46,16 @@ class AndroidPluginAppConventionPlugin : Plugin<Project> {
                     )
                 }
             }
-            applicationVariants.all {
-                val pluginsTaskName = "assemble${name.capitalized()}Plugins"
-                val pluginsTask = target.rootProject.tasks.findByName(pluginsTaskName)
-                    ?: target.rootProject.tasks.register(pluginsTaskName).get()
-                pluginsTask.dependsOn(assembleProvider)
+        }
+        target.extensions.configure<ApplicationAndroidComponentsExtension> {
+            onVariants { variant ->
+                val variantName = variant.name.capitalized()
+                target.afterEvaluate {
+                    val pluginsTaskName = "assemble${variantName}Plugins"
+                    val pluginsTask = target.rootProject.tasks.findByName(pluginsTaskName)
+                        ?: target.rootProject.tasks.register(pluginsTaskName).get()
+                    pluginsTask?.dependsOn(target.tasks.getByName("assemble${variantName}"))
+                }
             }
         }
     }

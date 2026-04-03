@@ -67,24 +67,22 @@ android {
         }
     }
 
+    buildFeatures {
+        viewBinding = true
+        resValues = true
+    }
+
     buildTypes {
         release {
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-
             resValue("mipmap", "app_icon", "@mipmap/ic_launcher")
             resValue("mipmap", "app_icon_round", "@mipmap/ic_launcher_round")
+            resValue("string", "app_name", "@string/app_name_release")
+            proguardFile("proguard-rules.pro")
         }
         debug {
             resValue("mipmap", "app_icon", "@mipmap/ic_launcher_debug")
             resValue("mipmap", "app_icon_round", "@mipmap/ic_launcher_round_debug")
         }
-    }
-
-    buildFeatures {
-        viewBinding = true
     }
 
     androidResources {
@@ -93,10 +91,10 @@ android {
     }
 }
 
-fun fallbackAliasFromFxTask(taskName: String): String? = when {
-    "FxDebug" in taskName -> taskName.replace("FxDebug", "Debug")
-    "FxRelease" in taskName -> taskName.replace("FxRelease", "Release")
-    else -> null
+    fun fallbackAliasFromFxTask(taskName: String): String? = when {
+        "FxDebug" in taskName -> taskName.replace("FxDebug", "Debug")
+        "FxRelease" in taskName -> taskName.replace("FxRelease", "Release")
+        else -> null
 }
 
 afterEvaluate {
@@ -160,28 +158,32 @@ androidComponents {
     beforeVariants(selector().withFlavor("brand" to flavorMainline)) { variantBuilder ->
         variantBuilder.enable = includeMainlineFlavor.get()
     }
-}
-
-android {
-    applicationVariants.all {
-        when (flavorName) {
+    onVariants { variant ->
+        when (variant.flavorName) {
             flavorMainline -> {
-                val mainlineAppName = if (buildType.name == "debug") {
+                val mainlineAppName = if (variant.buildType == "debug") {
                     appLabelMainlineDebug
                 } else {
                     appLabelMainlineRelease
                 }
-                mergedFlavor.manifestPlaceholders["appLabel"] = mainlineAppName
-                outputs.all {
-                    this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
-                    outputFileName = outputFileName.replace("-mainline-", "-")
+                variant.manifestPlaceholders.put("appLabel", mainlineAppName)
+                variant.outputs.forEach { output ->
+                    if (output is com.android.build.api.variant.impl.VariantOutputImpl) {
+                        output.outputFileName.set(
+                            output.outputFileName.get().replace("-mainline-", "-")
+                        )
+                    }
                 }
             }
             flavorFx -> {
-                outputs.all {
-                    this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
-                    outputFileName = outputFileName.replace("$appIdBase-", "$appIdBase$appIdFxSuffix-")
-                    outputFileName = outputFileName.replace("-fx-", "-")
+                variant.outputs.forEach { output ->
+                    if (output is com.android.build.api.variant.impl.VariantOutputImpl) {
+                        output.outputFileName.set(
+                            output.outputFileName.get()
+                                .replace("$appIdBase-", "$appIdBase$appIdFxSuffix-")
+                                .replace("-fx-", "-")
+                        )
+                    }
                 }
             }
         }

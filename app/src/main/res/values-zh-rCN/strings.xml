@@ -637,6 +637,7 @@
     <string name="theme_import_overwrite_title">主题已存在</string>
     <string name="theme_import_overwrite_message">主题"%1$s"已存在，是否覆盖？</string>
     <string name="theme_imported_from_qr">主题已导入并保存。</string>
+    <string name="preferred_voice_input">首选语音输入</string>
 
     <!-- Monet Theme Editor -->
     <string name="monet_editor_title">编辑 Monet 主题</string>

@@ -657,4 +657,5 @@
     <string name="theme_import_overwrite_title">Theme already exists</string>
     <string name="theme_import_overwrite_message">Theme "%1$s" already exists. Overwrite it?</string>
     <string name="theme_imported_from_qr">Theme imported. Save completed.</string>
+    <string name="preferred_voice_input">Preferred voice input</string>
 </resources>

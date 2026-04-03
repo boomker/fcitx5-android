@@ -513,6 +513,7 @@
     <string name="fontset_save_failed_io_error">儲存字體集失敗：發生 I/O 錯誤</string>
     <string name="fontset_save_failed_permission_error">儲存字體集失敗：權限被拒絕</string>
     <string name="fontset_save_failed_unknown_error">儲存字體集失敗：%1$s</string>
+    <string name="preferred_voice_input">首選語音輸入</string>
 
     <!-- KeyEditorDialog -->
     <string name="text_keyboard_layout_macro_key_label_required">標籤不能為空</string>
