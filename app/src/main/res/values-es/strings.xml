@@ -386,4 +386,6 @@
     <string name="text_keyboard_layout_submode_added">Diseño de submodo agregado: %1$s</string>
     <string name="text_keyboard_layout_no_submode_selected">No se seleccionó submodo</string>
     <string name="text_keyboard_layout_save_failed">No se pudo guardar el diseño. Revisa logcat para más detalles.</string>
+    <string name="edit_color">Editar color</string>
+    <string name="theme_color_editor_argb_label">ARGB</string>
 </resources>

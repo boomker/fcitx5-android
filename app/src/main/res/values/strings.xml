@@ -26,6 +26,8 @@
     <string name="button_vibration_amplitude">Keypress vibration amplitude</string>
     <string name="add">Add</string>
     <string name="edit">Edit</string>
+    <string name="edit_color">Edit Color</string>
+    <string name="theme_color_editor_argb_label">ARGB</string>
     <string name="undo">Undo</string>
     <string name="delete_and_sync_data">Delete and sync runtime data</string>
     <string name="delete_and_sync_data_message">Delete current data directory and synchronize from assets bundled in app</string>

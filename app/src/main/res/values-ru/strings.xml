@@ -572,4 +572,6 @@
     <string name="text_keyboard_layout_submode_added">Раскладка подрежима добавлена: %1$s</string>
     <string name="text_keyboard_layout_no_submode_selected">Подрежим не выбран</string>
     <string name="text_keyboard_layout_save_failed">Не удалось сохранить раскладку. Подробности смотрите в logcat.</string>
+    <string name="edit_color">Редактировать цвет</string>
+    <string name="theme_color_editor_argb_label">ARGB</string>
 </resources>

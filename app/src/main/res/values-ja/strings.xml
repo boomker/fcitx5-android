@@ -230,6 +230,8 @@
     <string name="path_conflict">パス\"%1$s\"はすでに %2$s に使用されています</string>
     <string name="main_program">メインプログラム</string>
     <string name="edit_theme">テーマを編集</string>
+    <string name="edit_color">色を編集</string>
+    <string name="theme_color_editor_argb_label">ARGB</string>
     <string name="show_voice_input_button">音声入力ボタンを表示する</string>
     <string name="fcitx_daemon">Fcitxデーモン</string>
     <string name="restarting_fcitx">Fcitxを再起動中</string>

@@ -239,6 +239,8 @@
     <string name="path_conflict">路徑 “%1$s” 已被 %2$s 佔用</string>
     <string name="main_program">主程式</string>
     <string name="edit_theme">編輯主題</string>
+    <string name="edit_color">編輯顏色</string>
+    <string name="theme_color_editor_argb_label">ARGB</string>
     <string name="show_voice_input_button">顯示語音輸入鍵</string>
     <string name="edit_fontset">編輯字型集</string>
     <string name="edit_fontset_summary">編輯 fonts/fontset.json 並預覽字型組合</string>
