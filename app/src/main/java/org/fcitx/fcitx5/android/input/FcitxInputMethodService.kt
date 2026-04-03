@@ -19,6 +19,7 @@ import android.os.Bundle
 import android.os.SystemClock
 import android.text.InputType
 import android.util.LruCache
+import android.util.SparseIntArray
 import android.util.Size
 import android.view.KeyCharacterMap
 import android.view.KeyEvent
@@ -103,6 +104,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     private var isInInputLifecycleCriticalPhase = false
 
     private val cachedKeyEvents = LruCache<Int, KeyEvent>(78)
+    private val cachedScancodes = SparseIntArray(64)
     private var cachedKeyEventIndex = 0
 
     /**
@@ -541,8 +543,12 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     }
 
     fun handleBackspaceDirectly() {
+        val ic = currentInputConnection ?: return
+        val editorInfo = currentInputEditorInfo
+        val isTypeNull = editorInfo.inputType and InputType.TYPE_MASK_CLASS == InputType.TYPE_NULL
         val lastSelection = selection.latest
-        if (lastSelection.isNotEmpty()) {
+        val hasSelection = lastSelection.isNotEmpty()
+        if (hasSelection) {
             selection.predict(lastSelection.start)
         } else if (lastSelection.start > 0) {
             selection.predictOffset(-1)
@@ -550,49 +556,58 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         // In practice nobody (apart form ourselves) would set `privateImeOptions` to our
         // `DeleteSurroundingFlag`, leading to a behavior of simulating backspace key pressing
         // in almost every EditText.
-        if (currentInputEditorInfo.privateImeOptions != DeleteSurroundingFlag ||
-            currentInputEditorInfo.inputType and InputType.TYPE_MASK_CLASS == InputType.TYPE_NULL
-        ) {
+        if (editorInfo.privateImeOptions != DeleteSurroundingFlag || isTypeNull) {
             sendDownUpKeyEvents(KeyEvent.KEYCODE_DEL)
             return
         }
-        if (lastSelection.isEmpty()) {
+        if (!hasSelection) {
             if (lastSelection.start <= 0) {
                 sendDownUpKeyEvents(KeyEvent.KEYCODE_DEL)
                 return
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                currentInputConnection.deleteSurroundingTextInCodePoints(1, 0)
+                ic.deleteSurroundingTextInCodePoints(1, 0)
             } else {
-                currentInputConnection.deleteSurroundingText(1, 0)
+                ic.deleteSurroundingText(1, 0)
             }
         } else {
-            currentInputConnection.commitText("", 0)
+            ic.commitText("", 0)
         }
     }
 
     private fun handleReturnKey() {
-        currentInputEditorInfo.run {
-            if (inputType and InputType.TYPE_MASK_CLASS == InputType.TYPE_NULL ||
-                imeOptions.hasFlag(EditorInfo.IME_FLAG_NO_ENTER_ACTION)
-            ) {
-                sendDownUpKeyEvents(KeyEvent.KEYCODE_ENTER)
-                return
-            }
-            if (actionLabel?.isNotEmpty() == true && actionId != EditorInfo.IME_ACTION_UNSPECIFIED) {
-                currentInputConnection.performEditorAction(actionId)
-                return
-            }
-            when (val action = imeOptions and EditorInfo.IME_MASK_ACTION) {
-                EditorInfo.IME_ACTION_UNSPECIFIED,
-                EditorInfo.IME_ACTION_NONE -> sendDownUpKeyEvents(KeyEvent.KEYCODE_ENTER)
-                else -> currentInputConnection.performEditorAction(action)
-            }
+        val ic = currentInputConnection ?: run {
+            sendDownUpKeyEvents(KeyEvent.KEYCODE_ENTER)
+            return
+        }
+        val editorInfo = currentInputEditorInfo
+        val inputType = editorInfo.inputType
+        val imeOptions = editorInfo.imeOptions
+        if (inputType and InputType.TYPE_MASK_CLASS == InputType.TYPE_NULL ||
+            imeOptions.hasFlag(EditorInfo.IME_FLAG_NO_ENTER_ACTION)
+        ) {
+            sendDownUpKeyEvents(KeyEvent.KEYCODE_ENTER)
+            return
+        }
+        val actionId = editorInfo.actionId
+        if (editorInfo.actionLabel?.isNotEmpty() == true && actionId != EditorInfo.IME_ACTION_UNSPECIFIED) {
+            ic.performEditorAction(actionId)
+            return
+        }
+        when (val action = imeOptions and EditorInfo.IME_MASK_ACTION) {
+            EditorInfo.IME_ACTION_UNSPECIFIED,
+            EditorInfo.IME_ACTION_NONE -> sendDownUpKeyEvents(KeyEvent.KEYCODE_ENTER)
+            else -> ic.performEditorAction(action)
         }
     }
 
     private fun handleArrowKey(keyCode: Int) {
-        if (currentInputEditorInfo.inputType and InputType.TYPE_MASK_CLASS == InputType.TYPE_NULL) {
+        val ic = currentInputConnection ?: run {
+            sendDownUpKeyEvents(keyCode)
+            return
+        }
+        val editorInfo = currentInputEditorInfo
+        if (editorInfo.inputType and InputType.TYPE_MASK_CLASS == InputType.TYPE_NULL) {
             sendDownUpKeyEvents(keyCode)
             return
         }
@@ -608,7 +623,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             }
             else -> return
         }
-        currentInputConnection.setSelection(target, target)
+        ic.setSelection(target, target)
     }
 
     fun commitText(text: String, cursor: Int = -1) {
@@ -670,7 +685,9 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     }
 
     private fun sendDownKeyEvent(eventTime: Long, keyEventCode: Int, metaState: Int = 0) {
-        currentInputConnection?.sendKeyEvent(
+        val ic = currentInputConnection ?: return
+        val scanCode = getCachedScancode(keyEventCode)
+        ic.sendKeyEvent(
             KeyEvent(
                 eventTime,
                 eventTime,
@@ -679,14 +696,16 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
                 0,
                 metaState,
                 KeyCharacterMap.VIRTUAL_KEYBOARD,
-                ScancodeMapping.keyCodeToScancode(keyEventCode),
+                scanCode,
                 KeyEvent.FLAG_SOFT_KEYBOARD or KeyEvent.FLAG_KEEP_TOUCH_MODE
             )
         )
     }
 
     private fun sendUpKeyEvent(eventTime: Long, keyEventCode: Int, metaState: Int = 0) {
-        currentInputConnection?.sendKeyEvent(
+        val ic = currentInputConnection ?: return
+        val scanCode = getCachedScancode(keyEventCode)
+        ic.sendKeyEvent(
             KeyEvent(
                 eventTime,
                 SystemClock.uptimeMillis(),
@@ -695,10 +714,19 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
                 0,
                 metaState,
                 KeyCharacterMap.VIRTUAL_KEYBOARD,
-                ScancodeMapping.keyCodeToScancode(keyEventCode),
+                scanCode,
                 KeyEvent.FLAG_SOFT_KEYBOARD or KeyEvent.FLAG_KEEP_TOUCH_MODE
             )
         )
+    }
+
+    private fun getCachedScancode(keyCode: Int): Int {
+        val uncached = Int.MIN_VALUE
+        val cached = cachedScancodes.get(keyCode, uncached)
+        if (cached != uncached) return cached
+        return ScancodeMapping.keyCodeToScancode(keyCode).also {
+            cachedScancodes.put(keyCode, it)
+        }
     }
 
     fun deleteSelection() {
@@ -1111,11 +1139,13 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
 
     public fun sendSimulatedCapsLockTapFromMacro() {
         val keyCode = KeyEvent.KEYCODE_CAPS_LOCK
-        val scanCode = try {
-            ScancodeMapping.keyCodeToScancode(keyCode).takeIf { it != 0 } ?: 0
-        } catch (e: Exception) {
-            Timber.w("keyCodeToScancode failed for keyCode=$keyCode: ${e.message}")
-            0
+        val scanCode = run {
+            try {
+                getCachedScancode(keyCode).takeIf { it != 0 } ?: 0
+            } catch (e: Exception) {
+                Timber.w("keyCodeToScancode failed for keyCode=$keyCode: ${e.message}")
+                0
+            }
         }
         sendSimulatedKeyEvent(keyCode, scanCode, KeyEvent.ACTION_DOWN, fromMacro = true)
         sendSimulatedKeyEvent(keyCode, scanCode, KeyEvent.ACTION_UP, fromMacro = true)

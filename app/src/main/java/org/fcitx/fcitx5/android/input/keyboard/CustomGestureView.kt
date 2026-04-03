@@ -144,6 +144,7 @@ open class CustomGestureView(ctx: Context) : FrameLayout(ctx) {
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 if (!isEnabled) return false
+                val longPressDelayMillis = longPressDelay.toLong()
                 drawableHotspotChanged(x, y)
                 isPressed = true
                 InputFeedbacks.hapticFeedback(this)
@@ -152,7 +153,7 @@ open class CustomGestureView(ctx: Context) : FrameLayout(ctx) {
                 if (longPressEnabled) {
                     longPressJob?.cancel()
                     longPressJob = lifecycleScope.launch {
-                        delay(longPressDelay.toLong())
+                        delay(longPressDelayMillis)
                         if (longPressFeedbackEnabled) {
                             InputFeedbacks.hapticFeedback(this@CustomGestureView, true)
                         }
@@ -162,11 +163,10 @@ open class CustomGestureView(ctx: Context) : FrameLayout(ctx) {
                 if (repeatEnabled) {
                     repeatJob?.cancel()
                     repeatJob = lifecycleScope.launch {
-                        delay(longPressDelay.toLong())
+                        delay(longPressDelayMillis)
                         repeatStarted = true
-                        var lastTriggerTime: Long
                         while (isActive && isEnabled) {
-                            lastTriggerTime = SystemClock.uptimeMillis()
+                            val lastTriggerTime = SystemClock.uptimeMillis()
                             onRepeatListener?.invoke(this@CustomGestureView)
                             val t = lastTriggerTime + RepeatInterval - SystemClock.uptimeMillis()
                             if (t > 0) delay(t)

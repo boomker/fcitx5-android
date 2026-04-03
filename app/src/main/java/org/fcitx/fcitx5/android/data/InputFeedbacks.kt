@@ -49,9 +49,40 @@ object InputFeedbacks {
     private val buttonLongPressVibrationAmplitude by keyboardPrefs.buttonLongPressVibrationAmplitude
 
     private val vibrator = appContext.vibrator
+    private var cachedPressDuration: Long = -1L
+    private var cachedPressAmplitude: Int = Int.MIN_VALUE
+    private var cachedPressEffect: VibrationEffect? = null
+    private var cachedLongPressDuration: Long = -1L
+    private var cachedLongPressAmplitude: Int = Int.MIN_VALUE
+    private var cachedLongPressEffect: VibrationEffect? = null
 
     private val hasAmplitudeControl =
         (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) && vibrator.hasAmplitudeControl()
+
+    private fun vibrationEffect(duration: Long, amplitude: Int, longPress: Boolean): VibrationEffect {
+        if (longPress) {
+            if (
+                cachedLongPressEffect == null ||
+                cachedLongPressDuration != duration ||
+                cachedLongPressAmplitude != amplitude
+            ) {
+                cachedLongPressEffect = VibrationEffect.createOneShot(duration, amplitude)
+                cachedLongPressDuration = duration
+                cachedLongPressAmplitude = amplitude
+            }
+            return cachedLongPressEffect!!
+        }
+        if (
+            cachedPressEffect == null ||
+            cachedPressDuration != duration ||
+            cachedPressAmplitude != amplitude
+        ) {
+            cachedPressEffect = VibrationEffect.createOneShot(duration, amplitude)
+            cachedPressDuration = duration
+            cachedPressAmplitude = amplitude
+        }
+        return cachedPressEffect!!
+    }
 
     fun hapticFeedback(view: View, longPress: Boolean = false, keyUp: Boolean = false) {
         when (hapticOnKeyPress) {
@@ -84,9 +115,9 @@ object InputFeedbacks {
             // on Android 13, if system haptic feedback was disabled, `vibrator.vibrate()` won't work
             // but `view.performHapticFeedback()` with `FLAG_IGNORE_GLOBAL_SETTING` still works
             if (hasAmplitudeControl && amplitude != 0) {
-                vibrator.vibrate(VibrationEffect.createOneShot(duration, amplitude))
+                vibrator.vibrate(vibrationEffect(duration, amplitude, longPress))
             } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                val ve = VibrationEffect.createOneShot(duration, VibrationEffect.DEFAULT_AMPLITUDE)
+                val ve = vibrationEffect(duration, VibrationEffect.DEFAULT_AMPLITUDE, longPress)
                 vibrator.vibrate(ve)
             } else {
                 @Suppress("DEPRECATION")

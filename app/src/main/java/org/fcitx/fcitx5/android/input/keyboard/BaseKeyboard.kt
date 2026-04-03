@@ -7,6 +7,7 @@ package org.fcitx.fcitx5.android.input.keyboard
 import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Rect
+import android.util.SparseIntArray
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
@@ -75,6 +76,9 @@ abstract class BaseKeyboard(
 
     private val prefs = AppPrefs.getInstance()
     private val splitKeyboardManager = SplitKeyboardStateManager.getInstance()
+    private val cachedMacroScancodes = SparseIntArray(64)
+    private val shiftKeyCode = KeyEvent.KEYCODE_SHIFT_LEFT
+    private val shiftScanCode by lazy { mapFcitxToScanCode("Shift_L", shiftKeyCode) }
 
     private val popupOnKeyPress by prefs.keyboard.popupOnKeyPress
     private val expandKeypressArea by prefs.keyboard.expandKeypressArea
@@ -1336,7 +1340,14 @@ abstract class BaseKeyboard(
         return if (keyCode >= 0) {
             // Use try-catch to handle potential exceptions from generated code
             try {
-                ScancodeMapping.keyCodeToScancode(keyCode).takeIf { it != 0 } ?: 0
+                val uncached = Int.MIN_VALUE
+                val cached = cachedMacroScancodes.get(keyCode, uncached)
+                val scanCode = if (cached != uncached) cached else {
+                    ScancodeMapping.keyCodeToScancode(keyCode).also {
+                        cachedMacroScancodes.put(keyCode, it)
+                    }
+                }
+                if (scanCode != 0) scanCode else 0
             } catch (e: Exception) {
                 Timber.w("keyCodeToScancode failed for keyCode=$keyCode: ${e.message}")
                 0
@@ -1350,16 +1361,19 @@ abstract class BaseKeyboard(
     private suspend fun sendFcitxKeyTap(code: String) {
         val isLetter = code.length == 1 && code[0].isLetter()
         val isUppercaseLetter = isLetter && code[0].isUpperCase()
-        val shouldPressShift =
-            (isLetter && (isUppercaseLetter.xor(isSimulatedCapsLockOn()))) || shouldShiftSymbol(code)
-        val actualCode = code
+        val capsOn = isSimulatedCapsLockOn()
+        val shouldPressShift = if (isLetter) {
+            isUppercaseLetter.xor(capsOn)
+        } else {
+            shouldShiftSymbol(code)
+        }
+        val fallbackAct = if (isLetter) code.lowercase() else code
         // For modifier keys (e.g. Shift), keep press time longer so Rime can recognize standalone Shift
         val isMod = isModifierKey(code)
+        val keyHoldDelayMs = if (isMod) 150L else 50L
 
         val keyCode = mapSpecialFcitxToAndroidKey(code) ?: mapFcitxToAndroidKey(code)
         val scanCode = mapFcitxToScanCode(code, keyCode)
-        val shiftKeyCode = KeyEvent.KEYCODE_SHIFT_LEFT
-        val shiftScanCode = mapFcitxToScanCode("Shift_L", shiftKeyCode)
 
         // Send through the physical keyboard path so Rime can recognize correctly
         val service = getService()
@@ -1369,7 +1383,7 @@ abstract class BaseKeyboard(
             }
             // Key down
             service.sendSimulatedKeyEvent(keyCode, scanCode, KeyEvent.ACTION_DOWN, fromMacro = true)
-            delay(if (isMod) 150 else 50)
+            delay(keyHoldDelayMs)
             // Key up
             service.sendSimulatedKeyEvent(keyCode, scanCode, KeyEvent.ACTION_UP, fromMacro = true)
             if (shouldPressShift) {
@@ -1377,13 +1391,12 @@ abstract class BaseKeyboard(
             }
         } else {
             val states = if (shouldPressShift) KeyStates(KeyState.Virtual, KeyState.Shift) else KeyStates.Empty
-            val fallbackAct = if (isLetter) code.lowercase() else actualCode
             // Fall back to original method
             onAction(
                 KeyAction.FcitxKeyAction(act = fallbackAct, code = scanCode, states = states, up = false),
                 KeyActionListener.Source.Keyboard
             )
-            delay(if (isMod) 150 else 50)
+            delay(keyHoldDelayMs)
             onAction(
                 KeyAction.FcitxKeyAction(act = fallbackAct, code = scanCode, states = states, up = true),
                 KeyActionListener.Source.Keyboard
@@ -1397,13 +1410,15 @@ abstract class BaseKeyboard(
     private fun sendFcitxKeyDown(code: String) {
         val isLetter = code.length == 1 && code[0].isLetter()
         val isUppercaseLetter = isLetter && code[0].isUpperCase()
-        val shouldPressShift =
-            (isLetter && (isUppercaseLetter.xor(isSimulatedCapsLockOn()))) || shouldShiftSymbol(code)
-        val actualCode = code
+        val capsOn = isSimulatedCapsLockOn()
+        val shouldPressShift = if (isLetter) {
+            isUppercaseLetter.xor(capsOn)
+        } else {
+            shouldShiftSymbol(code)
+        }
+        val fallbackAct = if (isLetter) code.lowercase() else code
         val keyCode = mapSpecialFcitxToAndroidKey(code) ?: mapFcitxToAndroidKey(code)
         val scanCode = mapFcitxToScanCode(code, keyCode)
-        val shiftKeyCode = KeyEvent.KEYCODE_SHIFT_LEFT
-        val shiftScanCode = mapFcitxToScanCode("Shift_L", shiftKeyCode)
 
         // Send through the physical keyboard path so Rime can recognize correctly
         val service = getService()
@@ -1414,7 +1429,6 @@ abstract class BaseKeyboard(
             service.sendSimulatedKeyEvent(keyCode, scanCode, KeyEvent.ACTION_DOWN, fromMacro = true)
         } else {
             val states = if (shouldPressShift) KeyStates(KeyState.Virtual, KeyState.Shift) else KeyStates.Empty
-            val fallbackAct = if (isLetter) code.lowercase() else actualCode
             // Fall back to original method
             onAction(
                 KeyAction.FcitxKeyAction(act = fallbackAct, code = scanCode, states = states, up = false),
@@ -1429,13 +1443,15 @@ abstract class BaseKeyboard(
     private fun sendFcitxKeyUp(code: String) {
         val isLetter = code.length == 1 && code[0].isLetter()
         val isUppercaseLetter = isLetter && code[0].isUpperCase()
-        val shouldPressShift =
-            (isLetter && (isUppercaseLetter.xor(isSimulatedCapsLockOn()))) || shouldShiftSymbol(code)
-        val actualCode = code
+        val capsOn = isSimulatedCapsLockOn()
+        val shouldPressShift = if (isLetter) {
+            isUppercaseLetter.xor(capsOn)
+        } else {
+            shouldShiftSymbol(code)
+        }
+        val fallbackAct = if (isLetter) code.lowercase() else code
         val keyCode = mapSpecialFcitxToAndroidKey(code) ?: mapFcitxToAndroidKey(code)
         val scanCode = mapFcitxToScanCode(code, keyCode)
-        val shiftKeyCode = KeyEvent.KEYCODE_SHIFT_LEFT
-        val shiftScanCode = mapFcitxToScanCode("Shift_L", shiftKeyCode)
 
         // Send through the physical keyboard path so Rime can recognize correctly
         val service = getService()
@@ -1446,7 +1462,6 @@ abstract class BaseKeyboard(
             }
         } else {
             val states = if (shouldPressShift) KeyStates(KeyState.Virtual, KeyState.Shift) else KeyStates.Empty
-            val fallbackAct = if (isLetter) code.lowercase() else actualCode
             // Fall back to original method
             onAction(
                 KeyAction.FcitxKeyAction(act = fallbackAct, code = scanCode, states = states, up = true),
