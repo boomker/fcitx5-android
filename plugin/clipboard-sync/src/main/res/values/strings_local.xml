@@ -8,6 +8,7 @@
 
     <string name="local_quick_sync">开启同步</string>
     <string name="local_quick_sync_summary">关闭后将停止所有同步服务</string>
+    <string name="local_quick_sync_summary_unreachable">所有已配置端点当前不可达，已保持开启并等待自动重试</string>
     <string name="server_profile_title">服务端</string>
     <string name="server_profile_summary">选择服务端类型并配置地址</string>
     <string name="server_alias_title">类型</string>

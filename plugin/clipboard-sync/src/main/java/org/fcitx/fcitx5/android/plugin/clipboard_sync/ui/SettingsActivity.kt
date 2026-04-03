@@ -92,6 +92,7 @@ class SettingsActivity : AppCompatActivity() {
             private const val DOWNLOAD_PATH_URI_KEY = "download_path_uri"
             private const val BACKGROUND_KEEP_ALIVE_KEY = "background_keep_alive"
             private const val QUICK_SYNC_KEY = "quick_sync"
+            private const val QUICK_SYNC_UNREACHABLE_KEY = "quick_sync_unreachable"
             private const val BATTERY_OPTIMIZATION_KEY = "battery_optimization"
             private const val CLIPBOARD_PERMISSION_KEY = "clipboard_permission"
             private const val SYNC_ACCOUNT_KEY = "sync_account"
@@ -159,7 +160,9 @@ class SettingsActivity : AppCompatActivity() {
         private var testPushSelectedFileView: TextView? = null
         private var testPushSelectedUri: Uri? = null
         private val quickSyncPreferenceListener = SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
-            if (key != QUICK_SYNC_KEY) return@OnSharedPreferenceChangeListener
+            if (key != QUICK_SYNC_KEY && key != QUICK_SYNC_UNREACHABLE_KEY) {
+                return@OnSharedPreferenceChangeListener
+            }
             syncQuickSyncSwitchState(prefs)
             context?.let { QuickSyncTileService.requestTileRefresh(it) }
         }
@@ -203,6 +206,11 @@ class SettingsActivity : AppCompatActivity() {
                 true
             }
             findPreference<Preference>(QUICK_SYNC_KEY)?.setOnPreferenceChangeListener { _, newValue ->
+                if (newValue == false) {
+                    preferenceManager.sharedPreferences?.edit()
+                        ?.putBoolean(QUICK_SYNC_UNREACHABLE_KEY, false)
+                        ?.apply()
+                }
                 if (newValue == true) {
                     MainService.startSyncService(
                         requireContext(),
@@ -331,14 +339,28 @@ class SettingsActivity : AppCompatActivity() {
         private fun syncQuickSyncSwitchState(prefs: SharedPreferences?) {
             val sharedPrefs = prefs ?: return
             val enabled = isQuickSyncEnabled(sharedPrefs)
+            val unreachable = isQuickSyncUnreachable(sharedPrefs)
             val preference = findPreference<SwitchPreferenceCompat>(QUICK_SYNC_KEY) ?: return
             if (preference.isChecked != enabled) {
                 preference.isChecked = enabled
+            }
+            val disabledByUnreachable = enabled && unreachable
+            if (preference.isEnabled == disabledByUnreachable) {
+                preference.isEnabled = !disabledByUnreachable
+            }
+            preference.summary = if (disabledByUnreachable) {
+                getString(R.string.local_quick_sync_summary_unreachable)
+            } else {
+                getString(R.string.local_quick_sync_summary)
             }
         }
 
         private fun isQuickSyncEnabled(prefs: SharedPreferences?): Boolean {
             return prefs?.getBoolean(QUICK_SYNC_KEY, false) == true
+        }
+
+        private fun isQuickSyncUnreachable(prefs: SharedPreferences?): Boolean {
+            return prefs?.getBoolean(QUICK_SYNC_UNREACHABLE_KEY, false) == true
         }
 
         private fun migrateLegacyCredentialProfiles(

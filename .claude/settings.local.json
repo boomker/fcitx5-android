@@ -33,7 +33,10 @@
       "Bash(scutil --dns)",
       "Bash(nc -vz 192.168.10.12 43155)",
       "Bash(keytool -list -v -keystore keystores/fcitx5-android-release.keystore -storepass f5a123 -alias fcitx5android)",
-      "Bash(./gradlew :plugin:clipboard-sync:compileDebugKotlin --no-daemon)"
+      "Bash(./gradlew :plugin:clipboard-sync:compileDebugKotlin --no-daemon)",
+      "Bash(./gradlew :plugin:clipboard-sync:assembleDebug:*)",
+      "Bash(./gradlew :plugin:clipboard-sync:assembleRelease:*)",
+      "Bash(adb devices:*)"
     ]
   }
 }

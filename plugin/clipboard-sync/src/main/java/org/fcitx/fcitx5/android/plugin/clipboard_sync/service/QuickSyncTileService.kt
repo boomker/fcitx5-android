@@ -39,7 +39,10 @@ class QuickSyncTileService : TileService() {
         super.onClick()
         val enabled = prefs.getBoolean(PREF_QUICK_SYNC, DEFAULT_QUICK_SYNC_ENABLED)
         val newValue = !enabled
-        prefs.edit().putBoolean(PREF_QUICK_SYNC, newValue).apply()
+        prefs.edit()
+            .putBoolean(PREF_QUICK_SYNC, newValue)
+            .putBoolean(PREF_QUICK_SYNC_UNREACHABLE, false)
+            .apply()
         if (newValue) {
             MainService.startSyncService(this, "quick-tile-enabled", forceEnableSync = true)
         }
@@ -58,6 +61,7 @@ class QuickSyncTileService : TileService() {
     companion object {
         private const val PREF_QUICK_SYNC = "quick_sync"
         private const val DEFAULT_QUICK_SYNC_ENABLED = false
+        private const val PREF_QUICK_SYNC_UNREACHABLE = "quick_sync_unreachable"
 
         fun requestTileRefresh(context: Context) {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return

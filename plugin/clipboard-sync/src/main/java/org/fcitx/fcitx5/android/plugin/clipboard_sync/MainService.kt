@@ -59,6 +59,7 @@ class MainService : FcitxPluginService() {
         private const val TAG = "FcitxClipboardSync"
         private const val PREF_QUICK_SYNC = "quick_sync"
         private const val DEFAULT_QUICK_SYNC_ENABLED = false
+        private const val PREF_QUICK_SYNC_UNREACHABLE = "quick_sync_unreachable"
         private const val PREF_SYNC_INTERVAL = "sync_interval"
         private const val PREF_BACKGROUND_KEEP_ALIVE = "background_keep_alive"
         private const val PREF_USERNAME = "username"
@@ -1138,7 +1139,10 @@ class MainService : FcitxPluginService() {
     private fun handleActionIntent(intent: Intent?) {
         when (intent?.action) {
             ACTION_PAUSE_SYNC -> {
-                prefs.edit().putBoolean(PREF_QUICK_SYNC, false).apply()
+                prefs.edit()
+                    .putBoolean(PREF_QUICK_SYNC, false)
+                    .putBoolean(PREF_QUICK_SYNC_UNREACHABLE, false)
+                    .apply()
                 QuickSyncTileService.requestTileRefresh(this)
             }
 
@@ -1149,7 +1153,10 @@ class MainService : FcitxPluginService() {
             ACTION_START_SYNC,
             null -> {
                 if (intent?.getBooleanExtra(EXTRA_FORCE_ENABLE_SYNC, false) == true) {
-                    prefs.edit().putBoolean(PREF_QUICK_SYNC, true).apply()
+                    prefs.edit()
+                        .putBoolean(PREF_QUICK_SYNC, true)
+                        .putBoolean(PREF_QUICK_SYNC_UNREACHABLE, false)
+                        .apply()
                     QuickSyncTileService.requestTileRefresh(this)
                 }
             }
@@ -1403,7 +1410,9 @@ class MainService : FcitxPluginService() {
     }
 
     private fun resetFailureState() {
-        // Reserved for future failure-state extensions.
+        if (prefs.getBoolean(PREF_QUICK_SYNC_UNREACHABLE, false)) {
+            prefs.edit().putBoolean(PREF_QUICK_SYNC_UNREACHABLE, false).apply()
+        }
     }
 
     private fun currentBackend(): ServerBackend {
@@ -1592,11 +1601,9 @@ class MainService : FcitxPluginService() {
             return true
         }
 
-        Log.e(TAG, "[Pull] All configured endpoints are unreachable, disabling quick sync")
-        prefs.edit().putBoolean(PREF_QUICK_SYNC, false).apply()
-        QuickSyncTileService.requestTileRefresh(this)
+        Log.e(TAG, "[Pull] All configured endpoints are unreachable, keeping quick sync enabled but marking it unavailable")
+        prefs.edit().putBoolean(PREF_QUICK_SYNC_UNREACHABLE, true).apply()
         stopPeriodicSync()
-        resetFailureState()
         return true
     }
 
