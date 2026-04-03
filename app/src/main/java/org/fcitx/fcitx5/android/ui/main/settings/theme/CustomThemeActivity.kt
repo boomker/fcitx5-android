@@ -60,6 +60,7 @@ import org.fcitx.fcitx5.android.ui.main.CropImageActivity.CropContract
 import org.fcitx.fcitx5.android.ui.main.CropImageActivity.CropOption
 import org.fcitx.fcitx5.android.ui.main.CropImageActivity.CropResult
 import org.fcitx.fcitx5.android.utils.DarkenColorFilter
+import org.fcitx.fcitx5.android.utils.DeviceUtil
 import org.fcitx.fcitx5.android.utils.item
 import org.fcitx.fcitx5.android.utils.parcelable
 import org.fcitx.fcitx5.android.utils.toast
@@ -132,6 +133,41 @@ class CustomThemeActivity : AppCompatActivity() {
 
     private lateinit var previewUi: KeyboardPreviewUi
     private var previewScale = 1f
+    private val colorPreviewDrawables = mutableMapOf<String, GradientDrawable>()
+    private val colorEditItems = listOf(
+        ThemeColorEditItem("Background", { t: Theme.Custom -> t.backgroundColor }, { t: Theme.Custom, c: Int -> t.copy(backgroundColor = c) }),
+        ThemeColorEditItem("Bar", { t: Theme.Custom -> t.barColor }, { t: Theme.Custom, c: Int -> t.copy(barColor = c) }),
+        ThemeColorEditItem("Keyboard", { t: Theme.Custom -> t.keyboardColor }, { t: Theme.Custom, c: Int -> t.copy(keyboardColor = c) }),
+        ThemeColorEditItem("Key Background", { t: Theme.Custom -> t.keyBackgroundColor }, { t: Theme.Custom, c: Int -> t.copy(keyBackgroundColor = c) }),
+        ThemeColorEditItem("Key Text", { t: Theme.Custom -> t.keyTextColor }, { t: Theme.Custom, c: Int -> t.copy(keyTextColor = c) }),
+        ThemeColorEditItem("Alt Key Background", { t: Theme.Custom -> t.altKeyBackgroundColor }, { t: Theme.Custom, c: Int -> t.copy(altKeyBackgroundColor = c) }),
+        ThemeColorEditItem("Alt Key Text", { t: Theme.Custom -> t.altKeyTextColor }, { t: Theme.Custom, c: Int -> t.copy(altKeyTextColor = c) }),
+        ThemeColorEditItem("Accent Key Background", { t: Theme.Custom -> t.accentKeyBackgroundColor }, { t: Theme.Custom, c: Int -> t.copy(accentKeyBackgroundColor = c) }),
+        ThemeColorEditItem("Accent Key Text", { t: Theme.Custom -> t.accentKeyTextColor }, { t: Theme.Custom, c: Int -> t.copy(accentKeyTextColor = c) }),
+        ThemeColorEditItem("Candidate Text", { t: Theme.Custom -> t.candidateTextColor }, { t: Theme.Custom, c: Int -> t.copy(candidateTextColor = c) }),
+        ThemeColorEditItem("Candidate Label", { t: Theme.Custom -> t.candidateLabelColor }, { t: Theme.Custom, c: Int -> t.copy(candidateLabelColor = c) }),
+        ThemeColorEditItem("Candidate Comment", { t: Theme.Custom -> t.candidateCommentColor }, { t: Theme.Custom, c: Int -> t.copy(candidateCommentColor = c) }),
+        ThemeColorEditItem("Key Press Highlight", { t: Theme.Custom -> t.keyPressHighlightColor }, { t: Theme.Custom, c: Int -> t.copy(keyPressHighlightColor = c) }),
+        ThemeColorEditItem("Key Shadow", { t: Theme.Custom -> t.keyShadowColor }, { t: Theme.Custom, c: Int -> t.copy(keyShadowColor = c) }),
+        ThemeColorEditItem("Popup Background", { t: Theme.Custom -> t.popupBackgroundColor }, { t: Theme.Custom, c: Int -> t.copy(popupBackgroundColor = c) }),
+        ThemeColorEditItem("Popup Text", { t: Theme.Custom -> t.popupTextColor }, { t: Theme.Custom, c: Int -> t.copy(popupTextColor = c) }),
+        ThemeColorEditItem("Space Bar", { t: Theme.Custom -> t.spaceBarColor }, { t: Theme.Custom, c: Int -> t.copy(spaceBarColor = c) }),
+        ThemeColorEditItem("Divider", { t: Theme.Custom -> t.dividerColor }, { t: Theme.Custom, c: Int -> t.copy(dividerColor = c) }),
+        ThemeColorEditItem("Clipboard Entry", { t: Theme.Custom -> t.clipboardEntryColor }, { t: Theme.Custom, c: Int -> t.copy(clipboardEntryColor = c) }),
+        ThemeColorEditItem("Generic Active Background", { t: Theme.Custom -> t.genericActiveBackgroundColor }, { t: Theme.Custom, c: Int -> t.copy(genericActiveBackgroundColor = c) }),
+        ThemeColorEditItem("Generic Active Foreground", { t: Theme.Custom -> t.genericActiveForegroundColor }, { t: Theme.Custom, c: Int -> t.copy(genericActiveForegroundColor = c) })
+    )
+    private val colorEditorLauncher =
+        registerForActivityResult(ThemeColorEditorActivity.Contract()) { result ->
+            result ?: return@registerForActivityResult
+            val item = colorEditItems.firstOrNull { it.name == result.fieldName } ?: return@registerForActivityResult
+            val originalTheme = theme
+            val originalColor = item.getter(originalTheme)
+            if (result.color == originalColor) return@registerForActivityResult
+            theme = item.setter(originalTheme, result.color)
+            colorPreviewDrawables[item.name]?.setColor(result.color)
+            applyThemePreview(theme)
+        }
 
     private fun createTextView(@StringRes string: Int? = null, ripple: Boolean = false) = textView {
         if (string != null) {
@@ -617,44 +653,32 @@ class CustomThemeActivity : AppCompatActivity() {
         // colorsContainer will hold editable color rows for Theme fields
         val colorsContainer = verticalLayout {
             val lineHeight = dp(48)
-            val colorItems = listOf(
-                Triple("Background", { t: Theme.Custom -> t.backgroundColor }, { t: Theme.Custom, c: Int -> t.copy(backgroundColor = c) }),
-                Triple("Bar", { t: Theme.Custom -> t.barColor }, { t: Theme.Custom, c: Int -> t.copy(barColor = c) }),
-                Triple("Keyboard", { t: Theme.Custom -> t.keyboardColor }, { t: Theme.Custom, c: Int -> t.copy(keyboardColor = c) }),
-                Triple("Key Background", { t: Theme.Custom -> t.keyBackgroundColor }, { t: Theme.Custom, c: Int -> t.copy(keyBackgroundColor = c) }),
-                Triple("Key Text", { t: Theme.Custom -> t.keyTextColor }, { t: Theme.Custom, c: Int -> t.copy(keyTextColor = c) }),
-                Triple("Alt Key Background", { t: Theme.Custom -> t.altKeyBackgroundColor }, { t: Theme.Custom, c: Int -> t.copy(altKeyBackgroundColor = c) }),
-                Triple("Alt Key Text", { t: Theme.Custom -> t.altKeyTextColor }, { t: Theme.Custom, c: Int -> t.copy(altKeyTextColor = c) }),
-                Triple("Accent Key Background", { t: Theme.Custom -> t.accentKeyBackgroundColor }, { t: Theme.Custom, c: Int -> t.copy(accentKeyBackgroundColor = c) }),
-                Triple("Accent Key Text", { t: Theme.Custom -> t.accentKeyTextColor }, { t: Theme.Custom, c: Int -> t.copy(accentKeyTextColor = c) }),
-                Triple("Candidate Text", { t: Theme.Custom -> t.candidateTextColor }, { t: Theme.Custom, c: Int -> t.copy(candidateTextColor = c) }),
-                Triple("Candidate Label", { t: Theme.Custom -> t.candidateLabelColor }, { t: Theme.Custom, c: Int -> t.copy(candidateLabelColor = c) }),
-                Triple("Candidate Comment", { t: Theme.Custom -> t.candidateCommentColor }, { t: Theme.Custom, c: Int -> t.copy(candidateCommentColor = c) }),
-                Triple("Key Press Highlight", { t: Theme.Custom -> t.keyPressHighlightColor }, { t: Theme.Custom, c: Int -> t.copy(keyPressHighlightColor = c) }),
-                Triple("Key Shadow", { t: Theme.Custom -> t.keyShadowColor }, { t: Theme.Custom, c: Int -> t.copy(keyShadowColor = c) }),
-                Triple("Popup Background", { t: Theme.Custom -> t.popupBackgroundColor }, { t: Theme.Custom, c: Int -> t.copy(popupBackgroundColor = c) }),
-                Triple("Popup Text", { t: Theme.Custom -> t.popupTextColor }, { t: Theme.Custom, c: Int -> t.copy(popupTextColor = c) }),
-                Triple("Space Bar", { t: Theme.Custom -> t.spaceBarColor }, { t: Theme.Custom, c: Int -> t.copy(spaceBarColor = c) }),
-                Triple("Divider", { t: Theme.Custom -> t.dividerColor }, { t: Theme.Custom, c: Int -> t.copy(dividerColor = c) }),
-                Triple("Clipboard Entry", { t: Theme.Custom -> t.clipboardEntryColor }, { t: Theme.Custom, c: Int -> t.copy(clipboardEntryColor = c) }),
-                Triple("Generic Active Background", { t: Theme.Custom -> t.genericActiveBackgroundColor }, { t: Theme.Custom, c: Int -> t.copy(genericActiveBackgroundColor = c) }),
-                Triple("Generic Active Foreground", { t: Theme.Custom -> t.genericActiveForegroundColor }, { t: Theme.Custom, c: Int -> t.copy(genericActiveForegroundColor = c) })
-            )
             var inlinePreviewDirty = false
 
-            for (item in colorItems) {
+            for (item in colorEditItems) {
                 val label = createTextView(null, ripple = true).apply {
-                    text = item.first
+                    text = item.name
                 }
                 val preview = GradientDrawable().apply {
                     shape = GradientDrawable.RECTANGLE
                     cornerRadius = dp(4f)
                     setSize(dp(28), dp(28))
-                    setColor(item.second(theme))
+                    setColor(item.getter(theme))
                 }
+                colorPreviewDrawables[item.name] = preview
                 label.setCompoundDrawablesWithIntrinsicBounds(null, null, preview, null)
                 label.compoundDrawablePadding = dp(12)
                 label.setOnClickListener {
+                    if (DeviceUtil.isHMOS) {
+                        colorEditorLauncher.launch(
+                            ThemeColorEditorActivity.EditorInput(
+                                fieldName = item.name,
+                                titleRes = R.string.edit_color,
+                                initialColor = item.getter(theme)
+                            )
+                        )
+                        return@setOnClickListener
+                    }
                     val parent = label.parent as ViewGroup
                     var insertIndex = parent.indexOfChild(label) + 1
                     val existingEditorIndex = findInlineEditorIndex(parent)
@@ -676,14 +700,14 @@ class CustomThemeActivity : AppCompatActivity() {
                     }
 
                     val originalTheme = theme
-                    val originalColor = item.second(originalTheme)
+                    val originalColor = item.getter(originalTheme)
                     val editor = createInlineColorEditor(
                         initialColor = originalColor,
                         onPreview = { c ->
                             val changed = c != originalColor
                             if (changed) {
                                 inlinePreviewDirty = true
-                                val tmpTheme = item.third(originalTheme, c)
+                                val tmpTheme = item.setter(originalTheme, c)
                                 applyThemePreview(tmpTheme, currentBackgroundDrawable(originalTheme))
                             } else if (inlinePreviewDirty) {
                                 inlinePreviewDirty = false
@@ -692,7 +716,7 @@ class CustomThemeActivity : AppCompatActivity() {
                         },
                         onConfirm = { c ->
                             if (c != originalColor) {
-                                theme = item.third(originalTheme, c)
+                                theme = item.setter(originalTheme, c)
                                 preview.setColor(c)
                                 applyThemePreview(theme)
                             }
@@ -1104,3 +1128,9 @@ class CustomThemeActivity : AppCompatActivity() {
         const val ORIGIN_THEME = "origin_theme"
     }
 }
+
+data class ThemeColorEditItem(
+    val name: String,
+    val getter: (Theme.Custom) -> Int,
+    val setter: (Theme.Custom, Int) -> Theme.Custom
+)

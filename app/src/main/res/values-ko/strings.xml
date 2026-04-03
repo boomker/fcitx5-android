@@ -355,4 +355,6 @@
     <string name="text_keyboard_layout_submode_added">서브모드 레이아웃 추가됨: %1$s</string>
     <string name="text_keyboard_layout_no_submode_selected">선택된 서브모드가 없습니다</string>
     <string name="text_keyboard_layout_save_failed">레이아웃 저장에 실패했습니다. 자세한 내용은 logcat을 확인하세요.</string>
+    <string name="edit_color">색상 편집</string>
+    <string name="theme_color_editor_argb_label">ARGB</string>
 </resources>

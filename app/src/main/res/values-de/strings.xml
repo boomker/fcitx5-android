@@ -424,4 +424,6 @@
     <string name="text_keyboard_layout_submode_added">Submodus-Layout hinzugefügt: %1$s</string>
     <string name="text_keyboard_layout_no_submode_selected">Kein Submodus ausgewählt</string>
     <string name="text_keyboard_layout_save_failed">Layout konnte nicht gespeichert werden. Prüfen Sie Logcat für Details.</string>
+    <string name="edit_color">Farbe bearbeiten</string>
+    <string name="theme_color_editor_argb_label">ARGB</string>
 </resources>
