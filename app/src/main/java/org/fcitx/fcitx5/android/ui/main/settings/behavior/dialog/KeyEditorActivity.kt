@@ -409,7 +409,10 @@ class KeyEditorActivity : AppCompatActivity() {
                     previewText = buildMacroPreview(tapMacroSteps),
                     onClick = {
                         openMacroEditor(macroTapStepsData, getString(R.string.text_keyboard_layout_macro_tap_event)) { newSteps ->
+                            val draft = buildDraftKeyData()
                             macroTapStepsData = newSteps
+                            draft["tap"] = mapOf("macro" to newSteps)
+                            keyData = draft
                             rebuildFields()
                             updateActionButtonState()
                         }
@@ -421,7 +424,10 @@ class KeyEditorActivity : AppCompatActivity() {
                     previewText = buildMacroPreview(swipeMacroSteps),
                     onClick = {
                         openMacroEditor(macroSwipeStepsData, getString(R.string.text_keyboard_layout_macro_swipe_event)) { newSteps ->
+                            val draft = buildDraftKeyData()
                             macroSwipeStepsData = newSteps
+                            draft["swipe"] = mapOf("macro" to newSteps)
+                            keyData = draft
                             rebuildFields()
                             updateActionButtonState()
                         }

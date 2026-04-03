@@ -60,6 +60,7 @@ import org.fcitx.fcitx5.android.utils.AppUtil
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.adapter.SimpleDividerItemDecoration
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.data.LayoutDataManager
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.dialog.KeyEditorActivity
+import org.fcitx.fcitx5.android.ui.main.settings.behavior.dialog.LayoutFileProfileInputActivity
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.manager.SubModeManager
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.preview.KeyboardPreviewManager
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.share.JsonFileQrShareManager
@@ -68,6 +69,7 @@ import org.fcitx.fcitx5.android.ui.main.settings.behavior.share.LayoutQrTransfer
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.share.QrChunkCollector
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.utils.LayoutJsonUtils
 import org.fcitx.fcitx5.android.utils.InputMethodUtil
+import org.fcitx.fcitx5.android.utils.DeviceUtil
 import org.fcitx.fcitx5.android.utils.serializable
 import splitties.dimensions.dp
 import splitties.resources.styledColor
@@ -269,6 +271,29 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                             updateSaveButtonState()
                         }
                     }
+                }
+            }
+        }
+
+    private val layoutFileInputLauncher: ActivityResultLauncher<Intent> =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            val data = result.data ?: return@registerForActivityResult
+            if (result.resultCode != RESULT_OK) return@registerForActivityResult
+            val action = data.getStringExtra(LayoutFileProfileInputActivity.EXTRA_ACTION) ?: return@registerForActivityResult
+            val normalized = UserConfigFiles.normalizeTextKeyboardLayoutProfile(
+                data.getStringExtra(LayoutFileProfileInputActivity.EXTRA_RESULT_PROFILE).orEmpty()
+            )
+            if (normalized == null) {
+                showToast(getString(R.string.text_keyboard_layout_file_name_invalid))
+                return@registerForActivityResult
+            }
+            when (action) {
+                LayoutFileProfileInputActivity.ACTION_CREATE -> {
+                    val copyCurrent = data.getBooleanExtra(LayoutFileProfileInputActivity.EXTRA_RESULT_COPY_CURRENT, true)
+                    createLayoutProfileFromInput(normalized, copyCurrent)
+                }
+                LayoutFileProfileInputActivity.ACTION_RENAME -> {
+                    renameLayoutProfileFromInput(normalized)
                 }
             }
         }
@@ -1788,6 +1813,15 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
     }
 
     private fun openRenameLayoutFileDialog() {
+        if (DeviceUtil.isHMOS) {
+            val intent = Intent(this, LayoutFileProfileInputActivity::class.java).apply {
+                putExtra(LayoutFileProfileInputActivity.EXTRA_ACTION, LayoutFileProfileInputActivity.ACTION_RENAME)
+                putExtra(LayoutFileProfileInputActivity.EXTRA_INITIAL_PROFILE, currentLayoutProfile)
+                putExtra(LayoutFileProfileInputActivity.EXTRA_SHOW_COPY_SWITCH, false)
+            }
+            layoutFileInputLauncher.launch(intent)
+            return
+        }
         val oldProfile = currentLayoutProfile
         val oldFile = layoutFile ?: UserConfigFiles.textKeyboardLayoutJson(oldProfile)
         if (oldFile == null) {
@@ -1910,6 +1944,15 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
     }
 
     private fun openCreateLayoutFileDialog() {
+        if (DeviceUtil.isHMOS) {
+            val intent = Intent(this, LayoutFileProfileInputActivity::class.java).apply {
+                putExtra(LayoutFileProfileInputActivity.EXTRA_ACTION, LayoutFileProfileInputActivity.ACTION_CREATE)
+                putExtra(LayoutFileProfileInputActivity.EXTRA_SHOW_COPY_SWITCH, true)
+                putExtra(LayoutFileProfileInputActivity.EXTRA_COPY_CURRENT_DEFAULT, true)
+            }
+            layoutFileInputLauncher.launch(intent)
+            return
+        }
         val container = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             val pad = dp(12)
@@ -1977,6 +2020,111 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             }
         }
         dialog.show()
+    }
+
+    private fun createLayoutProfileFromInput(normalized: String, copyCurrent: Boolean) {
+        val targetFile = UserConfigFiles.textKeyboardLayoutJson(normalized)
+        if (targetFile == null) {
+            showToast(getString(R.string.cannot_resolve_text_keyboard_layout))
+            return
+        }
+        if (targetFile.exists()) {
+            showToast(getString(R.string.text_keyboard_layout_file_already_exists))
+            return
+        }
+        runCatching {
+            targetFile.parentFile?.mkdirs()
+            if (copyCurrent) {
+                val source = layoutFile
+                if (source?.exists() == true) {
+                    source.copyTo(targetFile, overwrite = false)
+                } else {
+                    val json = dataManager.exportCurrentJsonString()
+                    targetFile.writeText(json)
+                }
+            } else {
+                val templateManager = LayoutDataManager(this)
+                templateManager.loadFromFile(null)
+                targetFile.writeText(templateManager.exportCurrentJsonString())
+            }
+        }.onSuccess {
+            switchToLayoutProfile(normalized)
+        }.onFailure {
+            showToast(getString(R.string.text_keyboard_layout_save_failed))
+        }
+    }
+
+    private fun renameLayoutProfileFromInput(newProfile: String) {
+        val oldProfile = currentLayoutProfile
+        val oldFile = layoutFile ?: UserConfigFiles.textKeyboardLayoutJson(oldProfile)
+        if (oldFile == null) {
+            showToast(getString(R.string.text_keyboard_layout_file_rename_failed))
+            return
+        }
+        if (newProfile == oldProfile) return
+        val newFile = UserConfigFiles.textKeyboardLayoutJson(newProfile)
+        if (newFile == null) {
+            showToast(getString(R.string.text_keyboard_layout_file_rename_failed))
+            return
+        }
+        if (newFile.exists()) {
+            showToast(getString(R.string.text_keyboard_layout_file_already_exists))
+            return
+        }
+        if (hasChanges() && !saveLayout()) {
+            showToast(getString(R.string.text_keyboard_layout_save_failed))
+            return
+        }
+        runCatching {
+            oldFile.parentFile?.mkdirs()
+            val renameTargets = mutableListOf<Pair<File, File>>()
+            if (oldFile.exists()) {
+                renameTargets += oldFile to newFile
+            }
+            val oldPrefix = "${oldFile.nameWithoutExtension}_backup_"
+            val newPrefix = "${newFile.nameWithoutExtension}_backup_"
+            val backups = oldFile.parentFile?.listFiles { candidate ->
+                candidate.isFile &&
+                        candidate.name.startsWith(oldPrefix) &&
+                        candidate.name.endsWith(".json")
+            }.orEmpty()
+            backups.forEach { backup ->
+                val suffix = backup.name.removePrefix(oldPrefix)
+                renameTargets += backup to File(backup.parentFile, "$newPrefix$suffix")
+            }
+            renameTargets.forEach { (from, to) ->
+                if (!from.renameTo(to)) {
+                    throw IllegalStateException("rename ${from.name} failed")
+                }
+            }
+        }.onSuccess {
+            switchToLayoutProfile(newProfile, showSwitchToast = false)
+            showToast(
+                getString(
+                    R.string.text_keyboard_layout_file_renamed,
+                    displayProfile(oldProfile),
+                    displayProfile(newProfile)
+                )
+            )
+        }.onFailure {
+            showToast(getString(R.string.text_keyboard_layout_file_rename_failed))
+            runCatching {
+                val currentFile = UserConfigFiles.textKeyboardLayoutJson(newProfile)
+                val oldPrefix = "${oldFile.nameWithoutExtension}_backup_"
+                val newPrefix = "${newFile.nameWithoutExtension}_backup_"
+                if (currentFile?.exists() == true && !oldFile.exists()) {
+                    currentFile.renameTo(oldFile)
+                }
+                oldFile.parentFile?.listFiles { candidate ->
+                    candidate.isFile &&
+                            candidate.name.startsWith(newPrefix) &&
+                            candidate.name.endsWith(".json")
+                }.orEmpty().forEach { candidate ->
+                    val suffix = candidate.name.removePrefix(newPrefix)
+                    candidate.renameTo(File(candidate.parentFile, "$oldPrefix$suffix"))
+                }
+            }
+        }
     }
 
     private fun showToast(message: String) {
