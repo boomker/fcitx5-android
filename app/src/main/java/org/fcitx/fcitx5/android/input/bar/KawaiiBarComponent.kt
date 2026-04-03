@@ -86,7 +86,13 @@ import splitties.views.dsl.core.matchParent
 import java.util.concurrent.Executor
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
+import kotlin.math.abs
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.hypot
 import kotlin.math.min
+import kotlin.math.PI
+import kotlin.math.sin
 
 class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(),
     InputBroadcastReceiver {
@@ -120,6 +126,7 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
     private val expandToolbarByDefault by prefs.keyboard.expandToolbarByDefault
     private val toolbarNumRowOnPassword by prefs.keyboard.toolbarNumRowOnPassword
     private val showVoiceInputButton by prefs.keyboard.showVoiceInputButton
+    private val preferredVoiceInput by prefs.keyboard.preferredVoiceInput
 
     private var clipboardTimeoutJob: Job? = null
 
@@ -127,6 +134,10 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
     private var isInlineSuggestionPresent: Boolean = false
     private var isCapabilityFlagsPassword: Boolean = false
     private var isKeyboardLayoutNumber: Boolean = false
+
+    private enum class NumberRowState { Auto, ForceShow, ForceHide }
+
+    private var numberRowState = NumberRowState.Auto
 
     @Keep
     private val onClipboardUpdateListener =
@@ -185,9 +196,10 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
 
     private fun evalIdleUiState(fromUser: Boolean = false) {
         val newState = when {
+            numberRowState == NumberRowState.ForceShow -> IdleUi.State.NumberRow
             isClipboardFresh -> IdleUi.State.Clipboard
             isInlineSuggestionPresent -> IdleUi.State.InlineSuggestion
-            isCapabilityFlagsPassword && !isKeyboardLayoutNumber -> IdleUi.State.NumberRow
+            isCapabilityFlagsPassword && !isKeyboardLayoutNumber && numberRowState != NumberRowState.ForceHide -> IdleUi.State.NumberRow
             /**
              * state matrix:
              *                               expandToolbarByDefault
@@ -206,8 +218,67 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         service.requestHideSelf(0)
     }
 
-    private val swipeDownHideKeyboardCallback = CustomGestureView.OnGestureListener { _, e ->
+    private val swipeDownExpandCallback = CustomGestureView.OnGestureListener { _, e ->
         if (e.type == CustomGestureView.GestureType.Up && e.totalY > 0) {
+            service.requestHideSelf(0)
+            true
+        } else false
+    }
+
+    // Combined gesture: determine primary direction by comparing totalX and totalY.
+    // - If horizontal is dominant and left, show number row (when allowed).
+    // - If vertical is dominant and down, hide keyboard.
+    private val swipeHideKeyboardCallback = CustomGestureView.OnGestureListener { v, e ->
+        val numberRowAvailable = isCapabilityFlagsPassword && !isKeyboardLayoutNumber
+        if (numberRowAvailable) {
+            val dir = if (context.resources.configuration.layoutDirection == View.LAYOUT_DIRECTION_LTR) 1 else -1
+            // We can't access the rawX and rawY of the MotionEvent, so we need to do some math.
+            // `e.x` and `e.y` are relative to the view's top-left corner, we want to rotate
+            // around the center of the view, so we translate them to be relative to the center
+            val relX = e.x - v.width / 2f
+            val relY = e.y - v.height / 2f
+
+            // rotate the relative coordinates by current rotation to get absolute coordinates
+            // the button is ↓, so apply -90 degrees offset
+            val theta = Math.toRadians(v.rotation.toDouble()) - PI / 2
+            val c = cos(theta)
+            val s = sin(theta)
+            val screenX = c * relX - s * relY
+            val screenY = s * relX + c * relY
+            val distance = hypot(screenX, screenY)
+            var angle = Math.toDegrees(atan2(screenY, screenX)).toFloat()
+
+            when (e.type) {
+                CustomGestureView.GestureType.Move -> {
+                    angle = if (angle in -45f..45f) {
+                        angle.coerceIn(-10f, 10f)
+                    } else abs(angle).coerceIn(90f - 10f, 90f + 10f) * dir
+                    v.rotation = angle
+                }
+                CustomGestureView.GestureType.Up -> {
+                    val thresholdX = (v as CustomGestureView).swipeThresholdX
+                    val thresholdY = v.swipeThresholdY
+                    val handled = when (angle) {
+                        in -45f..45f if distance > thresholdY -> {
+                            service.requestHideSelf(0)
+                            true
+                        }
+                        !in -45f..45f if distance > thresholdX -> {
+                            v.rotation = 90f * dir
+                            numberRowState = NumberRowState.ForceShow
+                            evalIdleUiState(fromUser = true)
+                            true
+                        }
+                        else -> false
+                    }
+                    v.rotation = 0f
+                    return@OnGestureListener handled
+                }
+                else -> {}
+            }
+        }
+
+        if (e.type == CustomGestureView.GestureType.Up && abs(e.totalY) > abs(e.totalX) && e.totalY > 0) {
             service.requestHideSelf(0)
             true
         } else false
@@ -223,19 +294,14 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
     // Load buttons config from file or use default
     // Note: 'more' button is always added automatically at the end if not present in config
     private fun loadButtonsConfig(): List<ConfigurableButton> {
-        return try {
-            val snapshot = ConfigProviders.readButtonsLayoutConfig<ButtonsLayoutConfig>()
-            val config = snapshot?.value ?: ButtonsLayoutConfig.default()
-            
-            // Filter out 'more' button from config (it's always added automatically)
-            val filteredButtons = config.kawaiiBarButtons.filter { it.id != "more" }
+        val snapshot = ConfigProviders.readButtonsLayoutConfig<ButtonsLayoutConfig>()
+        val config = snapshot?.value ?: ButtonsLayoutConfig.default()
 
-            // Always add 'more' button at the end
-            filteredButtons + ConfigurableButton("more")
-        } catch (e: Exception) {
-            // Default config without 'more' (it will be added automatically)
-            ButtonsLayoutConfig.default().kawaiiBarButtons.filter { it.id != "more" } + ConfigurableButton("more")
-        }
+        // Filter out 'more' button from config (it's always added automatically)
+        val filteredButtons = config.kawaiiBarButtons.filter { it.id != "more" }
+
+        // Always add 'more' button at the end
+        return filteredButtons + ConfigurableButton("more")
     }
 
     private var _idleUi: IdleUi? = null
@@ -288,7 +354,7 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
             setOnClickListener(hideKeyboardCallback)
             swipeEnabled = true
             swipeThresholdY = dp(HEIGHT.toFloat())
-            onGestureListener = swipeDownHideKeyboardCallback
+            onGestureListener = swipeHideKeyboardCallback
         }
         ui.buttonsUi.apply {
             // Setup click listeners using ButtonAction
@@ -304,7 +370,7 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
                             // Refresh UI state after action completion
                             when (action.id) {
                                 "floating_toggle" -> evalIdleUiState()
-                                "one_handed_keyboard" -> updateButtonsState(service)
+                                "one_handed_keyboard" -> updateButtonsState()
                             }
                         }
                     )
@@ -315,16 +381,36 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
             setOnClickListener("more") {
                 windowManager.attachWindow(StatusAreaWindow())
             }
-            
-            // Special handling for floating_toggle long press
+
+            setOnClickListener("floating_toggle") {
+                val action = ButtonAction.fromId("floating_toggle")
+                if (onFloatingToggleListener != null) {
+                    onFloatingToggleListener?.invoke()
+                    updateButtonsState()
+                } else {
+                    action?.execute(
+                        context = context,
+                        service = service,
+                        fcitx = fcitx,
+                        windowManager = windowManager,
+                        view = null,
+                        onActionComplete = { updateButtonsState() }
+                    )
+                }
+            }
+
             setOnLongClickListener("floating_toggle") {
-                ButtonAction.fromId("floating_toggle")?.onLongPress(
-                    context = context,
-                    service = service,
-                    fcitx = fcitx,
-                    windowManager = windowManager,
-                    view = ui.buttonsUi.root
-                )
+                if (onFloatingLongPressListener != null) {
+                    onFloatingLongPressListener?.invoke()
+                } else {
+                    ButtonAction.fromId("floating_toggle")?.onLongPress(
+                        context = context,
+                        service = service,
+                        fcitx = fcitx,
+                        windowManager = windowManager,
+                        view = ui.buttonsUi.root
+                    )
+                }
                 true
             }
 
@@ -339,6 +425,10 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
                 )
                 true
             }
+        }
+        ui.numberRow.onCollapseListener = {
+            numberRowState = NumberRowState.ForceHide
+            evalIdleUiState(fromUser = true)
         }
         ui.clipboardUi.suggestionView.apply {
             setOnClickListener {
@@ -366,6 +456,7 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
             currentButtonsConfig = newConfig
             // Update the existing IdleUi with new config
             _idleUi?.buttonsUi?.updateConfig(newConfig)
+            updateButtonsState()
         }
     }
 
@@ -374,7 +465,7 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
             expandButton.apply {
                 swipeEnabled = true
                 swipeThresholdY = dp(HEIGHT.toFloat())
-                onGestureListener = swipeDownHideKeyboardCallback
+                onGestureListener = swipeDownExpandCallback
             }
         }
     }
@@ -473,10 +564,11 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         }
         isCapabilityFlagsPassword = toolbarNumRowOnPassword && capFlags.has(CapabilityFlag.Password)
         isInlineSuggestionPresent = false
+        numberRowState = NumberRowState.Auto
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             idleUi.inlineSuggestionsBar.clear()
         }
-        voiceInputSubtype = InputMethodUtil.firstVoiceInput()
+        voiceInputSubtype = InputMethodUtil.findVoiceSubtype(preferredVoiceInput)
         val shouldShowVoiceInput =
             showVoiceInputButton && voiceInputSubtype != null && !capFlags.has(CapabilityFlag.Password)
         idleUi.setHideKeyboardIsVoiceInput(
@@ -582,6 +674,10 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
 
     companion object {
         const val HEIGHT = 40
+    }
+
+    private fun updateButtonsState() {
+        _idleUi?.buttonsUi?.updateButtonsState(service)
     }
 
     fun onKeyboardLayoutSwitched(isNumber: Boolean) {
