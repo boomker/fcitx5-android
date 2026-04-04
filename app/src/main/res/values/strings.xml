@@ -293,6 +293,7 @@
     <string name="space_behavior_enumerate">Enumerate input methods</string>
     <string name="space_behavior_activate">Toggle input method activate state</string>
     <string name="space_behavior_picker">Show input method picker dialog</string>
+    <string name="space_behavior_voice_input">Switch to voice input</string>
     <string name="space_key_label_mode">Space key label style</string>
     <string name="space_key_label_mode_default">Default</string>
     <string name="space_key_label_mode_compact_when_submode">Compact when submode is active</string>

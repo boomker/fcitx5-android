@@ -208,6 +208,7 @@
     <string name="space_behavior_enumerate">インプットメゾッド一覧を表示する</string>
     <string name="space_behavior_activate">インプットメゾッドのアクティブな状態を切り替える</string>
     <string name="space_behavior_picker">インプットメゾッド選択ダイアログを表示する</string>
+    <string name="space_behavior_voice_input">音声入力に切り替える</string>
     <string name="show_lang_switch_key">言語切り替えキーを表示する</string>
     <string name="horizontal_candidate_style">水平候補スタイル</string>
     <string name="horizontal_candidate_never_fill">幅を調節しない</string>

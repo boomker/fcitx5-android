@@ -7,6 +7,8 @@ package org.fcitx.fcitx5.android.input.keyboard
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
+import org.fcitx.fcitx5.android.core.CapabilityFlag
+import org.fcitx.fcitx5.android.core.CapabilityFlags
 import org.fcitx.fcitx5.android.core.FcitxAPI
 import org.fcitx.fcitx5.android.daemon.launchOnReady
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
@@ -33,6 +35,7 @@ import org.fcitx.fcitx5.android.input.keyboard.KeyAction.SymAction
 import org.fcitx.fcitx5.android.input.keyboard.KeyAction.UnicodeAction
 import org.fcitx.fcitx5.android.input.picker.PickerWindow
 import org.fcitx.fcitx5.android.input.wm.InputWindowManager
+import org.fcitx.fcitx5.android.utils.InputMethodUtil
 import org.fcitx.fcitx5.android.utils.switchToNextIME
 import org.mechdancer.dependency.Dependent
 import org.mechdancer.dependency.UniqueComponent
@@ -60,6 +63,7 @@ class CommonKeyActionListener :
 
     private val spaceKeyLongPressBehavior by kbdPrefs.spaceKeyLongPressBehavior
     private val langSwitchKeyBehavior by kbdPrefs.langSwitchKeyBehavior
+    private val preferredVoiceInput by kbdPrefs.preferredVoiceInput
 
     private var backspaceSwipeState = Stopped
 
@@ -86,6 +90,15 @@ class CommonKeyActionListener :
                 service.showDialog(InputMethodPickerDialog.build(it, service, context))
             }
         }
+    }
+
+    private fun switchToVoiceInput() {
+        val isPasswordField = service.currentInputEditorInfo?.let {
+            CapabilityFlags.fromEditorInfo(it).has(CapabilityFlag.Password)
+        } ?: false
+        if (isPasswordField) return
+        val (id, subtype) = InputMethodUtil.findVoiceSubtype(preferredVoiceInput) ?: return
+        InputMethodUtil.switchInputMethod(service, id, subtype)
     }
 
     val listener by lazy {
@@ -181,6 +194,7 @@ class CommonKeyActionListener :
                             toggleIme()
                         }
                         SpaceLongPressBehavior.ShowPicker -> showInputMethodPicker()
+                        SpaceLongPressBehavior.VoiceInput -> switchToVoiceInput()
                     }
                 }
                 else -> {}

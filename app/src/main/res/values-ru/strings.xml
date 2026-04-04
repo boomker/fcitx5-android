@@ -213,6 +213,7 @@
     <string name="space_behavior_enumerate">Перечислить методы ввода</string>
     <string name="space_behavior_activate">Переключить состояние активации метода ввода</string>
     <string name="space_behavior_picker">Показать диалоговое окно выбора метода ввода</string>
+    <string name="space_behavior_voice_input">Переключиться на голосовой ввод</string>
     <string name="show_lang_switch_key">Показываать клавишу переключения языка</string>
     <string name="horizontal_candidate_style">Горизонтальный стиль кандидата</string>
     <string name="horizontal_candidate_never_fill">Никогда не заполнять ширину</string>
