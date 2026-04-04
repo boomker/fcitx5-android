@@ -11,6 +11,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+import android.view.View.MeasureSpec
 import android.widget.TextView
 import androidx.core.view.updateLayoutParams
 import androidx.recyclerview.widget.RecyclerView
@@ -37,6 +38,14 @@ class PagedCandidatesUi(
     private var data = FcitxEvent.PagedCandidateEvent.Data.Empty
 
     private var isVertical = false
+
+    private val measurementCandidateUi by lazy {
+        LabeledCandidateItemUi(ctx, theme, setupTextView, highlightRadius)
+    }
+
+    private val measurementPaginationUi by lazy {
+        PaginationUi(ctx, theme)
+    }
 
     sealed class UiHolder(open val ui: Ui) : RecyclerView.ViewHolder(ui.root) {
         class Candidate(override val ui: LabeledCandidateItemUi) : UiHolder(ui)
@@ -119,11 +128,12 @@ class PagedCandidatesUi(
     @SuppressLint("NotifyDataSetChanged")
     fun update(
         data: FcitxEvent.PagedCandidateEvent.Data,
-        orientation: FloatingCandidatesOrientation
+        orientation: FloatingCandidatesOrientation,
+        maxRowWidthPx: Int
     ) {
         this.data = data
         this.isVertical = when (orientation) {
-            FloatingCandidatesOrientation.Automatic -> data.layoutHint == LayoutHint.Vertical
+            FloatingCandidatesOrientation.Automatic -> shouldUseVerticalLayout(data, maxRowWidthPx)
             else -> orientation == FloatingCandidatesOrientation.Vertical
         }
         candidatesLayoutManager.apply {
@@ -136,5 +146,39 @@ class PagedCandidatesUi(
             }
         }
         candidatesAdapter.notifyDataSetChanged()
+    }
+
+    private fun shouldUseVerticalLayout(
+        data: FcitxEvent.PagedCandidateEvent.Data,
+        maxRowWidthPx: Int
+    ): Boolean {
+        if (data.layoutHint == LayoutHint.Vertical) {
+            return true
+        }
+        if (maxRowWidthPx <= 0) {
+            return false
+        }
+
+        val totalWidth = data.candidates.sumOf { candidate ->
+            measurementCandidateUi.update(candidate, active = false)
+            measurementCandidateUi.root.measure(
+                MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED),
+                MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED)
+            )
+            measurementCandidateUi.root.measuredWidth
+        } + if (data.hasPrev || data.hasNext) {
+            measurementPaginationUi.update(data)
+            measurementPaginationUi.root.measure(
+                MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED),
+                MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED)
+            )
+            measurementPaginationUi.root.measuredWidth
+        } else {
+            0
+        }
+
+        // Keep automatic mode visually regular: only use horizontal when the
+        // whole row fits without wrapping, otherwise fall back to one-item-per-line.
+        return totalWidth > maxRowWidthPx
     }
 }

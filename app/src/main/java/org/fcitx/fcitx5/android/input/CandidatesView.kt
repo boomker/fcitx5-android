@@ -171,7 +171,18 @@ class CandidatesView(
     private fun updateUi() {
         preeditUi.update(inputPanel)
         preeditUi.root.visibility = if (preeditUi.visible) VISIBLE else GONE
-        candidatesUi.update(paged, orientation)
+        val parentWidth = parentSize[0]
+            .takeIf { it > 0f }
+            ?.roundToInt()
+            ?: resources.displayMetrics.widthPixels
+        val maxCandidateRowWidth = (parentWidth - dp(windowPadding) * 2 - candidatesGap * 2)
+            .roundToInt()
+            .coerceAtLeast(0)
+        candidatesUi.update(
+            data = paged,
+            orientation = orientation,
+            maxRowWidthPx = maxCandidateRowWidth
+        )
         if (evaluateVisibility()) {
             visibility = VISIBLE
         } else {

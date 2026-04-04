@@ -52,7 +52,6 @@ object SyncClient {
     private const val SYNCCLIPBOARD_HISTORY_PAGE_SIZE = 50
     private const val SAVED_URI_READY_RETRY_COUNT = 10
     private const val SAVED_URI_READY_RETRY_DELAY_MS = 150L
-    private const val TRASH_ARTIFACT_PREFIX = ".trash"
     private val ONECLIP_UNSUPPORTED_FILE_TYPES = setOf("code", "file")
 
     private val json = Json {
@@ -825,16 +824,15 @@ object SyncClient {
         return try {
             val dir = DocumentFile.fromTreeUri(context, dirUri)
             if (dir != null && dir.isDirectory) {
-                val existingFile = dir.findFile(fileName)?.takeIf { it.isFile }
-                if (existingFile != null && contentMatchesExisting(context, existingFile.uri, bytes)) {
-                    cleanupTrashArtifacts(dir)
-                    return waitUntilReadable(context, existingFile.uri, bytes.size)
-                }
-
-                val targetFile = existingFile ?: dir.createFile(mimeType, fileName)
+                val targetFile = resolveWritableTargetFile(
+                    context = context,
+                    dir = dir,
+                    fileName = fileName,
+                    bytes = bytes,
+                    mimeType = mimeType
+                )
                 if (targetFile != null) {
                     writeBytes(context, targetFile.uri, bytes)
-                    cleanupTrashArtifacts(dir)
                     waitUntilReadable(context, targetFile.uri, bytes.size)
                 } else {
                     null
@@ -845,6 +843,55 @@ object SyncClient {
         } catch (e: Exception) {
             Log.e(TAG, "[Pull] Failed to save file", e)
             null
+        }
+    }
+
+    private fun resolveWritableTargetFile(
+        context: Context,
+        dir: DocumentFile,
+        fileName: String,
+        bytes: ByteArray,
+        mimeType: String
+    ): DocumentFile? {
+        val existingFile = dir.findFile(fileName)?.takeIf { it.isFile }
+        if (existingFile == null) {
+            return dir.createFile(mimeType, fileName)
+        }
+        if (contentMatchesExisting(context, existingFile.uri, bytes)) {
+            return existingFile
+        }
+
+        val contentHash = HashUtils.sha256(bytes).take(8)
+        for (attempt in 0..99) {
+            val candidateName = buildCollisionSafeFileName(fileName, contentHash, attempt)
+            val candidateFile = dir.findFile(candidateName)?.takeIf { it.isFile }
+            if (candidateFile == null) {
+                Log.i(TAG, "[Pull] Avoiding in-place overwrite for $fileName, creating $candidateName instead")
+                return dir.createFile(mimeType, candidateName)
+            }
+            if (contentMatchesExisting(context, candidateFile.uri, bytes)) {
+                return candidateFile
+            }
+        }
+
+        throw IOException("Unable to find writable SAF target for $fileName")
+    }
+
+    private fun buildCollisionSafeFileName(
+        fileName: String,
+        contentHash: String,
+        attempt: Int
+    ): String {
+        val lastDot = fileName.lastIndexOf('.')
+        val hasExtension = lastDot > 0 && lastDot < fileName.length - 1
+        val baseName = if (hasExtension) fileName.substring(0, lastDot) else fileName
+        val extension = if (hasExtension) fileName.substring(lastDot + 1) else ""
+        val suffix = if (attempt == 0) contentHash else "$contentHash-$attempt"
+        val normalizedBase = baseName.ifBlank { "clip" }
+        return if (extension.isNotEmpty()) {
+            "$normalizedBase-$suffix.$extension"
+        } else {
+            "$normalizedBase-$suffix"
         }
     }
 
@@ -882,20 +929,6 @@ object SyncClient {
                 input.read() == -1
             } == true
         }.getOrDefault(false)
-    }
-
-    private fun cleanupTrashArtifacts(dir: DocumentFile) {
-        runCatching {
-            dir.listFiles()
-                .filter { it.name?.startsWith(TRASH_ARTIFACT_PREFIX) == true }
-                .forEach { trashEntry ->
-                    if (!trashEntry.delete()) {
-                        Log.w(TAG, "[Pull] Failed to delete trash artifact: ${trashEntry.name}")
-                    }
-                }
-        }.onFailure { error ->
-            Log.w(TAG, "[Pull] Failed to clean trash artifacts in ${dir.uri}", error)
-        }
     }
 
     private fun waitUntilReadable(context: Context, uri: Uri, expectedSize: Int): Uri? {
