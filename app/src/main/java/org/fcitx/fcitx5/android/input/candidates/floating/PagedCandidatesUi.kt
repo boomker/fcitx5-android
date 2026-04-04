@@ -40,11 +40,15 @@ class PagedCandidatesUi(
     private var isVertical = false
 
     private val measurementCandidateUi by lazy {
-        LabeledCandidateItemUi(ctx, theme, setupTextView, highlightRadius)
+        LabeledCandidateItemUi(ctx, theme, setupTextView, highlightRadius).also {
+            it.root.layoutParams = ViewGroup.LayoutParams(WRAP_CONTENT, WRAP_CONTENT)
+        }
     }
 
     private val measurementPaginationUi by lazy {
-        PaginationUi(ctx, theme)
+        PaginationUi(ctx, theme).also {
+            it.root.layoutParams = ViewGroup.LayoutParams(WRAP_CONTENT, WRAP_CONTENT)
+        }
     }
 
     sealed class UiHolder(open val ui: Ui) : RecyclerView.ViewHolder(ui.root) {
