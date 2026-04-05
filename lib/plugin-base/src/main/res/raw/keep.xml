@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    SPDX-License-Identifier: LGPL-2.1-or-later
+    SPDX-FileCopyrightText: Copyright 2021-2026 Fcitx5 for Android Contributors
+-->
+<!--
+    AGP 9.0+ enables "optimized resource shrinking" by default, which uses R8's static analysis
+    and does NOT track dynamic Resources.getIdentifier() calls. Since plugin.xml is accessed
+    only via getIdentifier("plugin", "xml", packageName) in AboutActivity and DataManager,
+    it has no static R.xml.plugin reference and would be removed by the shrinker.
+    This keep rule propagates to all plugin APKs that depend on lib:plugin-base.
+-->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@xml/plugin,@string/description" />
