@@ -141,6 +141,15 @@
     <string name="text_keyboard_layout_key_label">레이블</string>
     <string name="text_keyboard_layout_key_sub_label">하위 레이블</string>
     <string name="text_keyboard_layout_key_weight">가중치 너비</string>
+    <string name="text_keyboard_layout_key_text_color">글자 색상</string>
+    <string name="text_keyboard_layout_key_alt_text_color">보조 문자 색상</string>
+    <string name="text_keyboard_layout_key_background_color">배경 색상</string>
+    <string name="text_keyboard_layout_key_shadow_color">그림자 색상</string>
+    <string name="text_keyboard_layout_key_color_mode_theme">테마 따르기</string>
+    <string name="text_keyboard_layout_key_color_mode_custom">사용자 지정 색상</string>
+    <string name="text_keyboard_layout_key_color_mode_monet">Monet (%1$s)</string>
+    <string name="text_keyboard_layout_key_color_mode_monet_pick">Monet 동적 색상</string>
+    <string name="text_keyboard_layout_key_color_monet_unavailable">Monet 동적 색상을 사용할 수 없습니다</string>
     <string name="text_keyboard_layout_layout_name">레이아웃 이름</string>
     <string name="text_keyboard_layout_layout_name_hint">예: rime, pinyin</string>
     <string name="text_keyboard_layout_copy_from">기존 레이아웃에서 복사</string>

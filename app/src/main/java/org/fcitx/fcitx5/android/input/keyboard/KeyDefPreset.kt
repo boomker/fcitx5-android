@@ -27,13 +27,25 @@ class SymbolKey(
     val symbol: String,
     percentWidth: Float = 0.1f,
     variant: Variant = Variant.Normal,
-    popup: Array<Popup>? = null
+    popup: Array<Popup>? = null,
+    textColor: Int? = null,
+    textColorMonet: String? = null,
+    backgroundColor: Int? = null,
+    backgroundColorMonet: String? = null,
+    shadowColor: Int? = null,
+    shadowColorMonet: String? = null
 ) : KeyDef(
     Appearance.Text(
         displayText = symbol,
         textSize = 23f,
         percentWidth = percentWidth,
-        variant = variant
+        variant = variant,
+        textColor = textColor,
+        textColorMonet = textColorMonet,
+        backgroundColor = backgroundColor,
+        backgroundColorMonet = backgroundColorMonet,
+        shadowColor = shadowColor,
+        shadowColorMonet = shadowColorMonet
     ),
     setOf(
         Behavior.Press(KeyAction.FcitxKeyAction(symbol))
@@ -50,7 +62,15 @@ class AlphabetKey(
     val displayText: String = character,
     variant: Variant = Variant.Normal,
     popup: Array<Popup>? = null,
-    weight: Float? = null
+    weight: Float? = null,
+    textColor: Int? = null,
+    textColorMonet: String? = null,
+    altTextColor: Int? = null,
+    altTextColorMonet: String? = null,
+    backgroundColor: Int? = null,
+    backgroundColorMonet: String? = null,
+    shadowColor: Int? = null,
+    shadowColorMonet: String? = null
 ) : KeyDef(
     Appearance.AltText(
         displayText = displayText,
@@ -58,7 +78,15 @@ class AlphabetKey(
         character = character,
         textSize = 23f,
         variant = variant,
-        percentWidth = weight ?: 0.1f
+        percentWidth = weight ?: 0.1f,
+        textColor = textColor,
+        textColorMonet = textColorMonet,
+        altTextColor = altTextColor,
+        altTextColorMonet = altTextColorMonet,
+        backgroundColor = backgroundColor,
+        backgroundColorMonet = backgroundColorMonet,
+        shadowColor = shadowColor,
+        shadowColorMonet = shadowColorMonet
     ),
     setOf(
         Behavior.Press(KeyAction.FcitxKeyAction(character)),
@@ -104,13 +132,25 @@ class AlphabetDigitKey(
 }
 
 class CapsKey(
-    percentWidth: Float = 0.15f
+    percentWidth: Float = 0.15f,
+    textColor: Int? = null,
+    textColorMonet: String? = null,
+    backgroundColor: Int? = null,
+    backgroundColorMonet: String? = null,
+    shadowColor: Int? = null,
+    shadowColorMonet: String? = null
 ) : KeyDef(
     Appearance.Image(
         src = R.drawable.ic_capslock_none,
         viewId = R.id.button_caps,
         percentWidth = percentWidth,
-        variant = Variant.Alternative
+        variant = Variant.Alternative,
+        textColor = textColor,
+        textColorMonet = textColorMonet,
+        backgroundColor = backgroundColor,
+        backgroundColorMonet = backgroundColorMonet,
+        shadowColor = shadowColor,
+        shadowColorMonet = shadowColorMonet
     ),
     setOf(
         Behavior.Press(KeyAction.CapsAction(false)),
@@ -123,7 +163,13 @@ class LayoutSwitchKey(
     displayText: String,
     val to: String = "",
     percentWidth: Float = 0.15f,
-    variant: Variant = Variant.Alternative
+    variant: Variant = Variant.Alternative,
+    textColor: Int? = null,
+    textColorMonet: String? = null,
+    backgroundColor: Int? = null,
+    backgroundColorMonet: String? = null,
+    shadowColor: Int? = null,
+    shadowColorMonet: String? = null
 ) : KeyDef(
     Appearance.Text(
         displayText,
@@ -132,7 +178,13 @@ class LayoutSwitchKey(
         percentWidth = percentWidth,
         variant = variant,
         border = Border.Special,
-        viewId = R.id.button_layout_switch
+        viewId = R.id.button_layout_switch,
+        textColor = textColor,
+        textColorMonet = textColorMonet,
+        backgroundColor = backgroundColor,
+        backgroundColorMonet = backgroundColorMonet,
+        shadowColor = shadowColor,
+        shadowColorMonet = shadowColorMonet
     ),
     setOf(
         Behavior.Press(KeyAction.LayoutSwitchAction(to))
@@ -158,14 +210,26 @@ class LayoutSwitchKey(
 
 class BackspaceKey(
     percentWidth: Float = 0.15f,
-    variant: Variant = Variant.Alternative
+    variant: Variant = Variant.Alternative,
+    textColor: Int? = null,
+    textColorMonet: String? = null,
+    backgroundColor: Int? = null,
+    backgroundColorMonet: String? = null,
+    shadowColor: Int? = null,
+    shadowColorMonet: String? = null
 ) : KeyDef(
     Appearance.Image(
         src = R.drawable.ic_outline_backspace_24,
         percentWidth = percentWidth,
         variant = variant,
         viewId = R.id.button_backspace,
-        soundEffect = InputFeedbacks.SoundEffect.Delete
+        soundEffect = InputFeedbacks.SoundEffect.Delete,
+        textColor = textColor,
+        textColorMonet = textColorMonet,
+        backgroundColor = backgroundColor,
+        backgroundColorMonet = backgroundColorMonet,
+        shadowColor = shadowColor,
+        shadowColorMonet = shadowColorMonet
     ),
     setOf(
         Behavior.Press(KeyAction.SymAction(KeySym(FcitxKeyMapping.FcitxKey_BackSpace))),
@@ -188,13 +252,25 @@ class QuickPhraseKey : KeyDef(
 class CommaKey(
     percentWidth: Float,
     variant: Variant,
+    textColor: Int? = null,
+    textColorMonet: String? = null,
+    backgroundColor: Int? = null,
+    backgroundColorMonet: String? = null,
+    shadowColor: Int? = null,
+    shadowColorMonet: String? = null
 ) : KeyDef(
     Appearance.ImageText(
         displayText = ",",
         textSize = 23f,
         percentWidth = percentWidth,
         variant = variant,
-        src = R.drawable.ic_baseline_tag_faces_24
+        src = R.drawable.ic_baseline_tag_faces_24,
+        textColor = textColor,
+        textColorMonet = textColorMonet,
+        backgroundColor = backgroundColor,
+        backgroundColorMonet = backgroundColorMonet,
+        shadowColor = shadowColor,
+        shadowColorMonet = shadowColorMonet
     ),
     setOf(
         Behavior.Press(KeyAction.FcitxKeyAction(","))
@@ -224,13 +300,25 @@ class CommaKey(
 )
 
 class LanguageKey(
-    percentWidth: Float = 0.1f
+    percentWidth: Float = 0.1f,
+    textColor: Int? = null,
+    textColorMonet: String? = null,
+    backgroundColor: Int? = null,
+    backgroundColorMonet: String? = null,
+    shadowColor: Int? = null,
+    shadowColorMonet: String? = null
 ) : KeyDef(
     Appearance.Image(
         src = R.drawable.ic_baseline_language_24,
         variant = Variant.AltForeground,
         viewId = R.id.button_lang,
-        percentWidth = percentWidth
+        percentWidth = percentWidth,
+        textColor = textColor,
+        textColorMonet = textColorMonet,
+        backgroundColor = backgroundColor,
+        backgroundColorMonet = backgroundColorMonet,
+        shadowColor = shadowColor,
+        shadowColorMonet = shadowColorMonet
     ),
     setOf(
         Behavior.Press(KeyAction.LangSwitchAction),
@@ -239,7 +327,13 @@ class LanguageKey(
 )
 
 class SpaceKey(
-    percentWidth: Float = 0f
+    percentWidth: Float = 0f,
+    textColor: Int? = null,
+    textColorMonet: String? = null,
+    backgroundColor: Int? = null,
+    backgroundColorMonet: String? = null,
+    shadowColor: Int? = null,
+    shadowColorMonet: String? = null
 ) : KeyDef(
     Appearance.Text(
         displayText = " ",
@@ -247,7 +341,13 @@ class SpaceKey(
         percentWidth = percentWidth,
         border = Border.Special,
         viewId = R.id.button_space,
-        soundEffect = InputFeedbacks.SoundEffect.SpaceBar
+        soundEffect = InputFeedbacks.SoundEffect.SpaceBar,
+        textColor = textColor,
+        textColorMonet = textColorMonet,
+        backgroundColor = backgroundColor,
+        backgroundColorMonet = backgroundColorMonet,
+        shadowColor = shadowColor,
+        shadowColorMonet = shadowColorMonet
     ),
     setOf(
         Behavior.Press(KeyAction.SymAction(KeySym(FcitxKeyMapping.FcitxKey_space))),
@@ -255,14 +355,28 @@ class SpaceKey(
     )
 )
 
-class ReturnKey(percentWidth: Float = 0.15f) : KeyDef(
+class ReturnKey(
+    percentWidth: Float = 0.15f,
+    textColor: Int? = null,
+    textColorMonet: String? = null,
+    backgroundColor: Int? = null,
+    backgroundColorMonet: String? = null,
+    shadowColor: Int? = null,
+    shadowColorMonet: String? = null
+) : KeyDef(
     Appearance.Image(
         src = R.drawable.ic_baseline_keyboard_return_24,
         percentWidth = percentWidth,
         variant = Variant.Alternative,
         border = Border.Special,
         viewId = R.id.button_return,
-        soundEffect = InputFeedbacks.SoundEffect.Return
+        soundEffect = InputFeedbacks.SoundEffect.Return,
+        textColor = textColor,
+        textColorMonet = textColorMonet,
+        backgroundColor = backgroundColor,
+        backgroundColorMonet = backgroundColorMonet,
+        shadowColor = shadowColor,
+        shadowColorMonet = shadowColorMonet
     ),
     setOf(
         Behavior.Press(KeyAction.SymAction(KeySym(FcitxKeyMapping.FcitxKey_Return)))
@@ -385,7 +499,15 @@ class MacroKey(
     val longPress: MacroAction? = null,
     percentWidth: Float = 0.1f,
     variant: Variant = Variant.Normal,
-    popup: Array<Popup>? = null
+    popup: Array<Popup>? = null,
+    textColor: Int? = null,
+    textColorMonet: String? = null,
+    altTextColor: Int? = null,
+    altTextColorMonet: String? = null,
+    backgroundColor: Int? = null,
+    backgroundColorMonet: String? = null,
+    shadowColor: Int? = null,
+    shadowColorMonet: String? = null
 ) : KeyDef(
     Appearance.AltText(
         displayText = label,
@@ -393,7 +515,15 @@ class MacroKey(
         character = label,
         textSize = 23f,
         percentWidth = percentWidth,
-        variant = variant
+        variant = variant,
+        textColor = textColor,
+        textColorMonet = textColorMonet,
+        altTextColor = altTextColor,
+        altTextColorMonet = altTextColorMonet,
+        backgroundColor = backgroundColor,
+        backgroundColorMonet = backgroundColorMonet,
+        shadowColor = shadowColor,
+        shadowColorMonet = shadowColorMonet
     ),
     buildBehaviors(tap, swipe, longPress),
     buildPopup(popup, tap, label, longPress)

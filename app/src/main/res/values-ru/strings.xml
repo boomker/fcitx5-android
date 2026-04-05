@@ -384,6 +384,15 @@
     <string name="text_keyboard_layout_key_label">Метка</string>
     <string name="text_keyboard_layout_key_sub_label">Подметка</string>
     <string name="text_keyboard_layout_key_weight">Ширина веса</string>
+    <string name="text_keyboard_layout_key_text_color">Цвет текста</string>
+    <string name="text_keyboard_layout_key_alt_text_color">Цвет вторичного текста</string>
+    <string name="text_keyboard_layout_key_background_color">Цвет фона</string>
+    <string name="text_keyboard_layout_key_shadow_color">Цвет тени</string>
+    <string name="text_keyboard_layout_key_color_mode_theme">Следовать теме</string>
+    <string name="text_keyboard_layout_key_color_mode_custom">Пользовательский цвет</string>
+    <string name="text_keyboard_layout_key_color_mode_monet">Monet (%1$s)</string>
+    <string name="text_keyboard_layout_key_color_mode_monet_pick">Динамический цвет Monet</string>
+    <string name="text_keyboard_layout_key_color_monet_unavailable">Динамический цвет Monet недоступен</string>
     <string name="text_keyboard_layout_layout_name">Имя раскладки</string>
     <string name="text_keyboard_layout_layout_name_hint">например: rime, pinyin</string>
     <string name="text_keyboard_layout_copy_from">Скопировать из существующей раскладки</string>

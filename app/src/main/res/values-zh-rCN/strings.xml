@@ -516,6 +516,15 @@
     <string name="text_keyboard_layout_key_label">标签</string>
     <string name="text_keyboard_layout_key_sub_label">子标签</string>
     <string name="text_keyboard_layout_key_weight">权重宽度</string>
+    <string name="text_keyboard_layout_key_text_color">文字颜色</string>
+    <string name="text_keyboard_layout_key_alt_text_color">副文字颜色</string>
+    <string name="text_keyboard_layout_key_background_color">背景颜色</string>
+    <string name="text_keyboard_layout_key_shadow_color">阴影颜色</string>
+    <string name="text_keyboard_layout_key_color_mode_theme">跟随主题</string>
+    <string name="text_keyboard_layout_key_color_mode_custom">自定义颜色</string>
+    <string name="text_keyboard_layout_key_color_mode_monet">Monet（%1$s）</string>
+    <string name="text_keyboard_layout_key_color_mode_monet_pick">Monet 动态颜色</string>
+    <string name="text_keyboard_layout_key_color_monet_unavailable">当前设备不支持 Monet 动态颜色</string>
     <string name="text_keyboard_layout_layout_name">布局名称</string>
     <string name="text_keyboard_layout_layout_name_hint">例如：rime、pinyin</string>
     <string name="text_keyboard_layout_copy_from">从现有布局复制</string>

@@ -1669,6 +1669,9 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             showToast(getString(R.string.text_keyboard_layout_file_saved, file.name))
             // 通知 provider watcher 文件已更改
             ConfigProviders.ensureWatching()
+            currentLayout?.let { layoutName ->
+                previewManager.updatePreview(layoutName, previewSubModeLabel, fcitxConnection)
+            }
             updateSaveButtonState()
             return true
         } else {

@@ -393,6 +393,15 @@
     <string name="text_keyboard_layout_key_label">標籤</string>
     <string name="text_keyboard_layout_key_sub_label">子標籤</string>
     <string name="text_keyboard_layout_key_weight">權重寬度</string>
+    <string name="text_keyboard_layout_key_text_color">文字顏色</string>
+    <string name="text_keyboard_layout_key_alt_text_color">副字元顏色</string>
+    <string name="text_keyboard_layout_key_background_color">背景顏色</string>
+    <string name="text_keyboard_layout_key_shadow_color">陰影顏色</string>
+    <string name="text_keyboard_layout_key_color_mode_theme">跟隨主題</string>
+    <string name="text_keyboard_layout_key_color_mode_custom">自訂顏色</string>
+    <string name="text_keyboard_layout_key_color_mode_monet">Monet（%1$s）</string>
+    <string name="text_keyboard_layout_key_color_mode_monet_pick">Monet 動態顏色</string>
+    <string name="text_keyboard_layout_key_color_monet_unavailable">Monet 動態顏色目前不可用</string>
     <string name="text_keyboard_layout_layout_name">佈局名稱</string>
     <string name="text_keyboard_layout_layout_name_hint">例如：rime、pinyin</string>
     <string name="text_keyboard_layout_copy_from">從現有佈局複製</string>

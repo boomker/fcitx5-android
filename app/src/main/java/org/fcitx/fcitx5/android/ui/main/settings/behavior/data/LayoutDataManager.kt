@@ -688,14 +688,29 @@ class LayoutDataManager(private val context: Context) {
     }
 
     private fun normalizeKeyValue(key: String, value: Any?): Any? {
-        if (key != "weight") return value
+        if (key != "weight" &&
+            key != "textColor" &&
+            key != "altTextColor" &&
+            key != "backgroundColor" &&
+            key != "shadowColor"
+        ) return value
         return when (value) {
             null -> null
-            is Number -> value.toFloat()
+            is Number -> if (key == "weight") value.toFloat() else value.toInt()
             is String -> {
                 value.trim()
                     .takeUnless { it.isEmpty() || it.equals("null", ignoreCase = true) }
-                    ?.toFloatOrNull()
+                    ?.let {
+                        if (key == "weight") {
+                            it.toFloatOrNull()
+                        } else {
+                            when {
+                                it.startsWith("#") -> it.removePrefix("#").toLongOrNull(16)?.toInt()
+                                it.startsWith("0x", ignoreCase = true) -> it.removePrefix("0x").toLongOrNull(16)?.toInt()
+                                else -> it.toLongOrNull()?.toInt()
+                            }
+                        }
+                    }
             }
             else -> null
         }

@@ -19,7 +19,15 @@ open class KeyDef(
         val border: Border,
         val margin: Boolean,
         val viewId: Int,
-        val soundEffect: InputFeedbacks.SoundEffect
+        val soundEffect: InputFeedbacks.SoundEffect,
+        val textColor: Int? = null,
+        val textColorMonet: String? = null,
+        val altTextColor: Int? = null,
+        val altTextColorMonet: String? = null,
+        val backgroundColor: Int? = null,
+        val backgroundColorMonet: String? = null,
+        val shadowColor: Int? = null,
+        val shadowColorMonet: String? = null
     ) {
         enum class Variant {
             Normal, AltForeground, Alternative, Accent
@@ -42,8 +50,31 @@ open class KeyDef(
             border: Border = Border.Default,
             margin: Boolean = true,
             viewId: Int = -1,
-            soundEffect: InputFeedbacks.SoundEffect = InputFeedbacks.SoundEffect.Standard
-        ) : Appearance(percentWidth, variant, border, margin, viewId, soundEffect)
+            soundEffect: InputFeedbacks.SoundEffect = InputFeedbacks.SoundEffect.Standard,
+            textColor: Int? = null,
+            textColorMonet: String? = null,
+            altTextColor: Int? = null,
+            altTextColorMonet: String? = null,
+            backgroundColor: Int? = null,
+            backgroundColorMonet: String? = null,
+            shadowColor: Int? = null,
+            shadowColorMonet: String? = null
+        ) : Appearance(
+            percentWidth,
+            variant,
+            border,
+            margin,
+            viewId,
+            soundEffect,
+            textColor,
+            textColorMonet,
+            altTextColor,
+            altTextColorMonet,
+            backgroundColor,
+            backgroundColorMonet,
+            shadowColor,
+            shadowColorMonet
+        )
 
         class AltText(
             displayText: String,
@@ -60,7 +91,33 @@ open class KeyDef(
             border: Border = Border.Default,
             margin: Boolean = true,
             viewId: Int = -1,
-        ) : Text(displayText, textSize, textStyle, percentWidth, variant, border, margin, viewId)
+            textColor: Int? = null,
+            textColorMonet: String? = null,
+            altTextColor: Int? = null,
+            altTextColorMonet: String? = null,
+            backgroundColor: Int? = null,
+            backgroundColorMonet: String? = null,
+            shadowColor: Int? = null,
+            shadowColorMonet: String? = null
+        ) : Text(
+            displayText,
+            textSize,
+            textStyle,
+            percentWidth,
+            variant,
+            border,
+            margin,
+            viewId,
+            InputFeedbacks.SoundEffect.Standard,
+            textColor,
+            textColorMonet,
+            altTextColor,
+            altTextColorMonet,
+            backgroundColor,
+            backgroundColorMonet,
+            shadowColor,
+            shadowColorMonet
+        )
 
         class Image(
             @DrawableRes
@@ -70,8 +127,31 @@ open class KeyDef(
             border: Border = Border.Default,
             margin: Boolean = true,
             viewId: Int = -1,
-            soundEffect: InputFeedbacks.SoundEffect = InputFeedbacks.SoundEffect.Standard
-        ) : Appearance(percentWidth, variant, border, margin, viewId, soundEffect)
+            soundEffect: InputFeedbacks.SoundEffect = InputFeedbacks.SoundEffect.Standard,
+            textColor: Int? = null,
+            textColorMonet: String? = null,
+            altTextColor: Int? = null,
+            altTextColorMonet: String? = null,
+            backgroundColor: Int? = null,
+            backgroundColorMonet: String? = null,
+            shadowColor: Int? = null,
+            shadowColorMonet: String? = null
+        ) : Appearance(
+            percentWidth,
+            variant,
+            border,
+            margin,
+            viewId,
+            soundEffect,
+            textColor,
+            textColorMonet,
+            altTextColor,
+            altTextColorMonet,
+            backgroundColor,
+            backgroundColorMonet,
+            shadowColor,
+            shadowColorMonet
+        )
 
         class ImageText(
             displayText: String,
@@ -87,8 +167,34 @@ open class KeyDef(
             variant: Variant = Variant.Normal,
             border: Border = Border.Default,
             margin: Boolean = true,
-            viewId: Int = -1
-        ) : Text(displayText, textSize, textStyle, percentWidth, variant, border, margin, viewId)
+            viewId: Int = -1,
+            textColor: Int? = null,
+            textColorMonet: String? = null,
+            altTextColor: Int? = null,
+            altTextColorMonet: String? = null,
+            backgroundColor: Int? = null,
+            backgroundColorMonet: String? = null,
+            shadowColor: Int? = null,
+            shadowColorMonet: String? = null
+        ) : Text(
+            displayText,
+            textSize,
+            textStyle,
+            percentWidth,
+            variant,
+            border,
+            margin,
+            viewId,
+            InputFeedbacks.SoundEffect.Standard,
+            textColor,
+            textColorMonet,
+            altTextColor,
+            altTextColorMonet,
+            backgroundColor,
+            backgroundColorMonet,
+            shadowColor,
+            shadowColorMonet
+        )
     }
 
     sealed class Behavior {

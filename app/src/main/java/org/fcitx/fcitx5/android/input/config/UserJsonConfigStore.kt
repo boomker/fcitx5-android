@@ -54,7 +54,7 @@ object UserJsonConfigStore {
      *
      * @param json The in-memory JSON object
      * @param stripLineComments Whether to strip line comments (not applicable for in-memory JSON)
-     * @return JsonSnapshot with a synthetic lastModified time (current timestamp)
+     * @return JsonSnapshot with a synthetic lastModified time
      */
     inline fun <reified T> readJson(
         json: JsonObject?,
@@ -63,7 +63,7 @@ object UserJsonConfigStore {
         if (json == null) return null
         return try {
             val decoded = parser.decodeFromJsonElement<T>(json)
-            JsonSnapshot(decoded, System.currentTimeMillis(), null)
+            JsonSnapshot(decoded, System.nanoTime(), null)
         } catch (exception: Exception) {
             exception.printStackTrace()
             null

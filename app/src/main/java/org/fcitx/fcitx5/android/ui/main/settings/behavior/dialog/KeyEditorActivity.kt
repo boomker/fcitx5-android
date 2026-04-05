@@ -10,6 +10,7 @@ import android.os.Bundle
 import android.view.Gravity
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -28,7 +29,13 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
 import kotlinx.serialization.json.JsonObject
 import org.fcitx.fcitx5.android.R
+import org.fcitx.fcitx5.android.data.theme.SystemColorResourceId
+import org.fcitx.fcitx5.android.data.theme.ThemeManager
+import org.fcitx.fcitx5.android.data.theme.ThemeMonet
 import org.fcitx.fcitx5.android.ui.main.settings.behavior.utils.LayoutJsonUtils
+import org.fcitx.fcitx5.android.ui.main.settings.theme.SystemColorResourcePickerDialog
+import org.fcitx.fcitx5.android.ui.main.settings.theme.ThemeColorEditorActivity
+import org.fcitx.fcitx5.android.utils.DeviceUtil
 import org.fcitx.fcitx5.android.utils.serializable
 import splitties.dimensions.dp
 import splitties.resources.styledColor
@@ -39,6 +46,14 @@ import java.io.Serializable
 import java.util.Arrays
 
 class KeyEditorActivity : AppCompatActivity() {
+
+    private data class EditableColorField(
+        val customKey: String,
+        val monetKey: String,
+        val labelRes: Int,
+        val themeColorGetter: (org.fcitx.fcitx5.android.data.theme.Theme) -> Int,
+        val supportedTypes: Set<String>? = null
+    )
 
     private val toolbar by lazy {
         Toolbar(this).apply {
@@ -117,6 +132,33 @@ class KeyEditorActivity : AppCompatActivity() {
     private var saveMenuItem: MenuItem? = null
     private var deleteMenuItem: MenuItem? = null
     private var baselineKeySnapshot: String = ""
+    private val editableColorFields = listOf(
+        EditableColorField(
+            customKey = "textColor",
+            monetKey = "textColorMonet",
+            labelRes = R.string.text_keyboard_layout_key_text_color,
+            themeColorGetter = { it.keyTextColor }
+        ),
+        EditableColorField(
+            customKey = "altTextColor",
+            monetKey = "altTextColorMonet",
+            labelRes = R.string.text_keyboard_layout_key_alt_text_color,
+            themeColorGetter = { it.altKeyTextColor },
+            supportedTypes = setOf("AlphabetKey", "MacroKey")
+        ),
+        EditableColorField(
+            customKey = "backgroundColor",
+            monetKey = "backgroundColorMonet",
+            labelRes = R.string.text_keyboard_layout_key_background_color,
+            themeColorGetter = { it.keyBackgroundColor }
+        ),
+        EditableColorField(
+            customKey = "shadowColor",
+            monetKey = "shadowColorMonet",
+            labelRes = R.string.text_keyboard_layout_key_shadow_color,
+            themeColorGetter = { it.keyShadowColor }
+        )
+    )
 
     private val macroEditorLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -124,6 +166,16 @@ class KeyEditorActivity : AppCompatActivity() {
             if (result.resultCode != RESULT_OK) return@registerForActivityResult
             val steps = data.serializable<ArrayList<Map<*, *>>>(MacroEditorActivity.EXTRA_MACRO_RESULT) ?: return@registerForActivityResult
             macroEditCallback?.invoke(steps.map { it as Any })
+        }
+
+    private val colorEditorLauncher =
+        registerForActivityResult(ThemeColorEditorActivity.Contract()) { result ->
+            result ?: return@registerForActivityResult
+            val field = editableColorFields.firstOrNull { it.customKey == result.fieldName } ?: return@registerForActivityResult
+            keyData[field.customKey] = result.color
+            keyData.remove(field.monetKey)
+            rebuildFields()
+            updateActionButtonState()
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -445,8 +497,194 @@ class KeyEditorActivity : AppCompatActivity() {
             }
         }
 
+        renderColorEditors()
         attachFieldWatchers(fieldsContainer)
         updateActionButtonState()
+    }
+
+    private fun renderColorEditors() {
+        val theme = ThemeManager.activeTheme
+        availableColorFields().forEach { field ->
+            val title = getString(field.labelRes)
+            val customColor = parseColorInt(keyData[field.customKey])
+            val monetName = keyData[field.monetKey] as? String
+            val modeText = when {
+                monetName != null -> formatMonetResourceName(monetName)
+                customColor != null -> formatAndroidColorCode(customColor)
+                else -> getString(R.string.text_keyboard_layout_key_color_mode_theme)
+            }
+            val resolvedColor = resolveMonetColor(monetName) ?: customColor ?: field.themeColorGetter(theme)
+
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(0, dp(8), 0, dp(8))
+                background = resources.getDrawable(android.R.drawable.list_selector_background, null)
+                setOnClickListener { showColorFieldOptions(field) }
+                isClickable = true
+                isFocusable = true
+
+                addView(
+                    TextView(this@KeyEditorActivity).apply {
+                        text = title
+                        textSize = 13f
+                        setTextColor(styledColor(android.R.attr.textColorSecondary))
+                    },
+                    LinearLayout.LayoutParams(dp(96), LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                        rightMargin = dp(8)
+                    }
+                )
+
+                addView(
+                    LinearLayout(this@KeyEditorActivity).apply {
+                        orientation = LinearLayout.HORIZONTAL
+                        gravity = Gravity.END or Gravity.CENTER_VERTICAL
+
+                        addView(
+                            TextView(this@KeyEditorActivity).apply {
+                                text = modeText
+                                textSize = 13f
+                                setTextColor(styledColor(android.R.attr.textColorPrimary))
+                            },
+                            LinearLayout.LayoutParams(
+                                LinearLayout.LayoutParams.WRAP_CONTENT,
+                                LinearLayout.LayoutParams.WRAP_CONTENT
+                            ).apply {
+                                rightMargin = dp(8)
+                            }
+                        )
+
+                        addView(
+                            View(this@KeyEditorActivity).apply {
+                                background = android.graphics.drawable.GradientDrawable().apply {
+                                    shape = android.graphics.drawable.GradientDrawable.RECTANGLE
+                                    cornerRadius = dp(4).toFloat()
+                                    setColor(resolvedColor)
+                                }
+                            },
+                            LinearLayout.LayoutParams(dp(20), dp(20))
+                        )
+                    },
+                    LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                        weight = 1f
+                    }
+                )
+            }
+
+            fieldsContainer.addView(
+                row,
+                LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+            )
+        }
+    }
+
+    private fun showColorFieldOptions(field: EditableColorField) {
+        val supportsMonet = ThemeMonet.supportsCustomMappingEditor(this)
+        val options = mutableListOf(
+            getString(R.string.text_keyboard_layout_key_color_mode_theme),
+            getString(R.string.text_keyboard_layout_key_color_mode_custom)
+        )
+        if (supportsMonet) {
+            options += getString(R.string.text_keyboard_layout_key_color_mode_monet_pick)
+        }
+        AlertDialog.Builder(this)
+            .setTitle(field.labelRes)
+            .setItems(options.toTypedArray()) { _, which ->
+                when (options[which]) {
+                    getString(R.string.text_keyboard_layout_key_color_mode_theme) -> {
+                        keyData.remove(field.customKey)
+                        keyData.remove(field.monetKey)
+                        rebuildFields()
+                        updateActionButtonState()
+                    }
+                    getString(R.string.text_keyboard_layout_key_color_mode_custom) -> {
+                        openCustomColorEditor(field)
+                    }
+                    getString(R.string.text_keyboard_layout_key_color_mode_monet_pick) -> {
+                        openMonetColorPicker(field)
+                    }
+                }
+            }
+            .show()
+    }
+
+    private fun openCustomColorEditor(field: EditableColorField) {
+        val theme = ThemeManager.activeTheme
+        val current = parseColorInt(keyData[field.customKey]) ?: field.themeColorGetter(theme)
+        if (DeviceUtil.isHMOS) {
+            colorEditorLauncher.launch(
+                ThemeColorEditorActivity.EditorInput(
+                    fieldName = field.customKey,
+                    titleRes = field.labelRes,
+                    initialColor = current
+                )
+            )
+            return
+        }
+        colorEditorLauncher.launch(
+            ThemeColorEditorActivity.EditorInput(
+                fieldName = field.customKey,
+                titleRes = field.labelRes,
+                initialColor = current
+            )
+        )
+    }
+
+    private fun openMonetColorPicker(field: EditableColorField) {
+        if (!ThemeMonet.supportsCustomMappingEditor(this)) {
+            Toast.makeText(this, R.string.text_keyboard_layout_key_color_monet_unavailable, Toast.LENGTH_SHORT).show()
+            return
+        }
+        val available = SystemColorResourceId.getAvailableForSdk(Build.VERSION.SDK_INT)
+        val current = (keyData[field.monetKey] as? String)?.let(SystemColorResourceId::fromResourceName)
+            ?: available.firstOrNull()
+            ?: return
+        SystemColorResourcePickerDialog.show(
+            this,
+            current,
+            object : SystemColorResourcePickerDialog.OnColorResourceSelectedListener {
+                override fun onColorResourceSelected(resourceId: SystemColorResourceId) {
+                    keyData[field.monetKey] = resourceId.resourceId
+                    keyData.remove(field.customKey)
+                    rebuildFields()
+                    updateActionButtonState()
+                }
+            }
+        )
+    }
+
+    private fun resolveMonetColor(resourceName: String?): Int? {
+        val name = resourceName?.takeIf { it.isNotBlank() } ?: return null
+        val colorResId = resources.getIdentifier(name, "color", "android")
+        if (colorResId == 0) return null
+        return runCatching { getColor(colorResId) }.getOrNull()
+    }
+
+    private fun formatMonetResourceName(resourceName: String): String {
+        return resourceName.removePrefix("system_").replace("_", " ")
+    }
+
+    private fun formatAndroidColorCode(color: Int): String {
+        return String.format("#%08X", color)
+    }
+
+    private fun parseColorInt(value: Any?): Int? {
+        return when (value) {
+            is Int -> value
+            is Number -> value.toInt()
+            is String -> {
+                val raw = value.trim()
+                when {
+                    raw.startsWith("#") -> raw.removePrefix("#").toLongOrNull(16)?.toInt()
+                    raw.startsWith("0x", ignoreCase = true) -> raw.removePrefix("0x").toLongOrNull(16)?.toInt()
+                    else -> raw.toLongOrNull()?.toInt()
+                }
+            }
+            else -> null
+        }
     }
 
     private fun attachFieldWatchers(root: android.view.View) {
@@ -567,6 +805,8 @@ class KeyEditorActivity : AppCompatActivity() {
             }
         }
 
+        appendColorOverrides(draft)
+
         return draft
     }
 
@@ -623,7 +863,10 @@ class KeyEditorActivity : AppCompatActivity() {
             textSize = 12f
             setTextColor(styledColor(android.R.attr.textColorSecondary))
             setPadding(dp(8), dp(8), dp(8), dp(8))
-            layoutParams = LinearLayout.LayoutParams(matchParent, wrapContent).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
                 topMargin = dp(4)
             }
         }
@@ -937,7 +1180,26 @@ class KeyEditorActivity : AppCompatActivity() {
             }
         }
 
+        appendColorOverrides(newKey)
+
         return newKey
+    }
+
+    private fun appendColorOverrides(target: MutableMap<String, Any?>) {
+        availableColorFields().forEach { field ->
+            val monet = (keyData[field.monetKey] as? String)?.takeIf { it.isNotBlank() }
+            if (monet != null) {
+                target[field.monetKey] = monet
+            } else {
+                parseColorInt(keyData[field.customKey])?.let { target[field.customKey] = it }
+            }
+        }
+    }
+
+    private fun availableColorFields(): List<EditableColorField> {
+        return editableColorFields.filter { field ->
+            field.supportedTypes?.contains(selectedType) ?: true
+        }
     }
 
     private fun parseWeight(text: String?): Float? {

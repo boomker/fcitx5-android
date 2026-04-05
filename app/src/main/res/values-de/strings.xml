@@ -218,6 +218,15 @@
     <string name="text_keyboard_layout_key_label">Beschriftung</string>
     <string name="text_keyboard_layout_key_sub_label">Unterbeschriftung</string>
     <string name="text_keyboard_layout_key_weight">Gewichtungsbreite</string>
+    <string name="text_keyboard_layout_key_text_color">Textfarbe</string>
+    <string name="text_keyboard_layout_key_alt_text_color">Sekundäre Textfarbe</string>
+    <string name="text_keyboard_layout_key_background_color">Hintergrundfarbe</string>
+    <string name="text_keyboard_layout_key_shadow_color">Schattenfarbe</string>
+    <string name="text_keyboard_layout_key_color_mode_theme">Dem Design folgen</string>
+    <string name="text_keyboard_layout_key_color_mode_custom">Benutzerdefinierte Farbe</string>
+    <string name="text_keyboard_layout_key_color_mode_monet">Monet (%1$s)</string>
+    <string name="text_keyboard_layout_key_color_mode_monet_pick">Monet-Dynamikfarbe</string>
+    <string name="text_keyboard_layout_key_color_monet_unavailable">Monet-Dynamikfarbe nicht verfügbar</string>
     <string name="text_keyboard_layout_layout_name">Layoutname</string>
     <string name="text_keyboard_layout_layout_name_hint">z. B.: rime, pinyin</string>
     <string name="text_keyboard_layout_copy_from">Aus bestehendem Layout kopieren</string>

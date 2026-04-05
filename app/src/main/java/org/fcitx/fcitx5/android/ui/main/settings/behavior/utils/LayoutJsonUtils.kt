@@ -80,6 +80,25 @@ object LayoutJsonUtils {
         }
     }
 
+    fun parseOptionalInt(element: JsonElement?): Int? {
+        val primitive = element as? JsonPrimitive ?: return null
+        if (primitive is JsonNull) return null
+        return if (primitive.isString) {
+            primitive.content
+                .trim()
+                .takeUnless { it.isEmpty() || it.equals("null", ignoreCase = true) }
+                ?.let { raw ->
+                    when {
+                        raw.startsWith("#") -> raw.removePrefix("#").toLongOrNull(16)?.toInt()
+                        raw.startsWith("0x", ignoreCase = true) -> raw.removePrefix("0x").toLongOrNull(16)?.toInt()
+                        else -> raw.toLongOrNull()?.toInt()
+                    }
+                }
+        } else {
+            primitive.intOrNull ?: primitive.longOrNull?.toInt()
+        }
+    }
+
     /**
      * 解析 displayText 字段。
      *
@@ -138,6 +157,14 @@ object LayoutJsonUtils {
             altLabel = obj["altLabel"]?.jsonPrimitive?.content,
             subLabel = obj["subLabel"]?.jsonPrimitive?.content,
             weight = parseOptionalFloat(obj["weight"]),
+            textColor = parseOptionalInt(obj["textColor"]),
+            textColorMonet = obj["textColorMonet"]?.jsonPrimitive?.contentOrNull,
+            altTextColor = parseOptionalInt(obj["altTextColor"]),
+            altTextColorMonet = obj["altTextColorMonet"]?.jsonPrimitive?.contentOrNull,
+            backgroundColor = parseOptionalInt(obj["backgroundColor"]),
+            backgroundColorMonet = obj["backgroundColorMonet"]?.jsonPrimitive?.contentOrNull,
+            shadowColor = parseOptionalInt(obj["shadowColor"]),
+            shadowColorMonet = obj["shadowColorMonet"]?.jsonPrimitive?.contentOrNull,
             tap = obj["tap"]?.jsonObject?.let { parseMacroAction(it) },
             swipe = obj["swipe"]?.jsonObject?.let { parseMacroAction(it) },
             longPress = obj["longPress"]?.jsonObject?.let { parseMacroAction(it) }
@@ -264,14 +291,29 @@ object LayoutJsonUtils {
      * @return 规范化后的值
      */
     private fun normalizeKeyValue(key: String, value: Any?): Any? {
-        if (key != "weight") return value
+        if (key != "weight" &&
+            key != "textColor" &&
+            key != "altTextColor" &&
+            key != "backgroundColor" &&
+            key != "shadowColor"
+        ) return value
         return when (value) {
             null -> null
-            is Number -> value.toFloat()
+            is Number -> if (key == "weight") value.toFloat() else value.toInt()
             is String -> {
                 value.trim()
                     .takeUnless { it.isEmpty() || it.equals("null", ignoreCase = true) }
-                    ?.toFloatOrNull()
+                    ?.let {
+                        if (key == "weight") {
+                            it.toFloatOrNull()
+                        } else {
+                            when {
+                                it.startsWith("#") -> it.removePrefix("#").toLongOrNull(16)?.toInt()
+                                it.startsWith("0x", ignoreCase = true) -> it.removePrefix("0x").toLongOrNull(16)?.toInt()
+                                else -> it.toLongOrNull()?.toInt()
+                            }
+                        }
+                    }
             }
             else -> null
         }
@@ -327,6 +369,14 @@ object LayoutJsonUtils {
         val altLabel: String? = null,  // MacroKey 使用
         val subLabel: String? = null,  // LayoutSwitchKey 使用
         val weight: Float? = null,
+        val textColor: Int? = null,
+        val textColorMonet: String? = null,
+        val altTextColor: Int? = null,
+        val altTextColorMonet: String? = null,
+        val backgroundColor: Int? = null,
+        val backgroundColorMonet: String? = null,
+        val shadowColor: Int? = null,
+        val shadowColorMonet: String? = null,
         val tap: MacroAction? = null,  // MacroKey 使用
         val swipe: MacroAction? = null,  // MacroKey 使用
         val longPress: MacroAction? = null  // MacroKey 使用
@@ -355,6 +405,14 @@ object LayoutJsonUtils {
 
         val json = mutableMapOf<String, Any?>("type" to type)
         val appearance = keyDef.appearance
+        appearance.textColor?.let { json["textColor"] = it }
+        appearance.textColorMonet?.let { json["textColorMonet"] = it }
+        appearance.altTextColor?.let { json["altTextColor"] = it }
+        appearance.altTextColorMonet?.let { json["altTextColorMonet"] = it }
+        appearance.backgroundColor?.let { json["backgroundColor"] = it }
+        appearance.backgroundColorMonet?.let { json["backgroundColorMonet"] = it }
+        appearance.shadowColor?.let { json["shadowColor"] = it }
+        appearance.shadowColorMonet?.let { json["shadowColorMonet"] = it }
 
         when (keyDef) {
             is AlphabetKey -> {
@@ -484,36 +542,92 @@ object LayoutJsonUtils {
                     subModeName,
                     key.main ?: ""
                 ),
-                weight = key.weight
+                weight = key.weight,
+                textColor = key.textColor,
+                textColorMonet = key.textColorMonet,
+                altTextColor = key.altTextColor,
+                altTextColorMonet = key.altTextColorMonet,
+                backgroundColor = key.backgroundColor,
+                backgroundColorMonet = key.backgroundColorMonet,
+                shadowColor = key.shadowColor,
+                shadowColorMonet = key.shadowColorMonet
             )
             "CapsKey" -> CapsKey(
-                percentWidth = key.weight ?: 0.15f
+                percentWidth = key.weight ?: 0.15f,
+                textColor = key.textColor,
+                textColorMonet = key.textColorMonet,
+                backgroundColor = key.backgroundColor,
+                backgroundColorMonet = key.backgroundColorMonet,
+                shadowColor = key.shadowColor,
+                shadowColorMonet = key.shadowColorMonet
             )
             "LayoutSwitchKey" -> LayoutSwitchKey(
                 displayText = key.label ?: "?123",
                 to = key.subLabel ?: "",
-                percentWidth = key.weight ?: 0.15f
+                percentWidth = key.weight ?: 0.15f,
+                textColor = key.textColor,
+                textColorMonet = key.textColorMonet,
+                backgroundColor = key.backgroundColor,
+                backgroundColorMonet = key.backgroundColorMonet,
+                shadowColor = key.shadowColor,
+                shadowColorMonet = key.shadowColorMonet
             )
             "CommaKey" -> CommaKey(
                 percentWidth = key.weight ?: 0.1f,
-                variant = KeyDef.Appearance.Variant.Alternative
+                variant = KeyDef.Appearance.Variant.Alternative,
+                textColor = key.textColor,
+                textColorMonet = key.textColorMonet,
+                backgroundColor = key.backgroundColor,
+                backgroundColorMonet = key.backgroundColorMonet,
+                shadowColor = key.shadowColor,
+                shadowColorMonet = key.shadowColorMonet
             )
             "LanguageKey" -> LanguageKey(
-                percentWidth = key.weight ?: 0.1f
+                percentWidth = key.weight ?: 0.1f,
+                textColor = key.textColor,
+                textColorMonet = key.textColorMonet,
+                backgroundColor = key.backgroundColor,
+                backgroundColorMonet = key.backgroundColorMonet,
+                shadowColor = key.shadowColor,
+                shadowColorMonet = key.shadowColorMonet
             )
             "SpaceKey" -> SpaceKey(
-                percentWidth = key.weight ?: 0f
+                percentWidth = key.weight ?: 0f,
+                textColor = key.textColor,
+                textColorMonet = key.textColorMonet,
+                backgroundColor = key.backgroundColor,
+                backgroundColorMonet = key.backgroundColorMonet,
+                shadowColor = key.shadowColor,
+                shadowColorMonet = key.shadowColorMonet
             )
             "SymbolKey" -> SymbolKey(
                 symbol = key.label ?: ".",
                 percentWidth = key.weight ?: 0.1f,
-                variant = KeyDef.Appearance.Variant.Alternative
+                variant = KeyDef.Appearance.Variant.Alternative,
+                textColor = key.textColor,
+                textColorMonet = key.textColorMonet,
+                backgroundColor = key.backgroundColor,
+                backgroundColorMonet = key.backgroundColorMonet,
+                shadowColor = key.shadowColor,
+                shadowColorMonet = key.shadowColorMonet
             )
             "ReturnKey" -> ReturnKey(
-                percentWidth = key.weight ?: 0.15f
+                percentWidth = key.weight ?: 0.15f,
+                textColor = key.textColor,
+                textColorMonet = key.textColorMonet,
+                backgroundColor = key.backgroundColor,
+                backgroundColorMonet = key.backgroundColorMonet,
+                shadowColor = key.shadowColor,
+                shadowColorMonet = key.shadowColorMonet
             )
             "BackspaceKey" -> BackspaceKey(
-                percentWidth = key.weight ?: 0.15f
+                percentWidth = key.weight ?: 0.15f,
+                textColor = key.textColor,
+                textColorMonet = key.textColorMonet,
+                backgroundColor = key.backgroundColor,
+                backgroundColorMonet = key.backgroundColorMonet,
+                shadowColor = key.shadowColor,
+                shadowColorMonet = key.shadowColorMonet
             )
             "MacroKey" -> {
                 val tap = key.tap ?: throw IllegalArgumentException("MacroKey requires 'tap' action")
@@ -534,7 +648,15 @@ object LayoutJsonUtils {
                     tap = tap,
                     swipe = key.swipe,
                     longPress = key.longPress,
-                    percentWidth = key.weight ?: 0.1f
+                    percentWidth = key.weight ?: 0.1f,
+                    textColor = key.textColor,
+                    textColorMonet = key.textColorMonet,
+                    altTextColor = key.altTextColor,
+                    altTextColorMonet = key.altTextColorMonet,
+                    backgroundColor = key.backgroundColor,
+                    backgroundColorMonet = key.backgroundColorMonet,
+                    shadowColor = key.shadowColor,
+                    shadowColorMonet = key.shadowColorMonet
                 )
             }
             else -> SpaceKey() // Fallback
