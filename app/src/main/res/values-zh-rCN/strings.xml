@@ -3,8 +3,8 @@
     <string name="app_name">天鹅输入法</string>
     <string name="app_name_release">天鹅输入法</string>
     <string name="app_name_mainline_release">天鹅输入法</string>
-    <string name="app_name_mainline_debug">天鹅输入法 (调试)</string>
-    <string name="app_name_debug">天鹅输入法 (调试)</string>
+    <string name="app_name_mainline_debug">小天鹅输入法</string>
+    <string name="app_name_debug">小天鹅输入法</string>
     <string name="save">保存</string>
     <string name="input_methods">输入法</string>
     <string name="add_input_method">添加输入法</string>
@@ -357,6 +357,7 @@
     <string name="fontset_entry_candidate">候选字体</string>
     <string name="fontset_entry_popup_key">弹出按键字体</string>
     <string name="fontset_entry_preedit">预编辑字体</string>
+    <string name="fontset_entry_button_icon">按钮图标字体</string>
     <string name="fcitx_daemon">Fcitx 守护程序</string>
     <string name="restarting_fcitx">正在重新启动 Fcitx</string>
     <string name="plugin_needs_reload">检测到插件更改，点此重新加载</string>

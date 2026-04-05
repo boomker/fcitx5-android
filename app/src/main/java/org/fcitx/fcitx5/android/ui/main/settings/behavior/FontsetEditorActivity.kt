@@ -75,7 +75,8 @@ class FontsetEditorActivity : AppCompatActivity() {
         FontEntry("key_alt_font", R.string.fontset_entry_key_alt, "!@#（）", 10.67f),
         FontEntry("cand_font", R.string.fontset_entry_candidate, "候选词 Example", 20f),
         FontEntry("popup_key_font", R.string.fontset_entry_popup_key, "Popup 键", 18f),
-        FontEntry("preedit_font", R.string.fontset_entry_preedit, "预编辑 Preedit", 18f)
+        FontEntry("preedit_font", R.string.fontset_entry_preedit, "预编辑 Preedit", 18f),
+        FontEntry("button_icon_font", R.string.fontset_entry_button_icon, "⌨ ⚙ ✕", 20f)
     )
 
     private val selectedFonts: MutableMap<String, MutableList<String>> = mutableMapOf()

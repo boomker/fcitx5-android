@@ -368,6 +368,7 @@
     <string name="fontset_entry_candidate">Candidate Font</string>
     <string name="fontset_entry_popup_key">Popup Key Font</string>
     <string name="fontset_entry_preedit">Preedit Font</string>
+    <string name="fontset_entry_button_icon">Button Icon Font</string>
     <string name="font_size">Font Size</string>
     <string name="font_size_value">%1$d sp</string>
     <string name="font_size_editor_title">%1$s - Font Size</string>
