@@ -69,7 +69,7 @@ class IdleUi(
 
     val menuButton = ToolButton(ctx, R.drawable.ic_baseline_apps_24, theme)
 
-    val hideKeyboardButton = ToolButton(ctx, R.drawable.ic_baseline_arrow_drop_down_24, theme)
+    val hideKeyboardButton = ToolButton(ctx, R.drawable.ic_keyboard_hide_24, theme)
 
     val emptyBar = Space(ctx)
 
@@ -157,7 +157,7 @@ class IdleUi(
             hideKeyboardButton.setIcon(R.drawable.ic_baseline_keyboard_voice_24)
             hideKeyboardButton.contentDescription = ctx.getString(R.string.switch_to_voice_input)
         } else {
-            hideKeyboardButton.setIcon(R.drawable.ic_baseline_arrow_drop_down_24)
+            hideKeyboardButton.setIcon(R.drawable.ic_keyboard_hide_24)
             hideKeyboardButton.contentDescription = ctx.getString(R.string.hide_keyboard)
         }
         hideKeyboardButton.setOnClickListener(callback)
