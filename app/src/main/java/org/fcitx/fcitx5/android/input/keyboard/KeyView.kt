@@ -575,6 +575,8 @@ class AltTextKeyView(
 
     override fun updateTheme(newTheme: Theme) {
         super.updateTheme(newTheme)
+        lastLayoutMode = null
+        applyLayout(resources.configuration.orientation)
         altText.setTextColor(
             when (def.variant) {
                 Variant.Normal, Variant.AltForeground, Variant.Alternative -> newTheme.altKeyTextColor
