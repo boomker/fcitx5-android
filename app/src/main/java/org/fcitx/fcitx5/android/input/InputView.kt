@@ -1796,6 +1796,7 @@ class InputView(
         updateOneHandHandleVisibility()
         updateSplitBackgroundVisibility()
         kawaiiBar.setFloatingState(isEffectiveFloating)
+        updateKeyboardSize()
 
         kawaiiBar.onFloatingToggleListener = {
             // If currently in adjusting mode, exit adjusting mode; otherwise toggle floating mode
