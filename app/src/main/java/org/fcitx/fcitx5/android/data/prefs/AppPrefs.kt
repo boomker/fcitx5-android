@@ -171,7 +171,10 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
             switch(R.string.show_voice_input_button, "show_voice_input_button", false)
         val preferredVoiceInput = voiceInputPreference(
             R.string.preferred_voice_input, "preferred_voice_input", ""
-        ) { showVoiceInputButton.getValue() }
+        ) {
+            showVoiceInputButton.getValue() ||
+            spaceKeyLongPressBehavior.getValue() == SpaceLongPressBehavior.VoiceInput
+        }
 
         val expandKeypressArea =
             switch(R.string.expand_keypress_area, "expand_keypress_area", false)
