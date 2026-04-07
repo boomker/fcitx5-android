@@ -212,6 +212,9 @@ class InputView(
                 redrawRetryCount = 0
                 return
             }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                setRenderEffect(null)
+            }
 
             if (windowManager.currentWindowOrNull() is StatusAreaWindow) {
                 canvas.drawBitmap(bitmap, srcRect, dstRect, paint)
@@ -219,7 +222,6 @@ class InputView(
                 return
             }
 
-            keyViews.clear()
             if (keyRegionsDirty) {
                 rebuildKeyRegions()
             }
@@ -289,22 +291,32 @@ class InputView(
             windowManager.view.getLocationInWindow(containerLoc)
             val offsetX = windowManager.view.left
             val offsetY = windowManager.view.top
-            keyViews.forEach { key ->
-                if (!key.isShown) return@forEach
-                hasVisibleKey = true
-                if (key.width <= 0 || key.height <= 0) return@forEach
-                key.getLocationInWindow(keyLoc)
-                val relativeLeft = keyLoc[0] - containerLoc[0]
-                val relativeTop = keyLoc[1] - containerLoc[1]
-                clipRect.set(
-                    relativeLeft + key.hMargin,
-                    relativeTop + key.vMargin,
-                    relativeLeft + key.width - key.hMargin,
-                    relativeTop + key.height - key.vMargin
-                )
-                clipRect.offset(offsetX, offsetY)
-                if (!clipRect.intersect(0, 0, width, height)) return@forEach
-                keyClipRects.add(Rect(clipRect))
+            fun buildClipRects() {
+                hasVisibleKey = false
+                keyClipRects.clear()
+                keyViews.forEach { key ->
+                    if (!key.isShown) return@forEach
+                    hasVisibleKey = true
+                    if (key.width <= 0 || key.height <= 0) return@forEach
+                    key.getLocationInWindow(keyLoc)
+                    val relativeLeft = keyLoc[0] - containerLoc[0]
+                    val relativeTop = keyLoc[1] - containerLoc[1]
+                    clipRect.set(
+                        relativeLeft + key.hMargin,
+                        relativeTop + key.vMargin,
+                        relativeLeft + key.width - key.hMargin,
+                        relativeTop + key.height - key.vMargin
+                    )
+                    clipRect.offset(offsetX, offsetY)
+                    if (!clipRect.intersect(0, 0, width, height)) return@forEach
+                    keyClipRects.add(Rect(clipRect))
+                }
+            }
+            buildClipRects()
+            if (!hasVisibleKey && keyViews.isNotEmpty()) {
+                keyViews.clear()
+                collectVisibleKeys(windowManager.view, keyViews)
+                buildClipRects()
             }
         }
 
@@ -382,16 +394,17 @@ class InputView(
             keyBlurMaskView.setBlurBitmap(null)
             return
         }
+        val useGpuBlur = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !keyBorder
         blurUpdateJob = blurUpdateScope.launch {
             val bitmap = withContext(Dispatchers.Default) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                if (useGpuBlur) {
                     bg.loadBitmapForRendering()
                 } else {
                     bg.loadBlurredBitmapForRendering()
                 }
             }
             if (generation != blurUpdateGeneration) return@launch
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (useGpuBlur) {
                 keyBlurMaskView.setBlurBitmap(
                     bitmap = bitmap,
                     brightness = bg.brightness,

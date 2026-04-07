@@ -166,6 +166,9 @@ class KeyboardPreviewUi(override val ctx: Context, val theme: Theme) : Ui {
                 redrawRetryCount = 0
                 return
             }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                setRenderEffect(null)
+            }
 
             if (!this@KeyboardPreviewUi::fakeKeyboardWindow.isInitialized) return
             if (keyRegionsDirty) {
@@ -215,22 +218,32 @@ class KeyboardPreviewUi(override val ctx: Context, val theme: Theme) : Ui {
                 collectVisibleKeys(fakeKeyboardWindow, keyViews)
                 keyHierarchyDirty = false
             }
-            keyViews.forEach { key ->
-                if (!key.isShown) return@forEach
-                hasVisibleKey = true
-                if (key.width <= 0 || key.height <= 0) return@forEach
-                clipRect.set(0, 0, key.width, key.height)
-                fakeInputView.offsetDescendantRectToMyCoords(key, clipRect)
-                clipRect.offset(-left, -top)
-                clipRect.set(
-                    clipRect.left + key.hMargin,
-                    clipRect.top + key.vMargin,
-                    clipRect.right - key.hMargin,
-                    clipRect.bottom - key.vMargin
-                )
-                if (clipRect.width() <= 0 || clipRect.height() <= 0) return@forEach
-                if (!clipRect.intersect(0, 0, width, height)) return@forEach
-                keyClipRects.add(Rect(clipRect))
+            fun buildClipRects() {
+                hasVisibleKey = false
+                keyClipRects.clear()
+                keyViews.forEach { key ->
+                    if (!key.isShown) return@forEach
+                    hasVisibleKey = true
+                    if (key.width <= 0 || key.height <= 0) return@forEach
+                    clipRect.set(0, 0, key.width, key.height)
+                    fakeInputView.offsetDescendantRectToMyCoords(key, clipRect)
+                    clipRect.offset(-left, -top)
+                    clipRect.set(
+                        clipRect.left + key.hMargin,
+                        clipRect.top + key.vMargin,
+                        clipRect.right - key.hMargin,
+                        clipRect.bottom - key.vMargin
+                    )
+                    if (clipRect.width() <= 0 || clipRect.height() <= 0) return@forEach
+                    if (!clipRect.intersect(0, 0, width, height)) return@forEach
+                    keyClipRects.add(Rect(clipRect))
+                }
+            }
+            buildClipRects()
+            if (!hasVisibleKey && keyViews.isNotEmpty()) {
+                keyViews.clear()
+                collectVisibleKeys(fakeKeyboardWindow, keyViews)
+                buildClipRects()
             }
         }
 
@@ -275,7 +288,7 @@ class KeyboardPreviewUi(override val ctx: Context, val theme: Theme) : Ui {
             blurMaskView.setBlurBitmap(null)
             return
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !keyBorder) {
             blurMaskView.setBlurBitmap(
                 bitmap = sourceBitmap,
                 brightness = brightness,
@@ -294,7 +307,7 @@ class KeyboardPreviewUi(override val ctx: Context, val theme: Theme) : Ui {
             blurMaskView.setBlurBitmap(null)
             return
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !keyBorder) {
             blurMaskView.setBlurBitmap(
                 bitmap = bg.loadBitmapForRendering(),
                 brightness = bg.brightness,
