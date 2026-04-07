@@ -52,7 +52,8 @@
       "Bash(./gradlew installDebug:*)",
       "Bash(./gradlew :app:assembleFxDebug:*)",
       "Bash(./gradlew :app:assembleDebug)",
-      "Bash(git commit -m ':*)"
+      "Bash(git commit -m ':*)",
+      "Bash(claude mcp:*)"
     ]
   }
 }
