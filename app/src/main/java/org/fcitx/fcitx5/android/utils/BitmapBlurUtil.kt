@@ -4,6 +4,7 @@
  */
 package org.fcitx.fcitx5.android.utils
 
+import android.app.ActivityManager
 import android.graphics.Bitmap
 import android.os.Build
 import androidx.collection.LruCache
@@ -36,7 +37,7 @@ object BitmapBlurUtil {
         if (radius <= 0f) return source
 
         val intRadius = radius.toInt().coerceIn(1, 25)
-        val cacheKey = "blur_${source.width}x${source.height}_$intRadius"
+        val cacheKey = "blur_${System.identityHashCode(source)}_${source.generationId}_${source.width}x${source.height}_$intRadius"
         cache.get(cacheKey)?.let { cached ->
             if (!cached.isRecycled) return cached
         }
@@ -64,11 +65,7 @@ object BitmapBlurUtil {
 
         // Software fallback: downscale for performance, then stack blur
         return try {
-            val scale = when {
-                intRadius >= 15 -> 4
-                intRadius >= 8 -> 2
-                else -> 1
-            }
+            val scale = computeDownsampleScale(source.width, source.height, intRadius)
 
             val workingBitmap = if (scale > 1) {
                 Bitmap.createScaledBitmap(
@@ -98,6 +95,30 @@ object BitmapBlurUtil {
             Timber.w(e, "Failed to blur bitmap, returning original")
             source
         }
+    }
+
+    private fun computeDownsampleScale(width: Int, height: Int, radius: Int): Int {
+        val pixels = width.toLong() * height.toLong()
+        var scale = when {
+            radius >= 15 -> 4
+            radius >= 8 -> 2
+            else -> 1
+        }
+
+        val am = appContext.getSystemService(ActivityManager::class.java)
+        val isLowRam = am?.isLowRamDevice == true
+        val memoryClass = am?.memoryClass ?: 256
+        val cpuCores = Runtime.getRuntime().availableProcessors()
+
+        if (pixels >= 1_200_000L) scale = maxOf(scale, 2)
+        if (pixels >= 3_000_000L) scale = maxOf(scale, 3)
+        if (isLowRam || memoryClass <= 192) {
+            scale = maxOf(scale, if (pixels >= 1_200_000L) 4 else 2)
+        }
+        if (cpuCores <= 4 && pixels >= 1_200_000L) {
+            scale = maxOf(scale, 3)
+        }
+        return scale.coerceIn(1, 6)
     }
 
     /**

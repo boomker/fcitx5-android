@@ -12,7 +12,10 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Rect
+import android.graphics.RenderEffect
+import android.graphics.Shader
 import android.graphics.drawable.Drawable
+import android.os.Build
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
@@ -119,18 +122,37 @@ class KeyboardPreviewUi(override val ctx: Context, val theme: Theme) : Ui {
         private var blurBitmap: Bitmap? = null
         private var redrawRetryCount = 0
         private var keyRegionsDirty = true
+        private var keyHierarchyDirty = true
         private var hasVisibleKey = false
 
-        fun setBlurBitmap(bitmap: Bitmap?, brightness: Int = 70) {
+        fun setBlurBitmap(
+            bitmap: Bitmap?,
+            brightness: Int = 70,
+            blurRadius: Float = 0f,
+            useRenderEffect: Boolean = false
+        ) {
             blurBitmap = bitmap
             paint.colorFilter = bitmap?.let { DarkenColorFilter(100 - brightness) }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                setRenderEffect(
+                    if (useRenderEffect && bitmap != null && blurRadius > 0f) {
+                        RenderEffect.createBlurEffect(blurRadius, blurRadius, Shader.TileMode.CLAMP)
+                    } else {
+                        null
+                    }
+                )
+            }
             visibility = if (bitmap == null) View.GONE else View.VISIBLE
             keyRegionsDirty = true
+            keyHierarchyDirty = true
             invalidate()
         }
 
-        fun markKeyRegionsDirty() {
+        fun markKeyRegionsDirty(hierarchyChanged: Boolean = false) {
             keyRegionsDirty = true
+            if (hierarchyChanged) {
+                keyHierarchyDirty = true
+            }
         }
 
         override fun onDraw(canvas: Canvas) {
@@ -188,8 +210,11 @@ class KeyboardPreviewUi(override val ctx: Context, val theme: Theme) : Ui {
             keyRegionsDirty = false
             hasVisibleKey = false
             keyClipRects.clear()
-            keyViews.clear()
-            collectVisibleKeys(fakeKeyboardWindow, keyViews)
+            if (keyHierarchyDirty) {
+                keyViews.clear()
+                collectVisibleKeys(fakeKeyboardWindow, keyViews)
+                keyHierarchyDirty = false
+            }
             keyViews.forEach { key ->
                 if (!key.isShown) return@forEach
                 hasVisibleKey = true
@@ -250,7 +275,16 @@ class KeyboardPreviewUi(override val ctx: Context, val theme: Theme) : Ui {
             blurMaskView.setBlurBitmap(null)
             return
         }
-        blurMaskView.setBlurBitmap(BitmapBlurUtil.blur(sourceBitmap, blurRadius), brightness)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            blurMaskView.setBlurBitmap(
+                bitmap = sourceBitmap,
+                brightness = brightness,
+                blurRadius = blurRadius,
+                useRenderEffect = true
+            )
+        } else {
+            blurMaskView.setBlurBitmap(BitmapBlurUtil.blur(sourceBitmap, blurRadius), brightness)
+        }
     }
 
     private fun applyBlurMaskFromTheme(theme: Theme) {
@@ -260,7 +294,16 @@ class KeyboardPreviewUi(override val ctx: Context, val theme: Theme) : Ui {
             blurMaskView.setBlurBitmap(null)
             return
         }
-        applyBlurMaskFromBitmap(bg.loadBitmapForRendering(), bg.blurRadius, bg.brightness)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            blurMaskView.setBlurBitmap(
+                bitmap = bg.loadBitmapForRendering(),
+                brightness = bg.brightness,
+                blurRadius = bg.blurRadius,
+                useRenderEffect = true
+            )
+        } else {
+            blurMaskView.setBlurBitmap(bg.loadBlurredBitmapForRendering(), bg.brightness)
+        }
     }
 
     private val fakeInputView = constraintLayout {
@@ -420,12 +463,12 @@ class KeyboardPreviewUi(override val ctx: Context, val theme: Theme) : Ui {
                 }
                 fakeKeyboardWindow.setOnHierarchyChangeListener(object : ViewGroup.OnHierarchyChangeListener {
                     override fun onChildViewAdded(parent: View?, child: View?) {
-                        blurMaskView.markKeyRegionsDirty()
+                        blurMaskView.markKeyRegionsDirty(hierarchyChanged = true)
                         blurMaskView.invalidate()
                     }
 
                     override fun onChildViewRemoved(parent: View?, child: View?) {
-                        blurMaskView.markKeyRegionsDirty()
+                        blurMaskView.markKeyRegionsDirty(hierarchyChanged = true)
                         blurMaskView.invalidate()
                     }
                 })

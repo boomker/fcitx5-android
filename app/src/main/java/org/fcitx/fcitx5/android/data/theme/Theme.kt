@@ -130,22 +130,23 @@ sealed class Theme : Parcelable {
              * Load bitmap with optional blur
              */
             fun toBlurredDrawable(): Drawable? {
-                val bitmap = loadBitmapForRendering() ?: return null
-                
-                return if (blurRadius > 0f) {
-                    val blurred = BackgroundBlurBitmapCache.getOrPut(blurCacheKey()) {
-                        BitmapBlurUtil.blur(bitmap, blurRadius)
-                    }
-                    BitmapDrawable(appContext.resources, blurred).apply {
-                        colorFilter = DarkenColorFilter(100 - brightness)
-                    }
-                } else {
-                    BitmapDrawable(appContext.resources, bitmap).apply {
-                        colorFilter = DarkenColorFilter(100 - brightness)
-                    }
+                val bitmap = loadBlurredBitmapForRendering() ?: return null
+                return BitmapDrawable(appContext.resources, bitmap).apply {
+                    colorFilter = DarkenColorFilter(100 - brightness)
                 }
             }
-            
+
+            fun loadBlurredBitmapForRendering(): android.graphics.Bitmap? {
+                val bitmap = loadBitmapForRendering() ?: return null
+                return if (blurRadius > 0f) {
+                    BackgroundBlurBitmapCache.getOrPut(blurCacheKey()) {
+                        BitmapBlurUtil.blur(bitmap, blurRadius)
+                    }
+                } else {
+                    bitmap
+                }
+            }
+
             fun loadBitmapForRendering(): android.graphics.Bitmap? {
                 // Try direct path first (absolute path)
                 val cropped = File(croppedFilePath)

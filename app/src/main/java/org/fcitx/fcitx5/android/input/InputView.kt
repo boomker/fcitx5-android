@@ -13,6 +13,8 @@ import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.LayerDrawable
 import android.graphics.Paint
+import android.graphics.RenderEffect
+import android.graphics.Shader
 import androidx.core.content.ContextCompat
 import android.graphics.Outline
 import android.graphics.drawable.ColorDrawable
@@ -45,7 +47,6 @@ import org.fcitx.fcitx5.android.data.theme.ThemeManager
 import org.fcitx.fcitx5.android.data.theme.ThemeMonet
 import org.fcitx.fcitx5.android.data.theme.ThemePreset
 import org.fcitx.fcitx5.android.input.bar.KawaiiBarComponent
-import org.fcitx.fcitx5.android.utils.BitmapBlurUtil
 import org.fcitx.fcitx5.android.utils.DarkenColorFilter
 import org.fcitx.fcitx5.android.input.config.ConfigChangeListener
 import org.fcitx.fcitx5.android.input.config.ConfigProviders
@@ -72,6 +73,13 @@ import android.view.MotionEvent
 import androidx.constraintlayout.widget.ConstraintLayout
 import org.fcitx.fcitx5.android.input.wm.InputWindowManager
 import org.fcitx.fcitx5.android.utils.unset
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 import org.mechdancer.dependency.DynamicScope
 import org.mechdancer.dependency.manager.wrapToUniqueComponent
@@ -157,19 +165,40 @@ class InputView(
         private var blurBitmap: Bitmap? = null
         private var redrawRetryCount = 0
         private var keyRegionsDirty = true
+        private var keyHierarchyDirty = true
         private var hasVisibleKey = false
 
-        fun setBlurBitmap(bitmap: Bitmap?, brightness: Int = 70) {
+        fun setBlurBitmap(
+            bitmap: Bitmap?,
+            brightness: Int = 70,
+            blurRadius: Float = 0f,
+            useRenderEffect: Boolean = false
+        ) {
             blurBitmap = bitmap
             paint.colorFilter = bitmap?.let { DarkenColorFilter(100 - brightness) }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                setRenderEffect(
+                    if (useRenderEffect && bitmap != null && blurRadius > 0f) {
+                        RenderEffect.createBlurEffect(blurRadius, blurRadius, Shader.TileMode.CLAMP)
+                    } else {
+                        null
+                    }
+                )
+            }
             visibility = if (bitmap == null) GONE else VISIBLE
             keyRegionsDirty = true
+            keyHierarchyDirty = true
             invalidate()
         }
 
-        fun markKeyRegionsDirty() {
+        fun markKeyRegionsDirty(hierarchyChanged: Boolean = false) {
             keyRegionsDirty = true
+            if (hierarchyChanged) {
+                keyHierarchyDirty = true
+            }
         }
+
+        fun hasBlurBitmap() = blurBitmap != null
 
         override fun onDraw(canvas: Canvas) {
             val bitmap = blurBitmap ?: return
@@ -252,8 +281,11 @@ class InputView(
             keyRegionsDirty = false
             hasVisibleKey = false
             keyClipRects.clear()
-            keyViews.clear()
-            collectVisibleKeys(windowManager.view, keyViews)
+            if (keyHierarchyDirty) {
+                keyViews.clear()
+                collectVisibleKeys(windowManager.view, keyViews)
+                keyHierarchyDirty = false
+            }
             windowManager.view.getLocationInWindow(containerLoc)
             val offsetX = windowManager.view.left
             val offsetY = windowManager.view.top
@@ -333,7 +365,14 @@ class InputView(
         }
     }
 
+    private val blurUpdateScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private var blurUpdateJob: Job? = null
+    private var blurUpdateGeneration = 0
+
     private fun updateBlurMaskThemeData() {
+        blurUpdateGeneration++
+        val generation = blurUpdateGeneration
+        blurUpdateJob?.cancel()
         val customTheme = theme as? Theme.Custom ?: run {
             keyBlurMaskView.setBlurBitmap(null)
             return
@@ -343,33 +382,57 @@ class InputView(
             keyBlurMaskView.setBlurBitmap(null)
             return
         }
-        val source = bg.loadBitmapForRendering()
-        if (source == null) {
-            keyBlurMaskView.setBlurBitmap(null)
-            return
+        blurUpdateJob = blurUpdateScope.launch {
+            val bitmap = withContext(Dispatchers.Default) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    bg.loadBitmapForRendering()
+                } else {
+                    bg.loadBlurredBitmapForRendering()
+                }
+            }
+            if (generation != blurUpdateGeneration) return@launch
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                keyBlurMaskView.setBlurBitmap(
+                    bitmap = bitmap,
+                    brightness = bg.brightness,
+                    blurRadius = bg.blurRadius,
+                    useRenderEffect = true
+                )
+            } else {
+                keyBlurMaskView.setBlurBitmap(bitmap, bg.brightness)
+            }
+            refreshKeyboardBounds()
         }
-        val blurred = BitmapBlurUtil.blur(source, bg.blurRadius)
-        keyBlurMaskView.setBlurBitmap(blurred, bg.brightness)
     }
 
     private fun refreshKeyboardBounds() {
+        if (!keyBlurMaskView.hasBlurBitmap()) return
         keyboardWindow.updateBounds()
         keyBlurMaskView.markKeyRegionsDirty()
         keyBlurMaskView.invalidate()
     }
 
-    fun requestBlurRefresh(retryFrames: Int = 1) {
-        refreshKeyboardBounds()
-        if (retryFrames > 0) {
-            postBlurRefreshRetries(retryFrames)
-        }
-    }
+    private var blurRefreshScheduled = false
+    private var blurRefreshRemainingFrames = 0
 
-    private fun postBlurRefreshRetries(remaining: Int) {
-        post {
+    fun requestBlurRefresh(retryFrames: Int = 1) {
+        if (!keyBlurMaskView.hasBlurBitmap()) return
+        blurRefreshRemainingFrames = maxOf(blurRefreshRemainingFrames, retryFrames)
+        if (blurRefreshScheduled) return
+        blurRefreshScheduled = true
+        postOnAnimation {
+            blurRefreshScheduled = false
+            if (!keyBlurMaskView.hasBlurBitmap()) {
+                blurRefreshRemainingFrames = 0
+                return@postOnAnimation
+            }
             refreshKeyboardBounds()
-            if (remaining > 1) {
-                postBlurRefreshRetries(remaining - 1)
+            val remaining = blurRefreshRemainingFrames
+            if (remaining > 0) {
+                blurRefreshRemainingFrames = remaining - 1
+                requestBlurRefresh(0)
+            } else {
+                blurRefreshRemainingFrames = 0
             }
         }
     }
@@ -901,13 +964,7 @@ class InputView(
     }
 
     private fun syncKeyboardBoundsAfterLayout() {
-        refreshKeyboardBounds()
-        keyboardView.post {
-            refreshKeyboardBounds()
-            keyboardView.post {
-                refreshKeyboardBounds()
-            }
-        }
+        requestBlurRefresh(retryFrames = 2)
     }
 
     private fun switchOneHandSide() {
@@ -1982,12 +2039,12 @@ class InputView(
         }
         windowManager.view.setOnHierarchyChangeListener(object : ViewGroup.OnHierarchyChangeListener {
             override fun onChildViewAdded(parent: View?, child: View?) {
-                keyBlurMaskView.markKeyRegionsDirty()
+                keyBlurMaskView.markKeyRegionsDirty(hierarchyChanged = true)
                 keyBlurMaskView.invalidate()
             }
 
             override fun onChildViewRemoved(parent: View?, child: View?) {
-                keyBlurMaskView.markKeyRegionsDirty()
+                keyBlurMaskView.markKeyRegionsDirty(hierarchyChanged = true)
                 keyBlurMaskView.invalidate()
             }
         })
@@ -2379,6 +2436,8 @@ class InputView(
     override fun onDetachedFromWindow() {
         keyboardPrefs.unregisterOnChangeListener(onKeyboardSizeChangeListener)
         ConfigProviders.removeButtonsLayoutListener(onButtonsLayoutChangeListener)
+        blurUpdateJob?.cancel()
+        blurUpdateScope.cancel()
         // clear DynamicScope, implies that InputView should not be attached again after detached.
         scope.clear()
         super.onDetachedFromWindow()
