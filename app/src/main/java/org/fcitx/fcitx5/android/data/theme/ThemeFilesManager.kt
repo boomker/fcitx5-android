@@ -25,9 +25,70 @@ object ThemeFilesManager {
 
     fun newCustomBackgroundImages(): Triple<String, File, File> {
         val themeName = UUID.randomUUID().toString()
-        val croppedImageFile = File(dir, "$themeName-cropped.png")
-        val srcImageFile = File(dir, "$themeName-src")
+        val folder = File(dir, safeThemePathComponent(themeName)).also { it.mkdirs() }
+        val fileBase = safeThemePathComponent(themeName)
+        val croppedImageFile = File(folder, "$fileBase-cropped.png")
+        val srcImageFile = File(folder, "$fileBase-src")
         return Triple(themeName, croppedImageFile, srcImageFile)
+    }
+
+    fun alignBackgroundAssetsWithThemeName(theme: Theme.Custom): Theme.Custom {
+        val bg = theme.backgroundImage ?: return theme
+        val appFilesDir = appContext.getExternalFilesDir(null) ?: return theme
+        val themeDir = File(appFilesDir, "theme")
+        val srcFile = resolveImagePath(bg.srcFilePath, appFilesDir, themeDir)
+        val croppedFile = resolveImagePath(bg.croppedFilePath, appFilesDir, themeDir)
+
+        val fileBase = safeThemePathComponent(theme.name)
+        val targetDir = File(dir, fileBase).also { it.mkdirs() }
+        val srcExt = srcFile.extension.takeIf { it.isNotEmpty() }
+        val targetSrc = File(targetDir, buildString {
+            append(fileBase)
+            append("-src")
+            if (srcExt != null) {
+                append('.')
+                append(srcExt)
+            }
+        })
+        val targetCropped = File(targetDir, "$fileBase-cropped.png")
+
+        moveOrCopyFile(croppedFile, targetCropped)
+        moveOrCopyFile(srcFile, targetSrc)
+        cleanupEmptyParents(croppedFile.parentFile)
+        cleanupEmptyParents(srcFile.parentFile)
+
+        return theme.copy(
+            backgroundImage = bg.copy(
+                croppedFilePath = targetCropped.absolutePath,
+                srcFilePath = targetSrc.absolutePath
+            )
+        )
+    }
+
+    private fun moveOrCopyFile(source: File, target: File) {
+        if (source.absolutePath == target.absolutePath) return
+        if (!source.exists()) return
+        target.parentFile?.mkdirs()
+        source.copyTo(target, overwrite = true)
+        source.delete()
+    }
+
+    private fun cleanupEmptyParents(start: File?) {
+        var current = start
+        while (current != null && current != dir) {
+            val files = current.listFiles()
+            if (files != null && files.isEmpty()) {
+                if (!current.delete()) break
+            } else {
+                break
+            }
+            current = current.parentFile
+        }
+    }
+
+    private fun safeThemePathComponent(name: String): String {
+        val trimmed = name.trim().ifEmpty { "theme" }
+        return trimmed.replace(Regex("""[\\/:*?"<>|\u0000-\u001F]"""), "_")
     }
 
     fun saveThemeFiles(theme: Theme.Custom) {

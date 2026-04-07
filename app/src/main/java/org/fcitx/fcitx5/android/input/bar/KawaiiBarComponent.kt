@@ -607,10 +607,12 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
             }
             else -> {}
         }
+        service.inputView?.requestBlurRefresh()
     }
 
     override fun onWindowDetached(window: InputWindow) {
         barStateMachine.push(WindowDetached)
+        service.inputView?.requestBlurRefresh()
     }
 
     private val suggestionSize by lazy {

@@ -10,8 +10,10 @@ import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
 import android.os.Parcelable
+import android.util.LruCache
 import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.Serializable
+import org.fcitx.fcitx5.android.utils.BitmapBlurUtil
 import org.fcitx.fcitx5.android.utils.DarkenColorFilter
 import org.fcitx.fcitx5.android.utils.RectSerializer
 import org.fcitx.fcitx5.android.utils.alpha
@@ -20,6 +22,22 @@ import java.io.File
 
 @Serializable
 sealed class Theme : Parcelable {
+
+    private object BackgroundBlurBitmapCache {
+        private val cache = object : LruCache<String, android.graphics.Bitmap>(16 * 1024) {
+            override fun sizeOf(key: String, value: android.graphics.Bitmap): Int =
+                value.byteCount / 1024
+        }
+
+        fun getOrPut(key: String, producer: () -> android.graphics.Bitmap): android.graphics.Bitmap {
+            synchronized(cache) {
+                cache.get(key)?.let { return it }
+                val value = producer()
+                cache.put(key, value)
+                return value
+            }
+        }
+    }
 
     abstract val name: String
     abstract val isDark: Boolean
@@ -97,21 +115,46 @@ sealed class Theme : Parcelable {
             val srcFilePath: String,
             val brightness: Int = 70,
             val cropRect: @Serializable(RectSerializer::class) Rect?,
-            val cropRotation: Int = 0
+            val cropRotation: Int = 0,
+            val blurRadius: Float = 0f // 0 = no blur, 1-25 = blur radius
         ) : Parcelable {
             fun toDrawable(): Drawable? {
+                return loadBitmapForRendering()?.let { bitmap ->
+                    BitmapDrawable(appContext.resources, bitmap).apply {
+                        colorFilter = DarkenColorFilter(100 - brightness)
+                    }
+                }
+            }
+            
+            /**
+             * Load bitmap with optional blur
+             */
+            fun toBlurredDrawable(): Drawable? {
+                val bitmap = loadBitmapForRendering() ?: return null
+                
+                return if (blurRadius > 0f) {
+                    val blurred = BackgroundBlurBitmapCache.getOrPut(blurCacheKey()) {
+                        BitmapBlurUtil.blur(bitmap, blurRadius)
+                    }
+                    BitmapDrawable(appContext.resources, blurred).apply {
+                        colorFilter = DarkenColorFilter(100 - brightness)
+                    }
+                } else {
+                    BitmapDrawable(appContext.resources, bitmap).apply {
+                        colorFilter = DarkenColorFilter(100 - brightness)
+                    }
+                }
+            }
+            
+            fun loadBitmapForRendering(): android.graphics.Bitmap? {
                 // Try direct path first (absolute path)
                 val cropped = File(croppedFilePath)
                 if (cropped.exists()) {
                     return runCatching {
-                        BitmapFactory.decodeStream(cropped.inputStream())?.let { bitmap ->
-                            BitmapDrawable(appContext.resources, bitmap).apply {
-                                colorFilter = DarkenColorFilter(100 - brightness)
-                            }
-                        }
+                        BitmapFactory.decodeStream(cropped.inputStream())
                     }.getOrNull()
                 }
-                
+
                 // Try relative to theme directory
                 return runCatching {
                     val appFilesDir = appContext.getExternalFilesDir(null)
@@ -120,21 +163,45 @@ sealed class Theme : Parcelable {
                         val relativeFile = File(themeDir, croppedFilePath)
                         if (relativeFile.exists()) {
                             relativeFile.inputStream().use { stream ->
-                                BitmapFactory.decodeStream(stream)?.let { bitmap ->
-                                    return@runCatching BitmapDrawable(appContext.resources, bitmap).apply {
-                                        colorFilter = DarkenColorFilter(100 - brightness)
-                                    }
-                                }
+                                return@runCatching BitmapFactory.decodeStream(stream)
                             }
                         }
                     }
                     null
                 }.getOrNull()
             }
+
+            private fun blurCacheKey(): String {
+                val file = File(croppedFilePath)
+                val mtime = file.takeIf { it.exists() }?.lastModified() ?: 0L
+                return "$croppedFilePath|$blurRadius|$mtime"
+            }
         }
 
         override fun backgroundDrawable(keyBorder: Boolean): Drawable {
             return backgroundImage?.toDrawable() ?: super.backgroundDrawable(keyBorder)
+        }
+        
+        /**
+         * Get background drawable with optional blur effect.
+         * Only applies blur when:
+         * 1. Background image exists
+         * 2. blurRadius > 0
+         * 3. Key background color is semi-transparent
+         */
+        fun blurredBackgroundDrawable(keyBorder: Boolean, enableBlur: Boolean = false): Drawable {
+            if (!enableBlur) return backgroundDrawable(keyBorder)
+            
+            return backgroundImage?.toBlurredDrawable() ?: super.backgroundDrawable(keyBorder)
+        }
+        
+        /**
+         * Check if blur effect should be applied.
+         * Returns true when background image exists and blurRadius > 0.
+         */
+        fun shouldApplyBlur(): Boolean {
+            val bg = backgroundImage ?: return false
+            return bg.blurRadius > 0f
         }
 
     }
@@ -251,7 +318,8 @@ sealed class Theme : Parcelable {
             originBackgroundImage: String,
             brightness: Int = 70,
             cropBackgroundRect: Rect? = null,
-            cropBackgroundRotation: Int = 0
+            cropBackgroundRotation: Int = 0,
+            blurRadius: Float = 10f // Default blur for frosted glass effect
         ) = Custom(
             name,
             isDark,
@@ -260,7 +328,8 @@ sealed class Theme : Parcelable {
                 originBackgroundImage,
                 brightness,
                 cropBackgroundRect,
-                cropBackgroundRotation
+                cropBackgroundRotation,
+                blurRadius
             ),
             backgroundColor,
             barColor,

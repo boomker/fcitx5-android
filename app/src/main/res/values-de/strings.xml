@@ -413,6 +413,9 @@
     <string name="theme_import_overwrite_title">Theme existiert bereits</string>
     <string name="theme_import_overwrite_message">Das Theme \"%1$s\" existiert bereits. Überschreiben?</string>
     <string name="theme_imported_from_qr">Theme importiert und gespeichert.</string>
+    <string name="background_blur_radius">Hintergrund-Unschärferadius</string>
+    <string name="blur_preview">Unschärfevorschau</string>
+    <string name="no_blur">Keine Unschärfe</string>
 
     <!-- Monet Theme Editor -->
     <string name="monet_editor_title">Monet-Theme bearbeiten</string>

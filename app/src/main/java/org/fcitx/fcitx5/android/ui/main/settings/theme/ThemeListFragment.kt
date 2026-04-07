@@ -91,10 +91,29 @@ class ThemeListFragment : Fragment() {
                     val oldName = result.oldName
                     val theme = result.theme
                     themeListAdapter.replaceTheme(oldName, theme)
+                    val followSystem = ThemeManager.prefs.followSystemDayNightTheme.getValue()
+                    val wasNormalTheme = ThemeManager.prefs.normalModeTheme.getValue().name == oldName
+                    val wasLightTheme = ThemeManager.prefs.lightModeTheme.getValue().name == oldName
+                    val wasDarkTheme = ThemeManager.prefs.darkModeTheme.getValue().name == oldName
+                    ThemeManager.saveTheme(theme)
                     if (oldName != theme.name) {
+                        if (wasLightTheme) {
+                            ThemeManager.prefs.lightModeTheme.setValue(theme)
+                        }
+                        if (wasDarkTheme) {
+                            ThemeManager.prefs.darkModeTheme.setValue(theme)
+                        }
+                        if (wasNormalTheme) {
+                            if (followSystem) {
+                                ThemeManager.prefs.normalModeTheme.setValue(theme)
+                            } else {
+                                ThemeManager.setNormalModeTheme(theme)
+                            }
+                        }
+                        // Save new theme first so old-theme cleanup can see shared background files
+                        // and avoid deleting images still referenced by the renamed theme.
                         ThemeManager.deleteTheme(oldName)
                     }
-                    ThemeManager.saveTheme(theme)
                 }
             }
         }

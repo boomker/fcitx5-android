@@ -370,6 +370,9 @@
     <string name="theme_import_overwrite_title">El tema ya existe</string>
     <string name="theme_import_overwrite_message">El tema \"%1$s\" ya existe. ¿Sobrescribirlo?</string>
     <string name="theme_imported_from_qr">Tema importado y guardado.</string>
+    <string name="background_blur_radius">Radio de desenfoque de fondo</string>
+    <string name="blur_preview">Vista previa de desenfoque</string>
+    <string name="no_blur">Sin desenfoque</string>
 
     <!-- Monet Theme Editor -->
     <string name="monet_editor_title">Editar tema Monet</string>

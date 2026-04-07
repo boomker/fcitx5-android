@@ -588,6 +588,9 @@
     <string name="theme_import_overwrite_title">主題已存在</string>
     <string name="theme_import_overwrite_message">主題「%1$s」已存在，是否覆蓋？</string>
     <string name="theme_imported_from_qr">主題已匯入並保存。</string>
+    <string name="background_blur_radius">背景模糊半徑</string>
+    <string name="blur_preview">模糊預覽</string>
+    <string name="no_blur">無模糊</string>
 
     <!-- Monet Theme Editor -->
     <string name="monet_editor_title">編輯 Monet 主題</string>

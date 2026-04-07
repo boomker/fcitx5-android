@@ -855,6 +855,28 @@ abstract class BaseKeyboard(
         }
     }
 
+    fun keyBoundsInKeyboard(): List<Rect> {
+        if (!::keyRows.isInitialized) return emptyList()
+        updateBounds()
+        val result = ArrayList<Rect>(48)
+        keyRows.forEach { row ->
+            row.children.forEach { child ->
+                val key = child as? KeyView ?: return@forEach
+                key.updateBounds()
+                val rect = Rect(key.bounds)
+                rect.offset(-bounds.left, -bounds.top)
+                // Exclude key outer margins so only actual key area gets blur
+                // and keep inter-key gaps/side-bottom paddings unblurred.
+                if (key.hMargin > 0 || key.vMargin > 0) {
+                    rect.inset(key.hMargin, key.vMargin)
+                }
+                if (rect.width() <= 0 || rect.height() <= 0) return@forEach
+                result.add(rect)
+            }
+        }
+        return result
+    }
+
     private fun findTargetChild(x: Float, y: Float): View? {
         val y0 = y.roundToInt()
         val x1 = x.roundToInt() + bounds.left
