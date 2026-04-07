@@ -151,6 +151,10 @@ class PopupComponent :
             ?: PopupPreset[keyboard.label]
             ?: EmojiModifier.produceSkinTones(keyboard.label)
             ?: return
+        if (keys.isEmpty()) {
+            dismissPopup(viewId)
+            return
+        }
         // clear popup preview text         OR create empty popup preview
         showingEntryUi[viewId]?.setText("") ?: showPopup(viewId, "", bounds)
         reallyShowKeyboard(viewId, keys, bounds)
@@ -178,6 +182,10 @@ class PopupComponent :
     }
 
     private fun showMenu(viewId: Int, menu: KeyDef.Popup.Menu, bounds: Rect) {
+        if (menu.items.isEmpty()) {
+            dismissPopup(viewId)
+            return
+        }
         showingEntryUi[viewId]?.let {
             dismissPopupEntry(viewId, it)
         }

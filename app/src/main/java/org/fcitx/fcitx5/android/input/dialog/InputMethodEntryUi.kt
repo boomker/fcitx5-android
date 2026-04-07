@@ -5,6 +5,7 @@
 package org.fcitx.fcitx5.android.input.dialog
 
 import android.content.Context
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
@@ -14,27 +15,48 @@ import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.core.graphics.ColorUtils
 import androidx.core.widget.TextViewCompat
+import org.fcitx.fcitx5.android.utils.alpha
 import splitties.dimensions.dp
 import splitties.resources.resolveThemeAttribute
 import splitties.resources.styledColor
 import splitties.views.dsl.core.Ui
-import splitties.views.backgroundColor
 
 class InputMethodEntryUi(override val ctx: Context) : Ui {
+    private val activatedBgColor = ctx.styledColor(android.R.attr.colorControlActivated)
+    private val activatedTextColor = if (ColorUtils.calculateLuminance(activatedBgColor) > 0.5) {
+        Color.BLACK
+    } else {
+        Color.WHITE
+    }
+
     val title = TextView(ctx).apply {
         textSize = 16f
         maxLines = 1
         ellipsize = TextUtils.TruncateAt.END
         TextViewCompat.setTextAppearance(this, ctx.resolveThemeAttribute(android.R.attr.textAppearanceListItem))
+        val defaultColor = currentTextColor
+        setTextColor(
+            ColorStateList(
+                arrayOf(intArrayOf(android.R.attr.state_activated), intArrayOf()),
+                intArrayOf(activatedTextColor, defaultColor)
+            )
+        )
     }
 
     val subtitle = TextView(ctx).apply {
         textSize = 12f
         maxLines = 1
         ellipsize = TextUtils.TruncateAt.END
-        alpha = 0.76f
         TextViewCompat.setTextAppearance(this, ctx.resolveThemeAttribute(android.R.attr.textAppearanceSmall))
+        val defaultColor = currentTextColor
+        setTextColor(
+            ColorStateList(
+                arrayOf(intArrayOf(android.R.attr.state_activated), intArrayOf()),
+                intArrayOf(activatedTextColor.alpha(0.74f), defaultColor)
+            )
+        )
     }
 
     override val root = LinearLayout(ctx).apply {
@@ -47,7 +69,7 @@ class InputMethodEntryUi(override val ctx: Context) : Ui {
                 intArrayOf(android.R.attr.state_activated),
                 GradientDrawable().apply {
                     cornerRadius = dp(8).toFloat()
-                    setColor(styledColor(android.R.attr.colorControlActivated))
+                    setColor(activatedBgColor)
                 }
             )
             addState(
@@ -74,5 +96,11 @@ class InputMethodEntryUi(override val ctx: Context) : Ui {
                 })
             }
         )
+    }
+
+    fun setActivated(activated: Boolean) {
+        root.isActivated = activated
+        title.isActivated = activated
+        subtitle.isActivated = activated
     }
 }

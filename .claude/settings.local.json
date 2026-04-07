@@ -51,7 +51,8 @@
       "Bash(adb install:*)",
       "Bash(./gradlew installDebug:*)",
       "Bash(./gradlew :app:assembleFxDebug:*)",
-      "Bash(./gradlew :app:assembleDebug)"
+      "Bash(./gradlew :app:assembleDebug)",
+      "Bash(git commit -m ':*)"
     ]
   }
 }

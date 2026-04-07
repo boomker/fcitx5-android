@@ -9,12 +9,14 @@ import android.graphics.Rect
 import android.graphics.drawable.Drawable
 import android.view.View
 import androidx.recyclerview.widget.RecyclerView
+import splitties.dimensions.dp
 import splitties.resources.styledDimenPxSize
 import kotlin.math.max
 
 class SingleDividerDecoration(val drawable: Drawable, val index: Int) : RecyclerView.ItemDecoration() {
 
     private val dividerHeight = max(drawable.intrinsicHeight, 1)
+    private val dividerGap = 4
 
     override fun getItemOffsets(
         outRect: Rect,
@@ -22,20 +24,27 @@ class SingleDividerDecoration(val drawable: Drawable, val index: Int) : Recycler
         parent: RecyclerView,
         state: RecyclerView.State
     ) {
+        if (index < 0) {
+            outRect.set(0, 0, 0, 0)
+            return
+        }
         val position = parent.getChildAdapterPosition(view)
         if (position != index) {
             outRect.set(0, 0, 0, 0)
         } else {
-            outRect.set(0, dividerHeight, 0, 0)
+            outRect.set(0, dividerHeight + parent.dp(dividerGap), 0, 0)
         }
     }
 
     override fun onDraw(c: Canvas, parent: RecyclerView, state: RecyclerView.State) {
+        if (index < 0) return
         val view = parent.findViewHolderForAdapterPosition(index)?.itemView ?: return
         drawable.apply {
             val l = parent.styledDimenPxSize(android.R.attr.listPreferredItemPaddingStart)
             val r = parent.styledDimenPxSize(android.R.attr.listPreferredItemPaddingEnd)
-            setBounds(view.left + l, view.top - dividerHeight, view.right - r, view.top)
+            val gapHalf = parent.dp(dividerGap) / 2
+            val dividerBottom = view.top - gapHalf
+            setBounds(view.left + l, dividerBottom - dividerHeight, view.right - r, dividerBottom)
             draw(c)
         }
     }
