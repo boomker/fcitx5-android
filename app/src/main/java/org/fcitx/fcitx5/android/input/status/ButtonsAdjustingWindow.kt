@@ -6,9 +6,11 @@ package org.fcitx.fcitx5.android.input.status
 
 import android.content.ClipData
 import android.content.res.Configuration
+import android.graphics.Rect
 import android.view.DragEvent
 import android.view.Gravity
 import android.view.HapticFeedbackConstants
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.DecelerateInterpolator
@@ -29,8 +31,10 @@ import org.fcitx.fcitx5.android.data.theme.ThemeManager
 import org.fcitx.fcitx5.android.input.FcitxInputMethodService
 import org.fcitx.fcitx5.android.input.action.ButtonAction
 import org.fcitx.fcitx5.android.input.bar.KawaiiBarComponent
+import org.fcitx.fcitx5.android.input.bar.ui.IconFont
 import org.fcitx.fcitx5.android.input.bar.ui.ToolButton
 import org.fcitx.fcitx5.android.input.config.ButtonsLayoutConfig
+import org.fcitx.fcitx5.android.input.font.FontProviders
 import org.fcitx.fcitx5.android.input.config.ConfigProviders
 import org.fcitx.fcitx5.android.input.config.ConfigurableButton
 import org.fcitx.fcitx5.android.input.dependency.inputMethodService
@@ -68,6 +72,15 @@ data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjust
     private var originalTop = listOf<ConfigurableButton>()
     private var originalBottom = listOf<ConfigurableButton>()
     private var dragInProgress = false
+    internal val isDragInProgress: Boolean
+        get() = dragInProgress
+
+    // Touch-based drag state
+    private var draggingPayload: DragPayload? = null
+    private var activePointerId: Int = MotionEvent.INVALID_POINTER_ID
+    private var initialDownX: Float = 0f
+    private var initialDownY: Float = 0f
+
     private var indicatorSection: Section? = null
     private var indicatorIndex: Int = -1
     private var lastKnownOrientation = Configuration.ORIENTATION_UNDEFINED
@@ -119,12 +132,19 @@ data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjust
                 context.dp(KawaiiBarComponent.HEIGHT),
                 context.dp(KawaiiBarComponent.HEIGHT)
             )
-            setOnClickListener { service.inputView?.hideButtonsAdjustingOverlay() }
+            // Use force hide to bypass drag guard - explicit user exit should always work
+            setOnClickListener { service.inputView?.forceHideButtonsAdjustingOverlay() }
         }
     }
 
     private val moreButton by lazy {
-        ToolButton(context, R.drawable.ic_baseline_arrow_drop_down_24, currentTheme).apply {
+        val button = ToolButton(context, R.drawable.ic_baseline_arrow_drop_down_24, currentTheme)
+        // Use icon font if configured
+        val typeface = FontProviders.resolveTypeface("button_icon_font", null)
+        if (typeface != null) {
+            button.setIconText(IconFont.KEYBOARD_CLOSE)
+        }
+        button.apply {
             layoutParams = LinearLayout.LayoutParams(
                 context.dp(KawaiiBarComponent.HEIGHT),
                 context.dp(KawaiiBarComponent.HEIGHT)
@@ -207,6 +227,10 @@ data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjust
         override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
             val ui = holder.itemView as StatusButtonUi
             val theme = outer.currentTheme
+            // Clear any existing listeners first
+            ui.setOnLongClickListener(null)
+            ui.isLongClickable = false
+
             if (position < list.size) {
                 val button = list[position]
                 val action = ButtonAction.fromId(button.id)
@@ -215,29 +239,79 @@ data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjust
                     ?: action?.let { holder.itemView.context.getString(it.defaultLabelRes) }
                     ?: button.id
                 ui.bind(icon, label, disabled = false, theme = theme)
-                ui.setOnLongClickListener {
-                    it.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                    it.animate()
+                // Enable long click and set listener
+                ui.isLongClickable = true
+                ui.setOnLongClickListener(View.OnLongClickListener { view ->
+                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                    // Set drag state immediately
+                    outer.dragInProgress = true
+                    outer.draggingPayload = DragPayload(section, position, view)
+                    view.animate()
                         .alpha(0.72f)
                         .scaleX(0.97f)
                         .scaleY(0.97f)
                         .setDuration(DRAG_FEEDBACK_DURATION_MS)
                         .setInterpolator(feedbackInterpolator)
                         .start()
-                    val payload = DragPayload(section, position, it)
-                    it.startDragAndDrop(
-                        ClipData.newPlainText("button", section.name.lowercase()),
-                        View.DragShadowBuilder(it),
-                        payload,
-                        0
-                    )
+                    // Prevent parent from intercepting touch events during drag
+                    view.parent?.requestDisallowInterceptTouchEvent(true)
+                    // Notify drag started state (clear previous indicator)
+                    outer.setDragTargetState(topActive = false, bottomActive = false, availableActive = false)
+                    outer.updateInsertionIndicator(section, position)
+                    true
+                })
+                // Touch listener starts from ACTION_DOWN to track active pointer
+                ui.setOnTouchListener { view, event ->
+                    when (event.actionMasked) {
+                        MotionEvent.ACTION_DOWN -> {
+                            // Record active pointer info
+                            outer.activePointerId = event.getPointerId(0)
+                            outer.initialDownX = event.rawX
+                            outer.initialDownY = event.rawY
+                            // Don't handle yet, let long press be detected first
+                            false
+                        }
+                        MotionEvent.ACTION_MOVE -> {
+                            if (!outer.dragInProgress) {
+                                false
+                            } else {
+                                // Find the index of our active pointer
+                                val pointerIndex = event.findPointerIndex(outer.activePointerId)
+                                if (pointerIndex < 0) {
+                                    // Pointer no longer valid, end drag
+                                    outer.handleDragEnd()
+                                    outer.activePointerId = MotionEvent.INVALID_POINTER_ID
+                                    true
+                                } else {
+                                    // Convert to screen coordinates using view location
+                                    val location = IntArray(2)
+                                    view.getLocationOnScreen(location)
+                                    outer.handleDragMove(
+                                        location[0] + event.getX(pointerIndex),
+                                        location[1] + event.getY(pointerIndex)
+                                    )
+                                    true
+                                }
+                            }
+                        }
+                        MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                            if (!outer.dragInProgress) {
+                                false
+                            } else {
+                                outer.handleDragEnd()
+                                outer.activePointerId = MotionEvent.INVALID_POINTER_ID
+                                view.parent?.requestDisallowInterceptTouchEvent(false)
+                                true
+                            }
+                        }
+                        else -> false
+                    }
                 }
             } else {
                 val action = ButtonAction.fromId("input_method_options")
                 val icon = action?.defaultIcon ?: R.drawable.ic_baseline_language_24
                 val label = action?.let { holder.itemView.context.getString(it.defaultLabelRes) } ?: "IME"
                 ui.bind(icon, label, disabled = true, theme = theme)
-                ui.setOnLongClickListener(null)
             }
         }
     }
@@ -291,22 +365,68 @@ data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjust
                 }
                 minimumWidth = minWidth
                 image.scaleType = ImageView.ScaleType.CENTER_INSIDE
-                setOnLongClickListener {
-                    it.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                    it.animate()
+                setOnLongClickListener(View.OnLongClickListener { view ->
+                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                    // Set drag state immediately
+                    dragInProgress = true
+                    draggingPayload = DragPayload(Section.Top, index, view)
+                    view.animate()
                         .alpha(0.72f)
                         .scaleX(0.97f)
                         .scaleY(0.97f)
                         .setDuration(DRAG_FEEDBACK_DURATION_MS)
                         .setInterpolator(feedbackInterpolator)
                         .start()
-                    val payload = DragPayload(Section.Top, index, it)
-                    it.startDragAndDrop(
-                        ClipData.newPlainText("button", "top"),
-                        View.DragShadowBuilder(it),
-                        payload,
-                        0
-                    )
+                    // Prevent parent from intercepting touch events during drag
+                    view.parent?.requestDisallowInterceptTouchEvent(true)
+                    // Notify drag started state (clear previous indicator)
+                    setDragTargetState(topActive = false, bottomActive = false, availableActive = false)
+                    updateInsertionIndicator(Section.Top, index)
+                    true
+                })
+                // Touch listener starts from ACTION_DOWN to track active pointer
+                setOnTouchListener { view, event ->
+                    when (event.actionMasked) {
+                        MotionEvent.ACTION_DOWN -> {
+                            // Record active pointer info
+                            activePointerId = event.getPointerId(0)
+                            initialDownX = event.rawX
+                            initialDownY = event.rawY
+                            // Don't handle yet, let long press be detected first
+                            false
+                        }
+                        MotionEvent.ACTION_MOVE -> {
+                            if (!dragInProgress) {
+                                false
+                            } else {
+                                // Find the index of our active pointer
+                                val pointerIndex = event.findPointerIndex(activePointerId)
+                                if (pointerIndex < 0) {
+                                    // Pointer no longer valid, end drag
+                                    handleDragEnd()
+                                    activePointerId = MotionEvent.INVALID_POINTER_ID
+                                    true
+                                } else {
+                                    // Get screen coordinates using view location
+                                    val location = IntArray(2)
+                                    view.getLocationOnScreen(location)
+                                    handleDragMove(location[0] + event.getX(pointerIndex), location[1] + event.getY(pointerIndex))
+                                    true
+                                }
+                            }
+                        }
+                        MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                            if (!dragInProgress) {
+                                false
+                            } else {
+                                handleDragEnd()
+                                activePointerId = MotionEvent.INVALID_POINTER_ID
+                                view.parent?.requestDisallowInterceptTouchEvent(false)
+                                true
+                            }
+                        }
+                        else -> false
+                    }
                 }
             }
             topContainer.addView(view)
@@ -322,6 +442,7 @@ data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjust
             minimumWidth = minWidth
             image.scaleType = ImageView.ScaleType.CENTER_INSIDE
             alpha = 1f
+            visibility = View.GONE  // Hide per user request
         }
         topContainer.addView(topMore)
         topContainer.layoutParams = FrameLayout.LayoutParams(
@@ -502,73 +623,6 @@ data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjust
         indicatorIndex = -1
     }
 
-    private val dragListener = View.OnDragListener { v, event ->
-        val payload = event.localState as? DragPayload ?: return@OnDragListener true
-        when (event.action) {
-            DragEvent.ACTION_DRAG_STARTED -> {
-                dragInProgress = true
-                setDragTargetState(topActive = false, bottomActive = false, availableActive = false)
-                updateInsertionIndicator(payload.section, payload.index)
-            }
-
-            DragEvent.ACTION_DRAG_ENTERED -> {
-                when (v) {
-                    topScroller -> setDragTargetState(topActive = true, bottomActive = false, availableActive = false)
-                    bottomList -> setDragTargetState(topActive = false, bottomActive = true, availableActive = false)
-                    availableList -> setDragTargetState(topActive = false, bottomActive = false, availableActive = true)
-                }
-            }
-
-            DragEvent.ACTION_DRAG_EXITED -> {
-                setDragTargetState(topActive = false, bottomActive = false, availableActive = false)
-            }
-
-            DragEvent.ACTION_DRAG_LOCATION -> {
-                val index = when (v) {
-                    topScroller -> findTopInsertIndex(event.x)
-                    bottomList -> findRecyclerInsertIndex(bottomList, bottomButtons.size, event.x, event.y)
-                    availableList -> findRecyclerInsertIndex(availableList, availableButtons.size, event.x, event.y)
-                    else -> payload.index
-                }
-                when (v) {
-                    topScroller -> updateInsertionIndicator(Section.Top, index)
-                    bottomList -> updateInsertionIndicator(Section.Bottom, index)
-                    availableList -> updateInsertionIndicator(Section.Available, index)
-                    else -> {}
-                }
-                val changed = when (v) {
-                    topScroller -> move(payload, Section.Top, index)
-                    bottomList -> move(payload, Section.Bottom, index)
-                    availableList -> move(payload, Section.Available, index)
-                    else -> false
-                }
-                if (changed) {
-                    v.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
-                }
-            }
-
-            DragEvent.ACTION_DROP -> {
-                // Final drop is already previewed during ACTION_DRAG_LOCATION.
-                setDragTargetState(topActive = false, bottomActive = false, availableActive = false)
-                clearInsertionIndicator()
-            }
-
-            DragEvent.ACTION_DRAG_ENDED -> {
-                dragInProgress = false
-                setDragTargetState(topActive = false, bottomActive = false, availableActive = false)
-                clearInsertionIndicator()
-                payload.sourceView.animate()
-                    .alpha(1f)
-                    .scaleX(1f)
-                    .scaleY(1f)
-                    .setDuration(DRAG_END_DURATION_MS)
-                    .setInterpolator(feedbackInterpolator)
-                    .start()
-            }
-        }
-        true
-    }
-
     private fun loadState() {
         val config = ConfigProviders.readButtonsLayoutConfig<ButtonsLayoutConfig>()?.value
             ?: ButtonsLayoutConfig.default()
@@ -596,6 +650,25 @@ data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjust
         }
         originalTop = topButtons.toList()
         originalBottom = bottomButtons.toList()
+    }
+
+    private fun cleanupDragState(sourceView: View? = null) {
+        dragInProgress = false
+        // Clear dragging payload state
+        val viewToRestore = sourceView ?: draggingPayload?.sourceView
+        draggingPayload = null
+        setDragTargetState(topActive = false, bottomActive = false, availableActive = false)
+        clearInsertionIndicator()
+        // Restore view animation
+        viewToRestore?.animate()
+            ?.alpha(1f)
+            ?.scaleX(1f)
+            ?.scaleY(1f)
+            ?.setDuration(DRAG_END_DURATION_MS)
+            ?.setInterpolator(feedbackInterpolator)
+            ?.start()
+        // Restore parent's ability to intercept touch events (safety net)
+        viewToRestore?.parent?.requestDisallowInterceptTouchEvent(false)
     }
 
     private fun saveConfig() {
@@ -657,7 +730,65 @@ data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjust
         context.frameLayout {
             background = currentTheme.backgroundDrawable(keyBorder)
             add(contentContainer, lParams(matchParent, matchParent))
+            // No touch listener here - drag events are handled by individual item touch listeners
         }
+    }
+
+    private fun handleDragMove(x: Float, y: Float) {
+        val payload = draggingPayload ?: return
+        // Determine which view the touch is over
+        val location = IntArray(2)
+        topScroller.getLocationOnScreen(location)
+        val topScrollerBounds = Rect(
+            location[0], location[1],
+            location[0] + topScroller.width, location[1] + topScroller.height
+        )
+        bottomList.getLocationOnScreen(location)
+        val bottomListBounds = Rect(
+            location[0], location[1],
+            location[0] + bottomList.width, location[1] + bottomList.height
+        )
+        availableList.getLocationOnScreen(location)
+        val availableListBounds = Rect(
+            location[0], location[1],
+            location[0] + availableList.width, location[1] + availableList.height
+        )
+
+        when {
+            topScrollerBounds.contains(x.toInt(), y.toInt()) -> {
+                setDragTargetState(topActive = true, bottomActive = false, availableActive = false)
+                val index = findTopInsertIndex(x - topScrollerBounds.left + topScroller.scrollX)
+                updateInsertionIndicator(Section.Top, index)
+                if (move(payload, Section.Top, index)) {
+                    root.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                }
+            }
+            bottomListBounds.contains(x.toInt(), y.toInt()) -> {
+                setDragTargetState(topActive = false, bottomActive = true, availableActive = false)
+                val index = findRecyclerInsertIndex(bottomList, bottomButtons.size, x - bottomListBounds.left, y - bottomListBounds.top)
+                updateInsertionIndicator(Section.Bottom, index)
+                if (move(payload, Section.Bottom, index)) {
+                    root.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                }
+            }
+            availableListBounds.contains(x.toInt(), y.toInt()) -> {
+                setDragTargetState(topActive = false, bottomActive = false, availableActive = true)
+                val index = findRecyclerInsertIndex(availableList, availableButtons.size, x - availableListBounds.left, y - availableListBounds.top)
+                updateInsertionIndicator(Section.Available, index)
+                if (move(payload, Section.Available, index)) {
+                    root.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                }
+            }
+            else -> {
+                // Not over any drop target
+                setDragTargetState(topActive = false, bottomActive = false, availableActive = false)
+            }
+        }
+    }
+
+    private fun handleDragEnd() {
+        // cleanupDragState will clear draggingPayload and restore source view animation
+        cleanupDragState()
     }
 
     private fun refreshThemeUi() {
@@ -708,16 +839,14 @@ data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjust
         availableAdapter.notifyDataSetChanged()
         topScroller.removeOnLayoutChangeListener(topScrollerLayoutListener)
         topScroller.addOnLayoutChangeListener(topScrollerLayoutListener)
-        topScroller.setOnDragListener(dragListener)
-        bottomList.setOnDragListener(dragListener)
-        availableList.setOnDragListener(dragListener)
+        // Note: Using touch-based drag instead of framework DragEvent
+        // No drag listeners needed anymore
     }
 
     override fun onDetached() {
+        // Clean up drag state if detached during drag
+        cleanupDragState()
         topScroller.removeOnLayoutChangeListener(topScrollerLayoutListener)
-        topScroller.setOnDragListener(null)
-        bottomList.setOnDragListener(null)
-        availableList.setOnDragListener(null)
         if (topButtons != originalTop || bottomButtons != originalBottom) {
             saveConfig()
             Toast.makeText(context, R.string.saved, Toast.LENGTH_SHORT).show()

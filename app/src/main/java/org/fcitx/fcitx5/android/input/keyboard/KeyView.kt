@@ -501,7 +501,10 @@ class AltTextKeyView(
         appearanceView.apply {
             add(altText, lParams(0, wrapContent))
         }
-        applyLayout(resources.configuration.orientation)
+        // 修复时序问题：使用 post 延后执行，确保获取到 layout 后的最终高度
+        appearanceView.post {
+            applyLayout(resources.configuration.orientation, appearanceView.height)
+        }
     }
 
     override fun setTextScale(scale: Float) {
@@ -588,8 +591,9 @@ class AltTextKeyView(
         val mainHeight = mainText.paint.run { fontMetrics.bottom - fontMetrics.top }
         val altHeight = altText.paint.run { fontMetrics.bottom - fontMetrics.top }
         val compactMinHeight = max(mainHeight, altHeight + dp(4))
-        val stackedMinHeight = mainHeight + altHeight + dp(6)
+        val stackedMinHeight = mainHeight + altHeight + dp(2)
 
+        // 最小修复：确保标点至少可见（保持 compactMinHeight 回退逻辑）
         return when (preferred) {
             AltTextLayoutMode.Bottom -> when {
                 contentHeight >= stackedMinHeight -> AltTextLayoutMode.Bottom
@@ -617,17 +621,32 @@ class AltTextKeyView(
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         lastLayoutMode = null
-        applyLayout(newConfig.orientation)
+        // 修复时序问题：使用 post 延后执行，确保获取到 layout 后的最终高度
+        appearanceView.post {
+            applyLayout(newConfig.orientation, appearanceView.height)
+        }
     }
 
     override fun onAppearanceLayoutChanged(width: Int, height: Int) {
         applyLayout(resources.configuration.orientation, height)
     }
 
+    /**
+     * Force refresh layout with current final height.
+     * Used by BaseKeyboard to ensure correct layout after keyboard size is fully applied.
+     */
+    internal fun refreshLayout() {
+        lastLayoutMode = null
+        applyLayout(resources.configuration.orientation, appearanceView.height)
+    }
+
     override fun updateTheme(newTheme: Theme) {
         super.updateTheme(newTheme)
         lastLayoutMode = null
-        applyLayout(resources.configuration.orientation)
+        // 修复时序问题：使用 post 延后执行，确保获取到 layout 后的最终高度
+        appearanceView.post {
+            applyLayout(resources.configuration.orientation, appearanceView.height)
+        }
         altText.setTextColor(
             resolveAltTextColor(
                 when (def.variant) {
@@ -680,7 +699,6 @@ class ImageKeyView(
             }
         }
         img.imageTintList = ColorStateList.valueOf(resolveTextColor(defaultColor))
-        )
     }
 }
 

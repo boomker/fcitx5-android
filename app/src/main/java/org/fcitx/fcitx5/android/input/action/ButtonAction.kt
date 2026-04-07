@@ -113,8 +113,7 @@ sealed class ButtonAction {
             InputMethodOptionsAction,
             ReloadConfigAction,
             VirtualKeyboardAction,
-            OneHandedKeyboardAction,
-            MoreAction
+            OneHandedKeyboardAction
         )
 
         /**
@@ -126,8 +125,7 @@ sealed class ButtonAction {
             CursorMoveAction,
             FloatingToggleAction,
             ClipboardAction,
-            ThemeToggleAction,
-            MoreAction
+            ThemeToggleAction
         )
 
         /**

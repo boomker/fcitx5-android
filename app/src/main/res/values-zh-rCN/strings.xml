@@ -122,7 +122,7 @@
     <string name="reload_config">重载配置</string>
     <string name="input_method_options">输入法设置</string>
     <string name="theme">主题</string>
-    <string name="toggle_day_night_theme">明暗主题</string>
+    <string name="toggle_day_night_theme">主题切换</string>
     <string name="key_ripple_effect">启用按键水波纹特效</string>
     <string name="key_border">启用按键边框</string>
     <string name="brightness">亮度</string>

@@ -183,6 +183,11 @@ abstract class BaseKeyboard(
                 centerHorizontally()
             })
         }
+        // 修复时序问题：在键盘布局完成后，统一刷新所有标点位置
+        // 确保使用最终稳定的高度进行判断
+        post {
+            refreshAltTextLayouts()
+        }
     }
 
     private fun splitGapPercent(): Float {
@@ -567,9 +572,27 @@ abstract class BaseKeyboard(
         // default: no-op
     }
 
+    /**
+     * Refresh all AltTextKeyView layouts with current final heights.
+     * Should be called after keyboard size is fully applied and stable.
+     */
+    fun refreshAltTextLayouts() {
+        if (::keyRows.isInitialized) {
+            keyRows.forEach { row ->
+                row.children.forEach { child ->
+                    (child as? AltTextKeyView)?.refreshLayout()
+                }
+            }
+        }
+    }
+
     private fun createKeyView(def: KeyDef): KeyView {
+        android.util.Log.d("BaseKeyboard", "createKeyView: def=${def::class.simpleName}, appearance=${def.appearance::class.simpleName}")
         return when (def.appearance) {
-            is KeyDef.Appearance.AltText -> AltTextKeyView(context, theme, def.appearance, horizontalGapScale)
+            is KeyDef.Appearance.AltText -> {
+                android.util.Log.d("BaseKeyboard", "createKeyView: Creating AltTextKeyView, altText=${def.appearance.altText}")
+                AltTextKeyView(context, theme, def.appearance, horizontalGapScale)
+            }
             is KeyDef.Appearance.ImageText -> ImageTextKeyView(context, theme, def.appearance, horizontalGapScale)
             is KeyDef.Appearance.Text -> TextKeyView(context, theme, def.appearance, horizontalGapScale)
             is KeyDef.Appearance.Image -> ImageKeyView(context, theme, def.appearance, horizontalGapScale)

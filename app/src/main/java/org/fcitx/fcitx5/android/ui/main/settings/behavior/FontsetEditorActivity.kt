@@ -81,9 +81,12 @@ class FontsetEditorActivity : AppCompatActivity() {
 
     private val selectedFonts: MutableMap<String, MutableList<String>> = mutableMapOf()
     private val selectedFontSizes: MutableMap<String, Float> = mutableMapOf()
+    private val originalFonts: MutableMap<String, List<String>> = mutableMapOf()
+    private val originalFontSizes: MutableMap<String, Float> = mutableMapOf()
     private val rowViews: MutableMap<String, FontRowViews> = mutableMapOf()
     private val fontSizeViews: MutableMap<String, TextView> = mutableMapOf()
     private var availableFonts: List<String> = emptyList()
+    private var saveMenuItem: MenuItem? = null
 
     private val listContainer by lazy {
         LinearLayout(this).apply {
@@ -146,6 +149,8 @@ class FontsetEditorActivity : AppCompatActivity() {
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         val item = menu.add(Menu.NONE, MENU_SAVE_ID, Menu.NONE, "${getString(R.string.save)}")
         item.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS or MenuItem.SHOW_AS_ACTION_WITH_TEXT)
+        saveMenuItem = item
+        updateSaveButtonState()
         return true
     }
 
@@ -186,11 +191,25 @@ class FontsetEditorActivity : AppCompatActivity() {
             )
         entries.forEach { entry ->
             selectedFonts[entry.key] = parsed[entry.key]?.toMutableList() ?: mutableListOf()
+            originalFonts[entry.key] = selectedFonts[entry.key].orEmpty().toList()
             // Load font size if exists (independent from font path)
             val sizeKey = "${entry.key}_size"
             selectedFontSizes[entry.key] = parsed[sizeKey]?.firstOrNull()?.toFloatOrNull()
                 ?.coerceIn(8f, 72f) ?: entry.defaultFontSize
+            originalFontSizes[entry.key] = selectedFontSizes[entry.key] ?: entry.defaultFontSize
         }
+    }
+
+    private fun hasChanges(): Boolean = entries.any { entry ->
+        val currentFonts = selectedFonts[entry.key].orEmpty()
+        val savedFonts = originalFonts[entry.key].orEmpty()
+        val currentSize = selectedFontSizes[entry.key] ?: entry.defaultFontSize
+        val savedSize = originalFontSizes[entry.key] ?: entry.defaultFontSize
+        currentFonts != savedFonts || currentSize != savedSize
+    }
+
+    private fun updateSaveButtonState() {
+        saveMenuItem?.isEnabled = hasChanges()
     }
 
     private fun buildRows() {
@@ -304,6 +323,7 @@ class FontsetEditorActivity : AppCompatActivity() {
             val fontSize = selectedFontSizes[entry.key] ?: entry.defaultFontSize
             fontSizeView?.text = getString(R.string.font_size_value, fontSize.toInt())
         }
+        updateSaveButtonState()
     }
 
     private fun openFontPicker(entry: FontEntry) {

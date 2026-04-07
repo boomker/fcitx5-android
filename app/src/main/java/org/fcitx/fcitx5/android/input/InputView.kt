@@ -20,6 +20,7 @@ import android.view.View
 import android.view.ViewConfiguration
 import android.view.ViewGroup
 import android.view.ViewOutlineProvider
+import android.view.ViewTreeObserver
 import android.view.WindowInsets
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InlineSuggestionsResponse
@@ -1872,6 +1873,14 @@ class InputView(
 
     internal fun hideButtonsAdjustingOverlay() {
         if (!isButtonsAdjustingOverlayVisible) return
+        // Don't hide if drag is in progress to prevent interrupting user interaction
+        if (ButtonsAdjustingWindow.isDragInProgress) return
+        ButtonsAdjustingWindow.onDetached()
+        buttonsAdjustingOverlayView.visibility = GONE
+    }
+
+    internal fun forceHideButtonsAdjustingOverlay() {
+        if (!isButtonsAdjustingOverlayVisible) return
         ButtonsAdjustingWindow.onDetached()
         buttonsAdjustingOverlayView.visibility = GONE
     }
@@ -1967,6 +1976,20 @@ class InputView(
         }
         // Sync handles when size changes
         updateHandlePosition()
+        // 修复时序问题：监听 keyboardView 的 layout 完成，等待高度真正稳定后再刷新标点位置
+        val expectedHeight = targetHeight
+        var lastHeight = -1
+        keyboardView.viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
+            override fun onGlobalLayout() {
+                val currentHeight = keyboardView.height
+                // 检查高度是否达到预期值（允许2dp误差）或连续两次相同（已稳定）
+                if (kotlin.math.abs(currentHeight - expectedHeight) <= dp(2) || currentHeight == lastHeight) {
+                    keyboardView.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                    keyboardWindow.refreshAltTextLayouts()
+                }
+                lastHeight = currentHeight
+            }
+        })
     }
 
     override fun onApplyWindowInsets(insets: WindowInsets): WindowInsets {
@@ -1980,7 +2003,10 @@ class InputView(
      * called when [InputView] is about to show, or restart
      */
     fun startInput(info: EditorInfo, capFlags: CapabilityFlags, restarting: Boolean = false) {
-        hideButtonsAdjustingOverlay()
+        // Don't hide the adjusting overlay if drag is in progress
+        if (!ButtonsAdjustingWindow.isDragInProgress) {
+            hideButtonsAdjustingOverlay()
+        }
         keyboardWindow.checkAndApplyFontRefresh()
         broadcaster.onStartInput(info, capFlags)
         returnKeyDrawable.updateDrawableOnEditorInfo(info)

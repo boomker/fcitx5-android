@@ -48,6 +48,7 @@ import org.fcitx.fcitx5.android.input.action.ButtonAction
 import org.fcitx.fcitx5.android.input.bar.KawaiiBarStateMachine.TransitionEvent.WindowDetached
 import org.fcitx.fcitx5.android.input.bar.ui.CandidateUi
 import org.fcitx.fcitx5.android.input.bar.ui.IdleUi
+import org.fcitx.fcitx5.android.input.status.ButtonsAdjustingWindow
 import org.fcitx.fcitx5.android.input.bar.ui.TitleUi
 import org.fcitx.fcitx5.android.input.config.ButtonsLayoutConfig
 import org.fcitx.fcitx5.android.input.config.ConfigProviders
@@ -313,16 +314,15 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
     }
 
     // Load buttons config from file or use default
-    // Note: 'more' button is always added automatically at the end
     private fun loadButtonsConfig(): List<ConfigurableButton> {
         val snapshot = ConfigProviders.readButtonsLayoutConfig<ButtonsLayoutConfig>()
         val config = snapshot?.value ?: ButtonsLayoutConfig.default()
 
-        // Filter out 'more' button from config (it's always added automatically)
+        // Filter out 'more' button from config
         val filteredButtons = config.kawaiiBarButtons.filter { it.id != "more" }
 
-        // Always add 'more' button at the end
-        return filteredButtons + ConfigurableButton("more")
+        // Return buttons without 'more' button (removed per user request)
+        return filteredButtons
     }
 
     private var _idleUi: IdleUi? = null
@@ -344,11 +344,11 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
             windowManager.attachWindow(StatusAreaWindow())
         }
         ui.menuButton.setOnLongClickListener {
+            // Completely disable toggle when adjusting overlay is visible to prevent conflicts
             if (service.inputView?.isButtonsAdjustingOverlayVisible == true) {
-                service.inputView?.hideButtonsAdjustingOverlay()
-            } else {
-                service.inputView?.showButtonsAdjustingOverlay()
+                return@setOnLongClickListener true
             }
+            service.inputView?.showButtonsAdjustingOverlay()
             true
         }
         ui.hideKeyboardButton.apply {

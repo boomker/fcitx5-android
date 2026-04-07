@@ -86,6 +86,14 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
     }
 
     /**
+     * Refresh all AltTextKeyView layouts with current final heights.
+     * Call this after keyboard size is fully applied and stable.
+     */
+    fun refreshAltTextLayouts() {
+        currentKeyboard?.refreshAltTextLayouts()
+    }
+
+    /**
      * Check and apply font refresh if needed.
      * Call this when keyboard is about to show.
      */

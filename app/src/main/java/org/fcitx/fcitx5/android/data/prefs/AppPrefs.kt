@@ -225,10 +225,10 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
                 R.string.keyboard_height,
                 R.string.portrait,
                 "keyboard_height_percent",
-                30,
+                33,
                 R.string.landscape,
                 "keyboard_height_percent_landscape",
-                49,
+                48,
                 10,
                 90,
                 "%"

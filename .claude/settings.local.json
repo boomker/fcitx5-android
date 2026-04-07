@@ -39,7 +39,19 @@
       "Bash(adb devices:*)",
       "Bash(./gradlew assembleDebug:*)",
       "Bash(cp plugin/clipboard-sync/build/outputs/apk/release/org.fcitx.fcitx5.android.plugin.clipboard_sync-dac98db6-release.apk ~/Sync/)",
-      "Read(//Users/cyzhu/Sync/**)"
+      "Read(//Users/cyzhu/Sync/**)",
+      "Bash(tmux-bridge list:*)",
+      "Bash(tmux-bridge read:*)",
+      "Bash(tmux-bridge message:*)",
+      "Bash(tmux-bridge keys:*)",
+      "Bash(tmux-bridge id:*)",
+      "Bash(./gradlew installFxDebug:*)",
+      "Bash(adb logcat:*)",
+      "Bash(git checkout:*)",
+      "Bash(adb install:*)",
+      "Bash(./gradlew installDebug:*)",
+      "Bash(./gradlew :app:assembleFxDebug:*)",
+      "Bash(./gradlew :app:assembleDebug)"
     ]
   }
 }
