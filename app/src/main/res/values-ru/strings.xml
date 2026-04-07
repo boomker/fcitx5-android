@@ -562,6 +562,9 @@
     <string name="theme_import_overwrite_title">Тема уже существует</string>
     <string name="theme_import_overwrite_message">Тема \"%1$s\" уже существует. Перезаписать?</string>
     <string name="theme_imported_from_qr">Тема импортирована и сохранена.</string>
+    <string name="background_blur_radius">Радиус размытия фона</string>
+    <string name="blur_preview">Предпросмотр размытия</string>
+    <string name="no_blur">Без размытия</string>
 
     <!-- Monet Theme Editor -->
     <string name="monet_editor_title">Редактировать тему Monet</string>

@@ -578,6 +578,18 @@ class CustomThemeActivity : AppCompatActivity() {
         }
     }
 
+    private val blurRadiusLabel by lazy {
+        createTextView(R.string.background_blur_radius)
+    }
+    private val blurRadiusValue by lazy {
+        createTextView()
+    }
+    private val blurRadiusSeekBar by lazy {
+        seekBar {
+            max = 25 // Max blur radius
+        }
+    }
+
     private val cropLabel by lazy {
         createTextView(R.string.recrop_image, ripple = true)
     }
@@ -769,11 +781,27 @@ class CustomThemeActivity : AppCompatActivity() {
             add(brightnessSeekBar, lParams(matchConstraints, wrapContent) {
                 below(brightnessLabel)
                 centerHorizontally(itemMargin)
+                above(blurRadiusLabel)
+            })
+            // Blur radius controls
+            add(blurRadiusLabel, lParams(matchConstraints, lineHeight) {
+                below(brightnessSeekBar)
+                startOfParent(itemMargin)
+                before(blurRadiusValue)
+                above(blurRadiusSeekBar)
+            })
+            add(blurRadiusValue, lParams(wrapContent, lineHeight) {
+                topToTopOf(blurRadiusLabel)
+                endOfParent(itemMargin)
+            })
+            add(blurRadiusSeekBar, lParams(matchConstraints, wrapContent) {
+                below(blurRadiusLabel)
+                centerHorizontally(itemMargin)
                 above(colorsContainer)
             })
             // add the colors container below brightness controls
             add(colorsContainer, lParams(matchConstraints, wrapContent) {
-                below(brightnessSeekBar)
+                below(blurRadiusSeekBar)
                 centerHorizontally(itemMargin)
                 bottomOfParent()
             })
@@ -903,10 +931,12 @@ class CustomThemeActivity : AppCompatActivity() {
         previewUi = KeyboardPreviewUi(this, theme)
         if (theme.backgroundImage == null) {
             brightnessLabel.visibility = View.GONE
+            blurRadiusLabel.visibility = View.GONE
             cropLabel.visibility = View.GONE
             variantLabel.visibility = View.GONE
             variantSwitch.visibility = View.GONE
             brightnessSeekBar.visibility = View.GONE
+            blurRadiusSeekBar.visibility = View.GONE
         }
         enableEdgeToEdge()
         ViewCompat.setOnApplyWindowInsetsListener(ui) { _, windowInsets ->
@@ -931,6 +961,7 @@ class CustomThemeActivity : AppCompatActivity() {
         applyThemePreview(theme)
         whenHasBackground { background ->
             brightnessSeekBar.progress = background.brightness
+            blurRadiusSeekBar.progress = background.blurRadius.toInt()
             variantSwitch.isChecked = !theme.isDark
             launcher = registerForActivityResult(CropContract()) {
                 when (it) {
@@ -974,6 +1005,22 @@ class CustomThemeActivity : AppCompatActivity() {
                     if (fromUser) updateState()
                 }
             })
+            blurRadiusSeekBar.setOnSeekBarChangeListener(object :
+                SeekBar.OnSeekBarChangeListener {
+                override fun onStartTrackingTouch(bar: SeekBar) {}
+                override fun onStopTrackingTouch(bar: SeekBar) {}
+
+                override fun onProgressChanged(bar: SeekBar, progress: Int, fromUser: Boolean) {
+                    if (fromUser) {
+                        blurRadiusValue.text = if (progress == 0) {
+                            getString(R.string.no_blur)
+                        } else {
+                            "$progress"
+                        }
+                        updateState()
+                    }
+                }
+            })
         }
 
         if (newCreated) {
@@ -1015,7 +1062,8 @@ class CustomThemeActivity : AppCompatActivity() {
         val progress = brightnessSeekBar.progress
         brightnessValue.text = "$progress%"
         filteredDrawable.colorFilter = DarkenColorFilter(100 - progress)
-        previewUi.setBackground(filteredDrawable)
+        val blurRadius = blurRadiusSeekBar.progress.toFloat()
+        previewUi.setBackgroundWithBlur(filteredDrawable, croppedBitmap, blurRadius, progress)
     }
 
     private fun cancel() {
@@ -1028,6 +1076,7 @@ class CustomThemeActivity : AppCompatActivity() {
 
     private fun done() {
         lifecycleScope.withLoadingDialog(this) {
+            var outputTheme = theme
             whenHasBackground {
                 withContext(Dispatchers.IO) {
                     croppedImageFile.delete()
@@ -1047,27 +1096,31 @@ class CustomThemeActivity : AppCompatActivity() {
                     }
                 }
             }
+            outputTheme = theme
+            whenHasBackground {
+                outputTheme = outputTheme.copy(
+                    backgroundImage = it.copy(
+                        brightness = brightnessSeekBar.progress,
+                        blurRadius = blurRadiusSeekBar.progress.toFloat(),
+                        cropRect = cropRect,
+                        cropRotation = cropRotation
+                    )
+                )
+            }
+            outputTheme = withContext(Dispatchers.IO) {
+                ThemeFilesManager.alignBackgroundAssetsWithThemeName(outputTheme)
+            }
             setResult(
                 RESULT_OK,
                 Intent().apply {
-                    var newTheme = theme
-                    whenHasBackground {
-                        newTheme = theme.copy(
-                            backgroundImage = it.copy(
-                                brightness = brightnessSeekBar.progress,
-                                cropRect = cropRect,
-                                cropRotation = cropRotation
-                            )
-                        )
-                    }
                     putExtra(
                         RESULT,
                         if (newCreated)
-                            BackgroundResult.Created(newTheme)
+                            BackgroundResult.Created(outputTheme)
                         else
                             BackgroundResult.Updated(
-                                oldName = originalThemeName ?: newTheme.name,
-                                theme = newTheme
+                                oldName = originalThemeName ?: outputTheme.name,
+                                theme = outputTheme
                             )
                     )
                 })

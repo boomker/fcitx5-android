@@ -19,6 +19,7 @@ import androidx.core.view.isVisible
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.data.theme.ThemeMonet
+import org.fcitx.fcitx5.android.data.theme.ThemeManager
 import org.fcitx.fcitx5.android.utils.rippleDrawable
 import splitties.dimensions.dp
 import splitties.views.backgroundColor
@@ -45,6 +46,7 @@ import splitties.views.setPaddingDp
 class ThemeThumbnailUi(override val ctx: Context) : Ui {
 
     enum class State { Normal, Selected, LightMode, DarkMode }
+    private val keyBorder by ThemeManager.prefs.keyBorder
 
     val bkg = imageView {
         scaleType = ImageView.ScaleType.CENTER_CROP
@@ -119,7 +121,16 @@ class ThemeThumbnailUi(override val ctx: Context) : Ui {
         root.apply {
             foreground = rippleDrawable(theme.keyPressHighlightColor)
         }
-        bkg.imageDrawable = theme.backgroundDrawable()
+        bkg.imageDrawable = when (theme) {
+            is Theme.Custom -> {
+                if (theme.shouldApplyBlur()) {
+                    theme.blurredBackgroundDrawable(enableBlur = true, keyBorder = keyBorder)
+                } else {
+                    theme.backgroundDrawable()
+                }
+            }
+            else -> theme.backgroundDrawable()
+        }
         bar.backgroundColor = theme.barColor
         themeNameText.apply {
             text = formatThemeName(theme.name)

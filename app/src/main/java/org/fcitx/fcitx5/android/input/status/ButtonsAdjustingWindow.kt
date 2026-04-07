@@ -728,7 +728,7 @@ data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjust
 
     private val root by lazy {
         context.frameLayout {
-            background = currentTheme.backgroundDrawable(keyBorder)
+            background = resolvedBackgroundDrawable(currentTheme)
             add(contentContainer, lParams(matchParent, matchParent))
             // No touch listener here - drag events are handled by individual item touch listeners
         }
@@ -791,9 +791,17 @@ data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjust
         cleanupDragState()
     }
 
+    private fun resolvedBackgroundDrawable(theme: Theme): android.graphics.drawable.Drawable {
+        return if (theme is Theme.Custom && theme.shouldApplyBlur()) {
+            theme.blurredBackgroundDrawable(keyBorder, enableBlur = true)
+        } else {
+            theme.backgroundDrawable(keyBorder)
+        }
+    }
+
     private fun refreshThemeUi() {
         val theme = currentTheme
-        root.background = theme.backgroundDrawable(keyBorder)
+        root.background = resolvedBackgroundDrawable(theme)
         if (!keyBorder) {
             topRow.backgroundColor = theme.barColor
         } else {

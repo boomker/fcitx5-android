@@ -648,6 +648,9 @@
     <string name="theme_import_overwrite_message">主题"%1$s"已存在，是否覆盖？</string>
     <string name="theme_imported_from_qr">主题已导入并保存。</string>
     <string name="preferred_voice_input">首选语音输入</string>
+    <string name="background_blur_radius">背景模糊半径</string>
+    <string name="blur_preview">模糊预览</string>
+    <string name="no_blur">无模糊</string>
 
     <!-- Monet Theme Editor -->
     <string name="monet_editor_title">编辑 Monet 主题</string>

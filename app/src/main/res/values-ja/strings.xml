@@ -513,6 +513,9 @@
     <string name="theme_import_overwrite_title">テーマは既に存在します</string>
     <string name="theme_import_overwrite_message">テーマ「%1$s」は既に存在します。上書きしますか？</string>
     <string name="theme_imported_from_qr">テーマをインポートして保存しました。</string>
+    <string name="background_blur_radius">背景ぼかし半径</string>
+    <string name="blur_preview">ぼかしプレビュー</string>
+    <string name="no_blur">ぼかしなし</string>
     <string name="generic_multiselect_min">少なくとも %1$d 項目を選択してください。</string>
 
     <!-- Monet Theme Editor -->

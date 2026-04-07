@@ -344,6 +344,9 @@
     <string name="theme_import_overwrite_title">테마가 이미 존재합니다</string>
     <string name="theme_import_overwrite_message">테마 \"%1$s\"가 이미 존재합니다. 덮어쓰시겠습니까?</string>
     <string name="theme_imported_from_qr">테마를 가져와 저장했습니다.</string>
+    <string name="background_blur_radius">배경 블러 반경</string>
+    <string name="blur_preview">블러 미리보기</string>
+    <string name="no_blur">블러 없음</string>
     <string name="generic_multiselect_min">최소 %1$d개 항목을 선택해야 합니다.</string>
 
     <!-- Monet Theme Editor -->

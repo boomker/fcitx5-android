@@ -195,6 +195,7 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
             it.onAttach()
         }
         notifyBarLayoutChanged()
+        service.inputView?.requestBlurRefresh(retryFrames = 8)
     }
 
     override fun onDetached() {
@@ -215,6 +216,10 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
 
     fun updateBounds() {
         currentKeyboard?.updateBounds()
+    }
+
+    fun currentKeyBoundsInKeyboard(): List<android.graphics.Rect> {
+        return currentKeyboard?.keyBoundsInKeyboard() ?: emptyList()
     }
 
     fun setTextScale(scale: Float) {

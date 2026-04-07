@@ -7,9 +7,12 @@ package org.fcitx.fcitx5.android.input
 
 import android.annotation.SuppressLint
 import android.content.res.Configuration
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.LayerDrawable
+import android.graphics.Paint
 import androidx.core.content.ContextCompat
 import android.graphics.Outline
 import android.graphics.drawable.ColorDrawable
@@ -42,6 +45,8 @@ import org.fcitx.fcitx5.android.data.theme.ThemeManager
 import org.fcitx.fcitx5.android.data.theme.ThemeMonet
 import org.fcitx.fcitx5.android.data.theme.ThemePreset
 import org.fcitx.fcitx5.android.input.bar.KawaiiBarComponent
+import org.fcitx.fcitx5.android.utils.BitmapBlurUtil
+import org.fcitx.fcitx5.android.utils.DarkenColorFilter
 import org.fcitx.fcitx5.android.input.config.ConfigChangeListener
 import org.fcitx.fcitx5.android.input.config.ConfigProviders
 import org.fcitx.fcitx5.android.input.broadcast.InputBroadcaster
@@ -52,12 +57,14 @@ import org.fcitx.fcitx5.android.input.broadcast.ReturnKeyDrawableComponent
 import org.fcitx.fcitx5.android.input.candidates.horizontal.HorizontalCandidateComponent
 import org.fcitx.fcitx5.android.input.keyboard.CommonKeyActionListener
 import org.fcitx.fcitx5.android.input.keyboard.BaseKeyboard
+import org.fcitx.fcitx5.android.input.keyboard.KeyView
 import org.fcitx.fcitx5.android.input.keyboard.KeyboardWindow
 import org.fcitx.fcitx5.android.input.picker.emojiPicker
 import org.fcitx.fcitx5.android.input.picker.emoticonPicker
 import org.fcitx.fcitx5.android.input.picker.symbolPicker
 import org.fcitx.fcitx5.android.input.popup.PopupComponent
 import org.fcitx.fcitx5.android.input.preedit.PreeditComponent
+import org.fcitx.fcitx5.android.input.status.StatusAreaWindow
 import org.fcitx.fcitx5.android.input.status.ButtonsAdjustingWindow
 import android.graphics.Rect
 import android.graphics.Region
@@ -65,6 +72,7 @@ import android.view.MotionEvent
 import androidx.constraintlayout.widget.ConstraintLayout
 import org.fcitx.fcitx5.android.input.wm.InputWindowManager
 import org.fcitx.fcitx5.android.utils.unset
+import timber.log.Timber
 import org.mechdancer.dependency.DynamicScope
 import org.mechdancer.dependency.manager.wrapToUniqueComponent
 import org.mechdancer.dependency.plusAssign
@@ -133,6 +141,152 @@ class InputView(
     private val customBackground = imageView {
         scaleType = ImageView.ScaleType.CENTER_CROP
     }
+    private val keyBlurMaskView = KeyBlurMaskView().apply {
+        visibility = GONE
+    }
+
+    private inner class KeyBlurMaskView : View(context) {
+        private val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+        private val srcRect = Rect()
+        private val dstRect = Rect()
+        private val clipRect = Rect()
+        private val containerLoc = IntArray(2)
+        private val keyLoc = IntArray(2)
+        private val keyViews = ArrayList<KeyView>(96)
+        private val keyClipRects = ArrayList<Rect>(96)
+        private var blurBitmap: Bitmap? = null
+        private var redrawRetryCount = 0
+        private var keyRegionsDirty = true
+        private var hasVisibleKey = false
+
+        fun setBlurBitmap(bitmap: Bitmap?, brightness: Int = 70) {
+            blurBitmap = bitmap
+            paint.colorFilter = bitmap?.let { DarkenColorFilter(100 - brightness) }
+            visibility = if (bitmap == null) GONE else VISIBLE
+            keyRegionsDirty = true
+            invalidate()
+        }
+
+        fun markKeyRegionsDirty() {
+            keyRegionsDirty = true
+        }
+
+        override fun onDraw(canvas: Canvas) {
+            val bitmap = blurBitmap ?: return
+            if (width <= 0 || height <= 0) return
+            calculateCenterCropSource(bitmap.width, bitmap.height, width, height, srcRect)
+            dstRect.set(0, 0, width, height)
+
+            // No key border => keys have no visible gaps, so use full-layer blur.
+            if (!keyBorder) {
+                canvas.drawBitmap(bitmap, srcRect, dstRect, paint)
+                redrawRetryCount = 0
+                return
+            }
+
+            if (windowManager.currentWindowOrNull() is StatusAreaWindow) {
+                canvas.drawBitmap(bitmap, srcRect, dstRect, paint)
+                redrawRetryCount = 0
+                return
+            }
+
+            keyViews.clear()
+            if (keyRegionsDirty) {
+                rebuildKeyRegions()
+            }
+
+            var drewKeyRegion = false
+            keyClipRects.forEach { rect ->
+                val saveId = canvas.save()
+                canvas.clipRect(rect)
+                canvas.drawBitmap(bitmap, srcRect, dstRect, paint)
+                canvas.restoreToCount(saveId)
+                drewKeyRegion = true
+            }
+
+            // Some windows (e.g. StatusAreaWindow) don't use KeyView.
+            // Blur the active window content region to keep frosted-glass consistency.
+            if (keyClipRects.isEmpty() && windowManager.view.isShown &&
+                windowManager.view.width > 0 && windowManager.view.height > 0) {
+                clipRect.set(
+                    windowManager.view.left,
+                    windowManager.view.top,
+                    windowManager.view.right,
+                    windowManager.view.bottom
+                )
+                if (clipRect.intersect(0, 0, width, height)) {
+                    val saveId = canvas.save()
+                    canvas.clipRect(clipRect)
+                    canvas.drawBitmap(bitmap, srcRect, dstRect, paint)
+                    canvas.restoreToCount(saveId)
+                }
+            }
+
+            if (kawaiiBar.view.isShown && kawaiiBar.view.width > 0 && kawaiiBar.view.height > 0) {
+                clipRect.set(
+                    kawaiiBar.view.left,
+                    kawaiiBar.view.top,
+                    kawaiiBar.view.right,
+                    kawaiiBar.view.bottom
+                )
+                if (clipRect.intersect(0, 0, width, height)) {
+                    val saveId = canvas.save()
+                    canvas.clipRect(clipRect)
+                    canvas.drawBitmap(bitmap, srcRect, dstRect, paint)
+                    canvas.restoreToCount(saveId)
+                }
+            }
+
+            if (hasVisibleKey && !drewKeyRegion) {
+                if (redrawRetryCount < 8) {
+                    redrawRetryCount++
+                    keyRegionsDirty = true
+                    postInvalidateOnAnimation()
+                }
+            } else {
+                redrawRetryCount = 0
+            }
+        }
+
+        private fun rebuildKeyRegions() {
+            keyRegionsDirty = false
+            hasVisibleKey = false
+            keyClipRects.clear()
+            keyViews.clear()
+            collectVisibleKeys(windowManager.view, keyViews)
+            windowManager.view.getLocationInWindow(containerLoc)
+            val offsetX = windowManager.view.left
+            val offsetY = windowManager.view.top
+            keyViews.forEach { key ->
+                if (!key.isShown) return@forEach
+                hasVisibleKey = true
+                if (key.width <= 0 || key.height <= 0) return@forEach
+                key.getLocationInWindow(keyLoc)
+                val relativeLeft = keyLoc[0] - containerLoc[0]
+                val relativeTop = keyLoc[1] - containerLoc[1]
+                clipRect.set(
+                    relativeLeft + key.hMargin,
+                    relativeTop + key.vMargin,
+                    relativeLeft + key.width - key.hMargin,
+                    relativeTop + key.height - key.vMargin
+                )
+                clipRect.offset(offsetX, offsetY)
+                if (!clipRect.intersect(0, 0, width, height)) return@forEach
+                keyClipRects.add(Rect(clipRect))
+            }
+        }
+
+        private fun collectVisibleKeys(view: View, out: MutableList<KeyView>) {
+            if (view is KeyView) {
+                out.add(view)
+                return
+            }
+            val group = view as? ViewGroup ?: return
+            for (i in 0 until group.childCount) {
+                collectVisibleKeys(group.getChildAt(i), out)
+            }
+        }
+    }
 
     private val placeholderOnClickListener = OnClickListener { }
 
@@ -152,6 +306,72 @@ class InputView(
     private fun createHandleDrawable(radius: Float = dp(5).toFloat()) = GradientDrawable().apply {
         setColor(theme.accentKeyBackgroundColor)
         cornerRadius = radius
+    }
+
+    private fun calculateCenterCropSource(
+        bitmapWidth: Int,
+        bitmapHeight: Int,
+        targetWidth: Int,
+        targetHeight: Int,
+        outRect: Rect
+    ) {
+        if (bitmapWidth <= 0 || bitmapHeight <= 0 || targetWidth <= 0 || targetHeight <= 0) {
+            outRect.set(0, 0, bitmapWidth.coerceAtLeast(0), bitmapHeight.coerceAtLeast(0))
+            return
+        }
+
+        val bitmapRatio = bitmapWidth.toFloat() / bitmapHeight.toFloat()
+        val targetRatio = targetWidth.toFloat() / targetHeight.toFloat()
+        if (bitmapRatio > targetRatio) {
+            val cropWidth = (bitmapHeight * targetRatio).toInt().coerceAtLeast(1)
+            val left = (bitmapWidth - cropWidth) / 2
+            outRect.set(left, 0, left + cropWidth, bitmapHeight)
+        } else {
+            val cropHeight = (bitmapWidth / targetRatio).toInt().coerceAtLeast(1)
+            val top = (bitmapHeight - cropHeight) / 2
+            outRect.set(0, top, bitmapWidth, top + cropHeight)
+        }
+    }
+
+    private fun updateBlurMaskThemeData() {
+        val customTheme = theme as? Theme.Custom ?: run {
+            keyBlurMaskView.setBlurBitmap(null)
+            return
+        }
+        val bg = customTheme.backgroundImage
+        if (bg == null || bg.blurRadius <= 0f) {
+            keyBlurMaskView.setBlurBitmap(null)
+            return
+        }
+        val source = bg.loadBitmapForRendering()
+        if (source == null) {
+            keyBlurMaskView.setBlurBitmap(null)
+            return
+        }
+        val blurred = BitmapBlurUtil.blur(source, bg.blurRadius)
+        keyBlurMaskView.setBlurBitmap(blurred, bg.brightness)
+    }
+
+    private fun refreshKeyboardBounds() {
+        keyboardWindow.updateBounds()
+        keyBlurMaskView.markKeyRegionsDirty()
+        keyBlurMaskView.invalidate()
+    }
+
+    fun requestBlurRefresh(retryFrames: Int = 1) {
+        refreshKeyboardBounds()
+        if (retryFrames > 0) {
+            postBlurRefreshRetries(retryFrames)
+        }
+    }
+
+    private fun postBlurRefreshRetries(remaining: Int) {
+        post {
+            refreshKeyboardBounds()
+            if (remaining > 1) {
+                postBlurRefreshRetries(remaining - 1)
+            }
+        }
     }
 
     private fun updateHandlePosition() {
@@ -397,7 +617,7 @@ class InputView(
                         keyboardView.translationX += dx
                         keyboardView.translationY += dy
                         clampFloatingPosition()
-                        keyboardWindow.updateBounds()
+                        refreshKeyboardBounds()
 
                         preedit.ui.root.translationX = keyboardView.translationX
                         preedit.ui.root.translationY = keyboardView.translationY
@@ -412,7 +632,7 @@ class InputView(
                     MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                         v.parent?.requestDisallowInterceptTouchEvent(false)
                         v.isPressed = false
-                        keyboardWindow.updateBounds()
+                        refreshKeyboardBounds()
                         saveFloatingPosition(
                             keyboardView.translationX.toInt(),
                             keyboardView.translationY.toInt()
@@ -681,11 +901,11 @@ class InputView(
     }
 
     private fun syncKeyboardBoundsAfterLayout() {
-        keyboardWindow.updateBounds()
+        refreshKeyboardBounds()
         keyboardView.post {
-            keyboardWindow.updateBounds()
+            refreshKeyboardBounds()
             keyboardView.post {
-                keyboardWindow.updateBounds()
+                refreshKeyboardBounds()
             }
         }
     }
@@ -1045,7 +1265,7 @@ class InputView(
         keyboardView.updateLayoutParams<ConstraintLayout.LayoutParams> {
             width = resolveFloatingWidth()
         }
-        keyboardWindow.updateBounds()
+        refreshKeyboardBounds()
         keyboardView.invalidateOutline()
         // Force layout pass to update positions
         requestLayout()
@@ -1056,7 +1276,7 @@ class InputView(
 
     private fun applyFloatingHeight() {
         updateKeyboardSize()
-        keyboardWindow.updateBounds()
+        refreshKeyboardBounds()
         keyboardView.invalidateOutline()
         // Force layout pass to update positions
         requestLayout()
@@ -1685,7 +1905,16 @@ class InputView(
 
         broadcaster.onImeUpdate(fcitx.runImmediately { inputMethodEntryCached })
 
-        customBackground.imageDrawable = resolveKeyboardBackgroundDrawable()
+        // Apply blur effect when theme has background image and blurRadius > 0
+        val hasBlur = theme is Theme.Custom && theme.shouldApplyBlur()
+        Timber.d("InputView init: theme=${theme.name}, isCustom=${theme is Theme.Custom}, enableBlur=$hasBlur")
+        if (theme is Theme.Custom) {
+            val bg = theme.backgroundImage
+            Timber.d("InputView: backgroundImage=${bg != null}, blurRadius=${bg?.blurRadius}")
+        }
+        customBackground.imageDrawable = theme.backgroundDrawable(keyBorder)
+        updateBlurMaskThemeData()
+
         if (windowManager.view.id == View.NO_ID) {
             windowManager.view.id = View.generateViewId()
         }
@@ -1696,9 +1925,17 @@ class InputView(
             // although it should be default for apps targeting Honeycomb (3.0, API 11) and higher,
             // but it's not the case on some devices ... just set it here
             isMotionEventSplittingEnabled = true
-            add(customBackground, lParams {
-                centerVertically()
-                centerHorizontally()
+            add(customBackground, lParams(0, 0) {
+                topOfParent()
+                bottomOfParent()
+                startOfParent()
+                endOfParent()
+            })
+            add(keyBlurMaskView, lParams(0, 0) {
+                topOfParent()
+                bottomOfParent()
+                startOfParent()
+                endOfParent()
             })
             add(kawaiiBar.view, lParams(matchParent, dp(KawaiiBarComponent.HEIGHT)) {
                 topOfParent()
@@ -1736,7 +1973,24 @@ class InputView(
         keyboardView.outlineProvider = keyboardOutlineProvider
         keyboardView.addOnLayoutChangeListener { view, _, _, _, _, _, _, _, _ ->
             view.invalidateOutline()
+            keyBlurMaskView.markKeyRegionsDirty()
+            keyBlurMaskView.invalidate()
         }
+        windowManager.view.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+            keyBlurMaskView.markKeyRegionsDirty()
+            keyBlurMaskView.invalidate()
+        }
+        windowManager.view.setOnHierarchyChangeListener(object : ViewGroup.OnHierarchyChangeListener {
+            override fun onChildViewAdded(parent: View?, child: View?) {
+                keyBlurMaskView.markKeyRegionsDirty()
+                keyBlurMaskView.invalidate()
+            }
+
+            override fun onChildViewRemoved(parent: View?, child: View?) {
+                keyBlurMaskView.markKeyRegionsDirty()
+                keyBlurMaskView.invalidate()
+            }
+        })
 
         updateKeyboardSize()
 
@@ -1831,7 +2085,7 @@ class InputView(
                     keyboardView.translationX += dx
                     keyboardView.translationY += dy
                     clampFloatingPosition()
-                    keyboardWindow.updateBounds()
+                    refreshKeyboardBounds()
                     // Sync preedit position
                     preedit.ui.root.translationX = keyboardView.translationX
                     preedit.ui.root.translationY = keyboardView.translationY
@@ -1845,7 +2099,7 @@ class InputView(
 
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     v.parent?.requestDisallowInterceptTouchEvent(false)
-                    keyboardWindow.updateBounds() // Ensure bounds are correct after drag
+                    refreshKeyboardBounds() // Ensure bounds are correct after drag
                     // Save position
                     saveFloatingPosition(
                         keyboardView.translationX.toInt(),
