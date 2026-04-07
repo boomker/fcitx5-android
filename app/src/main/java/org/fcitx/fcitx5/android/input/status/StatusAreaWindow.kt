@@ -4,6 +4,7 @@
  */
 package org.fcitx.fcitx5.android.input.status
 
+import android.net.Uri
 import android.os.Build
 import android.view.View
 import android.widget.PopupMenu
@@ -35,6 +36,7 @@ import org.fcitx.fcitx5.android.input.keyboard.KeyboardWindow
 import org.fcitx.fcitx5.android.input.status.StatusAreaEntry.ActionEntry
 import org.fcitx.fcitx5.android.input.wm.InputWindow
 import org.fcitx.fcitx5.android.input.wm.InputWindowManager
+import org.fcitx.fcitx5.android.ui.main.settings.SettingsRoute
 import org.fcitx.fcitx5.android.utils.AppUtil
 import org.fcitx.fcitx5.android.utils.DeviceUtil
 import org.fcitx.fcitx5.android.utils.alpha
@@ -47,6 +49,7 @@ import splitties.views.dsl.core.horizontalLayout
 import splitties.views.dsl.core.lParams
 import splitties.views.dsl.recyclerview.recyclerView
 import splitties.views.recyclerview.gridLayoutManager
+import timber.log.Timber
 
 class StatusAreaWindow : InputWindow.ExtendedInputWindow<StatusAreaWindow>(),
     InputBroadcastReceiver {
@@ -115,8 +118,59 @@ class StatusAreaWindow : InputWindow.ExtendedInputWindow<StatusAreaWindow>(),
     }
 
     private fun activateAction(action: Action) {
+        // Check if this action opens addon config
+        // Supports: fcitx://multiselect/addon/{addon}/{path}?option={option}&min={min}
+        val addonConfigRoute = parseAddonConfigAction(action)
+        if (addonConfigRoute != null) {
+            AppUtil.launchMainToAddonMultiSelect(
+                context = context,
+                title = addonConfigRoute.title,
+                addon = addonConfigRoute.addon,
+                path = addonConfigRoute.path,
+                option = addonConfigRoute.option,
+                min = addonConfigRoute.min
+            )
+            return
+        }
+        
         fcitx.launchOnReady {
             it.activateAction(action.id)
+        }
+    }
+
+    /**
+     * Parse action name to check if it's an addon config action
+     * Currently supports: fcitx://multiselect/addon/{addon}/{path}?option={option}&min={min}
+     * Returns a Pair of (title, SettingsRoute.MultiSelect) if successful
+     */
+    private fun parseAddonConfigAction(action: Action): SettingsRoute.MultiSelect? {
+        val actionName = action.name
+        val prefix = "fcitx://multiselect/addon/"
+        if (!actionName.startsWith(prefix)) return null
+        
+        return try {
+            val uri = Uri.parse(actionName)
+            val pathSegments = uri.pathSegments ?: return null
+            
+            // pathSegments: ["addon", "{addon}", "{path}..."]
+            if (pathSegments.size < 3 || pathSegments[0] != "addon") return null
+            
+            val addon = pathSegments[1]
+            val path = pathSegments.drop(2).joinToString("/")
+            
+            val option = uri.getQueryParameter("option") ?: return null
+            val min = uri.getQueryParameter("min")?.toIntOrNull() ?: 0
+            
+            SettingsRoute.MultiSelect(
+                title = action.shortText,
+                addon = addon,
+                path = path,
+                option = option,
+                min = min
+            )
+        } catch (e: Exception) {
+            Timber.w("Failed to parse addon config action for $actionName: $e")
+            null
         }
     }
 
