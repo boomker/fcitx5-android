@@ -11,7 +11,9 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.Path
 import android.graphics.Rect
+import android.graphics.RectF
 import android.graphics.RenderEffect
 import android.graphics.Shader
 import android.graphics.drawable.Drawable
@@ -117,8 +119,11 @@ class KeyboardPreviewUi(override val ctx: Context, val theme: Theme) : Ui {
         private val srcRect = Rect()
         private val dstRect = Rect()
         private val clipRect = Rect()
+        private val clipRectF = RectF()
+        private val clipPath = Path()
         private val keyViews = ArrayList<KeyView>(64)
         private val keyClipRects = ArrayList<Rect>(64)
+        private val keyClipRadii = ArrayList<Float>(64)
         private var blurBitmap: Bitmap? = null
         private var redrawRetryCount = 0
         private var keyRegionsDirty = true
@@ -175,9 +180,17 @@ class KeyboardPreviewUi(override val ctx: Context, val theme: Theme) : Ui {
                 rebuildKeyRegions()
             }
             var drewKeyRegion = false
-            keyClipRects.forEach { rect ->
+            keyClipRects.forEachIndexed { index, rect ->
                 val saveId = canvas.save()
-                canvas.clipRect(rect)
+                val radius = keyClipRadii.getOrElse(index) { 0f }
+                if (radius > 0f) {
+                    clipRectF.set(rect)
+                    clipPath.reset()
+                    clipPath.addRoundRect(clipRectF, radius, radius, Path.Direction.CW)
+                    canvas.clipPath(clipPath)
+                } else {
+                    canvas.clipRect(rect)
+                }
                 canvas.drawBitmap(bitmap, srcRect, dstRect, paint)
                 canvas.restoreToCount(saveId)
                 drewKeyRegion = true
@@ -213,6 +226,7 @@ class KeyboardPreviewUi(override val ctx: Context, val theme: Theme) : Ui {
             keyRegionsDirty = false
             hasVisibleKey = false
             keyClipRects.clear()
+            keyClipRadii.clear()
             if (keyHierarchyDirty) {
                 keyViews.clear()
                 collectVisibleKeys(fakeKeyboardWindow, keyViews)
@@ -221,6 +235,7 @@ class KeyboardPreviewUi(override val ctx: Context, val theme: Theme) : Ui {
             fun buildClipRects() {
                 hasVisibleKey = false
                 keyClipRects.clear()
+                keyClipRadii.clear()
                 keyViews.forEach { key ->
                     if (!key.isShown) return@forEach
                     hasVisibleKey = true
@@ -236,7 +251,10 @@ class KeyboardPreviewUi(override val ctx: Context, val theme: Theme) : Ui {
                     )
                     if (clipRect.width() <= 0 || clipRect.height() <= 0) return@forEach
                     if (!clipRect.intersect(0, 0, width, height)) return@forEach
+                    val maxRadius = minOf(clipRect.width(), clipRect.height()) * 0.5f
+                    val radius = key.radius.coerceIn(0f, maxRadius)
                     keyClipRects.add(Rect(clipRect))
+                    keyClipRadii.add(radius)
                 }
             }
             buildClipRects()
