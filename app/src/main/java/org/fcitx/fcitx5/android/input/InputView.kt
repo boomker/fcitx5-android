@@ -10,6 +10,8 @@ import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Path
+import android.graphics.RectF
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.LayerDrawable
 import android.graphics.Paint
@@ -158,10 +160,13 @@ class InputView(
         private val srcRect = Rect()
         private val dstRect = Rect()
         private val clipRect = Rect()
+        private val clipRectF = RectF()
+        private val clipPath = Path()
         private val containerLoc = IntArray(2)
         private val keyLoc = IntArray(2)
         private val keyViews = ArrayList<KeyView>(96)
         private val keyClipRects = ArrayList<Rect>(96)
+        private val keyClipRadii = ArrayList<Float>(96)
         private var blurBitmap: Bitmap? = null
         private var redrawRetryCount = 0
         private var keyRegionsDirty = true
@@ -227,9 +232,17 @@ class InputView(
             }
 
             var drewKeyRegion = false
-            keyClipRects.forEach { rect ->
+            keyClipRects.forEachIndexed { index, rect ->
                 val saveId = canvas.save()
-                canvas.clipRect(rect)
+                val radius = keyClipRadii.getOrElse(index) { 0f }
+                if (radius > 0f) {
+                    clipRectF.set(rect)
+                    clipPath.reset()
+                    clipPath.addRoundRect(clipRectF, radius, radius, Path.Direction.CW)
+                    canvas.clipPath(clipPath)
+                } else {
+                    canvas.clipRect(rect)
+                }
                 canvas.drawBitmap(bitmap, srcRect, dstRect, paint)
                 canvas.restoreToCount(saveId)
                 drewKeyRegion = true
@@ -283,6 +296,7 @@ class InputView(
             keyRegionsDirty = false
             hasVisibleKey = false
             keyClipRects.clear()
+            keyClipRadii.clear()
             if (keyHierarchyDirty) {
                 keyViews.clear()
                 collectVisibleKeys(windowManager.view, keyViews)
@@ -294,6 +308,7 @@ class InputView(
             fun buildClipRects() {
                 hasVisibleKey = false
                 keyClipRects.clear()
+                keyClipRadii.clear()
                 keyViews.forEach { key ->
                     if (!key.isShown) return@forEach
                     hasVisibleKey = true
@@ -309,7 +324,10 @@ class InputView(
                     )
                     clipRect.offset(offsetX, offsetY)
                     if (!clipRect.intersect(0, 0, width, height)) return@forEach
+                    val maxRadius = minOf(clipRect.width(), clipRect.height()) * 0.5f
+                    val radius = key.radius.coerceIn(0f, maxRadius)
                     keyClipRects.add(Rect(clipRect))
+                    keyClipRadii.add(radius)
                 }
             }
             buildClipRects()
