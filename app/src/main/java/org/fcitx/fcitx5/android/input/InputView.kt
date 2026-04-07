@@ -62,12 +62,12 @@ import org.fcitx.fcitx5.android.input.keyboard.CommonKeyActionListener
 import org.fcitx.fcitx5.android.input.keyboard.BaseKeyboard
 import org.fcitx.fcitx5.android.input.keyboard.KeyView
 import org.fcitx.fcitx5.android.input.keyboard.KeyboardWindow
+import org.fcitx.fcitx5.android.input.picker.PickerWindow
 import org.fcitx.fcitx5.android.input.picker.emojiPicker
 import org.fcitx.fcitx5.android.input.picker.emoticonPicker
 import org.fcitx.fcitx5.android.input.picker.symbolPicker
 import org.fcitx.fcitx5.android.input.popup.PopupComponent
 import org.fcitx.fcitx5.android.input.preedit.PreeditComponent
-import org.fcitx.fcitx5.android.input.status.StatusAreaWindow
 import org.fcitx.fcitx5.android.input.status.ButtonsAdjustingWindow
 import android.graphics.Rect
 import android.graphics.Region
@@ -221,7 +221,9 @@ class InputView(
                 setRenderEffect(null)
             }
 
-            if (windowManager.currentWindowOrNull() is StatusAreaWindow) {
+            val currentWindow = windowManager.currentWindowOrNull()
+            if (currentWindow is PickerWindow && currentWindow.key == PickerWindow.Key.Emoji) {
+                // Emoji pager contains large non-key areas; use full-layer blur to avoid transparent gaps.
                 canvas.drawBitmap(bitmap, srcRect, dstRect, paint)
                 redrawRetryCount = 0
                 return
@@ -248,8 +250,8 @@ class InputView(
                 drewKeyRegion = true
             }
 
-            // Some windows (e.g. StatusAreaWindow) don't use KeyView.
-            // Blur the active window content region to keep frosted-glass consistency.
+            // Keyboard window should normally provide KeyView regions.
+            // If none are available in this frame, fall back to window region to avoid transparent holes.
             if (keyClipRects.isEmpty() && windowManager.view.isShown &&
                 windowManager.view.width > 0 && windowManager.view.height > 0) {
                 clipRect.set(
