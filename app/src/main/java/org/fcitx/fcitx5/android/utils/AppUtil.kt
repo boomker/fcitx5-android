@@ -56,6 +56,24 @@ object AppUtil {
     fun launchMainToInputMethodConfig(context: Context, uniqueName: String, displayName: String) =
         launchMainToDest(context, SettingsRoute.InputMethodConfig(displayName, uniqueName))
 
+    fun launchMainToAddonMultiSelect(
+        context: Context,
+        title: String,
+        addon: String,
+        path: String,
+        option: String,
+        min: Int = 0
+    ) = launchMainToDest(
+        context,
+        SettingsRoute.MultiSelect(
+            title = title,
+            addon = addon,
+            path = path,
+            option = option,
+            min = min
+        )
+    )
+
     fun launchClipboardEdit(context: Context, id: Int, lastEntry: Boolean = false) {
         context.startActivity<ClipboardEditActivity> {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
