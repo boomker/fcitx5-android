@@ -120,6 +120,9 @@
     <string name="key_vertical_margin">Key vertical margin</string>
     <string name="configure">Configure</string>
     <string name="choose_image">Choose Image…</string>
+    <string name="add_background_image">Add Background Image…</string>
+    <string name="change_background_image">Change Background Image…</string>
+    <string name="clear_background_image">Clear Background Image</string>
     <string name="dark_keys">Dark Keys</string>
     <string name="recrop_image">Re-Crop Image</string>
     <string name="navbar_background">Navigation bar background</string>

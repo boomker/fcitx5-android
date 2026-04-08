@@ -31,6 +31,13 @@ open class SimpleThemeListAdapter<T : Theme>(private val entries: List<T>) :
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder =
         ViewHolder(ThemeThumbnailUi(parent.context))
 
+    override fun onViewRecycled(holder: ViewHolder) {
+        super.onViewRecycled(holder)
+        if (holder.ui is ThemeThumbnailUi) {
+            holder.ui.cleanup()
+        }
+    }
+
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         (holder.ui as ThemeThumbnailUi).apply {
             val theme = entries[position]

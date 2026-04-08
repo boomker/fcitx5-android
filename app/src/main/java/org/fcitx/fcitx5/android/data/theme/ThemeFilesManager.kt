@@ -25,11 +25,16 @@ object ThemeFilesManager {
 
     fun newCustomBackgroundImages(): Triple<String, File, File> {
         val themeName = UUID.randomUUID().toString()
+        val (croppedImageFile, srcImageFile) = newBackgroundImagesForTheme(themeName)
+        return Triple(themeName, croppedImageFile, srcImageFile)
+    }
+
+    fun newBackgroundImagesForTheme(themeName: String): Pair<File, File> {
         val folder = File(dir, safeThemePathComponent(themeName)).also { it.mkdirs() }
         val fileBase = safeThemePathComponent(themeName)
         val croppedImageFile = File(folder, "$fileBase-cropped.png")
         val srcImageFile = File(folder, "$fileBase-src")
-        return Triple(themeName, croppedImageFile, srcImageFile)
+        return croppedImageFile to srcImageFile
     }
 
     fun alignBackgroundAssetsWithThemeName(theme: Theme.Custom): Theme.Custom {

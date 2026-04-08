@@ -78,6 +78,9 @@
     <string name="brightness">Brillo</string>
     <string name="configure">Configurar</string>
     <string name="choose_image">Elegir imagen...</string>
+    <string name="add_background_image">Agregar imagen de fondo…</string>
+    <string name="change_background_image">Cambiar imagen de fondo…</string>
+    <string name="clear_background_image">Quitar imagen de fondo</string>
     <string name="dark_keys">Teclas oscuras</string>
     <string name="navbar_background">Fondo de barra de navegación</string>
     <string name="navbar_bkg_none">Sin fondo</string>

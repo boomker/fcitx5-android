@@ -12,6 +12,7 @@ arrow = "2.2.2"
 zxing = "3.5.3"
 zxingEmbedded = "4.3.0"
 xz = "1.10"
+pictureselector = "kotlin-v1.0.0-beta"
 
 [libraries]
 android-gradlePlugin = { group = "com.android.tools.build", name = "gradle", version.ref = "androidGradlePlugin" }
@@ -68,6 +69,7 @@ ksp = { module = "com.google.devtools.ksp:symbol-processing-api", version.ref = 
 zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
 zxing-embedded = { module = "com.journeyapps:zxing-android-embedded", version.ref = "zxingEmbedded" }
 xz = { module = "org.tukaani:xz", version.ref = "xz" }
+pictureselector = { module = "io.github.lucksiege:pictureselector", version.ref = "pictureselector" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }

@@ -6,6 +6,7 @@ package org.fcitx.fcitx5.android.ui.main.settings.theme
 
 import android.content.Context
 import android.content.res.ColorStateList
+import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.ShapeDrawable
 import android.graphics.drawable.shapes.OvalShape
@@ -16,6 +17,12 @@ import android.view.ViewOutlineProvider
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.core.view.isVisible
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.withContext
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.data.theme.ThemeMonet
@@ -47,6 +54,10 @@ class ThemeThumbnailUi(override val ctx: Context) : Ui {
 
     enum class State { Normal, Selected, LightMode, DarkMode }
     private val keyBorder by ThemeManager.prefs.keyBorder
+
+    private var loadJob: Job? = null
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private var loadGeneration = 0L
 
     val bkg = imageView {
         scaleType = ImageView.ScaleType.CENTER_CROP
@@ -121,20 +132,11 @@ class ThemeThumbnailUi(override val ctx: Context) : Ui {
         root.apply {
             foreground = rippleDrawable(theme.keyPressHighlightColor)
         }
-        bkg.imageDrawable = when (theme) {
-            is Theme.Custom -> {
-                if (theme.shouldApplyBlur()) {
-                    theme.blurredBackgroundDrawable(enableBlur = true, keyBorder = keyBorder)
-                } else {
-                    theme.backgroundDrawable()
-                }
-            }
-            else -> theme.backgroundDrawable()
-        }
+        
+        // Set other non-time-consuming UI elements
         bar.backgroundColor = theme.barColor
         themeNameText.apply {
             text = formatThemeName(theme.name)
-            // Use theme's key text color to ensure visibility on background
             setTextColor(theme.keyTextColor)
         }
         spaceBar.background = GradientDrawable().apply {
@@ -162,6 +164,41 @@ class ThemeThumbnailUi(override val ctx: Context) : Ui {
             imageTintList = foregroundTint
         }
         checkMark.imageTintList = foregroundTint
+
+        loadBackgroundAsync(theme, ++loadGeneration)
+    }
+
+    /**
+     * Asynchronously load background image to avoid blocking main thread.
+     * Cancels any ongoing loading task.
+     */
+    private fun loadBackgroundAsync(theme: Theme, generation: Long) {
+        loadJob?.cancel()
+        bkg.imageDrawable = null
+
+        loadJob = scope.launch {
+            try {
+                val drawable = withContext(Dispatchers.IO) {
+                    when (theme) {
+                        is Theme.Custom -> {
+                            if (theme.shouldApplyBlur()) {
+                                theme.blurredBackgroundDrawable(enableBlur = true, keyBorder = keyBorder)
+                            } else {
+                                theme.backgroundDrawable()
+                            }
+                        }
+                        else -> theme.backgroundDrawable()
+                    }
+                }
+                if (generation != loadGeneration) return@launch
+                bkg.imageDrawable = drawable
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                if (generation != loadGeneration) return@launch
+                bkg.imageDrawable = theme.backgroundDrawable()
+            }
+        }
     }
 
     private fun formatThemeName(name: String): String {
@@ -186,5 +223,11 @@ class ThemeThumbnailUi(override val ctx: Context) : Ui {
             State.LightMode -> R.drawable.ic_baseline_light_mode_24
             State.DarkMode -> R.drawable.ic_baseline_dark_mode_24
         }
+    }
+
+    fun cleanup() {
+        loadJob?.cancel()
+        loadGeneration++
+        bkg.imageDrawable = null
     }
 }

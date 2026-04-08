@@ -589,6 +589,9 @@ class CustomThemeActivity : AppCompatActivity() {
     private val cropLabel by lazy {
         createTextView(R.string.recrop_image, ripple = true)
     }
+    private val chooseImageLabel by lazy {
+        createTextView(R.string.add_background_image, ripple = true)
+    }
 
     private val supplementPreview by lazy {
         verticalLayout {
@@ -749,8 +752,13 @@ class CustomThemeActivity : AppCompatActivity() {
 
         constraintLayout {
             bottomPadding = dp(24)
-            add(cropLabel, lParams(matchConstraints, lineHeight) {
+            add(chooseImageLabel, lParams(matchConstraints, lineHeight) {
                 topOfParent()
+                centerHorizontally(itemMargin)
+                above(cropLabel)
+            })
+            add(cropLabel, lParams(matchConstraints, lineHeight) {
+                below(chooseImageLabel)
                 centerHorizontally(itemMargin)
                 above(variantLabel)
             })
@@ -838,17 +846,25 @@ class CustomThemeActivity : AppCompatActivity() {
 
     private lateinit var theme: Theme.Custom
     private var originalThemeName: String? = null
+    private var backgroundControlsBound = false
 
     private class BackgroundStates {
         lateinit var launcher: ActivityResultLauncher<CropOption>
         var srcImageExtension: String? = null
-        var srcImageBuffer: ByteArray? = null
+        var srcImageDirty: Boolean = false
+        var pendingSrcUri: Uri? = null
+        var pendingSrcFile: File? = null
         var cropRect: Rect? = null
         var cropRotation: Int = 0
         lateinit var croppedBitmap: Bitmap
         lateinit var filteredDrawable: BitmapDrawable
         lateinit var srcImageFile: File
         lateinit var croppedImageFile: File
+
+        fun hasStorageFiles(): Boolean =
+            this::srcImageFile.isInitialized && this::croppedImageFile.isInitialized
+
+        fun hasCroppedBitmap(): Boolean = this::croppedBitmap.isInitialized
     }
 
     private val backgroundStates by lazy { BackgroundStates() }
@@ -896,6 +912,156 @@ class CustomThemeActivity : AppCompatActivity() {
         return file
     }
 
+    private fun updateBlurRadiusLabel(progress: Int) {
+        blurRadiusValue.text = if (progress == 0) getString(R.string.no_blur) else "$progress"
+    }
+
+    private fun updateBackgroundEditorVisibility() {
+        val hasBackground = theme.backgroundImage != null
+        chooseImageLabel.setText(
+            if (hasBackground) R.string.change_background_image else R.string.add_background_image
+        )
+        val visibility = if (hasBackground) View.VISIBLE else View.GONE
+        cropLabel.visibility = visibility
+        variantLabel.visibility = visibility
+        variantSwitch.visibility = visibility
+        brightnessLabel.visibility = visibility
+        blurRadiusLabel.visibility = visibility
+        brightnessSeekBar.visibility = visibility
+        blurRadiusSeekBar.visibility = visibility
+    }
+
+    private fun ensureBackgroundStorageFiles() {
+        if (backgroundStates.hasStorageFiles()) return
+        val (cropped, src) = ThemeFilesManager.newBackgroundImagesForTheme(theme.name)
+        backgroundStates.croppedImageFile = cropped
+        backgroundStates.srcImageFile = src
+    }
+
+    private fun bindBackgroundControls() {
+        if (backgroundControlsBound) return
+        backgroundControlsBound = true
+        backgroundStates.launcher = registerForActivityResult(CropContract()) { result ->
+            when (result) {
+                CropResult.Fail -> {
+                    if (newCreated) cancel()
+                }
+                is CropResult.Success -> {
+                    ensureBackgroundStorageFiles()
+                    val sourceUri = result.srcUri
+                    val contentType = contentResolver.getType(sourceUri)
+                    val sourceExtension = MimeTypeMap.getSingleton()
+                        .getExtensionFromMimeType(contentType)
+                        ?: MimeTypeMap.getFileExtensionFromUrl(sourceUri.toString())
+                            .takeIf { it.isNotBlank() }
+                    backgroundStates.srcImageExtension = sourceExtension
+                    backgroundStates.srcImageDirty = true
+                    backgroundStates.pendingSrcUri = sourceUri
+                    backgroundStates.pendingSrcFile = result.srcFile
+                    backgroundStates.cropRect = result.rect
+                    backgroundStates.cropRotation = result.rotation
+                    backgroundStates.croppedBitmap = result.bitmap
+                    backgroundStates.filteredDrawable = BitmapDrawable(resources, backgroundStates.croppedBitmap)
+
+                    if (theme.backgroundImage == null) {
+                        theme = theme.copy(
+                            backgroundImage = Theme.Custom.CustomBackground(
+                                croppedFilePath = backgroundStates.croppedImageFile.absolutePath,
+                                srcFilePath = backgroundStates.srcImageFile.absolutePath,
+                                brightness = 70,
+                                cropRect = backgroundStates.cropRect,
+                                cropRotation = backgroundStates.cropRotation,
+                                blurRadius = 10f
+                            )
+                        )
+                        brightnessSeekBar.progress = 70
+                        blurRadiusSeekBar.progress = 10
+                        variantSwitch.isChecked = !theme.isDark
+                    }
+                    updateBackgroundEditorVisibility()
+                    updateBlurRadiusLabel(blurRadiusSeekBar.progress)
+                    backgroundStates.updateState()
+                }
+            }
+        }
+        chooseImageLabel.setOnClickListener {
+            if (theme.backgroundImage == null) {
+                backgroundStates.launchCrop(
+                    previewUi.intrinsicWidth.coerceAtLeast(1),
+                    previewUi.intrinsicHeight.coerceAtLeast(1),
+                    pickNewSource = true
+                )
+            } else {
+                AlertDialog.Builder(this@CustomThemeActivity)
+                    .setTitle(R.string.change_background_image)
+                    .setItems(
+                        arrayOf(
+                            getString(R.string.change_background_image),
+                            getString(R.string.clear_background_image)
+                        )
+                    ) { _, which ->
+                        when (which) {
+                            0 -> backgroundStates.launchCrop(
+                                previewUi.intrinsicWidth.coerceAtLeast(1),
+                                previewUi.intrinsicHeight.coerceAtLeast(1),
+                                pickNewSource = true
+                            )
+                            1 -> clearBackgroundImage()
+                        }
+                    }
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show()
+            }
+        }
+        cropLabel.setOnClickListener {
+            if (theme.backgroundImage == null) return@setOnClickListener
+            backgroundStates.launchCrop(
+                previewUi.intrinsicWidth.coerceAtLeast(1),
+                previewUi.intrinsicHeight.coerceAtLeast(1),
+                pickNewSource = false
+            )
+        }
+        variantLabel.setOnClickListener {
+            variantSwitch.isChecked = !variantSwitch.isChecked
+        }
+        variantSwitch.setOnCheckedChangeListener { _, isChecked ->
+            whenHasBackground { background ->
+                setKeyVariant(background, darkKeys = isChecked)
+            }
+        }
+        brightnessSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onStartTrackingTouch(bar: SeekBar) {}
+            override fun onStopTrackingTouch(bar: SeekBar) {}
+            override fun onProgressChanged(bar: SeekBar, progress: Int, fromUser: Boolean) {
+                if (fromUser && theme.backgroundImage != null) {
+                    backgroundStates.updateState()
+                }
+            }
+        })
+        blurRadiusSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onStartTrackingTouch(bar: SeekBar) {}
+            override fun onStopTrackingTouch(bar: SeekBar) {}
+            override fun onProgressChanged(bar: SeekBar, progress: Int, fromUser: Boolean) {
+                updateBlurRadiusLabel(progress)
+                if (fromUser && theme.backgroundImage != null) {
+                    backgroundStates.updateState()
+                }
+            }
+        })
+    }
+
+    private fun clearBackgroundImage() {
+        if (theme.backgroundImage == null) return
+        theme = theme.copy(backgroundImage = null)
+        backgroundStates.srcImageExtension = null
+        backgroundStates.srcImageDirty = false
+        backgroundStates.pendingSrcUri = null
+        backgroundStates.pendingSrcFile?.delete()
+        backgroundStates.pendingSrcFile = null
+        applyThemePreview(theme)
+        updateBackgroundEditorVisibility()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // recover from bundle
@@ -925,15 +1091,6 @@ class CustomThemeActivity : AppCompatActivity() {
             theme = ThemePreset.TransparentDark.deriveCustomBackground(n, c.path, s.path)
         }
         previewUi = KeyboardPreviewUi(this, theme)
-        if (theme.backgroundImage == null) {
-            brightnessLabel.visibility = View.GONE
-            blurRadiusLabel.visibility = View.GONE
-            cropLabel.visibility = View.GONE
-            variantLabel.visibility = View.GONE
-            variantSwitch.visibility = View.GONE
-            brightnessSeekBar.visibility = View.GONE
-            blurRadiusSeekBar.visibility = View.GONE
-        }
         enableEdgeToEdge()
         ViewCompat.setOnApplyWindowInsetsListener(ui) { _, windowInsets ->
             val statusBars = windowInsets.getInsets(WindowInsetsCompat.Type.statusBars())
@@ -953,78 +1110,21 @@ class CustomThemeActivity : AppCompatActivity() {
         supportActionBar!!.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.title = toThemeLabel(theme.name)
         setContentView(ui)
+        bindBackgroundControls()
         registerLayoutChangeObserver()
         applyThemePreview(theme)
         whenHasBackground { background ->
             brightnessSeekBar.progress = background.brightness
             blurRadiusSeekBar.progress = background.blurRadius.toInt()
             variantSwitch.isChecked = !theme.isDark
-            launcher = registerForActivityResult(CropContract()) {
-                when (it) {
-                    CropResult.Fail -> {
-                        if (newCreated) {
-                            cancel()
-                        }
-                    }
-                    is CropResult.Success -> {
-                        if (newCreated) {
-                            srcImageExtension = MimeTypeMap.getSingleton()
-                                .getExtensionFromMimeType(contentResolver.getType(it.srcUri))
-                            srcImageBuffer =
-                                contentResolver.openInputStream(it.srcUri)!!
-                                    .use { x -> x.readBytes() }
-                        }
-                        cropRect = it.rect
-                        cropRotation = it.rotation
-                        croppedBitmap = it.bitmap
-                        filteredDrawable = BitmapDrawable(resources, croppedBitmap)
-                        updateState()
-                    }
-                }
-            }
-            cropLabel.setOnClickListener {
-                launchCrop(previewUi.intrinsicWidth, previewUi.intrinsicHeight)
-            }
-            variantLabel.setOnClickListener {
-                variantSwitch.isChecked = !variantSwitch.isChecked
-            }
-            // attach OnCheckedChangeListener after calling setChecked (isChecked in kotlin)
-            variantSwitch.setOnCheckedChangeListener { _, isChecked ->
-                setKeyVariant(background, darkKeys = isChecked)
-            }
-            brightnessSeekBar.setOnSeekBarChangeListener(object :
-                SeekBar.OnSeekBarChangeListener {
-                override fun onStartTrackingTouch(bar: SeekBar) {}
-                override fun onStopTrackingTouch(bar: SeekBar) {}
-
-                override fun onProgressChanged(bar: SeekBar, progress: Int, fromUser: Boolean) {
-                    if (fromUser) updateState()
-                }
-            })
-            blurRadiusSeekBar.setOnSeekBarChangeListener(object :
-                SeekBar.OnSeekBarChangeListener {
-                override fun onStartTrackingTouch(bar: SeekBar) {}
-                override fun onStopTrackingTouch(bar: SeekBar) {}
-
-                override fun onProgressChanged(bar: SeekBar, progress: Int, fromUser: Boolean) {
-                    if (fromUser) {
-                        blurRadiusValue.text = if (progress == 0) {
-                            getString(R.string.no_blur)
-                        } else {
-                            "$progress"
-                        }
-                        updateState()
-                    }
-                }
-            })
+            updateBlurRadiusLabel(blurRadiusSeekBar.progress)
         }
+        updateBackgroundEditorVisibility()
 
         if (newCreated) {
             cropLabel.visibility = View.GONE
-            whenHasBackground {
-                previewUi.onSizeMeasured = { w, h ->
-                    launchCrop(w, h)
-                }
+            previewUi.onSizeMeasured = { w, h ->
+                backgroundStates.launchCrop(w, h, pickNewSource = true)
             }
         } else {
             whenHasBackground {
@@ -1037,15 +1137,17 @@ class CustomThemeActivity : AppCompatActivity() {
         }
     }
 
-    private fun BackgroundStates.launchCrop(w: Int, h: Int) {
-        if (newCreated) {
+    private fun BackgroundStates.launchCrop(w: Int, h: Int, pickNewSource: Boolean) {
+        val editSourceUri = pendingSrcUri
+            ?: if (hasStorageFiles() && srcImageFile.exists()) Uri.fromFile(srcImageFile) else null
+        if (pickNewSource || editSourceUri == null) {
             launcher.launch(CropOption.New(w, h))
         } else {
             launcher.launch(
                 CropOption.Edit(
                     width = w,
                     height = h,
-                    Uri.fromFile(srcImageFile),
+                    sourceUri = editSourceUri,
                     initialRect = cropRect,
                     initialRotation = cropRotation
                 )
@@ -1072,55 +1174,117 @@ class CustomThemeActivity : AppCompatActivity() {
 
     private fun done() {
         lifecycleScope.withLoadingDialog(this) {
-            var outputTheme = theme
-            whenHasBackground {
-                withContext(Dispatchers.IO) {
-                    croppedImageFile.delete()
-                    croppedImageFile.outputStream().use {
-                        croppedBitmap.compress(Bitmap.CompressFormat.PNG, 100, it)
-                    }
-                    if (newCreated) {
-                        if (srcImageExtension != null) {
-                            srcImageFile = File("${srcImageFile.absolutePath}.$srcImageExtension")
+            try {
+                var outputTheme = theme
+                if (theme.backgroundImage == null &&
+                    backgroundStates.hasStorageFiles() &&
+                    backgroundStates.hasCroppedBitmap()
+                ) {
+                    theme = theme.copy(
+                        backgroundImage = Theme.Custom.CustomBackground(
+                            croppedFilePath = backgroundStates.croppedImageFile.absolutePath,
+                            srcFilePath = backgroundStates.srcImageFile.absolutePath,
+                            brightness = brightnessSeekBar.progress,
+                            cropRect = backgroundStates.cropRect,
+                            cropRotation = backgroundStates.cropRotation,
+                            blurRadius = blurRadiusSeekBar.progress.toFloat()
+                        )
+                    )
+                }
+                whenHasBackground {
+                    withContext(Dispatchers.IO) {
+                        if (srcImageDirty && pendingSrcUri != null) {
+                            srcImageExtension?.takeIf { ext -> ext.isNotBlank() }?.let { ext ->
+                                val parent = srcImageFile.parentFile
+                                val stem = srcImageFile.name.substringBeforeLast('.', srcImageFile.name)
+                                srcImageFile = File(parent, "$stem.$ext")
+                            }
                             theme = theme.copy(
                                 backgroundImage = it.copy(
                                     srcFilePath = srcImageFile.absolutePath
                                 )
                             )
+                            srcImageFile.parentFile?.mkdirs()
+                            srcImageFile.delete()
+                            var copied = false
+                            runCatching {
+                                val input = pendingSrcFile?.takeIf { it.exists() && it.length() > 0L }?.inputStream()
+                                    ?: run {
+                                        val srcUri = pendingSrcUri!!
+                                        contentResolver.openInputStream(srcUri)
+                                            ?: if (srcUri.scheme == "file") {
+                                                val srcPath = srcUri.path
+                                                    ?: throw IllegalStateException(getString(R.string.exception_theme_src_image))
+                                                File(srcPath).inputStream()
+                                            } else {
+                                                throw IllegalStateException(getString(R.string.exception_theme_src_image))
+                                            }
+                                    }
+                                input.use { stream ->
+                                    srcImageFile.outputStream().use { output -> stream.copyTo(output) }
+                                }
+                                copied = true
+                            }.getOrNull()
+
+                            if (!copied) {
+                                srcImageFile.outputStream().use {
+                                    croppedBitmap.compress(Bitmap.CompressFormat.PNG, 100, it)
+                                }
+                            }
+                            if (!srcImageFile.exists() || srcImageFile.length() == 0L) {
+                                srcImageFile = croppedImageFile
+                                theme = theme.copy(
+                                    backgroundImage = it.copy(
+                                        srcFilePath = croppedImageFile.absolutePath
+                                    )
+                                )
+                            }
+                            srcImageDirty = false
+                            pendingSrcUri = null
+                            pendingSrcFile?.delete()
+                            pendingSrcFile = null
                         }
-                        srcImageFile.writeBytes(srcImageBuffer!!)
+
+                        croppedImageFile.delete()
+                        croppedImageFile.outputStream().use {
+                            croppedBitmap.compress(Bitmap.CompressFormat.PNG, 100, it)
+                        }
                     }
                 }
-            }
-            outputTheme = theme
-            whenHasBackground {
-                outputTheme = outputTheme.copy(
-                    backgroundImage = it.copy(
-                        brightness = brightnessSeekBar.progress,
-                        blurRadius = blurRadiusSeekBar.progress.toFloat(),
-                        cropRect = cropRect,
-                        cropRotation = cropRotation
+                outputTheme = theme
+                whenHasBackground {
+                    outputTheme = outputTheme.copy(
+                        backgroundImage = it.copy(
+                            brightness = brightnessSeekBar.progress,
+                            blurRadius = blurRadiusSeekBar.progress.toFloat(),
+                            cropRect = cropRect,
+                            cropRotation = cropRotation
+                        )
                     )
-                )
+                }
+                outputTheme = withContext(Dispatchers.IO) {
+                    ThemeFilesManager.alignBackgroundAssetsWithThemeName(outputTheme)
+                }
+                setResult(
+                    RESULT_OK,
+                    Intent().apply {
+                        putExtra(
+                            RESULT,
+                            if (newCreated)
+                                BackgroundResult.Created(outputTheme)
+                            else
+                                BackgroundResult.Updated(
+                                    oldName = originalThemeName ?: outputTheme.name,
+                                    theme = outputTheme
+                                )
+                        )
+                    })
+                finish()
+            } catch (e: Exception) {
+                timber.log.Timber.e("Exception when saving custom theme: ${e.stackTraceToString()}")
+                toast(e)
+                return@withLoadingDialog
             }
-            outputTheme = withContext(Dispatchers.IO) {
-                ThemeFilesManager.alignBackgroundAssetsWithThemeName(outputTheme)
-            }
-            setResult(
-                RESULT_OK,
-                Intent().apply {
-                    putExtra(
-                        RESULT,
-                        if (newCreated)
-                            BackgroundResult.Created(outputTheme)
-                        else
-                            BackgroundResult.Updated(
-                                oldName = originalThemeName ?: outputTheme.name,
-                                theme = outputTheme
-                            )
-                    )
-                })
-            finish()
         }
     }
 
