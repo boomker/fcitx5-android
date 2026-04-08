@@ -26,6 +26,9 @@
     <string name="_not_available_">(사용할 수 없음)</string>
     <string name="add">추가</string>
     <string name="edit">편집</string>
+    <string name="add_background_image">배경 이미지 추가…</string>
+    <string name="change_background_image">배경 이미지 변경…</string>
+    <string name="clear_background_image">배경 이미지 지우기</string>
     <string name="undo">실행 취소</string>
     <string name="delete_and_sync_data">런타임 데이터 삭제 및 동기화</string>
     <string name="delete_and_sync_data_message">현재 데이터 디렉터리를 삭제하고 앱에 번들된 애셋에서 동기화</string>

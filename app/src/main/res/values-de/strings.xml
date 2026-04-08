@@ -109,6 +109,9 @@
     <string name="key_horizontal_margin">Horizontaler Tastenrand</string>
     <string name="key_vertical_margin">Vertikaler Tastenrand</string>
     <string name="choose_image">Bild wählen ...</string>
+    <string name="add_background_image">Hintergrundbild hinzufügen…</string>
+    <string name="change_background_image">Hintergrundbild ändern…</string>
+    <string name="clear_background_image">Hintergrundbild entfernen</string>
     <string name="dark_keys">Dunkle Tasten</string>
     <string name="recrop_image">Bild neu zuschneiden</string>
     <string name="navbar_background">Hintergrund der Navigationsleiste</string>

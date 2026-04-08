@@ -121,6 +121,11 @@ class ThemeFragment : Fragment() {
         super.onStop()
     }
 
+    override fun onResume() {
+        super.onResume()
+        previewUi.setTheme(ThemeManager.activeTheme)
+    }
+
     override fun onDestroy() {
         ThemeManager.removeOnChangedListener(onThemeChangeListener)
         super.onDestroy()

@@ -13,12 +13,14 @@ import android.graphics.Rect
 import android.net.Uri
 import android.os.Bundle
 import android.os.Parcelable
+import android.provider.MediaStore
 import android.view.Menu
 import android.view.ViewGroup
 import androidx.activity.addCallback
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.contract.ActivityResultContract
+import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.contract.ActivityResultContract
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.graphics.drawable.DrawerArrowDrawable
 import androidx.appcompat.widget.Toolbar
@@ -86,7 +88,8 @@ class CropImageActivity : AppCompatActivity() {
             val rect: Rect,
             val rotation: Int,
             val file: File,
-            val srcUri: Uri
+            val srcUri: Uri,
+            val srcFile: File? = null
         ) : CropResult() {
             // TODO: find some way to transfer large Bitmap without writing to file
             @IgnoredOnParcel
@@ -123,20 +126,22 @@ class CropImageActivity : AppCompatActivity() {
     private lateinit var cropView: CropImageView
 
     private lateinit var sourceImageUri: Uri
-
-    private val launcher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        if (uri == null) {
-            setResult(RESULT_CANCELED)
-            finish()
-        } else {
-            sourceImageUri = uri
-            cropView.setImageUriAsync(uri)
-        }
-    }
+    private lateinit var imagePickerLauncher: ActivityResultLauncher<Intent>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         cropOption = intent.parcelable<CropOption>(CROP_OPTIONS) ?: CropOption.New(1, 1)
+        imagePickerLauncher =
+            registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+                val uri = result.data?.data
+                if (result.resultCode != RESULT_OK || uri == null) {
+                    setResult(RESULT_CANCELED)
+                    finish()
+                    return@registerForActivityResult
+                }
+                sourceImageUri = uri
+                cropView.setImageUriAsync(uri)
+            }
         enableEdgeToEdge()
         setupRootView()
         setContentView(root)
@@ -216,7 +221,7 @@ class CropImageActivity : AppCompatActivity() {
         cropView.setAspectRatio(option.width, option.height)
         when (option) {
             is CropOption.New -> {
-                launcher.launch("image/*")
+                launchSystemImagePicker()
             }
             is CropOption.Edit -> {
                 sourceImageUri = option.sourceUri
@@ -232,6 +237,13 @@ class CropImageActivity : AppCompatActivity() {
         }
     }
 
+    private fun launchSystemImagePicker() {
+        val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI).apply {
+            type = "image/*"
+        }
+        imagePickerLauncher.launch(intent)
+    }
+
     private fun onCropImage() {
         val tempOutFile = File.createTempFile("cropped", ".png", cacheDir)
         try {
@@ -241,11 +253,28 @@ class CropImageActivity : AppCompatActivity() {
                 options = CropImageView.RequestSizeOptions.RESIZE_INSIDE,
             )
             tempOutFile.outputStream().use { bitmap!!.compress(Bitmap.CompressFormat.PNG, 100, it) }
+            val tempSrcFile = runCatching {
+                val extension = contentResolver.getType(sourceImageUri)?.let {
+                    android.webkit.MimeTypeMap.getSingleton().getExtensionFromMimeType(it)
+                }?.takeIf { it.isNotBlank() } ?: "img"
+                val src = File.createTempFile("source", ".$extension", cacheDir)
+                val input = contentResolver.openInputStream(sourceImageUri)
+                    ?: if (sourceImageUri.scheme == "file") {
+                        val srcPath = sourceImageUri.path ?: return@runCatching null
+                        File(srcPath).inputStream()
+                    } else null
+                if (input == null) return@runCatching null
+                input.use { stream ->
+                    src.outputStream().use { output -> stream.copyTo(output) }
+                }
+                src.takeIf { it.length() > 0L }
+            }.getOrNull()
             val success = CropResult.Success(
                 rect = cropView.cropRect!!,
                 rotation = cropView.rotatedDegrees,
                 file = tempOutFile,
-                srcUri = sourceImageUri
+                srcUri = sourceImageUri,
+                srcFile = tempSrcFile
             )
             setResult(RESULT_OK, Intent().putExtras(bundleOf(CROP_RESULT to success)))
         } catch (e: Exception) {

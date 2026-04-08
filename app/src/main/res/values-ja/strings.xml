@@ -122,6 +122,9 @@
     <string name="key_vertical_margin">キーの上下間隔</string>
     <string name="configure">設定</string>
     <string name="choose_image">画像を選択</string>
+    <string name="add_background_image">背景画像を追加…</string>
+    <string name="change_background_image">背景画像を変更…</string>
+    <string name="clear_background_image">背景画像を削除</string>
     <string name="dark_keys">黒字のキー</string>
     <string name="recrop_image">画像を切り取り直す</string>
     <string name="navbar_background">ナビゲーションバーの背景</string>

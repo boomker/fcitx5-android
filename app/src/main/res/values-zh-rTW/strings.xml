@@ -124,6 +124,9 @@
     <string name="key_vertical_margin">按鍵垂直邊距</string>
     <string name="configure">配置</string>
     <string name="choose_image">選擇圖片…</string>
+    <string name="add_background_image">新增背景圖片…</string>
+    <string name="change_background_image">更換背景圖片…</string>
+    <string name="clear_background_image">清除背景圖片</string>
     <string name="dark_keys">深色按鍵</string>
     <string name="recrop_image">重新裁剪圖片</string>
     <string name="navbar_background">導航列背景</string>

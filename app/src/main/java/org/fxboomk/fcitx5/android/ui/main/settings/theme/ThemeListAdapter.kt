@@ -26,6 +26,13 @@ abstract class ThemeListAdapter : RecyclerView.Adapter<ThemeListAdapter.ViewHold
         return entries.indexOfFirst { it.name == theme.name } + OFFSET
     }
 
+    override fun onViewRecycled(holder: ViewHolder) {
+        super.onViewRecycled(holder)
+        if (holder.ui is ThemeThumbnailUi) {
+            holder.ui.cleanup()
+        }
+    }
+
     fun setThemes(themes: List<Theme>) {
         entries.clear()
         entries.addAll(themes)
