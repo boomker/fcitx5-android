@@ -82,6 +82,7 @@ android {
         debug {
             resValue("mipmap", "app_icon", "@mipmap/ic_launcher_debug")
             resValue("mipmap", "app_icon_round", "@mipmap/ic_launcher_round_debug")
+            resValue("string", "app_name", "帝鹅输入法")
         }
     }
 
