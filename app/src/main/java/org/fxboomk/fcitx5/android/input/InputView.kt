@@ -1221,7 +1221,7 @@ class InputView(
 
             // Try to use actual keyboardView width when available
             val realWidthPx = keyboardView.width.takeIf { it > 0 }
-                ?: windowManager.view?.width?.takeIf { it > 0 }
+                ?: windowManager.view.width.takeIf { it > 0 }
                 ?: -1
 
             val shouldSplit = if (realWidthPx > 0) {
@@ -2441,13 +2441,12 @@ class InputView(
         } else {
             // Fallback: directly update TextKeyboard if KeyboardWindow is not ready
             // This can happen during initial view setup
-            keyboardView?.let { kv ->
-                val viewGroup = kv as? ViewGroup
-                val childCount = viewGroup?.childCount ?: 0
-                for (i in 0 until childCount) {
-                    val child = viewGroup?.getChildAt(i)
-                    (child as? BaseKeyboard)?.onInputMethodUpdate(ime)
-                }
+            val kv = keyboardView
+            val viewGroup = kv as? ViewGroup
+            val childCount = viewGroup?.childCount ?: 0
+            for (i in 0 until childCount) {
+                val child = viewGroup?.getChildAt(i)
+                (child as? BaseKeyboard)?.onInputMethodUpdate(ime)
             }
         }
     }

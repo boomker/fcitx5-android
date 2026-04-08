@@ -174,7 +174,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     private fun updateCandidatesViewKeyboardBounds() {
         val cv = candidatesView ?: return
         val iv = inputView ?: return
-        val keyboardView = iv.keyboardView ?: return
+        val keyboardView = iv.keyboardView
 
         // Ensure views have valid dimensions
         if (contentView.width <= 0 || contentView.height <= 0 || 
@@ -187,8 +187,8 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         keyboardView.getLocationInWindow(keyboardLocation)
         val keyboardLeft = keyboardLocation[0].toFloat()
         val keyboardTop = keyboardLocation[1].toFloat()
-        val keyboardRight = (keyboardLeft + keyboardView.width).toFloat()
-        val keyboardBottom = (keyboardTop + keyboardView.height).toFloat()
+        val keyboardRight = keyboardLeft + keyboardView.width
+        val keyboardBottom = keyboardTop + keyboardView.height
         
         val parentWidth = contentView.width.toFloat()
         val parentHeight = contentView.height.toFloat()

@@ -53,7 +53,7 @@ class ButtonsBarUi(
 
     private fun buildButtons() {
         buttonMap.clear()
-        val recyclerView = root as KawaiiBarRecyclerView
+        val recyclerView = root
         // Recreate adapter to ensure clean state
         recyclerView.adapter = ButtonsBarAdapter()
         // Update layout mode immediately (width should be available from previous layout)
@@ -159,7 +159,7 @@ class ButtonsBarUi(
         }
 
         override fun onBindViewHolder(holder: ButtonViewHolder, position: Int) {
-            val recyclerView = root as KawaiiBarRecyclerView
+            val recyclerView = root
             val kawaiiBarLayout = recyclerView.layoutManager as KawaiiBarLayout
             val parentWidth = recyclerView.width
             val childCount = itemCount

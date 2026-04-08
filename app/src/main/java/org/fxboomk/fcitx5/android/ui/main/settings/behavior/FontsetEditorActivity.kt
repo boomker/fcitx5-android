@@ -496,7 +496,7 @@ class FontsetEditorActivity : AppCompatActivity() {
         
         val seekBar = android.widget.SeekBar(this).apply {
             max = (maxSize - minSize).toInt()
-            progress = (currentSize - minSize).toInt().coerceIn(0, max.toInt())
+            progress = (currentSize - minSize).toInt().coerceIn(0, max)
             setPadding(0, dp(16), 0, dp(8))
         }
         

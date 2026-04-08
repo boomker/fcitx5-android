@@ -363,7 +363,7 @@ object ThemeFilesManager {
                     entry = zipStream.nextEntry
                 }
                 jsonFile ?: errorRuntime(R.string.exception_theme_json)
-                val rawJson = jsonFile!!.readText()
+                val rawJson = jsonFile.readText()
                 // Normalize paths to current app's external files dir (replace package name)
                 val normalizedJson = rawJson.replace(
                     Regex("""/Android/data/[^/]+/files"""),

@@ -576,7 +576,7 @@ class MacroEditorActivity : AppCompatActivity() {
                 KeyData(
                     keyType = (it["fcitx"] as? String)?.let { "fcitx" }
                         ?: (it["android"] as? String)?.let { "android" } ?: "fcitx",
-                    code = (it["fcitx"] as? String) ?: (it["android"] as? String)?.toString() ?: ""
+                    code = (it["fcitx"] as? String) ?: (it["android"] as? String) ?: ""
                 )
             }
         }?.toMutableList() ?: mutableListOf()
@@ -589,7 +589,7 @@ class MacroEditorActivity : AppCompatActivity() {
                     KeyData(
                         keyType = (it["fcitx"] as? String)?.let { "fcitx" }
                             ?: (it["android"] as? String)?.let { "android" } ?: "fcitx",
-                        code = (it["fcitx"] as? String) ?: (it["android"] as? String)?.toString() ?: ""
+                        code = (it["fcitx"] as? String) ?: (it["android"] as? String) ?: ""
                     )
                 }
             } ?: emptyList()
@@ -598,7 +598,7 @@ class MacroEditorActivity : AppCompatActivity() {
                 KeyData(
                     keyType = (it["fcitx"] as? String)?.let { "fcitx" }
                         ?: (it["android"] as? String)?.let { "android" } ?: "fcitx",
-                    code = (it["fcitx"] as? String) ?: (it["android"] as? String)?.toString() ?: ""
+                    code = (it["fcitx"] as? String) ?: (it["android"] as? String) ?: ""
                 )
             }
 

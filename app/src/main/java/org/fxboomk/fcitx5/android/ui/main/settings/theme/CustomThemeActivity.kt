@@ -443,7 +443,7 @@ class CustomThemeActivity : AppCompatActivity() {
                     setHue(currentHue)
                     onHueChanged = { hue ->
                         currentHue = hue
-                        svPickerRef?.setHue(currentHue)
+                        svPickerRef.setHue(currentHue)
                         updateColor()
                         syncColorWidgets(syncInputText = true)
                         onPreview(editingColor)

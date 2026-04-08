@@ -453,8 +453,8 @@ class KeyEditorActivity : AppCompatActivity() {
                 val tapMacroSteps = (tapAction?.get("macro") as? List<*>)?.filterNotNull() ?: emptyList()
                 val swipeMacroSteps = (swipeAction?.get("macro") as? List<*>)?.filterNotNull() ?: emptyList()
 
-                macroTapStepsData = tapMacroSteps as List<Any>
-                macroSwipeStepsData = swipeMacroSteps as List<Any>
+                macroTapStepsData = tapMacroSteps
+                macroSwipeStepsData = swipeMacroSteps
 
                 createMacroEditorButton(
                     title = getString(R.string.text_keyboard_layout_macro_tap_event),
@@ -1225,6 +1225,7 @@ class KeyEditorActivity : AppCompatActivity() {
         const val RESULT_ACTION_DELETE = "delete"
 
         @JvmStatic
+        @Suppress("UNCHECKED_CAST")
         fun toSerializableMap(input: Map<String, Any?>): HashMap<String, Any?> {
             return normalizeValue(input) as HashMap<String, Any?>
         }

@@ -55,10 +55,7 @@ class DefaultFontProvider : FontProviderApi {
                 cachedFontTypefaceMap = null
                 return mutableMapOf()
             }
-            val fontset = snapshot ?: run {
-                cachedFontTypefaceMap = null
-                return mutableMapOf()
-            }
+            val fontset = snapshot
             val fontsDir = fontset.file?.parentFile ?: run {
                 cachedFontTypefaceMap = null
                 return mutableMapOf()
@@ -115,10 +112,7 @@ class DefaultFontProvider : FontProviderApi {
                 cachedFontSizeMap = null
                 return mutableMapOf()
             }
-            val fontset = snapshot ?: run {
-                cachedFontSizeMap = null
-                return mutableMapOf()
-            }
+            val fontset = snapshot
             if (cachedFontSizeMap == null || lastModified != fontset.lastModified) {
                 cachedFontSizeMap = runCatching {
                     fontset.value

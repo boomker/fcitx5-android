@@ -362,8 +362,8 @@ class KeyboardLayoutAdapter(
                     val adapterPosition = holder.bindingAdapterPosition
                     if (adapterPosition != RecyclerView.NO_POSITION) {
                         updateCrossRowPreview(holder, view, adapterPosition, rawX, rawY)
-                        (holder.keysFlow as? DraggableFlowLayout)
-                            ?.setInternalReorderSuppressed(previewState.targetRow != -1 && previewState.targetRow != adapterPosition)
+                        holder.keysFlow
+                            .setInternalReorderSuppressed(previewState.targetRow != -1 && previewState.targetRow != adapterPosition)
                     }
                 }
 
@@ -372,19 +372,19 @@ class KeyboardLayoutAdapter(
                     if (adapterPosition != RecyclerView.NO_POSITION) {
                         val movedByPreview = commitCrossRowPreviewIfNeeded()
                         if (!movedByPreview) {
-                            val flow = holder.keysFlow as? DraggableFlowLayout
+                            val flow = holder.keysFlow
                             maybeMoveDraggedKeyAcrossRows(
                                 holder = holder,
                                 dragView = view,
                                 currentRowIndex = adapterPosition,
                                 currentIndex = position,
-                                touchRawX = flow?.lastTouchRawX,
-                                touchRawY = flow?.lastTouchRawY
+                                touchRawX = flow.lastTouchRawX,
+                                touchRawY = flow.lastTouchRawY
                             )
                         }
                         listener.onKeyDragEnded(adapterPosition)
                     }
-                    (holder.keysFlow as? DraggableFlowLayout)?.setInternalReorderSuppressed(false)
+                    holder.keysFlow.setInternalReorderSuppressed(false)
                     clearCrossRowPreviewAndRefresh()
                 }
             }

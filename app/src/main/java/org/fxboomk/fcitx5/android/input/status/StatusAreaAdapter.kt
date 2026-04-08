@@ -33,9 +33,7 @@ abstract class StatusAreaAdapter : RecyclerView.Adapter<StatusAreaAdapter.Holder
         // Handle long press for ActionEntry with long press action
         if (entry is StatusAreaEntry.ActionEntry && entry.longPressAction != null) {
             holder.ui.root.setOnLongClickListener {
-                entry.longPressAction?.let { action ->
-                    onItemLongClick(it, entry, action)
-                } ?: false
+                onItemLongClick(it, entry, entry.longPressAction)
             }
         } else {
             holder.ui.root.setOnLongClickListener(null)

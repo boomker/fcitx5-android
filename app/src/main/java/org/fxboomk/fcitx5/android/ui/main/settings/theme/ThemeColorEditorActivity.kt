@@ -141,16 +141,16 @@ class ThemeColorEditorActivity : AppCompatActivity() {
         val svSize = dp(180)
         val sideSliderWidth = dp(28)
         val previewWidth = svSize + sliderGap + sideSliderWidth + sliderGap + sideSliderWidth
-        val previewHeight = dp(96).toInt()
+        val previewHeight = dp(96)
 
         val previewContainer = FrameLayout(this).apply {
             layoutParams = LinearLayout.LayoutParams(previewWidth, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-                bottomMargin = dp(16).toInt()
+                bottomMargin = dp(16)
                 gravity = Gravity.CENTER_HORIZONTAL
             }
         }
         val checkerboard = View(this).apply {
-            background = createCheckerboardDrawable(dp(8).toInt())
+            background = createCheckerboardDrawable(dp(8))
         }
         previewColorView = View(this).apply {
             backgroundColor = currentColor
