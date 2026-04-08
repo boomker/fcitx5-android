@@ -208,10 +208,7 @@ class ThemePrefs(sharedPreferences: SharedPreferences) :
         R.string.light_mode_theme,
         "light_mode_themes",
         setOf(if (BuildConfig.DEBUG) ThemePreset.MaterialLight.name else ThemePreset.PixelLight.name),
-        summary = R.string.light_mode_theme_summary,
-        enableUiOn = {
-            followSystemDayNightTheme.getValue()
-        }
+        summary = R.string.light_mode_theme_summary
     )
 
     /**
@@ -221,10 +218,7 @@ class ThemePrefs(sharedPreferences: SharedPreferences) :
         R.string.dark_mode_theme,
         "dark_mode_themes",
         setOf(if (BuildConfig.DEBUG) ThemePreset.MaterialDark.name else ThemePreset.PixelDark.name),
-        summary = R.string.dark_mode_theme_summary,
-        enableUiOn = {
-            followSystemDayNightTheme.getValue()
-        }
+        summary = R.string.dark_mode_theme_summary
     )
 
     /**
