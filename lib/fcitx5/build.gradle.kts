@@ -1,7 +1,7 @@
 plugins {
-    id("org.fcitx.fcitx5.android.lib-convention")
-    id("org.fcitx.fcitx5.android.native-lib-convention")
-    id("org.fcitx.fcitx5.android.fcitx-headers")
+    id("org.fxboomk.fcitx5.android.lib-convention")
+    id("org.fxboomk.fcitx5.android.native-lib-convention")
+    id("org.fxboomk.fcitx5.android.fcitx-headers")
 }
 
 fcitxHeaders {
@@ -9,7 +9,7 @@ fcitxHeaders {
 }
 
 android {
-    namespace = "org.fcitx.fcitx5.android.lib.fcitx5"
+    namespace = "org.fxboomk.fcitx5.android.lib.fcitx5"
 
     defaultConfig {
         @Suppress("UnstableApiUsage")

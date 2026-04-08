@@ -8,7 +8,7 @@ plugins {
     `java-gradle-plugin`
 }
 
-group = "org.fcitx.fcitx5.android.build_logic"
+group = "org.fxboomk.fcitx5.android.build_logic"
 
 val gitVersion: groovy.lang.Closure<String> by extra
 version = gitVersion()
@@ -30,39 +30,39 @@ dependencies {
 gradlePlugin {
     plugins {
         register("androidAppConvention") {
-            id = "org.fcitx.fcitx5.android.app-convention"
+            id = "org.fxboomk.fcitx5.android.app-convention"
             implementationClass = "AndroidAppConventionPlugin"
         }
         register("androidLibConvention") {
-            id = "org.fcitx.fcitx5.android.lib-convention"
+            id = "org.fxboomk.fcitx5.android.lib-convention"
             implementationClass = "AndroidLibConventionPlugin"
         }
         register("androidPluginAppConvention") {
-            id = "org.fcitx.fcitx5.android.plugin-app-convention"
+            id = "org.fxboomk.fcitx5.android.plugin-app-convention"
             implementationClass = "AndroidPluginAppConventionPlugin"
         }
         register("buildMetadata") {
-            id = "org.fcitx.fcitx5.android.build-metadata"
+            id = "org.fxboomk.fcitx5.android.build-metadata"
             implementationClass = "BuildMetadataPlugin"
         }
         register("dataDescriptor") {
-            id = "org.fcitx.fcitx5.android.data-descriptor"
+            id = "org.fxboomk.fcitx5.android.data-descriptor"
             implementationClass = "DataDescriptorPlugin"
         }
         register("fcitxComponent") {
-            id = "org.fcitx.fcitx5.android.fcitx-component"
+            id = "org.fxboomk.fcitx5.android.fcitx-component"
             implementationClass = "FcitxComponentPlugin"
         }
         register("fcitxHeaders") {
-            id = "org.fcitx.fcitx5.android.fcitx-headers"
+            id = "org.fxboomk.fcitx5.android.fcitx-headers"
             implementationClass = "FcitxHeadersPlugin"
         }
         register("nativeAppConvention") {
-            id = "org.fcitx.fcitx5.android.native-app-convention"
+            id = "org.fxboomk.fcitx5.android.native-app-convention"
             implementationClass = "NativeAppConventionPlugin"
         }
         register("nativeLibConvention") {
-            id = "org.fcitx.fcitx5.android.native-lib-convention"
+            id = "org.fxboomk.fcitx5.android.native-lib-convention"
             implementationClass = "NativeLibConventionPlugin"
         }
     }

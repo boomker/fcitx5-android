@@ -9,8 +9,8 @@
 -dontobfuscate
 
 # Keep JNI interface
--keep class org.fcitx.fcitx5.android.core.* { *; }
--keep class org.fcitx.fcitx5.android.data.pinyin.customphrase.PinyinCustomPhrase {
+-keep class org.fxboomk.fcitx5.android.core.* { *; }
+-keep class org.fxboomk.fcitx5.android.data.pinyin.customphrase.PinyinCustomPhrase {
     public <init>(...);
 }
 

@@ -164,8 +164,8 @@
     <string name="exception_theme_cropped_image">无法保存裁切后的主题背景图片</string>
     <string name="follow_system_day_night_theme">跟随系统夜间模式</string>
     <string name="follow_system_day_night_theme_summary">开启后，根据系统明暗模式随机选择已勾选的明暗主题</string>
-    <string name="gboard_light_main_key_tone">Gboard 主键区不透明度</string>
-    <string name="gboard_light_other_key_tone">Gboard 非主键区不透明度</string>
+    <string name="gboard_light_main_key_tone">主键区不透明度</string>
+    <string name="gboard_light_other_key_tone">非主键区不透明度</string>
     <string name="wallpaper_blend_percent">键盘与壁纸混合比例</string>
     <string name="navbar_border">导航栏边框</string>
     <string name="light_mode_theme">亮色模式主题</string>
@@ -297,6 +297,9 @@
     <string name="delete_theme_msg">确定要删除主题“%1$s”吗？</string>
     <string name="capture_heap_dump">捕获堆内存转储</string>
     <string name="plugins">插件</string>
+    <string name="manage_plugins">管理插件</string>
+    <string name="uninstall_plugin">卸载插件</string>
+    <string name="uninstall_plugin_confirm">确定要卸载 %1$s 吗？</string>
     <string name="plugins_loaded">已加载</string>
     <string name="plugins_failed">加载失败</string>
     <string name="missing_plugin_descriptor">缺少插件描述文件</string>

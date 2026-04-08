@@ -1,11 +1,11 @@
 plugins {
-    id("org.fcitx.fcitx5.android.lib-convention")
-    id("org.fcitx.fcitx5.android.native-lib-convention")
-    id("org.fcitx.fcitx5.android.fcitx-headers")
+    id("org.fxboomk.fcitx5.android.lib-convention")
+    id("org.fxboomk.fcitx5.android.native-lib-convention")
+    id("org.fxboomk.fcitx5.android.fcitx-headers")
 }
 
 android {
-    namespace = "org.fcitx.fcitx5.android.lib.libime"
+    namespace = "org.fxboomk.fcitx5.android.lib.libime"
 
     defaultConfig {
         @Suppress("UnstableApiUsage")

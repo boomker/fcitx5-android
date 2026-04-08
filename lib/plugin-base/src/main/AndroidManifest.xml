@@ -9,6 +9,8 @@
         <package android:name="${mainApplicationId}" />
         <!-- Compatibility: also query original Fcitx5 Android package -->
         <package android:name="org.fcitx.fcitx5.android" />
+        <!-- Compatibility: also query fx app package -->
+        <package android:name="org.fxboomk.fcitx5.android.fx" />
     </queries>
 
     <!-- permission required to request self-uninstall -->
@@ -25,6 +27,14 @@
             <!-- Compatibility with original Fcitx5 Android -->
             <intent-filter>
                 <action android:name="org.fcitx.fcitx5.android.plugin.MANIFEST" />
+            </intent-filter>
+            <!-- Compatibility with fx app variants -->
+            <intent-filter>
+                <action android:name="org.fxboomk.fcitx5.android.fx.plugin.MANIFEST" />
+            </intent-filter>
+            <!-- Compatibility with fx debug app variant -->
+            <intent-filter>
+                <action android:name="org.fxboomk.fcitx5.android.fx.debug.plugin.MANIFEST" />
             </intent-filter>
         </activity>
     </application>

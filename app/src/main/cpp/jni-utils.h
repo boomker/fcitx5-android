@@ -158,43 +158,43 @@ public:
         Boolean = reinterpret_cast<jclass>(env->NewGlobalRef(env->FindClass("java/lang/Boolean")));
         BooleanInit = env->GetMethodID(Boolean, "<init>", "(Z)V");
 
-        Fcitx = reinterpret_cast<jclass>(env->NewGlobalRef(env->FindClass("org/fcitx/fcitx5/android/core/Fcitx")));
+        Fcitx = reinterpret_cast<jclass>(env->NewGlobalRef(env->FindClass("org/fxboomk/fcitx5/android/core/Fcitx")));
         ShowToast = env->GetStaticMethodID(Fcitx, "showToast", "(Ljava/lang/String;)V");
         HandleFcitxEvent = env->GetStaticMethodID(Fcitx, "handleFcitxEvent", "(I[Ljava/lang/Object;)V");
 
-        InputMethodEntry = reinterpret_cast<jclass>(env->NewGlobalRef(env->FindClass("org/fcitx/fcitx5/android/core/InputMethodEntry")));
+        InputMethodEntry = reinterpret_cast<jclass>(env->NewGlobalRef(env->FindClass("org/fxboomk/fcitx5/android/core/InputMethodEntry")));
         InputMethodEntryInit = env->GetMethodID(InputMethodEntry, "<init>", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Z)V");
         InputMethodEntryInitWithSubMode = env->GetMethodID(InputMethodEntry, "<init>", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLjava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
 
-        RawConfig = reinterpret_cast<jclass>(env->NewGlobalRef(env->FindClass("org/fcitx/fcitx5/android/core/RawConfig")));
+        RawConfig = reinterpret_cast<jclass>(env->NewGlobalRef(env->FindClass("org/fxboomk/fcitx5/android/core/RawConfig")));
         RawConfigName = env->GetFieldID(RawConfig, "name", "Ljava/lang/String;");
         RawConfigValue = env->GetFieldID(RawConfig, "value", "Ljava/lang/String;");
-        RawConfigSubItems = env->GetFieldID(RawConfig, "subItems", "[Lorg/fcitx/fcitx5/android/core/RawConfig;");
-        RawConfigInit = env->GetMethodID(RawConfig, "<init>", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;[Lorg/fcitx/fcitx5/android/core/RawConfig;)V");
-        RawConfigSetSubItems = env->GetMethodID(RawConfig, "setSubItems", "([Lorg/fcitx/fcitx5/android/core/RawConfig;)V");
+        RawConfigSubItems = env->GetFieldID(RawConfig, "subItems", "[Lorg/fxboomk/fcitx5/android/core/RawConfig;");
+        RawConfigInit = env->GetMethodID(RawConfig, "<init>", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;[Lorg/fxboomk/fcitx5/android/core/RawConfig;)V");
+        RawConfigSetSubItems = env->GetMethodID(RawConfig, "setSubItems", "([Lorg/fxboomk/fcitx5/android/core/RawConfig;)V");
 
-        AddonInfo = reinterpret_cast<jclass>(env->NewGlobalRef(env->FindClass("org/fcitx/fcitx5/android/core/AddonInfo")));
+        AddonInfo = reinterpret_cast<jclass>(env->NewGlobalRef(env->FindClass("org/fxboomk/fcitx5/android/core/AddonInfo")));
         AddonInfoInit = env->GetMethodID(AddonInfo, "<init>", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;IZZZZ[Ljava/lang/String;[Ljava/lang/String;)V");
 
-        Action = reinterpret_cast<jclass>(env->NewGlobalRef(env->FindClass("org/fcitx/fcitx5/android/core/Action")));
-        ActionInit = env->GetMethodID(Action, "<init>", "(IZZZLjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;[Lorg/fcitx/fcitx5/android/core/Action;)V");
+        Action = reinterpret_cast<jclass>(env->NewGlobalRef(env->FindClass("org/fxboomk/fcitx5/android/core/Action")));
+        ActionInit = env->GetMethodID(Action, "<init>", "(IZZZLjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;[Lorg/fxboomk/fcitx5/android/core/Action;)V");
 
-        Key = reinterpret_cast<jclass>(env->NewGlobalRef(env->FindClass("org/fcitx/fcitx5/android/core/Key")));
+        Key = reinterpret_cast<jclass>(env->NewGlobalRef(env->FindClass("org/fxboomk/fcitx5/android/core/Key")));
         KeyInit = env->GetMethodID(Key, "<init>", "(IILjava/lang/String;Ljava/lang/String;)V");
 
-        FormattedText = reinterpret_cast<jclass>(env->NewGlobalRef(env->FindClass("org/fcitx/fcitx5/android/core/FormattedText")));
-        FormattedTextFromByteCursor = env->GetStaticMethodID(FormattedText, "fromByteCursor", "([Ljava/lang/String;[II)Lorg/fcitx/fcitx5/android/core/FormattedText;");
+        FormattedText = reinterpret_cast<jclass>(env->NewGlobalRef(env->FindClass("org/fxboomk/fcitx5/android/core/FormattedText")));
+        FormattedTextFromByteCursor = env->GetStaticMethodID(FormattedText, "fromByteCursor", "([Ljava/lang/String;[II)Lorg/fxboomk/fcitx5/android/core/FormattedText;");
 
-        PinyinCustomPhrase = reinterpret_cast<jclass>(env->NewGlobalRef(env->FindClass("org/fcitx/fcitx5/android/data/pinyin/customphrase/PinyinCustomPhrase")));
+        PinyinCustomPhrase = reinterpret_cast<jclass>(env->NewGlobalRef(env->FindClass("org/fxboomk/fcitx5/android/data/pinyin/customphrase/PinyinCustomPhrase")));
         PinyinCustomPhraseInit = env->GetMethodID(PinyinCustomPhrase, "<init>", "(Ljava/lang/String;ILjava/lang/String;)V");
         PinyinCustomPhraseKey = env->GetFieldID(PinyinCustomPhrase, "key", "Ljava/lang/String;");
         PinyinCustomPhraseOrder = env->GetFieldID(PinyinCustomPhrase, "order", "I");
         PinyinCustomPhraseValue = env->GetFieldID(PinyinCustomPhrase, "value", "Ljava/lang/String;");
 
-        CandidateAction = reinterpret_cast<jclass>(env->NewGlobalRef(env->FindClass("org/fcitx/fcitx5/android/core/CandidateAction")));
+        CandidateAction = reinterpret_cast<jclass>(env->NewGlobalRef(env->FindClass("org/fxboomk/fcitx5/android/core/CandidateAction")));
         CandidateActionInit = env->GetMethodID(CandidateAction, "<init>", "(ILjava/lang/String;ZLjava/lang/String;ZZ)V");
 
-        Candidate = reinterpret_cast<jclass>(env->NewGlobalRef(env->FindClass("org/fcitx/fcitx5/android/core/FcitxEvent$Candidate")));
+        Candidate = reinterpret_cast<jclass>(env->NewGlobalRef(env->FindClass("org/fxboomk/fcitx5/android/core/FcitxEvent$Candidate")));
         CandidateInit = env->GetMethodID(Candidate, "<init>", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
     }
 

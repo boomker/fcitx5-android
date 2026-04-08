@@ -53,7 +53,16 @@
       "Bash(./gradlew :app:assembleFxDebug:*)",
       "Bash(./gradlew :app:assembleDebug)",
       "Bash(git commit -m ':*)",
-      "Bash(claude mcp:*)"
+      "Bash(claude mcp:*)",
+      "Bash(./gradlew :plugin:rime:assembleDebug :plugin:clipboard-sync:assembleDebug)",
+      "Bash(./gradlew :plugin:rime:assembleDebug)",
+      "Bash(./gradlew :app:assembleMainlineRelease)",
+      "Bash(./gradlew :app:tasks --group=build)",
+      "Bash(./gradlew :app:assembleMainlineRelease -PincludeMainlineFlavor=true)",
+      "Bash(./gradlew :app:compileFxDebugKotlin)",
+      "Bash(./gradlew :app:assembleFxRelease)",
+      "Bash(./gradlew :plugin:rime:assembleRelease :plugin:clipboard-sync:assembleRelease)",
+      "Bash(./gradlew :app:assembleMainlineRelease -PincludeMainlineFlavor=true :app:assembleFxDebug)"
     ]
   }
 }

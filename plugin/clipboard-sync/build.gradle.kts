@@ -1,19 +1,22 @@
 plugins {
-    id("org.fcitx.fcitx5.android.app-convention")
-    id("org.fcitx.fcitx5.android.plugin-app-convention")
-    id("org.fcitx.fcitx5.android.build-metadata")
-    id("org.fcitx.fcitx5.android.data-descriptor")
+    id("org.fxboomk.fcitx5.android.app-convention")
+    id("org.fxboomk.fcitx5.android.plugin-app-convention")
+    id("org.fxboomk.fcitx5.android.build-metadata")
+    id("org.fxboomk.fcitx5.android.data-descriptor")
     alias(libs.plugins.kotlin.serialization)
 }
 
 android {
-    namespace = "org.fcitx.fcitx5.android.plugin.clipboard_sync"
+    namespace = "org.fxboomk.fcitx5.android.plugin.clipboard_sync"
 
     defaultConfig {
-        applicationId = "org.fcitx.fcitx5.android.plugin.clipboard_sync"
+        applicationId = "org.fxboomk.fcitx5.android.plugin.clipboard_sync"
     }
 
     buildTypes {
+        debug {
+            applicationIdSuffix = ".debug"
+        }
         release {
             isShrinkResources = false
         }

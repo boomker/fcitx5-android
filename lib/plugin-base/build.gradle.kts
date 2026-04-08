@@ -1,11 +1,11 @@
 plugins {
-    id("org.fcitx.fcitx5.android.lib-convention")
+    id("org.fxboomk.fcitx5.android.lib-convention")
     `maven-publish`
     alias(libs.plugins.gitVersion)
 }
 
 android {
-    namespace = "org.fcitx.fcitx5.android.lib.plugin_base"
+    namespace = "org.fxboomk.fcitx5.android.lib.plugin_base"
 
     publishing {
         // :lib:plugin_base contains different AndroidManifest.xml for debug and release variant
@@ -34,7 +34,7 @@ publishing {
     }
     publications {
         register<MavenPublication>("default") {
-            groupId = "org.fcitx.fcitx5.android.lib"
+            groupId = "org.fxboomk.fcitx5.android.lib"
             artifactId = "plugin_base"
             pom {
                 licenses {

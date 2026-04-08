@@ -495,7 +495,7 @@ JNI_OnLoad(JavaVM *jvm, void * /* reserved */) {
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_org_fcitx_fcitx5_android_core_Fcitx_setupLogStream(JNIEnv *env, jclass clazz, jboolean verbose) {
+Java_org_fxboomk_fcitx5_android_core_Fcitx_setupLogStream(JNIEnv *env, jclass clazz, jboolean verbose) {
     static native_streambuf log_streambuf;
     static std::ostream stream(&log_streambuf);
     Fcitx::setLogStream(stream, verbose);
@@ -503,7 +503,7 @@ Java_org_fcitx_fcitx5_android_core_Fcitx_setupLogStream(JNIEnv *env, jclass claz
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_org_fcitx_fcitx5_android_core_Fcitx_startupFcitx(
+Java_org_fxboomk_fcitx5_android_core_Fcitx_startupFcitx(
         JNIEnv *env, jclass clazz,
         jstring locale,
         jstring appData,
@@ -727,35 +727,35 @@ Java_org_fcitx_fcitx5_android_core_Fcitx_startupFcitx(
 
 extern "C"
 JNIEXPORT jstring JNICALL
-Java_org_fcitx_fcitx5_android_core_Fcitx_getFcitxTranslation(JNIEnv *env, jclass clazz, jstring domain, jstring str) {
+Java_org_fxboomk_fcitx5_android_core_Fcitx_getFcitxTranslation(JNIEnv *env, jclass clazz, jstring domain, jstring str) {
     const char *t = fcitx::translateDomain(*CString(env, domain), *CString(env, str));
     return env->NewStringUTF(t);
 }
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_org_fcitx_fcitx5_android_core_Fcitx_exitFcitx(JNIEnv *env, jclass clazz) {
+Java_org_fxboomk_fcitx5_android_core_Fcitx_exitFcitx(JNIEnv *env, jclass clazz) {
     RETURN_IF_NOT_RUNNING
     Fcitx::Instance().exit();
 }
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_org_fcitx_fcitx5_android_core_Fcitx_saveFcitxState(JNIEnv *env, jclass clazz) {
+Java_org_fxboomk_fcitx5_android_core_Fcitx_saveFcitxState(JNIEnv *env, jclass clazz) {
     RETURN_IF_NOT_RUNNING
     Fcitx::Instance().save();
 }
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_org_fcitx_fcitx5_android_core_Fcitx_reloadFcitxConfig(JNIEnv *env, jclass clazz) {
+Java_org_fxboomk_fcitx5_android_core_Fcitx_reloadFcitxConfig(JNIEnv *env, jclass clazz) {
     RETURN_IF_NOT_RUNNING
     Fcitx::Instance().reloadConfig();
 }
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_org_fcitx_fcitx5_android_core_Fcitx_sendKeyToFcitxString(JNIEnv *env, jclass clazz, jstring key, jint state, jint code, jboolean up, jint timestamp) {
+Java_org_fxboomk_fcitx5_android_core_Fcitx_sendKeyToFcitxString(JNIEnv *env, jclass clazz, jstring key, jint state, jint code, jboolean up, jint timestamp) {
     RETURN_IF_NOT_RUNNING
     fcitx::Key parsedKey{fcitx::Key::keySymFromString(CString(env, key)),
                          fcitx::KeyStates(static_cast<uint32_t>(state)),
@@ -765,7 +765,7 @@ Java_org_fcitx_fcitx5_android_core_Fcitx_sendKeyToFcitxString(JNIEnv *env, jclas
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_org_fcitx_fcitx5_android_core_Fcitx_sendKeyToFcitxChar(JNIEnv *env, jclass clazz, jchar c, jint state, jint code, jboolean up, jint timestamp) {
+Java_org_fxboomk_fcitx5_android_core_Fcitx_sendKeyToFcitxChar(JNIEnv *env, jclass clazz, jchar c, jint state, jint code, jboolean up, jint timestamp) {
     RETURN_IF_NOT_RUNNING
     const fcitx::Key parsedKey{fcitx::Key::keySymFromString(reinterpret_cast<const char *>(&c)),
                                fcitx::KeyStates(static_cast<uint32_t>(state)),
@@ -775,7 +775,7 @@ Java_org_fcitx_fcitx5_android_core_Fcitx_sendKeyToFcitxChar(JNIEnv *env, jclass 
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_org_fcitx_fcitx5_android_core_Fcitx_sendKeySymToFcitx(JNIEnv *env, jclass clazz, jint sym, jint state, jint code, jboolean up, jint timestamp) {
+Java_org_fxboomk_fcitx5_android_core_Fcitx_sendKeySymToFcitx(JNIEnv *env, jclass clazz, jint sym, jint state, jint code, jboolean up, jint timestamp) {
     RETURN_IF_NOT_RUNNING
     fcitx::Key key{fcitx::KeySym(static_cast<uint32_t>(sym)),
                    fcitx::KeyStates(static_cast<uint32_t>(state)),
@@ -785,49 +785,49 @@ Java_org_fcitx_fcitx5_android_core_Fcitx_sendKeySymToFcitx(JNIEnv *env, jclass c
 
 extern "C"
 JNIEXPORT jboolean JNICALL
-Java_org_fcitx_fcitx5_android_core_Fcitx_selectCandidate(JNIEnv *env, jclass clazz, jint idx) {
+Java_org_fxboomk_fcitx5_android_core_Fcitx_selectCandidate(JNIEnv *env, jclass clazz, jint idx) {
     RETURN_VALUE_IF_NOT_RUNNING(false)
     return Fcitx::Instance().select(idx);
 }
 
 extern "C"
 JNIEXPORT jboolean JNICALL
-Java_org_fcitx_fcitx5_android_core_Fcitx_isInputPanelEmpty(JNIEnv *env, jclass clazz) {
+Java_org_fxboomk_fcitx5_android_core_Fcitx_isInputPanelEmpty(JNIEnv *env, jclass clazz) {
     RETURN_VALUE_IF_NOT_RUNNING(true)
     return Fcitx::Instance().isInputPanelEmpty();
 }
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_org_fcitx_fcitx5_android_core_Fcitx_resetInputContext(JNIEnv *env, jclass clazz) {
+Java_org_fxboomk_fcitx5_android_core_Fcitx_resetInputContext(JNIEnv *env, jclass clazz) {
     RETURN_IF_NOT_RUNNING
     Fcitx::Instance().resetInputContext();
 }
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_org_fcitx_fcitx5_android_core_Fcitx_repositionCursor(JNIEnv *env, jclass clazz, jint position) {
+Java_org_fxboomk_fcitx5_android_core_Fcitx_repositionCursor(JNIEnv *env, jclass clazz, jint position) {
     FCITX_DEBUG() << "repositionCursor: to " << position;
     Fcitx::Instance().repositionCursor(position);
 }
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_org_fcitx_fcitx5_android_core_Fcitx_toggleInputMethod(JNIEnv *env, jclass clazz) {
+Java_org_fxboomk_fcitx5_android_core_Fcitx_toggleInputMethod(JNIEnv *env, jclass clazz) {
     RETURN_IF_NOT_RUNNING
     Fcitx::Instance().toggleInputMethod();
 }
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_org_fcitx_fcitx5_android_core_Fcitx_nextInputMethod(JNIEnv *env, jclass clazz, jboolean forward) {
+Java_org_fxboomk_fcitx5_android_core_Fcitx_nextInputMethod(JNIEnv *env, jclass clazz, jboolean forward) {
     RETURN_IF_NOT_RUNNING
     Fcitx::Instance().nextInputMethod(forward == JNI_TRUE);
 }
 
 extern "C"
 JNIEXPORT jobjectArray JNICALL
-Java_org_fcitx_fcitx5_android_core_Fcitx_listInputMethods(JNIEnv *env, jclass clazz) {
+Java_org_fxboomk_fcitx5_android_core_Fcitx_listInputMethods(JNIEnv *env, jclass clazz) {
     RETURN_VALUE_IF_NOT_RUNNING(nullptr)
     const auto entries = Fcitx::Instance().listInputMethods();
     return fcitxInputMethodEntriesToJObjectArray(env, entries);
@@ -835,7 +835,7 @@ Java_org_fcitx_fcitx5_android_core_Fcitx_listInputMethods(JNIEnv *env, jclass cl
 
 extern "C"
 JNIEXPORT jobject JNICALL
-Java_org_fcitx_fcitx5_android_core_Fcitx_inputMethodStatus(JNIEnv *env, jclass clazz) {
+Java_org_fxboomk_fcitx5_android_core_Fcitx_inputMethodStatus(JNIEnv *env, jclass clazz) {
     RETURN_VALUE_IF_NOT_RUNNING(nullptr)
     auto status = Fcitx::Instance().inputMethodStatus();
     if (!status) return nullptr;
@@ -844,14 +844,14 @@ Java_org_fcitx_fcitx5_android_core_Fcitx_inputMethodStatus(JNIEnv *env, jclass c
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_org_fcitx_fcitx5_android_core_Fcitx_setInputMethod(JNIEnv *env, jclass clazz, jstring ime) {
+Java_org_fxboomk_fcitx5_android_core_Fcitx_setInputMethod(JNIEnv *env, jclass clazz, jstring ime) {
     RETURN_IF_NOT_RUNNING
     Fcitx::Instance().setInputMethod(CString(env, ime));
 }
 
 extern "C"
 JNIEXPORT jobjectArray JNICALL
-Java_org_fcitx_fcitx5_android_core_Fcitx_availableInputMethods(JNIEnv *env, jclass clazz) {
+Java_org_fxboomk_fcitx5_android_core_Fcitx_availableInputMethods(JNIEnv *env, jclass clazz) {
     RETURN_VALUE_IF_NOT_RUNNING(nullptr)
     auto entries = Fcitx::Instance().availableInputMethods();
     return fcitxInputMethodEntriesToJObjectArray(env, entries);
@@ -859,7 +859,7 @@ Java_org_fcitx_fcitx5_android_core_Fcitx_availableInputMethods(JNIEnv *env, jcla
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_org_fcitx_fcitx5_android_core_Fcitx_setEnabledInputMethods(JNIEnv *env, jclass clazz, jobjectArray array) {
+Java_org_fxboomk_fcitx5_android_core_Fcitx_setEnabledInputMethods(JNIEnv *env, jclass clazz, jobjectArray array) {
     RETURN_IF_NOT_RUNNING
     int size = env->GetArrayLength(array);
     std::vector<std::string> entries;
@@ -872,7 +872,7 @@ Java_org_fcitx_fcitx5_android_core_Fcitx_setEnabledInputMethods(JNIEnv *env, jcl
 
 extern "C"
 JNIEXPORT jobject JNICALL
-Java_org_fcitx_fcitx5_android_core_Fcitx_getFcitxGlobalConfig(JNIEnv *env, jclass clazz) {
+Java_org_fxboomk_fcitx5_android_core_Fcitx_getFcitxGlobalConfig(JNIEnv *env, jclass clazz) {
     RETURN_VALUE_IF_NOT_RUNNING(nullptr)
     auto cfg = Fcitx::Instance().getGlobalConfig();
     return fcitxRawConfigToJObject(env, *cfg);
@@ -880,7 +880,7 @@ Java_org_fcitx_fcitx5_android_core_Fcitx_getFcitxGlobalConfig(JNIEnv *env, jclas
 
 extern "C"
 JNIEXPORT jobject JNICALL
-Java_org_fcitx_fcitx5_android_core_Fcitx_getFcitxAddonConfig(JNIEnv *env, jclass clazz, jstring addon) {
+Java_org_fxboomk_fcitx5_android_core_Fcitx_getFcitxAddonConfig(JNIEnv *env, jclass clazz, jstring addon) {
     RETURN_VALUE_IF_NOT_RUNNING(nullptr)
     auto result = Fcitx::Instance().getAddonConfig(CString(env, addon));
     return result ? fcitxRawConfigToJObject(env, *result) : nullptr;
@@ -888,7 +888,7 @@ Java_org_fcitx_fcitx5_android_core_Fcitx_getFcitxAddonConfig(JNIEnv *env, jclass
 
 extern "C"
 JNIEXPORT jobject JNICALL
-Java_org_fcitx_fcitx5_android_core_Fcitx_getFcitxAddonSubConfig(JNIEnv *env, jclass clazz, jstring addon, jstring path) {
+Java_org_fxboomk_fcitx5_android_core_Fcitx_getFcitxAddonSubConfig(JNIEnv *env, jclass clazz, jstring addon, jstring path) {
     RETURN_VALUE_IF_NOT_RUNNING(nullptr)
     auto result = Fcitx::Instance().getAddonSubConfig(CString(env, addon), CString(env, path));
     return result ? fcitxRawConfigToJObject(env, *result) : nullptr;
@@ -896,7 +896,7 @@ Java_org_fcitx_fcitx5_android_core_Fcitx_getFcitxAddonSubConfig(JNIEnv *env, jcl
 
 extern "C"
 JNIEXPORT jobject JNICALL
-Java_org_fcitx_fcitx5_android_core_Fcitx_getFcitxInputMethodConfig(JNIEnv *env, jclass clazz, jstring im) {
+Java_org_fxboomk_fcitx5_android_core_Fcitx_getFcitxInputMethodConfig(JNIEnv *env, jclass clazz, jstring im) {
     RETURN_VALUE_IF_NOT_RUNNING(nullptr)
     auto result = Fcitx::Instance().getInputMethodConfig(CString(env, im));
     return result ? fcitxRawConfigToJObject(env, *result) : nullptr;
@@ -904,7 +904,7 @@ Java_org_fcitx_fcitx5_android_core_Fcitx_getFcitxInputMethodConfig(JNIEnv *env, 
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_org_fcitx_fcitx5_android_core_Fcitx_setFcitxGlobalConfig(JNIEnv *env, jclass clazz, jobject config) {
+Java_org_fxboomk_fcitx5_android_core_Fcitx_setFcitxGlobalConfig(JNIEnv *env, jclass clazz, jobject config) {
     RETURN_IF_NOT_RUNNING
     auto rawConfig = jobjectToRawConfig(env, config);
     Fcitx::Instance().setGlobalConfig(rawConfig);
@@ -912,7 +912,7 @@ Java_org_fcitx_fcitx5_android_core_Fcitx_setFcitxGlobalConfig(JNIEnv *env, jclas
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_org_fcitx_fcitx5_android_core_Fcitx_setFcitxAddonConfig(JNIEnv *env, jclass clazz, jstring addon, jobject config) {
+Java_org_fxboomk_fcitx5_android_core_Fcitx_setFcitxAddonConfig(JNIEnv *env, jclass clazz, jstring addon, jobject config) {
     RETURN_IF_NOT_RUNNING
     auto rawConfig = jobjectToRawConfig(env, config);
     Fcitx::Instance().setAddonConfig(CString(env, addon), rawConfig);
@@ -920,7 +920,7 @@ Java_org_fcitx_fcitx5_android_core_Fcitx_setFcitxAddonConfig(JNIEnv *env, jclass
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_org_fcitx_fcitx5_android_core_Fcitx_setFcitxAddonSubConfig(JNIEnv *env, jclass clazz, jstring addon, jstring path, jobject config) {
+Java_org_fxboomk_fcitx5_android_core_Fcitx_setFcitxAddonSubConfig(JNIEnv *env, jclass clazz, jstring addon, jstring path, jobject config) {
     RETURN_IF_NOT_RUNNING
     auto rawConfig = jobjectToRawConfig(env, config);
     Fcitx::Instance().setAddonSubConfig(CString(env, addon), CString(env, path), rawConfig);
@@ -928,7 +928,7 @@ Java_org_fcitx_fcitx5_android_core_Fcitx_setFcitxAddonSubConfig(JNIEnv *env, jcl
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_org_fcitx_fcitx5_android_core_Fcitx_setFcitxInputMethodConfig(JNIEnv *env, jclass clazz, jstring im, jobject config) {
+Java_org_fxboomk_fcitx5_android_core_Fcitx_setFcitxInputMethodConfig(JNIEnv *env, jclass clazz, jstring im, jobject config) {
     RETURN_IF_NOT_RUNNING
     auto rawConfig = jobjectToRawConfig(env, config);
     Fcitx::Instance().setInputMethodConfig(CString(env, im), rawConfig);
@@ -936,7 +936,7 @@ Java_org_fcitx_fcitx5_android_core_Fcitx_setFcitxInputMethodConfig(JNIEnv *env, 
 
 extern "C"
 JNIEXPORT jobjectArray JNICALL
-Java_org_fcitx_fcitx5_android_core_Fcitx_getFcitxAddons(JNIEnv *env, jclass clazz) {
+Java_org_fxboomk_fcitx5_android_core_Fcitx_getFcitxAddons(JNIEnv *env, jclass clazz) {
     RETURN_VALUE_IF_NOT_RUNNING(nullptr)
     const auto &addons = Fcitx::Instance().getAddons();
     jobjectArray array = env->NewObjectArray(static_cast<int>(addons.size()), GlobalRef->AddonInfo, nullptr);
@@ -950,7 +950,7 @@ Java_org_fcitx_fcitx5_android_core_Fcitx_getFcitxAddons(JNIEnv *env, jclass claz
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_org_fcitx_fcitx5_android_core_Fcitx_setFcitxAddonState(JNIEnv *env, jclass clazz, jobjectArray name, jbooleanArray state) {
+Java_org_fxboomk_fcitx5_android_core_Fcitx_setFcitxAddonState(JNIEnv *env, jclass clazz, jobjectArray name, jbooleanArray state) {
     RETURN_IF_NOT_RUNNING
     int nameLength = env->GetArrayLength(name);
     int stateLength = env->GetArrayLength(state);
@@ -970,35 +970,35 @@ Java_org_fcitx_fcitx5_android_core_Fcitx_setFcitxAddonState(JNIEnv *env, jclass 
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_org_fcitx_fcitx5_android_core_Fcitx_triggerQuickPhraseInput(JNIEnv *env, jclass clazz) {
+Java_org_fxboomk_fcitx5_android_core_Fcitx_triggerQuickPhraseInput(JNIEnv *env, jclass clazz) {
     RETURN_IF_NOT_RUNNING
     Fcitx::Instance().triggerQuickPhrase();
 }
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_org_fcitx_fcitx5_android_core_Fcitx_triggerUnicodeInput(JNIEnv *env, jclass clazz) {
+Java_org_fxboomk_fcitx5_android_core_Fcitx_triggerUnicodeInput(JNIEnv *env, jclass clazz) {
     RETURN_IF_NOT_RUNNING
     Fcitx::Instance().triggerUnicode();
 }
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_org_fcitx_fcitx5_android_core_Fcitx_setFcitxClipboard(JNIEnv *env, jclass clazz, jstring string, jboolean password) {
+Java_org_fxboomk_fcitx5_android_core_Fcitx_setFcitxClipboard(JNIEnv *env, jclass clazz, jstring string, jboolean password) {
     RETURN_IF_NOT_RUNNING
     Fcitx::Instance().setClipboard(CString(env, string), password == JNI_TRUE);
 }
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_org_fcitx_fcitx5_android_core_Fcitx_focusInputContext(JNIEnv *env, jclass clazz, jboolean focus) {
+Java_org_fxboomk_fcitx5_android_core_Fcitx_focusInputContext(JNIEnv *env, jclass clazz, jboolean focus) {
     RETURN_IF_NOT_RUNNING
     Fcitx::Instance().focusInputContext(focus);
 }
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_org_fcitx_fcitx5_android_core_Fcitx_focusInputContextOutIn(JNIEnv *env, jclass clazz) {
+Java_org_fxboomk_fcitx5_android_core_Fcitx_focusInputContextOutIn(JNIEnv *env, jclass clazz) {
     RETURN_IF_NOT_RUNNING
     auto &instance = Fcitx::Instance();
     instance.focusInputContext(false);
@@ -1007,28 +1007,28 @@ Java_org_fcitx_fcitx5_android_core_Fcitx_focusInputContextOutIn(JNIEnv *env, jcl
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_org_fcitx_fcitx5_android_core_Fcitx_activateInputContext(JNIEnv *env, jclass clazz, jint uid, jstring pkg_name) {
+Java_org_fxboomk_fcitx5_android_core_Fcitx_activateInputContext(JNIEnv *env, jclass clazz, jint uid, jstring pkg_name) {
     RETURN_IF_NOT_RUNNING
     Fcitx::Instance().activateInputContext(uid, CString(env, pkg_name));
 }
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_org_fcitx_fcitx5_android_core_Fcitx_deactivateInputContext(JNIEnv *env, jclass clazz, jint uid) {
+Java_org_fxboomk_fcitx5_android_core_Fcitx_deactivateInputContext(JNIEnv *env, jclass clazz, jint uid) {
     RETURN_IF_NOT_RUNNING
     Fcitx::Instance().deactivateInputContext(uid);
 }
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_org_fcitx_fcitx5_android_core_Fcitx_setCapabilityFlags(JNIEnv *env, jclass clazz, jlong flags) {
+Java_org_fxboomk_fcitx5_android_core_Fcitx_setCapabilityFlags(JNIEnv *env, jclass clazz, jlong flags) {
     RETURN_IF_NOT_RUNNING
     Fcitx::Instance().setCapabilityFlags(static_cast<uint64_t>(flags));
 }
 
 extern "C"
 JNIEXPORT jobjectArray JNICALL
-Java_org_fcitx_fcitx5_android_core_Fcitx_getFcitxStatusAreaActions(JNIEnv *env, jclass clazz) {
+Java_org_fxboomk_fcitx5_android_core_Fcitx_getFcitxStatusAreaActions(JNIEnv *env, jclass clazz) {
     RETURN_VALUE_IF_NOT_RUNNING(nullptr)
     const auto actions = Fcitx::Instance().statusAreaActions();
     int size = static_cast<int>(actions.size());
@@ -1042,14 +1042,14 @@ Java_org_fcitx_fcitx5_android_core_Fcitx_getFcitxStatusAreaActions(JNIEnv *env, 
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_org_fcitx_fcitx5_android_core_Fcitx_activateUserInterfaceAction(JNIEnv *env, jclass clazz, jint id) {
+Java_org_fxboomk_fcitx5_android_core_Fcitx_activateUserInterfaceAction(JNIEnv *env, jclass clazz, jint id) {
     RETURN_IF_NOT_RUNNING
     Fcitx::Instance().activateAction(static_cast<int>(id));
 }
 
 extern "C"
 JNIEXPORT jobjectArray JNICALL
-Java_org_fcitx_fcitx5_android_core_Fcitx_getFcitxCandidates(JNIEnv *env, jclass clazz, jint offset, jint limit) {
+Java_org_fxboomk_fcitx5_android_core_Fcitx_getFcitxCandidates(JNIEnv *env, jclass clazz, jint offset, jint limit) {
     RETURN_VALUE_IF_NOT_RUNNING(nullptr)
     auto candidates = Fcitx::Instance().getCandidates(static_cast<int>(offset), static_cast<int>(limit));
     int size = static_cast<int>(candidates.size());
@@ -1063,7 +1063,7 @@ Java_org_fcitx_fcitx5_android_core_Fcitx_getFcitxCandidates(JNIEnv *env, jclass 
 
 extern "C"
 JNIEXPORT jobjectArray JNICALL
-Java_org_fcitx_fcitx5_android_core_Fcitx_getFcitxCandidateActions(JNIEnv *env, jclass clazz, jint idx) {
+Java_org_fxboomk_fcitx5_android_core_Fcitx_getFcitxCandidateActions(JNIEnv *env, jclass clazz, jint idx) {
     RETURN_VALUE_IF_NOT_RUNNING(nullptr)
     auto actions = Fcitx::Instance().getCandidateActions(idx);
     int size = static_cast<int>(actions.size());
@@ -1077,40 +1077,40 @@ Java_org_fcitx_fcitx5_android_core_Fcitx_getFcitxCandidateActions(JNIEnv *env, j
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_org_fcitx_fcitx5_android_core_Fcitx_triggerFcitxCandidateAction(JNIEnv *env, jclass clazz, jint idx, jint action_idx) {
+Java_org_fxboomk_fcitx5_android_core_Fcitx_triggerFcitxCandidateAction(JNIEnv *env, jclass clazz, jint idx, jint action_idx) {
     RETURN_IF_NOT_RUNNING
     Fcitx::Instance().triggerCandidateAction(idx, action_idx);
 }
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_org_fcitx_fcitx5_android_core_Fcitx_setFcitxCandidatePagingMode(JNIEnv *env, jclass clazz, jint mode) {
+Java_org_fxboomk_fcitx5_android_core_Fcitx_setFcitxCandidatePagingMode(JNIEnv *env, jclass clazz, jint mode) {
     RETURN_IF_NOT_RUNNING
     Fcitx::Instance().setCandidatePagingMode(mode);
 }
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_org_fcitx_fcitx5_android_core_Fcitx_offsetFcitxCandidatePage(JNIEnv *env, jclass clazz, jint delta) {
+Java_org_fxboomk_fcitx5_android_core_Fcitx_offsetFcitxCandidatePage(JNIEnv *env, jclass clazz, jint delta) {
     RETURN_IF_NOT_RUNNING
     Fcitx::Instance().offsetCandidatePage(delta);
 }
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_org_fcitx_fcitx5_android_core_Fcitx_loopOnce(JNIEnv *env, jclass clazz) {
+Java_org_fxboomk_fcitx5_android_core_Fcitx_loopOnce(JNIEnv *env, jclass clazz) {
     Fcitx::Instance().loopOnce();
 }
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_org_fcitx_fcitx5_android_core_Fcitx_scheduleEmpty(JNIEnv *env, jclass clazz) {
+Java_org_fxboomk_fcitx5_android_core_Fcitx_scheduleEmpty(JNIEnv *env, jclass clazz) {
     Fcitx::Instance().scheduleEmpty();
 }
 
 extern "C"
 JNIEXPORT jobject JNICALL
-Java_org_fcitx_fcitx5_android_core_Key_parse(JNIEnv *env, jclass clazz, jstring raw) {
+Java_org_fxboomk_fcitx5_android_core_Key_parse(JNIEnv *env, jclass clazz, jstring raw) {
     fcitx::Key key(*CString(env, raw));
     return env->NewObject(
             GlobalRef->Key,
@@ -1124,7 +1124,7 @@ Java_org_fcitx_fcitx5_android_core_Key_parse(JNIEnv *env, jclass clazz, jstring 
 
 extern "C"
 JNIEXPORT jobject JNICALL
-Java_org_fcitx_fcitx5_android_core_Key_create(JNIEnv *env, jclass clazz, jint sym, jint states) {
+Java_org_fxboomk_fcitx5_android_core_Key_create(JNIEnv *env, jclass clazz, jint sym, jint states) {
     fcitx::Key key{fcitx::KeySym(static_cast<uint32_t>(sym)),
                    fcitx::KeyStates(static_cast<uint32_t>(states))};
     return env->NewObject(
@@ -1139,7 +1139,7 @@ Java_org_fcitx_fcitx5_android_core_Key_create(JNIEnv *env, jclass clazz, jint sy
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_org_fcitx_fcitx5_android_data_pinyin_PinyinDictManager_pinyinDictConv(JNIEnv *env, jclass clazz, jstring src, jstring dest, jboolean mode) {
+Java_org_fxboomk_fcitx5_android_data_pinyin_PinyinDictManager_pinyinDictConv(JNIEnv *env, jclass clazz, jstring src, jstring dest, jboolean mode) {
     using namespace libime;
     PinyinDictionary dict;
     try {
@@ -1156,7 +1156,7 @@ Java_org_fcitx_fcitx5_android_data_pinyin_PinyinDictManager_pinyinDictConv(JNIEn
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_org_fcitx_fcitx5_android_data_table_TableManager_tableDictConv(JNIEnv *env, jclass clazz, jstring src, jstring dest, jboolean mode) {
+Java_org_fxboomk_fcitx5_android_data_table_TableManager_tableDictConv(JNIEnv *env, jclass clazz, jstring src, jstring dest, jboolean mode) {
     using namespace libime;
     TableBasedDictionary dict;
     try {
@@ -1171,7 +1171,7 @@ Java_org_fcitx_fcitx5_android_data_table_TableManager_tableDictConv(JNIEnv *env,
 
 extern "C"
 JNIEXPORT jboolean JNICALL
-Java_org_fcitx_fcitx5_android_data_table_TableManager_checkTableDictFormat(JNIEnv *env, jclass clazz, jstring src, jboolean user) {
+Java_org_fxboomk_fcitx5_android_data_table_TableManager_checkTableDictFormat(JNIEnv *env, jclass clazz, jstring src, jboolean user) {
     using namespace libime;
     TableBasedDictionary dict;
     try {
@@ -1188,7 +1188,7 @@ Java_org_fcitx_fcitx5_android_data_table_TableManager_checkTableDictFormat(JNIEn
 
 extern "C"
 JNIEXPORT jobjectArray JNICALL
-Java_org_fcitx_fcitx5_android_data_pinyin_CustomPhraseManager_load(JNIEnv *env, jclass clazz) {
+Java_org_fxboomk_fcitx5_android_data_pinyin_CustomPhraseManager_load(JNIEnv *env, jclass clazz) {
     auto fp = fcitx::StandardPaths::global().open(fcitx::StandardPathsType::PkgData, "pinyin/customphrase");
     if (fp.fd() < 0) {
         FCITX_INFO() << "cannot open pinyin/customphrase";
@@ -1223,7 +1223,7 @@ Java_org_fcitx_fcitx5_android_data_pinyin_CustomPhraseManager_load(JNIEnv *env, 
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_org_fcitx_fcitx5_android_data_pinyin_CustomPhraseManager_save(JNIEnv *env, jclass clazz, jobjectArray items) {
+Java_org_fxboomk_fcitx5_android_data_pinyin_CustomPhraseManager_save(JNIEnv *env, jclass clazz, jobjectArray items) {
     fcitx::CustomPhraseDict dict;
     const int size = env->GetArrayLength(items);
     for (int i = 0; i < size; i++) {
@@ -1248,7 +1248,7 @@ Java_org_fcitx_fcitx5_android_data_pinyin_CustomPhraseManager_save(JNIEnv *env, 
 
 extern "C"
 JNIEXPORT jobject JNICALL
-Java_org_fcitx_fcitx5_android_utils_Ini_readFromIni(JNIEnv *env, jclass clazz, jstring src) {
+Java_org_fxboomk_fcitx5_android_utils_Ini_readFromIni(JNIEnv *env, jclass clazz, jstring src) {
     fcitx::RawConfig config;
     FILE *fp = std::fopen(*CString(env, src), "rb");
     if (!fp) {
@@ -1261,7 +1261,7 @@ Java_org_fcitx_fcitx5_android_utils_Ini_readFromIni(JNIEnv *env, jclass clazz, j
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_org_fcitx_fcitx5_android_utils_Ini_writeAsIni(JNIEnv *env, jclass clazz, jstring dest, jobject value) {
+Java_org_fxboomk_fcitx5_android_utils_Ini_writeAsIni(JNIEnv *env, jclass clazz, jstring dest, jobject value) {
     FILE *fp = std::fopen(*CString(env, dest), "wb");
     if (!fp) {
         throwJavaException(env, "Unable to open file");

@@ -17,7 +17,7 @@ class AndroidPluginAppConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {
         val mainApplicationId = target.findProperty("mainApplicationId")?.toString()
             ?: target.findProperty("applicationId")?.toString()
-            ?: "org.fcitx.fcitx5.android"
+            ?: "org.fxboomk.fcitx5.android"
 
         target.extensions.configure<ApplicationExtension> {
             buildFeatures {
@@ -37,7 +37,7 @@ class AndroidPluginAppConventionPlugin : Plugin<Project> {
                 debug {
                     val debugMainApplicationId = target.findProperty("mainApplicationId")?.toString()
                         ?: target.findProperty("applicationId")?.toString()?.let { "${it}.debug" }
-                        ?: "org.fcitx.fcitx5.android.debug"
+                        ?: "org.fxboomk.fcitx5.android.debug"
                     buildConfigField("String", "MAIN_APPLICATION_ID", "\"$debugMainApplicationId\"")
                     addManifestPlaceholders(
                         mapOf(

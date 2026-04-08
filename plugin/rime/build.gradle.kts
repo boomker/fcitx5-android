@@ -1,17 +1,17 @@
 plugins {
-    id("org.fcitx.fcitx5.android.app-convention")
-    id("org.fcitx.fcitx5.android.plugin-app-convention")
-    id("org.fcitx.fcitx5.android.native-app-convention")
-    id("org.fcitx.fcitx5.android.build-metadata")
-    id("org.fcitx.fcitx5.android.data-descriptor")
-    id("org.fcitx.fcitx5.android.fcitx-component")
+    id("org.fxboomk.fcitx5.android.app-convention")
+    id("org.fxboomk.fcitx5.android.plugin-app-convention")
+    id("org.fxboomk.fcitx5.android.native-app-convention")
+    id("org.fxboomk.fcitx5.android.build-metadata")
+    id("org.fxboomk.fcitx5.android.data-descriptor")
+    id("org.fxboomk.fcitx5.android.fcitx-component")
 }
 
 android {
-    namespace = "org.fcitx.fcitx5.android.plugin.rime"
+    namespace = "org.fxboomk.fcitx5.android.plugin.rime"
 
     defaultConfig {
-        applicationId = "org.fcitx.fcitx5.android.plugin.rime"
+        applicationId = "org.fxboomk.fcitx5.android.plugin.rime"
 
         @Suppress("UnstableApiUsage")
         externalNativeBuild {
@@ -33,6 +33,7 @@ android {
             proguardFile("proguard-rules.pro")
         }
         debug {
+            applicationIdSuffix = ".debug"
             resValue("string", "app_name", "@string/app_name_debug")
         }
     }

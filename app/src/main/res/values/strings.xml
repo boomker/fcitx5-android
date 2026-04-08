@@ -166,8 +166,8 @@
     <string name="exception_theme_cropped_image">Unable to save cropped image of theme background</string>
     <string name="follow_system_day_night_theme">Follow system day/night theme</string>
     <string name="follow_system_day_night_theme_summary">When enabled, randomly select from manually chosen dark/light themes based on system mode</string>
-    <string name="gboard_light_main_key_tone">Gboard main key area opacity</string>
-    <string name="gboard_light_other_key_tone">Gboard non-main key area opacity</string>
+    <string name="gboard_light_main_key_tone">Main key area opacity</string>
+    <string name="gboard_light_other_key_tone">Non-main key area opacity</string>
     <string name="wallpaper_blend_percent">Keyboard/wallpaper blend</string>
     <string name="navbar_border">Navigation bar border</string>
     <string name="light_mode_theme">Light mode themes</string>
@@ -310,6 +310,9 @@
     <string name="delete_theme_msg">Do you really want to delete theme \"%1$s\"?</string>
     <string name="capture_heap_dump">Capture heap dump</string>
     <string name="plugins">Plugins</string>
+    <string name="manage_plugins">Manage Plugins</string>
+    <string name="uninstall_plugin">Uninstall Plugin</string>
+    <string name="uninstall_plugin_confirm">Uninstall %1$s?</string>
     <string name="plugins_loaded">Loaded</string>
     <string name="plugins_failed">Load failed</string>
     <string name="missing_plugin_descriptor">Missing plugin descriptor</string>

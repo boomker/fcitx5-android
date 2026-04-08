@@ -2,18 +2,18 @@ import com.android.build.gradle.tasks.MergeSourceSetFolders
 import kotlinx.serialization.json.Json
 
 plugins {
-    id("org.fcitx.fcitx5.android.app-convention")
-    id("org.fcitx.fcitx5.android.plugin-app-convention")
-    id("org.fcitx.fcitx5.android.build-metadata")
-    id("org.fcitx.fcitx5.android.data-descriptor")
+    id("org.fxboomk.fcitx5.android.app-convention")
+    id("org.fxboomk.fcitx5.android.plugin-app-convention")
+    id("org.fxboomk.fcitx5.android.build-metadata")
+    id("org.fxboomk.fcitx5.android.data-descriptor")
     alias(libs.plugins.kotlin.serialization)
 }
 
 android {
-    namespace = "org.fcitx.fcitx5.android.plugin.clipboard_filter"
+    namespace = "org.fxboomk.fcitx5.android.plugin.clipboard_filter"
 
     defaultConfig {
-        applicationId = "org.fcitx.fcitx5.android.plugin.clipboard_filter"
+        applicationId = "org.fxboomk.fcitx5.android.plugin.clipboard_filter"
     }
 
     buildFeatures {
@@ -26,6 +26,7 @@ android {
             proguardFile("proguard-rules.pro")
         }
         debug {
+            applicationIdSuffix = ".debug"
             resValue("string", "app_name", "@string/app_name_debug")
         }
     }

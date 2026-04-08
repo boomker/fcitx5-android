@@ -1,15 +1,15 @@
 plugins {
-    id("org.fcitx.fcitx5.android.app-convention")
-    id("org.fcitx.fcitx5.android.native-app-convention")
-    id("org.fcitx.fcitx5.android.build-metadata")
-    id("org.fcitx.fcitx5.android.data-descriptor")
-    id("org.fcitx.fcitx5.android.fcitx-component")
+    id("org.fxboomk.fcitx5.android.app-convention")
+    id("org.fxboomk.fcitx5.android.native-app-convention")
+    id("org.fxboomk.fcitx5.android.build-metadata")
+    id("org.fxboomk.fcitx5.android.data-descriptor")
+    id("org.fxboomk.fcitx5.android.fcitx-component")
     alias(libs.plugins.kotlin.parcelize)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
 }
 
-val packageBase = "org.fcitx.fcitx5.android"
+val packageBase = "org.fxboomk.fcitx5.android"
 val appIdBase = "org.fxboomk.fcitx5.android"
 val appIdFxSuffix = ".fx"
 val flavorFx = "fx"
