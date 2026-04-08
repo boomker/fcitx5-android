@@ -21,6 +21,29 @@ class ThemePrefs(sharedPreferences: SharedPreferences) :
     companion object {
         const val DefaultMainKeyOpacity = 100
         const val DefaultNonMainKeyOpacity = 100
+        private const val GboardOpacitySemanticsMigratedKey =
+            "gboard_key_opacity_semantics_migrated"
+    }
+
+    init {
+        migrateLegacyGboardOpacitySemanticsIfNeeded()
+    }
+
+    private fun migrateLegacyGboardOpacitySemanticsIfNeeded() {
+        if (sharedPreferences.getBoolean(GboardOpacitySemanticsMigratedKey, false)) return
+        sharedPreferences.edit {
+            migrateLegacyGboardOpacityValue("gboard_light_main_key_tone", DefaultMainKeyOpacity)
+            migrateLegacyGboardOpacityValue("gboard_light_other_key_tone", DefaultNonMainKeyOpacity)
+            putBoolean(GboardOpacitySemanticsMigratedKey, true)
+        }
+    }
+
+    private fun SharedPreferences.Editor.migrateLegacyGboardOpacityValue(key: String, defaultValue: Int) {
+        if (!sharedPreferences.contains(key)) return
+        val storedValue = (sharedPreferences.all[key] as? Int) ?: defaultValue
+        if (storedValue in 0..100) {
+            putInt(key, 100 - storedValue)
+        }
     }
 
     private fun themeMultiSelectPreference(
