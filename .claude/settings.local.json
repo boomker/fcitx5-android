@@ -63,7 +63,8 @@
       "Bash(./gradlew :app:assembleFxRelease)",
       "Bash(./gradlew :plugin:rime:assembleRelease :plugin:clipboard-sync:assembleRelease)",
       "Bash(./gradlew :app:assembleMainlineRelease -PincludeMainlineFlavor=true :app:assembleFxDebug)",
-      "Bash(./gradlew :app:assembleFxDebug)"
+      "Bash(./gradlew :app:assembleFxDebug)",
+      "Bash(adb:*)"
     ]
   }
 }

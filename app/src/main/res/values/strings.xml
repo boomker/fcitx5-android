@@ -176,6 +176,8 @@
     <string name="follow_system_day_night_theme_summary">When enabled, randomly select from manually chosen dark/light themes based on system mode</string>
     <string name="gboard_light_main_key_tone">Main key area opacity</string>
     <string name="gboard_light_other_key_tone">Non-main key area opacity</string>
+    <string name="gboard_style_side_keys">Gboard style side keys</string>
+    <string name="gboard_style_color_keys">Gboard style color keys</string>
     <string name="wallpaper_blend_percent">Keyboard/wallpaper blend</string>
     <string name="navbar_border">Navigation bar border</string>
     <string name="light_mode_theme">Light mode themes</string>

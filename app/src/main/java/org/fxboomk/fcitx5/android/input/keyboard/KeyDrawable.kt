@@ -78,3 +78,21 @@ fun borderedKeyBackgroundDrawable(
 ).apply {
     setLayerInset(0, hMargin, vMargin, hMargin, vMargin)
 }
+
+fun borderedRectKeyBackgroundDrawable(
+    @ColorInt bkgColor: Int,
+    @ColorInt shadowColor: Int,
+    strokeWidth: Int,
+    hMargin: Int,
+    vMargin: Int
+): Drawable = LayerDrawable(
+    arrayOf(
+        GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            setColor(bkgColor)
+            setStroke(strokeWidth, shadowColor)
+        }
+    )
+).apply {
+    setLayerInset(0, hMargin, vMargin, hMargin, vMargin)
+}

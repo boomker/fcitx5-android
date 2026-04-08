@@ -62,6 +62,18 @@ class ThemePrefs(sharedPreferences: SharedPreferences) :
         return pref
     }
 
+    val gboardStyleSideKeys = switch(
+        R.string.gboard_style_side_keys,
+        "gboard_style_side_keys",
+        false
+    )
+
+    val gboardStyleColorKeys = switch(
+        R.string.gboard_style_color_keys,
+        "gboard_style_color_keys",
+        false
+    )
+
     val keyBorder = switch(R.string.key_border, "key_border", false)
 
     val keyBorderStroke = switch(
