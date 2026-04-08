@@ -15,8 +15,13 @@
     <string name="ignore_sys_cursor">Игнорировать позицию системного курсора</string>
     <string name="hide_key_config">Скрыть конфигурации горячих клавиш</string>
     <string name="toolbar_manually_toggled">Панель инструментов переключается вручную</string>
-    <string name="allow_original_plugins">Разрешить оригинальные плагины Fcitx5</string>
-    <string name="allow_original_plugins_summary">Включить для подключения плагинов от оригинального Fcitx5 Android (release и debug). Не устанавливайте одновременно оригинальные и fx плагины с одинаковой функциональностью.</string>
+    <string name="allow_original_plugins">Разрешить сторонние плагины Fcitx5</string>
+    <string name="allow_original_plugins_summary">Включите, чтобы разрешить подключение плагинов от оригинального Fcitx5 Android (release и debug). Не устанавливайте одновременно оригинальные и модифицированные плагины с одинаковой функциональностью.</string>
+    <string name="allowed_plugin_prefixes">Разрешенные префиксы плагинов</string>
+    <string name="allowed_plugin_prefixes_summary">Когда включено "Разрешить сторонние плагины Fcitx5", имена пакетов, начинающиеся с org.fcitx.fcitx5.android, разрешены по умолчанию. Здесь добавляйте только дополнительные префиксы.</string>
+    <string name="allowed_plugin_prefixes_dialog_title">Префиксы имен пакетов плагинов</string>
+    <string name="allowed_plugin_prefixes_dialog_message">Введите дополнительные префиксы имен пакетов (по одному в строке). Встроенный org.fcitx.fcitx5.android всегда разрешен.</string>
+    <string name="allowed_plugin_prefixes_add_hint">Введите дополнительный префикс, например com.example.fcitx.plugin</string>
     <string name="_not_available_">(Недоступно)</string>
     <string name="button_haptic_feedback">Вибрация при нажатии клавиши</string>
     <string name="button_up_haptic_feedback">Вибрация при отпускании клавиши</string>

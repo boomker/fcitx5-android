@@ -46,6 +46,25 @@ abstract class ManagedPreferenceUi<T : Preference>(
         }
     }
 
+    class StringSet(
+        @StringRes
+        val title: Int,
+        key: String,
+        val defaultValue: Set<String>,
+        @StringRes
+        val summary: Int? = null,
+        enableUiOn: (() -> Boolean)? = null
+    ) : ManagedPreferenceUi<Preference>(key, enableUiOn) {
+        override fun createUi(context: Context) = Preference(context).apply {
+            key = this@StringSet.key
+            isIconSpaceReserved = false
+            isSingleLineTitle = false
+            setTitle(this@StringSet.title)
+            if (this@StringSet.summary != null)
+                setSummary(this@StringSet.summary)
+        }
+    }
+
     class StringList<T : Any>(
         @StringRes
         val title: Int,

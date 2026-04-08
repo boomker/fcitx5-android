@@ -15,8 +15,13 @@
     <string name="ignore_sys_cursor">システムカーソル位置を無視する</string>
     <string name="hide_key_config">ホットキー設定を隠す</string>
     <string name="toolbar_manually_toggled">ツールバーの手動切り替え状態</string>
-    <string name="allow_original_plugins">元の Fcitx5 プラグインを許可</string>
-    <string name="allow_original_plugins_summary">元の Fcitx5 Android（リリースとデバッグ）のプラグインの接続を許可します。同じ機能の元のプラグインと fx プラグインの両方をインストールしないでください。</string>
+    <string name="allow_original_plugins">サードパーティ製 Fcitx5 プラグインを許可</string>
+    <string name="allow_original_plugins_summary">有効にすると、元の Fcitx5 Android（リリース版とデバッグ版）のプラグイン接続を許可します。同じ機能の元版プラグインと改造版プラグインを同時にインストールしないでください。</string>
+    <string name="allowed_plugin_prefixes">許可するプラグイン接頭辞</string>
+    <string name="allowed_plugin_prefixes_summary">「サードパーティ製 Fcitx5 プラグインを許可」を有効にすると、org.fcitx.fcitx5.android で始まるパッケージ名は既定で許可されます。ここには追加分のみ入力してください。</string>
+    <string name="allowed_plugin_prefixes_dialog_title">プラグインのパッケージ名接頭辞</string>
+    <string name="allowed_plugin_prefixes_dialog_message">追加のパッケージ名接頭辞を入力してください（1 行に 1 つ）。組み込みの org.fcitx.fcitx5.android は常に許可されます。</string>
+    <string name="allowed_plugin_prefixes_add_hint">追加の接頭辞を入力（例: com.example.fcitx.plugin）</string>
     <string name="_not_available_">(利用不可)</string>
     <string name="button_haptic_feedback">キー押下時の触覚フィードバック</string>
     <string name="button_vibration_milliseconds">キー押下時の振動の長さ</string>

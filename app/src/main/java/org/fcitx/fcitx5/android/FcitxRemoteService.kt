@@ -34,6 +34,10 @@ import java.util.PriorityQueue
 
 class FcitxRemoteService : Service() {
 
+    companion object {
+        private const val BUILTIN_ALLOWED_PLUGIN_PREFIX = "org.fcitx.fcitx5.android"
+    }
+
     private val clipboardTransformerLock = Mutex()
 
     private val scope = MainScope() + CoroutineName("FcitxRemoteService")
@@ -71,16 +75,40 @@ class FcitxRemoteService : Service() {
     /**
      * Check if the calling package is allowed based on IPC compatibility mode
      */
+    private fun packageMatchesPrefix(packageName: String, prefix: String): Boolean {
+        val normalized = prefix.trim().removeSuffix(".")
+        if (normalized.isEmpty()) return false
+        return packageName == normalized || packageName.startsWith("$normalized.")
+    }
+
     private fun isCallerAllowed(callingPackage: String?): Boolean {
         if (callingPackage == null) return false
 
         // Always allow self
         if (callingPackage == packageName) return true
 
-        // Check if allowing original plugins (both release and debug)
-        return AppPrefs.getInstance().advanced.allowOriginalPlugins.getValue() &&
-                (callingPackage == "org.fcitx.fcitx5.android" ||
-                 callingPackage == "org.fcitx.fcitx5.android.debug")
+        if (AppPrefs.getInstance().advanced.allowOriginalPlugins.getValue()) {
+            // When enabled: always allow built-in prefix + user-defined extra prefixes
+            val prefixes = AppPrefs.getInstance().advanced.allowedPluginPrefixes.getValue() +
+                    BUILTIN_ALLOWED_PLUGIN_PREFIX
+            return prefixes.any { packageMatchesPrefix(callingPackage, it) }
+        } else {
+            // When disabled: only allow same-signed builds (self-built)
+            return try {
+                val mainSig = packageManager.getPackageInfo(
+                    packageName,
+                    PackageManager.GET_SIGNING_CERTIFICATES
+                )?.signingInfo?.apkContentsSigners ?: return false
+                val callerSig = packageManager.getPackageInfo(
+                    callingPackage,
+                    PackageManager.GET_SIGNING_CERTIFICATES
+                )?.signingInfo?.apkContentsSigners ?: return false
+                mainSig.contentEquals(callerSig)
+            } catch (e: Exception) {
+                Timber.w(e)
+                false
+            }
+        }
     }
 
     private val binder = object : IFcitxRemoteService.Stub() {

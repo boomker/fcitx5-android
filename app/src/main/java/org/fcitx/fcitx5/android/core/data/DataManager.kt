@@ -13,6 +13,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.fcitx.fcitx5.android.BuildConfig
 import org.fcitx.fcitx5.android.core.data.DataManager.dataDir
+import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.utils.FileUtil
 import org.fcitx.fcitx5.android.utils.appContext
 import org.fcitx.fcitx5.android.utils.isJavaIdentifier
@@ -35,6 +36,7 @@ object DataManager {
     )
 
     const val PLUGIN_INTENT = "${BuildConfig.APPLICATION_ID}.plugin.MANIFEST"
+    private const val BUILTIN_ALLOWED_PLUGIN_PREFIX = "org.fcitx.fcitx5.android"
 
     private val lock = ReentrantLock()
 
@@ -112,14 +114,42 @@ object DataManager {
         } else {
             pm.queryIntentActivities(Intent(BuildConfig.ORIGINAL_PLUGIN_MANIFEST_ACTION), PackageManager.MATCH_ALL)
         }.map { it.activityInfo.packageName }
+
+        // Query for original Fcitx5 Android debug plugins
+        val originalDebugPluginIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            pm.queryIntentActivities(
+                Intent(BuildConfig.ORIGINAL_DEBUG_PLUGIN_MANIFEST_ACTION),
+                PackageManager.ResolveInfoFlags.of(PackageManager.MATCH_ALL.toLong())
+            )
+        } else {
+            pm.queryIntentActivities(Intent(BuildConfig.ORIGINAL_DEBUG_PLUGIN_MANIFEST_ACTION), PackageManager.MATCH_ALL)
+        }.map { it.activityInfo.packageName }
         
         pluginPackages.addAll(currentPluginIntent)
         pluginPackages.addAll(originalPluginIntent)
+        pluginPackages.addAll(originalDebugPluginIntent)
 
-        Timber.d("Detected plugin packages: ${pluginPackages.joinToString()}")
+        val allowThirdParty = AppPrefs.getInstance().advanced.allowOriginalPlugins.getValue()
+        val allowedPrefixes = AppPrefs.getInstance().advanced.allowedPluginPrefixes.getValue() +
+                BUILTIN_ALLOWED_PLUGIN_PREFIX
+        val filteredPluginPackages = pluginPackages.filter { packageName ->
+            if (hasSameSignature(packageName)) {
+                true
+            } else if (allowThirdParty) {
+                allowedPrefixes.any { prefix -> packageMatchesPrefix(packageName, prefix) }
+            } else {
+                false
+            }
+        }.toSet()
+
+        val rejectedPackages = pluginPackages - filteredPluginPackages
+        if (rejectedPackages.isNotEmpty()) {
+            Timber.d("Rejected plugin packages by compatibility policy: ${rejectedPackages.joinToString()}")
+        }
+        Timber.d("Detected plugin packages: ${filteredPluginPackages.joinToString()}")
 
         // Parse plugin.xml
-        for (packageName in pluginPackages) {
+        for (packageName in filteredPluginPackages) {
             val res = pm.getResourcesForApplication(packageName)
 
             @SuppressLint("DiscouragedApi")
@@ -191,6 +221,30 @@ object DataManager {
             }
         }
         return PluginSet(toLoad, preloadFailed)
+    }
+
+    private fun packageMatchesPrefix(packageName: String, prefix: String): Boolean {
+        val normalized = prefix.trim().removeSuffix(".")
+        if (normalized.isEmpty()) return false
+        return packageName == normalized || packageName.startsWith("$normalized.")
+    }
+
+    private fun hasSameSignature(packageName: String): Boolean {
+        val pm = appContext.packageManager
+        return try {
+            val mainSig = pm.getPackageInfo(
+                appContext.packageName,
+                PackageManager.GET_SIGNING_CERTIFICATES
+            )?.signingInfo?.apkContentsSigners ?: return false
+            val callerSig = pm.getPackageInfo(
+                packageName,
+                PackageManager.GET_SIGNING_CERTIFICATES
+            )?.signingInfo?.apkContentsSigners ?: return false
+            mainSig.contentEquals(callerSig)
+        } catch (e: Exception) {
+            Timber.w(e)
+            false
+        }
     }
 
     fun sync() = lock.withLock {

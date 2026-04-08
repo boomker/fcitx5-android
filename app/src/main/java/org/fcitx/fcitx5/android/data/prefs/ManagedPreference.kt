@@ -173,5 +173,29 @@ abstract class ManagedPreference<T : Any>(
         }
     }
 
+    class PStringSet(
+        sharedPreferences: SharedPreferences,
+        key: String,
+        defaultValue: Set<String>
+    ) : ManagedPreference<Set<String>>(sharedPreferences, key, defaultValue) {
+
+        override fun setValue(value: Set<String>) {
+            sharedPreferences.edit { putStringSet(key, value) }
+        }
+
+        override fun getValue(): Set<String> {
+            return try {
+                sharedPreferences.getStringSet(key, defaultValue) ?: defaultValue
+            } catch (e: Exception) {
+                setValue(defaultValue)
+                defaultValue
+            }
+        }
+
+        override fun putValueTo(editor: SharedPreferences.Editor) {
+            editor.putStringSet(key, getValue())
+        }
+    }
+
 }
 
