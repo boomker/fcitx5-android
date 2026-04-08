@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
  * SPDX-FileCopyrightText: Copyright 2021-2023 Fcitx5 for Android Contributors
  */
-package org.fxboomk.fcitx5.android
+package org.fcitx.fcitx5.android
 
 import android.app.Service
 import android.content.Intent
@@ -18,21 +18,25 @@ import kotlinx.coroutines.plus
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import org.fxboomk.fcitx5.android.common.ipc.IClipboardEntryTransformer
-import org.fxboomk.fcitx5.android.common.ipc.IFcitxRemoteService
-import org.fxboomk.fcitx5.android.core.data.DataManager
-import org.fxboomk.fcitx5.android.core.reloadPinyinDict
-import org.fxboomk.fcitx5.android.core.reloadQuickPhrase
-import org.fxboomk.fcitx5.android.daemon.FcitxDaemon
-import org.fxboomk.fcitx5.android.data.clipboard.ClipboardManager
-import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
-import org.fxboomk.fcitx5.android.utils.Const
-import org.fxboomk.fcitx5.android.utils.desc
-import org.fxboomk.fcitx5.android.utils.descEquals
+import org.fcitx.fcitx5.android.common.ipc.IClipboardEntryTransformer
+import org.fcitx.fcitx5.android.common.ipc.IFcitxRemoteService
+import org.fcitx.fcitx5.android.core.data.DataManager
+import org.fcitx.fcitx5.android.core.reloadPinyinDict
+import org.fcitx.fcitx5.android.core.reloadQuickPhrase
+import org.fcitx.fcitx5.android.daemon.FcitxDaemon
+import org.fcitx.fcitx5.android.data.clipboard.ClipboardManager
+import org.fcitx.fcitx5.android.data.prefs.AppPrefs
+import org.fcitx.fcitx5.android.utils.Const
+import org.fcitx.fcitx5.android.utils.desc
+import org.fcitx.fcitx5.android.utils.descEquals
 import timber.log.Timber
 import java.util.PriorityQueue
 
 class FcitxRemoteService : Service() {
+
+    companion object {
+        private const val BUILTIN_ALLOWED_PLUGIN_PREFIX = "org.fcitx.fcitx5.android"
+    }
 
     private val clipboardTransformerLock = Mutex()
 
@@ -60,33 +64,51 @@ class FcitxRemoteService : Service() {
         Timber.d("All clipboard transformers: ${clipboardTransformers.joinToString { it.desc }}")
     }
 
-    private fun getCallingPackages(): Set<String> {
+    /**
+     * Get the calling package name
+     */
+    private fun getCallingPackageName(): String? {
         val uid = Binder.getCallingUid()
-        return packageManager.getPackagesForUid(uid)?.toSet().orEmpty()
-    }
-
-    private fun getLoadedPluginPackages(): Set<String> {
-        return DataManager.getLoadedPlugins()
-            .mapTo(mutableSetOf()) { it.packageName }
+        return packageManager.getNameForUid(uid)
     }
 
     /**
      * Check if the calling package is allowed based on IPC compatibility mode
      */
-    private fun isCallerAllowed(callingPackages: Set<String>): Boolean {
-        if (callingPackages.isEmpty()) return false
+    private fun packageMatchesPrefix(packageName: String, prefix: String): Boolean {
+        val normalized = prefix.trim().removeSuffix(".")
+        if (normalized.isEmpty()) return false
+        return packageName == normalized || packageName.startsWith("$normalized.")
+    }
+
+    private fun isCallerAllowed(callingPackage: String?): Boolean {
+        if (callingPackage == null) return false
 
         // Always allow self
-        if (callingPackages.contains(packageName)) return true
+        if (callingPackage == packageName) return true
 
-        // Allow loaded plugin packages from this installation.
-        if (callingPackages.any { it in getLoadedPluginPackages() }) return true
-
-        // Check if allowing original plugins (both release and debug)
-        return AppPrefs.getInstance().advanced.allowOriginalPlugins.getValue() &&
-                callingPackages.any {
-                    it == "org.fxboomk.fcitx5.android" || it == "org.fxboomk.fcitx5.android.debug"
-                }
+        if (AppPrefs.getInstance().advanced.allowOriginalPlugins.getValue()) {
+            // When enabled: always allow built-in prefix + user-defined extra prefixes
+            val prefixes = AppPrefs.getInstance().advanced.allowedPluginPrefixes.getValue() +
+                    BUILTIN_ALLOWED_PLUGIN_PREFIX
+            return prefixes.any { packageMatchesPrefix(callingPackage, it) }
+        } else {
+            // When disabled: only allow same-signed builds (self-built)
+            return try {
+                val mainSig = packageManager.getPackageInfo(
+                    packageName,
+                    PackageManager.GET_SIGNING_CERTIFICATES
+                )?.signingInfo?.apkContentsSigners ?: return false
+                val callerSig = packageManager.getPackageInfo(
+                    callingPackage,
+                    PackageManager.GET_SIGNING_CERTIFICATES
+                )?.signingInfo?.apkContentsSigners ?: return false
+                mainSig.contentEquals(callerSig)
+            } catch (e: Exception) {
+                Timber.w(e)
+                false
+            }
+        }
     }
 
     private val binder = object : IFcitxRemoteService.Stub() {
@@ -104,12 +126,12 @@ class FcitxRemoteService : Service() {
         }
 
         override fun registerClipboardEntryTransformer(transformer: IClipboardEntryTransformer) {
-            val callingPackages = getCallingPackages()
-            if (!isCallerAllowed(callingPackages)) {
-                Timber.w("Rejected clipboard transformer registration from $callingPackages (allowOriginalPlugins=${AppPrefs.getInstance().advanced.allowOriginalPlugins.getValue()})")
-                throw SecurityException("IPC compatibility mode does not allow access from $callingPackages")
+            val callingPackage = getCallingPackageName()
+            if (!isCallerAllowed(callingPackage)) {
+                Timber.w("Rejected clipboard transformer registration from $callingPackage (allowOriginalPlugins=${AppPrefs.getInstance().advanced.allowOriginalPlugins.getValue()})")
+                throw SecurityException("IPC compatibility mode does not allow access from $callingPackage")
             }
-            Timber.d("registerClipboardEntryTransformer: ${transformer.desc} from $callingPackages")
+            Timber.d("registerClipboardEntryTransformer: ${transformer.desc} from $callingPackage")
             if (transformer.description.isNullOrBlank()) {
                 Timber.w("Cannot register ClipboardEntryTransformer of null or empty description")
             }
@@ -136,32 +158,6 @@ class FcitxRemoteService : Service() {
             }
         }
 
-        override fun importRemoteClipboardEntry(
-            text: String,
-            originalText: String,
-            originalRootUri: String,
-            type: String,
-            timestamp: Long,
-            sensitive: Boolean
-        ) {
-            val callingPackages = getCallingPackages()
-            if (!isCallerAllowed(callingPackages)) {
-                Timber.w("Rejected remote clipboard import from $callingPackages (allowOriginalPlugins=${AppPrefs.getInstance().advanced.allowOriginalPlugins.getValue()})")
-                throw SecurityException("IPC compatibility mode does not allow access from $callingPackages")
-            }
-            runBlocking {
-                ClipboardManager.importRemoteEntry(
-                    text = text,
-                    originalText = originalText,
-                    originalRootUri = originalRootUri,
-                    type = type,
-                    timestamp = timestamp,
-                    sensitive = sensitive,
-                    notifyListeners = false
-                )
-            }
-        }
-
         override fun reloadPinyinDict() {
             FcitxDaemon.getFirstConnectionOrNull()?.runIfReady { reloadPinyinDict() }
         }
@@ -177,11 +173,11 @@ class FcitxRemoteService : Service() {
     }
 
     override fun onBind(intent: Intent): IBinder {
-        val callingPackages = getCallingPackages()
-        Timber.d("FcitxRemoteService onBind: $intent, callingPackages=$callingPackages")
-        if (!isCallerAllowed(callingPackages)) {
-            Timber.w("Rejected IPC connection from $callingPackages (allowOriginalPlugins=${AppPrefs.getInstance().advanced.allowOriginalPlugins.getValue()})")
-            throw SecurityException("IPC compatibility mode does not allow access from $callingPackages")
+        val callingPackage = getCallingPackageName()
+        Timber.d("FcitxRemoteService onBind: $intent, callingPackage=$callingPackage")
+        if (!isCallerAllowed(callingPackage)) {
+            Timber.w("Rejected IPC connection from $callingPackage (allowOriginalPlugins=${AppPrefs.getInstance().advanced.allowOriginalPlugins.getValue()})")
+            throw SecurityException("IPC compatibility mode does not allow access from $callingPackage")
         }
         return binder
     }

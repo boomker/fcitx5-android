@@ -15,8 +15,13 @@
     <string name="advanced">高级</string>
     <string name="ignore_sys_cursor">忽略系统光标位置</string>
     <string name="hide_key_config">隐藏快捷键配置</string>
-    <string name="allow_original_plugins">允许原版 Fcitx5 插件</string>
-    <string name="allow_original_plugins_summary">启用后允许原版 Fcitx5 Android（发布版和调试版）的插件连接。请勿同时安装功能相同的原版和 fx 插件。</string>
+    <string name="allow_original_plugins">允许第三方 Fcitx5 插件</string>
+    <string name="allow_original_plugins_summary">启用后允许原版 Fcitx5 Android（发布版和调试版）的插件连接。请勿同时安装功能相同的原版和魔改版插件。</string>
+    <string name="allowed_plugin_prefixes">允许的插件前缀</string>
+    <string name="allowed_plugin_prefixes_summary">启用“允许第三方 Fcitx5 插件”后，会默认允许 org.fcitx.fcitx5.android 开头的包名。这里只需添加额外前缀。</string>
+    <string name="allowed_plugin_prefixes_dialog_title">插件包名前缀</string>
+    <string name="allowed_plugin_prefixes_dialog_message">输入额外的包名前缀（每行一个）。内置的 org.fcitx.fcitx5.android 始终允许。</string>
+    <string name="allowed_plugin_prefixes_add_hint">输入额外前缀，例如 com.example.fcitx.plugin</string>
     <string name="_not_available_">（不可用）</string>
     <string name="button_haptic_feedback">按键时振动</string>
     <string name="button_up_haptic_feedback">按键松开时振动</string>

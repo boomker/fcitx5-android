@@ -29,6 +29,22 @@ abstract class ManagedPreferenceCategory(
         return pref
     }
 
+    protected fun stringSet(
+        @StringRes
+        title: Int,
+        key: String,
+        defaultValue: Set<String>,
+        @StringRes
+        summary: Int? = null,
+        enableUiOn: (() -> Boolean)? = null
+    ): ManagedPreference.PStringSet {
+        val pref = ManagedPreference.PStringSet(sharedPreferences, key, defaultValue)
+        val ui = ManagedPreferenceUi.StringSet(title, key, defaultValue, summary, enableUiOn)
+        pref.register()
+        ui.registerUi()
+        return pref
+    }
+
     protected fun <T : Any> list(
         @StringRes
         title: Int,

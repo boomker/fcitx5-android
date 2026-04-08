@@ -27,6 +27,10 @@
         <intent>
             <action android:name="${originalPluginManifestAction}" />
         </intent>
+        <!-- Compatibility with original Fcitx5 Android debug plugins -->
+        <intent>
+            <action android:name="${originalDebugPluginManifestAction}" />
+        </intent>
         <intent>
             <action android:name="android.view.InputMethod" />
         </intent>

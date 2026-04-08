@@ -16,8 +16,13 @@
     <string name="ignore_sys_cursor">Position des Cursors ignorieren</string>
     <string name="hide_key_config">Hotkey-Konfigurationen ausblenden</string>
     <string name="toolbar_manually_toggled">Symbolleiste manuell umgeschaltet</string>
-    <string name="allow_original_plugins">Original Fcitx5-Plugins erlauben</string>
-    <string name="allow_original_plugins_summary">Aktivieren, um Plugins von original Fcitx5 Android (Release und Debug) zu erlauben. Nicht sowohl originale als auch fx-Plugins mit gleicher Funktion installieren.</string>
+    <string name="allow_original_plugins">Fcitx5-Plugins von Drittanbietern erlauben</string>
+    <string name="allow_original_plugins_summary">Aktivieren, um Plugins von originalem Fcitx5 Android (Release und Debug) zu erlauben. Installieren Sie nicht gleichzeitig Original- und modifizierte Plugins mit gleicher Funktion.</string>
+    <string name="allowed_plugin_prefixes">Erlaubte Plugin-Präfixe</string>
+    <string name="allowed_plugin_prefixes_summary">Wenn "Fcitx5-Plugins von Drittanbietern erlauben" aktiviert ist, sind Paketnamen mit org.fcitx.fcitx5.android standardmäßig erlaubt. Fügen Sie hier nur zusätzliche Präfixe hinzu.</string>
+    <string name="allowed_plugin_prefixes_dialog_title">Präfixe für Plugin-Paketnamen</string>
+    <string name="allowed_plugin_prefixes_dialog_message">Geben Sie zusätzliche Paketnamen-Präfixe ein (eins pro Zeile). Das integrierte org.fcitx.fcitx5.android ist immer erlaubt.</string>
+    <string name="allowed_plugin_prefixes_add_hint">Zusätzliches Präfix eingeben, z. B. com.example.fcitx.plugin</string>
     <string name="_not_available_">(Nicht verfügbar)</string>
     <string name="button_haptic_feedback">Haptische Rückmeldung bei Tastendruck</string>
     <string name="button_vibration_milliseconds">Dauer der Tastendruck-Vibration</string>
