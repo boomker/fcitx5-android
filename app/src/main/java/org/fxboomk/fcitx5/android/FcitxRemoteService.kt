@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
  * SPDX-FileCopyrightText: Copyright 2021-2023 Fcitx5 for Android Contributors
  */
-package org.fcitx.fcitx5.android
+package org.fxboomk.fcitx5.android
 
 import android.app.Service
 import android.content.Intent
@@ -18,24 +18,24 @@ import kotlinx.coroutines.plus
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import org.fcitx.fcitx5.android.common.ipc.IClipboardEntryTransformer
-import org.fcitx.fcitx5.android.common.ipc.IFcitxRemoteService
-import org.fcitx.fcitx5.android.core.data.DataManager
-import org.fcitx.fcitx5.android.core.reloadPinyinDict
-import org.fcitx.fcitx5.android.core.reloadQuickPhrase
-import org.fcitx.fcitx5.android.daemon.FcitxDaemon
-import org.fcitx.fcitx5.android.data.clipboard.ClipboardManager
-import org.fcitx.fcitx5.android.data.prefs.AppPrefs
-import org.fcitx.fcitx5.android.utils.Const
-import org.fcitx.fcitx5.android.utils.desc
-import org.fcitx.fcitx5.android.utils.descEquals
+import org.fxboomk.fcitx5.android.common.ipc.IClipboardEntryTransformer
+import org.fxboomk.fcitx5.android.common.ipc.IFcitxRemoteService
+import org.fxboomk.fcitx5.android.core.data.DataManager
+import org.fxboomk.fcitx5.android.core.reloadPinyinDict
+import org.fxboomk.fcitx5.android.core.reloadQuickPhrase
+import org.fxboomk.fcitx5.android.daemon.FcitxDaemon
+import org.fxboomk.fcitx5.android.data.clipboard.ClipboardManager
+import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
+import org.fxboomk.fcitx5.android.utils.Const
+import org.fxboomk.fcitx5.android.utils.desc
+import org.fxboomk.fcitx5.android.utils.descEquals
 import timber.log.Timber
 import java.util.PriorityQueue
 
 class FcitxRemoteService : Service() {
 
     companion object {
-        private const val BUILTIN_ALLOWED_PLUGIN_PREFIX = "org.fcitx.fcitx5.android"
+        private const val BUILTIN_ALLOWED_PLUGIN_PREFIX = "org.fxboomk.fcitx5.android"
     }
 
     private val clipboardTransformerLock = Mutex()
@@ -155,6 +155,32 @@ class FcitxRemoteService : Service() {
                         || clipboardTransformers.removeAll { it.descEquals(transformer) }
                         || return@launch
                 updateClipboardManager()
+            }
+        }
+
+        override fun importRemoteClipboardEntry(
+            text: String,
+            originalText: String,
+            originalRootUri: String,
+            type: String,
+            timestamp: Long,
+            sensitive: Boolean
+        ) {
+            val callingPackages = getCallingPackageName()
+            if (!isCallerAllowed(callingPackages)) {
+                Timber.w("Rejected remote clipboard import from $callingPackages (allowOriginalPlugins=${AppPrefs.getInstance().advanced.allowOriginalPlugins.getValue()})")
+                throw SecurityException("IPC compatibility mode does not allow access from $callingPackages")
+            }
+            runBlocking {
+                ClipboardManager.importRemoteEntry(
+                    text = text,
+                    originalText = originalText,
+                    originalRootUri = originalRootUri,
+                    type = type,
+                    timestamp = timestamp,
+                    sensitive = sensitive,
+                    notifyListeners = false
+                )
             }
         }
 

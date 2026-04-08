@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
  * SPDX-FileCopyrightText: Copyright 2021-2024 Fcitx5 for Android Contributors
  */
-package org.fcitx.fcitx5.android.core.data
+package org.fxboomk.fcitx5.android.core.data
 
 import android.annotation.SuppressLint
 import android.content.Intent
@@ -11,12 +11,12 @@ import android.content.res.AssetManager
 import android.os.Build
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import org.fcitx.fcitx5.android.BuildConfig
-import org.fcitx.fcitx5.android.core.data.DataManager.dataDir
-import org.fcitx.fcitx5.android.data.prefs.AppPrefs
-import org.fcitx.fcitx5.android.utils.FileUtil
-import org.fcitx.fcitx5.android.utils.appContext
-import org.fcitx.fcitx5.android.utils.isJavaIdentifier
+import org.fxboomk.fcitx5.android.BuildConfig
+import org.fxboomk.fcitx5.android.core.data.DataManager.dataDir
+import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
+import org.fxboomk.fcitx5.android.utils.FileUtil
+import org.fxboomk.fcitx5.android.utils.appContext
+import org.fxboomk.fcitx5.android.utils.isJavaIdentifier
 import org.xmlpull.v1.XmlPullParser
 import timber.log.Timber
 import java.io.File
@@ -36,7 +36,7 @@ object DataManager {
     )
 
     const val PLUGIN_INTENT = "${BuildConfig.APPLICATION_ID}.plugin.MANIFEST"
-    private const val BUILTIN_ALLOWED_PLUGIN_PREFIX = "org.fcitx.fcitx5.android"
+    private const val BUILTIN_ALLOWED_PLUGIN_PREFIX = "org.fxboomk.fcitx5.android"
 
     private val lock = ReentrantLock()
 

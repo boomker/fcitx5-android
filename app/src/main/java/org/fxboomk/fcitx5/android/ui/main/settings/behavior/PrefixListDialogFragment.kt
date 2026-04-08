@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
  * SPDX-FileCopyrightText: Copyright 2021-2025 Fcitx5 for Android Contributors
  */
-package org.fcitx.fcitx5.android.ui.main.settings.behavior
+package org.fxboomk.fcitx5.android.ui.main.settings.behavior
 
 import android.app.Dialog
 import android.os.Bundle
@@ -13,8 +13,8 @@ import androidx.appcompat.app.AlertDialog
 import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.DialogFragment
 import androidx.core.os.bundleOf
-import org.fcitx.fcitx5.android.R
-import org.fcitx.fcitx5.android.data.prefs.AppPrefs
+import org.fxboomk.fcitx5.android.R
+import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 
 class PrefixListDialogFragment : DialogFragment() {
 
