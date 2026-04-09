@@ -56,6 +56,7 @@ class KeyboardPreviewManager(
     private val entries: Map<String, List<List<Map<String, Any?>>>>
 ) {
     private var previewKeyboard: TextKeyboard? = null
+    private val previewBlurMask by lazy { PreviewKeyBlurMaskView(context) }
 
     /**
      * Update keyboard preview.
@@ -74,6 +75,11 @@ class KeyboardPreviewManager(
         // Try to load submode-specific layout first
         val subModeKey = previewSubModeLabel?.let { "$layoutName:$it" }
         val rows = subModeKey?.let { entries[it] } ?: entries[layoutName] ?: return
+
+        val theme = ThemeManager.activeTheme
+        val keyBorder = ThemeManager.prefs.keyBorder.getValue()
+        previewContainer.background = theme.backgroundDrawable(keyBorder)
+        previewBlurMask.bindKeyboard(null)
 
         // Remove old keyboard view
         previewKeyboard?.let {
@@ -158,12 +164,6 @@ class KeyboardPreviewManager(
         fcitxConnection: FcitxConnection
     ) {
         val theme = ThemeManager.activeTheme
-        val keyBorder = ThemeManager.prefs.keyBorder.getValue()
-
-        // Set preview container background color to match theme
-        previewContainer.setBackgroundColor(
-            if (keyBorder) theme.backgroundColor else theme.keyboardColor
-        )
 
         previewKeyboard = TextKeyboard(context, theme).apply {
             val displayMetrics = context.resources.displayMetrics
@@ -184,6 +184,13 @@ class KeyboardPreviewManager(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 keyboardHeight
             )
+            previewContainer.addView(
+                previewBlurMask,
+                ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    keyboardHeight
+                )
+            )
             previewContainer.addView(this, layoutParams)
 
             onAttach()
@@ -202,6 +209,9 @@ class KeyboardPreviewManager(
             onInputMethodUpdate(previewIme)
             setTextScale(1.0f)
             refreshStyle()
+            previewBlurMask.applyTheme(theme, ThemeManager.prefs.keyBorder.getValue())
+            previewBlurMask.bindKeyboard(this)
+            post { previewBlurMask.refreshMask(hierarchyChanged = true) }
             requestLayout()
             invalidate()
         }
@@ -225,6 +235,7 @@ class KeyboardPreviewManager(
      * Clear preview keyboard.
      */
     fun clear() {
+        previewBlurMask.bindKeyboard(null)
         previewKeyboard?.let {
             previewContainer.removeView(it)
             previewKeyboard = null

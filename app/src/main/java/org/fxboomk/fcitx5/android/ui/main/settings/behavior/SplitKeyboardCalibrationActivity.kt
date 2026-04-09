@@ -30,6 +30,7 @@ import org.fxboomk.fcitx5.android.data.prefs.ManagedPreferenceProvider
 import org.fxboomk.fcitx5.android.data.prefs.SplitKeyboardStateManager
 import org.fxboomk.fcitx5.android.data.theme.ThemeManager
 import org.fxboomk.fcitx5.android.input.keyboard.TextKeyboard
+import org.fxboomk.fcitx5.android.ui.main.settings.behavior.preview.PreviewKeyBlurMaskView
 import org.fxboomk.fcitx5.android.ui.main.settings.preview.PreviewInputMethodEntry
 import org.fxboomk.fcitx5.android.utils.DeviceInfoCollector
 import org.fxboomk.fcitx5.android.utils.DeviceType
@@ -52,6 +53,7 @@ class SplitKeyboardCalibrationActivity : AppCompatActivity() {
     private lateinit var toolbar: Toolbar
     private lateinit var previewKeyboardContainer: FrameLayout
     private var previewKeyboard: TextKeyboard? = null
+    private val previewBlurMask by lazy { PreviewKeyBlurMaskView(this) }
 
     private lateinit var thresholdSeekBar: SeekBar
     private lateinit var gapSeekBar: SeekBar
@@ -141,6 +143,7 @@ class SplitKeyboardCalibrationActivity : AppCompatActivity() {
         super.onDestroy()
         previewKeyboard?.onDetach()
         previewKeyboard = null
+        previewBlurMask.bindKeyboard(null)
         keyboardPrefs.unregisterOnChangeListener(onKeyboardSizeChangeListener)
     }
 
@@ -281,6 +284,7 @@ class SplitKeyboardCalibrationActivity : AppCompatActivity() {
                 // Update internal prefs to trigger preview keyboard reload
                 splitKeyboardManager.setSplitKeyboardThreshold(value)
                 previewKeyboard?.refreshStyle()
+                previewBlurMask.refreshMask(hierarchyChanged = true)
                 updateDeviceInfo()
             },
             valueTextProvider = { "$it dp" }
@@ -303,6 +307,7 @@ class SplitKeyboardCalibrationActivity : AppCompatActivity() {
                 // Update internal prefs to trigger preview keyboard reload
                 splitKeyboardManager.setSplitGapPercent(value)
                 previewKeyboard?.refreshStyle()
+                previewBlurMask.refreshMask(hierarchyChanged = true)
                 updateDeviceInfo()
             },
             valueTextProvider = { "$it %" }
@@ -419,14 +424,22 @@ class SplitKeyboardCalibrationActivity : AppCompatActivity() {
         previewKeyboardContainer.removeAllViews()
         previewKeyboard?.onDetach()
         previewKeyboard = null
+        previewBlurMask.bindKeyboard(null)
         refreshCurrentKeyboardWidth()
         TextKeyboard.cachedLayoutJsonMap = null
 
         try {
             val theme = ThemeManager.activeTheme
             val keyBorder = ThemeManager.prefs.keyBorder.getValue()
-            // Match InputView behavior: use backgroundColor when keyBorder is true, otherwise keyboardColor
-            previewKeyboardContainer.setBackgroundColor(if (keyBorder) theme.backgroundColor else theme.keyboardColor)
+            // Match InputView behavior, including custom background images.
+            previewKeyboardContainer.background = theme.backgroundDrawable(keyBorder)
+            previewKeyboardContainer.addView(
+                previewBlurMask,
+                FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.MATCH_PARENT
+                )
+            )
 
             val displayMetrics = resources.displayMetrics
             val screenHeight = displayMetrics.heightPixels
@@ -458,6 +471,9 @@ class SplitKeyboardCalibrationActivity : AppCompatActivity() {
                 setHorizontalGapScale(currentGap / 100f)
                 onInputMethodUpdate(previewIme)
                 updateSplitState()
+                previewBlurMask.applyTheme(theme, keyBorder)
+                previewBlurMask.bindKeyboard(this)
+                post { previewBlurMask.refreshMask(hierarchyChanged = true) }
 
                 if (shouldEnforceLowercaseAfterRotation) {
                     enforcePreviewLowercase()
@@ -491,6 +507,7 @@ class SplitKeyboardCalibrationActivity : AppCompatActivity() {
             // Update container padding instead of keyboard margins to avoid triggering onSizeChanged
             // This simulates split effect without affecting keyboard's internal state
             previewKeyboardContainer.setPadding(simulatedSidePaddingPx, 0, simulatedSidePaddingPx, 0)
+            previewBlurMask.refreshMask()
         }
     }
 
