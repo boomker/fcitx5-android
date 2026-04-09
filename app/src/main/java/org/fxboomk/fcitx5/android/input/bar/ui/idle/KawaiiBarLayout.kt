@@ -8,6 +8,7 @@ import android.content.Context
 import android.view.View
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.flexbox.AlignItems
+import com.google.android.flexbox.FlexDirection
 import com.google.android.flexbox.FlexWrap
 import com.google.android.flexbox.FlexboxLayoutManager
 import com.google.android.flexbox.JustifyContent
@@ -18,7 +19,7 @@ import splitties.dimensions.dp
  * 1. Even distribution (SPACE_AROUND-like) when buttons have enough space
  * 2. Horizontal scrolling when buttons are compressed below minimum width (40dp)
  */
-class KawaiiBarLayout(context: Context) : FlexboxLayoutManager(context, RecyclerView.HORIZONTAL) {
+class KawaiiBarLayout(context: Context) : FlexboxLayoutManager(context, FlexDirection.ROW) {
 
     // Minimum button width: 40dp to match icon size
     val minButtonWidth: Int = context.dp(40)

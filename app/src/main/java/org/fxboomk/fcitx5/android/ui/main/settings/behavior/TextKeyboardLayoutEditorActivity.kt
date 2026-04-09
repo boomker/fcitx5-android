@@ -27,6 +27,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
+import androidx.activity.addCallback
 import androidx.activity.result.ActivityResultLauncher
 import androidx.core.text.HtmlCompat
 import androidx.core.view.ViewCompat
@@ -357,6 +358,9 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             insets
         }
         ViewCompat.requestApplyInsets(toolbar)
+        onBackPressedDispatcher.addCallback {
+            attemptExit()
+        }
 
         // 初始化子模式管理器（必须在 loadState 之前）
         subModeManager = SubModeManager(fcitxConnection, allImesFromJson, dataManager.entries)
@@ -458,11 +462,6 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             true
         }
         else -> super.onOptionsItemSelected(item)
-    }
-
-    @Deprecated("Use onBackPressedDispatcher.dispatchOnBackPressed() when available", ReplaceWith("super.onBackPressed()"))
-    override fun onBackPressed() {
-        attemptExit()
     }
 
     private fun attemptExit() {

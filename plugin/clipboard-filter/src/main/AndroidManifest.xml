@@ -2,6 +2,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <queries>
+        <package android:name="${mainApplicationId}" />
+        <package android:name="org.fcitx.fcitx5.android" />
+    </queries>
+
     <uses-permission android:name="${mainApplicationId}.permission.IPC" />
 
     <application

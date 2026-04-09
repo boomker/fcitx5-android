@@ -7,7 +7,9 @@ package org.fxboomk.fcitx5.android
 import android.app.Service
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.pm.Signature
 import android.os.Binder
+import android.os.Build
 import android.os.IBinder
 import android.os.Process
 import kotlinx.coroutines.CoroutineName
@@ -25,10 +27,12 @@ import org.fxboomk.fcitx5.android.core.reloadPinyinDict
 import org.fxboomk.fcitx5.android.core.reloadQuickPhrase
 import org.fxboomk.fcitx5.android.daemon.FcitxDaemon
 import org.fxboomk.fcitx5.android.data.clipboard.ClipboardManager
+import org.fxboomk.fcitx5.android.data.clipboard.HostClipboardFilter
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.utils.Const
 import org.fxboomk.fcitx5.android.utils.desc
 import org.fxboomk.fcitx5.android.utils.descEquals
+import org.fxboomk.fcitx5.android.utils.packageSigners
 import timber.log.Timber
 import java.util.PriorityQueue
 
@@ -45,9 +49,13 @@ class FcitxRemoteService : Service() {
     private val clipboardTransformers =
         PriorityQueue<IClipboardEntryTransformer>(3, compareByDescending { it.priority })
 
+    private fun orderedClipboardTransformers() =
+        clipboardTransformers.toList()
+            .sortedWith(compareByDescending<IClipboardEntryTransformer> { it.priority }.thenBy { it.desc })
+
     private fun transformClipboard(source: String): String {
-        var result = source
-        clipboardTransformers.forEach {
+        var result = HostClipboardFilter.transform(source)
+        orderedClipboardTransformers().forEach {
             try {
                 result = it.transform(result)!!
             } catch (e: Exception) {
@@ -60,8 +68,12 @@ class FcitxRemoteService : Service() {
 
     private suspend fun updateClipboardManager() = clipboardTransformerLock.withLock {
         ClipboardManager.transformer =
-            if (clipboardTransformers.isEmpty()) null else ::transformClipboard
-        Timber.d("All clipboard transformers: ${clipboardTransformers.joinToString { it.desc }}")
+            if (clipboardTransformers.isEmpty() && !HostClipboardFilter.isEnabled()) null else ::transformClipboard
+        val transformers = buildList {
+            HostClipboardFilter.description()?.let(::add)
+            addAll(orderedClipboardTransformers().map { it.desc })
+        }
+        Timber.d("All clipboard transformers: ${transformers.joinToString()}")
     }
 
     /**
@@ -95,14 +107,9 @@ class FcitxRemoteService : Service() {
         } else {
             // When disabled: only allow same-signed builds (self-built)
             return try {
-                val mainSig = packageManager.getPackageInfo(
-                    packageName,
-                    PackageManager.GET_SIGNING_CERTIFICATES
-                )?.signingInfo?.apkContentsSigners ?: return false
-                val callerSig = packageManager.getPackageInfo(
-                    callingPackage,
-                    PackageManager.GET_SIGNING_CERTIFICATES
-                )?.signingInfo?.apkContentsSigners ?: return false
+                val mainSig = packageManager.packageSigners(packageName)
+                val callerSig = packageManager.packageSigners(callingPackage)
+                if (mainSig.isEmpty() || callerSig.isEmpty()) return false
                 mainSig.contentEquals(callerSig)
             } catch (e: Exception) {
                 Timber.w(e)
@@ -171,10 +178,15 @@ class FcitxRemoteService : Service() {
                 Timber.w("Rejected remote clipboard import from $callingPackages (allowOriginalPlugins=${AppPrefs.getInstance().advanced.allowOriginalPlugins.getValue()})")
                 throw SecurityException("IPC compatibility mode does not allow access from $callingPackages")
             }
+            val filteredText = HostClipboardFilter.transform(text)
             runBlocking {
                 ClipboardManager.importRemoteEntry(
-                    text = text,
-                    originalText = originalText,
+                    text = filteredText,
+                    originalText = when {
+                        originalText.isNotEmpty() -> originalText
+                        filteredText != text -> text
+                        else -> ""
+                    },
                     originalRootUri = originalRootUri,
                     type = type,
                     timestamp = timestamp,
@@ -196,6 +208,7 @@ class FcitxRemoteService : Service() {
     override fun onCreate() {
         Timber.d("FcitxRemoteService onCreate")
         super.onCreate()
+        runBlocking { updateClipboardManager() }
     }
 
     override fun onBind(intent: Intent): IBinder {

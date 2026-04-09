@@ -7,6 +7,7 @@ package org.fxboomk.fcitx5.android.utils
 import android.content.ContentResolver
 import android.content.Context
 import android.net.Uri
+import android.os.Build
 import android.provider.DocumentsContract
 import android.webkit.MimeTypeMap
 import androidx.core.content.FileProvider
@@ -197,7 +198,7 @@ object ClipboardUriStore {
         if (uri.authority != rootUri.authority) return false
         val childId = runCatching { DocumentsContract.getDocumentId(uri) }.getOrNull() ?: return false
         val rootId = runCatching {
-            if (DocumentsContract.isTreeUri(rootUri)) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && DocumentsContract.isTreeUri(rootUri)) {
                 DocumentsContract.getTreeDocumentId(rootUri)
             } else {
                 DocumentsContract.getDocumentId(rootUri)

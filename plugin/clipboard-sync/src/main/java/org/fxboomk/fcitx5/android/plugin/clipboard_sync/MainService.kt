@@ -14,6 +14,7 @@ import android.content.SharedPreferences
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
+import android.net.NetworkRequest
 import android.net.Uri
 import android.os.Build
 import android.os.Handler
@@ -257,6 +258,7 @@ class MainService : FcitxPluginService() {
         override fun getPriority(): Int = 100
 
         override fun transform(clipboardText: String): String {
+            // Clipboard filters should run first so sync observes the sanitized text.
             // This is called when user copies text locally
             if (clipboardText == lastRemoteContent) {
                 // If this change matches what we just pulled, ignore it (don't push back)
@@ -378,17 +380,18 @@ class MainService : FcitxPluginService() {
 
     private fun handleLocalClipboardUpdate(content: String, origin: String) {
         if (content.isBlank()) return
-        if (consumeIgnoredRemoteClipboardContent(content)) {
+        val normalizedContent = OutgoingClipboardFilter.transform(this, connection?.remoteService, content)
+        if (consumeIgnoredRemoteClipboardContent(normalizedContent)) {
             return
         }
-        if (content == lastRemoteContent || content == lastUploadedContent) {
+        if (normalizedContent == lastRemoteContent || normalizedContent == lastUploadedContent) {
             return
         }
-        if (content != lastLocalContent) {
-            lastLocalContent = content
+        if (normalizedContent != lastLocalContent) {
+            lastLocalContent = normalizedContent
         }
         scope.launch {
-            val queued = enqueuePendingUpload(content)
+            val queued = enqueuePendingUpload(normalizedContent)
             if (!queued) {
                 return@launch
             }
@@ -1119,7 +1122,14 @@ class MainService : FcitxPluginService() {
     private fun registerNetworkCallbackIfNeeded() {
         if (networkCallbackRegistered) return
         runCatching {
-            connectivityManager.registerDefaultNetworkCallback(networkCallback)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                connectivityManager.registerDefaultNetworkCallback(networkCallback)
+            } else {
+                val request = NetworkRequest.Builder()
+                    .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                    .build()
+                connectivityManager.registerNetworkCallback(request, networkCallback)
+            }
             networkCallbackRegistered = true
         }.onFailure {
             Log.w(TAG, "Failed to register network callback", it)
@@ -1229,8 +1239,18 @@ class MainService : FcitxPluginService() {
                 startForeground(NOTIFICATION_ID, notification)
             }
             foregroundActive = true
-        } catch (e: android.app.ForegroundServiceStartNotAllowedException) {
-            Log.w(TAG, "[Service] Foreground service start not allowed; system is likely in punishment state for dataSync. Running without foreground notification.", e)
+        } catch (e: Exception) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                e is android.app.ForegroundServiceStartNotAllowedException
+            ) {
+                Log.w(
+                    TAG,
+                    "[Service] Foreground service start not allowed; system is likely in punishment state for dataSync. Running without foreground notification.",
+                    e
+                )
+            } else {
+                throw e
+            }
             foregroundActive = false
         }
     }
@@ -1966,8 +1986,9 @@ class MainService : FcitxPluginService() {
 
     private fun forceUploadClipboard(content: String, origin: String) {
         if (content.isBlank()) return
+        val normalizedContent = OutgoingClipboardFilter.transform(this, connection?.remoteService, content)
         scope.launch {
-            val queued = enqueuePendingUpload(content)
+            val queued = enqueuePendingUpload(normalizedContent)
             if (!queued) {
                 return@launch
             }

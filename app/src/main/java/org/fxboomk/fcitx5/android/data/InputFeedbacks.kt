@@ -10,6 +10,7 @@ import android.os.VibrationEffect
 import android.provider.Settings
 import android.view.HapticFeedbackConstants
 import android.view.View
+import androidx.annotation.RequiresApi
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.data.prefs.ManagedPreferenceEnum
@@ -59,6 +60,7 @@ object InputFeedbacks {
     private val hasAmplitudeControl =
         (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) && vibrator.hasAmplitudeControl()
 
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun vibrationEffect(duration: Long, amplitude: Int, longPress: Boolean): VibrationEffect {
         if (longPress) {
             if (

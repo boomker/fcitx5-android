@@ -1,11 +1,13 @@
 package org.fxboomk.fcitx5.android.data.theme
 
+import android.os.Build
 import kotlinx.serialization.json.Json
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.utils.appContext
 import org.fxboomk.fcitx5.android.utils.errorRuntime
 import org.fxboomk.fcitx5.android.utils.extract
 import org.fxboomk.fcitx5.android.utils.withTempDir
+import org.fxboomk.fcitx5.android.utils.zipInputStream
 import timber.log.Timber
 import java.io.File
 import java.io.FileFilter
@@ -348,7 +350,7 @@ object ThemeFilesManager {
      */
     private fun importThemeWithEncoding(src: InputStream, encoding: String?): Triple<Boolean, Theme.Custom, Boolean> {
         val charset = encoding?.let { Charset.forName(it) }
-        return ZipInputStream(src, charset).use { zipStream ->
+        return zipInputStream(src, charset).use { zipStream ->
             withTempDir { tempDir ->
                 // Extract all files and keep track of their paths
                 val extractedPaths = mutableMapOf<String, File>()

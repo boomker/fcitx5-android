@@ -871,11 +871,11 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             // In fixed mode, use TOUCHABLE_INSETS_REGION to explicitly define touchable area
             // to avoid any ambiguity about full screen blocking.
             outInsets.touchableInsets = Insets.TOUCHABLE_INSETS_REGION
-              inputView?.getDockedKeyboardRegion(outInsets.touchableRegion)
+            inputView?.getDockedKeyboardRegion(outInsets.touchableRegion)
 
             // Also set contentTopInsets to where the keyboard starts
             if (top > 0) {
-                 outInsets.contentTopInsets = top
+                outInsets.contentTopInsets = top
                  outInsets.visibleTopInsets = top
             } else {
                  // Fallback

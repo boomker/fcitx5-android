@@ -1,5 +1,6 @@
 package org.fxboomk.fcitx5.android.plugin.clipboard_sync.service
 
+import android.annotation.SuppressLint
 import android.content.ComponentName
 import android.content.Context
 import android.content.SharedPreferences
@@ -10,6 +11,7 @@ import androidx.preference.PreferenceManager
 import org.fxboomk.fcitx5.android.plugin.clipboard_sync.MainService
 import org.fxboomk.fcitx5.android.plugin.clipboard_sync.R
 
+@SuppressLint("NewApi")
 class QuickSyncTileService : TileService() {
 
     private val prefs by lazy { PreferenceManager.getDefaultSharedPreferences(this) }

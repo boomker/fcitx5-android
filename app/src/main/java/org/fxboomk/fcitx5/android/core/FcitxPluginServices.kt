@@ -20,12 +20,16 @@ import timber.log.Timber
 object FcitxPluginServices {
 
     const val PLUGIN_SERVICE_ACTION = "${BuildConfig.APPLICATION_ID}.plugin.SERVICE"
+    private val hostManagedPluginServices = setOf("clipboard-filter")
+    private var allowReconnects = true
 
     class PluginServiceConnection(
         private val pluginId: String,
-        private val onDied: () -> Unit
+        private val onDisconnected: () -> Unit
     ) : ServiceConnection {
         private var messenger: Messenger? = null
+        val isConnected: Boolean
+            get() = messenger != null
 
         override fun onServiceConnected(name: ComponentName, service: IBinder) {
             messenger = Messenger(service)
@@ -36,12 +40,20 @@ object FcitxPluginServices {
         override fun onServiceDisconnected(name: ComponentName) {
             messenger = null
             Timber.d("Plugin disconnected: $pluginId")
+            onDisconnected.invoke()
         }
 
         // will never receive another connection
         override fun onBindingDied(name: ComponentName?) {
-            onDied.invoke()
+            messenger = null
             Timber.d("Plugin binding died: $pluginId")
+            onDisconnected.invoke()
+        }
+
+        override fun onNullBinding(name: ComponentName) {
+            messenger = null
+            Timber.d("Plugin null binding: $pluginId")
+            onDisconnected.invoke()
         }
 
         fun sendMessage(message: Message) {
@@ -56,13 +68,43 @@ object FcitxPluginServices {
 
     private val connections = mutableMapOf<String, PluginServiceConnection>()
 
+    private fun shouldReconnect(descriptor: PluginDescriptor): Boolean =
+        allowReconnects && DataManager.getLoadedPlugins().any {
+            it.name == descriptor.name && it.packageName == descriptor.packageName && it.hasService
+        }
+
+    private fun dropConnection(
+        name: String,
+        expected: PluginServiceConnection? = null,
+        unbind: Boolean
+    ) {
+        val current = connections[name] ?: return
+        if (expected != null && current !== expected) return
+        connections.remove(name)
+        if (unbind) {
+            runCatching { appContext.unbindService(current) }
+                .onFailure { Timber.w(it, "Cannot unbind plugin: $name") }
+            Timber.d("Unbound plugin: $name")
+        }
+    }
+
     private fun connectPlugin(descriptor: PluginDescriptor) {
-        val connection = PluginServiceConnection(descriptor.name) {
-            disconnectPlugin(descriptor.name)
+        dropConnection(descriptor.name, unbind = true)
+        lateinit var connection: PluginServiceConnection
+        connection = PluginServiceConnection(descriptor.name) {
+            dropConnection(descriptor.name, expected = connection, unbind = false)
+            if (shouldReconnect(descriptor)) {
+                Timber.d("Reconnecting plugin: ${descriptor.name}")
+                connectPlugin(descriptor)
+            }
         }
         try {
+            val intent = Intent(PLUGIN_SERVICE_ACTION).apply {
+                addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES)
+                setPackage(descriptor.packageName)
+            }
             val result = appContext.bindService(
-                Intent(PLUGIN_SERVICE_ACTION).apply { setPackage(descriptor.packageName) },
+                intent,
                 connection,
                 Context.BIND_AUTO_CREATE
             )
@@ -70,30 +112,31 @@ object FcitxPluginServices {
             connections[descriptor.name] = connection
             Timber.d("Bind to plugin: ${descriptor.name}")
         } catch (e: Exception) {
-            appContext.unbindService(connection)
+            dropConnection(descriptor.name, expected = connection, unbind = true)
             Timber.w("Cannot bind to plugin: ${descriptor.name}")
             Timber.w(e)
         }
     }
 
     fun connectAll() {
+        allowReconnects = true
         DataManager.getLoadedPlugins().forEach {
-            if (it.hasService && !connections.containsKey(it.name)) {
+            if (it.name in hostManagedPluginServices) return@forEach
+            if (it.hasService && connections[it.name]?.isConnected != true) {
                 connectPlugin(it)
             }
         }
     }
 
     private fun disconnectPlugin(name: String) {
-        connections.remove(name)?.also {
-            appContext.unbindService(it)
-            Timber.d("Unbound plugin: $name")
-        }
+        dropConnection(name, unbind = true)
     }
 
     fun disconnectAll() {
+        allowReconnects = false
         connections.forEach { (name, connection) ->
-            appContext.unbindService(connection)
+            runCatching { appContext.unbindService(connection) }
+                .onFailure { Timber.w(it, "Cannot unbind plugin: $name") }
             Timber.d("Unbound plugin: $name")
         }
         connections.clear()

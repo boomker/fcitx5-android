@@ -44,7 +44,7 @@
         android:layout_marginTop="36dp"
         android:layout_marginEnd="8dp"
         android:src="@drawable/ic_baseline_check_circle_24"
-        android:tint="?android:attr/colorAccent"
+        app:tint="?android:attr/colorAccent"
         app:layout_constraintEnd_toStartOf="@id/done_text"
         app:layout_constraintHorizontal_chainStyle="packed"
         app:layout_constraintStart_toStartOf="parent"

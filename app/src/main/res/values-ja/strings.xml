@@ -246,7 +246,7 @@
     <string name="restarting_fcitx">Fcitxを再起動中</string>
     <string name="plugin_needs_reload">プラグインの変更を除去しました。ここをクリックして再読み込みします</string>
     <string name="no_plugins">利用可能なプラグインはありません</string>
-    <string name="removed_n_items">%1$s 個のアイテムを削除しました</string>
+    <string name="removed_n_items">%1$d 個のアイテムを削除しました</string>
     <string name="whether_reset_switch_preference">この設定をデフォルトの設定にリセットしますか？</string>
     <string name="enabled">有効</string>
     <string name="following_system_settings">システム設定に従う</string>

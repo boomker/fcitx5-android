@@ -5,7 +5,10 @@
 
 package org.fxboomk.fcitx5.android.utils
 
+import android.os.Build
 import java.io.File
+import java.io.InputStream
+import java.nio.charset.Charset
 import java.util.zip.ZipInputStream
 
 /**
@@ -28,4 +31,12 @@ fun ZipInputStream.extract(destDir: File): List<File> {
     }
     // Return all files recursively (not just top-level)
     return destDir.walkTopDown().filter { it.isFile }.toList()
+}
+
+fun zipInputStream(src: InputStream, charset: Charset? = null): ZipInputStream {
+    return if (charset != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+        ZipInputStream(src, charset)
+    } else {
+        ZipInputStream(src)
+    }
 }

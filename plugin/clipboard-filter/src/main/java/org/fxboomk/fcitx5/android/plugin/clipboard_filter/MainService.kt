@@ -15,7 +15,7 @@ class MainService : FcitxPluginService() {
     private lateinit var connection: FcitxRemoteConnection
 
     private val transformer = object : IClipboardEntryTransformer.Stub() {
-        override fun getPriority(): Int = 100
+        override fun getPriority(): Int = 200
 
         override fun transform(clipboardText: String): String =
             ClearURLs.transform(clipboardText)

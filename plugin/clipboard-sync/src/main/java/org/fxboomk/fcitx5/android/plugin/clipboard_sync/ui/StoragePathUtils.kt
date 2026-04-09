@@ -3,18 +3,18 @@ package org.fxboomk.fcitx5.android.plugin.clipboard_sync.ui
 import android.net.Uri
 import android.provider.DocumentsContract
 import java.net.URLDecoder
-import java.nio.charset.StandardCharsets
 
 object StoragePathUtils {
     private const val EXTERNAL_STORAGE_AUTHORITY = "com.android.externalstorage.documents"
     private const val PRIMARY_STORAGE_PREFIX = "/storage/emulated/0"
+    private const val UTF_8_NAME = "UTF-8"
 
     fun formatStoragePath(rawPath: String?): String? {
         if (rawPath.isNullOrBlank()) return null
 
         val trimmed = rawPath.trim()
         if (!trimmed.startsWith("content://")) {
-            return normalizeVisiblePath(URLDecoder.decode(trimmed, StandardCharsets.UTF_8))
+            return normalizeVisiblePath(URLDecoder.decode(trimmed, UTF_8_NAME))
         }
 
         val uri = Uri.parse(trimmed)
@@ -22,7 +22,7 @@ object StoragePathUtils {
             runCatching { DocumentsContract.getDocumentId(uri) }.getOrElse {
                 DocumentsContract.getTreeDocumentId(uri)
             }
-        }.getOrNull() ?: return normalizeVisiblePath(URLDecoder.decode(trimmed, StandardCharsets.UTF_8))
+        }.getOrNull() ?: return normalizeVisiblePath(URLDecoder.decode(trimmed, UTF_8_NAME))
 
         val (volume, relativePath) = documentPath.split(':', limit = 2)
             .let { it.firstOrNull().orEmpty() to it.getOrElse(1) { "" } }
@@ -49,7 +49,7 @@ object StoragePathUtils {
                 }
             }
 
-            else -> URLDecoder.decode(trimmed, StandardCharsets.UTF_8)
+            else -> URLDecoder.decode(trimmed, UTF_8_NAME)
         }
 
         return normalizeVisiblePath(normalized)

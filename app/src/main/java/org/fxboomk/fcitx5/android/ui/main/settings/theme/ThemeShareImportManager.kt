@@ -9,6 +9,7 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.net.Uri
+import android.os.Build
 import android.view.View
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
@@ -37,6 +38,7 @@ import org.fxboomk.fcitx5.android.ui.main.settings.behavior.share.QrChunkCollect
 import org.fxboomk.fcitx5.android.utils.importErrorDialog
 import org.fxboomk.fcitx5.android.utils.queryFileName
 import org.fxboomk.fcitx5.android.utils.toast
+import org.fxboomk.fcitx5.android.utils.zipInputStream
 import splitties.resources.styledDrawable
 import java.io.ByteArrayInputStream
 import java.io.File
@@ -423,7 +425,7 @@ class ThemeShareImportManager(
         val encodings = listOf("UTF-8", "GBK", "Big5")
         encodings.forEach { encoding ->
             runCatching {
-                ZipInputStream(ByteArrayInputStream(zipBytes), Charset.forName(encoding)).use { zip ->
+                zipInputStream(ByteArrayInputStream(zipBytes), Charset.forName(encoding)).use { zip ->
                     var entry = zip.nextEntry
                     while (entry != null) {
                         if (!entry.isDirectory && entry.name.endsWith(".json")) {

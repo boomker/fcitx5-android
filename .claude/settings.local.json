@@ -78,7 +78,11 @@
       "Bash(rtk ls:*)",
       "Bash(rtk find:*)",
       "Bash(./gradlew :app:tasks --group=\"build\")",
-      "Bash(rtk read:*)"
+      "Bash(rtk read:*)",
+      "Bash(./gradlew :plugin:clipboard-filter:assembleRelease :plugin:clipboard-sync:assembleRelease)",
+      "Bash(./gradlew :plugin:clipboard-filter:tasks :plugin:clipboard-sync:tasks)",
+      "Bash(./gradlew :plugin:clipboard-filter:installRelease :plugin:clipboard-sync:installRelease)",
+      "Bash(./gradlew :plugin:clipboard-filter:installRelease)"
     ]
   }
 }

@@ -7,6 +7,7 @@ package org.fxboomk.fcitx5.android.core.data
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.pm.Signature
 import android.content.res.AssetManager
 import android.os.Build
 import kotlinx.serialization.encodeToString
@@ -17,6 +18,7 @@ import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.utils.FileUtil
 import org.fxboomk.fcitx5.android.utils.appContext
 import org.fxboomk.fcitx5.android.utils.isJavaIdentifier
+import org.fxboomk.fcitx5.android.utils.packageSigners
 import org.xmlpull.v1.XmlPullParser
 import timber.log.Timber
 import java.io.File
@@ -258,14 +260,9 @@ object DataManager {
     private fun hasSameSignature(packageName: String): Boolean {
         val pm = appContext.packageManager
         return try {
-            val mainSig = pm.getPackageInfo(
-                appContext.packageName,
-                PackageManager.GET_SIGNING_CERTIFICATES
-            )?.signingInfo?.apkContentsSigners ?: return false
-            val callerSig = pm.getPackageInfo(
-                packageName,
-                PackageManager.GET_SIGNING_CERTIFICATES
-            )?.signingInfo?.apkContentsSigners ?: return false
+            val mainSig = pm.packageSigners(appContext.packageName)
+            val callerSig = pm.packageSigners(packageName)
+            if (mainSig.isEmpty() || callerSig.isEmpty()) return false
             mainSig.contentEquals(callerSig)
         } catch (e: Exception) {
             Timber.w(e)
