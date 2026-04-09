@@ -239,6 +239,7 @@
     <string name="capture_heap_dump">捕獲堆積記憶體傾印資料</string>
     <string name="plugins">外掛程式</string>
     <string name="plugins_loaded">已載入</string>
+    <string name="rime_schema_selector_title">方案選單</string>
     <string name="plugins_failed">載入失敗</string>
     <string name="missing_plugin_descriptor">缺少外掛程式描述元</string>
     <string name="invalid_plugin_descriptor">無效的外掛程式描述元</string>

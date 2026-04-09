@@ -12,6 +12,8 @@ import android.widget.FrameLayout
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.ItemTouchHelper
+import androidx.recyclerview.widget.RecyclerView
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
@@ -19,6 +21,7 @@ import kotlinx.coroutines.withContext
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.core.RawConfig
 import org.fxboomk.fcitx5.android.ui.common.BaseDynamicListUi
+import org.fxboomk.fcitx5.android.ui.common.DynamicListTouchCallback
 import org.fxboomk.fcitx5.android.ui.main.MainViewModel
 import org.fxboomk.fcitx5.android.utils.lazyRoute
 import org.fxboomk.fcitx5.android.utils.toast
@@ -34,6 +37,9 @@ class GenericMultiSelectFragment : Fragment() {
     private var ui: BaseDynamicListUi<MultiItem>? = null
     private var dirty = false
     private var isLoading = true
+
+    private val enableOrder: Boolean
+        get() = args.addon == "rime" && args.path == "schema-selector"
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -63,7 +69,7 @@ class GenericMultiSelectFragment : Fragment() {
                 requireContext(),
                 Mode.Custom(),
                 loaded,
-                enableOrder = false,
+                enableOrder = enableOrder,
                 initCheckBox = { item ->
                     visibility = View.VISIBLE
                     // Do not set text, checkbox width is only dp(30), text will overflow
@@ -81,6 +87,22 @@ class GenericMultiSelectFragment : Fragment() {
                 }
             ) {
                 override fun showEntry(x: MultiItem): String = x.label
+            }
+            listUi.addOnItemChangedListener(object : org.fxboomk.fcitx5.android.ui.common.OnItemChangedListener<MultiItem> {
+                override fun onItemSwapped(fromIdx: Int, toIdx: Int, item: MultiItem) {
+                    dirty = true
+                }
+            })
+            if (enableOrder) {
+                listUi.addTouchCallback(object : DynamicListTouchCallback<MultiItem>(
+                    requireContext(),
+                    listUi
+                ) {
+                    override fun getSwipeDirs(
+                        recyclerView: RecyclerView,
+                        viewHolder: RecyclerView.ViewHolder
+                    ): Int = 0
+                })
             }
             uiRef = listUi
             ui = listUi

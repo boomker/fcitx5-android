@@ -20,6 +20,19 @@ import kotlin.system.exitProcess
 
 object AppUtil {
 
+    fun normalizeAddonMultiSelectTitle(
+        context: Context,
+        title: String,
+        addon: String,
+        path: String
+    ): String {
+        return if (addon == "rime" && path == "schema-selector") {
+            context.getString(R.string.rime_schema_selector_title)
+        } else {
+            title
+        }
+    }
+
     fun appLabel(context: Context): String = runCatching {
         context.applicationInfo.loadLabel(context.packageManager).toString()
     }.getOrDefault(
@@ -66,7 +79,7 @@ object AppUtil {
     ) = launchMainToDest(
         context,
         SettingsRoute.MultiSelect(
-            title = title,
+            title = normalizeAddonMultiSelectTitle(context, title, addon, path),
             addon = addon,
             path = path,
             option = option,

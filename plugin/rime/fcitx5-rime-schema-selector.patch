@@ -115,7 +115,7 @@ index 7d0b73a..3e98e78 100644
  rime_api_t *EnsureRimeApi() {
      auto *api = rime_get_api();
      if (!api) {
-@@ -319,14 +370,156 @@ void RimeEngine::reloadConfig() {
+@@ -319,14 +370,164 @@ void RimeEngine::reloadConfig() {
  }
  
  void RimeEngine::setSubConfig(const std::string &path,
@@ -246,21 +246,29 @@ index 7d0b73a..3e98e78 100644
 +    if (leversApi->get_available_schema_list(settings, &available)) {
 +        std::unordered_set<std::string> selectedSet(selectedIds.begin(),
 +                                                    selectedIds.end());
++        std::unordered_map<std::string, std::string> availableNames;
++        std::vector<std::pair<std::string, std::string>> unselectedRows;
 +        rows.reserve(available.size);
++        availableNames.reserve(available.size);
++        unselectedRows.reserve(available.size);
 +        for (size_t i = 0; i < available.size; i++) {
 +            const auto *id = available.list[i].schema_id;
 +            const auto *name = available.list[i].name;
-+            if (id && name && selectedSet.count(id)) {
-+                rows.emplace_back(id, name);
++            if (!id || !name) {
++                continue;
++            }
++            availableNames.emplace(id, name);
++            if (!selectedSet.count(id)) {
++                unselectedRows.emplace_back(id, name);
 +            }
 +        }
-+        for (size_t i = 0; i < available.size; i++) {
-+            const auto *id = available.list[i].schema_id;
-+            const auto *name = available.list[i].name;
-+            if (id && name && !selectedSet.count(id)) {
-+                rows.emplace_back(id, name);
++        for (const auto &selectedId : selectedIds) {
++            if (auto it = availableNames.find(selectedId);
++                it != availableNames.end()) {
++                rows.emplace_back(it->first, it->second);
 +            }
 +        }
++        rows.insert(rows.end(), unselectedRows.begin(), unselectedRows.end());
 +        leversApi->schema_list_destroy(&available);
 +    }
 +    leversApi->custom_settings_destroy(customSettings);
@@ -273,3 +281,27 @@ index 7d0b73a..3e98e78 100644
  void RimeEngine::updateConfig() {
      RIME_DEBUG() << "Rime UpdateConfig";
      if (constructed_ && factory_.registered()) {
+diff --git a/po/zh_CN.po b/po/zh_CN.po
+index 5faad51..1b06e1d 100644
+--- a/po/zh_CN.po
++++ b/po/zh_CN.po
+@@ -131,3 +131,7 @@ msgstr "同步"
+ #: src/rimeengine.h:100
+ msgid "User data dir"
+ msgstr "用户数据目录"
++
++#: src/rimeengine.h:112
++msgid "Schema Selector"
++msgstr "方案选单"
+diff --git a/po/zh_TW.po b/po/zh_TW.po
+index 32f492f..2e8af58 100644
+--- a/po/zh_TW.po
++++ b/po/zh_TW.po
+@@ -134,3 +134,7 @@ msgstr "同步"
+ #: src/rimeengine.h:100
+ msgid "User data dir"
+ msgstr "使用者資料夾"
++
++#: src/rimeengine.h:112
++msgid "Schema Selector"
++msgstr "方案選單"

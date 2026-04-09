@@ -328,6 +328,7 @@
     <string name="toggle_plugin_loading">Toggle Loading</string>
     <string name="plugin_blocked">Blocked</string>
     <string name="plugin_blocked_summary">Manually blocked from loading</string>
+    <string name="rime_schema_selector_title">Schema Selector</string>
     <string name="plugins_loaded">Loaded</string>
     <string name="plugins_failed">Load failed</string>
     <string name="missing_plugin_descriptor">Missing plugin descriptor</string>

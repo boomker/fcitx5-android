@@ -75,7 +75,10 @@
       "Bash(/usr/local/bin/adb install:*)",
       "Bash(locate adb:*)",
       "Bash(rtk git:*)",
-      "Bash(rtk ls:*)"
+      "Bash(rtk ls:*)",
+      "Bash(rtk find:*)",
+      "Bash(./gradlew :app:tasks --group=\"build\")",
+      "Bash(rtk read:*)"
     ]
   }
 }

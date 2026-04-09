@@ -25,6 +25,7 @@ import org.fxboomk.fcitx5.android.core.Key
 import org.fxboomk.fcitx5.android.core.RawConfig
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.ui.main.modified.MySwitchPreference
+import org.fxboomk.fcitx5.android.utils.AppUtil
 import org.fxboomk.fcitx5.android.utils.LongClickPreference
 import org.fxboomk.fcitx5.android.utils.buildDocumentsProviderIntent
 import org.fxboomk.fcitx5.android.utils.buildPrimaryStorageIntent
@@ -221,7 +222,11 @@ object PreferenceScreenFactory {
                 ConfigExternal.ETy.MultiSelect -> Preference(context).apply {
                     setOnPreferenceClickListener {
                         val uri = descriptor.uri ?: return@setOnPreferenceClickListener false
-                        val parsed = parseMultiSelectRoute(uri, descriptor.description ?: descriptor.name)
+                        val parsed = parseMultiSelectRoute(
+                            context,
+                            uri,
+                            descriptor.description ?: descriptor.name
+                        )
                             ?: return@setOnPreferenceClickListener false
                         navigate(parsed)
                     }
@@ -307,6 +312,7 @@ object PreferenceScreenFactory {
     }
 
     private fun parseMultiSelectRoute(
+        context: Context,
         uriText: String,
         title: String
     ): SettingsRoute.MultiSelect? {
@@ -325,7 +331,7 @@ object PreferenceScreenFactory {
         }
         val min = uri.getQueryParameter("min")?.toIntOrNull() ?: 0
         return SettingsRoute.MultiSelect(
-            title = title,
+            title = AppUtil.normalizeAddonMultiSelectTitle(context, title, addon, path),
             addon = addon,
             path = path,
             option = option,
