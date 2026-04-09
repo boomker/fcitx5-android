@@ -64,7 +64,18 @@
       "Bash(./gradlew :plugin:rime:assembleRelease :plugin:clipboard-sync:assembleRelease)",
       "Bash(./gradlew :app:assembleMainlineRelease -PincludeMainlineFlavor=true :app:assembleFxDebug)",
       "Bash(./gradlew :app:assembleFxDebug)",
-      "Bash(adb:*)"
+      "Bash(adb:*)",
+      "Bash(./gradlew tasks:*)",
+      "Bash(./gradlew -q variant-aware-should-print)",
+      "Bash(./gradlew projects:*)",
+      "Bash(./gradlew app:assembleRelease --dry-run)",
+      "Bash(./gradlew app:assembleMainlineRelease --dry-run)",
+      "Bash(./gradlew app:assembleMainlineRelease -PincludeMainlineFlavor=true)",
+      "Bash(/usr/local/bin/adb shell:*)",
+      "Bash(/usr/local/bin/adb install:*)",
+      "Bash(locate adb:*)",
+      "Bash(rtk git:*)",
+      "Bash(rtk ls:*)"
     ]
   }
 }

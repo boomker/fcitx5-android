@@ -16,6 +16,7 @@ import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.RenderEffect
 import android.graphics.Shader
+import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
 import android.os.Build
 import android.view.View
@@ -26,22 +27,34 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
+import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.data.prefs.ManagedPreference
 import org.fxboomk.fcitx5.android.data.theme.Theme
 import org.fxboomk.fcitx5.android.data.theme.ThemeManager
 import org.fxboomk.fcitx5.android.data.theme.ThemePrefs.NavbarBackground
+import org.fxboomk.fcitx5.android.input.bar.ui.ToolButton
+import org.fxboomk.fcitx5.android.input.bar.ui.idle.ButtonsBarUi
+import org.fxboomk.fcitx5.android.input.config.ButtonsLayoutConfig
+import org.fxboomk.fcitx5.android.input.config.ConfigProviders
+import org.fxboomk.fcitx5.android.input.config.ConfigurableButton
 import org.fxboomk.fcitx5.android.input.keyboard.KeyView
 import org.fxboomk.fcitx5.android.input.keyboard.TextKeyboard
 import org.fxboomk.fcitx5.android.ui.main.settings.preview.PreviewInputMethodEntry
 import org.fxboomk.fcitx5.android.utils.BitmapBlurUtil
 import org.fxboomk.fcitx5.android.utils.DarkenColorFilter
+import org.fxboomk.fcitx5.android.utils.alpha
+import org.fxboomk.fcitx5.android.utils.borderDrawable
 import org.fxboomk.fcitx5.android.utils.navbarFrameHeight
 import splitties.dimensions.dp
 import splitties.views.backgroundColor
+import splitties.views.dsl.constraintlayout.above
+import splitties.views.dsl.constraintlayout.after
+import splitties.views.dsl.constraintlayout.before
 import splitties.views.dsl.constraintlayout.below
 import splitties.views.dsl.constraintlayout.bottomOfParent
 import splitties.views.dsl.constraintlayout.centerHorizontally
+import splitties.views.dsl.constraintlayout.centerVertically
 import splitties.views.dsl.constraintlayout.constraintLayout
 import splitties.views.dsl.constraintlayout.endOfParent
 import splitties.views.dsl.constraintlayout.lParams
@@ -91,9 +104,10 @@ class KeyboardPreviewUi(override val ctx: Context, val theme: Theme) : Ui {
         }
 
     private val navbarBackground = ThemeManager.prefs.navbarBackground
+    private val navbarBorder = ThemeManager.prefs.navbarBorder
     private val keyBorder by ThemeManager.prefs.keyBorder
 
-    private val navbarBkgChangeListener = ManagedPreference.OnChangeListener<Any> { _, _ ->
+    private val previewChromeChangeListener = ManagedPreference.OnChangeListener<Any> { _, _ ->
         recalculateSize()
     }
 
@@ -105,7 +119,8 @@ class KeyboardPreviewUi(override val ctx: Context, val theme: Theme) : Ui {
     }
 
     private val barHeight = ctx.dp(40)
-    private val fakeKawaiiBar = view(::View)
+    private var fakeKawaiiBar = buildToolbarPreview(theme)
+    private val fakeNavbarView = view(::View)
 
     private var keyboardWidth = -1
     private var keyboardHeight = -1
@@ -354,6 +369,11 @@ class KeyboardPreviewUi(override val ctx: Context, val theme: Theme) : Ui {
             topOfParent()
             centerHorizontally()
         })
+        add(fakeNavbarView, lParams(matchConstraints, 0) {
+            startOfParent()
+            endOfParent()
+            bottomOfParent()
+        })
     }
 
     override val root = object : FrameLayout(ctx) {
@@ -365,7 +385,8 @@ class KeyboardPreviewUi(override val ctx: Context, val theme: Theme) : Ui {
             super.onAttachedToWindow()
             recalculateSize()
             onSizeMeasured?.invoke(intrinsicWidth, intrinsicHeight)
-            navbarBackground.registerOnChangeListener(navbarBkgChangeListener)
+            navbarBackground.registerOnChangeListener(previewChromeChangeListener)
+            navbarBorder.registerOnChangeListener(previewChromeChangeListener)
         }
 
         override fun onConfigurationChanged(newConfig: Configuration?) {
@@ -373,12 +394,122 @@ class KeyboardPreviewUi(override val ctx: Context, val theme: Theme) : Ui {
         }
 
         override fun onDetachedFromWindow() {
-            navbarBackground.unregisterOnChangeListener(navbarBkgChangeListener)
+            navbarBackground.unregisterOnChangeListener(previewChromeChangeListener)
+            navbarBorder.unregisterOnChangeListener(previewChromeChangeListener)
             super.onDetachedFromWindow()
         }
     }
 
     var onSizeMeasured: ((Int, Int) -> Unit)? = null
+
+    private fun loadToolbarButtonsConfig(): List<ConfigurableButton> {
+        val config = ConfigProviders.readButtonsLayoutConfig<ButtonsLayoutConfig>()?.value
+            ?: ButtonsLayoutConfig.default()
+        return config.kawaiiBarButtons.filter { it.id != "more" }
+    }
+
+    private fun buildToolbarPreview(theme: Theme): ConstraintLayout {
+        val menuButton = ToolButton(ctx, R.drawable.ic_baseline_apps_24, theme)
+        val hideButton = ToolButton(ctx, R.drawable.ic_keyboard_hide_24, theme)
+        val buttonsUi = ButtonsBarUi(ctx, theme, loadToolbarButtonsConfig())
+
+        return ctx.constraintLayout {
+            id = View.generateViewId()
+            backgroundColor = if (keyBorder) Color.TRANSPARENT else theme.barColor
+            val buttonSize = ctx.dp(40)
+            add(menuButton, lParams(buttonSize, buttonSize) {
+                startOfParent()
+                centerVertically()
+            })
+            add(hideButton, lParams(buttonSize, buttonSize) {
+                endOfParent()
+                centerVertically()
+            })
+            add(buttonsUi.root, lParams(matchConstraints, matchConstraints) {
+                after(menuButton)
+                before(hideButton)
+                centerVertically()
+            })
+        }
+    }
+
+    private fun rebuildToolbarPreview(theme: Theme) {
+        if (!::fakeKeyboardWindow.isInitialized) {
+            fakeKawaiiBar = buildToolbarPreview(theme)
+            return
+        }
+        val index = fakeInputView.indexOfChild(fakeKawaiiBar)
+        fakeInputView.removeView(fakeKawaiiBar)
+        fakeKawaiiBar = buildToolbarPreview(theme)
+        fakeInputView.addView(fakeKawaiiBar, index, ConstraintLayout.LayoutParams(0, barHeight).apply {
+            topToTop = ConstraintLayout.LayoutParams.PARENT_ID
+            startToStart = ConstraintLayout.LayoutParams.PARENT_ID
+            endToEnd = ConstraintLayout.LayoutParams.PARENT_ID
+        })
+        fakeKeyboardWindow.updateLayoutParams<ConstraintLayout.LayoutParams> {
+            topToBottom = fakeKawaiiBar.id
+        }
+    }
+
+    private fun resolveNavbarPreviewHeight(): Int {
+        if (navbarBackground.getValue() == NavbarBackground.None) return 0
+        val insets = ViewCompat.getRootWindowInsets(root)
+        val insetBottom = insets?.let {
+            maxOf(
+                it.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom,
+                it.getInsets(WindowInsetsCompat.Type.mandatorySystemGestures()).bottom,
+                it.getInsets(WindowInsetsCompat.Type.systemGestures()).bottom
+            )
+        } ?: 0
+        return maxOf(insetBottom, ctx.navbarFrameHeight())
+    }
+
+    private fun resolveBarBackgroundColor(theme: Theme): Int {
+        return if (keyBorder) Color.TRANSPARENT else theme.barColor
+    }
+
+    private fun resolveBarBorderColor(theme: Theme, backgroundColor: Int): Int {
+        val keyShadow = theme.keyShadowColor
+        if (Color.alpha(keyShadow) >= 0x26 && (keyShadow and 0x00ffffff) != (backgroundColor and 0x00ffffff)) {
+            return keyShadow
+        }
+
+        val divider = theme.dividerColor
+        if (Color.alpha(divider) >= 0x26 && (divider and 0x00ffffff) != (backgroundColor and 0x00ffffff)) {
+            return divider
+        }
+
+        return if (theme.isDark) Color.WHITE.alpha(0.30f) else Color.BLACK.alpha(0.22f)
+    }
+
+    private fun applyPreviewChrome(theme: Theme) {
+        val barBackgroundColor = resolveBarBackgroundColor(theme)
+        fakeKawaiiBar.background = if (navbarBorder.getValue()) {
+            val cornerRadius = ctx.dp(kotlin.math.max(6f, ThemeManager.prefs.keyRadius.getValue().toFloat())).toFloat()
+            borderDrawable(
+                width = ctx.dp(1),
+                stroke = resolveBarBorderColor(theme, barBackgroundColor),
+                background = barBackgroundColor,
+                cornerRadius = cornerRadius
+            )
+        } else {
+            ColorDrawable(barBackgroundColor)
+        }
+        val navbarMode = navbarBackground.getValue()
+        val navbarHeight = resolveNavbarPreviewHeight()
+        fakeNavbarView.visibility = if (navbarMode == NavbarBackground.None || navbarHeight == 0) View.GONE else View.VISIBLE
+        fakeNavbarView.backgroundColor = when (navbarMode) {
+            NavbarBackground.None, NavbarBackground.Full -> Color.TRANSPARENT
+            NavbarBackground.ColorOnly -> if (!keyBorder && theme is Theme.Builtin) theme.keyboardColor else theme.backgroundColor
+        }
+        fakeNavbarView.updateLayoutParams<ConstraintLayout.LayoutParams> {
+            height = navbarHeight
+        }
+        fakeInputView.requestLayout()
+        fakeInputView.invalidate()
+        root.requestLayout()
+        root.invalidate()
+    }
 
     private fun keyboardWindowAspectRatio(): Pair<Int, Int> {
         val resources = ctx.resources
@@ -406,6 +537,7 @@ class KeyboardPreviewUi(override val ctx: Context, val theme: Theme) : Ui {
         val scale = sizeScale.coerceIn(0.35f, 1f)
         keyboardWidth = (baseW * scale).toInt().coerceAtLeast(1)
         keyboardHeight = (baseH * scale).toInt().coerceAtLeast(1)
+        val navbarHeight = resolveNavbarPreviewHeight()
         fakeKeyboardWindow.updateLayoutParams<ConstraintLayout.LayoutParams> {
             height = keyboardHeight
             horizontalMargin = keyboardSidePaddingPx
@@ -415,26 +547,20 @@ class KeyboardPreviewUi(override val ctx: Context, val theme: Theme) : Ui {
         intrinsicHeight = barHeight + keyboardHeight
         // extra bottom padding
         intrinsicHeight += keyboardBottomPaddingPx
-        // windowInsets navbar padding
-        if (navbarBackground.getValue() == NavbarBackground.Full) {
-            ViewCompat.getRootWindowInsets(root)?.also {
-                // IME window has different navbar height when system navigation in "gesture navigation" mode
-                // thus the inset from Activity root window is unreliable
-                if (it.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom > 0 ||
-                    // in case navigation hint was hidden ...
-                    it.getInsets(WindowInsetsCompat.Type.mandatorySystemGestures()).bottom > 0
-                ) {
-                    intrinsicHeight += ctx.navbarFrameHeight()
-                }
-            }
+        if (navbarBackground.getValue() != NavbarBackground.None) {
+            intrinsicHeight += navbarHeight
         }
         // fakeInputView size should match the calculated intrinsic size
         fakeInputView.updateLayoutParams<FrameLayout.LayoutParams> {
             width = intrinsicWidth
             height = intrinsicHeight
         }
+        fakeNavbarView.updateLayoutParams<ConstraintLayout.LayoutParams> {
+            height = navbarHeight
+        }
         blurMaskView.markKeyRegionsDirty()
         blurMaskView.invalidate()
+        applyPreviewChrome(currentTheme ?: theme)
     }
 
     fun setSizeScale(scale: Float) {
@@ -474,15 +600,14 @@ class KeyboardPreviewUi(override val ctx: Context, val theme: Theme) : Ui {
             fakeKeyboardWindow = TextKeyboard(ctx, theme)
             currentTheme = theme
 
-            // Match KawaiiBar behavior: use barColor for Builtin themes without border
-            fakeKawaiiBar.backgroundColor = if (keyBorder) Color.TRANSPARENT else theme.barColor
-
             fakeInputView.apply {
                 add(fakeKeyboardWindow, lParams(matchConstraints, keyboardHeight) {
                     below(fakeKawaiiBar)
+                    above(fakeNavbarView)
                     centerHorizontally(keyboardSidePaddingPx)
                 })
             }
+            applyPreviewChrome(theme)
 
             fakeKeyboardWindow.post {
                 fakeKeyboardWindow.onAttach()
@@ -510,8 +635,11 @@ class KeyboardPreviewUi(override val ctx: Context, val theme: Theme) : Ui {
                 isUpdatingTheme = false
             }
         } else {
-            // Update KawaiiBar background color
-            fakeKawaiiBar.backgroundColor = if (keyBorder) Color.TRANSPARENT else theme.barColor
+            if (!sameTheme || forceRefresh) {
+                rebuildToolbarPreview(theme)
+            }
+            currentTheme = theme
+            applyPreviewChrome(theme)
 
             fakeKeyboardWindow.post {
                 try {
@@ -522,7 +650,6 @@ class KeyboardPreviewUi(override val ctx: Context, val theme: Theme) : Ui {
                         fakeKeyboardWindow.refreshStyle()
                     } else {
                         // Theme changed: update colors without rebuilding
-                        currentTheme = theme
                         fakeKeyboardWindow.updateTheme(theme)
                     }
                     blurMaskView.markKeyRegionsDirty()

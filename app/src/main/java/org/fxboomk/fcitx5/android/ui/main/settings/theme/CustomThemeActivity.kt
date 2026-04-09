@@ -98,6 +98,7 @@ import splitties.views.horizontalPadding
 import splitties.views.textAppearance
 import splitties.views.topPadding
 import java.io.File
+import kotlin.math.ceil
 
 class CustomThemeActivity : AppCompatActivity() {
     sealed interface BackgroundResult : Parcelable {
@@ -132,6 +133,7 @@ class CustomThemeActivity : AppCompatActivity() {
     }
 
     private lateinit var previewUi: KeyboardPreviewUi
+    private lateinit var previewWrapper: FrameLayout
     private var previewScale = 1f
     private val colorPreviewDrawables = mutableMapOf<String, GradientDrawable>()
     private val colorEditItems = listOf(
@@ -292,20 +294,36 @@ class CustomThemeActivity : AppCompatActivity() {
 
     private fun applyThemePreview(themeForPreview: Theme.Custom, background: BitmapDrawable? = currentBackgroundDrawable(themeForPreview)) {
         previewUi.setTheme(themeForPreview, background)
+        previewUi.root.post { updatePreviewScale() }
         updateSupplementColorPreview(themeForPreview)
     }
 
+    private fun applyPreviewWrapperScale(scale: Float) {
+        if (!::previewWrapper.isInitialized) return
+        previewUi.root.apply {
+            pivotX = (previewUi.intrinsicWidth.takeIf { it > 0 } ?: width).toFloat() / 2f
+            pivotY = 0f
+            scaleX = scale
+            scaleY = scale
+        }
+        previewWrapper.updateLayoutParams<ViewGroup.LayoutParams> {
+            height = (ceil(previewUi.intrinsicHeight * scale.toDouble()).toInt() + dp(12)).coerceAtLeast(1)
+        }
+    }
+
     private fun updatePreviewScale() {
-        if (!::previewUi.isInitialized) return
+        if (!::previewUi.isInitialized || !::previewWrapper.isInitialized) return
         val contentHeight = ui.height - toolbar.height
-        val currentHeight = previewUi.intrinsicHeight
-        if (contentHeight <= 0 || currentHeight <= 0 || previewScale <= 0f) return
-        val baseHeight = (currentHeight / previewScale).toInt().coerceAtLeast(1)
-        val maxPreviewHeight = (contentHeight * 0.36f).toInt().coerceAtLeast(dp(140))
+        val baseHeight = previewUi.intrinsicHeight
+        if (contentHeight <= 0 || baseHeight <= 0) return
+        val maxPreviewHeight = (contentHeight * 0.42f).toInt().coerceAtLeast(dp(156))
         val newScale = (maxPreviewHeight.toFloat() / baseHeight).coerceIn(0.35f, 1f)
-        if (kotlin.math.abs(newScale - previewScale) < 0.01f) return
+        if (kotlin.math.abs(newScale - previewScale) < 0.01f) {
+            applyPreviewWrapperScale(previewScale)
+            return
+        }
         previewScale = newScale
-        previewUi.setSizeScale(previewScale)
+        applyPreviewWrapperScale(previewScale)
     }
 
     private var layoutChangeJob: android.view.Choreographer.FrameCallback? = null
@@ -825,13 +843,16 @@ class CustomThemeActivity : AppCompatActivity() {
                 centerHorizontally()
             })
             // Wrapper to center the preview UI horizontally
-            val previewWrapper = FrameLayout(this@CustomThemeActivity)
+            previewWrapper = FrameLayout(this@CustomThemeActivity).apply {
+                clipChildren = false
+                clipToPadding = false
+            }
             add(previewWrapper, lParams(matchConstraints, wrapContent) {
                 below(toolbar)
                 centerHorizontally()
             })
             previewWrapper.addView(previewUi.root, FrameLayout.LayoutParams(wrapContent, wrapContent).apply {
-                gravity = android.view.Gravity.CENTER
+                gravity = android.view.Gravity.TOP or android.view.Gravity.CENTER_HORIZONTAL
             })
             add(supplementPreview, lParams(matchConstraints, wrapContent) {
                 below(previewWrapper)
@@ -1128,9 +1149,11 @@ class CustomThemeActivity : AppCompatActivity() {
         if (newCreated) {
             cropLabel.visibility = View.GONE
             previewUi.onSizeMeasured = { w, h ->
+                updatePreviewScale()
                 backgroundStates.launchCrop(w, h, pickNewSource = true)
             }
         } else {
+            previewUi.onSizeMeasured = { _, _ -> updatePreviewScale() }
             whenHasBackground {
                 updateState()
             }

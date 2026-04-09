@@ -725,13 +725,12 @@ class AltTextKeyView(
         val mainHeight = mainText.paint.run { fontMetrics.bottom - fontMetrics.top }
         val altHeight = altText.paint.run { fontMetrics.bottom - fontMetrics.top }
         val compactMinHeight = max(mainHeight, altHeight + dp(4))
-        val stackedMinHeight = mainHeight + altHeight + dp(2)
+        val bottomMinHeight = altHeight + dp(4)
 
-        // 最小修复：确保标点至少可见（保持 compactMinHeight 回退逻辑）
+        // 尊重用户显式选择的「底部」布局，仅在高度极端不足时才隐藏。
         return when (preferred) {
             AltTextLayoutMode.Bottom -> when {
-                contentHeight >= stackedMinHeight -> AltTextLayoutMode.Bottom
-                contentHeight >= compactMinHeight -> AltTextLayoutMode.TopRight
+                contentHeight >= bottomMinHeight -> AltTextLayoutMode.Bottom
                 else -> AltTextLayoutMode.Hidden
             }
             AltTextLayoutMode.TopRight -> when {

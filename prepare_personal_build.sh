@@ -18,6 +18,7 @@ PREBUILT_DIR="${PROJECT_ROOT}/lib/fcitx5/src/main/cpp/prebuilt"
 # Patch files
 RIME_SCHEMA_NAME_PATCH="${PROJECT_ROOT}/plugin/rime/fcitx5-rime-full-schema-name.patch"
 RIME_PREEDIT_LABEL_PATCH="${PROJECT_ROOT}/plugin/rime/fcitx5-rime-preedit-cursor-label.patch"
+RIME_SCHEMA_SELECTOR_PATCH="${PROJECT_ROOT}/plugin/rime/fcitx5-rime-schema-selector.patch"
 FCITX5_ALT_TRIGGER_PATCH="${RIME_DIR}/fcitx5-alt-trigger-v4point1.patch"
 
 # update fcitx5-rime
@@ -38,7 +39,11 @@ if git -C "${RIME_DIR}" apply --ignore-whitespace "${RIME_PREEDIT_LABEL_PATCH}";
 else
     echo "✗ preedit cursor label patch failed or already applied"
 fi
-# sed -i 's|/fcitx/|/fxliang/|g' plugin/rime/licenses/libraries/fcitx5-rime.json
+if git -C "${RIME_DIR}" apply --ignore-whitespace "${RIME_SCHEMA_SELECTOR_PATCH}"; then
+    echo "✓ schema selector patch applied successfully"
+else
+    echo "✗ schema selector patch failed or already applied"
+fi
 
 # apply fcitx5 patch from fcitx5-rime
 echo "applying fcitx5 patch"

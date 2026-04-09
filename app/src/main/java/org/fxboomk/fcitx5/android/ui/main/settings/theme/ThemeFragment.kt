@@ -57,8 +57,8 @@ class ThemeFragment : Fragment() {
         previewUi = KeyboardPreviewUi(this, ThemeManager.activeTheme)
         ThemeManager.addOnChangedListener(onThemeChangeListener)
         val preview = previewUi.root.apply {
-            scaleX = 0.5f
-            scaleY = 0.5f
+            scaleX = 0.64f
+            scaleY = 0.6f
             outlineProvider = ViewOutlineProvider.BOUNDS
             elevation = dp(4f)
             tag = "theme_preview_capture"

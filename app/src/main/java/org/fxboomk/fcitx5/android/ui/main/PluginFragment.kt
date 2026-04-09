@@ -24,16 +24,33 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.core.data.DataManager
 import org.fxboomk.fcitx5.android.core.data.FileSource
+import org.fxboomk.fcitx5.android.core.data.PluginDescriptor
 import org.fxboomk.fcitx5.android.core.data.PluginLoadFailed
+import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.daemon.FcitxDaemon
 import org.fxboomk.fcitx5.android.ui.common.PaddingPreferenceFragment
 import org.fxboomk.fcitx5.android.utils.LongClickPreference
 import org.fxboomk.fcitx5.android.utils.addCategory
 import org.fxboomk.fcitx5.android.utils.addPreference
+import org.fxboomk.fcitx5.android.utils.toast
+import java.util.ArrayDeque
 
 class PluginFragment : PaddingPreferenceFragment() {
 
+    private data class UninstallTarget(
+        val name: String,
+        val packageName: String
+    )
+
+    private data class ManageablePlugin(
+        val descriptor: PluginDescriptor,
+        val isLoaded: Boolean,
+        val isBlocked: Boolean
+    )
+
     private var firstRun = true
+    private val pendingUninstallPackages = ArrayDeque<UninstallTarget>()
+    private var continueBatchUninstallOnResume = false
 
     private lateinit var synced: DataManager.PluginSet
     private lateinit var detected: DataManager.PluginSet
@@ -87,6 +104,11 @@ class PluginFragment : PaddingPreferenceFragment() {
             addAction(Intent.ACTION_PACKAGE_REPLACED)
             addDataScheme("package")
         })
+        if (continueBatchUninstallOnResume) {
+            continueBatchUninstallOnResume = false
+            launchNextPendingUninstall()
+            return
+        }
         /**
          * [onResume] got called after [onCreatePreferences] when the fragment is created and
          * shown for the first time
@@ -106,6 +128,7 @@ class PluginFragment : PaddingPreferenceFragment() {
 
     private fun createPreferenceScreen(): PreferenceScreen =
         preferenceManager.createPreferenceScreen(requireContext()).apply {
+            val hasManageablePlugins = DataManager.getManageablePlugins().isNotEmpty()
             if (synced != detected) {
                 addPreference(R.string.plugin_needs_reload, icon = R.drawable.ic_baseline_info_24) {
                     DataManager.addOnNextSyncedCallback {
@@ -115,6 +138,11 @@ class PluginFragment : PaddingPreferenceFragment() {
                     }
                     // DataManager.sync and and restart fcitx
                     FcitxDaemon.restartFcitx()
+                }
+            }
+            if (hasManageablePlugins) {
+                addPreference(R.string.manage_plugins, icon = R.drawable.ic_baseline_delete_24) {
+                    showManagePluginsDialog()
                 }
             }
             val (loaded, failed) = synced
@@ -132,10 +160,6 @@ class PluginFragment : PaddingPreferenceFragment() {
             if (loaded.isNotEmpty()) {
                 addCategory(R.string.plugins_loaded) {
                     isIconSpaceReserved = false
-                    addPreference(R.string.manage_plugins, icon = R.drawable.ic_baseline_delete_24) {
-                        // Open system app info page for the host app where user can manage plugins
-                        startActivity(Intent(Settings.ACTION_APPLICATION_SETTINGS))
-                    }
                     loaded.forEach {
                         val pkgName = it.packageName
                         addPreference(LongClickPreference(context).apply {
@@ -147,7 +171,7 @@ class PluginFragment : PaddingPreferenceFragment() {
                                 true
                             }
                             setOnPreferenceLongClickListener {
-                                uninstallPlugin(pkgName)
+                                uninstallPlugin(it.name, pkgName)
                             }
                         })
                     }
@@ -177,39 +201,157 @@ class PluginFragment : PaddingPreferenceFragment() {
                             is PluginLoadFailed.PluginAPIIncompatible -> {
                                 getString(R.string.incompatible_api, reason.api)
                             }
+                            is PluginLoadFailed.ManuallyBlocked -> {
+                                getString(R.string.plugin_blocked_summary)
+                            }
                             PluginLoadFailed.PluginDescriptorParseError -> {
                                 getString(R.string.invalid_plugin_descriptor)
                             }
                         }
-                        addPreference(packageName, summary) {
-                            startPluginAboutActivity(packageName)
+                        val title = when (reason) {
+                            is PluginLoadFailed.DataDescriptorParseError -> reason.plugin.name
+                            is PluginLoadFailed.MissingDataDescriptor -> reason.plugin.name
+                            is PluginLoadFailed.PathConflict -> reason.plugin.name
+                            is PluginLoadFailed.ManuallyBlocked -> reason.plugin.name
+                            else -> packageName
+                        }
+                        val targetPackage = when (reason) {
+                            is PluginLoadFailed.DataDescriptorParseError -> reason.plugin.packageName
+                            is PluginLoadFailed.MissingDataDescriptor -> reason.plugin.packageName
+                            is PluginLoadFailed.PathConflict -> reason.plugin.packageName
+                            is PluginLoadFailed.ManuallyBlocked -> reason.plugin.packageName
+                            else -> packageName
+                        }
+                        addPreference(title, summary) {
+                            startPluginAboutActivity(targetPackage)
                         }
                     }
                 }
             }
         }
 
-    private fun uninstallPlugin(packageName: String) {
-        AlertDialog.Builder(requireContext())
-            .setTitle(R.string.uninstall_plugin)
-            .setMessage(getString(R.string.uninstall_plugin_confirm, packageName))
-            .setPositiveButton(android.R.string.ok) { _: DialogInterface, _: Int ->
-                try {
-                    val intent = Intent(Intent.ACTION_DELETE).apply {
-                        data = Uri.parse("package:$packageName")
-                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                    }
-                    requireContext().startActivity(intent)
-                } catch (e: Exception) {
-                    // fallback: open system app settings
-                    requireContext().startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                        data = Uri.parse("package:$packageName")
-                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                    })
+    private fun showManagePluginsDialog() {
+        val blockedPackages = AppPrefs.getInstance().advanced.blockedPluginPackages.getValue()
+        val loadedPackages = synced.loaded.mapTo(mutableSetOf()) { it.packageName }
+        val manageablePlugins = DataManager.getManageablePlugins()
+            .sortedBy { it.name }
+            .map {
+                ManageablePlugin(
+                    descriptor = it,
+                    isLoaded = it.packageName in loadedPackages,
+                    isBlocked = it.packageName in blockedPackages
+                )
+            }
+        if (manageablePlugins.isEmpty()) {
+            requireContext().toast(R.string.no_plugins)
+            return
+        }
+        val checked = BooleanArray(manageablePlugins.size)
+        val items = manageablePlugins.map { plugin ->
+            buildString {
+                append(plugin.descriptor.name)
+                if (plugin.descriptor.versionName.isNotBlank()) {
+                    append(" · ")
+                    append(plugin.descriptor.versionName)
                 }
+                append('\n')
+                append(
+                    when {
+                        plugin.isBlocked -> getString(R.string.plugin_blocked)
+                        plugin.isLoaded -> getString(R.string.plugins_loaded)
+                        else -> getString(R.string.plugins_failed)
+                    }
+                )
+            }
+        }.toTypedArray()
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.manage_plugins)
+            .setMultiChoiceItems(items, checked) { _, which, isChecked ->
+                checked[which] = isChecked
+            }
+            .setPositiveButton(R.string.uninstall_selected_plugins) { _, _ ->
+                val selected = manageablePlugins.indices
+                    .filter { checked[it] }
+                    .map { manageablePlugins[it].descriptor }
+                if (selected.isEmpty()) {
+                    requireContext().toast(getString(R.string.generic_multiselect_min, 1))
+                    return@setPositiveButton
+                }
+                confirmBatchUninstall(selected.map { UninstallTarget(it.name, it.packageName) })
+            }
+            .setNeutralButton(R.string.toggle_plugin_loading) { _, _ ->
+                val selected = manageablePlugins.indices
+                    .filter { checked[it] }
+                    .map { manageablePlugins[it] }
+                if (selected.isEmpty()) {
+                    requireContext().toast(getString(R.string.generic_multiselect_min, 1))
+                    return@setNeutralButton
+                }
+                togglePluginLoading(selected)
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
+    }
+
+    private fun confirmBatchUninstall(targets: List<UninstallTarget>) {
+        val names = targets.map { it.name }
+        val message = if (targets.size == 1) {
+            getString(R.string.uninstall_plugin_confirm, names.first())
+        } else {
+            getString(R.string.uninstall_plugins_confirm, names.joinToString(separator = "\n"))
+        }
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.uninstall_plugin)
+            .setMessage(message)
+            .setPositiveButton(android.R.string.ok) { _: DialogInterface, _: Int ->
+                pendingUninstallPackages.clear()
+                targets.forEach { pendingUninstallPackages.addLast(it) }
+                launchNextPendingUninstall()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun togglePluginLoading(selected: List<ManageablePlugin>) {
+        val blockedPackages = AppPrefs.getInstance().advanced.blockedPluginPackages.getValue().toMutableSet()
+        selected.forEach {
+            if (it.isBlocked) {
+                blockedPackages.remove(it.descriptor.packageName)
+            } else {
+                blockedPackages.add(it.descriptor.packageName)
+            }
+        }
+        AppPrefs.getInstance().advanced.blockedPluginPackages.setValue(blockedPackages)
+        detected = DataManager.detectPlugins()
+        preferenceScreen = createPreferenceScreen()
+        DataManager.addOnNextSyncedCallback {
+            synced = DataManager.getSyncedPluginSet()
+            detected = DataManager.detectPlugins()
+            preferenceScreen = createPreferenceScreen()
+        }
+        requireContext().toast(R.string.restarting_fcitx)
+        FcitxDaemon.restartFcitx()
+    }
+
+    private fun uninstallPlugin(name: String, packageName: String) {
+        confirmBatchUninstall(listOf(UninstallTarget(name, packageName)))
+    }
+
+    private fun launchNextPendingUninstall() {
+        val target = pendingUninstallPackages.pollFirst() ?: return
+        continueBatchUninstallOnResume = pendingUninstallPackages.isNotEmpty()
+        try {
+            val intent = Intent(Intent.ACTION_DELETE).apply {
+                data = Uri.parse("package:${target.packageName}")
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            requireContext().startActivity(intent)
+        } catch (e: Exception) {
+            requireContext().startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                data = Uri.parse("package:${target.packageName}")
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            })
+        }
     }
 
     private fun startPluginAboutActivity(pkg: String): Boolean {

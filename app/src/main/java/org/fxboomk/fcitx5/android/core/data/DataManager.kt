@@ -30,6 +30,11 @@ import kotlin.concurrent.withLock
  */
 object DataManager {
 
+    private data class ParsedPlugins(
+        val descriptors: Set<PluginDescriptor>,
+        val failed: MutableMap<String, PluginLoadFailed>
+    )
+
     data class PluginSet(
         val loaded: Set<PluginDescriptor>,
         val failed: Map<String, PluginLoadFailed>
@@ -86,15 +91,12 @@ object DataManager {
     fun addOnNextSyncedCallback(block: () -> Unit) =
         callbacks.add(block)
 
-    fun detectPlugins(): PluginSet {
-        val toLoad = mutableSetOf<PluginDescriptor>()
-        val preloadFailed = mutableMapOf<String, PluginLoadFailed>()
-
+    private fun queryCompatiblePluginPackages(): Set<String> {
         val pm = appContext.packageManager
 
         // Query both current app's plugins and original Fcitx5 Android plugins
         val pluginPackages = mutableSetOf<String>()
-        
+
         // Query for current app's plugins
         val currentPluginIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             pm.queryIntentActivities(
@@ -104,7 +106,7 @@ object DataManager {
         } else {
             pm.queryIntentActivities(Intent(PLUGIN_INTENT), PackageManager.MATCH_ALL)
         }.map { it.activityInfo.packageName }
-        
+
         // Query for original Fcitx5 Android plugins
         val originalPluginIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             pm.queryIntentActivities(
@@ -124,7 +126,7 @@ object DataManager {
         } else {
             pm.queryIntentActivities(Intent(BuildConfig.ORIGINAL_DEBUG_PLUGIN_MANIFEST_ACTION), PackageManager.MATCH_ALL)
         }.map { it.activityInfo.packageName }
-        
+
         pluginPackages.addAll(currentPluginIntent)
         pluginPackages.addAll(originalPluginIntent)
         pluginPackages.addAll(originalDebugPluginIntent)
@@ -147,9 +149,16 @@ object DataManager {
             Timber.d("Rejected plugin packages by compatibility policy: ${rejectedPackages.joinToString()}")
         }
         Timber.d("Detected plugin packages: ${filteredPluginPackages.joinToString()}")
+        return filteredPluginPackages
+    }
+
+    private fun parsePluginDescriptors(packageNames: Set<String>): ParsedPlugins {
+        val pm = appContext.packageManager
+        val parsedDescriptors = mutableSetOf<PluginDescriptor>()
+        val preloadFailed = mutableMapOf<String, PluginLoadFailed>()
 
         // Parse plugin.xml
-        for (packageName in filteredPluginPackages) {
+        for (packageName in packageNames) {
             val res = pm.getResourcesForApplication(packageName)
 
             @SuppressLint("DiscouragedApi")
@@ -200,7 +209,7 @@ object DataManager {
                     } else {
                         pm.getPackageInfo(packageName, PackageManager.GET_META_DATA)
                     }
-                    toLoad.add(
+                    parsedDescriptors.add(
                         PluginDescriptor(
                             packageName,
                             apiVersion,
@@ -218,6 +227,23 @@ object DataManager {
             } else {
                 Timber.w("Failed to parse plugin descriptor of $packageName")
                 preloadFailed[packageName] = PluginLoadFailed.PluginDescriptorParseError
+            }
+        }
+        return ParsedPlugins(parsedDescriptors, preloadFailed)
+    }
+
+    fun getManageablePlugins(): Set<PluginDescriptor> =
+        parsePluginDescriptors(queryCompatiblePluginPackages()).descriptors
+
+    fun detectPlugins(): PluginSet {
+        val blockedPackages = AppPrefs.getInstance().advanced.blockedPluginPackages.getValue()
+        val (descriptors, preloadFailed) = parsePluginDescriptors(queryCompatiblePluginPackages())
+        val toLoad = descriptors.filterTo(mutableSetOf()) { descriptor ->
+            if (descriptor.packageName in blockedPackages) {
+                preloadFailed[descriptor.packageName] = PluginLoadFailed.ManuallyBlocked(descriptor)
+                false
+            } else {
+                true
             }
         }
         return PluginSet(toLoad, preloadFailed)

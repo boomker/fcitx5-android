@@ -13,6 +13,7 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -43,6 +44,7 @@ import splitties.views.gravityCenter
 import splitties.views.horizontalPadding
 import splitties.views.topPadding
 import splitties.views.verticalPadding
+import kotlin.math.ceil
 
 /**
  * Monet 主题编辑 Activity
@@ -69,6 +71,7 @@ class MonetThemeEditorActivity : AppCompatActivity() {
     
     private lateinit var toolbar: Toolbar
     private lateinit var previewUi: KeyboardPreviewUi
+    private lateinit var previewWrapper: FrameLayout
     private var previewScale = 1f
     
     private lateinit var themeName: String
@@ -180,19 +183,20 @@ class MonetThemeEditorActivity : AppCompatActivity() {
 
         // 固定在顶部并水平居中的键盘预览
         previewUi = KeyboardPreviewUi(this, currentTheme.toCustom())
-        val previewContainer = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = android.view.Gravity.CENTER_HORIZONTAL
+        previewWrapper = FrameLayout(this).apply {
+            clipChildren = false
+            clipToPadding = false
             addView(
                 previewUi.root,
-                LinearLayout.LayoutParams(
+                FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    android.view.Gravity.TOP or android.view.Gravity.CENTER_HORIZONTAL
                 )
             )
         }
         root.addView(
-            previewContainer,
+            previewWrapper,
             LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
@@ -258,6 +262,7 @@ class MonetThemeEditorActivity : AppCompatActivity() {
         
         // 初始化预览
         applyThemePreview(currentTheme)
+        previewUi.onSizeMeasured = { _, _ -> updatePreviewScale() }
         updatePreviewScale()
         registerLayoutChangeObserver()
     }
@@ -348,20 +353,36 @@ class MonetThemeEditorActivity : AppCompatActivity() {
     private fun applyThemePreview(theme: Theme) {
         if (theme is Theme.Monet) {
             previewUi.setTheme(theme.toCustom())
+            previewUi.root.post { updatePreviewScale() }
+        }
+    }
+
+    private fun applyPreviewWrapperScale(scale: Float) {
+        if (!::previewWrapper.isInitialized) return
+        previewUi.root.apply {
+            pivotX = (previewUi.intrinsicWidth.takeIf { it > 0 } ?: width).toFloat() / 2f
+            pivotY = 0f
+            scaleX = scale
+            scaleY = scale
+        }
+        previewWrapper.updateLayoutParams<ViewGroup.LayoutParams> {
+            height = (ceil(previewUi.intrinsicHeight * scale.toDouble()).toInt() + dp(12f)).coerceAtLeast(1)
         }
     }
     
     private fun updatePreviewScale() {
-        if (!::previewUi.isInitialized) return
+        if (!::previewUi.isInitialized || !::previewWrapper.isInitialized) return
         val contentHeight = window.decorView.height - toolbar.height
-        val currentHeight = previewUi.intrinsicHeight
-        if (contentHeight <= 0 || currentHeight <= 0 || previewScale <= 0f) return
-        val baseHeight = (currentHeight / previewScale).toInt().coerceAtLeast(1)
-        val maxPreviewHeight = (contentHeight * 0.36f).toInt().coerceAtLeast(dp(140f))
+        val baseHeight = previewUi.intrinsicHeight
+        if (contentHeight <= 0 || baseHeight <= 0) return
+        val maxPreviewHeight = (contentHeight * 0.42f).toInt().coerceAtLeast(dp(156f))
         val newScale = (maxPreviewHeight.toFloat() / baseHeight).coerceIn(0.35f, 1f)
-        if (kotlin.math.abs(newScale - previewScale) < 0.01f) return
+        if (kotlin.math.abs(newScale - previewScale) < 0.01f) {
+            applyPreviewWrapperScale(previewScale)
+            return
+        }
         previewScale = newScale
-        previewUi.setSizeScale(previewScale)
+        applyPreviewWrapperScale(previewScale)
     }
     
     private var layoutChangeJob: android.view.Choreographer.FrameCallback? = null

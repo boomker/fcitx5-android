@@ -76,6 +76,11 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
             emptySet(),
             R.string.allowed_plugin_prefixes_summary
         ) { allowOriginalPlugins.getValue() }
+        val blockedPluginPackages = ManagedPreference.PStringSet(
+            sharedPreferences,
+            "blocked_plugin_packages",
+            emptySet()
+        ).apply { register() }
     }
 
     inner class Keyboard : ManagedPreferenceCategory(R.string.virtual_keyboard, sharedPreferences) {

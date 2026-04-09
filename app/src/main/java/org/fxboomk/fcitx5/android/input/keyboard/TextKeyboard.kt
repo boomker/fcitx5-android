@@ -18,6 +18,8 @@ import org.fxboomk.fcitx5.android.input.FcitxInputMethodService
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.data.prefs.ManagedPreference
 import org.fxboomk.fcitx5.android.data.theme.Theme
+import org.fxboomk.fcitx5.android.data.theme.ThemeManager
+import org.fxboomk.fcitx5.android.data.theme.ThemePrefs.PunctuationPosition
 import org.fxboomk.fcitx5.android.input.popup.PopupAction
 import splitties.views.imageResource
 import kotlinx.serialization.json.*
@@ -35,7 +37,7 @@ class TextKeyboard(
     companion object {
         const val Name = "Text"
         private var lastModified = 0L
-        var ime: InputMethodEntry? = null
+        internal var ime: InputMethodEntry? = null
         private var listenerRegistered = false
         private val attachedKeyboards = mutableListOf<WeakReference<TextKeyboard>>()
 
@@ -68,7 +70,7 @@ class TextKeyboard(
             attachedKeyboards.removeAll { it.get() == null }
             living.forEach { keyboard ->
                 keyboard.refreshStyle()
-                ime?.let { keyboard.updateSpaceLabel(it) }
+                keyboard.refreshDynamicState()
             }
         }
 
@@ -286,6 +288,8 @@ class TextKeyboard(
 
     private val showLangSwitchKey = AppPrefs.getInstance().keyboard.showLangSwitchKey
     private val spaceKeyLabelMode = AppPrefs.getInstance().keyboard.spaceKeyLabelMode
+    private val punctuationPosition = ThemeManager.prefs.punctuationPosition
+    private var currentIme: InputMethodEntry? = null
 
     @Keep
     private val showLangSwitchKeyListener = ManagedPreference.OnChangeListener<Boolean> { _, _ ->
@@ -296,8 +300,13 @@ class TextKeyboard(
     }
 
     @Keep
-    private val spaceKeyLabelModeListener = ManagedPreference.OnChangeListener<SpaceKeyLabelMode> { _, _ ->
-        updateSpaceLabel(TextKeyboard.ime)
+    private val spaceKeyLabelModeListener = ManagedPreference.OnChangeListener<SpaceKeyLabelMode> { _, mode ->
+        currentIme?.let { updateSpaceLabel(it, mode) }
+    }
+
+    @Keep
+    private val punctuationPositionListener = ManagedPreference.OnChangeListener<PunctuationPosition> { _, _ ->
+        post { refreshAltTextLayouts() }
     }
 
     private val keepLettersUppercase by AppPrefs.getInstance().keyboard.keepLettersUppercase
@@ -523,12 +532,15 @@ class TextKeyboard(
         registerKeyboard(this)
         showLangSwitchKey.registerOnChangeListener(showLangSwitchKeyListener)
         spaceKeyLabelMode.registerOnChangeListener(spaceKeyLabelModeListener)
+        punctuationPosition.registerOnChangeListener(punctuationPositionListener)
+        refreshDynamicState()
     }
 
     override fun onDetachedFromWindow() {
         unregisterKeyboard(this)
         showLangSwitchKey.unregisterOnChangeListener(showLangSwitchKeyListener)
         spaceKeyLabelMode.unregisterOnChangeListener(spaceKeyLabelModeListener)
+        punctuationPosition.unregisterOnChangeListener(punctuationPositionListener)
         super.onDetachedFromWindow()
     }
 
@@ -541,12 +553,13 @@ class TextKeyboard(
     override fun onPunctuationUpdate(mapping: Map<String, String>) {
         punctuationMapping = mapping
         updatePunctuationKeys()
+        post { refreshAltTextLayouts() }
     }
 
-    private fun updateSpaceLabel(ime: InputMethodEntry?) {
+    private fun updateSpaceLabel(ime: InputMethodEntry?, mode: SpaceKeyLabelMode = spaceKeyLabelMode.getValue()) {
         if (ime == null) return
         val subModeText = ime.subMode.run { label.ifEmpty { name.ifEmpty { "" } } }
-        val newText = when (spaceKeyLabelMode.getValue()) {
+        val newText = when (mode) {
             SpaceKeyLabelMode.Default -> {
                 buildString {
                     append(ime.displayName)
@@ -568,29 +581,31 @@ class TextKeyboard(
         }
     }
 
+    private fun refreshDynamicState() {
+        ensureSpecialKeyViewsInitialized()
+        updateCapsButtonIcon()
+        updateAlphabetKeys()
+        updatePunctuationKeys()
+        updateSpaceLabel(currentIme, spaceKeyLabelMode.getValue())
+        post { refreshAltTextLayouts() }
+    }
+
     override fun onInputMethodUpdate(ime: InputMethodEntry) {
-        // update ime of companion object ime
+        currentIme = ime
         TextKeyboard.ime = ime
         val signature = layoutSignature(ime)
         if (signature != lastLayoutSignature) {
             reloadLayout()
             lastLayoutSignature = signature
         }
-        // Re-find special key views after layout reload (or ensure initialized on first call)
-        ensureSpecialKeyViewsInitialized()
-        updateAlphabetKeys()
-        updateSpaceLabel(ime)
+        refreshDynamicState()
         if (capsState != CapsState.None) {
             switchCapsState()
         }
     }
 
     override fun onStyleRefreshFinished() {
-        ensureSpecialKeyViewsInitialized()
-        updateCapsButtonIcon()
-        updateAlphabetKeys()
-        updatePunctuationKeys()
-        updateSpaceLabel(TextKeyboard.ime)
+        refreshDynamicState()
     }
 
     override fun onThemeUpdate(newTheme: Theme) {

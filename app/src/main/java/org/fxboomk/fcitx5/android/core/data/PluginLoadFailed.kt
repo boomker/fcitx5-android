@@ -26,4 +26,8 @@ sealed interface PluginLoadFailed {
     data class PluginAPIIncompatible(
         val api: String
     ) : PluginLoadFailed
+
+    data class ManuallyBlocked(
+        val plugin: PluginDescriptor
+    ) : PluginLoadFailed
 }

@@ -92,8 +92,6 @@ class KeyboardPreviewManager(
 
         ConfigProviders.provider = tempProvider
         TextKeyboard.clearCachedKeyDefLayouts()
-
-        // Save the original IME state to restore later
         val originalIme = TextKeyboard.ime
 
         try {
@@ -102,7 +100,7 @@ class KeyboardPreviewManager(
             android.util.Log.e("KeyboardPreview", "Failed to create keyboard preview for layout: $layoutName, submode: $previewSubModeLabel", e)
             showError(e.message ?: "Unknown error")
         } finally {
-            // Restore original provider and IME state
+            // Restore original provider and shared layout context
             ConfigProviders.provider = DefaultConfigProvider
             TextKeyboard.clearCachedKeyDefLayouts()
             TextKeyboard.ime = originalIme
