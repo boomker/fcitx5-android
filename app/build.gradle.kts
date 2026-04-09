@@ -23,7 +23,9 @@ val originalIpcAction = "$packageBase.IPC"
 val originalDebugIpcAction = "$packageBase.debug.IPC"
 val imeSettingsActivity = "$packageBase.ui.main.MainActivity"
 val includeMainlineFlavor =
-    providers.gradleProperty("includeMainlineFlavor").map(String::toBoolean).orElse(false)
+    providers.gradleProperty("includeMainlineFlavor").map(String::toBoolean).orElse(true)
+val includeFxFlavor =
+    providers.gradleProperty("includeFxFlavor").map(String::toBoolean).orElse(false)
 
 android {
     namespace = packageBase
@@ -160,6 +162,9 @@ registerFxApkCompatCopy("release")
 androidComponents {
     beforeVariants(selector().withFlavor("brand" to flavorMainline)) { variantBuilder ->
         variantBuilder.enable = includeMainlineFlavor.get()
+    }
+    beforeVariants(selector().withFlavor("brand" to flavorFx)) { variantBuilder ->
+        variantBuilder.enable = includeFxFlavor.get()
     }
     onVariants { variant ->
         when (variant.flavorName) {

@@ -82,7 +82,12 @@
       "Bash(./gradlew :plugin:clipboard-filter:assembleRelease :plugin:clipboard-sync:assembleRelease)",
       "Bash(./gradlew :plugin:clipboard-filter:tasks :plugin:clipboard-sync:tasks)",
       "Bash(./gradlew :plugin:clipboard-filter:installRelease :plugin:clipboard-sync:installRelease)",
-      "Bash(./gradlew :plugin:clipboard-filter:installRelease)"
+      "Bash(./gradlew :plugin:clipboard-filter:installRelease)",
+      "Bash(./gradlew :app:compileDebugKotlin --no-daemon)",
+      "Bash(./gradlew :app:compileMainlineDebugKotlin --no-daemon)",
+      "Bash(./gradlew assembleMainlineRelease --no-daemon)",
+      "Bash(./gradlew :app:compileMainlineReleaseKotlin --no-daemon)",
+      "Bash(./gradlew :app:assembleMainlineRelease --no-daemon)"
     ]
   }
 }

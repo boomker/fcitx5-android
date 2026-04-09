@@ -16,6 +16,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.view.View
 import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceScreen
@@ -104,6 +105,19 @@ class PluginFragment : PaddingPreferenceFragment() {
             addAction(Intent.ACTION_PACKAGE_REPLACED)
             addDataScheme("package")
         })
+        // Enable plugin menu button in toolbar
+        (requireActivity() as MainActivity).viewModel.enablePluginMenu()
+        // Observe plugin menu trigger from toolbar
+        (requireActivity() as MainActivity).viewModel.pluginMenuTrigger.observe(
+            viewLifecycleOwner
+        ) { unbindMode ->
+            if (unbindMode != null) {
+                DataManager.whenSynced {
+                    showManagePluginsDialog(unbindMode = unbindMode)
+                }
+                (requireActivity() as MainActivity).viewModel.clearPluginMenuTrigger()
+            }
+        }
         if (continueBatchUninstallOnResume) {
             continueBatchUninstallOnResume = false
             launchNextPendingUninstall()
@@ -124,11 +138,12 @@ class PluginFragment : PaddingPreferenceFragment() {
     override fun onPause() {
         super.onPause()
         requireContext().unregisterReceiver(packageChangeReceiver)
+        // Disable plugin menu button in toolbar
+        (requireActivity() as MainActivity).viewModel.disablePluginMenu()
     }
 
     private fun createPreferenceScreen(): PreferenceScreen =
         preferenceManager.createPreferenceScreen(requireContext()).apply {
-            val hasManageablePlugins = DataManager.getManageablePlugins().isNotEmpty()
             if (synced != detected) {
                 addPreference(R.string.plugin_needs_reload, icon = R.drawable.ic_baseline_info_24) {
                     DataManager.addOnNextSyncedCallback {
@@ -138,11 +153,6 @@ class PluginFragment : PaddingPreferenceFragment() {
                     }
                     // DataManager.sync and and restart fcitx
                     FcitxDaemon.restartFcitx()
-                }
-            }
-            if (hasManageablePlugins) {
-                addPreference(R.string.manage_plugins, icon = R.drawable.ic_baseline_delete_24) {
-                    showManagePluginsDialog()
                 }
             }
             val (loaded, failed) = synced
@@ -230,7 +240,7 @@ class PluginFragment : PaddingPreferenceFragment() {
             }
         }
 
-    private fun showManagePluginsDialog() {
+    private fun showManagePluginsDialog(unbindMode: Boolean = false) {
         val blockedPackages = AppPrefs.getInstance().advanced.blockedPluginPackages.getValue()
         val loadedPackages = synced.loaded.mapTo(mutableSetOf()) { it.packageName }
         val manageablePlugins = DataManager.getManageablePlugins()
@@ -264,12 +274,25 @@ class PluginFragment : PaddingPreferenceFragment() {
                 )
             }
         }.toTypedArray()
-        AlertDialog.Builder(requireContext())
+        val builder = AlertDialog.Builder(requireContext())
             .setTitle(R.string.manage_plugins)
             .setMultiChoiceItems(items, checked) { _, which, isChecked ->
                 checked[which] = isChecked
             }
-            .setPositiveButton(R.string.uninstall_selected_plugins) { _, _ ->
+            .setNegativeButton(android.R.string.cancel, null)
+        if (unbindMode) {
+            builder.setPositiveButton(R.string.unbind_plugin) { _, _ ->
+                val selected = manageablePlugins.indices
+                    .filter { checked[it] }
+                    .map { manageablePlugins[it] }
+                if (selected.isEmpty()) {
+                    requireContext().toast(getString(R.string.generic_multiselect_min, 1))
+                    return@setPositiveButton
+                }
+                togglePluginLoading(selected)
+            }
+        } else {
+            builder.setPositiveButton(R.string.uninstall_selected_plugins) { _, _ ->
                 val selected = manageablePlugins.indices
                     .filter { checked[it] }
                     .map { manageablePlugins[it].descriptor }
@@ -279,18 +302,8 @@ class PluginFragment : PaddingPreferenceFragment() {
                 }
                 confirmBatchUninstall(selected.map { UninstallTarget(it.name, it.packageName) })
             }
-            .setNeutralButton(R.string.toggle_plugin_loading) { _, _ ->
-                val selected = manageablePlugins.indices
-                    .filter { checked[it] }
-                    .map { manageablePlugins[it] }
-                if (selected.isEmpty()) {
-                    requireContext().toast(getString(R.string.generic_multiselect_min, 1))
-                    return@setNeutralButton
-                }
-                togglePluginLoading(selected)
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
+        }
+        builder.show()
     }
 
     private fun confirmBatchUninstall(targets: List<UninstallTarget>) {

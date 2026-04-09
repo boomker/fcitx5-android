@@ -313,6 +313,7 @@
     <string name="uninstall_selected_plugins">卸载所选</string>
     <string name="uninstall_plugins_confirm">确定要卸载以下插件吗？\n%1$s</string>
     <string name="toggle_plugin_loading">切换加载状态</string>
+    <string name="unbind_plugin">卸载绑定</string>
     <string name="plugin_blocked">已阻止</string>
     <string name="plugin_blocked_summary">已手动阻止加载</string>
     <string name="rime_schema_selector_title">方案选单</string>

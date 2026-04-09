@@ -326,6 +326,7 @@
     <string name="uninstall_selected_plugins">Uninstall Selected</string>
     <string name="uninstall_plugins_confirm">Uninstall the following plugins?\n%1$s</string>
     <string name="toggle_plugin_loading">Toggle Loading</string>
+    <string name="unbind_plugin">Unbind Plugin</string>
     <string name="plugin_blocked">Blocked</string>
     <string name="plugin_blocked_summary">Manually blocked from loading</string>
     <string name="rime_schema_selector_title">Schema Selector</string>

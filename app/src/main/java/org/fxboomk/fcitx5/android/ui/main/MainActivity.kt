@@ -10,6 +10,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.view.Gravity
 import android.view.Menu
 import android.view.ViewGroup
 import androidx.activity.enableEdgeToEdge
@@ -41,14 +42,16 @@ import splitties.views.topPadding
 
 class MainActivity : AppCompatActivity() {
 
-    private val viewModel: MainViewModel by viewModels()
+    val viewModel: MainViewModel by viewModels()
 
     private lateinit var navController: NavController
+
+    private lateinit var binding: ActivityMainBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        val binding = ActivityMainBinding.inflate(layoutInflater)
+        binding = ActivityMainBinding.inflate(layoutInflater)
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, windowInsets ->
             val statusBars = windowInsets.getInsets(WindowInsetsCompat.Type.statusBars())
             val navBars = windowInsets.getInsets(WindowInsetsCompat.Type.navigationBars())
@@ -159,8 +162,24 @@ class MainActivity : AppCompatActivity() {
             viewModel.toolbarDeleteButtonOnClickListener
                 .observe(this@MainActivity) { listener -> isVisible = listener != null }
         }
+        menu.item(R.string.manage_plugins, R.drawable.ic_baseline_delete_24, iconTint, true) {
+            showPluginManagePopup()
+        }.apply {
+            viewModel.pluginMenuVisible.observe(this@MainActivity) { visible -> isVisible = visible }
+        }
         // all menus should be invisible and enabled on demand
         menu.forEach { it.isVisible = false }
+    }
+
+    private fun showPluginManagePopup() {
+        val popup = androidx.appcompat.widget.PopupMenu(this, binding.toolbar, Gravity.END)
+        popup.menu.add(0, 0, 0, R.string.unbind_plugin)
+        popup.menu.add(0, 1, 1, R.string.uninstall_plugin)
+        popup.setOnMenuItemClickListener { item ->
+            viewModel.triggerPluginMenu(item.itemId == 0)
+            true
+        }
+        popup.show()
     }
 
     private var needNotifications by AppPrefs.getInstance().internal.needNotifications

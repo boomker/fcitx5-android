@@ -29,6 +29,9 @@ class MainViewModel : ViewModel() {
 
     val aboutButton = MutableLiveData(false)
 
+    val pluginMenuVisible = MutableLiveData(false)
+    val pluginMenuTrigger = MutableLiveData<Boolean?>()
+
     val fcitx: FcitxConnection = FcitxDaemon.connect(javaClass.name)
 
     fun setToolbarTitle(title: String) {
@@ -83,6 +86,22 @@ class MainViewModel : ViewModel() {
 
     fun disableAboutButton() {
         aboutButton.value = false
+    }
+
+    fun enablePluginMenu() {
+        pluginMenuVisible.value = true
+    }
+
+    fun disablePluginMenu() {
+        pluginMenuVisible.value = false
+    }
+
+    fun triggerPluginMenu(unbindMode: Boolean) {
+        pluginMenuTrigger.value = unbindMode
+    }
+
+    fun clearPluginMenuTrigger() {
+        pluginMenuTrigger.value = null
     }
 
     override fun onCleared() {
