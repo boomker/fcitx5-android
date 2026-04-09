@@ -195,6 +195,29 @@ object PreferenceScreenFactory {
             }
         }
 
+        fun displayTitle(): String {
+            val baseTitle = descriptor.description ?: descriptor.name
+            return if (descriptor is ConfigExternal &&
+                descriptor.knownType == ConfigExternal.ETy.MultiSelect
+            ) {
+                val uri = descriptor.uri
+                val parsed = uri?.let { Uri.parse(it) }
+                val segments = parsed?.pathSegments
+                if (segments != null &&
+                    segments.size >= 3 &&
+                    segments.first() == "addon"
+                ) {
+                    val addon = segments[1]
+                    val path = segments.drop(2).joinToString("/")
+                    AppUtil.normalizeAddonMultiSelectTitle(context, baseTitle, addon, path)
+                } else {
+                    baseTitle
+                }
+            } else {
+                baseTitle
+            }
+        }
+
         when (descriptor) {
             is ConfigBool -> MySwitchPreference(context).apply {
                 summary = descriptor.tooltip
@@ -270,7 +293,7 @@ object PreferenceScreenFactory {
             is ConfigCustom -> throw IllegalAccessException("Impossible!")
         }.apply {
             key = descriptor.name
-            title = descriptor.description ?: descriptor.name
+            title = displayTitle()
             isSingleLineTitle = false
             isIconSpaceReserved = false
             preferenceDataStore = store
