@@ -4,6 +4,8 @@
  */
 package org.fcitx.fcitx5.android.ui.main.settings.behavior.dialog
 
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -172,6 +174,13 @@ class KeyboardEditorUiBuilder(private val activity: AppCompatActivity) {
                 simpleValue
             )
             displayTextContainer.addView(simpleText.first)
+            simpleText.second.addTextChangedListener(object : TextWatcher {
+                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                    callback(false, s?.toString().orEmpty(), mutableListOf(), mutableListOf(), simpleText.second)
+                }
+                override fun afterTextChanged(s: Editable?) {}
+            })
 
             if (!isEditingSubModeLayout && hasMultiSubmodeSupport) {
                 val addModeBtn = TextView(activity).apply {
@@ -319,14 +328,15 @@ class KeyboardEditorUiBuilder(private val activity: AppCompatActivity) {
                     return@setOnClickListener
                 }
 
-                items.add(DisplayTextItem("", ""))
+                val updatedItems = collectDisplayTextItems(bindings)
+                updatedItems.add(DisplayTextItem("", ""))
                 // Re-render
-                callback(modeSpecific, simpleValue, items, bindings, null)
+                callback(modeSpecific, simpleValue, updatedItems, bindings, null)
                 renderDisplayTextEditor(
                     displayTextContainer,
                     modeSpecific,
                     simpleValue,
-                    items,
+                    updatedItems,
                     bindings,
                     isEditingSubModeLayout,
                     hasMultiSubmodeSupport,
@@ -389,14 +399,6 @@ class KeyboardEditorUiBuilder(private val activity: AppCompatActivity) {
             textSize = DIALOG_CONTENT_TEXT_SIZE_SP
             setPadding(activity.dp(8), activity.dp(4), activity.dp(8), activity.dp(4))
             setOnClickListener {
-                // 从 items 中删除
-                val itemIndex = items.indexOfFirst {
-                    it.mode == item.mode && it.value == item.value
-                }
-                if (itemIndex >= 0) {
-                    items.removeAt(itemIndex)
-                }
-
                 // 从 bindings 中删除对应的 binding
                 val bindingToRemove = bindings.firstOrNull {
                     it.modeEdit === modeEdit && it.valueEdit === valueEdit
@@ -404,16 +406,18 @@ class KeyboardEditorUiBuilder(private val activity: AppCompatActivity) {
                 if (bindingToRemove != null) {
                     bindings.remove(bindingToRemove)
                 }
+                val updatedItems = collectDisplayTextItems(bindings)
 
                 // If no submode left, switch to simple text mode
-                if (items.isEmpty()) {
+                if (updatedItems.isEmpty()) {
                     // Call callback to update external state first
-                    callback(false, item.value, mutableListOf(), mutableListOf(), null)
+                    val fallbackValue = valueEdit.text?.toString().orEmpty()
+                    callback(false, fallbackValue, mutableListOf(), mutableListOf(), null)
                     // Then re-render UI
                     renderDisplayTextEditor(
                         displayTextContainer,
                         false,
-                        item.value,
+                        fallbackValue,
                         mutableListOf(),
                         mutableListOf(),
                         isEditingSubModeLayout,
@@ -421,12 +425,13 @@ class KeyboardEditorUiBuilder(private val activity: AppCompatActivity) {
                         callback
                     )
                 } else {
+                    callback(modeSpecific, simpleValue, updatedItems, bindings, null)
                     // Re-render the entire displayText editor
                     renderDisplayTextEditor(
                         displayTextContainer,
                         modeSpecific,
                         simpleValue,
-                        items,
+                        updatedItems,
                         bindings,
                         isEditingSubModeLayout,
                         hasMultiSubmodeSupport,
@@ -440,7 +445,25 @@ class KeyboardEditorUiBuilder(private val activity: AppCompatActivity) {
         entryRow.addView(valueEdit)
         entryRow.addView(deleteBtn)
         bindings.add(DisplayTextRowBinding(modeEdit, valueEdit))
+        val rowWatcher = object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                callback(modeSpecific, simpleValue, collectDisplayTextItems(bindings), bindings, null)
+            }
+            override fun afterTextChanged(s: Editable?) {}
+        }
+        modeEdit.addTextChangedListener(rowWatcher)
+        valueEdit.addTextChangedListener(rowWatcher)
 
         return entryRow
+    }
+
+    private fun collectDisplayTextItems(bindings: List<DisplayTextRowBinding>): MutableList<DisplayTextItem> {
+        return bindings.map { binding ->
+            DisplayTextItem(
+                binding.modeEdit.text?.toString().orEmpty(),
+                binding.valueEdit.text?.toString().orEmpty()
+            )
+        }.toMutableList()
     }
 }
