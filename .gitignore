@@ -104,3 +104,4 @@ lint/tmp/
 
 ### Kotlin ###
 .kotlin/
+.gitnexus

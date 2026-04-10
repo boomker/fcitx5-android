@@ -87,7 +87,22 @@
       "Bash(./gradlew :app:compileMainlineDebugKotlin --no-daemon)",
       "Bash(./gradlew assembleMainlineRelease --no-daemon)",
       "Bash(./gradlew :app:compileMainlineReleaseKotlin --no-daemon)",
-      "Bash(./gradlew :app:assembleMainlineRelease --no-daemon)"
+      "Bash(./gradlew :app:assembleMainlineRelease --no-daemon)",
+      "Bash(./gradlew assembleMainlineRelease:*)",
+      "Bash(/Users/cyzhu/Library/Android/sdk/platform-tools/adb devices:*)",
+      "Bash(/Users/cyzhu/Library/Android/sdk/platform-tools/adb shell:*)",
+      "Bash(/Users/cyzhu/Library/Android/sdk/platform-tools/adb install:*)",
+      "WebFetch(domain:repo)",
+      "Bash(rtk npx:*)",
+      "Bash(command -v gitnexus)",
+      "Bash(npm list:*)",
+      "Read(//private/tmp/**)",
+      "Bash(gitnexus context:*)",
+      "Bash(gitnexus clusters:*)",
+      "Bash(gitnexus processes:*)",
+      "Bash(gitnexus:*)",
+      "Skill(claude-hud:setup)",
+      "Bash(./gradlew installMainlineRelease:*)"
     ]
   }
 }
