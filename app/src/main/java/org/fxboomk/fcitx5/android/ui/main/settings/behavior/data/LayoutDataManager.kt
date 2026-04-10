@@ -206,25 +206,32 @@ class LayoutDataManager(private val context: Context) {
             if (errors.isNotEmpty()) {
                 throw ValidationException(errors)
             }
-            
+
             // 创建备份
             migrationManager.createBackup(file)
-            
-            // 清理基础布局的 displayText
+
+            // Only clean the base layout's displayText when submode layouts exist
             val baseLayoutNames = entries.keys.map { key ->
                 if (key.contains(':')) key.substringBeforeLast(':') else key
             }.distinct()
+            
+            // Only clear base layout displayText for layouts that actually have submode variants
             baseLayoutNames.forEach { layoutName ->
-                migrationManager.cleanupBaseLayoutDisplayText(layoutName)
+                val hasSubModeLayouts = entries.keys.any { 
+                    it.startsWith("$layoutName:") && it != "$layoutName:default" 
+                }
+                if (hasSubModeLayouts) {
+                    migrationManager.cleanupBaseLayoutDisplayText(layoutName)
+                }
             }
-            
-            // 创建目录
+
+            // Create directory
             file.parentFile?.mkdirs()
-            
-            // 转换为 JSON 并保存
+
+            // Convert to JSON and save, using compact format (each key object on one line)
             val jsonElement = LayoutJsonUtils.convertToSaveJson(entries)
-            val prettyJson = Json { prettyPrint = true }
-            file.writeText(prettyJson.encodeToString(jsonElement) + "\n")
+            val compactJson = LayoutJsonUtils.formatJsonCompact(jsonElement)
+            file.writeText(compactJson + "\n")
             
             // 清除缓存
             TextKeyboard.clearCachedKeyDefLayouts()
@@ -311,25 +318,25 @@ class LayoutDataManager(private val context: Context) {
     }
     
     /**
-     * 添加子模式布局
-     * 
-     * @param layoutName 基础布局名称
-     * @param subModeLabel 子模式标签
-     * @return 是否成功
+     * Add submode layout
+     *
+     * @param layoutName Base layout name
+     * @param subModeLabel Submode label
+     * @return Whether successful
      */
     fun addSubModeLayout(layoutName: String, subModeLabel: String): Boolean {
         val subModeKey = "$layoutName:$subModeLabel"
-        
+
         if (entries.containsKey(subModeKey)) {
             return false
         }
-        
-        // 获取源布局（优先基础布局，其次其他子模式布局）
+
+        // Get source layout (prefer base layout, then other submode layouts)
         val baseLayout = entries[layoutName]
         val existingSubModeKeys = entries.keys.filter {
             it.startsWith("$layoutName:") && it != "$layoutName:default"
         }
-        
+
         val sourceLayout = if (baseLayout != null && baseLayout.isNotEmpty()) {
             baseLayout
         } else if (existingSubModeKeys.isNotEmpty()) {
@@ -338,10 +345,10 @@ class LayoutDataManager(private val context: Context) {
             null
         }
 
-        // 复制并迁移数据
+        // Copy and migrate data
         val newLayout = sourceLayout?.let { copyLayout(it) } ?: mutableListOf()
         migrationManager.migrateDisplayTextForSubMode(newLayout, subModeLabel)
-        
+
         entries[subModeKey] = newLayout
         return true
     }

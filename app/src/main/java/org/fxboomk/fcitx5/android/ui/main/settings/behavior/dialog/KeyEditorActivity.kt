@@ -44,6 +44,7 @@ import splitties.views.dsl.core.matchParent
 import splitties.views.dsl.core.wrapContent
 import java.io.Serializable
 import java.util.Arrays
+import java.util.LinkedHashMap
 
 class KeyEditorActivity : AppCompatActivity() {
 
@@ -362,6 +363,7 @@ class KeyEditorActivity : AppCompatActivity() {
                     alphabetDisplayTextRowBindings.clear()
                     alphabetDisplayTextRowBindings.addAll(bindings)
                     alphabetDisplayTextSimpleEdit = simpleTextEdit ?: bindings.lastOrNull()?.valueEdit
+                    updateActionButtonState()
                 }
             }
 
@@ -444,6 +446,7 @@ class KeyEditorActivity : AppCompatActivity() {
                         macroDisplayTextRowBindings.clear()
                         macroDisplayTextRowBindings.addAll(bindings)
                         macroDisplayTextSimpleEdit = simpleTextEdit
+                        updateActionButtonState()
                     }
                 )
 
@@ -1226,14 +1229,14 @@ class KeyEditorActivity : AppCompatActivity() {
 
         @JvmStatic
         @Suppress("UNCHECKED_CAST")
-        fun toSerializableMap(input: Map<String, Any?>): HashMap<String, Any?> {
-            return normalizeValue(input) as HashMap<String, Any?>
+        fun toSerializableMap(input: Map<String, Any?>): LinkedHashMap<String, Any?> {
+            return normalizeValue(input) as LinkedHashMap<String, Any?>
         }
 
         private fun normalizeValue(value: Any?): Any? {
             return when (value) {
                 is Map<*, *> -> {
-                    val normalized = HashMap<String, Any?>()
+                    val normalized = LinkedHashMap<String, Any?>()
                     value.forEach { (k, v) ->
                         val key = k?.toString() ?: return@forEach
                         normalized[key] = normalizeValue(v)

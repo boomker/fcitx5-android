@@ -24,6 +24,27 @@ import org.fxboomk.fcitx5.android.input.keyboard.KeyRef
 object LayoutJsonUtils {
 
     private const val TAG = "LayoutJsonUtils"
+    private val KEY_FIELD_ORDER = listOf(
+        "type",
+        "main",
+        "alt",
+        "displayText",
+        "label",
+        "altLabel",
+        "subLabel",
+        "weight",
+        "tap",
+        "swipe",
+        "longPress",
+        "textColor",
+        "textColorMonet",
+        "altTextColor",
+        "altTextColorMonet",
+        "backgroundColor",
+        "backgroundColorMonet",
+        "shadowColor",
+        "shadowColorMonet"
+    )
 
     // ==================== 解析功能 ====================
 
@@ -711,8 +732,9 @@ object LayoutJsonUtils {
                     val rows = entries[key]!!
                     val jsonArray = JsonArray(rows.map { row ->
                         JsonArray(row.map { keyMap ->
+                            val ordered = orderKeyFieldsForSave(keyMap)
                             JsonObject(
-                                keyMap
+                                ordered
                                     .filterValues { it != null }
                                     .mapValues { (_, v) -> convertToJsonProperty(v) }
                             )
@@ -728,8 +750,9 @@ object LayoutJsonUtils {
                 val rows = entries[key] ?: continue
                 val jsonArray = JsonArray(rows.map { row ->
                     JsonArray(row.map { keyMap ->
+                        val ordered = orderKeyFieldsForSave(keyMap)
                         JsonObject(
-                            keyMap
+                            ordered
                                 .filterValues { it != null }
                                 .mapValues { (_, v) -> convertToJsonProperty(v) }
                         )
@@ -775,5 +798,84 @@ object LayoutJsonUtils {
         is Boolean -> JsonPrimitive(value)
         is String -> JsonPrimitive(value)
         else -> JsonPrimitive(value.toString())
+    }
+
+    /**
+     * Format layout json with readable indentation while keeping each key object on a single line.
+     */
+    fun formatJsonCompact(element: JsonElement): String {
+        return formatJsonElement(element, 0)
+    }
+
+    private fun formatJsonElement(element: JsonElement, level: Int): String {
+        return when (element) {
+            is JsonObject -> formatJsonObject(element, level)
+            is JsonArray -> formatJsonArray(element, level)
+            else -> Json.encodeToString(JsonElement.serializer(), element)
+        }
+    }
+
+    private fun formatJsonObject(obj: JsonObject, level: Int): String {
+        if (obj.isEmpty()) return "{}"
+        if ("type" in obj) {
+            return formatJsonObjectInline(obj)
+        }
+
+        val indent = "  ".repeat(level)
+        val childIndent = "  ".repeat(level + 1)
+        val body = obj.entries.joinToString(",\n") { (key, value) ->
+            val keyLiteral = Json.encodeToString(JsonPrimitive.serializer(), JsonPrimitive(key))
+            "$childIndent$keyLiteral: ${formatJsonElement(value, level + 1)}"
+        }
+        return "{\n$body\n$indent}"
+    }
+
+    private fun formatJsonArray(array: JsonArray, level: Int): String {
+        if (array.isEmpty()) return "[]"
+        val allScalar = array.all { it is JsonPrimitive || it is JsonNull }
+        if (allScalar) {
+            return Json.encodeToString(JsonElement.serializer(), array)
+        }
+
+        val indent = "  ".repeat(level)
+        val childIndent = "  ".repeat(level + 1)
+        val body = array.joinToString(",\n") { child ->
+            "$childIndent${formatJsonElement(child, level + 1)}"
+        }
+        return "[\n$body\n$indent]"
+    }
+
+    private fun formatJsonObjectInline(obj: JsonObject): String {
+        val body = obj.entries.joinToString(",") { (key, value) ->
+            val keyLiteral = Json.encodeToString(JsonPrimitive.serializer(), JsonPrimitive(key))
+            "$keyLiteral:${formatJsonElementInline(value)}"
+        }
+        return "{$body}"
+    }
+
+    private fun formatJsonElementInline(element: JsonElement): String {
+        return when (element) {
+            is JsonObject -> formatJsonObjectInline(element)
+            is JsonArray -> {
+                val body = element.joinToString(",") { child -> formatJsonElementInline(child) }
+                "[$body]"
+            }
+            else -> Json.encodeToString(JsonElement.serializer(), element)
+        }
+    }
+
+    private fun orderKeyFieldsForSave(keyMap: Map<String, Any?>): LinkedHashMap<String, Any?> {
+        val ordered = LinkedHashMap<String, Any?>()
+        KEY_FIELD_ORDER.forEach { key ->
+            if (keyMap.containsKey(key)) {
+                ordered[key] = keyMap[key]
+            }
+        }
+        keyMap.forEach { (key, value) ->
+            if (!ordered.containsKey(key)) {
+                ordered[key] = value
+            }
+        }
+        return ordered
     }
 }
