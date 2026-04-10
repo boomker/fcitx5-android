@@ -101,6 +101,15 @@ class HorizontalCandidateComponent :
                     minWidth = layoutMinWidth
                     flexGrow = layoutFlexGrow
                 }
+                if (position == 0) {
+                    holder.ui.applyFirstCandidateStyle(
+                        bgColor = theme.genericActiveBackgroundColor,
+                        strokeColor = theme.dividerColor,
+                        pressColor = theme.keyPressHighlightColor
+                    )
+                } else {
+                    holder.ui.resetToDefaultBackground(theme.keyPressHighlightColor)
+                }
                 holder.itemView.setOnClickListener {
                     fcitx.launchOnReady { it.select(holder.idx) }
                 }

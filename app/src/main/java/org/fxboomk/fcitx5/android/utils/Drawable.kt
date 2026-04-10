@@ -9,6 +9,7 @@ import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.LayerDrawable
 import android.graphics.drawable.RippleDrawable
 import android.graphics.drawable.ShapeDrawable
 import android.graphics.drawable.StateListDrawable
@@ -52,5 +53,28 @@ fun borderDrawable(
     setColor(background)
     if (cornerRadius > 0f) {
         this.cornerRadius = cornerRadius
+    }
+}
+
+fun firstCandidateDrawable(
+    @ColorInt bgColor: Int,
+    @ColorInt strokeColor: Int,
+    cornerRadius: Float,
+    strokeWidth: Int,
+    @ColorInt pressColor: Int
+): Drawable {
+    val fill = GradientDrawable().apply {
+        setColor(bgColor)
+        this.cornerRadius = cornerRadius
+    }
+    val stroke = GradientDrawable().apply {
+        setStroke(strokeWidth, strokeColor)
+        setColor(Color.TRANSPARENT)
+        this.cornerRadius = cornerRadius
+    }
+    val pressOverlay = ColorDrawable(Color.argb((Color.alpha(pressColor) * 0.6f).toInt(), Color.red(pressColor), Color.green(pressColor), Color.blue(pressColor)))
+    return StateListDrawable().apply {
+        addState(intArrayOf(), LayerDrawable(arrayOf(fill, stroke)))
+        addState(intArrayOf(android.R.attr.state_pressed), LayerDrawable(arrayOf(fill, stroke, pressOverlay)))
     }
 }

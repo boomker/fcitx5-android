@@ -102,7 +102,9 @@
       "Bash(gitnexus processes:*)",
       "Bash(gitnexus:*)",
       "Skill(claude-hud:setup)",
-      "Bash(./gradlew installMainlineRelease:*)"
+      "Bash(./gradlew installMainlineRelease:*)",
+      "Bash(./gradlew assembleMainlineDebug)",
+      "Bash(./gradlew installMainlineDebug)"
     ]
   }
 }
