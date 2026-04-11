@@ -163,8 +163,6 @@
     <string name="skip">Пропустить</string>
     <string name="none">Нет</string>
     <string name="theme_migrated">Тема перенесена в текущую версию</string>
-    <string name="theme_name">Название темы</string>
-    <string name="theme_name_empty">Название темы не может быть пустым</string>
     <string name="keep_keyboard_letters_uppercase">Сохранять буквы клавиатуры прописными</string>
     <string name="choose_input_method">Выбор метода ввода</string>
     <string name="edit_clipboard">Редактировать буфер обмена</string>

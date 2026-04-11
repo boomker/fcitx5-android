@@ -163,8 +163,6 @@
     <string name="skip">跳過</string>
     <string name="none">無</string>
     <string name="theme_migrated">主題已遷移至目前版本</string>
-    <string name="theme_name">主題名稱</string>
-    <string name="theme_name_empty">主題名稱不能為空</string>
     <string name="keep_keyboard_letters_uppercase">鍵盤字母保持大寫</string>
     <string name="choose_input_method">選擇輸入法</string>
     <string name="edit_clipboard">編輯剪貼簿</string>
@@ -431,8 +429,7 @@
     <string name="text_keyboard_layout_display_text_mode_invalid">請先填寫第 %1$d 行的模式名稱和顯示文字</string>
     <string name="text_keyboard_layout_display_text_mode_duplicate">模式名稱 "%1$s" 已被使用</string>
     <string name="cannot_resolve_text_keyboard_layout">無法定位文字鍵盤佈局檔案</string>
-    <string name="text_keyboard_layout_saved_at">TextKeyboardLayout.json 已儲存至：%1$s</string>
-    <string name="text_keyboard_layout_file_saved_at">佈局檔案已儲存至：%1$s</string>
+    <string name="text_keyboard_layout_file_saved">已儲存：%1$s</string>
 
     <!-- Split keyboard settings (refactored) -->
     <string name="split_keyboard_enabled">啟用自動分體鍵盤</string>

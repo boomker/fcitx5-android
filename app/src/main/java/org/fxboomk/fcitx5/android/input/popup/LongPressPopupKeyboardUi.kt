@@ -2,15 +2,15 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
  * SPDX-FileCopyrightText: Copyright 2021-2026 Fcitx5 for Android Contributors
  */
-package org.fcitx.fcitx5.android.input.popup
+package org.fxboomk.fcitx5.android.input.popup
 
 import android.content.Context
 import android.graphics.Rect
 import android.graphics.drawable.GradientDrawable
 import android.view.ViewOutlineProvider
-import org.fcitx.fcitx5.android.data.theme.Theme
-import org.fcitx.fcitx5.android.input.AutoScaleTextView
-import org.fcitx.fcitx5.android.input.keyboard.KeyAction
+import org.fxboomk.fcitx5.android.data.theme.Theme
+import org.fxboomk.fcitx5.android.input.AutoScaleTextView
+import org.fxboomk.fcitx5.android.input.keyboard.KeyAction
 import splitties.dimensions.dp
 import splitties.views.dsl.core.Ui
 import splitties.views.dsl.core.add
@@ -52,7 +52,7 @@ class LongPressPopupKeyboardUi(
         val textView = view(::AutoScaleTextView) {
             text = this@PopupKeyUi.text
             scaleMode = AutoScaleTextView.Mode.Proportional
-            val fontSize = org.fcitx.fcitx5.android.input.font.FontProviders.getFontSize(
+            val fontSize = org.fxboomk.fcitx5.android.input.font.FontProviders.getFontSize(
                 "popup_key_font", 23f
             )
             setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, fontSize)
