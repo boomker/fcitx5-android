@@ -229,5 +229,18 @@ open class KeyDef(
         class Menu(val items: Array<Item>) : Popup() {
             class Item(val label: String, @DrawableRes val icon: Int, val action: KeyAction)
         }
+
+        /**
+         * Represents a longPress macro action that appears in the popup keyboard
+         * as the first candidate item.
+         * @param displayLabel The text to display in the popup candidate
+         * @param action The KeyAction to execute when selected
+         * @param baseLabel The base label to lookup remaining candidates from PopupPreset
+         */
+        class LongPressKeyboard(
+            val displayLabel: String,
+            val action: KeyAction,
+            val baseLabel: String
+        ) : Popup()
     }
 }

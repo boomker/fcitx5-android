@@ -181,6 +181,53 @@ class PopupComponent :
         showPopupContainer(viewId, keyboardUi)
     }
 
+    private fun showLongPressKeyboard(viewId: Int, keyboard: KeyDef.Popup.LongPressKeyboard, bounds: Rect) {
+        // Get base candidates from PopupPreset using baseLabel
+        val baseKeys = popupPresetJson?.get(keyboard.baseLabel)
+            ?: PopupPreset[keyboard.baseLabel]
+            ?: EmojiModifier.produceSkinTones(keyboard.baseLabel)
+            ?: emptyArray()
+
+        // Prepend the longPress macro as the first candidate
+        val keys = arrayOf(keyboard.displayLabel) + baseKeys
+        
+        if (keys.isEmpty()) {
+            dismissPopup(viewId)
+            return
+        }
+
+        // clear popup preview text OR create empty popup preview
+        showingEntryUi[viewId]?.setText("") ?: showPopup(viewId, "", bounds)
+        reallyShowLongPressKeyboard(viewId, keyboard, keys, bounds)
+    }
+
+    private fun reallyShowLongPressKeyboard(viewId: Int, keyboard: KeyDef.Popup.LongPressKeyboard, keys: Array<String>, bounds: Rect) {
+        val labels = if (punctuation.enabled) {
+            Array(keys.size) { idx ->
+                if (idx == 0) keys[0] // longPress label (first item)
+                else punctuation.transform(keys[idx])
+            }
+        } else keys
+        
+        // Create a special keyboard UI that can execute the longPress macro when first item is selected
+        val keyboardUi = LongPressPopupKeyboardUi(
+            context,
+            theme,
+            rootBounds,
+            bounds,
+            { dismissPopup(viewId) },
+            popupRadius,
+            popupWidth,
+            popupKeyHeight,
+            // position popup keyboard higher, because of [^1]
+            popupHeight + keyBottomMargin,
+            keys,
+            labels,
+            keyboard.action
+        )
+        showPopupContainer(viewId, keyboardUi)
+    }
+
     private fun showMenu(viewId: Int, menu: KeyDef.Popup.Menu, bounds: Rect) {
         if (menu.items.isEmpty()) {
             dismissPopup(viewId)
@@ -274,6 +321,7 @@ class PopupComponent :
                 is PopupAction.PreviewAction -> showPopup(viewId, content, bounds)
                 is PopupAction.PreviewUpdateAction -> updatePopup(viewId, content)
                 is PopupAction.ShowKeyboardAction -> showKeyboard(viewId, keyboard, bounds)
+                is PopupAction.ShowLongPressKeyboardAction -> showLongPressKeyboard(viewId, keyboard, bounds)
                 is PopupAction.ShowMenuAction -> showMenu(viewId, menu, bounds)
                 is PopupAction.TriggerAction -> outAction = triggerFocused(viewId)
             }

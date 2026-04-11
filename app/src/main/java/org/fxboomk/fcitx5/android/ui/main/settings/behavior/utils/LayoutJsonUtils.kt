@@ -176,6 +176,7 @@ object LayoutJsonUtils {
             displayText = obj["displayText"],  // AlphabetKey 和 MacroKey 共用
             label = obj["label"]?.jsonPrimitive?.content,
             altLabel = obj["altLabel"]?.jsonPrimitive?.content,
+            longPressLabel = obj["longPressLabel"]?.jsonPrimitive?.content,
             subLabel = obj["subLabel"]?.jsonPrimitive?.content,
             weight = parseOptionalFloat(obj["weight"]),
             textColor = parseOptionalInt(obj["textColor"]),
@@ -388,6 +389,7 @@ object LayoutJsonUtils {
         val displayText: JsonElement? = null,  // AlphabetKey 和 MacroKey 共用
         val label: String? = null,  // MacroKey/SymbolKey/LayoutSwitchKey 使用
         val altLabel: String? = null,  // MacroKey 使用
+        val longPressLabel: String? = null,  // MacroKey 使用
         val subLabel: String? = null,  // LayoutSwitchKey 使用
         val weight: Float? = null,
         val textColor: Int? = null,
@@ -473,6 +475,9 @@ object LayoutJsonUtils {
                 json["label"] = keyDef.label
                 if (keyDef.altLabel != null) {
                     json["altLabel"] = keyDef.altLabel
+                }
+                if (keyDef.longPressLabel != null) {
+                    json["longPressLabel"] = keyDef.longPressLabel
                 }
                 json["tap"] = macroActionToJson(keyDef.tap)
                 keyDef.swipe?.let { json["swipe"] = macroActionToJson(it) }
@@ -666,6 +671,7 @@ object LayoutJsonUtils {
                 MacroKey(
                     label = label,
                     altLabel = altLabel.ifEmpty { null },
+                    longPressLabel = key.longPressLabel,
                     tap = tap,
                     swipe = key.swipe,
                     longPress = key.longPress,

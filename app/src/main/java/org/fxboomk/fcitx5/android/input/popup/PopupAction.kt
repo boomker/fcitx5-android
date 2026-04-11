@@ -39,6 +39,12 @@ sealed class PopupAction {
         val bounds: Rect
     ) : PopupAction()
 
+    data class ShowLongPressKeyboardAction(
+        override val viewId: Int,
+        val keyboard: KeyDef.Popup.LongPressKeyboard,
+        val bounds: Rect
+    ) : PopupAction()
+
     data class ChangeFocusAction(
         override val viewId: Int,
         val x: Float,

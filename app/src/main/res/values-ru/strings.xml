@@ -493,6 +493,10 @@
     <string name="text_keyboard_layout_macro_key_label_required">Метка не может быть пустой</string>
     <string name="text_keyboard_layout_macro_tap_event">Событие нажатия</string>
     <string name="text_keyboard_layout_macro_swipe_event">Событие свайпа</string>
+    <string name="text_keyboard_layout_macro_longpress_event">Событие долгого нажатия</string>
+    <string name="text_keyboard_layout_longpress_label">Метка долгого нажатия</string>
+    <string name="text_keyboard_layout_longpress_label_fallback_hint">Если пусто, во всплывающем меню используется метка</string>
+    <string name="text_keyboard_layout_longpress_label_fallback_notice">Метка долгого нажатия пуста, во всплывающем меню будет использована метка.</string>
     <string name="text_keyboard_layout_macro_no_event">Событие не настроено</string>
     <string name="text_keyboard_layout_macro_event_preview">%1$s → … (всего шагов: %2$d)</string>
     <string name="text_keyboard_layout_alt_label">Альтернативная метка</string>

@@ -744,19 +744,44 @@ abstract class BaseKeyboard(
                     }
                 }
             }
+            // Check if there's a LongPressKeyboard in popup array
+            // If so, we should use it as the primary popup and skip regular Keyboard processing
+            val hasLongPressKeyboard = def.popup?.any { it is KeyDef.Popup.LongPressKeyboard } == true
+
             def.popup?.forEach {
                 when (it) {
                     // TODO: gesture processing middleware
                     is KeyDef.Popup.Menu -> {
-                        // If LongPress behavior is configured (e.g., MacroKey longPress),
-                        // don't override the long click listener - let the macro execute instead
-                        if (!hasLongPressBehavior) {
+                        // Keep long-press behavior unless LongPressKeyboard explicitly takes over.
+                        if (!hasLongPressKeyboard && !hasLongPressBehavior) {
                             setOnLongClickListener { view ->
                                 view as KeyView
                                 onPopupAction(PopupAction.ShowMenuAction(view.id, it, view.bounds))
-                                // do not consume this LongClick gesture
                                 false
                             }
+                            val oldOnGestureListener = onGestureListener ?: OnGestureListener.Empty
+                            swipeEnabled = true
+                            onGestureListener = OnGestureListener { view, event ->
+                                view as KeyView
+                                when (event.type) {
+                                    GestureType.Move -> {
+                                        onPopupChangeFocus(view.id, event.x, event.y)
+                                    }
+                                    GestureType.Up -> {
+                                        onPopupTrigger(view.id)
+                                    }
+                                    else -> false
+                                } || oldOnGestureListener.onGesture(view, event)
+                            }
+                        }
+                    }
+                    is KeyDef.Popup.LongPressKeyboard -> {
+                        // LongPress macro appears as the first candidate in popup keyboard
+                        setOnLongClickListener { view ->
+                            view as KeyView
+                            onPopupAction(PopupAction.ShowLongPressKeyboardAction(view.id, it, view.bounds))
+                            // do not consume this LongClick gesture
+                            false
                         }
                         val oldOnGestureListener = onGestureListener ?: OnGestureListener.Empty
                         swipeEnabled = true
@@ -774,29 +799,29 @@ abstract class BaseKeyboard(
                         }
                     }
                     is KeyDef.Popup.Keyboard -> {
-                        // If LongPress behavior is configured (e.g., MacroKey longPress),
-                        // don't override the long click listener - let the macro execute instead
-                        if (!hasLongPressBehavior) {
+                        // Keep long-press behavior unless LongPressKeyboard explicitly takes over.
+                        // LongPressKeyboard already contains baseLabel to lookup candidates.
+                        if (!hasLongPressKeyboard && !hasLongPressBehavior) {
                             setOnLongClickListener { view ->
                                 view as KeyView
                                 onPopupAction(PopupAction.ShowKeyboardAction(view.id, it, view.bounds))
                                 // do not consume this LongClick gesture
                                 false
                             }
-                        }
-                        val oldOnGestureListener = onGestureListener ?: OnGestureListener.Empty
-                        swipeEnabled = true
-                        onGestureListener = OnGestureListener { view, event ->
-                            view as KeyView
-                            when (event.type) {
-                                GestureType.Move -> {
-                                    onPopupChangeFocus(view.id, event.x, event.y)
-                                }
-                                GestureType.Up -> {
-                                    onPopupTrigger(view.id)
-                                }
-                                else -> false
-                            } || oldOnGestureListener.onGesture(view, event)
+                            val oldOnGestureListener = onGestureListener ?: OnGestureListener.Empty
+                            swipeEnabled = true
+                            onGestureListener = OnGestureListener { view, event ->
+                                view as KeyView
+                                when (event.type) {
+                                    GestureType.Move -> {
+                                        onPopupChangeFocus(view.id, event.x, event.y)
+                                    }
+                                    GestureType.Up -> {
+                                        onPopupTrigger(view.id)
+                                    }
+                                    else -> false
+                                } || oldOnGestureListener.onGesture(view, event)
+                            }
                         }
                     }
                     is KeyDef.Popup.AltPreview -> {

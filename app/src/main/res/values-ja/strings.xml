@@ -344,6 +344,10 @@
     <string name="text_keyboard_layout_mode_name_hint">モード名</string>
     <string name="text_keyboard_layout_macro_tap_event">タップイベント</string>
     <string name="text_keyboard_layout_macro_swipe_event">スワイプイベント</string>
+    <string name="text_keyboard_layout_macro_longpress_event">長押しイベント</string>
+    <string name="text_keyboard_layout_longpress_label">長押しラベル</string>
+    <string name="text_keyboard_layout_longpress_label_fallback_hint">空欄の場合はポップアップでラベルを使用</string>
+    <string name="text_keyboard_layout_longpress_label_fallback_notice">長押しラベルが未入力のため、ポップアップではラベルを使用します。</string>
     <string name="text_keyboard_layout_macro_no_event">イベントが設定されていません</string>
     <string name="text_keyboard_layout_macro_event_preview">%1$s → … (全 %2$d ステップ)</string>
     <string name="text_keyboard_layout_alt_label">代替ラベル</string>

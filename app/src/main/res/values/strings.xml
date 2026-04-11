@@ -554,6 +554,10 @@
     <string name="text_keyboard_layout_mode_name_hint">Mode name</string>
     <string name="text_keyboard_layout_macro_tap_event">Tap Event</string>
     <string name="text_keyboard_layout_macro_swipe_event">Swipe Event</string>
+    <string name="text_keyboard_layout_macro_longpress_event">Long Press Event</string>
+    <string name="text_keyboard_layout_longpress_label">Long Press Label</string>
+    <string name="text_keyboard_layout_longpress_label_fallback_hint">Empty means using Label in popup</string>
+    <string name="text_keyboard_layout_longpress_label_fallback_notice">Long Press Label is empty, popup will use Label.</string>
     <string name="text_keyboard_layout_macro_no_event">No event configured</string>
     <string name="text_keyboard_layout_macro_event_preview">%1$s → … (%2$d steps total)</string>
     <string name="text_keyboard_layout_alt_label">Alt Label</string>
