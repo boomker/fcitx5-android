@@ -73,6 +73,12 @@ class PickerTabsUi(override val ctx: Context, val theme: Theme) : Ui {
             label.isVisible = true
         }
 
+        fun setLabelRes(@androidx.annotation.StringRes resId: Int) {
+            label.setText(resId)
+            icon.isVisible = false
+            label.isVisible = true
+        }
+
         fun setIcon(@DrawableRes src: Int) {
             icon.imageDrawable = ctx.drawable(src)!!.apply {
                 setTint(theme.keyTextColor.alpha(0.5f))
@@ -103,6 +109,7 @@ class PickerTabsUi(override val ctx: Context, val theme: Theme) : Ui {
             TabUi().apply {
                 position = it
                 if (category.icon != 0) setIcon(category.icon)
+                else if (category.labelRes != 0) setLabelRes(category.labelRes)
                 else setLabel(category.label)
                 setActive(false)
             }

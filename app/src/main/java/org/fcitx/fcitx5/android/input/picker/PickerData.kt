@@ -8,7 +8,7 @@ import org.fcitx.fcitx5.android.R
 
 object PickerData {
 
-    data class Category(val label: String = "", val icon: Int = 0)
+    data class Category(val label: String = "", val icon: Int = 0, val labelRes: Int = 0)
 
     val RecentlyUsedCategory = Category("⟳", R.drawable.ic_baseline_access_time_24)
 
@@ -82,7 +82,7 @@ object PickerData {
             "❏", "❐", "❑", "❒", "◈", "◉", "◊", "○", "◢", "◣",
             "◤", "◥", "❢", "❣", "❤", "❥", "❦", "❧"
         ),
-        Category("[全]", R.drawable.symbol_fullwidth) to arrayOf(
+        Category("[全]", R.drawable.symbol_fullwidth, R.string.picker_category_fullwidth) to arrayOf(
             "１", "２", "３", "４", "５", "６", "７", "８", "９", "０",
             "！", "＠", "＃", "＄", "％", "＾", "＆", "＊", "（", "）",
             "‘", "’", "＝", "＿", "｀", "：", "；", "？",

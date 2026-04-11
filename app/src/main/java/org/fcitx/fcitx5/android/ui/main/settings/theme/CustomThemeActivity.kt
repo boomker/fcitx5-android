@@ -525,7 +525,7 @@ class CustomThemeActivity : AppCompatActivity() {
                 gravity = Gravity.CENTER
 
                 addView(Button(this@CustomThemeActivity).apply {
-                    text = "确定"
+                    text = getString(R.string.custom_theme_confirm)
                     layoutParams = LinearLayout.LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f)
                     setOnClickListener {
                         onConfirm(editingColor)
@@ -538,7 +538,7 @@ class CustomThemeActivity : AppCompatActivity() {
                 })
 
                 addView(Button(this@CustomThemeActivity).apply {
-                    text = "取消"
+                    text = getString(R.string.custom_theme_cancel)
                     layoutParams = LinearLayout.LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f)
                     setOnClickListener {
                         onCancel()
@@ -610,24 +610,24 @@ class CustomThemeActivity : AppCompatActivity() {
                     )
                 }
 
-                candidateTextPreview = TextView(this@CustomThemeActivity).apply { text = "候选" }
-                candidateLabelPreview = TextView(this@CustomThemeActivity).apply { text = "标签" }
-                candidateCommentPreview = TextView(this@CustomThemeActivity).apply { text = "注释" }
+                candidateTextPreview = TextView(this@CustomThemeActivity).apply { text = getString(R.string.custom_theme_preview_candidate) }
+                candidateLabelPreview = TextView(this@CustomThemeActivity).apply { text = getString(R.string.custom_theme_preview_label) }
+                candidateCommentPreview = TextView(this@CustomThemeActivity).apply { text = getString(R.string.custom_theme_preview_comment) }
                 popupPreview = TextView(this@CustomThemeActivity).apply {
-                    text = "弹出"
+                    text = getString(R.string.custom_theme_preview_popup)
                     val hp = dp(10)
                     val vp = dp(3)
                     setPadding(hp, vp, hp, vp)
                 }
                 dividerPreview = View(this@CustomThemeActivity)
                 clipboardPreview = TextView(this@CustomThemeActivity).apply {
-                    text = "剪贴板"
+                    text = getString(R.string.custom_theme_preview_clipboard)
                     val hp = dp(8)
                     val vp = dp(3)
                     setPadding(hp, vp, hp, vp)
                 }
                 genericActivePreview = TextView(this@CustomThemeActivity).apply {
-                    text = "激活"
+                    text = getString(R.string.custom_theme_preview_active)
                     val hp = dp(8)
                     val vp = dp(3)
                     setPadding(hp, vp, hp, vp)

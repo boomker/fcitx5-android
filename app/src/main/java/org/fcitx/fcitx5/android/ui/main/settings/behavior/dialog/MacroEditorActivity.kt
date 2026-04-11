@@ -964,14 +964,14 @@ class MacroEditorActivity : AppCompatActivity() {
                 minWidth = dp(36)
                 setOnClickListener {
                     AlertDialog.Builder(this@MacroEditorActivity)
-                        .setTitle("删除步骤")
-                        .setMessage("确定要删除此行吗？")
-                        .setPositiveButton("删除") { _, _ ->
+                        .setTitle(R.string.macro_editor_delete_step_title)
+                        .setMessage(R.string.macro_editor_delete_step_message)
+                        .setPositiveButton(R.string.macro_editor_delete) { _, _ ->
                             steps.removeAt(position)
                             stepsAdapter.notifyItemRemoved(position)
                             updateSaveButtonState()
                         }
-                        .setNegativeButton("取消", null)
+                        .setNegativeButton(R.string.macro_editor_cancel, null)
                         .show()
                 }
             }
@@ -1334,16 +1334,16 @@ class MacroEditorActivity : AppCompatActivity() {
                 .filter { it !in currentModifiers.map { m -> m.code } }
 
             if (availableModifiers.isEmpty()) {
-                Toast.makeText(this@MacroEditorActivity, "已添加所有修饰键", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@MacroEditorActivity, R.string.macro_editor_all_modifiers_added, Toast.LENGTH_SHORT).show()
                 return
             }
 
             AlertDialog.Builder(this@MacroEditorActivity)
-                .setTitle("选择修饰键")
+                .setTitle(R.string.macro_editor_select_modifier_title)
                 .setItems(availableModifiers.toTypedArray()) { _, which ->
                     onSelect(availableModifiers[which])
                 }
-                .setNegativeButton("取消", null)
+                .setNegativeButton(R.string.macro_editor_cancel, null)
                 .show()
         }
     }
