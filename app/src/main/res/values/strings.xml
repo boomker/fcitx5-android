@@ -2,16 +2,14 @@
 <resources>
     <string name="app_name">天鹅输入法</string>
     <string name="app_name_release">天鹅输入法</string>
+    <string name="app_name_debug">天鹅输入法 (Debug)</string>
     <string name="app_name_mainline_release">Fcitx5</string>
     <string name="app_name_mainline_debug">Fcitx5 (Debug)</string>
-    <string name="app_name_debug">天鹅输入法 (Debug)</string>
     <string name="save">Save</string>
     <string name="input_methods">Input Methods</string>
-    <string name="add_input_method">Add Input Method</string>
     <string name="addons">Addons</string>
     <string name="conf">Configuration</string>
     <string name="global_options">Global Options</string>
-    <string name="behavior">Behavior</string>
     <string name="advanced">Advanced</string>
     <string name="ignore_sys_cursor">Ignore system cursor position</string>
     <string name="hide_key_config">Hide hotkey configurations</string>
@@ -112,7 +110,6 @@
     <string name="app_crash_message">Sorry, but we bring you some logs to investigate.</string>
     <string name="crash_logs">Crash logs</string>
     <string name="verbose_log">Verbose logging</string>
-    <string name="verbose_log_summary">Requires restart</string>
     <string name="removed_x">Removed %1$s</string>
     <string name="added_x">Added %1$s</string>
     <string name="edited_x">Edited %1$s</string>
@@ -120,7 +117,6 @@
     <string name="keyboard_long_press_delay">Key long press delay</string>
     <string name="quickphrase_editor">Quick Phrase Editor</string>
     <string name="quickphrase_already_exists">Quick phrase already exists</string>
-    <string name="invalid_quickphrase">Invalid quick phrase type</string>
     <string name="create_new">Create new</string>
     <string name="name">Name</string>
     <string name="reset">Reset</string>
@@ -163,7 +159,6 @@
     <string name="exception_quickphrase_parse">Failed to parse quick phrase line: %1$s</string>
     <string name="exception_quickphrase_filename">The filename extension of %1$s does not indicate a quick phrase</string>
     <string name="exception_theme_filename">The filename extension of %1$s does not indicate a theme</string>
-    <string name="exception_theme_unknown">Theme %1$s is unknown</string>
     <string name="exception_libime_dict_filename">The filename extension of %1$s does not indicate a libime dict</string>
     <string name="exception_text_dict_filename">The filename extension of %1$s does not indicate a text dict</string>
     <string name="exception_sougou_dict_filename">The filename extension of %1$s does not indicate a sogou dict</string>
@@ -187,19 +182,12 @@
     <string name="new_theme">New theme</string>
     <string name="theme_name">Theme name</string>
     <string name="theme_name_empty">Theme name cannot be empty</string>
-    <string name="monet_editor_title">Edit Monet Theme</string>
-    <string name="monet_editor_unsupported_title">Material You Not Supported</string>
-    <string name="monet_editor_unsupported_message">Material You dynamic colors require Android 12 (SDK 31) or higher. Your device is running Android %1$d.</string>
     <string name="monet_editor_select_color_resource">Select Color Resource</string>
     <string name="monet_editor_select">Select</string>
     <string name="monet_editor_color_mapping_title">Color Mapping</string>
     <string name="monet_editor_description">Map each theme color to a Material You dynamic color resource. Changes will be saved and applied automatically.</string>
     <string name="edit_monet_theme">Edit Monet Theme</string>
-    <string name="edit_monet_light_theme">Edit MonetLight mapping</string>
-    <string name="edit_monet_dark_theme">Edit MonetDark mapping</string>
-    <string name="edit_monet_theme_summary">Customize Material You resource mapping for this Monet theme</string>
     <string name="skip">Skip</string>
-    <string name="horizontal_candidate_growth">Stretch horizontal candidates to fill the remaining width</string>
     <string name="none">None</string>
     <string name="theme_migrated">Theme has been migrated to the current version</string>
     <string name="keep_keyboard_letters_uppercase">Keep keyboard letters uppercase</string>
@@ -217,9 +205,6 @@
     <string name="split_keyboard_enabled">Enable auto split keyboard</string>
     <string name="split_keyboard_enabled_summary">Automatically enable split keyboard based on keyboard width. When disabled, always use full keyboard.</string>
     <string name="split_keyboard_threshold">Split keyboard threshold</string>
-    <string name="split_keyboard_threshold_summary">Enable split keyboard when keyboard width exceeds this value</string>
-
-    <string name="split_keyboard_gap_percent">Split keyboard center gap</string>
 
     <!-- Split keyboard calibration -->
     <string name="split_keyboard_calibration_title">Split Keyboard Calibration</string>
@@ -229,7 +214,6 @@
     <string name="split_keyboard_gap_label">Gap (%)</string>
     <string name="split_keyboard_auto_calibrate">Auto Calibrate</string>
     <string name="split_keyboard_reset">Reset</string>
-    <string name="split_keyboard_apply">Apply</string>
     <string name="split_keyboard_preview_load_failed">Preview load failed: %1$s</string>
     <string name="split_keyboard_info_type">Type</string>
     <string name="split_keyboard_info_orientation">Orientation</string>
@@ -257,8 +241,6 @@
     <string name="split_keyboard_recommend_reason_phone">Standard phone</string>
     <string name="split_keyboard_auto_calibrate_toast">Applied: %1$ddp, Gap %2$d%% (%3$s)</string>
     <string name="split_keyboard_reset_toast">Reset to defaults</string>
-    <string name="split_keyboard_apply_toast">Saved: Threshold %1$ddp, Gap %2$d%%%3$s</string>
-    <string name="split_keyboard_apply_note_disabled"> (Note: Split keyboard is disabled)</string>
     <string name="split_keyboard_use_landscape_layout">Use landscape layout when split keyboard active</string>
     <string name="split_keyboard_use_landscape_layout_summary">When enabled and split keyboard is active, use landscape layout parameters (height, padding, etc.). This option is only available when auto split keyboard is enabled.</string>
     <string name="disable_addon_warn_title">Disable Addon</string>
@@ -350,7 +332,6 @@
     <string name="buttons_customizer_hint">Drag buttons to reorder or move between Kawaii Bar (top row) and Status Area (menu). Long press to start dragging.</string>
     <string name="kawaii_bar_section">Kawaii Bar (Top Row)</string>
     <string name="status_area_section">Status Area (Menu)</string>
-    <string name="available_buttons_section">Available Buttons</string>
     <string name="language_switch">Language Switch</string>
     <string name="all_buttons_added">All available buttons have been added</string>
     <string name="add_button_to_section_title">Add to Section</string>
@@ -376,12 +357,9 @@
     <string name="cannot_resolve_popup_preset">Unable to resolve popup preset file</string>
     <string name="popup_preset_saved_at">popuppreset.json saved at: %1$s</string>
     <string name="fontset_editor_hint">Tap each item to choose one or more fonts from the fonts directory. Multiple fonts are used as fallback in order.</string>
-    <string name="fontset_not_set">Not set (use default)</string>
     <string name="no_fonts_found">No font files found in fonts/</string>
     <string name="fontset_saved">fontset.json saved</string>
     <string name="fontset_saved_at">fontset.json saved at: %1$s</string>
-    <string name="fontset_order_hint">Checked fonts are placed at the top. Drag checked items to adjust fallback order.</string>
-    <string name="fontset_empty_warn">No font selected. Please select at least one font before saving.</string>
     <string name="fontset_entry_font">Base Font</string>
     <string name="fontset_entry_key_main">Key Main Font</string>
     <string name="fontset_entry_key_alt">Key Alt Font</string>
@@ -427,12 +405,9 @@
     <string name="table_dict_replace_message">Dictionary of table-based input method \"%1$s\" exists. You may import a new dict and replace it.</string>
     <string name="lang_switch_key_behavior">Language switch key behavior</string>
     <string name="lang_switch_behavior_next_ime_app">Switch to next input method App</string>
-    <string name="cannot_be_empty">Cannot be empty</string>
     <string name="_cannot_be_empty">%1$s cannot be empty</string>
-    <string name="action_forget_candidate_word">Forget word</string>
     <string name="clipboard_mask_sensitive">Mask sensitive data (such as passwords)</string>
     <string name="open_rime_user_data_dir">Application data directory will be opened. RIME user data directory is located in \"data/rime\".</string>
-    <string name="restart_to_apply_settings">Application will restart to apply new settings. Proceed?</string>
     <string name="generic_multiselect_min">At least %1$d item(s) must be selected.</string>
     <string name="space_swipe_move_cursor">Swipe on space key to move cursor</string>
     <string name="please_wait">Please wait…</string>
@@ -450,9 +425,7 @@
     <string name="horizontal">Horizontal</string>
     <string name="vertical">Vertical</string>
     <string name="always">Always</string>
-    <string name="virtual_keyboard_candidates">Virtual Keyboard Candidates</string>
     <string name="candidates_position">Candidates window position</string>
-    <string name="candidates_position_summary">Only effective when candidates window mode is set to \"Always\"</string>
     <string name="top_left">Top Left</string>
     <string name="top_right">Top Right</string>
     <string name="bottom_left">Bottom Left</string>
@@ -538,7 +511,6 @@
     <string name="text_keyboard_layout_switch_file_discard_message">You have unsaved edits. Switching layout file will discard current changes.</string>
     <string name="text_keyboard_layout_create_file_discard_message">You have unsaved edits. Creating a new layout file now will discard current changes.</string>
     <string name="text_keyboard_layout_delete_file_discard_message">You have unsaved edits. Deleting layout file now will discard current changes.</string>
-    <string name="text_keyboard_layout_rename_file_discard_message">You have unsaved edits. Renaming layout file now will discard current changes.</string>
     <string name="text_keyboard_layout_file_switched">Switched to: %1$s</string>
     <string name="text_keyboard_layout_preview">Preview</string>
 
@@ -547,7 +519,6 @@
     <string name="cancel">Cancel</string>
     <string name="saved">Saved</string>
     <string name="save_failed">Save failed</string>
-    <string name="config_file_not_found">Configuration file not found</string>
     <string name="text_keyboard_layout_add_layout">Add Layout</string>
     <string name="text_keyboard_layout_add_row">Add Row</string>
     <string name="text_keyboard_layout_add_key">Add Key</string>
@@ -629,6 +600,24 @@
     <string name="macro_editor_step_edit_action_required">Step %1$d requires an action</string>
     <string name="macro_editor_type_change_title">Change Step Type</string>
     <string name="macro_editor_type_change_message">Changing step type will clear current data. Continue?</string>
+    <string name="macro_editor_delete_step_title">Delete Step</string>
+    <string name="macro_editor_delete_step_message">Are you sure you want to delete this step?</string>
+    <string name="macro_editor_select_modifier_title">Select Modifier</string>
+    <string name="macro_editor_all_modifiers_added">All modifiers have been added</string>
+    <string name="custom_theme_confirm">OK</string>
+    <string name="custom_theme_cancel">Cancel</string>
+    <string name="custom_theme_preview_candidate">Candidate</string>
+    <string name="custom_theme_preview_label">Label</string>
+    <string name="custom_theme_preview_comment">Comment</string>
+    <string name="custom_theme_preview_popup">Popup</string>
+    <string name="custom_theme_preview_clipboard">Clipboard</string>
+    <string name="custom_theme_preview_active">Active</string>
+    <string name="fontset_sample_main">QWER Hello</string>
+    <string name="fontset_sample_alt">!@#()</string>
+    <string name="fontset_sample_candidate">Candidate Example</string>
+    <string name="fontset_sample_popup">Popup Key</string>
+    <string name="fontset_sample_preedit">Preedit Text</string>
+    <string name="picker_category_fullwidth">Fullwidth</string>
     <string name="text_keyboard_layout_display_text_mode_invalid">Please fill in row %1$d before adding a new mode</string>
     <string name="text_keyboard_layout_display_text_mode_duplicate">Mode name "%1$s" is already in use</string>
     <string name="text_keyboard_layout_add_submode">Add submode layout</string>
@@ -645,8 +634,6 @@
     <string name="text_keyboard_layout_discard_changes_positive">Discard</string>
     <string name="text_keyboard_layout_discard_changes_negative">Cancel</string>
     <string name="cannot_resolve_text_keyboard_layout">Unable to resolve text keyboard layout file</string>
-    <string name="text_keyboard_layout_saved_at">TextKeyboardLayout.json saved at: %1$s</string>
-    <string name="text_keyboard_layout_file_saved_at">Layout file saved at: %1$s</string>
     <string name="text_keyboard_layout_file_saved">Saved: %1$s</string>
     <string name="text_keyboard_layout_save_failed">Failed to save layout. Check logcat for details.</string>
     <string name="macro_editor_key_event_unmatched">Key event mismatch: The number of key down and up events for %1$s does not match</string>
@@ -677,7 +664,6 @@
     <string name="qr_payload_type_layout">Layout</string>
     <string name="qr_payload_type_popup">Popup</string>
     <string name="qr_payload_type_unknown">Unknown</string>
-    <string name="theme_share_import_menu">Theme share/import</string>
     <string name="theme_share_active">Share current active theme</string>
     <string name="theme_import_qr_scan">Import theme by scanning QR</string>
     <string name="theme_import_qr_image">Import theme from QR image</string>
@@ -689,6 +675,5 @@
     <string name="theme_imported_from_qr">Theme imported. Save completed.</string>
     <string name="preferred_voice_input">Preferred voice input</string>
     <string name="background_blur_radius">Background Blur Radius</string>
-    <string name="blur_preview">Blur Preview</string>
     <string name="no_blur">No Blur</string>
 </resources>

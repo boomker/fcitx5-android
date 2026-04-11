@@ -2,16 +2,14 @@
 <resources>
     <string name="app_name">天鹅输入法</string>
     <string name="app_name_release">天鹅输入法</string>
+    <string name="app_name_debug">小天鹅输入法</string>
     <string name="app_name_mainline_release">天鹅输入法</string>
     <string name="app_name_mainline_debug">小天鹅输入法</string>
-    <string name="app_name_debug">小天鹅输入法</string>
     <string name="save">保存</string>
     <string name="input_methods">输入法</string>
-    <string name="add_input_method">添加输入法</string>
     <string name="addons">附加组件</string>
     <string name="conf">配置</string>
     <string name="global_options">全局选项</string>
-    <string name="behavior">行为</string>
     <string name="advanced">高级</string>
     <string name="ignore_sys_cursor">忽略系统光标位置</string>
     <string name="hide_key_config">隐藏快捷键配置</string>
@@ -110,7 +108,6 @@
     <string name="app_crash_message">抱歉，但我们提供了日志以供调查。</string>
     <string name="crash_logs">崩溃日志</string>
     <string name="verbose_log">详细记录日志</string>
-    <string name="verbose_log_summary">需要重启</string>
     <string name="removed_x">已移除 %1$s</string>
     <string name="added_x">已添加 %1$s</string>
     <string name="edited_x">已编辑 %1$s</string>
@@ -118,7 +115,6 @@
     <string name="keyboard_long_press_delay">长按延迟</string>
     <string name="quickphrase_editor">快速输入编辑器</string>
     <string name="quickphrase_already_exists">快速输入已存在</string>
-    <string name="invalid_quickphrase">快速输入格式无效</string>
     <string name="create_new">新建</string>
     <string name="name">名称</string>
     <string name="reset">重置</string>
@@ -161,7 +157,6 @@
     <string name="exception_quickphrase_parse">无法解析快速输入条目： %1$s</string>
     <string name="exception_quickphrase_filename">文件 %1$s 的拓展名不是快速输入</string>
     <string name="exception_theme_filename">文件 %1$s 的拓展名不是主题</string>
-    <string name="exception_theme_unknown">未知主题 %1$s</string>
     <string name="exception_libime_dict_filename">文件 %1$s 的拓展名不是 libime 词库</string>
     <string name="exception_text_dict_filename">文件 %1$s 的拓展名不是纯文本词库</string>
     <string name="exception_sougou_dict_filename">文件 %1$s 的拓展名不是搜狗细胞词库</string>
@@ -183,8 +178,9 @@
     <string name="dark_mode_theme">暗色模式主题</string>
     <string name="dark_mode_theme_summary">选择多个主题并在切换时轮询</string>
     <string name="new_theme">新增主题</string>
+    <string name="theme_name">主题名称</string>
+    <string name="theme_name_empty">主题名称不能为空</string>
     <string name="skip">跳过</string>
-    <string name="horizontal_candidate_growth">拉伸横向候选词以填充宽度</string>
     <string name="none">无</string>
     <string name="theme_migrated">主题已迁移到当前版本</string>
     <string name="theme_name">主题名称</string>
@@ -204,9 +200,6 @@
     <string name="split_keyboard_enabled">启用自动分体键盘</string>
     <string name="split_keyboard_enabled_summary">根据键盘宽度自动启用分体键盘。关闭后始终使用完整键盘。</string>
     <string name="split_keyboard_threshold">分体键盘阈值</string>
-    <string name="split_keyboard_threshold_summary">当键盘宽度超过设定值时自动启用分体键盘</string>
-
-    <string name="split_keyboard_gap_percent">分体中缝宽度</string>
 
     <!-- Split keyboard calibration -->
     <string name="split_keyboard_calibration_title">分体键盘校准</string>
@@ -216,7 +209,6 @@
     <string name="split_keyboard_gap_label">中缝间隙 (%)</string>
     <string name="split_keyboard_auto_calibrate">自动校准</string>
     <string name="split_keyboard_reset">重置</string>
-    <string name="split_keyboard_apply">应用设置</string>
     <string name="split_keyboard_preview_load_failed">预览加载失败：%1$s</string>
     <string name="split_keyboard_info_type">类型</string>
     <string name="split_keyboard_info_orientation">方向</string>
@@ -244,10 +236,8 @@
     <string name="split_keyboard_recommend_reason_phone">标准手机建议值</string>
     <string name="split_keyboard_auto_calibrate_toast">✅ 已应用推荐值：%1$ddp，间隙 %2$d%%（%3$s）</string>
     <string name="split_keyboard_reset_toast">已重置为默认值</string>
-    <string name="split_keyboard_apply_toast">✅ 设置已保存：阈值 %1$ddp，间隙 %2$d%%%3$s</string>
     <string name="split_keyboard_use_landscape_layout">分体键盘时采用横屏布局参数</string>
     <string name="split_keyboard_use_landscape_layout_summary">启用后，当分体键盘生效时使用横屏的布局参数（高度、边距等）。仅当启用自动分体键盘时可用。</string>
-    <string name="split_keyboard_apply_note_disabled">（注意：分体开关当前关闭）</string>
     <string name="disable_addon_warn_title">禁用附加组件</string>
     <string name="disable_addon_warn_name">禁用%1$s将同时：</string>
     <string name="disable_addon_warn_dep">禁用%1$s</string>
@@ -339,7 +329,6 @@
     <string name="buttons_customizer_hint">拖动按钮重新排序或在 Kawaii Bar（顶行）和 Status Area（菜单）之间移动。长按开始拖动。</string>
     <string name="kawaii_bar_section">Kawaii Bar（顶行）</string>
     <string name="status_area_section">Status Area（菜单）</string>
-    <string name="available_buttons_section">可用区</string>
     <string name="language_switch">语言切换</string>
     <string name="all_buttons_added">所有可用按钮已添加</string>
     <string name="add_button_to_section_title">添加到区域</string>
@@ -365,12 +354,9 @@
     <string name="cannot_resolve_popup_preset">无法定位弹出预设文件</string>
     <string name="popup_preset_saved_at">popuppreset.json 已保存到：%1$s</string>
     <string name="fontset_editor_hint">点击每一项可从 fonts 目录选择一个或多个字体。多个字体将按顺序作为回退字体使用。</string>
-    <string name="fontset_not_set">未设置（使用默认）</string>
     <string name="no_fonts_found">在 fonts/ 中未找到字体文件</string>
     <string name="fontset_saved">fontset.json 已保存</string>
     <string name="fontset_saved_at">fontset.json 已保存到：%1$s</string>
-    <string name="fontset_order_hint">勾选的字体会放在顶部，可拖动已勾选项调整回退顺序。</string>
-    <string name="fontset_empty_warn">未选择任何字体，请至少选择一个字体后再保存。</string>
     <string name="fontset_entry_font">基础字体</string>
     <string name="fontset_entry_key_main">按键主字体</string>
     <string name="fontset_entry_key_alt">按键副字体</string>
@@ -409,12 +395,9 @@
     <string name="table_dict_replace_message">码表词典 \"%1$s\" 已存在。您可以导入新词典并替换它。</string>
     <string name="lang_switch_key_behavior">语言切换键行为</string>
     <string name="lang_switch_behavior_next_ime_app">切换至下一个输入法应用</string>
-    <string name="cannot_be_empty">不能为空</string>
     <string name="_cannot_be_empty">%1$s不能为空</string>
-    <string name="action_forget_candidate_word">忘记词汇</string>
     <string name="clipboard_mask_sensitive">隐藏敏感信息（如密码）</string>
     <string name="open_rime_user_data_dir">即将打开应用数据目录。 RIME 用户数据目录位于“data/rime”。</string>
-    <string name="restart_to_apply_settings">应用将重启以应用新设置。继续吗？</string>
     <string name="generic_multiselect_min">至少需要选择 %1$d 项。</string>
     <string name="space_swipe_move_cursor">划动空格键以移动光标</string>
     <string name="please_wait">请稍候…</string>
@@ -432,9 +415,7 @@
     <string name="horizontal">横向</string>
     <string name="vertical">纵向</string>
     <string name="always">始终</string>
-    <string name="virtual_keyboard_candidates">虚拟键盘候选窗口</string>
     <string name="candidates_position">候选窗口位置</string>
-    <string name="candidates_position_summary">仅在候选窗口模式为"始终"时生效</string>
     <string name="top_left">左上</string>
     <string name="top_right">右上</string>
     <string name="bottom_left">左下</string>
@@ -523,9 +504,12 @@
     <string name="text_keyboard_layout_switch_file_discard_message">当前有未保存编辑，切换布局文件将丢失这些更改。</string>
     <string name="text_keyboard_layout_create_file_discard_message">当前有未保存编辑，立即新建布局文件将丢失这些更改。</string>
     <string name="text_keyboard_layout_delete_file_discard_message">当前有未保存编辑，立即删除布局文件将丢失这些更改。</string>
-    <string name="text_keyboard_layout_rename_file_discard_message">当前有未保存编辑，立即重命名布局文件将丢失这些更改。</string>
     <string name="text_keyboard_layout_file_switched">已切换到：%1$s</string>
     <string name="text_keyboard_layout_preview">预览</string>
+    <string name="ok">确定</string>
+    <string name="cancel">取消</string>
+    <string name="saved">已保存</string>
+    <string name="save_failed">保存失败</string>
     <string name="text_keyboard_layout_add_layout">添加布局</string>
     <string name="text_keyboard_layout_add_row">添加行</string>
     <string name="text_keyboard_layout_add_key">添加按键</string>
@@ -615,11 +599,29 @@
     <string name="macro_editor_step_shortcut_modifiers_empty">步骤 %1$d 需要至少一个修饰键（Ctrl/Alt/Shift/Meta）</string>
     <string name="macro_editor_step_shortcut_multiple_keys">步骤 %1$d 只能有一个目标按键</string>
     <string name="macro_editor_step_edit_action_required">步骤 %1$d 需要选择一个操作</string>
+    <string name="macro_editor_type_change_title">更改步骤类型</string>
+    <string name="macro_editor_type_change_message">更改步骤类型将清除当前数据。是否继续？</string>
+    <string name="macro_editor_delete_step_title">删除步骤</string>
+    <string name="macro_editor_delete_step_message">确定要删除此步骤吗？</string>
+    <string name="macro_editor_select_modifier_title">选择修饰键</string>
+    <string name="macro_editor_all_modifiers_added">已添加所有修饰键</string>
+    <string name="custom_theme_confirm">确定</string>
+    <string name="custom_theme_cancel">取消</string>
+    <string name="custom_theme_preview_candidate">候选</string>
+    <string name="custom_theme_preview_label">标签</string>
+    <string name="custom_theme_preview_comment">注释</string>
+    <string name="custom_theme_preview_popup">弹出</string>
+    <string name="custom_theme_preview_clipboard">剪贴板</string>
+    <string name="custom_theme_preview_active">激活</string>
+    <string name="fontset_sample_main">QWER 你好</string>
+    <string name="fontset_sample_alt">!@#（）</string>
+    <string name="fontset_sample_candidate">候选词示例</string>
+    <string name="fontset_sample_popup">弹出键</string>
+    <string name="fontset_sample_preedit">预编辑文本</string>
+    <string name="picker_category_fullwidth">全角</string>
     <string name="text_keyboard_layout_display_text_mode_invalid">请先填写第 %1$d 行的模式名称和显示文本</string>
     <string name="text_keyboard_layout_display_text_mode_duplicate">模式名称 "%1$s" 已被使用</string>
     <string name="cannot_resolve_text_keyboard_layout">无法定位文本键盘布局文件</string>
-    <string name="text_keyboard_layout_saved_at">TextKeyboardLayout.json 已保存到：%1$s</string>
-    <string name="text_keyboard_layout_file_saved_at">布局文件已保存到：%1$s</string>
     <string name="text_keyboard_layout_file_saved">已保存：%1$s</string>
     <string name="text_keyboard_layout_switch_submode_failed">切换到子模式"%1$s"失败</string>
     <string name="text_keyboard_layout_discard_changes_title">是否放弃未保存的布局更改？</string>
@@ -657,7 +659,6 @@
     <string name="qr_payload_type_layout">布局</string>
     <string name="qr_payload_type_popup">Popup</string>
     <string name="qr_payload_type_unknown">未知</string>
-    <string name="theme_share_import_menu">主题分享/导入</string>
     <string name="theme_share_active">分享当前激活主题</string>
     <string name="theme_import_qr_scan">扫码导入主题</string>
     <string name="theme_import_qr_image">从二维码图片导入主题</string>
@@ -669,21 +670,14 @@
     <string name="theme_imported_from_qr">主题已导入并保存。</string>
     <string name="preferred_voice_input">首选语音输入</string>
     <string name="background_blur_radius">背景模糊半径</string>
-    <string name="blur_preview">模糊预览</string>
     <string name="no_blur">无模糊</string>
 
     <!-- Monet Theme Editor -->
-    <string name="monet_editor_title">编辑 Monet 主题</string>
-    <string name="monet_editor_unsupported_title">不支持 Material You</string>
-    <string name="monet_editor_unsupported_message">Material You 动态颜色需要 Android 12 (SDK 31) 或更高版本。您的设备运行的是 Android %1$d。</string>
     <string name="monet_editor_select_color_resource">选择颜色资源</string>
     <string name="monet_editor_select">选择</string>
     <string name="monet_editor_color_mapping_title">颜色映射</string>
     <string name="monet_editor_description">为每个主题颜色映射一个 Material You 动态颜色资源。更改将自动保存并应用。</string>
     <string name="edit_monet_theme">编辑 Monet 主题</string>
-    <string name="edit_monet_light_theme">编辑 MonetLight 映射</string>
-    <string name="edit_monet_dark_theme">编辑 MonetDark 映射</string>
-    <string name="edit_monet_theme_summary">自定义此 Monet 主题的 Material You 资源映射</string>
 
     <string name="text_keyboard_layout_save_failed">保存布局失败。请查看 logcat 获取详细信息。</string>
 </resources>

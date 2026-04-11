@@ -2,16 +2,14 @@
 <resources>
     <string name="app_name">天鹅输入法</string>
     <string name="app_name_release">天鹅输入法</string>
+    <string name="app_name_debug">天鹅输入法 (Отладка)</string>
     <string name="app_name_mainline_release">Fcitx5</string>
     <string name="app_name_mainline_debug">Fcitx5 (Отладка)</string>
-    <string name="app_name_debug">天鹅输入法 (Отладка)</string>
     <string name="save">Сохранить</string>
     <string name="input_methods">Методы ввода</string>
-    <string name="add_input_method">Добавить метод ввода</string>
     <string name="addons">Дополнения</string>
     <string name="conf">Конфигурация</string>
     <string name="global_options">Глобальные параметры</string>
-    <string name="behavior">Поведение</string>
     <string name="advanced">Расширенное</string>
     <string name="ignore_sys_cursor">Игнорировать позицию системного курсора</string>
     <string name="hide_key_config">Скрыть конфигурации горячих клавиш</string>
@@ -98,7 +96,6 @@
     <string name="app_crash_message">Извините, но мы предоставляем вам несколько журналов для изучения.</string>
     <string name="crash_logs">Журналы сбоев</string>
     <string name="verbose_log">Подробное ведение журнала</string>
-    <string name="verbose_log_summary">Требуется перезапуск</string>
     <string name="removed_x">Удалено %1$s</string>
     <string name="added_x">Добавлено %1$s</string>
     <string name="edited_x">Отредактировано %1$s</string>
@@ -106,7 +103,6 @@
     <string name="keyboard_long_press_delay">Задержка при длительном нажатии клавиши</string>
     <string name="quickphrase_editor">Редактор быстрых фраз</string>
     <string name="quickphrase_already_exists">Быстрая фраза уже существует</string>
-    <string name="invalid_quickphrase">Неверный тип быстрой фразы</string>
     <string name="create_new">Создать новый</string>
     <string name="name">Имя</string>
     <string name="reset">Перезагрузить</string>
@@ -147,7 +143,6 @@
     <string name="exception_quickphrase_parse">Не удалось разобрать строку быстрой фразы: %1$s</string>
     <string name="exception_quickphrase_filename">Расширение имени файла %1$s не указывает на быструю фразу</string>
     <string name="exception_theme_filename">Расширение имени файла %1$s не указывает на тему</string>
-    <string name="exception_theme_unknown">Тема %1$s неизвестна</string>
     <string name="exception_libime_dict_filename">Расширение имени файла %1$s не указывает на словарь libime</string>
     <string name="exception_text_dict_filename">Расширение имени файла %1$s не указывает на текстовый словарь</string>
     <string name="exception_sougou_dict_filename">Расширение имени файла %1$s не указывает на словарь sogou</string>
@@ -163,8 +158,9 @@
     <string name="dark_mode_theme">Темная тема</string>
     <string name="dark_mode_theme_summary">Выберите несколько тем и переключайтесь между ними</string>
     <string name="new_theme">Новая тема</string>
+    <string name="theme_name">Название темы</string>
+    <string name="theme_name_empty">Название темы не может быть пустым</string>
     <string name="skip">Пропустить</string>
-    <string name="horizontal_candidate_growth">Растянуть кандидаты по горизонтали, чтобы заполнить оставшуюся ширину</string>
     <string name="none">Нет</string>
     <string name="theme_migrated">Тема перенесена в текущую версию</string>
     <string name="theme_name">Название темы</string>
@@ -276,12 +272,9 @@
     <string name="table_dict_replace_message">Словарь кодовой таблицы \"%1$s\" существует. Вы можете импортировать новый словарь и заменить его.</string>
     <string name="lang_switch_key_behavior">Поведение клавиши переключения языка</string>
     <string name="lang_switch_behavior_next_ime_app">Переключиться на следующий метод ввода</string>
-    <string name="cannot_be_empty">Не может быть пустым</string>
     <string name="_cannot_be_empty">%1$s не может быть пустым</string>
-    <string name="action_forget_candidate_word">Забыть слово</string>
     <string name="clipboard_mask_sensitive">Маскировать конфиденциальные данные (например, пароли).</string>
     <string name="open_rime_user_data_dir">Будет открыт каталог данных приложения. Каталог пользовательских данных RIME находится в директории \"data/rime\".</string>
-    <string name="restart_to_apply_settings">Для применения новых настроек, приложение будет перезапущено. Продолжить?</string>
     <string name="generic_multiselect_min">Необходимо выбрать как минимум %1$d элемент(а).</string>
     <string name="space_swipe_move_cursor">Провести по клавише пробела, чтобы переместить курсор</string>
     <string name="please_wait">Пожалуйста, подождите…</string>
@@ -299,9 +292,7 @@
     <string name="horizontal">Горизонтальная</string>
     <string name="vertical">Вертикальная</string>
     <string name="always">Всегда</string>
-    <string name="virtual_keyboard_candidates">Кандидаты виртуальной клавиатуры</string>
     <string name="candidates_position">Позиция окна кандидатов</string>
-    <string name="candidates_position_summary">Действует только когда режим окна кандидатов установлен в «Всегда»</string>
     <string name="top_left">Вверху слева</string>
     <string name="top_right">Вверху справа</string>
     <string name="bottom_left">Внизу слева</string>
@@ -357,7 +348,6 @@
     <string name="buttons_customizer_hint">Перетаскивайте кнопки для изменения порядка или перемещения между Kawaii Bar (верхняя строка) и Status Area (меню). Долгое нажатие для начала перетаскивания.</string>
     <string name="kawaii_bar_section">Kawaii Bar (верхняя строка)</string>
     <string name="status_area_section">Status Area (меню)</string>
-    <string name="available_buttons_section">Доступные кнопки</string>
     <string name="language_switch">Смена языка</string>
     <string name="all_buttons_added">Все доступные кнопки добавлены</string>
     <string name="add_button_to_section_title">Добавить в раздел</string>
@@ -382,6 +372,10 @@
     <string name="popup_editor_candidate_input_hint">Введите значение кандидата</string>
     <string name="edit_text_keyboard_layout">Редактировать раскладку текстовой клавиатуры</string>
     <string name="text_keyboard_layout_preview">Предпросмотр</string>
+    <string name="ok">ОК</string>
+    <string name="cancel">Отмена</string>
+    <string name="saved">Сохранено</string>
+    <string name="save_failed">Ошибка сохранения</string>
     <string name="text_keyboard_layout_add_layout">Добавить раскладку</string>
     <string name="text_keyboard_layout_add_row">Добавить ряд</string>
     <string name="text_keyboard_layout_add_key">Добавить клавишу</string>
@@ -431,8 +425,6 @@
     <string name="text_keyboard_layout_display_text_mode_invalid">Заполните строку %1$d перед добавлением нового режима</string>
     <string name="text_keyboard_layout_display_text_mode_duplicate">Имя режима "%1$s" уже используется</string>
     <string name="cannot_resolve_text_keyboard_layout">Не удалось определить файл раскладки текстовой клавиатуры</string>
-    <string name="text_keyboard_layout_saved_at">TextKeyboardLayout.json сохранён в: %1$s</string>
-    <string name="text_keyboard_layout_file_saved_at">Файл раскладки сохранён: %1$s</string>
     <string name="edit_text_keyboard_layout_summary_with_file">Редактировать раскладку текстовой клавиатуры (%1$s)</string>
     <string name="text_keyboard_layout_file_select_title">Файл раскладки текстовой клавиатуры</string>
     <string name="text_keyboard_layout_file_select_summary">Текущий файл: %1$s</string>
@@ -447,7 +439,6 @@
     <string name="text_keyboard_layout_switch_file_discard_message">Есть несохранённые правки. При переключении файла раскладки текущие изменения будут потеряны.</string>
     <string name="text_keyboard_layout_create_file_discard_message">Есть несохранённые правки. Если создать новый файл раскладки сейчас, текущие изменения будут потеряны.</string>
     <string name="text_keyboard_layout_delete_file_discard_message">Есть несохранённые правки. Если удалить файл раскладки сейчас, текущие изменения будут потеряны.</string>
-    <string name="text_keyboard_layout_rename_file_discard_message">Есть несохранённые правки. Если переименовать файл раскладки сейчас, текущие изменения будут потеряны.</string>
     <string name="text_keyboard_layout_file_renamed">Профиль переименован: %1$s → %2$s</string>
     <string name="text_keyboard_layout_file_rename_failed">Не удалось переименовать файл раскладки</string>
     <string name="text_keyboard_layout_file_switched">Переключено на: %1$s</string>
@@ -458,7 +449,6 @@
     <string name="split_keyboard_gap_label">Зазор (%)</string>
     <string name="split_keyboard_auto_calibrate">Автокалибровка</string>
     <string name="split_keyboard_reset">Сброс</string>
-    <string name="split_keyboard_apply">Применить</string>
     <string name="split_keyboard_preview_load_failed">Ошибка загрузки предпросмотра: %1$s</string>
     <string name="split_keyboard_info_type">Тип</string>
     <string name="split_keyboard_info_orientation">Ориентация</string>
@@ -486,8 +476,6 @@
     <string name="split_keyboard_recommend_reason_phone">Рекомендация для стандартного телефона</string>
     <string name="split_keyboard_auto_calibrate_toast">Применено: %1$ddp, зазор %2$d%% (%3$s)</string>
     <string name="split_keyboard_reset_toast">Сброшено к значениям по умолчанию</string>
-    <string name="split_keyboard_apply_toast">Сохранено: порог %1$ddp, зазор %2$d%%%3$s</string>
-    <string name="split_keyboard_apply_note_disabled"> (Примечание: Разделённая клавиатура отключена)</string>
     <string name="text_keyboard_layout_submode_already_exists">Для субрежима "%1$s" уже есть отдельная раскладка</string>
     <string name="text_keyboard_layout_delete_submode_layout_confirm">Удалить раскладку субрежима "%1$s"?</string>
     <string name="text_keyboard_layout_editing_submode">Редактирование раскладки для субрежима "%1$s"</string>
@@ -538,6 +526,26 @@
     <string name="macro_editor_step_shortcut_modifiers_empty">Шаг %1$d требует хотя бы одну клавишу-модификатор (Ctrl/Alt/Shift/Meta)</string>
     <string name="macro_editor_step_shortcut_multiple_keys">Шаг %1$d может иметь только одну целевую клавишу</string>
     <string name="macro_editor_step_edit_action_required">Шаг %1$d требует действие</string>
+    <string name="macro_editor_type_change_title">Изменить тип шага</string>
+    <string name="macro_editor_type_change_message">Изменение типа шага очистит текущие данные. Продолжить?</string>
+    <string name="macro_editor_delete_step_title">Удалить шаг</string>
+    <string name="macro_editor_delete_step_message">Вы уверены, что хотите удалить этот шаг?</string>
+    <string name="macro_editor_select_modifier_title">Выберите модификатор</string>
+    <string name="macro_editor_all_modifiers_added">Все модификаторы добавлены</string>
+    <string name="custom_theme_confirm">ОК</string>
+    <string name="custom_theme_cancel">Отмена</string>
+    <string name="custom_theme_preview_candidate">Кандидат</string>
+    <string name="custom_theme_preview_label">Метка</string>
+    <string name="custom_theme_preview_comment">Комментарий</string>
+    <string name="custom_theme_preview_popup">Всплывающий</string>
+    <string name="custom_theme_preview_clipboard">Буфер обмена</string>
+    <string name="custom_theme_preview_active">Активный</string>
+    <string name="fontset_sample_main">QWER Привет</string>
+    <string name="fontset_sample_alt">!@#（）</string>
+    <string name="fontset_sample_candidate">Пример кандидата</string>
+    <string name="fontset_sample_popup">Всплывающая клавиша</string>
+    <string name="fontset_sample_preedit">Текст предредактирования</string>
+    <string name="picker_category_fullwidth">Полноширинный</string>
     <string name="macro_editor_key_event_unmatched">Несоответствие событий клавиш: количество нажатий и отпусканий для %1$s не совпадает</string>
     <string name="text_keyboard_layout_qr_export">Поделиться через QR-изображение</string>
     <string name="text_keyboard_layout_qr_import_scan">Импорт сканированием QR</string>
@@ -560,7 +568,6 @@
     <string name="qr_payload_type_layout">Раскладка</string>
     <string name="qr_payload_type_popup">Всплывающее окно</string>
     <string name="qr_payload_type_unknown">Неизвестно</string>
-    <string name="theme_share_import_menu">Поделиться/импортировать тему</string>
     <string name="theme_share_active">Поделиться текущей активной темой</string>
     <string name="theme_import_qr_scan">Импортировать тему сканированием QR</string>
     <string name="theme_import_qr_image">Импортировать тему из QR-изображения</string>
@@ -571,21 +578,14 @@
     <string name="theme_import_overwrite_message">Тема \"%1$s\" уже существует. Перезаписать?</string>
     <string name="theme_imported_from_qr">Тема импортирована и сохранена.</string>
     <string name="background_blur_radius">Радиус размытия фона</string>
-    <string name="blur_preview">Предпросмотр размытия</string>
     <string name="no_blur">Без размытия</string>
 
     <!-- Monet Theme Editor -->
-    <string name="monet_editor_title">Редактировать тему Monet</string>
-    <string name="monet_editor_unsupported_title">Material You не поддерживается</string>
-    <string name="monet_editor_unsupported_message">Динамические цвета Material You требуют Android 12 (SDK 31) или выше. Ваше устройство работает под управлением Android %1$d.</string>
     <string name="monet_editor_select_color_resource">Выбрать ресурс цвета</string>
     <string name="monet_editor_select">Выбрать</string>
     <string name="monet_editor_color_mapping_title">Сопоставление цветов</string>
     <string name="monet_editor_description">Сопоставьте каждый цвет темы с ресурсом динамического цвета Material You. Изменения будут автоматически сохранены и применены.</string>
     <string name="edit_monet_theme">Редактировать тему Monet</string>
-    <string name="edit_monet_light_theme">Редактировать сопоставление MonetLight</string>
-    <string name="edit_monet_dark_theme">Редактировать сопоставление MonetDark</string>
-    <string name="edit_monet_theme_summary">Настроить сопоставление ресурсов Material You для этой темы Monet</string>
 
     <string name="text_keyboard_layout_add_submode">Добавить раскладку подрежима</string>
     <string name="text_keyboard_layout_add_submode_confirm">Добавить отдельную раскладку для подрежима "%1$s"?</string>
@@ -595,4 +595,40 @@
     <string name="text_keyboard_layout_save_failed">Не удалось сохранить раскладку. Подробности смотрите в logcat.</string>
     <string name="edit_color">Редактировать цвет</string>
     <string name="theme_color_editor_argb_label">ARGB</string>
-</resources>
+
+    <!-- Auto-completed missing strings (fallback to zh-CN/en) -->
+    <string name="cannot_resolve_popup_preset">Не удалось найти файл предустановки всплывающих окон</string>
+    <string name="edit_fontset">Редактировать набор шрифтов</string>
+    <string name="edit_fontset_summary">Редактировать fonts/fontset.json и просмотреть комбинацию шрифтов</string>
+    <string name="edit_text_keyboard_layout_summary">Редактировать раскладку текстовой клавиатуры (TextKeyboardLayout.json)</string>
+    <string name="fontset_editor_hint">Нажмите на каждый элемент, чтобы выбрать один или несколько шрифтов из каталога fonts. Несколько шрифтов будут использоваться как резервные в указанном порядке.</string>
+    <string name="fontset_entry_candidate">Шрифт кандидатов</string>
+    <string name="fontset_entry_font">Базовый шрифт</string>
+    <string name="fontset_entry_key_alt">Вторичный шрифт клавиш</string>
+    <string name="fontset_entry_key_main">Основной шрифт клавиш</string>
+    <string name="fontset_entry_popup_key">Шрифт всплывающей клавиши</string>
+    <string name="fontset_entry_preedit">Шрифт предредактирования</string>
+    <string name="fontset_saved">fontset.json сохранён</string>
+    <string name="fontset_saved_at">fontset.json сохранён в: %1$s</string>
+    <string name="no_fonts_found">Файлы шрифтов не найдены в fonts/</string>
+    <string name="popup_preset_saved_at">popuppreset.json сохранён в: %1$s</string>
+    <string name="preferred_voice_input">Предпочтительный голосовой ввод</string>
+    <string name="split_keyboard_calibration_summary">Визуальный просмотр и настройка раздельной клавиатуры с автоподбором и поддержкой складных экранов</string>
+    <string name="split_keyboard_calibration_title">Калибровка раздельной клавиатуры</string>
+    <string name="split_keyboard_enabled">Включить автоматическую раздельную клавиатуру</string>
+    <string name="split_keyboard_enabled_summary">Автоматически включать раздельную клавиатуру в зависимости от ширины. В выключенном состоянии всегда используется полная клавиатура.</string>
+    <string name="split_keyboard_threshold">Порог раздельной клавиатуры</string>
+    <string name="split_keyboard_use_landscape_layout">Использовать параметры альбомной ориентации при раздельной клавиатуре</string>
+    <string name="split_keyboard_use_landscape_layout_summary">При включении и активной раздельной клавиатуре использовать параметры альбомной ориентации (высота, отступы и т.д.). Доступно только при включённой автоматической раздельной клавиатуре.</string>
+    <string name="text_keyboard_layout_file_delete">Удалить файл раскладки</string>
+    <string name="text_keyboard_layout_file_delete_confirm">Подтвердить удаление файла раскладки «%1$s» и его резервных копий?</string>
+    <string name="text_keyboard_layout_file_delete_failed">Не удалось удалить файл раскладки</string>
+    <string name="text_keyboard_layout_file_deleted">Профиль удалён: %1$s</string>
+    <string name="text_keyboard_layout_file_saved">Сохранено: %1$s</string>
+    <string name="text_keyboard_layout_import_discard_and_continue">Отменить и импортировать</string>
+    <string name="text_keyboard_layout_import_save_and_continue">Сохранить и импортировать</string>
+    <string name="text_keyboard_layout_import_unsaved_changes_message">У вас есть несохранённые изменения. Сохранить перед импортом?</string>
+    <string name="text_keyboard_layout_qr_import_confirm_message_with_profile">Обнаружено %1$d записей раскладки. Импортировать в профиль «%2$s» и заменить текущие данные редактирования?</string>
+    <string name="text_keyboard_layout_qr_import_success_new_profile">QR-раскладка импортирована, создан новый профиль «%1$s». Нажмите «Сохранить», чтобы записать в файл.</string>
+    <string name="text_keyboard_layout_qr_import_success_profile">QR-раскладка импортирована в профиль «%1$s». Нажмите «Сохранить», чтобы записать в файл.</string>
+    </resources>
