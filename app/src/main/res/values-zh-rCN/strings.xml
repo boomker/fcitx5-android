@@ -513,6 +513,10 @@
     <string name="text_keyboard_layout_macro_key_label_required">标签不能为空</string>
     <string name="text_keyboard_layout_macro_tap_event">点击事件</string>
     <string name="text_keyboard_layout_macro_swipe_event">划动事件</string>
+    <string name="text_keyboard_layout_macro_longpress_event">长按事件</string>
+    <string name="text_keyboard_layout_longpress_label">长按标签</string>
+    <string name="text_keyboard_layout_longpress_label_fallback_hint">留空则在弹出菜单中使用“标签”</string>
+    <string name="text_keyboard_layout_longpress_label_fallback_notice">未填写长按标签，弹出菜单将使用“标签”显示。</string>
     <string name="text_keyboard_layout_macro_no_event">未配置事件</string>
     <string name="text_keyboard_layout_macro_event_preview">%1$s → … (共 %2$d 步)</string>
     <string name="text_keyboard_layout_alt_label">副标签</string>

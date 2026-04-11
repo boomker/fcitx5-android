@@ -123,12 +123,14 @@ class KeyEditorActivity : AppCompatActivity() {
     private val macroDisplayTextModeItems = mutableListOf<KeyboardEditorUiBuilder.DisplayTextItem>()
     private val macroDisplayTextRowBindings = mutableListOf<KeyboardEditorUiBuilder.DisplayTextRowBinding>()
     private var macroAltLabelEdit: EditText? = null
+    private var macroLongPressLabelEdit: EditText? = null
     private var macroWeightEdit: EditText? = null
 
     private var simpleWeightEdit: EditText? = null
 
     private var macroTapStepsData: List<Any> = emptyList()
     private var macroSwipeStepsData: List<Any> = emptyList()
+    private var macroLongPressStepsData: List<Any> = emptyList()
     private var macroEditCallback: ((List<Any>) -> Unit)? = null
     private var saveMenuItem: MenuItem? = null
     private var deleteMenuItem: MenuItem? = null
@@ -412,6 +414,11 @@ class KeyEditorActivity : AppCompatActivity() {
                     getString(R.string.text_keyboard_layout_alt_label),
                     keyData["altLabel"] as? String ?: ""
                 )
+                val longPressLabelEdit = uiBuilder.createEditField(
+                    getString(R.string.text_keyboard_layout_longpress_label),
+                    keyData["longPressLabel"] as? String ?: ""
+                )
+                longPressLabelEdit.second.hint = getString(R.string.text_keyboard_layout_longpress_label_fallback_hint)
                 val weightEdit = uiBuilder.createEditField(
                     getString(R.string.text_keyboard_layout_key_weight),
                     (keyData["weight"] as? Number)?.toString() ?: ""
@@ -419,10 +426,12 @@ class KeyEditorActivity : AppCompatActivity() {
 
                 fieldsContainer.addView(labelEdit.first)
                 fieldsContainer.addView(altLabelEdit.first)
+                fieldsContainer.addView(longPressLabelEdit.first)
                 fieldsContainer.addView(weightEdit.first)
 
                 macroLabelEdit = labelEdit.second
                 macroAltLabelEdit = altLabelEdit.second
+                macroLongPressLabelEdit = longPressLabelEdit.second
                 macroWeightEdit = weightEdit.second
 
                 val labelTextContainer = LinearLayout(this).apply {
@@ -452,12 +461,15 @@ class KeyEditorActivity : AppCompatActivity() {
 
                 val tapAction = keyData["tap"] as? Map<*, *>
                 val swipeAction = keyData["swipe"] as? Map<*, *>
+                val longPressAction = keyData["longPress"] as? Map<*, *>
 
                 val tapMacroSteps = (tapAction?.get("macro") as? List<*>)?.filterNotNull() ?: emptyList()
                 val swipeMacroSteps = (swipeAction?.get("macro") as? List<*>)?.filterNotNull() ?: emptyList()
+                val longPressMacroSteps = (longPressAction?.get("macro") as? List<*>)?.filterNotNull() ?: emptyList()
 
                 macroTapStepsData = tapMacroSteps
                 macroSwipeStepsData = swipeMacroSteps
+                macroLongPressStepsData = longPressMacroSteps
 
                 createMacroEditorButton(
                     title = getString(R.string.text_keyboard_layout_macro_tap_event),
@@ -482,6 +494,21 @@ class KeyEditorActivity : AppCompatActivity() {
                             val draft = buildDraftKeyData()
                             macroSwipeStepsData = newSteps
                             draft["swipe"] = mapOf("macro" to newSteps)
+                            keyData = draft
+                            rebuildFields()
+                            updateActionButtonState()
+                        }
+                    }
+                ).forEach { fieldsContainer.addView(it) }
+
+                createMacroEditorButton(
+                    title = getString(R.string.text_keyboard_layout_macro_longpress_event),
+                    previewText = buildMacroPreview(longPressMacroSteps),
+                    onClick = {
+                        openMacroEditor(macroLongPressStepsData, getString(R.string.text_keyboard_layout_macro_longpress_event)) { newSteps ->
+                            val draft = buildDraftKeyData()
+                            macroLongPressStepsData = newSteps
+                            draft["longPress"] = mapOf("macro" to newSteps)
                             keyData = draft
                             rebuildFields()
                             updateActionButtonState()
@@ -772,6 +799,8 @@ class KeyEditorActivity : AppCompatActivity() {
                 if (baseLabel.isNotEmpty()) draft["label"] = baseLabel
                 val altLabel = macroAltLabelEdit?.text?.toString().orEmpty()
                 if (altLabel.isNotEmpty()) draft["altLabel"] = altLabel
+                val longPressLabel = macroLongPressLabelEdit?.text?.toString().orEmpty()
+                if (longPressLabel.isNotEmpty()) draft["longPressLabel"] = longPressLabel
                 parseWeight(macroWeightEdit?.text?.toString())?.let { draft["weight"] = it }
 
                 if (macroDisplayTextModeSpecific) {
@@ -800,6 +829,10 @@ class KeyEditorActivity : AppCompatActivity() {
 
                 if (macroSwipeStepsData.isNotEmpty()) {
                     draft["swipe"] = mapOf("macro" to macroSwipeStepsData)
+                }
+
+                if (macroLongPressStepsData.isNotEmpty()) {
+                    draft["longPress"] = mapOf("macro" to macroLongPressStepsData)
                 }
             }
 
@@ -969,6 +1002,7 @@ class KeyEditorActivity : AppCompatActivity() {
             macroDisplayTextModeItems,
             macroDisplayTextRowBindings,
             macroAltLabelEdit,
+            macroLongPressLabelEdit,
             macroWeightEdit,
             simpleWeightEdit
         ) ?: return
@@ -1061,6 +1095,7 @@ class KeyEditorActivity : AppCompatActivity() {
         macroDisplayTextModeItems: List<KeyboardEditorUiBuilder.DisplayTextItem>,
         macroDisplayTextRowBindings: List<KeyboardEditorUiBuilder.DisplayTextRowBinding>,
         macroAltLabelEdit: EditText?,
+        macroLongPressLabelEdit: EditText?,
         macroWeightEdit: EditText?,
         simpleWeightEdit: EditText?
     ): MutableMap<String, Any?>? {
@@ -1091,6 +1126,10 @@ class KeyEditorActivity : AppCompatActivity() {
             if (label.isEmpty()) {
                 Toast.makeText(this, R.string.text_keyboard_layout_macro_key_label_required, Toast.LENGTH_SHORT).show()
                 return null
+            }
+            val longPressLabel = macroLongPressLabelEdit?.text?.toString()?.trim().orEmpty()
+            if (macroLongPressStepsData.isNotEmpty() && longPressLabel.isEmpty()) {
+                Toast.makeText(this, R.string.text_keyboard_layout_longpress_label_fallback_notice, Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -1141,6 +1180,8 @@ class KeyEditorActivity : AppCompatActivity() {
                 newKey["label"] = baseLabel
                 val altLabel = macroAltLabelEdit?.text?.toString().orEmpty()
                 if (altLabel.isNotEmpty()) newKey["altLabel"] = altLabel
+                val longPressLabel = macroLongPressLabelEdit?.text?.toString().orEmpty()
+                if (longPressLabel.isNotEmpty()) newKey["longPressLabel"] = longPressLabel
                 parseWeight(macroWeightEdit?.text?.toString())?.let { newKey["weight"] = it }
 
                 if (macroDisplayTextModeSpecific) {
@@ -1175,6 +1216,10 @@ class KeyEditorActivity : AppCompatActivity() {
 
                 if (macroSwipeStepsData.isNotEmpty()) {
                     newKey["swipe"] = mapOf("macro" to macroSwipeStepsData)
+                }
+
+                if (macroLongPressStepsData.isNotEmpty()) {
+                    newKey["longPress"] = mapOf("macro" to macroLongPressStepsData)
                 }
             }
 

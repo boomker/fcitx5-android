@@ -483,6 +483,7 @@ class NumPadKey(
  * Macro 按键，支持自定义 tap/swipe/longPress 行为
  * @param label 显示文本（点击行为）
  * @param altLabel 备选显示文本（划动行为，可选）
+ * @param longPressLabel 长按时在 Popup 选单中显示的标签文本（可选）
  * @param tap 点击时执行的 macro
  * @param swipe 划动时执行的 macro（可选）
  * @param longPress 长按时执行的 macro（可选）
@@ -493,6 +494,7 @@ class NumPadKey(
 class MacroKey(
     val label: String,
     val altLabel: String? = null,
+    val longPressLabel: String? = null,
     val tap: MacroAction,
     val swipe: MacroAction? = null,
     val longPress: MacroAction? = null,
@@ -525,7 +527,7 @@ class MacroKey(
         shadowColorMonet = shadowColorMonet
     ),
     buildBehaviors(tap, swipe, longPress),
-    buildPopup(popup, tap, label, longPress)
+    buildPopup(popup, tap, label, longPress, longPressLabel)
 ) {
     private companion object {
         private val FCITX_SYMBOL_LABELS = mapOf(
@@ -605,7 +607,7 @@ class MacroKey(
 
         /**
          * Build popup based on macro content
-         * - If longPress macro is configured, no popup is generated (to avoid long click listener conflict)
+         * - If longPress macro is configured, it appears as the first candidate in the popup
          * - If tap macro has only one tap key, generate popup for that key
          * - Otherwise, generate popup based on label (preview on press, menu on long press)
          */
@@ -613,17 +615,15 @@ class MacroKey(
             explicitPopup: Array<Popup>?,
             tap: MacroAction,
             label: String,
-            longPress: MacroAction? = null
+            longPress: MacroAction? = null,
+            longPressLabel: String? = null
         ): Array<Popup>? {
             // If explicit popup is provided, use it
             if (explicitPopup != null) {
                 return explicitPopup
             }
 
-            // If longPress macro is configured, don't generate any popup (let long press listener work)
-            if (longPress != null) {
-                return null
-            }
+            val popupList = mutableListOf<Popup>()
 
             // Check if there's exactly one tap step with one key
             val singleTapKey = if (tap.steps.size == 1 && tap.steps[0] is MacroStep.Tap) {
@@ -631,7 +631,7 @@ class MacroKey(
                 if (tapStep.keys.size == 1) tapStep.keys[0] else null
             } else null
 
-            return if (singleTapKey != null) {
+            val otherPopups = if (singleTapKey != null) {
                 // Generate popup based on the single key
                 when (singleTapKey) {
                     is KeyRef.Fcitx -> {
@@ -673,6 +673,16 @@ class MacroKey(
                     )
                 }
             }
+
+            popupList.addAll(otherPopups)
+
+            // Register LongPressKeyboard after previews so its gesture listener runs first on key-up.
+            // The longPress macro still appears as the first candidate inside popup keyboard UI.
+            if (longPress != null) {
+                val displayLabel = longPressLabel?.takeIf { it.isNotBlank() } ?: label
+                popupList.add(Popup.LongPressKeyboard(displayLabel, longPress, label))
+            }
+            return popupList.toTypedArray()
         }
     }
 }

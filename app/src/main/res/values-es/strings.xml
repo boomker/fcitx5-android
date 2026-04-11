@@ -307,6 +307,10 @@
     <string name="text_keyboard_layout_macro_key_label_required">La etiqueta no puede estar vacía</string>
     <string name="text_keyboard_layout_macro_tap_event">Evento de toque</string>
     <string name="text_keyboard_layout_macro_swipe_event">Evento de deslizamiento</string>
+    <string name="text_keyboard_layout_macro_longpress_event">Evento de pulsación larga</string>
+    <string name="text_keyboard_layout_longpress_label">Etiqueta de pulsación larga</string>
+    <string name="text_keyboard_layout_longpress_label_fallback_hint">Si está vacío, el popup usará la etiqueta</string>
+    <string name="text_keyboard_layout_longpress_label_fallback_notice">La etiqueta de pulsación larga está vacía; el popup usará la etiqueta.</string>
     <string name="text_keyboard_layout_macro_no_event">No hay evento configurado</string>
     <string name="text_keyboard_layout_macro_event_preview">%1$s → … (%2$d pasos en total)</string>
     <string name="text_keyboard_layout_alt_label">Etiqueta alternativa</string>

@@ -248,6 +248,10 @@
     <string name="text_keyboard_layout_mode_name_hint">Modusname</string>
     <string name="text_keyboard_layout_macro_tap_event">Tippen-Ereignis</string>
     <string name="text_keyboard_layout_macro_swipe_event">Wisch-Ereignis</string>
+    <string name="text_keyboard_layout_macro_longpress_event">Langdruck-Ereignis</string>
+    <string name="text_keyboard_layout_longpress_label">Langdruck-Beschriftung</string>
+    <string name="text_keyboard_layout_longpress_label_fallback_hint">Wenn leer, wird im Popup die Beschriftung verwendet</string>
+    <string name="text_keyboard_layout_longpress_label_fallback_notice">Die Langdruck-Beschriftung ist leer; im Popup wird die Beschriftung verwendet.</string>
     <string name="text_keyboard_layout_macro_no_event">Kein Ereignis konfiguriert</string>
     <string name="text_keyboard_layout_macro_event_preview">%1$s → … (insgesamt %2$d Schritte)</string>
     <string name="text_keyboard_layout_alt_label">Alternatives Etikett</string>

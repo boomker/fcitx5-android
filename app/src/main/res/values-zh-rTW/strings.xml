@@ -520,6 +520,10 @@
     <string name="text_keyboard_layout_macro_key_label_required">標籤不能為空</string>
     <string name="text_keyboard_layout_macro_tap_event">點擊事件</string>
     <string name="text_keyboard_layout_macro_swipe_event">劃動事件</string>
+    <string name="text_keyboard_layout_macro_longpress_event">長按事件</string>
+    <string name="text_keyboard_layout_longpress_label">長按標籤</string>
+    <string name="text_keyboard_layout_longpress_label_fallback_hint">留空時在彈出選單中使用「標籤」</string>
+    <string name="text_keyboard_layout_longpress_label_fallback_notice">未填寫長按標籤，彈出選單將使用「標籤」顯示。</string>
     <string name="text_keyboard_layout_macro_no_event">未配置事件</string>
     <string name="text_keyboard_layout_macro_event_preview">%1$s → … (共 %2$d 步)</string>
     <string name="text_keyboard_layout_alt_label">副標籤</string>
