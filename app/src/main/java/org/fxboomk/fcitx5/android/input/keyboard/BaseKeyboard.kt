@@ -1279,6 +1279,16 @@ abstract class BaseKeyboard(
             "7" -> android.view.KeyEvent.KEYCODE_7
             "8" -> android.view.KeyEvent.KEYCODE_8
             "9" -> android.view.KeyEvent.KEYCODE_9
+            // Shift+number symbols on standard layouts.
+            "exclam", "Exclam" -> android.view.KeyEvent.KEYCODE_1
+            "dollar", "Dollar" -> android.view.KeyEvent.KEYCODE_4
+            "percent", "Percent" -> android.view.KeyEvent.KEYCODE_5
+            "asciicircum", "Asciicircum" -> android.view.KeyEvent.KEYCODE_6
+            "ampersand", "Ampersand" -> android.view.KeyEvent.KEYCODE_7
+            "asterisk", "Asterisk", "multiply", "Multiply" -> android.view.KeyEvent.KEYCODE_8
+            // Parentheses are produced from Shift+9/Shift+0 on standard layouts.
+            "parenleft", "Parenleft" -> android.view.KeyEvent.KEYCODE_9
+            "parenright", "Parenright" -> android.view.KeyEvent.KEYCODE_0
             // Symbol keys (only Android-supported keycodes)
             "minus", "Minus" -> android.view.KeyEvent.KEYCODE_MINUS
             "underscore", "Underscore" -> android.view.KeyEvent.KEYCODE_MINUS
