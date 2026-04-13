@@ -1,6 +1,6 @@
 {
     "uniqueId": "boomker/librime-predict",
-    "artifactVersion": "a99254b",
+    "artifactVersion": "9470888",
     "description": "librime plugin. predict next word, by commit history",
     "name": "rime/librime-predict",
     "website": "https://github.com/boomker/librime-predict",
