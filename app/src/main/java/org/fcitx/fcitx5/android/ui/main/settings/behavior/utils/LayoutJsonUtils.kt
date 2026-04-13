@@ -670,6 +670,7 @@ object LayoutJsonUtils {
                 val altLabel = key.altLabel ?: ""
                 MacroKey(
                     label = label,
+                    character = baseLabel.ifEmpty { label },
                     altLabel = altLabel.ifEmpty { null },
                     longPressLabel = key.longPressLabel,
                     tap = tap,
