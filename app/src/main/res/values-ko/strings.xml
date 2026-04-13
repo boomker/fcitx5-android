@@ -561,7 +561,7 @@
     <string name="portrait">竖屏</string>
     <string name="preferred_voice_input">首选语音输入</string>
     <string name="private_mode">隐私模式（点击以切换工具栏）</string>
-    <string name="punctuation_pos_bottom">底部（仅限竖屏）</string>
+    <string name="punctuation_pos_bottom">하단</string>
     <string name="punctuation_pos_none">无</string>
     <string name="punctuation_pos_top_right">右上</string>
     <string name="punctuation_position">标点位置</string>
@@ -594,7 +594,7 @@
     <string name="split_keyboard_use_landscape_layout_summary">启用后，当分体键盘生效时使用横屏的布局参数（高度、边距等）。仅当启用自动分体键盘时可用。</string>
     <string name="status_area">状态区域</string>
     <string name="swipe_down">下划</string>
-    <string name="swipe_symbol_behavior">划动输入标点符号及数字</string>
+    <string name="swipe_symbol_behavior">기호 숨김 시 기호 스와이프 방향</string>
     <string name="swipe_up">上划</string>
     <string name="switch_to_voice_input">切换到语音输入</string>
     <string name="system_default">系统默认</string>

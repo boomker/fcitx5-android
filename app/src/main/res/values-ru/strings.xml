@@ -130,7 +130,7 @@
     <string name="navbar_bkg_color_only">Следить за цветом клавиатуры</string>
     <string name="navbar_bkg_full">Фоновое изображение клавиатуры</string>
     <string name="punctuation_position">Позиция пунктуации</string>
-    <string name="punctuation_pos_bottom">Внизу (только портрет)</string>
+    <string name="punctuation_pos_bottom">Внизу</string>
     <string name="punctuation_pos_top_right">В правом верхнем углу</string>
     <string name="punctuation_pos_none">Нет</string>
     <string name="expand_toolbar_by_default">Развернуть панель инструментов по умолчанию</string>
@@ -175,7 +175,7 @@
     <string name="disable_addon_warn_dep">Отключить %1$s</string>
     <string name="disable_addon_warn_optdep">Отключить некоторые функции в %1$s</string>
     <string name="disable_addon_warn_confirm">Вы уверены, что хотите отключить?</string>
-    <string name="swipe_symbol_behavior">Проведите пальцем, чтобы ввести знаки препинания и цифры</string>
+    <string name="swipe_symbol_behavior">Направление свайпа для символов (когда символы скрыты)</string>
     <string name="swipe_down">Провести вниз</string>
     <string name="swipe_up">Провести вверх</string>
     <string name="disabled">Отключено</string>

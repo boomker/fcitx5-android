@@ -129,7 +129,7 @@
     <string name="navbar_bkg_color_only">跟随键盘背景色</string>
     <string name="navbar_bkg_full">键盘背景图片</string>
     <string name="punctuation_position">标点位置</string>
-    <string name="punctuation_pos_bottom">底部（仅限竖屏）</string>
+    <string name="punctuation_pos_bottom">底部</string>
     <string name="punctuation_pos_top_right">右上</string>
     <string name="punctuation_pos_none">无</string>
     <string name="expand_toolbar_by_default">默认展开工具栏</string>
@@ -218,7 +218,7 @@
     <string name="disable_addon_warn_dep">禁用%1$s</string>
     <string name="disable_addon_warn_optdep">禁用%1$s中的某些功能</string>
     <string name="disable_addon_warn_confirm">确定要禁用它吗？</string>
-    <string name="swipe_symbol_behavior">划动输入标点符号及数字</string>
+    <string name="swipe_symbol_behavior">符号划动方向（符号隐藏时）</string>
     <string name="swipe_down">下划</string>
     <string name="swipe_up">上划</string>
     <string name="disabled">禁用</string>

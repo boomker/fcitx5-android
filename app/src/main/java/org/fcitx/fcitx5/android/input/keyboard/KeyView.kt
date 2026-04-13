@@ -524,16 +524,13 @@ class AltTextKeyView(
         altText.gravity = Gravity.CENTER
     }
 
-    private fun resolveLayoutMode(orientation: Int, keyHeight: Int): AltTextLayoutMode {
+    private fun resolveLayoutMode(keyHeight: Int): AltTextLayoutMode {
         val pref = ThemeManager.prefs.punctuationPosition.getValue()
         if (pref == PunctuationPosition.None) return AltTextLayoutMode.Hidden
 
         val preferred = when (pref) {
             PunctuationPosition.TopRight -> AltTextLayoutMode.TopRight
-            PunctuationPosition.Bottom -> when (orientation) {
-                Configuration.ORIENTATION_LANDSCAPE -> AltTextLayoutMode.TopRight
-                else -> AltTextLayoutMode.Bottom
-            }
+            PunctuationPosition.Bottom -> AltTextLayoutMode.Bottom
             PunctuationPosition.None -> AltTextLayoutMode.Hidden
         }
         if (keyHeight <= 0) return preferred
@@ -541,8 +538,9 @@ class AltTextKeyView(
         val contentHeight = keyHeight - vMargin * 2
         val mainHeight = mainText.paint.run { fontMetrics.bottom - fontMetrics.top }
         val altHeight = altText.paint.run { fontMetrics.bottom - fontMetrics.top }
-        val compactMinHeight = max(mainHeight, altHeight + dp(4))
-        val stackedMinHeight = mainHeight + altHeight + dp(6)
+        // Keep a small guard gap but avoid over-conservative fallback to top-right.
+        val compactMinHeight = max(mainHeight, altHeight + dp(1))
+        val stackedMinHeight = mainHeight + altHeight + dp(1)
 
         return when (preferred) {
             AltTextLayoutMode.Bottom -> when {
@@ -558,8 +556,8 @@ class AltTextKeyView(
         }
     }
 
-    private fun applyLayout(orientation: Int, keyHeight: Int = appearanceView.height) {
-        val mode = resolveLayoutMode(orientation, keyHeight)
+    private fun applyLayout(keyHeight: Int = appearanceView.height) {
+        val mode = resolveLayoutMode(keyHeight)
         if (mode == lastLayoutMode) return
         lastLayoutMode = mode
         when (mode) {
@@ -569,13 +567,22 @@ class AltTextKeyView(
         }
     }
 
+    fun shouldTriggerAltBySwipe(totalY: Int, fallback: SwipeSymbolDirection): Boolean {
+        if (totalY == 0) return false
+        return when (lastLayoutMode ?: resolveLayoutMode(appearanceView.height)) {
+            AltTextLayoutMode.Bottom -> totalY > 0
+            AltTextLayoutMode.TopRight -> totalY < 0
+            AltTextLayoutMode.Hidden -> fallback.checkY(totalY)
+        }
+    }
+
     override fun onConfigurationChanged(newConfig: Configuration) {
         lastLayoutMode = null
-        applyLayout(newConfig.orientation)
+        applyLayout()
     }
 
     override fun onAppearanceLayoutChanged(width: Int, height: Int) {
-        applyLayout(resources.configuration.orientation, height)
+        applyLayout(height)
     }
 
     override fun updateTheme(newTheme: Theme) {

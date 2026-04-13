@@ -127,7 +127,7 @@
     <string name="navbar_bkg_color_only">キーボードの色に従う</string>
     <string name="navbar_bkg_full">キーボードの背景画像</string>
     <string name="punctuation_position">記号の位置</string>
-    <string name="punctuation_pos_bottom">ボタン（縦置きのみ）</string>
+    <string name="punctuation_pos_bottom">下部</string>
     <string name="punctuation_pos_top_right">右上</string>
     <string name="expand_toolbar_by_default">デフォルトでツールバーを展開する</string>
     <string name="popup_on_key_press">キー押下時にポップアップする</string>
@@ -170,7 +170,7 @@
     <string name="disable_addon_warn_dep">%1$s を無効にする</string>
     <string name="disable_addon_warn_optdep">%1$s のいくつかの機能が無効になります</string>
     <string name="disable_addon_warn_confirm">本当に無効にしますか？</string>
-    <string name="swipe_symbol_behavior">句読点や数字をスワイプして入力する</string>
+    <string name="swipe_symbol_behavior">記号非表示時のスワイプ方向</string>
     <string name="swipe_down">下にスワイプ</string>
     <string name="swipe_up">上にスワイプ</string>
     <string name="disabled">無効</string>
