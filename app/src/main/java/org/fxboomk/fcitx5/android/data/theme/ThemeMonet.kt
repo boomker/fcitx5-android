@@ -158,7 +158,34 @@ object ThemeMonet {
                             context.resources.getColor(fallbackResId)
                         }
                     } else {
-                        android.graphics.Color.GRAY
+                        // If the system resource is not available on this device (older OEM ROMs),
+                        // fall back to the static Monet palette instead of a uniform gray.
+                        android.util.Log.d("ThemeMonet", "system color missing: ${defaultResource.resourceId}, using static Monet fallback (isDark=$isDark)")
+                        val staticTheme = if (isDark) getDark() else getLight()
+                        when (defaultResource) {
+                            defaultMapping.backgroundColor -> staticTheme.backgroundColor
+                            defaultMapping.barColor -> staticTheme.barColor
+                            defaultMapping.keyboardColor -> staticTheme.keyboardColor
+                            defaultMapping.keyBackgroundColor -> staticTheme.keyBackgroundColor
+                            defaultMapping.keyTextColor -> staticTheme.keyTextColor
+                            defaultMapping.candidateTextColor -> staticTheme.candidateTextColor
+                            defaultMapping.candidateLabelColor -> staticTheme.candidateLabelColor
+                            defaultMapping.candidateCommentColor -> staticTheme.candidateCommentColor
+                            defaultMapping.altKeyBackgroundColor -> staticTheme.altKeyBackgroundColor
+                            defaultMapping.altKeyTextColor -> staticTheme.altKeyTextColor
+                            defaultMapping.accentKeyBackgroundColor -> staticTheme.accentKeyBackgroundColor
+                            defaultMapping.accentKeyTextColor -> staticTheme.accentKeyTextColor
+                            defaultMapping.keyPressHighlightColor -> staticTheme.keyPressHighlightColor
+                            defaultMapping.keyShadowColor -> staticTheme.keyShadowColor
+                            defaultMapping.popupBackgroundColor -> staticTheme.popupBackgroundColor
+                            defaultMapping.popupTextColor -> staticTheme.popupTextColor
+                            defaultMapping.spaceBarColor -> staticTheme.spaceBarColor
+                            defaultMapping.dividerColor -> staticTheme.dividerColor
+                            defaultMapping.clipboardEntryColor -> staticTheme.clipboardEntryColor
+                            defaultMapping.genericActiveBackgroundColor -> staticTheme.genericActiveBackgroundColor
+                            defaultMapping.genericActiveForegroundColor -> staticTheme.genericActiveForegroundColor
+                            else -> staticTheme.backgroundColor
+                        }
                     }
                 }
             } catch (e: Exception) {
