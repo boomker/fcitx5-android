@@ -1264,6 +1264,8 @@ abstract class BaseKeyboard(
             "9" -> android.view.KeyEvent.KEYCODE_9
             // Shift+number symbols on standard layouts.
             "exclam", "Exclam" -> android.view.KeyEvent.KEYCODE_1
+            "at", "At" -> android.view.KeyEvent.KEYCODE_2
+            "numbersign", "Numbersign" -> android.view.KeyEvent.KEYCODE_3
             "dollar", "Dollar" -> android.view.KeyEvent.KEYCODE_4
             "percent", "Percent" -> android.view.KeyEvent.KEYCODE_5
             "asciicircum", "Asciicircum" -> android.view.KeyEvent.KEYCODE_6
@@ -1290,8 +1292,6 @@ abstract class BaseKeyboard(
             "comma", "Comma", "less", "Less", "Separator" -> android.view.KeyEvent.KEYCODE_COMMA
             "period", "Period", "greater", "Greater" -> android.view.KeyEvent.KEYCODE_PERIOD
             "slash", "Slash", "question", "Question", "Divide" -> android.view.KeyEvent.KEYCODE_SLASH
-            "At" -> android.view.KeyEvent.KEYCODE_AT
-            "Numbersign" -> android.view.KeyEvent.KEYCODE_POUND
             "grave", "Grave" -> android.view.KeyEvent.KEYCODE_GRAVE
             // KEYCODE_GRAVE + Shift can produce '~', so map asciitilde aliases here too.
             "asciitilde", "Asciitilde", "tilde", "Tilde" -> android.view.KeyEvent.KEYCODE_GRAVE
