@@ -494,6 +494,7 @@ class NumPadKey(
  */
 class MacroKey(
     val label: String,
+    val character: String = label,
     val altLabel: String? = null,
     val longPressLabel: String? = null,
     val tap: MacroAction,
@@ -514,7 +515,7 @@ class MacroKey(
     Appearance.AltText(
         displayText = label,
         altText = altLabel ?: "",
-        character = label,
+        character = character,
         textSize = 23f,
         percentWidth = percentWidth,
         variant = variant,
