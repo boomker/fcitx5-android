@@ -646,7 +646,7 @@ class AltTextKeyView(
         altText.setTextSize(TypedValue.COMPLEX_UNIT_SP, baseAltTextSizeSp * scale)
         altText.requestLayout()
         lastLayoutMode = null
-        applyLayout(resources.configuration.orientation)
+        applyLayout()
     }
 
     private fun applyTopRightAltTextPosition() {
