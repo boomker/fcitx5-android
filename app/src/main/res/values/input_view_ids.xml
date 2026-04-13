@@ -5,4 +5,5 @@
     <item name="keyboard_view" type="id" />
     <item name="expanded_candidate_view" type="id" />
     <item name="input_window" type="id" />
+    <item name="blur_mask_clip_radius" type="id" />
 </resources>

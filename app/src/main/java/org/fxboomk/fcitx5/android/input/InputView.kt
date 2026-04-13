@@ -69,6 +69,7 @@ import org.fxboomk.fcitx5.android.input.picker.symbolPicker
 import org.fxboomk.fcitx5.android.input.popup.PopupComponent
 import org.fxboomk.fcitx5.android.input.preedit.PreeditComponent
 import org.fxboomk.fcitx5.android.input.status.ButtonsAdjustingWindow
+import org.fxboomk.fcitx5.android.input.status.StatusAreaWindow
 import android.graphics.Rect
 import android.graphics.Region
 import android.view.MotionEvent
@@ -164,7 +165,7 @@ class InputView(
         private val clipPath = Path()
         private val containerLoc = IntArray(2)
         private val keyLoc = IntArray(2)
-        private val keyViews = ArrayList<KeyView>(96)
+        private val blurTargetViews = ArrayList<View>(128)
         private val keyClipRects = ArrayList<Rect>(96)
         private val keyClipRadii = ArrayList<Float>(96)
         private var blurBitmap: Bitmap? = null
@@ -252,7 +253,7 @@ class InputView(
 
             // Keyboard window should normally provide KeyView regions.
             // If none are available in this frame, fall back to window region to avoid transparent holes.
-            if (keyClipRects.isEmpty() && windowManager.view.isShown &&
+            if (keyClipRects.isEmpty() && currentWindow !is StatusAreaWindow && windowManager.view.isShown &&
                 windowManager.view.width > 0 && windowManager.view.height > 0) {
                 clipRect.set(
                     windowManager.view.left,
@@ -300,8 +301,8 @@ class InputView(
             keyClipRects.clear()
             keyClipRadii.clear()
             if (keyHierarchyDirty) {
-                keyViews.clear()
-                collectVisibleKeys(windowManager.view, keyViews)
+                blurTargetViews.clear()
+                collectBlurTargets(windowManager.view, blurTargetViews)
                 keyHierarchyDirty = false
             }
             windowManager.view.getLocationInWindow(containerLoc)
@@ -311,43 +312,54 @@ class InputView(
                 hasVisibleKey = false
                 keyClipRects.clear()
                 keyClipRadii.clear()
-                keyViews.forEach { key ->
-                    if (!key.isShown) return@forEach
+                blurTargetViews.forEach { target ->
+                    if (!target.isShown) return@forEach
                     hasVisibleKey = true
-                    if (key.width <= 0 || key.height <= 0) return@forEach
-                    key.getLocationInWindow(keyLoc)
+                    if (target.width <= 0 || target.height <= 0) return@forEach
+                    target.getLocationInWindow(keyLoc)
+                    val hMargin: Int
+                    val vMargin: Int
+                    val radius: Float
+                    if (target is KeyView) {
+                        hMargin = target.hMargin
+                        vMargin = target.vMargin
+                        radius = target.radius
+                    } else {
+                        hMargin = 0
+                        vMargin = 0
+                        radius = (target.getTag(R.id.blur_mask_clip_radius) as? Number)?.toFloat() ?: 0f
+                    }
                     val relativeLeft = keyLoc[0] - containerLoc[0]
                     val relativeTop = keyLoc[1] - containerLoc[1]
                     clipRect.set(
-                        relativeLeft + key.hMargin,
-                        relativeTop + key.vMargin,
-                        relativeLeft + key.width - key.hMargin,
-                        relativeTop + key.height - key.vMargin
+                        relativeLeft + hMargin,
+                        relativeTop + vMargin,
+                        relativeLeft + target.width - hMargin,
+                        relativeTop + target.height - vMargin
                     )
                     clipRect.offset(offsetX, offsetY)
                     if (!clipRect.intersect(0, 0, width, height)) return@forEach
                     val maxRadius = minOf(clipRect.width(), clipRect.height()) * 0.5f
-                    val radius = key.radius.coerceIn(0f, maxRadius)
                     keyClipRects.add(Rect(clipRect))
-                    keyClipRadii.add(radius)
+                    keyClipRadii.add(radius.coerceIn(0f, maxRadius))
                 }
             }
             buildClipRects()
-            if (!hasVisibleKey && keyViews.isNotEmpty()) {
-                keyViews.clear()
-                collectVisibleKeys(windowManager.view, keyViews)
+            if (!hasVisibleKey && blurTargetViews.isNotEmpty()) {
+                blurTargetViews.clear()
+                collectBlurTargets(windowManager.view, blurTargetViews)
                 buildClipRects()
             }
         }
 
-        private fun collectVisibleKeys(view: View, out: MutableList<KeyView>) {
-            if (view is KeyView) {
+        private fun collectBlurTargets(view: View, out: MutableList<View>) {
+            if (view is KeyView || view.getTag(R.id.blur_mask_clip_radius) is Number) {
                 out.add(view)
                 return
             }
             val group = view as? ViewGroup ?: return
             for (i in 0 until group.childCount) {
-                collectVisibleKeys(group.getChildAt(i), out)
+                collectBlurTargets(group.getChildAt(i), out)
             }
         }
     }
