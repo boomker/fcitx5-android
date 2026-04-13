@@ -130,7 +130,7 @@
     <string name="navbar_bkg_color_only">與鍵盤背景色相符</string>
     <string name="navbar_bkg_full">鍵盤背景圖片</string>
     <string name="punctuation_position">標點符號的位置</string>
-    <string name="punctuation_pos_bottom">底部（僅限直向）</string>
+    <string name="punctuation_pos_bottom">底部</string>
     <string name="punctuation_pos_top_right">右上</string>
     <string name="punctuation_pos_none">無</string>
     <string name="expand_toolbar_by_default">預設展開工具列</string>
@@ -178,7 +178,7 @@
     <string name="disable_addon_warn_dep">停用%1$s</string>
     <string name="disable_addon_warn_optdep">停用%1$s中的某些功能</string>
     <string name="disable_addon_warn_confirm">確實要停用它嗎？</string>
-    <string name="swipe_symbol_behavior">划動輸入標點及數字</string>
+    <string name="swipe_symbol_behavior">符號滑動方向（符號隱藏時）</string>
     <string name="swipe_down">下划</string>
     <string name="swipe_up">上划</string>
     <string name="disabled">已停用</string>

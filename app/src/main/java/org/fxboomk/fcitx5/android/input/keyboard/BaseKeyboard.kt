@@ -725,7 +725,7 @@ abstract class BaseKeyboard(
                         onGestureListener = OnGestureListener { view, event ->
                             when (event.type) {
                                 GestureType.Up -> {
-                                    if (!event.consumed && swipeSymbolDirection.checkY(event.totalY)) {
+                                    if (!event.consumed && shouldTriggerSymbolBySwipe(view, event.totalY)) {
                                         onAction(it.action)
                                         true
                                     } else {
@@ -834,7 +834,7 @@ abstract class BaseKeyboard(
                                         PopupAction.PreviewAction(view.id, it.content, view.bounds)
                                     )
                                     GestureType.Move -> {
-                                        val triggered = swipeSymbolDirection.checkY(event.totalY)
+                                        val triggered = shouldTriggerSymbolBySwipe(view, event.totalY)
                                         val text = if (triggered) it.alternative else it.content
                                         onPopupAction(
                                             PopupAction.PreviewUpdateAction(view.id, text)
@@ -1033,6 +1033,12 @@ abstract class BaseKeyboard(
             is MacroAction -> executeMacro(preprocessMacroAction(action, source))
             else -> keyActionListener?.onKeyAction(action, source)
         }
+    }
+
+    private fun shouldTriggerSymbolBySwipe(view: View, totalY: Int): Boolean {
+        val altTextView = view as? AltTextKeyView
+        return altTextView?.shouldTriggerAltBySwipe(totalY, swipeSymbolDirection)
+            ?: swipeSymbolDirection.checkY(totalY)
     }
 
     protected open fun preprocessMacroAction(

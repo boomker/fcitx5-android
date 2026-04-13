@@ -707,16 +707,13 @@ class AltTextKeyView(
         altText.gravity = Gravity.CENTER
     }
 
-    private fun resolveLayoutMode(orientation: Int, keyHeight: Int): AltTextLayoutMode {
+    private fun resolveLayoutMode(keyHeight: Int): AltTextLayoutMode {
         val pref = ThemeManager.prefs.punctuationPosition.getValue()
         if (pref == PunctuationPosition.None) return AltTextLayoutMode.Hidden
 
         val preferred = when (pref) {
             PunctuationPosition.TopRight -> AltTextLayoutMode.TopRight
-            PunctuationPosition.Bottom -> when (orientation) {
-                Configuration.ORIENTATION_LANDSCAPE -> AltTextLayoutMode.TopRight
-                else -> AltTextLayoutMode.Bottom
-            }
+            PunctuationPosition.Bottom -> AltTextLayoutMode.Bottom
             PunctuationPosition.None -> AltTextLayoutMode.Hidden
         }
         if (keyHeight <= 0) return preferred
@@ -741,14 +738,23 @@ class AltTextKeyView(
         }
     }
 
-    private fun applyLayout(orientation: Int, keyHeight: Int = appearanceView.height) {
-        val mode = resolveLayoutMode(orientation, keyHeight)
+    private fun applyLayout(keyHeight: Int = appearanceView.height) {
+        val mode = resolveLayoutMode(keyHeight)
         if (mode == lastLayoutMode) return
         lastLayoutMode = mode
         when (mode) {
             AltTextLayoutMode.Bottom -> applyBottomAltTextPosition()
             AltTextLayoutMode.TopRight -> applyTopRightAltTextPosition()
             AltTextLayoutMode.Hidden -> applyNoAltTextPosition()
+        }
+    }
+
+    fun shouldTriggerAltBySwipe(totalY: Int, fallback: SwipeSymbolDirection): Boolean {
+        if (totalY == 0) return false
+        return when (lastLayoutMode ?: resolveLayoutMode(appearanceView.height)) {
+            AltTextLayoutMode.Bottom -> totalY > 0
+            AltTextLayoutMode.TopRight -> totalY < 0
+            AltTextLayoutMode.Hidden -> fallback.checkY(totalY)
         }
     }
 
@@ -761,7 +767,7 @@ class AltTextKeyView(
     }
 
     override fun onAppearanceLayoutChanged(width: Int, height: Int) {
-        applyLayout(resources.configuration.orientation, height)
+        applyLayout(height)
     }
 
     /**
