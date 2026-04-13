@@ -14,6 +14,7 @@ import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
+import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.input.AutoScaleTextView
 import org.fcitx.fcitx5.android.input.keyboard.CustomGestureView
@@ -44,6 +45,7 @@ class StatusAreaEntryUi(override val ctx: Context, private val theme: Theme) : U
 
     val bkg = frameLayout {
         background = bkgDrawable
+        setTag(R.id.blur_mask_clip_radius, dp(24).toFloat())
     }
 
     val icon = imageView {
@@ -65,6 +67,7 @@ class StatusAreaEntryUi(override val ctx: Context, private val theme: Theme) : U
         textSize = 12f
         gravity = gravityCenter
         setTextColor(theme.keyTextColor)
+        setTag(R.id.blur_mask_clip_radius, 0f)
     }
 
     override val root = object : CustomGestureView(ctx) {
