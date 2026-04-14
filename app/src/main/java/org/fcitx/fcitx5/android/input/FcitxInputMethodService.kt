@@ -98,6 +98,11 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
      */
     private var isInInputLifecycleCriticalPhase = false
 
+    /**
+     * Keep latest theme change while input lifecycle is unstable, and apply once it's safe.
+     */
+    private var pendingThemeUpdate: Theme? = null
+
     private val cachedKeyEvents = LruCache<Int, KeyEvent>(78)
     private val cachedScancodes = SparseIntArray(64)
     private var cachedKeyEventIndex = 0
@@ -339,6 +344,17 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         replaceCandidateView(theme)
     }
 
+    private fun applyPendingThemeIfPossible() {
+        if (!this::contentView.isInitialized) return
+        if (isInInputLifecycleCriticalPhase) return
+        val theme = pendingThemeUpdate ?: return
+        pendingThemeUpdate = null
+        contentView.post {
+            replaceInputViews(theme)
+            inputView?.syncImeFromCache()
+        }
+    }
+
     @Keep
     private val recreateInputViewListener = ManagedPreference.OnChangeListener<Any> { _, _ ->
         replaceInputView(ThemeManager.activeTheme)
@@ -355,17 +371,8 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     @Keep
     private val onThemeChangeListener = ThemeManager.OnThemeChangeListener { theme ->
         if (!this::contentView.isInitialized) return@OnThemeChangeListener
-        if (isInInputLifecycleCriticalPhase) {
-            contentView.post {
-                if (!isInInputLifecycleCriticalPhase) {
-                    replaceInputViews(theme)
-                }
-            }
-        } else {
-            contentView.post {
-                replaceInputViews(theme)
-            }
-        }
+        pendingThemeUpdate = theme
+        applyPendingThemeIfPossible()
     }
 
     /**
@@ -749,7 +756,6 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     private lateinit var lastKnownConfig: Configuration
 
     override fun onConfigurationChanged(newConfig: Configuration) {
-        postFcitxJob { reset() }
         /**
          * skip keyboard|keyboardHidden changes, because we have [inputDeviceManager]
          * skip uiMode (system light/dark mode) changes, because we have [onThemeChangeListener]
@@ -763,12 +769,18 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
                 ActivityInfo.CONFIG_UI_MODE
         val diff = lastKnownConfig.diff(newConfig)
         Timber.d("onConfigurationChanged diff=$diff")
+        val hasMeaningfulDiff = diff and f != diff
+        if (hasMeaningfulDiff) {
+            postFcitxJob { reset() }
+        } else {
+            Timber.d("onConfigurationChanged: skip reset for keyboard/uiMode-only diff=$diff")
+        }
         /**
          * perform `super.onConfigurationChanged` only when `newConfig` diff fall outside "skipped" flags
          * we have to calculate the mask ourselves because nobody knows how `handledConfigChanges` works
          * https://android.googlesource.com/platform/frameworks/base/+/refs/tags/android-15.0.0_r36/core/java/android/inputmethodservice/InputMethodService.java#1876
          */
-        if (diff and f != diff) {
+        if (hasMeaningfulDiff) {
             super.onConfigurationChanged(newConfig)
         }
         lastKnownConfig = newConfig
@@ -1210,6 +1222,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         } finally {
             contentView.post {
                 isInInputLifecycleCriticalPhase = false
+                applyPendingThemeIfPossible()
             }
         }
     }
@@ -1241,6 +1254,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         } finally {
             contentView.post {
                 isInInputLifecycleCriticalPhase = false
+                applyPendingThemeIfPossible()
             }
         }
     }

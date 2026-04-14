@@ -2380,6 +2380,14 @@ class InputView(
         }
     }
 
+    /**
+     * Re-broadcast current IME state from fcitx cache.
+     * Useful after InputView recreation (e.g. theme switch) to avoid waiting for next async IM event.
+     */
+    internal fun syncImeFromCache() {
+        broadcaster.onImeUpdate(fcitx.runImmediately { inputMethodEntryCached })
+    }
+
     @RequiresApi(Build.VERSION_CODES.R)
     fun handleInlineSuggestions(response: InlineSuggestionsResponse): Boolean {
         return kawaiiBar.handleInlineSuggestions(response)

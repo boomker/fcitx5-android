@@ -545,6 +545,10 @@ class AltTextKeyView(
         return when (preferred) {
             AltTextLayoutMode.Bottom -> when {
                 contentHeight >= stackedMinHeight -> AltTextLayoutMode.Bottom
+                // Keep bottom layout in the compact zone if it was already selected.
+                // This prevents top/bottom jitter when measured height fluctuates near threshold.
+                contentHeight >= compactMinHeight && lastLayoutMode == AltTextLayoutMode.Bottom ->
+                    AltTextLayoutMode.Bottom
                 contentHeight >= compactMinHeight -> AltTextLayoutMode.TopRight
                 else -> AltTextLayoutMode.Hidden
             }
@@ -595,6 +599,8 @@ class AltTextKeyView(
                 }
             )
         )
+        lastLayoutMode = null
+        applyLayout()
     }
 }
 
