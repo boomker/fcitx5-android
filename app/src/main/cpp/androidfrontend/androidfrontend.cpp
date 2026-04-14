@@ -158,7 +158,16 @@ public:
             return false;
         }
         try {
-            list->candidate(idx).select(this);
+            if (idx >= list->size()) {
+                const auto &bulk = list->toBulk();
+                if (!bulk) {
+                    FCITX_WARN() << "selectCandidate index out of range";
+                    return false;
+                }
+                bulk->candidateFromAll(idx).select(this);
+            } else {
+                list->candidate(idx).select(this);
+            }
         } catch (const std::invalid_argument &e) {
             FCITX_WARN() << "selectCandidate index out of range";
             return false;

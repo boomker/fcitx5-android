@@ -7,6 +7,7 @@ package org.fcitx.fcitx5.android.input.candidates
 
 import android.content.Context
 import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.input.AutoScaleTextView
 import org.fcitx.fcitx5.android.input.font.FontProviders
@@ -22,7 +23,7 @@ import splitties.views.gravityCenter
 
 class CandidateItemUi(
     override val ctx: Context,
-    theme: Theme,
+    private val theme: Theme,
     // Optional: external font for batch setting (avoids repeated FontProviders access)
     private val font: Typeface? = null
 ) : Ui {
@@ -43,6 +44,13 @@ class CandidateItemUi(
         applyConfiguredTypeface()
     }
 
+    private val normalBackground = pressHighlightDrawable(theme.keyPressHighlightColor)
+
+    private val activeBackground = GradientDrawable().apply {
+        setColor(theme.genericActiveBackgroundColor)
+        cornerRadius = 8f
+    }
+
     fun applyConfiguredTypeface(fontOverride: Typeface? = font) {
         // Priority: explicit override > constructor font > cand_font > font > current/system default
         val resolved = fontOverride ?: FontProviders.resolveTypeface("cand_font", text.typeface)
@@ -51,8 +59,14 @@ class CandidateItemUi(
         }
     }
 
+    fun setActive(active: Boolean) {
+        text.setTextColor(if (active) theme.genericActiveForegroundColor else theme.candidateTextColor)
+        text.background = null
+        root.background = if (active) activeBackground else normalBackground
+    }
+
     override val root = view(::CustomGestureView) {
-        background = pressHighlightDrawable(theme.keyPressHighlightColor)
+        background = normalBackground
         longPressFeedbackEnabled = false
         add(text, lParams(wrapContent, matchParent) {
             gravity = gravityCenter

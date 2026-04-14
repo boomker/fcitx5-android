@@ -42,12 +42,37 @@ open class HorizontalCandidateViewAdapter(val theme: Theme) :
     var total = -1
         private set
 
+    var activeIndex = -1
+        private set
+
+    var indexOffset = 0
+        private set
+
     @SuppressLint("NotifyDataSetChanged")
-    fun updateCandidates(data: Array<String>, total: Int) {
+    fun updateCandidates(
+        data: Array<String>,
+        total: Int,
+        activeIndex: Int = this.activeIndex,
+        indexOffset: Int = this.indexOffset,
+    ) {
         refreshCandidateFontIfNeeded()
         this.candidates = data
         this.total = total
+        this.activeIndex = activeIndex
+        this.indexOffset = indexOffset
         notifyDataSetChanged()
+    }
+
+    fun updateActiveIndex(index: Int) {
+        if (index == activeIndex) return
+        val previous = activeIndex
+        activeIndex = index
+        if (previous in candidates.indices) {
+            notifyItemChanged(previous)
+        }
+        if (activeIndex in candidates.indices) {
+            notifyItemChanged(activeIndex)
+        }
     }
 
     override fun getItemCount() = candidates.size
@@ -71,8 +96,9 @@ open class HorizontalCandidateViewAdapter(val theme: Theme) :
         val text = candidates[position]
         holder.ui.applyConfiguredTypeface(candFont)
         holder.ui.text.text = text
+        holder.ui.setActive(position == activeIndex)
         holder.text = text
-        holder.idx = position
+        holder.idx = position + indexOffset
     }
 
 }

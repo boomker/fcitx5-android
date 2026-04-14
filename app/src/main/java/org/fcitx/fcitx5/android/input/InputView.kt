@@ -2295,6 +2295,22 @@ class InputView(
             is FcitxEvent.CandidateListEvent -> {
                 broadcaster.onCandidateUpdate(it.data)
             }
+            is FcitxEvent.PagedCandidateEvent -> {
+                val candidates = it.data.candidates.map { candidate ->
+                    buildString {
+                        append(candidate.text)
+                        if (candidate.comment.isNotBlank()) {
+                            append(' ')
+                            append(candidate.comment)
+                        }
+                    }
+                }.toTypedArray()
+                // Keep legacy candidate listeners alive even in paged mode.
+                broadcaster.onCandidateUpdate(
+                    FcitxEvent.CandidateListEvent.Data(total = -1, candidates = candidates)
+                )
+                broadcaster.onPagedCandidateUpdate(it.data)
+            }
             is FcitxEvent.ClientPreeditEvent -> {
                 preeditEmptyState.updatePreeditEmptyState(clientPreedit = it.data)
                 broadcaster.onClientPreeditUpdate(it.data)

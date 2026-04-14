@@ -25,6 +25,7 @@ import org.fcitx.fcitx5.android.core.FcitxEvent
 import org.fcitx.fcitx5.android.daemon.launchOnReady
 import org.fcitx.fcitx5.android.data.InputFeedbacks
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
+import org.fcitx.fcitx5.android.core.FcitxEvent.PagedCandidateEvent
 import org.fcitx.fcitx5.android.input.bar.ExpandButtonStateMachine.BooleanKey.ExpandedCandidatesEmpty
 import org.fcitx.fcitx5.android.input.bar.ExpandButtonStateMachine.TransitionEvent.ExpandedCandidatesUpdated
 import org.fcitx.fcitx5.android.input.bar.KawaiiBarComponent
@@ -75,6 +76,11 @@ class HorizontalCandidateComponent :
      */
     private var secondLayoutPassNeeded = false
     private var secondLayoutPassDone = false
+    private var highlightMovedInCurrentComposition = false
+    private var lastPagedCandidatesSnapshot: List<String> = emptyList()
+    private var lastPagedCursor = -1
+    private var lastPagedHasPrev = false
+    private var pendingLegacyCandidateUpdate: Runnable? = null
 
     // Since expanded candidate window is created once the expand button was clicked,
     // we need to replay the last offset
@@ -86,11 +92,68 @@ class HorizontalCandidateComponent :
     val expandedCandidateOffset = _expandedCandidateOffset.asSharedFlow()
 
     private fun refreshExpanded(childCount: Int) {
-        _expandedCandidateOffset.tryEmit(childCount)
+        val expandedOffset = (adapter.indexOffset + childCount).coerceAtLeast(0)
+        _expandedCandidateOffset.tryEmit(expandedOffset)
         bar.expandButtonStateMachine.push(
             ExpandedCandidatesUpdated,
-            ExpandedCandidatesEmpty to (adapter.total == childCount)
+            ExpandedCandidatesEmpty to (adapter.total >= 0 && adapter.total <= expandedOffset)
         )
+    }
+
+    private fun firstRowVisibleSlotCount(totalCandidates: Int): Int {
+        val rv = view
+        val lm = layoutManager
+        val childCnt = lm.childCount
+        if (childCnt <= 0) return 0
+        val rightBound = rv.width - rv.paddingRight
+        var firstRowTop = Int.MIN_VALUE
+        var visible = 0
+        for (i in 0 until childCnt) {
+            val child = lm.getChildAt(i) ?: continue
+            if (firstRowTop == Int.MIN_VALUE) {
+                firstRowTop = child.top
+            }
+            if (child.top != firstRowTop) break
+            if (child.right <= rightBound) {
+                visible++
+            } else {
+                break
+            }
+        }
+        return visible.coerceIn(0, totalCandidates)
+    }
+
+    private fun ensureActiveCandidateVisible(
+        originalCandidates: Array<String>,
+        total: Int,
+        activeIndex: Int,
+    ) {
+        if (activeIndex !in originalCandidates.indices) {
+            return
+        }
+        val visibleCount = firstRowVisibleSlotCount(adapter.candidates.size)
+        if (visibleCount <= 0 || visibleCount >= adapter.candidates.size) {
+            return
+        }
+        val relativeActiveIndex = activeIndex - adapter.indexOffset
+        if (relativeActiveIndex in 0 until visibleCount) {
+            return
+        }
+        val shift = relativeActiveIndex - visibleCount + 1
+        if (shift <= 0) {
+            return
+        }
+        val oldOffset = adapter.indexOffset
+        val newOffset = (oldOffset + shift).coerceAtMost(originalCandidates.lastIndex)
+        if (newOffset == oldOffset) {
+            return
+        }
+        val windowedCandidates = originalCandidates.copyOfRange(newOffset, originalCandidates.size)
+        val windowedActiveIndex = activeIndex - newOffset
+        adapter.updateCandidates(windowedCandidates, total, windowedActiveIndex, newOffset)
+        view.post {
+            ensureActiveCandidateVisible(originalCandidates, total, activeIndex)
+        }
     }
 
     val adapter: HorizontalCandidateViewAdapter by lazy {
@@ -102,7 +165,12 @@ class HorizontalCandidateComponent :
                     flexGrow = layoutFlexGrow
                 }
                 holder.itemView.setOnClickListener {
-                    fcitx.launchOnReady { it.select(holder.idx) }
+                    val idx = holder.idx
+                    val total = adapter.total
+                    if (idx < 0 || (total >= 0 && idx >= total)) {
+                        return@setOnClickListener
+                    }
+                    fcitx.launchOnReady { it.select(idx) }
                 }
                 holder.itemView.setOnLongClickListener {
                     showCandidateActionMenu(holder)
@@ -178,6 +246,70 @@ class HorizontalCandidateComponent :
     override fun onCandidateUpdate(data: FcitxEvent.CandidateListEvent.Data) {
         val candidates = data.candidates
         val total = data.total
+        pendingLegacyCandidateUpdate?.let(view::removeCallbacks)
+        pendingLegacyCandidateUpdate = Runnable {
+            pendingLegacyCandidateUpdate = null
+            // CandidateListEvent doesn't provide cursor info.
+            updateCandidates(candidates, total, -1)
+        }.also(view::post)
+    }
+
+    override fun onPagedCandidateUpdate(data: PagedCandidateEvent.Data) {
+        pendingLegacyCandidateUpdate?.let(view::removeCallbacks)
+        pendingLegacyCandidateUpdate = null
+        val candidates = data.candidates.map { candidate ->
+            buildString {
+                append(candidate.text)
+                if (candidate.comment.isNotBlank()) {
+                    append(' ')
+                    append(candidate.comment)
+                }
+            }
+        }.toTypedArray()
+        val cursorIndex = data.cursorIndex
+        val normalizedCursor = when {
+            cursorIndex in candidates.indices -> cursorIndex
+            // Some engines may expose a global cursor index in paged mode.
+            cursorIndex >= 0 && candidates.isNotEmpty() -> cursorIndex % candidates.size
+            else -> -1
+        }
+
+        val isNewFirstPageSnapshot =
+            !data.hasPrev && candidates.asList() != lastPagedCandidatesSnapshot
+        if (isNewFirstPageSnapshot) {
+            // New composing snapshot on the first page; keep it unhighlighted until moved.
+            highlightMovedInCurrentComposition = false
+            // Reset movement baseline for the new snapshot to avoid false positive move detection.
+            lastPagedCursor = normalizedCursor
+            lastPagedHasPrev = data.hasPrev
+        }
+
+        if (!highlightMovedInCurrentComposition && !isNewFirstPageSnapshot) {
+            val cursorChanged = lastPagedCursor >= 0 && normalizedCursor >= 0 && normalizedCursor != lastPagedCursor
+            val pageChanged = data.hasPrev != lastPagedHasPrev
+            if (cursorChanged || pageChanged) {
+                highlightMovedInCurrentComposition = true
+            }
+        }
+
+        val effectiveActiveIndex = if (!highlightMovedInCurrentComposition && normalizedCursor == 0) {
+            -1
+        } else {
+            normalizedCursor
+        }
+
+        lastPagedCandidatesSnapshot = candidates.asList()
+        lastPagedCursor = normalizedCursor
+        lastPagedHasPrev = data.hasPrev
+
+        updateCandidates(candidates, -1, effectiveActiveIndex)
+    }
+
+    private fun updateCandidates(
+        candidates: Array<String>,
+        total: Int,
+        activeIndex: Int,
+    ) {
         val maxSpanCount = maxSpanCountPref.getValue()
         when (fillStyle) {
             NeverFillWidth -> {
@@ -198,7 +330,10 @@ class HorizontalCandidateComponent :
                 secondLayoutPassNeeded = false
             }
         }
-        adapter.updateCandidates(candidates, total)
+        adapter.updateCandidates(candidates, total, activeIndex, 0)
+        view.post {
+            ensureActiveCandidateVisible(candidates, total, activeIndex)
+        }
         // not sure why empty candidates won't trigger `FlexboxLayoutManager#onLayoutCompleted()`
         if (candidates.isEmpty()) {
             refreshExpanded(0)

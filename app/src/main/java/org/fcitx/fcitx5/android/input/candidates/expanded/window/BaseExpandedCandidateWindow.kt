@@ -140,9 +140,19 @@ abstract class BaseExpandedCandidateWindow<T : BaseExpandedCandidateWindow<T>> :
 
     fun bindCandidateUiViewHolder(holder: CandidateViewHolder) {
         holder.itemView.setOnClickListener {
-            fcitx.launchOnReady { it.select(holder.idx) }
+            val idx = holder.idx
+            val total = horizontalCandidate.adapter.total
+            if (idx < 0 || (total >= 0 && idx >= total)) {
+                return@setOnClickListener
+            }
+            fcitx.launchOnReady { it.select(idx) }
         }
         holder.itemView.setOnLongClickListener {
+            val idx = holder.idx
+            val total = horizontalCandidate.adapter.total
+            if (idx < 0 || (total >= 0 && idx >= total)) {
+                return@setOnLongClickListener true
+            }
             horizontalCandidate.showCandidateActionMenu(holder)
             true
         }

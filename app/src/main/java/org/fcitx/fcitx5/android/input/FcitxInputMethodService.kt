@@ -119,7 +119,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     internal val inputDeviceManager = InputDeviceManager(
         onChange = { isVirtualKeyboard ->
             postFcitxJob {
-                setCandidatePagingMode(if (isVirtualKeyboard) 0 else 1)
+                setCandidatePagingMode(1)
             }
             currentInputConnection?.monitorCursorAnchor(!isVirtualKeyboard)
             window.window?.let {
@@ -143,9 +143,9 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     private val onFloatingModeChangeListener = ManagedPreference.OnChangeListener<FloatingCandidatesMode> { _, newMode ->
         // Reset state when switching away from "Always" mode
         if (newMode != FloatingCandidatesMode.Always) {
-            // Reset paging mode to virtual keyboard default (disable digit key selection)
+            // Keep paged candidate mode for consistent highlight + page behavior.
             postFcitxJob {
-                setCandidatePagingMode(0)
+                setCandidatePagingMode(1)
             }
             // Disable cursor anchor monitoring
             currentInputConnection?.monitorCursorAnchor(false)
@@ -1223,6 +1223,10 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             }
             postFcitxJob {
                 focus(true)
+            }
+            postFcitxJob {
+                // Keep paged candidate mode enabled so candidate cursor/highlight is available.
+                setCandidatePagingMode(1)
             }
             if (inputDeviceManager.evaluateOnStartInputView(info, this)) {
                 inputView?.startInput(info, capabilityFlags, restarting)

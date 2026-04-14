@@ -54,7 +54,14 @@ open class PagingCandidateViewAdapter(val theme: Theme) :
 
     override fun onBindViewHolder(holder: CandidateViewHolder, position: Int) {
         refreshCandidateFontIfNeeded()
-        val text = getItem(position)!!
+        val text = getItem(position)
+        if (text == null) {
+            holder.ui.applyConfiguredTypeface(candFont)
+            holder.ui.text.text = ""
+            holder.text = ""
+            holder.idx = -1
+            return
+        }
         holder.ui.applyConfiguredTypeface(candFont)
         holder.ui.text.text = text
         holder.text = text
