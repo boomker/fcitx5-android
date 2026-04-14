@@ -637,7 +637,7 @@ class AltTextKeyView(
         }
         // 修复时序问题：使用 post 延后执行，确保获取到 layout 后的最终高度
         appearanceView.post {
-            applyLayout(resources.configuration.orientation, appearanceView.height)
+            applyLayout()
         }
     }
 
@@ -762,7 +762,7 @@ class AltTextKeyView(
         lastLayoutMode = null
         // 修复时序问题：使用 post 延后执行，确保获取到 layout 后的最终高度
         appearanceView.post {
-            applyLayout(newConfig.orientation, appearanceView.height)
+            applyLayout()
         }
     }
 
@@ -776,7 +776,7 @@ class AltTextKeyView(
      */
     internal fun refreshLayout() {
         lastLayoutMode = null
-        applyLayout(resources.configuration.orientation, appearanceView.height)
+        applyLayout()
     }
 
     override fun updateTheme(newTheme: Theme) {
@@ -784,7 +784,7 @@ class AltTextKeyView(
         lastLayoutMode = null
         // 修复时序问题：使用 post 延后执行，确保获取到 layout 后的最终高度
         appearanceView.post {
-            applyLayout(resources.configuration.orientation, appearanceView.height)
+            applyLayout()
         }
         altText.setTextColor(
             resolveAltTextColor(
