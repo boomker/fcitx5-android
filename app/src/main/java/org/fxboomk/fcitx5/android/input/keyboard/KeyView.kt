@@ -724,10 +724,12 @@ class AltTextKeyView(
         val compactMinHeight = max(mainHeight, altHeight + dp(4))
         val bottomMinHeight = altHeight + dp(4)
 
-        // 尊重用户显式选择的「底部」布局，仅在高度极端不足时才隐藏。
         return when (preferred) {
             AltTextLayoutMode.Bottom -> when {
-                contentHeight >= bottomMinHeight -> AltTextLayoutMode.Bottom
+                contentHeight >= stackedMinHeight -> AltTextLayoutMode.Bottom
+                contentHeight >= compactMinHeight && lastLayoutMode == AltTextLayoutMode.Bottom ->
+                    AltTextLayoutMode.Bottom
+                contentHeight >= compactMinHeight -> AltTextLayoutMode.TopRight
                 else -> AltTextLayoutMode.Hidden
             }
             AltTextLayoutMode.TopRight -> when {
@@ -794,6 +796,8 @@ class AltTextKeyView(
                 }
             )
         )
+        lastLayoutMode = null
+        applyLayout()
     }
 }
 
