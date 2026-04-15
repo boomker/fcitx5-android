@@ -726,7 +726,7 @@ class AltTextKeyView(
 
         return when (preferred) {
             AltTextLayoutMode.Bottom -> when {
-                contentHeight >= stackedMinHeight -> AltTextLayoutMode.Bottom
+                contentHeight >= bottomMinHeight -> AltTextLayoutMode.Bottom
                 contentHeight >= compactMinHeight && lastLayoutMode == AltTextLayoutMode.Bottom ->
                     AltTextLayoutMode.Bottom
                 contentHeight >= compactMinHeight -> AltTextLayoutMode.TopRight
