@@ -1121,6 +1121,16 @@ abstract class BaseKeyboard(
     private suspend fun executeShortcut(modifiers: List<KeyRef>, key: KeyRef) {
         val modifierDownSteps = mutableListOf<KeyRef>()
         val modifierUpSteps = mutableListOf<KeyRef>()
+        val normalizedKey = when (key) {
+            is KeyRef.Fcitx -> {
+                if (key.code.length == 1 && key.code[0].isLetter()) {
+                    key.copy(code = key.code.lowercase())
+                } else {
+                    key
+                }
+            }
+            is KeyRef.Android -> key
+        }
         
         for (mod in modifiers) {
             val isSupportedModifier = when ((mod as? KeyRef.Fcitx)?.code) {
@@ -1152,9 +1162,9 @@ abstract class BaseKeyboard(
         }
         
         // key tap
-        when (key) {
-            is KeyRef.Fcitx -> sendFcitxKeyTap(key.code)
-            is KeyRef.Android -> sendAndroidKeyTap(key.code)
+        when (normalizedKey) {
+            is KeyRef.Fcitx -> sendFcitxKeyTap(normalizedKey.code)
+            is KeyRef.Android -> sendAndroidKeyTap(normalizedKey.code)
         }
         delay(50)
         
