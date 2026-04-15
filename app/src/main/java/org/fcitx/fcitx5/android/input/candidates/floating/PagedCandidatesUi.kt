@@ -121,11 +121,15 @@ class PagedCandidatesUi(
         data: FcitxEvent.PagedCandidateEvent.Data,
         orientation: FloatingCandidatesOrientation
     ) {
-        this.data = data
-        this.isVertical = when (orientation) {
+        val newIsVertical = when (orientation) {
             FloatingCandidatesOrientation.Automatic -> data.layoutHint == LayoutHint.Vertical
             else -> orientation == FloatingCandidatesOrientation.Vertical
         }
+        // Skip update if nothing changed to avoid unnecessary rebind/redraw.
+        if (this.data == data && this.isVertical == newIsVertical) return
+
+        this.data = data
+        this.isVertical = newIsVertical
         candidatesLayoutManager.apply {
             if (isVertical) {
                 flexDirection = FlexDirection.COLUMN

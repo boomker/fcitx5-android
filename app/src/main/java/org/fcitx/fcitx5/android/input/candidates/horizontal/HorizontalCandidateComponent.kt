@@ -80,6 +80,10 @@ class HorizontalCandidateComponent :
     private var lastPagedCandidatesSnapshot: List<String> = emptyList()
     private var lastPagedCursor = -1
     private var lastPagedHasPrev = false
+    private var lastPagedData: PagedCandidateEvent.Data? = null
+    private var pagedCandidateFlowActive = false
+    private var lastRenderedCandidatesSnapshot: List<String> = emptyList()
+    private var lastRenderedActiveIndex = Int.MIN_VALUE
     private var pendingLegacyCandidateUpdate: Runnable? = null
 
     // Since expanded candidate window is created once the expand button was clicked,
@@ -244,6 +248,14 @@ class HorizontalCandidateComponent :
     }
 
     override fun onCandidateUpdate(data: FcitxEvent.CandidateListEvent.Data) {
+        if (pagedCandidateFlowActive && data.total == -1) {
+            pendingLegacyCandidateUpdate?.let(view::removeCallbacks)
+            pendingLegacyCandidateUpdate = null
+            return
+        }
+        lastPagedData = null
+        lastRenderedCandidatesSnapshot = emptyList()
+        lastRenderedActiveIndex = Int.MIN_VALUE
         val candidates = data.candidates
         val total = data.total
         pendingLegacyCandidateUpdate?.let(view::removeCallbacks)
@@ -255,8 +267,13 @@ class HorizontalCandidateComponent :
     }
 
     override fun onPagedCandidateUpdate(data: PagedCandidateEvent.Data) {
+        pagedCandidateFlowActive = true
         pendingLegacyCandidateUpdate?.let(view::removeCallbacks)
         pendingLegacyCandidateUpdate = null
+        if (data == lastPagedData) {
+            return
+        }
+        lastPagedData = data
         val candidates = data.candidates.map { candidate ->
             buildString {
                 append(candidate.text)
@@ -298,9 +315,19 @@ class HorizontalCandidateComponent :
             normalizedCursor
         }
 
+        val renderedCandidates = candidates.asList()
+        if (
+            renderedCandidates == lastRenderedCandidatesSnapshot &&
+            effectiveActiveIndex == lastRenderedActiveIndex
+        ) {
+            return
+        }
+
         lastPagedCandidatesSnapshot = candidates.asList()
         lastPagedCursor = normalizedCursor
         lastPagedHasPrev = data.hasPrev
+        lastRenderedCandidatesSnapshot = renderedCandidates
+        lastRenderedActiveIndex = effectiveActiveIndex
 
         updateCandidates(candidates, -1, effectiveActiveIndex)
     }
