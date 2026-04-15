@@ -26,10 +26,12 @@ open class HorizontalCandidateViewAdapter(val theme: Theme) :
     // Cache candidate font and refresh only when font configuration changes.
     private var candFont: Typeface? = FontProviders.resolveTypeface("cand_font", null)
 
-    private fun refreshCandidateFontIfNeeded() {
+    private fun refreshCandidateFontIfNeeded(): Boolean {
         if (FontProviders.needsRefresh()) {
             candFont = FontProviders.resolveTypeface("cand_font", null)
+            return true
         }
+        return false
     }
 
     init {
@@ -55,7 +57,16 @@ open class HorizontalCandidateViewAdapter(val theme: Theme) :
         activeIndex: Int = this.activeIndex,
         indexOffset: Int = this.indexOffset,
     ) {
-        refreshCandidateFontIfNeeded()
+        val fontChanged = refreshCandidateFontIfNeeded()
+        if (
+            !fontChanged &&
+            this.total == total &&
+            this.activeIndex == activeIndex &&
+            this.indexOffset == indexOffset &&
+            this.candidates.contentEquals(data)
+        ) {
+            return
+        }
         this.candidates = data
         this.total = total
         this.activeIndex = activeIndex

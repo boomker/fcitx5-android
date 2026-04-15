@@ -135,11 +135,32 @@ class PagedCandidatesUi(
         orientation: FloatingCandidatesOrientation,
         maxRowWidthPx: Int
     ) {
-        this.data = data
-        this.isVertical = when (orientation) {
+        // Compute new vertical layout decision before any state mutation
+        val newIsVertical = when (orientation) {
             FloatingCandidatesOrientation.Automatic -> shouldUseVerticalLayout(data, maxRowWidthPx)
             else -> orientation == FloatingCandidatesOrientation.Vertical
         }
+        // Skip update if nothing changed to avoid unnecessary rebind/redraw.
+        if (this.data === data && this.isVertical == newIsVertical) return
+
+        this.data = data
+        this.isVertical = newIsVertical
+        candidatesLayoutManager.apply {
+            if (isVertical) {
+                flexDirection = FlexDirection.COLUMN
+                alignItems = AlignItems.STRETCH
+            } else {
+                flexDirection = FlexDirection.ROW
+                alignItems = AlignItems.BASELINE
+            }
+        }
+        candidatesAdapter.notifyDataSetChanged()
+    }
+        // Skip update if nothing changed to avoid unnecessary rebind/redraw.
+        if (this.data == data && this.isVertical == newIsVertical) return
+
+        this.data = data
+        this.isVertical = newIsVertical
         candidatesLayoutManager.apply {
             if (isVertical) {
                 flexDirection = FlexDirection.COLUMN
