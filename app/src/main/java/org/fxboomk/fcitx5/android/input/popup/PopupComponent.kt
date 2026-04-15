@@ -204,8 +204,18 @@ class PopupComponent :
     private fun reallyShowLongPressKeyboard(viewId: Int, keyboard: KeyDef.Popup.LongPressKeyboard, keys: Array<String>, bounds: Rect) {
         val labels = if (punctuation.enabled) {
             Array(keys.size) { idx ->
-                if (idx == 0) keys[0] // longPress label (first item)
-                else punctuation.transform(keys[idx])
+                val source = keys[idx]
+                if (idx == 0) {
+                    // Keep text labels unchanged, but normalize symbolic labels (e.g. '!')
+                    // so they remain visible with punctuation-aware fonts.
+                    if (source.length == 1 && !source[0].isLetterOrDigit()) {
+                        punctuation.transform(source)
+                    } else {
+                        source
+                    }
+                } else {
+                    punctuation.transform(source)
+                }
             }
         } else keys
         
