@@ -1,7 +1,7 @@
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **fcitx5-android** (290790 symbols, 505333 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **fcitx5-android** (321475 symbols, 540891 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
@@ -97,5 +97,25 @@ To check whether embeddings exist, inspect `.gitnexus/meta.json` — the `stats.
 | Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
 | Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
 | Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
+| Work in the Detail area (2414 symbols) | `.claude/skills/generated/detail/SKILL.md` |
+| Work in the Fcitx area (1114 symbols) | `.claude/skills/generated/fcitx/SKILL.md` |
+| Work in the Container area (502 symbols) | `.claude/skills/generated/container/SKILL.md` |
+| Work in the Fcitx-utils area (384 symbols) | `.claude/skills/generated/fcitx-utils/SKILL.md` |
+| Work in the Multiprecision area (369 symbols) | `.claude/skills/generated/multiprecision/SKILL.md` |
+| Work in the Pinyin area (347 symbols) | `.claude/skills/generated/pinyin/SKILL.md` |
+| Work in the Intrusive area (329 symbols) | `.claude/skills/generated/intrusive/SKILL.md` |
+| Work in the Util area (327 symbols) | `.claude/skills/generated/util/SKILL.md` |
+| Work in the Proj area (315 symbols) | `.claude/skills/generated/proj/SKILL.md` |
+| Work in the Polygon area (311 symbols) | `.claude/skills/generated/polygon/SKILL.md` |
+| Work in the Preprocessed area (285 symbols) | `.claude/skills/generated/preprocessed/SKILL.md` |
+| Work in the Classic area (280 symbols) | `.claude/skills/generated/classic/SKILL.md` |
+| Work in the Behavior area (277 symbols) | `.claude/skills/generated/behavior/SKILL.md` |
+| Work in the Test area (267 symbols) | `.claude/skills/generated/test/SKILL.md` |
+| Work in the Src-worddic area (246 symbols) | `.claude/skills/generated/src-worddic/SKILL.md` |
+| Work in the Lm area (240 symbols) | `.claude/skills/generated/lm/SKILL.md` |
+| Work in the Table area (239 symbols) | `.claude/skills/generated/table/SKILL.md` |
+| Work in the Theme area (198 symbols) | `.claude/skills/generated/theme/SKILL.md` |
+| Work in the Keyboard area (197 symbols) | `.claude/skills/generated/keyboard/SKILL.md` |
+| Work in the Gil area (188 symbols) | `.claude/skills/generated/gil/SKILL.md` |
 
 <!-- gitnexus:end -->

@@ -30,6 +30,7 @@ public:
     }
 
     ~AndroidInputContext() override {
+        frontend_->notifyDeletingInputContext(this);
         frontend_->releaseInputContext(uid_);
         destroy();
     }
@@ -158,7 +159,16 @@ public:
             return false;
         }
         try {
-            list->candidate(idx).select(this);
+            if (idx >= list->size()) {
+                const auto &bulk = list->toBulk();
+                if (!bulk) {
+                    FCITX_WARN() << "selectCandidate index out of range";
+                    return false;
+                }
+                bulk->candidateFromAll(idx).select(this);
+            } else {
+                list->candidate(idx).select(this);
+            }
         } catch (const std::invalid_argument &e) {
             FCITX_WARN() << "selectCandidate index out of range";
             return false;
@@ -364,6 +374,13 @@ void AndroidFrontend::releaseInputContext(const int uid) {
     icCache_.release(uid);
 }
 
+void AndroidFrontend::notifyDeletingInputContext(AndroidInputContext *ic) {
+    if (activeIC_ != ic) {
+        return;
+    }
+    activeIC_ = nullptr;
+}
+
 bool AndroidFrontend::selectCandidate(int idx) {
     if (!activeIC_) return false;
     if (pagingMode_) {
@@ -455,6 +472,9 @@ void AndroidFrontend::showToast(const std::string &s) {
 
 void AndroidFrontend::setCandidatePagingMode(const int mode) {
     pagingMode_ = mode;
+    if (!activeIC_) {
+        return;
+    }
     if (mode == 0) {
         activeIC_->updateCandidatesBulk();
     } else {

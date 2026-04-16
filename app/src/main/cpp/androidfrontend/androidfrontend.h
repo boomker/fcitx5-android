@@ -28,6 +28,7 @@ public:
     void updateClientPreedit(const Text &clientPreedit);
     void updateInputPanel(const Text &preedit, const Text &auxUp, const Text &auxDown);
     void releaseInputContext(int uid);
+    void notifyDeletingInputContext(AndroidInputContext *ic);
     void updatePagedCandidate(const PagedCandidateEntity &paged);
 
     void keyEvent(const Key &key, bool isRelease, int timestamp);

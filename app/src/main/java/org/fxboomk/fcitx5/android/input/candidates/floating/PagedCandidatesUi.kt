@@ -156,22 +156,6 @@ class PagedCandidatesUi(
         }
         candidatesAdapter.notifyDataSetChanged()
     }
-        // Skip update if nothing changed to avoid unnecessary rebind/redraw.
-        if (this.data == data && this.isVertical == newIsVertical) return
-
-        this.data = data
-        this.isVertical = newIsVertical
-        candidatesLayoutManager.apply {
-            if (isVertical) {
-                flexDirection = FlexDirection.COLUMN
-                alignItems = AlignItems.STRETCH
-            } else {
-                flexDirection = FlexDirection.ROW
-                alignItems = AlignItems.BASELINE
-            }
-        }
-        candidatesAdapter.notifyDataSetChanged()
-    }
 
     private fun shouldUseVerticalLayout(
         data: FcitxEvent.PagedCandidateEvent.Data,
