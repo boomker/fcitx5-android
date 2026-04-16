@@ -349,12 +349,25 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         replaceCandidateView(theme)
     }
 
+    /**
+     * Theme-driven InputView replacement should only happen when IME window is stable.
+     * Applying it too early (eg. during config/input lifecycle transitions) may race with
+     * framework initViews/reset flow and leave virtual keyboard in a bad state.
+     */
+    private fun canApplyPendingThemeNow(): Boolean {
+        if (!this::contentView.isInitialized) return false
+        if (isInInputLifecycleCriticalPhase) return false
+        if (currentInputBinding == null) return false
+        if (!isInputViewShown) return false
+        return window.window?.decorView?.isAttachedToWindow == true
+    }
+
     private fun applyPendingThemeIfPossible() {
-        if (!this::contentView.isInitialized) return
-        if (isInInputLifecycleCriticalPhase) return
-        val theme = pendingThemeUpdate ?: return
-        pendingThemeUpdate = null
+        if (!canApplyPendingThemeNow()) return
         contentView.post {
+            if (!canApplyPendingThemeNow()) return@post
+            val theme = pendingThemeUpdate ?: return@post
+            pendingThemeUpdate = null
             replaceInputViews(theme)
             inputView?.syncImeFromCache()
         }
@@ -824,6 +837,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             Timber.w("Device does not support android.R.attr.colorAccent which it should have.")
         }
         InputFeedbacks.syncSystemPrefs()
+        applyPendingThemeIfPossible()
     }
 
     override fun onCreateInputView(): View? {
