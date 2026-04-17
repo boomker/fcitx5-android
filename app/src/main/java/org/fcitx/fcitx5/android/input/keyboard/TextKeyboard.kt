@@ -389,8 +389,7 @@ class TextKeyboard(
         action: MacroAction,
         source: KeyActionListener.Source
     ): MacroAction {
-        if (source != KeyActionListener.Source.Keyboard) return action
-
+        val allowConsumeCapsOnce = source == KeyActionListener.Source.Keyboard
         var consumeCapsOnce = false
         val simulatedCapsOn = isSimulatedCapsLockOn()
         val pendingUppercaseDown = mutableMapOf<String, Int>()
@@ -401,7 +400,7 @@ class TextKeyboard(
             return when (capsState) {
                 CapsState.None -> simulatedCapsOn
                 CapsState.Once -> {
-                    if (!consumeCapsOnce) {
+                    if (allowConsumeCapsOnce && !consumeCapsOnce) {
                         consumeCapsOnce = true
                         true
                     } else {
