@@ -397,6 +397,7 @@ class KeyboardLayoutAdapter(
             val actualKeyIndex = resolveActualKeyIndex(position, keyIndex)
             val type = key["type"] as? String ?: ""
             val isMacroKey = type == "MacroKey"
+            val hasComposeOverride = key["composeOverride"] is Map<*, *>
             val keyChip = TextView(context).apply {
                 text = buildKeyLabel(key)
                 textSize = 14f
@@ -407,14 +408,19 @@ class KeyboardLayoutAdapter(
                         // MacroKey: 使用主题强调色区分
                         setColor(context.styledColor(android.R.attr.colorAccent))
                         setStroke(context.dp(2), context.styledColor(android.R.attr.colorControlHighlight))
-                        setTextColor(context.styledColor(android.R.attr.textColorPrimaryInverse))
                     } else {
                         setColor(context.styledColor(android.R.attr.colorButtonNormal))
                         setStroke(context.dp(1), context.styledColor(android.R.attr.colorControlNormal))
-                        setTextColor(context.styledColor(android.R.attr.textColorPrimary))
                     }
                     cornerRadius = context.dp(4).toFloat()
                 }
+                setTextColor(
+                    when {
+                        isMacroKey -> context.styledColor(android.R.attr.textColorPrimaryInverse)
+                        hasComposeOverride -> context.styledColor(android.R.attr.colorAccent)
+                        else -> context.styledColor(android.R.attr.textColorPrimary)
+                    }
+                )
                 setOnClickListener {
                     val adapterPosition = holder.bindingAdapterPosition
                     if (adapterPosition != RecyclerView.NO_POSITION && actualKeyIndex >= 0) {

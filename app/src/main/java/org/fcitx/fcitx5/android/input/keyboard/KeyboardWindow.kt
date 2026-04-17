@@ -13,6 +13,7 @@ import androidx.core.content.ContextCompat
 import androidx.transition.Slide
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.core.CapabilityFlags
+import org.fcitx.fcitx5.android.core.FcitxEvent
 import org.fcitx.fcitx5.android.core.InputMethodEntry
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.input.bar.KawaiiBarComponent
@@ -74,6 +75,8 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
     }
     private var currentKeyboardName = ""
     private var lastSymbolType: String by AppPrefs.getInstance().internal.lastSymbolLayout
+    private var preeditEmpty = true
+    private var candidateEmpty = true
 
     private val currentKeyboard: BaseKeyboard? get() = keyboards[currentKeyboardName]
 
@@ -134,6 +137,7 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
             it.onAttach()
             it.onReturnDrawableUpdate(returnKeyDrawable.resourceId)
             it.onInputMethodUpdate(fcitx.runImmediately { inputMethodEntryCached })
+            it.onCompositionStateChanged(!preeditEmpty || !candidateEmpty)
         }
     }
 
@@ -160,12 +164,15 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
     }
 
     override fun onStartInput(info: EditorInfo, capFlags: CapabilityFlags) {
+        preeditEmpty = true
+        candidateEmpty = true
         val targetLayout = when (info.inputType and InputType.TYPE_MASK_CLASS) {
             InputType.TYPE_CLASS_NUMBER -> NumberKeyboard.Name
             InputType.TYPE_CLASS_PHONE -> NumberKeyboard.Name
             else -> TextKeyboard.Name
         }
         switchLayout(targetLayout, remember = false)
+        currentKeyboard?.onCompositionStateChanged(false)
     }
 
     override fun onImeUpdate(ime: InputMethodEntry) {
@@ -178,6 +185,16 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
 
     override fun onReturnKeyDrawableUpdate(resourceId: Int) {
         currentKeyboard?.onReturnDrawableUpdate(resourceId)
+    }
+
+    override fun onPreeditEmptyStateUpdate(empty: Boolean) {
+        preeditEmpty = empty
+        currentKeyboard?.onCompositionStateChanged(!preeditEmpty || !candidateEmpty)
+    }
+
+    override fun onCandidateUpdate(data: FcitxEvent.CandidateListEvent.Data) {
+        candidateEmpty = data.candidates.isEmpty()
+        currentKeyboard?.onCompositionStateChanged(!preeditEmpty || !candidateEmpty)
     }
 
     override fun onAttached() {

@@ -630,4 +630,11 @@
     <string name="text_keyboard_layout_submode_added">已新增子模式佈局：%1$s</string>
     <string name="text_keyboard_layout_no_submode_selected">尚未選擇子模式</string>
     <string name="text_keyboard_layout_save_failed">儲存佈局失敗。請查看 logcat 取得詳細資訊。</string>
+    <string name="text_keyboard_layout_compose_override_title">組字中覆蓋</string>
+    <string name="text_keyboard_layout_compose_override_not_configured">組字中使用預設按鍵行為</string>
+    <string name="text_keyboard_layout_compose_override_configured">已設定組字中的按鍵行為</string>
+    <string name="text_keyboard_layout_compose_override_edit_button">編輯組字中按鍵</string>
+    <string name="text_keyboard_layout_compose_override_clear_button">清除</string>
+    <string name="text_keyboard_layout_compose_override_editor_title">編輯組字中按鍵</string>
+    <string name="text_keyboard_layout_compose_override_follow_base_key_colors">獨立按鍵顏色</string>
 </resources>

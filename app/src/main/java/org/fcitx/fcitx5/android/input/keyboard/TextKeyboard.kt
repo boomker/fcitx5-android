@@ -263,11 +263,11 @@ class TextKeyboard(
 
         allViews.forEach { view ->
             when (view.tag) {
-                R.id.button_caps -> caps.add(view as ImageKeyView)
-                R.id.button_backspace -> backspace.add(view as ImageKeyView)
-                R.id.button_quickphrase -> quickphrase.add(view as ImageKeyView)
-                R.id.button_space -> space.add(view as TextKeyView)
-                R.id.button_return -> returnKeys.add(view as ImageKeyView)
+                R.id.button_caps -> (view as? ImageKeyView)?.let(caps::add)
+                R.id.button_backspace -> (view as? ImageKeyView)?.let(backspace::add)
+                R.id.button_quickphrase -> (view as? ImageKeyView)?.let(quickphrase::add)
+                R.id.button_space -> (view as? TextKeyView)?.let(space::add)
+                R.id.button_return -> (view as? ImageKeyView)?.let(returnKeys::add)
             }
         }
 
@@ -598,6 +598,11 @@ class TextKeyboard(
         // Note: returnDrawable is managed by KeyboardWindow
     }
 
+    override fun onCompositionStateChanged(composing: Boolean) {
+        super.onCompositionStateChanged(composing)
+        ensureSpecialKeyViewsInitialized()
+    }
+
     private fun transformPopupPreview(c: String): String {
         if (c.length != 1) return c
         if (c[0].isLetter()) return transformAlphabet(c)
@@ -697,7 +702,8 @@ class TextKeyboard(
             } else {
                 it.def as KeyDef.Appearance.Text
                 it.mainText.text = it.def.displayText.let { str ->
-                    if (str[0].run { isLetter() || isWhitespace() }) return@forEach
+                    val first = str.firstOrNull() ?: return@forEach
+                    if (first.run { isLetter() || isWhitespace() }) return@forEach
                     transformPunctuation(str)
                 }
             }

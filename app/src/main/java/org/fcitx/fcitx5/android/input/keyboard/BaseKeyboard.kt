@@ -11,6 +11,7 @@ import android.util.SparseIntArray
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewGroup
 import androidx.annotation.CallSuper
 import androidx.annotation.Keep
 import androidx.annotation.DrawableRes
@@ -107,6 +108,23 @@ abstract class BaseKeyboard(
     private val bounds = Rect()
     private lateinit var keyRows: List<ConstraintLayout>
     private var horizontalGapScale = 1f
+    private var composing = false
+
+    private data class GestureBaseline(
+        val swipeEnabled: Boolean,
+        val swipeRepeatEnabled: Boolean,
+        val swipeThresholdX: Float,
+        val swipeThresholdY: Float,
+        val onGestureListener: OnGestureListener?
+    )
+
+    private data class ComposeAwareKey(
+        val baseDef: KeyDef,
+        var keyView: KeyView,
+        var baseline: GestureBaseline
+    )
+
+    private val composeAwareKeys = mutableListOf<ComposeAwareKey>()
 
     private var lastSplitLandscapeState = false
 
@@ -145,6 +163,7 @@ abstract class BaseKeyboard(
         removeAllViews()
         spaceKeys.clear()
         touchTarget.clear()
+        composeAwareKeys.clear()
 
         // Get all fonts once for batch setting - improves performance by reducing FontProviders access
         val fontMap = org.fcitx.fcitx5.android.input.font.FontProviders.fontTypefaceMap
@@ -567,12 +586,18 @@ abstract class BaseKeyboard(
         // default: no-op
     }
 
-    private fun createKeyView(def: KeyDef): KeyView {
-        return when (def.appearance) {
-            is KeyDef.Appearance.AltText -> AltTextKeyView(context, theme, def.appearance, horizontalGapScale)
-            is KeyDef.Appearance.ImageText -> ImageTextKeyView(context, theme, def.appearance, horizontalGapScale)
-            is KeyDef.Appearance.Text -> TextKeyView(context, theme, def.appearance, horizontalGapScale)
-            is KeyDef.Appearance.Image -> ImageKeyView(context, theme, def.appearance, horizontalGapScale)
+    private fun createKeyView(
+        def: KeyDef,
+        registerComposeAware: Boolean = true,
+        appearanceOverride: KeyDef.Appearance? = null
+    ): KeyView {
+        val (activeDef, resolvedAppearance) = resolveComposeActiveDef(def)
+        val activeAppearance = appearanceOverride ?: resolvedAppearance
+        return when (activeAppearance) {
+            is KeyDef.Appearance.AltText -> AltTextKeyView(context, theme, activeAppearance, horizontalGapScale)
+            is KeyDef.Appearance.ImageText -> ImageTextKeyView(context, theme, activeAppearance, horizontalGapScale)
+            is KeyDef.Appearance.Text -> TextKeyView(context, theme, activeAppearance, horizontalGapScale)
+            is KeyDef.Appearance.Image -> ImageKeyView(context, theme, activeAppearance, horizontalGapScale)
         }.apply {
             setTextScale(currentTextScale)
             soundEffect = when (def) {
@@ -671,179 +696,369 @@ abstract class BaseKeyboard(
                     }
                 }
             }
-            // Track if LongPress behavior is configured (for MacroKey longPress feature)
-            var hasLongPressBehavior = false
-            def.behaviors.forEach {
-                when (it) {
-                    is KeyDef.Behavior.Press -> {
-                        setOnClickListener { _ ->
-                            onAction(it.action)
-                        }
+            val baseline = GestureBaseline(
+                swipeEnabled = swipeEnabled,
+                swipeRepeatEnabled = swipeRepeatEnabled,
+                swipeThresholdX = swipeThresholdX,
+                swipeThresholdY = swipeThresholdY,
+                onGestureListener = onGestureListener
+            )
+            applyAppearance(this, activeAppearance)
+            applyBehaviorPopupBindings(this, baseline, activeDef.behaviors, activeDef.popup)
+            if (registerComposeAware && def.composeOverride != null) {
+                composeAwareKeys += ComposeAwareKey(def, this, baseline)
+            }
+        }
+    }
+
+    open fun onCompositionStateChanged(composing: Boolean) {
+        if (this.composing == composing) return
+        this.composing = composing
+        composeAwareKeys.forEach { item ->
+            val (activeDef, activeAppearance) = resolveComposeActiveDef(item.baseDef)
+            val needsRecreate = !isAppearanceCompatible(item.keyView, activeAppearance) ||
+                item.keyView.def !== activeAppearance
+            if (needsRecreate) {
+                recreateComposeAwareKeyView(item, activeDef, activeAppearance)
+            }
+            applyAppearance(item.keyView, activeAppearance)
+            applyBehaviorPopupBindings(item.keyView, item.baseline, activeDef.behaviors, activeDef.popup)
+        }
+    }
+
+    private fun isAppearanceCompatible(view: KeyView, appearance: KeyDef.Appearance): Boolean {
+        return when (view) {
+            is AltTextKeyView -> appearance is KeyDef.Appearance.AltText
+            is ImageTextKeyView -> appearance is KeyDef.Appearance.ImageText
+            is ImageKeyView -> appearance is KeyDef.Appearance.Image
+            is TextKeyView -> appearance is KeyDef.Appearance.Text &&
+                    appearance !is KeyDef.Appearance.AltText &&
+                    appearance !is KeyDef.Appearance.ImageText
+            else -> false
+        }
+    }
+
+    private fun recreateComposeAwareKeyView(
+        item: ComposeAwareKey,
+        def: KeyDef,
+        appearance: KeyDef.Appearance
+    ) {
+        val oldView = item.keyView
+        val parent = oldView.parent as? ConstraintLayout ?: return
+        val index = parent.indexOfChild(oldView)
+        if (index < 0) return
+        val oldLayoutParams = oldView.layoutParams
+        val copiedLayoutParams = when (oldLayoutParams) {
+            is ConstraintLayout.LayoutParams -> ConstraintLayout.LayoutParams(oldLayoutParams)
+            is ViewGroup.LayoutParams -> ViewGroup.LayoutParams(oldLayoutParams)
+            else -> oldLayoutParams
+        }
+        val newView = createKeyView(def, registerComposeAware = false, appearanceOverride = appearance)
+        // Keep the same identity so sibling constraints (leftToRight/rightToLeft) remain valid.
+        newView.id = oldView.id
+        newView.tag = oldView.tag
+        parent.removeViewAt(index)
+        if (copiedLayoutParams != null) {
+            parent.addView(newView, index, copiedLayoutParams)
+        } else {
+            parent.addView(newView, index)
+        }
+        item.keyView = newView
+        item.baseline = GestureBaseline(
+            swipeEnabled = newView.swipeEnabled,
+            swipeRepeatEnabled = newView.swipeRepeatEnabled,
+            swipeThresholdX = newView.swipeThresholdX,
+            swipeThresholdY = newView.swipeThresholdY,
+            onGestureListener = newView.onGestureListener
+        )
+        applyAppearance(newView, appearance)
+    }
+
+    private fun resolveComposeActiveDef(baseDef: KeyDef): Pair<KeyDef, KeyDef.Appearance> {
+        if (!composing) return baseDef to baseDef.appearance
+        val overrideDef = baseDef.composeOverride ?: return baseDef to baseDef.appearance
+        val appearance = if (overrideDef.independentColor) {
+            overrideDef.appearance
+        } else {
+            overrideDef.appearance.withColorsFrom(baseDef.appearance)
+        }
+        return overrideDef to appearance
+    }
+
+    private fun KeyDef.Appearance.withColorsFrom(source: KeyDef.Appearance): KeyDef.Appearance = when (this) {
+        is KeyDef.Appearance.AltText -> KeyDef.Appearance.AltText(
+            displayText = displayText,
+            altText = altText,
+            character = character,
+            textSize = textSize,
+            textStyle = textStyle,
+            percentWidth = percentWidth,
+            variant = source.variant,
+            border = source.border,
+            margin = margin,
+            viewId = viewId,
+            textColor = source.textColor,
+            textColorMonet = source.textColorMonet,
+            altTextColor = source.altTextColor,
+            altTextColorMonet = source.altTextColorMonet,
+            backgroundColor = source.backgroundColor,
+            backgroundColorMonet = source.backgroundColorMonet,
+            shadowColor = source.shadowColor,
+            shadowColorMonet = source.shadowColorMonet
+        )
+        is KeyDef.Appearance.ImageText -> KeyDef.Appearance.ImageText(
+            displayText = displayText,
+            textSize = textSize,
+            textStyle = textStyle,
+            src = src,
+            percentWidth = percentWidth,
+            variant = source.variant,
+            border = source.border,
+            margin = margin,
+            viewId = viewId,
+            textColor = source.textColor,
+            textColorMonet = source.textColorMonet,
+            altTextColor = source.altTextColor,
+            altTextColorMonet = source.altTextColorMonet,
+            backgroundColor = source.backgroundColor,
+            backgroundColorMonet = source.backgroundColorMonet,
+            shadowColor = source.shadowColor,
+            shadowColorMonet = source.shadowColorMonet
+        )
+        is KeyDef.Appearance.Text -> KeyDef.Appearance.Text(
+            displayText = displayText,
+            textSize = textSize,
+            textStyle = textStyle,
+            percentWidth = percentWidth,
+            variant = source.variant,
+            border = source.border,
+            margin = margin,
+            viewId = viewId,
+            soundEffect = soundEffect,
+            textColor = source.textColor,
+            textColorMonet = source.textColorMonet,
+            altTextColor = source.altTextColor,
+            altTextColorMonet = source.altTextColorMonet,
+            backgroundColor = source.backgroundColor,
+            backgroundColorMonet = source.backgroundColorMonet,
+            shadowColor = source.shadowColor,
+            shadowColorMonet = source.shadowColorMonet
+        )
+        is KeyDef.Appearance.Image -> KeyDef.Appearance.Image(
+            src = src,
+            percentWidth = percentWidth,
+            variant = source.variant,
+            border = source.border,
+            margin = margin,
+            viewId = viewId,
+            soundEffect = soundEffect,
+            textColor = source.textColor,
+            textColorMonet = source.textColorMonet,
+            altTextColor = source.altTextColor,
+            altTextColorMonet = source.altTextColorMonet,
+            backgroundColor = source.backgroundColor,
+            backgroundColorMonet = source.backgroundColorMonet,
+            shadowColor = source.shadowColor,
+            shadowColorMonet = source.shadowColorMonet
+        )
+    }
+
+    private fun applyAppearance(view: KeyView, appearance: KeyDef.Appearance) {
+        when (view) {
+            is AltTextKeyView -> if (appearance is KeyDef.Appearance.AltText) {
+                view.mainText.text = appearance.displayText
+                view.altText.text = appearance.altText
+            }
+            is ImageTextKeyView -> if (appearance is KeyDef.Appearance.ImageText) {
+                view.mainText.text = appearance.displayText
+                view.img.setImageResource(appearance.src)
+            }
+            is TextKeyView -> if (appearance is KeyDef.Appearance.Text) {
+                view.mainText.text = appearance.displayText
+            }
+            is ImageKeyView -> if (appearance is KeyDef.Appearance.Image) {
+                view.img.setImageResource(appearance.src)
+            }
+        }
+    }
+
+    private fun applyBehaviorPopupBindings(
+        view: KeyView,
+        baseline: GestureBaseline,
+        behaviors: Set<KeyDef.Behavior>,
+        popup: Array<KeyDef.Popup>?
+    ) {
+        view.setOnClickListener(null)
+        view.setOnLongClickListener(null)
+        view.repeatEnabled = false
+        view.onRepeatListener = null
+        view.doubleTapEnabled = false
+        view.onDoubleTapListener = null
+        view.swipeEnabled = baseline.swipeEnabled
+        view.swipeRepeatEnabled = baseline.swipeRepeatEnabled
+        view.swipeThresholdX = baseline.swipeThresholdX
+        view.swipeThresholdY = baseline.swipeThresholdY
+        view.onGestureListener = baseline.onGestureListener
+
+        var hasLongPressBehavior = false
+        behaviors.forEach {
+            when (it) {
+                is KeyDef.Behavior.Press -> {
+                    view.setOnClickListener { _ ->
+                        onAction(it.action)
                     }
-                    is KeyDef.Behavior.LongPress -> {
-                        hasLongPressBehavior = true
-                        setOnLongClickListener { _ ->
-                            onAction(it.action)
-                            true
-                        }
+                }
+                is KeyDef.Behavior.LongPress -> {
+                    hasLongPressBehavior = true
+                    view.setOnLongClickListener { _ ->
+                        onAction(it.action)
+                        true
                     }
-                    is KeyDef.Behavior.Repeat -> {
-                        repeatEnabled = true
-                        onRepeatListener = { view ->
-                            onAction(it.action)
-                            if (hapticOnRepeat) InputFeedbacks.hapticFeedback(view)
-                        }
+                }
+                is KeyDef.Behavior.Repeat -> {
+                    view.repeatEnabled = true
+                    view.onRepeatListener = { currentView ->
+                        onAction(it.action)
+                        if (hapticOnRepeat) InputFeedbacks.hapticFeedback(currentView)
                     }
-                    is KeyDef.Behavior.Swipe -> {
-                        swipeEnabled = true
-                        swipeThresholdX = disabledSwipeThreshold
-                        swipeThresholdY = inputSwipeThreshold
-                        val oldOnGestureListener = onGestureListener ?: OnGestureListener.Empty
-                        onGestureListener = OnGestureListener { view, event ->
-                            when (event.type) {
-                                GestureType.Up -> {
-                                    if (!event.consumed && shouldTriggerSymbolBySwipe(view, event.totalY)) {
-                                        onAction(it.action)
-                                        true
-                                    } else {
-                                        false
-                                    }
+                }
+                is KeyDef.Behavior.Swipe -> {
+                    view.swipeEnabled = true
+                    view.swipeThresholdX = disabledSwipeThreshold
+                    view.swipeThresholdY = inputSwipeThreshold
+                    val oldOnGestureListener = view.onGestureListener ?: OnGestureListener.Empty
+                    view.onGestureListener = OnGestureListener { currentView, event ->
+                        when (event.type) {
+                            GestureType.Up -> {
+                                if (!event.consumed && shouldTriggerSymbolBySwipe(currentView, event.totalY)) {
+                                    onAction(it.action)
+                                    true
+                                } else {
+                                    false
                                 }
-                                else -> false
-                            } || oldOnGestureListener.onGesture(view, event)
-                        }
+                            }
+                            else -> false
+                        } || oldOnGestureListener.onGesture(currentView, event)
                     }
-                    is KeyDef.Behavior.DoubleTap -> {
-                        doubleTapEnabled = true
-                        onDoubleTapListener = { _ ->
-                            onAction(it.action)
-                        }
+                }
+                is KeyDef.Behavior.DoubleTap -> {
+                    view.doubleTapEnabled = true
+                    view.onDoubleTapListener = { _ ->
+                        onAction(it.action)
                     }
                 }
             }
-            // Check if there's a LongPressKeyboard in popup array
-            // If so, we should use it as the primary popup and skip regular Keyboard processing
-            val hasLongPressKeyboard = def.popup?.any { it is KeyDef.Popup.LongPressKeyboard } == true
-
-            def.popup?.forEach {
-                when (it) {
-                    // TODO: gesture processing middleware
-                    is KeyDef.Popup.Menu -> {
-                        // Keep long-press behavior unless LongPressKeyboard explicitly takes over.
-                        if (!hasLongPressKeyboard && !hasLongPressBehavior) {
-                            setOnLongClickListener { view ->
-                                view as KeyView
-                                onPopupAction(PopupAction.ShowMenuAction(view.id, it, view.bounds))
-                                false
-                            }
-                            val oldOnGestureListener = onGestureListener ?: OnGestureListener.Empty
-                            swipeEnabled = true
-                            onGestureListener = OnGestureListener { view, event ->
-                                view as KeyView
-                                when (event.type) {
-                                    GestureType.Move -> {
-                                        onPopupChangeFocus(view.id, event.x, event.y)
-                                    }
-                                    GestureType.Up -> {
-                                        onPopupTrigger(view.id)
-                                    }
-                                    else -> false
-                                } || oldOnGestureListener.onGesture(view, event)
-                            }
-                        }
-                    }
-                    is KeyDef.Popup.LongPressKeyboard -> {
-                        // LongPress macro appears as the first candidate in popup keyboard
-                        setOnLongClickListener { view ->
-                            view as KeyView
-                            onPopupAction(PopupAction.ShowLongPressKeyboardAction(view.id, it, view.bounds))
-                            // do not consume this LongClick gesture
+        }
+        val hasLongPressKeyboard = popup?.any { it is KeyDef.Popup.LongPressKeyboard } == true
+        popup?.forEach {
+            when (it) {
+                is KeyDef.Popup.Menu -> {
+                    if (!hasLongPressKeyboard && !hasLongPressBehavior) {
+                        view.setOnLongClickListener { currentView ->
+                            currentView as KeyView
+                            onPopupAction(PopupAction.ShowMenuAction(currentView.id, it, currentView.bounds))
                             false
                         }
-                        val oldOnGestureListener = onGestureListener ?: OnGestureListener.Empty
-                        swipeEnabled = true
-                        onGestureListener = OnGestureListener { view, event ->
-                            view as KeyView
+                        val oldOnGestureListener = view.onGestureListener ?: OnGestureListener.Empty
+                        view.swipeEnabled = true
+                        view.onGestureListener = OnGestureListener { currentView, event ->
+                            currentView as KeyView
                             when (event.type) {
                                 GestureType.Move -> {
-                                    onPopupChangeFocus(view.id, event.x, event.y)
+                                    onPopupChangeFocus(currentView.id, event.x, event.y)
                                 }
                                 GestureType.Up -> {
-                                    onPopupTrigger(view.id)
+                                    onPopupTrigger(currentView.id)
                                 }
                                 else -> false
-                            } || oldOnGestureListener.onGesture(view, event)
+                            } || oldOnGestureListener.onGesture(currentView, event)
                         }
                     }
-                    is KeyDef.Popup.Keyboard -> {
-                        // Keep long-press behavior unless LongPressKeyboard explicitly takes over.
-                        // LongPressKeyboard already contains baseLabel to lookup candidates.
-                        if (!hasLongPressKeyboard && !hasLongPressBehavior) {
-                            setOnLongClickListener { view ->
-                                view as KeyView
-                                onPopupAction(PopupAction.ShowKeyboardAction(view.id, it, view.bounds))
-                                // do not consume this LongClick gesture
-                                false
+                }
+                is KeyDef.Popup.LongPressKeyboard -> {
+                    view.setOnLongClickListener { currentView ->
+                        currentView as KeyView
+                        onPopupAction(PopupAction.ShowLongPressKeyboardAction(currentView.id, it, currentView.bounds))
+                        false
+                    }
+                    val oldOnGestureListener = view.onGestureListener ?: OnGestureListener.Empty
+                    view.swipeEnabled = true
+                    view.onGestureListener = OnGestureListener { currentView, event ->
+                        currentView as KeyView
+                        when (event.type) {
+                            GestureType.Move -> {
+                                onPopupChangeFocus(currentView.id, event.x, event.y)
                             }
-                            val oldOnGestureListener = onGestureListener ?: OnGestureListener.Empty
-                            swipeEnabled = true
-                            onGestureListener = OnGestureListener { view, event ->
-                                view as KeyView
-                                when (event.type) {
-                                    GestureType.Move -> {
-                                        onPopupChangeFocus(view.id, event.x, event.y)
-                                    }
-                                    GestureType.Up -> {
-                                        onPopupTrigger(view.id)
-                                    }
-                                    else -> false
-                                } || oldOnGestureListener.onGesture(view, event)
+                            GestureType.Up -> {
+                                onPopupTrigger(currentView.id)
                             }
+                            else -> false
+                        } || oldOnGestureListener.onGesture(currentView, event)
+                    }
+                }
+                is KeyDef.Popup.Keyboard -> {
+                    if (!hasLongPressKeyboard && !hasLongPressBehavior) {
+                        view.setOnLongClickListener { currentView ->
+                            currentView as KeyView
+                            onPopupAction(PopupAction.ShowKeyboardAction(currentView.id, it, currentView.bounds))
+                            false
+                        }
+                        val oldOnGestureListener = view.onGestureListener ?: OnGestureListener.Empty
+                        view.swipeEnabled = true
+                        view.onGestureListener = OnGestureListener { currentView, event ->
+                            currentView as KeyView
+                            when (event.type) {
+                                GestureType.Move -> {
+                                    onPopupChangeFocus(currentView.id, event.x, event.y)
+                                }
+                                GestureType.Up -> {
+                                    onPopupTrigger(currentView.id)
+                                }
+                                else -> false
+                            } || oldOnGestureListener.onGesture(currentView, event)
                         }
                     }
-                    is KeyDef.Popup.AltPreview -> {
-                        val oldOnGestureListener = onGestureListener ?: OnGestureListener.Empty
-                        onGestureListener = OnGestureListener { view, event ->
-                            view as KeyView
-                            if (popupOnKeyPress) {
-                                when (event.type) {
-                                    GestureType.Down -> onPopupAction(
-                                        PopupAction.PreviewAction(view.id, it.content, view.bounds)
+                }
+                is KeyDef.Popup.AltPreview -> {
+                    val oldOnGestureListener = view.onGestureListener ?: OnGestureListener.Empty
+                    view.onGestureListener = OnGestureListener { currentView, event ->
+                        currentView as KeyView
+                        if (popupOnKeyPress) {
+                            when (event.type) {
+                                GestureType.Down -> onPopupAction(
+                                    PopupAction.PreviewAction(currentView.id, it.content, currentView.bounds)
+                                )
+                                GestureType.Move -> {
+                                    val triggered = shouldTriggerSymbolBySwipe(currentView, event.totalY)
+                                    val text = if (triggered) it.alternative else it.content
+                                    onPopupAction(
+                                        PopupAction.PreviewUpdateAction(currentView.id, text)
                                     )
-                                    GestureType.Move -> {
-                                        val triggered = shouldTriggerSymbolBySwipe(view, event.totalY)
-                                        val text = if (triggered) it.alternative else it.content
-                                        onPopupAction(
-                                            PopupAction.PreviewUpdateAction(view.id, text)
-                                        )
-                                    }
-                                    GestureType.Up -> {
-                                        onPopupAction(PopupAction.DismissAction(view.id))
-                                    }
+                                }
+                                GestureType.Up -> {
+                                    onPopupAction(PopupAction.DismissAction(currentView.id))
                                 }
                             }
-                            // never consume gesture in preview popup
-                            oldOnGestureListener.onGesture(view, event)
                         }
+                        oldOnGestureListener.onGesture(currentView, event)
                     }
-                    is KeyDef.Popup.Preview -> {
-                        val oldOnGestureListener = onGestureListener ?: OnGestureListener.Empty
-                        onGestureListener = OnGestureListener { view, event ->
-                            view as KeyView
-                            if (popupOnKeyPress) {
-                                when (event.type) {
-                                    GestureType.Down -> onPopupAction(
-                                        PopupAction.PreviewAction(view.id, it.content, view.bounds)
-                                    )
-                                    GestureType.Up -> {
-                                        onPopupAction(PopupAction.DismissAction(view.id))
-                                    }
-                                    else -> {}
+                }
+                is KeyDef.Popup.Preview -> {
+                    val oldOnGestureListener = view.onGestureListener ?: OnGestureListener.Empty
+                    view.onGestureListener = OnGestureListener { currentView, event ->
+                        currentView as KeyView
+                        if (popupOnKeyPress) {
+                            when (event.type) {
+                                GestureType.Down -> onPopupAction(
+                                    PopupAction.PreviewAction(currentView.id, it.content, currentView.bounds)
+                                )
+                                GestureType.Up -> {
+                                    onPopupAction(PopupAction.DismissAction(currentView.id))
                                 }
+                                else -> {}
                             }
-                            // never consume gesture in preview popup
-                            oldOnGestureListener.onGesture(view, event)
                         }
+                        oldOnGestureListener.onGesture(currentView, event)
                     }
                 }
             }

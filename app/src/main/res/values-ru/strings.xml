@@ -630,4 +630,11 @@
     <string name="text_keyboard_layout_qr_import_confirm_message_with_profile">Обнаружено %1$d записей раскладки. Импортировать в профиль «%2$s» и заменить текущие данные редактирования?</string>
     <string name="text_keyboard_layout_qr_import_success_new_profile">QR-раскладка импортирована, создан новый профиль «%1$s». Нажмите «Сохранить», чтобы записать в файл.</string>
     <string name="text_keyboard_layout_qr_import_success_profile">QR-раскладка импортирована в профиль «%1$s». Нажмите «Сохранить», чтобы записать в файл.</string>
+    <string name="text_keyboard_layout_compose_override_title">Переопределение при наборе</string>
+    <string name="text_keyboard_layout_compose_override_not_configured">Во время набора использовать поведение клавиши по умолчанию</string>
+    <string name="text_keyboard_layout_compose_override_configured">Настроено пользовательское поведение клавиши для режима набора</string>
+    <string name="text_keyboard_layout_compose_override_edit_button">Изменить клавишу в режиме набора</string>
+    <string name="text_keyboard_layout_compose_override_clear_button">Очистить</string>
+    <string name="text_keyboard_layout_compose_override_editor_title">Изменить клавишу в режиме набора</string>
+    <string name="text_keyboard_layout_compose_override_follow_base_key_colors">Независимый цвет клавиши</string>
     </resources>

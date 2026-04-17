@@ -36,6 +36,8 @@ object LayoutJsonUtils {
         "tap",
         "swipe",
         "longPress",
+        "composeOverride",
+        "independentColor",
         "textColor",
         "textColorMonet",
         "altTextColor",
@@ -168,7 +170,30 @@ object LayoutJsonUtils {
      * @return 解析后的 KeyJson，如果 type 缺失则返回 null
      */
     fun parseKeyJson(obj: JsonObject): KeyJson? {
+        return parseKeyJsonInternal(obj, allowComposeOverride = true)
+    }
+
+    private fun parseKeyJsonInternal(
+        obj: JsonObject,
+        allowComposeOverride: Boolean,
+        isComposeOverride: Boolean = false
+    ): KeyJson? {
         val type = obj["type"]?.jsonPrimitive?.content ?: return null
+        val composeOverride = if (allowComposeOverride) {
+            obj["composeOverride"]?.jsonObject?.let { overrideObj ->
+                val normalized = if ("type" in overrideObj) {
+                    overrideObj
+                } else {
+                    JsonObject(overrideObj + ("type" to JsonPrimitive(type)))
+                }
+                parseKeyJsonInternal(normalized, allowComposeOverride = false, isComposeOverride = true)
+            }
+        } else {
+            null
+        }
+        val independentColor = if (isComposeOverride) {
+            obj["independentColor"]?.jsonPrimitive?.booleanOrNull
+        } else null
         return KeyJson(
             type = type,
             main = obj["main"]?.jsonPrimitive?.content,
@@ -189,7 +214,9 @@ object LayoutJsonUtils {
             shadowColorMonet = obj["shadowColorMonet"]?.jsonPrimitive?.contentOrNull,
             tap = obj["tap"]?.jsonObject?.let { parseMacroAction(it) },
             swipe = obj["swipe"]?.jsonObject?.let { parseMacroAction(it) },
-            longPress = obj["longPress"]?.jsonObject?.let { parseMacroAction(it) }
+            longPress = obj["longPress"]?.jsonObject?.let { parseMacroAction(it) },
+            independentColor = independentColor,
+            composeOverride = composeOverride
         )
     }
 
@@ -402,7 +429,9 @@ object LayoutJsonUtils {
         val shadowColorMonet: String? = null,
         val tap: MacroAction? = null,  // MacroKey 使用
         val swipe: MacroAction? = null,  // MacroKey 使用
-        val longPress: MacroAction? = null  // MacroKey 使用
+        val longPress: MacroAction? = null,  // MacroKey 使用
+        val independentColor: Boolean? = null,
+        val composeOverride: KeyJson? = null
     )
 
     /**
@@ -486,6 +515,18 @@ object LayoutJsonUtils {
             }
         }
 
+        keyDef.composeOverride?.let { overrideDef ->
+            val overrideJson = keyDefToJson(overrideDef).toMutableMap()
+            overrideJson.remove("weight")
+            if ((overrideJson["type"] as? String).isNullOrBlank()) {
+                overrideJson["type"] = type
+            }
+            json["composeOverride"] = overrideJson
+        }
+        if (keyDef.independentColor) {
+            json["independentColor"] = true
+        }
+
         return json
     }
 
@@ -558,7 +599,7 @@ object LayoutJsonUtils {
      * @return 转换后的 KeyDef
      */
     fun createKeyDef(key: KeyJson, subModeLabel: String = "", subModeName: String = ""): KeyDef {
-        return when (key.type) {
+        val keyDef = when (key.type) {
             "AlphabetKey" -> AlphabetKey(
                 character = key.main ?: "",
                 punctuation = key.alt ?: "",
@@ -689,6 +730,16 @@ object LayoutJsonUtils {
             }
             else -> SpaceKey() // Fallback
         }
+        key.composeOverride?.let { override ->
+            val overrideDef = createKeyDef(
+                override.copy(composeOverride = null, weight = null),
+                subModeLabel,
+                subModeName
+            )
+            overrideDef.independentColor = override.independentColor ?: false
+            keyDef.composeOverride = overrideDef
+        }
+        return keyDef
     }
 
     /**
