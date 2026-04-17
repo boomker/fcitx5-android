@@ -114,7 +114,14 @@ class CommonKeyActionListener :
                     sendKey(action.act, action.states.states, action.code, action.up)
                 }
                 is SymAction -> service.postFcitxJob {
-                    sendKey(action.sym, action.states)
+                    if (action.sym.sym == FcitxKeyMapping.FcitxKey_space &&
+                        horizontalCandidate.isRowShifted() &&
+                        horizontalCandidate.adapter.candidates.isNotEmpty()
+                    ) {
+                        select(horizontalCandidate.adapter.indexOffset)
+                    } else {
+                        sendKey(action.sym, action.states)
+                    }
                 }
                 is CommitAction -> service.postFcitxJob {
                     commitAndReset()

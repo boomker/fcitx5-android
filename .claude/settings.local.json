@@ -105,7 +105,8 @@
       "Bash(git cherry-pick:*)",
       "Bash(git checkout:*)",
       "Bash(rtk wc:*)",
-      "Bash(git ls-tree:*)"
+      "Bash(git ls-tree:*)",
+      "Bash(./gradlew :app:compileMainlineDebugKotlin)"
     ]
   }
 }

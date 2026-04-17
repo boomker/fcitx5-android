@@ -132,6 +132,8 @@ class HorizontalCandidateComponent :
 
     fun hasRowSwipeCandidates(): Boolean = pagedCandidateFlowActive && adapter.candidates.isNotEmpty()
 
+    fun isRowShifted(): Boolean = rowWindowHistory.isNotEmpty()
+
     private fun candidateFetchBatchSize(): Int = max(maxSpanCountPref.getValue() * 3, 24)
 
     private fun activeIndexFor(candidates: Array<String>): Int = if (candidates.isNotEmpty()) 0 else -1
