@@ -451,17 +451,17 @@ class InputView(
         }
     }
 
-    private fun refreshKeyboardBounds() {
+    private fun refreshKeyboardBounds(hierarchyChanged: Boolean = false) {
         if (!keyBlurMaskView.hasBlurBitmap()) return
         keyboardWindow.updateBounds()
-        keyBlurMaskView.markKeyRegionsDirty()
+        keyBlurMaskView.markKeyRegionsDirty(hierarchyChanged = hierarchyChanged)
         keyBlurMaskView.invalidate()
     }
 
     private var blurRefreshScheduled = false
     private var blurRefreshRemainingFrames = 0
 
-    fun requestBlurRefresh(retryFrames: Int = 1) {
+    fun requestBlurRefresh(retryFrames: Int = 1, hierarchyChanged: Boolean = false) {
         if (!keyBlurMaskView.hasBlurBitmap()) return
         blurRefreshRemainingFrames = maxOf(blurRefreshRemainingFrames, retryFrames)
         if (blurRefreshScheduled) return
@@ -472,11 +472,11 @@ class InputView(
                 blurRefreshRemainingFrames = 0
                 return@postOnAnimation
             }
-            refreshKeyboardBounds()
+            refreshKeyboardBounds(hierarchyChanged = hierarchyChanged)
             val remaining = blurRefreshRemainingFrames
             if (remaining > 0) {
                 blurRefreshRemainingFrames = remaining - 1
-                requestBlurRefresh(0)
+                requestBlurRefresh(0, hierarchyChanged = hierarchyChanged)
             } else {
                 blurRefreshRemainingFrames = 0
             }
