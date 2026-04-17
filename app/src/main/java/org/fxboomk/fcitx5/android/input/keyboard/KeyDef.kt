@@ -13,6 +13,18 @@ open class KeyDef(
     val behaviors: Set<Behavior>,
     val popup: Array<Popup>? = null
 ) {
+    /**
+     * Optional key definition that is used while IME is in composing state.
+     * This must keep the same key type/size semantics as the base key.
+     */
+    var composeOverride: KeyDef? = null
+
+    /**
+     * When true on a compose override key, it uses its own independent color settings.
+     * When false (default), compose override follows base key color state.
+     */
+    var independentColor: Boolean = false
+
     sealed class Appearance(
         val percentWidth: Float,
         val variant: Variant,

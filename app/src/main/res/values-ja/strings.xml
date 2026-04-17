@@ -633,4 +633,11 @@
     <string name="open_input_method_settings">输入法設定を開く</string>
     <string name="open_rime_user_data_dir">アプリのデータディレクトリを開きます。RIME ユーザーデータディレクトリは「data/rime」にあります。</string>
     <string name="please_wait">しばらくお待ちください…</string>
+    <string name="text_keyboard_layout_compose_override_title">変換中オーバーライド</string>
+    <string name="text_keyboard_layout_compose_override_not_configured">変換中はデフォルトのキー動作を使用</string>
+    <string name="text_keyboard_layout_compose_override_configured">変換中のキー動作が設定されています</string>
+    <string name="text_keyboard_layout_compose_override_edit_button">変換中キーを編集</string>
+    <string name="text_keyboard_layout_compose_override_clear_button">クリア</string>
+    <string name="text_keyboard_layout_compose_override_editor_title">変換中キーを編集</string>
+    <string name="text_keyboard_layout_compose_override_follow_base_key_colors">独立キー色</string>
     </resources>

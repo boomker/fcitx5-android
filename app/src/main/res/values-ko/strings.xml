@@ -631,4 +631,11 @@
     <string name="user_data_imported">已导入来自 %1$s 的用户数据，正在重启…</string>
     <string name="vivo_keypress_workaround">解决 vivo Origin OS 按键检测问题</string>
     <string name="whether_reset_switch_preference">是否要将此设置重置为默认值？</string>
+    <string name="text_keyboard_layout_compose_override_title">조합 중 오버라이드</string>
+    <string name="text_keyboard_layout_compose_override_not_configured">조합 중에는 기본 키 동작 사용</string>
+    <string name="text_keyboard_layout_compose_override_configured">조합 중 키 동작이 설정됨</string>
+    <string name="text_keyboard_layout_compose_override_edit_button">조합 중 키 편집</string>
+    <string name="text_keyboard_layout_compose_override_clear_button">지우기</string>
+    <string name="text_keyboard_layout_compose_override_editor_title">조합 중 키 편집</string>
+    <string name="text_keyboard_layout_compose_override_follow_base_key_colors">독립 키 색상</string>
     </resources>

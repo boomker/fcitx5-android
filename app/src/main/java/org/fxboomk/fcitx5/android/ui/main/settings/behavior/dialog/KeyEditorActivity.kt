@@ -22,6 +22,7 @@ import android.text.TextWatcher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.SwitchCompat
 import androidx.appcompat.widget.Toolbar
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
@@ -94,7 +95,13 @@ class KeyEditorActivity : AppCompatActivity() {
     private var isEditingSubModeLayout: Boolean = false
     private var currentSubModeLabel: String? = null
     private var hasMultiSubmodeSupport: Boolean = false
+    private var lockTypeSelection: Boolean = false
+    private var disableWeightEditing: Boolean = false
+    private var composeOverrideEditorMode: Boolean = false
+    private var hasInitialComposeOverride: Boolean = false
+    private var independentColor: Boolean = false
     private var keyData: MutableMap<String, Any?> = mutableMapOf()
+    private var composeOverrideData: MutableMap<String, Any?>? = null
 
     private lateinit var typeSpinner: Spinner
     private lateinit var fieldsContainer: LinearLayout
@@ -181,6 +188,25 @@ class KeyEditorActivity : AppCompatActivity() {
             updateActionButtonState()
         }
 
+    private val composeOverrideEditorLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            val data = result.data ?: return@registerForActivityResult
+            if (result.resultCode != RESULT_OK) return@registerForActivityResult
+            when (data.getStringExtra(EXTRA_RESULT_ACTION)) {
+                RESULT_ACTION_SAVE -> {
+                    val returned = serializableExtraCompat<HashMap<String, Any?>>(data, EXTRA_RESULT_KEY_DATA)
+                        ?.toMutableMap() ?: return@registerForActivityResult
+                    returned.remove("weight")
+                    composeOverrideData = returned
+                }
+                RESULT_ACTION_DELETE -> {
+                    composeOverrideData = null
+                }
+            }
+            rebuildFields()
+            updateActionButtonState()
+        }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, true)
@@ -203,7 +229,7 @@ class KeyEditorActivity : AppCompatActivity() {
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        if (keyIndex != null) {
+        if (keyIndex != null || (composeOverrideEditorMode && hasInitialComposeOverride)) {
             deleteMenuItem = menu.add(Menu.NONE, MENU_DELETE_ID, 1, getString(R.string.delete)).apply {
                 setIcon(android.R.drawable.ic_menu_delete)
                 setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
@@ -240,33 +266,59 @@ class KeyEditorActivity : AppCompatActivity() {
         isEditingSubModeLayout = intent.getBooleanExtra(EXTRA_IS_EDITING_SUBMODE_LAYOUT, false)
         currentSubModeLabel = intent.getStringExtra(EXTRA_CURRENT_SUBMODE_LABEL)
         hasMultiSubmodeSupport = intent.getBooleanExtra(EXTRA_HAS_MULTI_SUBMODE_SUPPORT, false)
+        lockTypeSelection = intent.getBooleanExtra(EXTRA_LOCK_TYPE_SELECTION, false)
+        disableWeightEditing = intent.getBooleanExtra(EXTRA_DISABLE_WEIGHT_EDITING, false)
+        composeOverrideEditorMode = intent.getBooleanExtra(EXTRA_COMPOSE_OVERRIDE_EDITOR_MODE, false)
+        hasInitialComposeOverride = intent.getBooleanExtra(EXTRA_HAS_INITIAL_COMPOSE_OVERRIDE, false)
 
         val received = serializableExtraCompat<HashMap<String, Any?>>(intent, EXTRA_KEY_DATA)
         keyData = received?.toMutableMap() ?: mutableMapOf()
-        selectedType = keyData["type"] as? String ?: "AlphabetKey"
+        selectedType = intent.getStringExtra(EXTRA_FIXED_TYPE)
+            ?: keyData["type"] as? String
+            ?: "AlphabetKey"
+        keyData["type"] = selectedType
+        composeOverrideData = (keyData["composeOverride"] as? Map<*, *>)?.let { map ->
+            map.entries.associate { (k, v) -> k.toString() to v }.toMutableMap()
+        }
+        if (composeOverrideEditorMode) {
+            composeOverrideData = null
+            keyData.remove("composeOverride")
+            independentColor = keyData["independentColor"] as? Boolean ?: false
+        }
 
         val titleRes = if (keyIndex != null) R.string.edit else R.string.text_keyboard_layout_add_key
-        supportActionBar?.setTitle(titleRes)
+        val customTitle = intent.getStringExtra(EXTRA_TITLE_OVERRIDE)
+        if (customTitle.isNullOrBlank()) {
+            supportActionBar?.setTitle(titleRes)
+        } else {
+            supportActionBar?.title = customTitle
+        }
         toolbar.subtitle = currentSubModeLabel?.takeIf { isEditingSubModeLayout }
     }
 
     private fun buildForm() {
         contentContainer.removeAllViews()
         typeSpinner = uiBuilder.setupTypeSpinner(contentContainer, keyData)
+        if (lockTypeSelection) {
+            typeSpinner.isEnabled = false
+            typeSpinner.alpha = 0.6f
+        }
         fieldsContainer = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(0, dp(8), 0, 0)
         }
         contentContainer.addView(fieldsContainer)
 
-        typeSpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: android.view.View?, position: Int, id: Long) {
-                selectedType = KeyboardEditorUiBuilder.KEY_TYPES[position]
-                rebuildFields()
-                updateActionButtonState()
-            }
+        if (!lockTypeSelection) {
+            typeSpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: android.view.View?, position: Int, id: Long) {
+                    selectedType = KeyboardEditorUiBuilder.KEY_TYPES[position]
+                    rebuildFields()
+                    updateActionButtonState()
+                }
 
-            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
+                override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
+            }
         }
 
         rebuildFields()
@@ -332,13 +384,16 @@ class KeyEditorActivity : AppCompatActivity() {
                     getString(R.string.text_keyboard_layout_key_alt),
                     keyData["alt"] as? String ?: ""
                 )
-                val weightEdit = uiBuilder.createEditField(
-                    getString(R.string.text_keyboard_layout_key_weight),
-                    (keyData["weight"] as? Number)?.toString() ?: ""
-                )
                 fieldsContainer.addView(mainEdit.first)
                 fieldsContainer.addView(altEdit.first)
-                fieldsContainer.addView(weightEdit.first)
+                if (!disableWeightEditing) {
+                    val weightEdit = uiBuilder.createEditField(
+                        getString(R.string.text_keyboard_layout_key_weight),
+                        (keyData["weight"] as? Number)?.toString() ?: ""
+                    )
+                    fieldsContainer.addView(weightEdit.first)
+                    alphabetWeightEdit = weightEdit.second
+                }
 
                 val displayTextContainer = LinearLayout(this).apply {
                     orientation = LinearLayout.VERTICAL
@@ -347,7 +402,6 @@ class KeyEditorActivity : AppCompatActivity() {
 
                 alphabetMainEdit = mainEdit.second
                 alphabetAltEdit = altEdit.second
-                alphabetWeightEdit = weightEdit.second
 
                 uiBuilder.renderDisplayTextEditor(
                     displayTextContainer,
@@ -374,19 +428,21 @@ class KeyEditorActivity : AppCompatActivity() {
                     getString(R.string.text_keyboard_layout_key_label),
                     keyData["label"] as? String ?: "?123"
                 )
-                val weightEdit = uiBuilder.createEditField(
-                    getString(R.string.text_keyboard_layout_key_weight),
-                    (keyData["weight"] as? Number)?.toString() ?: ""
-                )
                 val subLabelEdit = uiBuilder.createEditField(
                     getString(R.string.text_keyboard_layout_key_sub_label),
                     keyData["subLabel"] as? String ?: ""
                 )
                 layoutSwitchLabelEdit = labelEdit.second
-                layoutSwitchWeightEdit = weightEdit.second
                 layoutSwitchSubLabelEdit = subLabelEdit.second
                 fieldsContainer.addView(labelEdit.first)
-                fieldsContainer.addView(weightEdit.first)
+                if (!disableWeightEditing) {
+                    val weightEdit = uiBuilder.createEditField(
+                        getString(R.string.text_keyboard_layout_key_weight),
+                        (keyData["weight"] as? Number)?.toString() ?: ""
+                    )
+                    fieldsContainer.addView(weightEdit.first)
+                    layoutSwitchWeightEdit = weightEdit.second
+                }
                 fieldsContainer.addView(subLabelEdit.first)
             }
 
@@ -395,14 +451,16 @@ class KeyEditorActivity : AppCompatActivity() {
                     getString(R.string.text_keyboard_layout_key_label),
                     keyData["label"] as? String ?: "."
                 )
-                val weightEdit = uiBuilder.createEditField(
-                    getString(R.string.text_keyboard_layout_key_weight),
-                    (keyData["weight"] as? Number)?.toString() ?: ""
-                )
                 symbolLabelEdit = labelEdit.second
-                symbolWeightEdit = weightEdit.second
                 fieldsContainer.addView(labelEdit.first)
-                fieldsContainer.addView(weightEdit.first)
+                if (!disableWeightEditing) {
+                    val weightEdit = uiBuilder.createEditField(
+                        getString(R.string.text_keyboard_layout_key_weight),
+                        (keyData["weight"] as? Number)?.toString() ?: ""
+                    )
+                    symbolWeightEdit = weightEdit.second
+                    fieldsContainer.addView(weightEdit.first)
+                }
             }
 
             "MacroKey" -> {
@@ -419,20 +477,21 @@ class KeyEditorActivity : AppCompatActivity() {
                     keyData["longPressLabel"] as? String ?: ""
                 )
                 longPressLabelEdit.second.hint = getString(R.string.text_keyboard_layout_longpress_label_fallback_hint)
-                val weightEdit = uiBuilder.createEditField(
-                    getString(R.string.text_keyboard_layout_key_weight),
-                    (keyData["weight"] as? Number)?.toString() ?: ""
-                )
-
                 fieldsContainer.addView(labelEdit.first)
                 fieldsContainer.addView(altLabelEdit.first)
                 fieldsContainer.addView(longPressLabelEdit.first)
-                fieldsContainer.addView(weightEdit.first)
+                if (!disableWeightEditing) {
+                    val weightEdit = uiBuilder.createEditField(
+                        getString(R.string.text_keyboard_layout_key_weight),
+                        (keyData["weight"] as? Number)?.toString() ?: ""
+                    )
+                    fieldsContainer.addView(weightEdit.first)
+                    macroWeightEdit = weightEdit.second
+                }
 
                 macroLabelEdit = labelEdit.second
                 macroAltLabelEdit = altLabelEdit.second
                 macroLongPressLabelEdit = longPressLabelEdit.second
-                macroWeightEdit = weightEdit.second
 
                 val labelTextContainer = LinearLayout(this).apply {
                     orientation = LinearLayout.VERTICAL
@@ -518,22 +577,112 @@ class KeyEditorActivity : AppCompatActivity() {
             }
 
             "CapsKey", "CommaKey", "LanguageKey", "SpaceKey", "ReturnKey", "BackspaceKey" -> {
-                val weightEdit = uiBuilder.createEditField(
-                    getString(R.string.text_keyboard_layout_key_weight),
-                    (keyData["weight"] as? Number)?.toString() ?: ""
-                )
-                simpleWeightEdit = weightEdit.second
-                fieldsContainer.addView(weightEdit.first)
+                if (!disableWeightEditing) {
+                    val weightEdit = uiBuilder.createEditField(
+                        getString(R.string.text_keyboard_layout_key_weight),
+                        (keyData["weight"] as? Number)?.toString() ?: ""
+                    )
+                    simpleWeightEdit = weightEdit.second
+                    fieldsContainer.addView(weightEdit.first)
+                }
             }
         }
 
+        if (!composeOverrideEditorMode) {
+            renderComposeOverrideEditorEntry()
+        } else {
+            renderFollowBaseKeyColorsToggle()
+        }
         renderColorEditors()
         attachFieldWatchers(fieldsContainer)
         updateActionButtonState()
     }
 
+    private fun renderComposeOverrideEditorEntry() {
+        val actions = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            setPadding(0, dp(10), 0, dp(8))
+        }
+        val editButton = TextView(this).apply {
+            text = getString(R.string.text_keyboard_layout_compose_override_edit_button)
+            textSize = 14f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            gravity = Gravity.CENTER
+            setPadding(dp(12), dp(8), dp(12), dp(8))
+            background = android.graphics.drawable.GradientDrawable().apply {
+                setColor(styledColor(android.R.attr.colorButtonNormal))
+                setStroke(dp(1), styledColor(android.R.attr.colorControlNormal))
+                cornerRadius = dp(4).toFloat()
+            }
+            setOnClickListener { openComposeOverrideEditor() }
+        }
+        actions.addView(editButton)
+        fieldsContainer.addView(
+            actions,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        )
+    }
+
+    private fun renderFollowBaseKeyColorsToggle() {
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, dp(8), 0, dp(8))
+        }
+        val label = TextView(this).apply {
+            text = getString(R.string.text_keyboard_layout_compose_override_follow_base_key_colors)
+            textSize = 13f
+            setTextColor(styledColor(android.R.attr.textColorSecondary))
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                weight = 1f
+            }
+        }
+        val switchView = SwitchCompat(this).apply {
+            isChecked = independentColor
+            setOnCheckedChangeListener { _, isChecked ->
+                independentColor = isChecked
+                rebuildFields()
+                updateActionButtonState()
+            }
+        }
+        row.addView(label)
+        row.addView(switchView)
+        fieldsContainer.addView(
+            row,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        )
+    }
+
+    private fun openComposeOverrideEditor() {
+        val hasOverride = composeOverrideData != null
+        val editorData = (composeOverrideData ?: mutableMapOf()).toMutableMap()
+        if (editorData["type"] == null) {
+            editorData["type"] = selectedType
+        }
+        if (editorData["independentColor"] !is Boolean) {
+            editorData["independentColor"] = false
+        }
+        val intent = Intent(this, KeyEditorActivity::class.java).apply {
+            putExtra(EXTRA_KEY_DATA, toSerializableMap(editorData))
+            putExtra(EXTRA_ROW_INDEX, -1)
+            putExtra(EXTRA_DISABLE_WEIGHT_EDITING, true)
+            putExtra(EXTRA_COMPOSE_OVERRIDE_EDITOR_MODE, true)
+            putExtra(EXTRA_HAS_INITIAL_COMPOSE_OVERRIDE, hasOverride)
+            putExtra(EXTRA_TITLE_OVERRIDE, getString(R.string.text_keyboard_layout_compose_override_editor_title))
+        }
+        composeOverrideEditorLauncher.launch(intent)
+    }
+
     private fun renderColorEditors() {
         val theme = ThemeManager.activeTheme
+        val colorEditorEnabled = !composeOverrideEditorMode || independentColor
         availableColorFields().forEach { field ->
             val title = getString(field.labelRes)
             val customColor = parseColorInt(keyData[field.customKey])
@@ -550,9 +699,15 @@ class KeyEditorActivity : AppCompatActivity() {
                 gravity = Gravity.CENTER_VERTICAL
                 setPadding(0, dp(8), 0, dp(8))
                 background = resources.getDrawable(android.R.drawable.list_selector_background, null)
-                setOnClickListener { showColorFieldOptions(field) }
-                isClickable = true
-                isFocusable = true
+                if (colorEditorEnabled) {
+                    setOnClickListener { showColorFieldOptions(field) }
+                    isClickable = true
+                    isFocusable = true
+                } else {
+                    isClickable = false
+                    isFocusable = false
+                    alpha = 0.55f
+                }
 
                 addView(
                     TextView(this@KeyEditorActivity).apply {
@@ -612,6 +767,7 @@ class KeyEditorActivity : AppCompatActivity() {
     }
 
     private fun showColorFieldOptions(field: EditableColorField) {
+        if (composeOverrideEditorMode && !independentColor) return
         val supportsMonet = ThemeMonet.supportsCustomMappingEditor(this)
         val options = mutableListOf(
             getString(R.string.text_keyboard_layout_key_color_mode_theme),
@@ -757,7 +913,9 @@ class KeyEditorActivity : AppCompatActivity() {
                 val alt = alphabetAltEdit?.text?.toString().orEmpty()
                 if (main.isNotEmpty()) draft["main"] = main
                 if (alt.isNotEmpty()) draft["alt"] = alt
-                parseWeight(alphabetWeightEdit?.text?.toString())?.let { draft["weight"] = it }
+                if (!disableWeightEditing) {
+                    parseWeight(alphabetWeightEdit?.text?.toString())?.let { draft["weight"] = it }
+                }
 
                 if (alphabetDisplayTextModeSpecific) {
                     val displayTextMap = mutableMapOf<String, String>()
@@ -785,13 +943,17 @@ class KeyEditorActivity : AppCompatActivity() {
                 if (label.isNotEmpty()) draft["label"] = label
                 val subLabel = layoutSwitchSubLabelEdit?.text?.toString().orEmpty()
                 if (subLabel.isNotEmpty()) draft["subLabel"] = subLabel
-                parseWeight(layoutSwitchWeightEdit?.text?.toString())?.let { draft["weight"] = it }
+                if (!disableWeightEditing) {
+                    parseWeight(layoutSwitchWeightEdit?.text?.toString())?.let { draft["weight"] = it }
+                }
             }
 
             "SymbolKey" -> {
                 val label = symbolLabelEdit?.text?.toString()?.ifEmpty { "." }.orEmpty()
                 if (label.isNotEmpty()) draft["label"] = label
-                parseWeight(symbolWeightEdit?.text?.toString())?.let { draft["weight"] = it }
+                if (!disableWeightEditing) {
+                    parseWeight(symbolWeightEdit?.text?.toString())?.let { draft["weight"] = it }
+                }
             }
 
             "MacroKey" -> {
@@ -801,7 +963,9 @@ class KeyEditorActivity : AppCompatActivity() {
                 if (altLabel.isNotEmpty()) draft["altLabel"] = altLabel
                 val longPressLabel = macroLongPressLabelEdit?.text?.toString().orEmpty()
                 if (longPressLabel.isNotEmpty()) draft["longPressLabel"] = longPressLabel
-                parseWeight(macroWeightEdit?.text?.toString())?.let { draft["weight"] = it }
+                if (!disableWeightEditing) {
+                    parseWeight(macroWeightEdit?.text?.toString())?.let { draft["weight"] = it }
+                }
 
                 if (macroDisplayTextModeSpecific) {
                     val displayTextMap = mutableMapOf<String, String>()
@@ -837,8 +1001,14 @@ class KeyEditorActivity : AppCompatActivity() {
             }
 
             "CapsKey", "CommaKey", "LanguageKey", "SpaceKey", "ReturnKey", "BackspaceKey" -> {
-                parseWeight(simpleWeightEdit?.text?.toString())?.let { draft["weight"] = it }
+                if (!disableWeightEditing) {
+                    parseWeight(simpleWeightEdit?.text?.toString())?.let { draft["weight"] = it }
+                }
             }
+        }
+        composeOverrideData?.let { draft["composeOverride"] = toSerializableMap(it) }
+        if (composeOverrideEditorMode) {
+            draft["independentColor"] = independentColor
         }
 
         appendColorOverrides(draft)
@@ -1140,7 +1310,9 @@ class KeyEditorActivity : AppCompatActivity() {
             "AlphabetKey" -> {
                 newKey["main"] = alphabetMainEdit?.text?.toString().orEmpty()
                 newKey["alt"] = alphabetAltEdit?.text?.toString().orEmpty()
-                parseWeight(alphabetWeightEdit?.text?.toString())?.let { newKey["weight"] = it }
+                if (!disableWeightEditing) {
+                    parseWeight(alphabetWeightEdit?.text?.toString())?.let { newKey["weight"] = it }
+                }
 
                 if (alphabetDisplayTextModeSpecific) {
                     val displayTextMap = mutableMapOf<String, String>()
@@ -1167,12 +1339,16 @@ class KeyEditorActivity : AppCompatActivity() {
                 newKey["label"] = layoutSwitchLabelEdit?.text?.toString()?.ifEmpty { "?123" }.orEmpty()
                 val subLabel = layoutSwitchSubLabelEdit?.text?.toString().orEmpty()
                 if (subLabel.isNotEmpty()) newKey["subLabel"] = subLabel
-                parseWeight(layoutSwitchWeightEdit?.text?.toString())?.let { newKey["weight"] = it }
+                if (!disableWeightEditing) {
+                    parseWeight(layoutSwitchWeightEdit?.text?.toString())?.let { newKey["weight"] = it }
+                }
             }
 
             "SymbolKey" -> {
                 newKey["label"] = symbolLabelEdit?.text?.toString()?.ifEmpty { "." }.orEmpty()
-                parseWeight(symbolWeightEdit?.text?.toString())?.let { newKey["weight"] = it }
+                if (!disableWeightEditing) {
+                    parseWeight(symbolWeightEdit?.text?.toString())?.let { newKey["weight"] = it }
+                }
             }
 
             "MacroKey" -> {
@@ -1182,7 +1358,9 @@ class KeyEditorActivity : AppCompatActivity() {
                 if (altLabel.isNotEmpty()) newKey["altLabel"] = altLabel
                 val longPressLabel = macroLongPressLabelEdit?.text?.toString().orEmpty()
                 if (longPressLabel.isNotEmpty()) newKey["longPressLabel"] = longPressLabel
-                parseWeight(macroWeightEdit?.text?.toString())?.let { newKey["weight"] = it }
+                if (!disableWeightEditing) {
+                    parseWeight(macroWeightEdit?.text?.toString())?.let { newKey["weight"] = it }
+                }
 
                 if (macroDisplayTextModeSpecific) {
                     val displayTextMap = mutableMapOf<String, String>()
@@ -1224,8 +1402,14 @@ class KeyEditorActivity : AppCompatActivity() {
             }
 
             "CapsKey", "CommaKey", "LanguageKey", "SpaceKey", "ReturnKey", "BackspaceKey" -> {
-                parseWeight(simpleWeightEdit?.text?.toString())?.let { newKey["weight"] = it }
+                if (!disableWeightEditing) {
+                    parseWeight(simpleWeightEdit?.text?.toString())?.let { newKey["weight"] = it }
+                }
             }
+        }
+        composeOverrideData?.let { newKey["composeOverride"] = toSerializableMap(it) }
+        if (composeOverrideEditorMode) {
+            newKey["independentColor"] = independentColor
         }
 
         appendColorOverrides(newKey)
@@ -1265,6 +1449,12 @@ class KeyEditorActivity : AppCompatActivity() {
         const val EXTRA_IS_EDITING_SUBMODE_LAYOUT = "is_editing_submode_layout"
         const val EXTRA_CURRENT_SUBMODE_LABEL = "current_submode_label"
         const val EXTRA_HAS_MULTI_SUBMODE_SUPPORT = "has_multi_submode_support"
+        const val EXTRA_LOCK_TYPE_SELECTION = "lock_type_selection"
+        const val EXTRA_DISABLE_WEIGHT_EDITING = "disable_weight_editing"
+        const val EXTRA_COMPOSE_OVERRIDE_EDITOR_MODE = "compose_override_editor_mode"
+        const val EXTRA_HAS_INITIAL_COMPOSE_OVERRIDE = "has_initial_compose_override"
+        const val EXTRA_FIXED_TYPE = "fixed_type"
+        const val EXTRA_TITLE_OVERRIDE = "title_override"
 
         const val EXTRA_RESULT_ACTION = "result_action"
         const val EXTRA_RESULT_KEY_DATA = "result_key_data"

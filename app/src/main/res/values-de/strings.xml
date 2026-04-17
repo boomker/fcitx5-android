@@ -631,4 +631,11 @@
     <string name="update_table">更新码表</string>
     <string name="user_data_imported">已导入来自 %1$s 的用户数据，正在重启…</string>
     <string name="vivo_keypress_workaround">解决 vivo Origin OS 按键检测问题</string>
+    <string name="text_keyboard_layout_compose_override_title">Überschreibung während der Eingabe</string>
+    <string name="text_keyboard_layout_compose_override_not_configured">Während der Eingabe Standard-Tastenverhalten verwenden</string>
+    <string name="text_keyboard_layout_compose_override_configured">Benutzerdefiniertes Tastenverhalten für die Eingabe ist konfiguriert</string>
+    <string name="text_keyboard_layout_compose_override_edit_button">Taste im Eingabemodus bearbeiten</string>
+    <string name="text_keyboard_layout_compose_override_clear_button">Löschen</string>
+    <string name="text_keyboard_layout_compose_override_editor_title">Taste im Eingabemodus bearbeiten</string>
+    <string name="text_keyboard_layout_compose_override_follow_base_key_colors">Unabhängige Tastenfarbe</string>
     </resources>

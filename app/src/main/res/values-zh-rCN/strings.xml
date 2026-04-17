@@ -682,4 +682,11 @@
     <string name="edit_monet_theme">编辑 Monet 主题</string>
 
     <string name="text_keyboard_layout_save_failed">保存布局失败。请查看 logcat 获取详细信息。</string>
+    <string name="text_keyboard_layout_compose_override_title">合成中覆盖</string>
+    <string name="text_keyboard_layout_compose_override_not_configured">合成中使用默认按键行为</string>
+    <string name="text_keyboard_layout_compose_override_configured">已配置合成中的按键行为</string>
+    <string name="text_keyboard_layout_compose_override_edit_button">编辑合成中按键</string>
+    <string name="text_keyboard_layout_compose_override_clear_button">清除</string>
+    <string name="text_keyboard_layout_compose_override_editor_title">编辑合成中按键</string>
+    <string name="text_keyboard_layout_compose_override_follow_base_key_colors">独立按键颜色</string>
 </resources>

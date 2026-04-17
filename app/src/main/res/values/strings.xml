@@ -624,6 +624,13 @@
     <string name="picker_category_fullwidth">Fullwidth</string>
     <string name="text_keyboard_layout_display_text_mode_invalid">Please fill in row %1$d before adding a new mode</string>
     <string name="text_keyboard_layout_display_text_mode_duplicate">Mode name "%1$s" is already in use</string>
+    <string name="text_keyboard_layout_compose_override_title">Compose-state override</string>
+    <string name="text_keyboard_layout_compose_override_not_configured">Use default key behavior while composing</string>
+    <string name="text_keyboard_layout_compose_override_configured">Custom key behavior is configured for composing state</string>
+    <string name="text_keyboard_layout_compose_override_edit_button">Edit composing key</string>
+    <string name="text_keyboard_layout_compose_override_clear_button">Clear</string>
+    <string name="text_keyboard_layout_compose_override_editor_title">Edit composing key</string>
+    <string name="text_keyboard_layout_compose_override_follow_base_key_colors">Independent key color</string>
     <string name="text_keyboard_layout_add_submode">Add submode layout</string>
     <string name="text_keyboard_layout_add_submode_confirm">Add dedicated layout for submode "%1$s"?</string>
     <string name="text_keyboard_layout_delete_submode">Delete submode layout</string>
