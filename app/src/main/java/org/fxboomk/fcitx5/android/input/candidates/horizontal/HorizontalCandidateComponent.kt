@@ -6,6 +6,8 @@
 package org.fxboomk.fcitx5.android.input.candidates.horizontal
 
 import android.content.res.Configuration
+import android.view.ViewGroup
+import android.view.View.MeasureSpec
 import android.graphics.drawable.ShapeDrawable
 import android.graphics.drawable.shapes.RectShape
 import android.widget.PopupMenu
@@ -17,9 +19,11 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.flexbox.FlexboxLayoutManager
 import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.core.FcitxEvent
 import org.fxboomk.fcitx5.android.core.FcitxEvent.PagedCandidateEvent
@@ -30,6 +34,7 @@ import org.fxboomk.fcitx5.android.input.bar.ExpandButtonStateMachine.BooleanKey.
 import org.fxboomk.fcitx5.android.input.bar.ExpandButtonStateMachine.TransitionEvent.ExpandedCandidatesUpdated
 import org.fxboomk.fcitx5.android.input.bar.KawaiiBarComponent
 import org.fxboomk.fcitx5.android.input.broadcast.InputBroadcastReceiver
+import org.fxboomk.fcitx5.android.input.candidates.CandidateItemUi
 import org.fxboomk.fcitx5.android.input.candidates.CandidateViewHolder
 import org.fxboomk.fcitx5.android.input.candidates.expanded.decoration.FlexboxVerticalDecoration
 import org.fxboomk.fcitx5.android.input.candidates.horizontal.HorizontalCandidateMode.AlwaysFillWidth
@@ -44,6 +49,7 @@ import org.fxboomk.fcitx5.android.utils.item
 import org.mechdancer.dependency.manager.must
 import splitties.dimensions.dp
 import splitties.resources.styledColor
+import java.util.ArrayDeque
 import kotlin.math.max
 
 class HorizontalCandidateComponent :
@@ -76,85 +82,161 @@ class HorizontalCandidateComponent :
      */
     private var secondLayoutPassNeeded = false
     private var secondLayoutPassDone = false
-    private var highlightMovedInCurrentComposition = false
-    private var lastPagedCandidatesSnapshot: List<String> = emptyList()
-    private var lastPagedCursor = -1
-    private var lastPagedHasPrev = false
     private var lastPagedData: PagedCandidateEvent.Data? = null
     private var pagedCandidateFlowActive = false
-    private var lastRenderedCandidatesSnapshot: List<String> = emptyList()
-    private var lastRenderedActiveIndex = Int.MIN_VALUE
     private var pendingLegacyCandidateUpdate: Runnable? = null
+    private val rowWindowHistory = ArrayDeque<RowWindow>()
+
+    private data class RowWindow(
+        val start: Int,
+        val candidates: Array<String>,
+    )
+
+    private data class ForwardRowShiftSnapshot(
+        val currentStart: Int,
+        val currentCandidates: Array<String>,
+        val nextStart: Int,
+        val nextLimit: Int,
+    )
 
     private val _expandedCandidateOffset = MutableSharedFlow<Int>(
         replay = 1,
         onBufferOverflow = BufferOverflow.DROP_OLDEST
     )
 
+    private val measurementCandidateUi by lazy {
+        CandidateItemUi(context, theme).also { ui ->
+            ui.root.minimumWidth = context.dp(40)
+            ui.root.setPadding(context.dp(10), 0, context.dp(10), 0)
+            ui.root.layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+        }
+    }
+
     val expandedCandidateOffset = _expandedCandidateOffset.asSharedFlow()
 
     private fun refreshExpanded(childCount: Int) {
-        _expandedCandidateOffset.tryEmit(childCount)
+        val consumedCount = adapter.indexOffset + childCount
+        _expandedCandidateOffset.tryEmit(consumedCount)
         bar.expandButtonStateMachine.push(
             ExpandedCandidatesUpdated,
-            ExpandedCandidatesEmpty to (adapter.total == childCount)
+            ExpandedCandidatesEmpty to (adapter.total == consumedCount)
         )
     }
 
-    private fun firstRowVisibleSlotCount(totalCandidates: Int): Int {
-        val rv = view
-        val lm = layoutManager
-        val childCnt = lm.childCount
-        if (childCnt <= 0) return 0
-        val rightBound = rv.width - rv.paddingRight
-        var firstRowTop = Int.MIN_VALUE
-        var visible = 0
-        for (i in 0 until childCnt) {
-            val child = lm.getChildAt(i) ?: continue
-            if (firstRowTop == Int.MIN_VALUE) {
-                firstRowTop = child.top
+    private fun resetRowWindowState() {
+        rowWindowHistory.clear()
+    }
+
+    fun hasRowSwipeCandidates(): Boolean = pagedCandidateFlowActive && adapter.candidates.isNotEmpty()
+
+    private fun candidateFetchBatchSize(): Int = max(maxSpanCountPref.getValue() * 3, 24)
+
+    private fun activeIndexFor(candidates: Array<String>): Int = if (candidates.isNotEmpty()) 0 else -1
+
+    private fun measuredCandidateWidth(candidate: String, layoutMinWidth: Int): Int {
+        measurementCandidateUi.apply {
+            root.minimumWidth = max(context.dp(40), layoutMinWidth)
+            text.text = candidate
+            applyConfiguredTypeface()
+            root.measure(
+                MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED),
+                MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED)
+            )
+        }
+        return measurementCandidateUi.root.measuredWidth
+    }
+
+    private fun singleRowCount(candidates: Array<String>): Int {
+        if (candidates.isEmpty()) return 0
+        val availableWidth = (view.width - view.paddingLeft - view.paddingRight).coerceAtLeast(1)
+        val dividerWidth = dividerDrawable.intrinsicWidth
+        val maxSpanCount = maxSpanCountPref.getValue()
+        val layoutMinWidth = when (fillStyle) {
+            NeverFillWidth -> 0
+            AutoFillWidth -> (view.width / maxSpanCount - dividerWidth).coerceAtLeast(0)
+            AlwaysFillWidth -> 0
+        }
+        var usedWidth = 0
+        var count = 0
+        for (candidate in candidates) {
+            val itemWidth = measuredCandidateWidth(candidate, layoutMinWidth)
+            val occupiedWidth = itemWidth + dividerWidth
+            if (count > 0 && usedWidth + occupiedWidth > availableWidth) {
+                break
             }
-            if (child.top != firstRowTop) break
-            if (child.right <= rightBound) {
-                visible++
-            } else {
+            usedWidth += occupiedWidth
+            count++
+            if (
+                (fillStyle == AutoFillWidth || fillStyle == AlwaysFillWidth) &&
+                count >= maxSpanCount
+            ) {
                 break
             }
         }
-        return visible.coerceIn(0, totalCandidates)
+        return max(count, 1)
     }
 
-    private fun ensureActiveCandidateVisible(
-        originalCandidates: Array<String>,
+    private fun normalizedSingleRowCandidates(candidates: Array<String>): Array<String> {
+        val count = singleRowCount(candidates).coerceAtMost(candidates.size)
+        return if (count == candidates.size) candidates else candidates.copyOfRange(0, count)
+    }
+
+    private fun renderCandidateWindow(
+        candidates: Array<String>,
         total: Int,
-        activeIndex: Int,
+        indexOffset: Int,
     ) {
-        if (activeIndex !in originalCandidates.indices) {
-            return
+        val singleRowCandidates = normalizedSingleRowCandidates(candidates)
+        updateCandidates(
+            singleRowCandidates,
+            total,
+            activeIndexFor(singleRowCandidates),
+            indexOffset
+        )
+    }
+
+    private suspend fun captureForwardRowShiftSnapshot(): ForwardRowShiftSnapshot? =
+        withContext(Dispatchers.Main.immediate) {
+            if (!hasRowSwipeCandidates()) return@withContext null
+            val currentStart = adapter.indexOffset
+            val currentCandidates = adapter.candidates.copyOf()
+            val nextStart = currentStart + currentCandidates.size
+            ForwardRowShiftSnapshot(
+                currentStart = currentStart,
+                currentCandidates = currentCandidates,
+                nextStart = nextStart,
+                nextLimit = candidateFetchBatchSize()
+            )
         }
-        val visibleCount = firstRowVisibleSlotCount(adapter.candidates.size)
-        if (visibleCount <= 0 || visibleCount >= adapter.candidates.size) {
-            return
+
+    suspend fun shiftDisplayedCandidateRow(delta: Int): Boolean = when {
+        delta > 0 -> {
+            val snapshot = captureForwardRowShiftSnapshot() ?: return false
+            val nextCandidates = fcitx.runOnReady {
+                getCandidates(snapshot.nextStart, snapshot.nextLimit)
+            }
+            if (nextCandidates.isEmpty()) return false
+            withContext(Dispatchers.Main.immediate) {
+                rowWindowHistory.addLast(
+                    RowWindow(snapshot.currentStart, snapshot.currentCandidates)
+                )
+                renderCandidateWindow(nextCandidates, -1, snapshot.nextStart)
+                true
+            }
         }
-        val relativeActiveIndex = activeIndex - adapter.indexOffset
-        if (relativeActiveIndex in 0 until visibleCount) {
-            return
+        delta < 0 -> withContext(Dispatchers.Main.immediate) {
+            if (rowWindowHistory.isEmpty()) {
+                false
+            } else {
+                val previous = rowWindowHistory.removeLast()
+                renderCandidateWindow(previous.candidates, -1, previous.start)
+                true
+            }
         }
-        val shift = relativeActiveIndex - visibleCount + 1
-        if (shift <= 0) {
-            return
-        }
-        val oldOffset = adapter.indexOffset
-        val newOffset = (oldOffset + shift).coerceAtMost(originalCandidates.lastIndex)
-        if (newOffset == oldOffset) {
-            return
-        }
-        val windowedCandidates = originalCandidates.copyOfRange(newOffset, originalCandidates.size)
-        val windowedActiveIndex = activeIndex - newOffset
-        adapter.updateCandidates(windowedCandidates, total, windowedActiveIndex, newOffset)
-        view.post {
-            ensureActiveCandidateVisible(originalCandidates, total, activeIndex)
-        }
+        else -> false
     }
 
     val adapter: HorizontalCandidateViewAdapter by lazy {
@@ -171,7 +253,7 @@ class HorizontalCandidateComponent :
                         strokeColor = theme.dividerColor,
                         pressColor = theme.keyPressHighlightColor
                     )
-                } else {
+                } else if (position != activeIndex) {
                     holder.ui.resetToDefaultBackground(theme.keyPressHighlightColor)
                 }
                 holder.itemView.setOnClickListener {
@@ -249,15 +331,15 @@ class HorizontalCandidateComponent :
             pendingLegacyCandidateUpdate = null
             return
         }
+        pagedCandidateFlowActive = false
+        resetRowWindowState()
         lastPagedData = null
-        lastRenderedCandidatesSnapshot = emptyList()
-        lastRenderedActiveIndex = Int.MIN_VALUE
         val candidates = data.candidates
         val total = data.total
         pendingLegacyCandidateUpdate?.let(view::removeCallbacks)
         pendingLegacyCandidateUpdate = Runnable {
             pendingLegacyCandidateUpdate = null
-            updateCandidates(candidates, total, -1)
+            renderCandidateWindow(candidates, total, 0)
         }.also(view::post)
     }
 
@@ -278,56 +360,15 @@ class HorizontalCandidateComponent :
                 }
             }
         }.toTypedArray()
-        val cursorIndex = data.cursorIndex
-        val normalizedCursor = when {
-            cursorIndex in candidates.indices -> cursorIndex
-            cursorIndex >= 0 && candidates.isNotEmpty() -> cursorIndex % candidates.size
-            else -> -1
-        }
-
-        val isNewFirstPageSnapshot =
-            !data.hasPrev && candidates.asList() != lastPagedCandidatesSnapshot
-        if (isNewFirstPageSnapshot) {
-            highlightMovedInCurrentComposition = false
-            lastPagedCursor = normalizedCursor
-            lastPagedHasPrev = data.hasPrev
-        }
-
-        if (!highlightMovedInCurrentComposition && !isNewFirstPageSnapshot) {
-            val cursorChanged = lastPagedCursor >= 0 && normalizedCursor >= 0 && normalizedCursor != lastPagedCursor
-            val pageChanged = data.hasPrev != lastPagedHasPrev
-            if (cursorChanged || pageChanged) {
-                highlightMovedInCurrentComposition = true
-            }
-        }
-
-        val effectiveActiveIndex = if (!highlightMovedInCurrentComposition && normalizedCursor == 0) {
-            -1
-        } else {
-            normalizedCursor
-        }
-
-        val renderedCandidates = candidates.asList()
-        if (
-            renderedCandidates == lastRenderedCandidatesSnapshot &&
-            effectiveActiveIndex == lastRenderedActiveIndex
-        ) {
-            return
-        }
-
-        lastPagedCandidatesSnapshot = candidates.asList()
-        lastPagedCursor = normalizedCursor
-        lastPagedHasPrev = data.hasPrev
-        lastRenderedCandidatesSnapshot = renderedCandidates
-        lastRenderedActiveIndex = effectiveActiveIndex
-
-        updateCandidates(candidates, -1, effectiveActiveIndex)
+        resetRowWindowState()
+        renderCandidateWindow(candidates, -1, 0)
     }
 
     private fun updateCandidates(
         candidates: Array<String>,
         total: Int,
         activeIndex: Int,
+        indexOffset: Int,
     ) {
         val maxSpanCount = maxSpanCountPref.getValue()
         when (fillStyle) {
@@ -348,10 +389,7 @@ class HorizontalCandidateComponent :
                 secondLayoutPassNeeded = false
             }
         }
-        adapter.updateCandidates(candidates, total, activeIndex, 0)
-        view.post {
-            ensureActiveCandidateVisible(candidates, total, activeIndex)
-        }
+        adapter.updateCandidates(candidates, total, activeIndex, indexOffset)
         if (candidates.isEmpty()) {
             refreshExpanded(0)
         }

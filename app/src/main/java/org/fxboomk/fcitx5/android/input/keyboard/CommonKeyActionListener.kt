@@ -10,10 +10,14 @@ import kotlinx.coroutines.launch
 import org.fxboomk.fcitx5.android.core.CapabilityFlag
 import org.fxboomk.fcitx5.android.core.CapabilityFlags
 import org.fxboomk.fcitx5.android.core.FcitxAPI
+import org.fxboomk.fcitx5.android.core.FcitxKeyMapping
+import org.fxboomk.fcitx5.android.core.KeyStates
+import org.fxboomk.fcitx5.android.core.KeySym
 import org.fxboomk.fcitx5.android.daemon.launchOnReady
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.input.broadcast.PreeditEmptyStateComponent
 import org.fxboomk.fcitx5.android.input.candidates.horizontal.HorizontalCandidateComponent
+import org.fxboomk.fcitx5.android.input.candidates.floating.FloatingCandidatesMode
 import org.fxboomk.fcitx5.android.input.dependency.context
 import org.fxboomk.fcitx5.android.input.dependency.fcitx
 import org.fxboomk.fcitx5.android.input.dependency.inputMethodService
@@ -23,6 +27,7 @@ import org.fxboomk.fcitx5.android.input.keyboard.CommonKeyActionListener.Backspa
 import org.fxboomk.fcitx5.android.input.keyboard.CommonKeyActionListener.BackspaceSwipeState.Selection
 import org.fxboomk.fcitx5.android.input.keyboard.CommonKeyActionListener.BackspaceSwipeState.Stopped
 import org.fxboomk.fcitx5.android.input.keyboard.KeyAction.CommitAction
+import org.fxboomk.fcitx5.android.input.keyboard.KeyAction.CandidatePageAction
 import org.fxboomk.fcitx5.android.input.keyboard.KeyAction.DeleteSelectionAction
 import org.fxboomk.fcitx5.android.input.keyboard.KeyAction.FcitxKeyAction
 import org.fxboomk.fcitx5.android.input.keyboard.KeyAction.LangSwitchAction
@@ -64,6 +69,7 @@ class CommonKeyActionListener :
     private val spaceKeyLongPressBehavior by kbdPrefs.spaceKeyLongPressBehavior
     private val langSwitchKeyBehavior by kbdPrefs.langSwitchKeyBehavior
     private val preferredVoiceInput by kbdPrefs.preferredVoiceInput
+    private val floatingCandidatesMode by AppPrefs.getInstance().candidates.mode
 
     private var backspaceSwipeState = Stopped
 
@@ -174,6 +180,21 @@ class CommonKeyActionListener :
                         }
                     }
                     backspaceSwipeState = Stopped
+                }
+                is CandidatePageAction -> service.postFcitxJob {
+                    val shouldSwipeCandidateRows =
+                        floatingCandidatesMode != FloatingCandidatesMode.Always &&
+                                horizontalCandidate.hasRowSwipeCandidates()
+                    if (shouldSwipeCandidateRows) {
+                        horizontalCandidate.shiftDisplayedCandidateRow(action.delta)
+                    } else {
+                        val sym = if (action.delta > 0) {
+                            FcitxKeyMapping.FcitxKey_Down
+                        } else {
+                            FcitxKeyMapping.FcitxKey_Up
+                        }
+                        sendKey(KeySym(sym), KeyStates.Virtual)
+                    }
                 }
                 is PickerSwitchAction -> {
                     // update lastSymbolType only when specified explicitly
