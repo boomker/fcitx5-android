@@ -165,27 +165,12 @@ abstract class BaseKeyboard(
         touchTarget.clear()
         composeAwareKeys.clear()
 
-        // Get all fonts once for batch setting - improves performance by reducing FontProviders access
-        val fontMap = org.fcitx.fcitx5.android.input.font.FontProviders.fontTypefaceMap
-        val mainFont = fontMap["key_main_font"]
-        val altFont = fontMap["key_alt_font"]
-
         val splitKeyboard = splitKeyboardManager.shouldUseSplitKeyboard(width)
         lastSplitLandscapeState = splitKeyboard
         keyRows = keyLayout.map { row ->
             val keyViews = row.map(::createKeyView).apply {
-                // Batch set fonts for all key views in this row using setFontTypeFace()
-                // to properly apply custom fonts from FontProviders
-                // Note: Check AltTextKeyView before TextKeyView since AltTextKeyView is a subclass of TextKeyView
-                forEach { keyView ->
-                    when (keyView) {
-                        is AltTextKeyView -> {
-                            keyView.mainText.setFontTypeFace("key_main_font")
-                            keyView.altText.setFontTypeFace("key_alt_font")
-                        }
-                        is TextKeyView -> keyView.mainText.setFontTypeFace("key_main_font")
-                    }
-                }
+                // Batch apply fontset mappings for all key labels.
+                forEach(::applyConfiguredFonts)
             }
             if (splitKeyboard) {
                 buildSplitRow(row, keyViews)
@@ -754,6 +739,7 @@ abstract class BaseKeyboard(
             else -> oldLayoutParams
         }
         val newView = createKeyView(def, registerComposeAware = false, appearanceOverride = appearance)
+        applyConfiguredFonts(newView)
         // Keep the same identity so sibling constraints (leftToRight/rightToLeft) remain valid.
         newView.id = oldView.id
         newView.tag = oldView.tag
@@ -772,6 +758,17 @@ abstract class BaseKeyboard(
             onGestureListener = newView.onGestureListener
         )
         applyAppearance(newView, appearance)
+    }
+
+    private fun applyConfiguredFonts(keyView: KeyView) {
+        // Check AltTextKeyView before TextKeyView since AltTextKeyView is a subclass of TextKeyView.
+        when (keyView) {
+            is AltTextKeyView -> {
+                keyView.mainText.setFontTypeFace("key_main_font")
+                keyView.altText.setFontTypeFace("key_alt_font")
+            }
+            is TextKeyView -> keyView.mainText.setFontTypeFace("key_main_font")
+        }
     }
 
     private fun resolveComposeActiveDef(baseDef: KeyDef): Pair<KeyDef, KeyDef.Appearance> {
