@@ -50,6 +50,7 @@ import org.fcitx.fcitx5.android.input.broadcast.InputBroadcastReceiver
 import org.fcitx.fcitx5.android.input.broadcast.PreeditEmptyStateComponent
 import org.fcitx.fcitx5.android.input.broadcast.PunctuationComponent
 import org.fcitx.fcitx5.android.input.broadcast.ReturnKeyDrawableComponent
+import org.fcitx.fcitx5.android.input.action.ButtonAction
 import org.fcitx.fcitx5.android.input.candidates.horizontal.HorizontalCandidateComponent
 import org.fcitx.fcitx5.android.input.keyboard.CommonKeyActionListener
 import org.fcitx.fcitx5.android.input.keyboard.BaseKeyboard
@@ -2378,6 +2379,17 @@ class InputView(
                 (child as? BaseKeyboard)?.onInputMethodUpdate(ime)
             }
         }
+    }
+
+    internal fun executeButtonAction(actionId: String) {
+        ButtonAction.fromId(actionId)?.execute(
+            context = context,
+            service = service,
+            fcitx = fcitx,
+            windowManager = windowManager,
+            view = null,
+            onActionComplete = null
+        )
     }
 
     /**

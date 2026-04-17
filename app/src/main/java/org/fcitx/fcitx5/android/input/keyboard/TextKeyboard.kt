@@ -481,7 +481,7 @@ class TextKeyboard(
                         is KeyRef.Android -> step.key
                     }
                 )
-                is MacroStep.Text, is MacroStep.Edit -> step
+                is MacroStep.Text, is MacroStep.Edit, is MacroStep.AppAction -> step
             }
         }
 

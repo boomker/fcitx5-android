@@ -260,6 +260,7 @@ object LayoutJsonUtils {
             "tap" -> MacroStep.Tap(obj["keys"]?.jsonArray?.map { parseKeyRef(it.jsonObject) } ?: emptyList())
             "text" -> MacroStep.Text(obj["text"]?.jsonPrimitive?.content ?: "")
             "edit" -> MacroStep.Edit(obj["action"]?.jsonPrimitive?.content ?: "copy")
+            "app" -> MacroStep.AppAction(obj["id"]?.jsonPrimitive?.content ?: "theme")
             "shortcut" -> {
                 val modifiers = obj["modifiers"]?.jsonArray?.map { parseKeyRef(it.jsonObject) }
                     ?: obj["modifier"]?.jsonObject?.let { listOf(parseKeyRef(it)) }
@@ -568,6 +569,10 @@ object LayoutJsonUtils {
             is MacroStep.Edit -> JsonObject(mapOf(
                 "type" to JsonPrimitive("edit"),
                 "action" to JsonPrimitive(step.action)
+            ))
+            is MacroStep.AppAction -> JsonObject(mapOf(
+                "type" to JsonPrimitive("app"),
+                "id" to JsonPrimitive(step.id)
             ))
             is MacroStep.Shortcut -> JsonObject(mapOf(
                 "type" to JsonPrimitive("shortcut"),

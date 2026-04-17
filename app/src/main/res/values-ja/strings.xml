@@ -455,6 +455,7 @@
     <string name="macro_editor_step_type_tap">キーをタップ</string>
     <string name="macro_editor_step_type_shortcut">ショートカット</string>
     <string name="macro_editor_step_type_edit">アクションを編集</string>
+    <string name="macro_editor_step_type_app">アプリ操作</string>
     <string name="macro_editor_step_type_down">キーを押す</string>
     <string name="macro_editor_step_type_up">キーを離す</string>
     <string name="macro_editor_step_type_text">テキストを入力</string>
@@ -478,12 +479,15 @@
     <string name="macro_editor_step_shortcut_modifiers_empty">ステップ %1$d には少なくとも 1 つの修飾キー (Ctrl/Alt/Shift/Meta) が必要です</string>
     <string name="macro_editor_step_shortcut_multiple_keys">ステップ %1$d のターゲットキーは 1 つだけです</string>
     <string name="macro_editor_step_edit_action_required">ステップ %1$d にはアクションが必要です</string>
+    <string name="macro_editor_step_app_action_required">ステップ %1$d にはアプリ操作が必要です</string>
     <string name="macro_editor_type_change_title">ステップタイプの変更</string>
     <string name="macro_editor_type_change_message">ステップタイプを変更すると、現在のデータがクリアされます。続行しますか？</string>
     <string name="macro_editor_delete_step_title">ステップを削除</string>
     <string name="macro_editor_delete_step_message">このステップを削除してもよろしいですか？</string>
     <string name="macro_editor_select_modifier_title">修飾キーを選択</string>
     <string name="macro_editor_all_modifiers_added">すべての修飾キーが追加されました</string>
+    <string name="macro_editor_app_picker_title">アプリ操作を選択</string>
+    <string name="macro_editor_app_action_more">詳細メニュー</string>
     <string name="custom_theme_confirm">OK</string>
     <string name="custom_theme_cancel">キャンセル</string>
     <string name="custom_theme_preview_candidate">候補</string>

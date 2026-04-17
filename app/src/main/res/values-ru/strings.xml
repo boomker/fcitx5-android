@@ -502,6 +502,7 @@
     <string name="macro_editor_step_type_tap">Нажатие клавиш</string>
     <string name="macro_editor_step_type_shortcut">Ярлык</string>
     <string name="macro_editor_step_type_edit">Редактировать действие</string>
+    <string name="macro_editor_step_type_app">Действие приложения</string>
     <string name="macro_editor_step_type_down">Нажать клавишу</string>
     <string name="macro_editor_step_type_up">Отпустить клавишу</string>
     <string name="macro_editor_step_type_text">Ввести текст</string>
@@ -525,12 +526,15 @@
     <string name="macro_editor_step_shortcut_modifiers_empty">Шаг %1$d требует хотя бы одну клавишу-модификатор (Ctrl/Alt/Shift/Meta)</string>
     <string name="macro_editor_step_shortcut_multiple_keys">Шаг %1$d может иметь только одну целевую клавишу</string>
     <string name="macro_editor_step_edit_action_required">Шаг %1$d требует действие</string>
+    <string name="macro_editor_step_app_action_required">Шаг %1$d требует действия приложения</string>
     <string name="macro_editor_type_change_title">Изменить тип шага</string>
     <string name="macro_editor_type_change_message">Изменение типа шага очистит текущие данные. Продолжить?</string>
     <string name="macro_editor_delete_step_title">Удалить шаг</string>
     <string name="macro_editor_delete_step_message">Вы уверены, что хотите удалить этот шаг?</string>
     <string name="macro_editor_select_modifier_title">Выберите модификатор</string>
     <string name="macro_editor_all_modifiers_added">Все модификаторы добавлены</string>
+    <string name="macro_editor_app_picker_title">Выбрать действие приложения</string>
+    <string name="macro_editor_app_action_more">Расширенное меню</string>
     <string name="custom_theme_confirm">ОК</string>
     <string name="custom_theme_cancel">Отмена</string>
     <string name="custom_theme_preview_candidate">Кандидат</string>

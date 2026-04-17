@@ -22,9 +22,13 @@ import org.fcitx.fcitx5.android.input.dialog.AddMoreInputMethodsPrompt
 import org.fcitx.fcitx5.android.input.dialog.InputMethodPickerDialog
 import org.fcitx.fcitx5.android.input.editing.TextEditingWindow
 import org.fcitx.fcitx5.android.input.keyboard.LangSwitchBehavior
+import org.fcitx.fcitx5.android.input.status.StatusAreaWindow
 import org.fcitx.fcitx5.android.input.wm.InputWindowManager
+import org.fcitx.fcitx5.android.ui.main.settings.SettingsRoute
 import org.fcitx.fcitx5.android.utils.AppUtil
+import org.fcitx.fcitx5.android.utils.buildDocumentsProviderIntent
 import org.fcitx.fcitx5.android.utils.switchToNextIME
+import org.fcitx.fcitx5.android.utils.toast
 
 /**
  * Represents a configurable button action that can be used in Kawaii Bar, Status Area, or keyboard.
@@ -112,6 +116,17 @@ sealed class ButtonAction {
             ReloadConfigAction,
             VirtualKeyboardAction,
             OneHandedKeyboardAction,
+            BrowseUserDataDirAction,
+            SettingsGlobalOptionsAction,
+            SettingsInputMethodsAction,
+            SettingsCandidatesWindowAction,
+            SettingsClipboardSettingsAction,
+            SettingsSymbolSettingsAction,
+            SettingsPluginSettingsAction,
+            SettingsAdvancedAction,
+            SettingsDeveloperAction,
+            SettingsAboutAction,
+            SettingsLicenseAction,
             MoreAction
         )
 
@@ -266,8 +281,7 @@ data object MoreAction : ButtonAction() {
         view: View?,
         onActionComplete: (() -> Unit)?
     ) {
-        // More button opens Status Area - handled specially in KawaiiBarComponent
-        // This is a placeholder for completeness
+        windowManager.attachWindow(StatusAreaWindow())
     }
 }
 
@@ -419,5 +433,196 @@ data object OneHandedKeyboardAction : ButtonAction() {
         onActionComplete: (() -> Unit)?
     ) {
         service.toggleOneHandKeyboard()
+    }
+}
+
+data object BrowseUserDataDirAction : ButtonAction() {
+    override val id = "browse_user_data_dir"
+    override val defaultIcon = R.drawable.ic_baseline_more_horiz_24
+    override val defaultLabelRes = R.string.browse_user_data_dir
+
+    override fun execute(
+        context: Context,
+        service: FcitxInputMethodService,
+        fcitx: FcitxConnection,
+        windowManager: InputWindowManager,
+        view: View?,
+        onActionComplete: (() -> Unit)?
+    ) {
+        runCatching {
+            context.startActivity(buildDocumentsProviderIntent())
+        }.onFailure {
+            context.toast(it)
+        }
+    }
+}
+
+data object SettingsGlobalOptionsAction : ButtonAction() {
+    override val id = "settings_global_options"
+    override val defaultIcon = R.drawable.ic_baseline_tune_24
+    override val defaultLabelRes = R.string.global_options
+
+    override fun execute(
+        context: Context,
+        service: FcitxInputMethodService,
+        fcitx: FcitxConnection,
+        windowManager: InputWindowManager,
+        view: View?,
+        onActionComplete: (() -> Unit)?
+    ) {
+        AppUtil.launchMainToRoute(context, SettingsRoute.GlobalConfig)
+    }
+}
+
+data object SettingsInputMethodsAction : ButtonAction() {
+    override val id = "settings_input_methods"
+    override val defaultIcon = R.drawable.ic_baseline_language_24
+    override val defaultLabelRes = R.string.input_methods
+
+    override fun execute(
+        context: Context,
+        service: FcitxInputMethodService,
+        fcitx: FcitxConnection,
+        windowManager: InputWindowManager,
+        view: View?,
+        onActionComplete: (() -> Unit)?
+    ) {
+        AppUtil.launchMainToRoute(context, SettingsRoute.InputMethodList)
+    }
+}
+
+data object SettingsCandidatesWindowAction : ButtonAction() {
+    override val id = "settings_candidates_window"
+    override val defaultIcon = R.drawable.ic_baseline_list_alt_24
+    override val defaultLabelRes = R.string.candidates_window
+
+    override fun execute(
+        context: Context,
+        service: FcitxInputMethodService,
+        fcitx: FcitxConnection,
+        windowManager: InputWindowManager,
+        view: View?,
+        onActionComplete: (() -> Unit)?
+    ) {
+        AppUtil.launchMainToRoute(context, SettingsRoute.CandidatesWindow)
+    }
+}
+
+data object SettingsClipboardSettingsAction : ButtonAction() {
+    override val id = "settings_clipboard"
+    override val defaultIcon = R.drawable.ic_clipboard
+    override val defaultLabelRes = R.string.clipboard
+
+    override fun execute(
+        context: Context,
+        service: FcitxInputMethodService,
+        fcitx: FcitxConnection,
+        windowManager: InputWindowManager,
+        view: View?,
+        onActionComplete: (() -> Unit)?
+    ) {
+        AppUtil.launchMainToRoute(context, SettingsRoute.Clipboard)
+    }
+}
+
+data object SettingsSymbolSettingsAction : ButtonAction() {
+    override val id = "settings_symbol"
+    override val defaultIcon = R.drawable.ic_baseline_emoji_symbols_24
+    override val defaultLabelRes = R.string.emoji_and_symbols
+
+    override fun execute(
+        context: Context,
+        service: FcitxInputMethodService,
+        fcitx: FcitxConnection,
+        windowManager: InputWindowManager,
+        view: View?,
+        onActionComplete: (() -> Unit)?
+    ) {
+        AppUtil.launchMainToRoute(context, SettingsRoute.Symbol)
+    }
+}
+
+data object SettingsPluginSettingsAction : ButtonAction() {
+    override val id = "settings_plugin"
+    override val defaultIcon = R.drawable.ic_baseline_android_24
+    override val defaultLabelRes = R.string.plugins
+
+    override fun execute(
+        context: Context,
+        service: FcitxInputMethodService,
+        fcitx: FcitxConnection,
+        windowManager: InputWindowManager,
+        view: View?,
+        onActionComplete: (() -> Unit)?
+    ) {
+        AppUtil.launchMainToRoute(context, SettingsRoute.Plugin)
+    }
+}
+
+data object SettingsAdvancedAction : ButtonAction() {
+    override val id = "settings_advanced"
+    override val defaultIcon = R.drawable.ic_baseline_more_horiz_24
+    override val defaultLabelRes = R.string.advanced
+
+    override fun execute(
+        context: Context,
+        service: FcitxInputMethodService,
+        fcitx: FcitxConnection,
+        windowManager: InputWindowManager,
+        view: View?,
+        onActionComplete: (() -> Unit)?
+    ) {
+        AppUtil.launchMainToRoute(context, SettingsRoute.Advanced)
+    }
+}
+
+data object SettingsDeveloperAction : ButtonAction() {
+    override val id = "settings_developer"
+    override val defaultIcon = R.drawable.ic_baseline_more_horiz_24
+    override val defaultLabelRes = R.string.developer
+
+    override fun execute(
+        context: Context,
+        service: FcitxInputMethodService,
+        fcitx: FcitxConnection,
+        windowManager: InputWindowManager,
+        view: View?,
+        onActionComplete: (() -> Unit)?
+    ) {
+        AppUtil.launchMainToRoute(context, SettingsRoute.Developer)
+    }
+}
+
+data object SettingsAboutAction : ButtonAction() {
+    override val id = "settings_about"
+    override val defaultIcon = R.drawable.ic_baseline_more_horiz_24
+    override val defaultLabelRes = R.string.about
+
+    override fun execute(
+        context: Context,
+        service: FcitxInputMethodService,
+        fcitx: FcitxConnection,
+        windowManager: InputWindowManager,
+        view: View?,
+        onActionComplete: (() -> Unit)?
+    ) {
+        AppUtil.launchMainToRoute(context, SettingsRoute.About)
+    }
+}
+
+data object SettingsLicenseAction : ButtonAction() {
+    override val id = "settings_license"
+    override val defaultIcon = R.drawable.ic_baseline_more_horiz_24
+    override val defaultLabelRes = R.string.license
+
+    override fun execute(
+        context: Context,
+        service: FcitxInputMethodService,
+        fcitx: FcitxConnection,
+        windowManager: InputWindowManager,
+        view: View?,
+        onActionComplete: (() -> Unit)?
+    ) {
+        AppUtil.launchMainToRoute(context, SettingsRoute.License)
     }
 }

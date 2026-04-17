@@ -292,6 +292,7 @@
     <string name="macro_editor_step_type_tap">키 탭</string>
     <string name="macro_editor_step_type_shortcut">바로 가기</string>
     <string name="macro_editor_step_type_edit">작업 편집</string>
+    <string name="macro_editor_step_type_app">앱 동작</string>
     <string name="macro_editor_step_type_down">키 누르기</string>
     <string name="macro_editor_step_type_up">키 떼기</string>
     <string name="macro_editor_step_type_text">텍스트 입력</string>
@@ -315,12 +316,15 @@
     <string name="macro_editor_step_shortcut_modifiers_empty">%1$d 단계에는 최소한 하나의 수정 키 (Ctrl/Alt/Shift/Meta) 가 필요합니다</string>
     <string name="macro_editor_step_shortcut_multiple_keys">%1$d 단계는 하나의 대상 키만 가질 수 있습니다</string>
     <string name="macro_editor_step_edit_action_required">%1$d 단계에는 작업이 필요합니다</string>
+    <string name="macro_editor_step_app_action_required">%1$d 단계에는 앱 동작이 필요합니다</string>
     <string name="macro_editor_type_change_title">단계 유형 변경</string>
     <string name="macro_editor_type_change_message">단계 유형을 변경하면 현재 데이터가 지워집니다. 계속하시겠습니까?</string>
     <string name="macro_editor_delete_step_title">단계 삭제</string>
     <string name="macro_editor_delete_step_message">이 단계를 삭제하시겠습니까?</string>
     <string name="macro_editor_select_modifier_title">수정 키 선택</string>
     <string name="macro_editor_all_modifiers_added">모든 수정 키가 추가되었습니다</string>
+    <string name="macro_editor_app_picker_title">앱 동작 선택</string>
+    <string name="macro_editor_app_action_more">고급 메뉴</string>
     <string name="custom_theme_confirm">확인</string>
     <string name="custom_theme_cancel">취소</string>
     <string name="custom_theme_preview_candidate">후보</string>

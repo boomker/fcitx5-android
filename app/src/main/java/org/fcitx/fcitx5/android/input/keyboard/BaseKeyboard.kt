@@ -1297,6 +1297,10 @@ abstract class BaseKeyboard(
                         Timber.v("executeMacro: Edit action=%s", step.action)
                         executeEditAction(step.action)
                     }
+                    is MacroStep.AppAction -> {
+                        Timber.v("executeMacro: App action id=%s", step.id)
+                        executeAppAction(step.id)
+                    }
                     is MacroStep.Shortcut -> {
                         Timber.v("executeMacro: Shortcut modifiers=%d key=%s", step.modifiers.size, step.key)
                         executeShortcut(step.modifiers, step.key)
@@ -1385,6 +1389,10 @@ abstract class BaseKeyboard(
             "undo" -> ic.performContextMenuAction(android.R.id.undo)
             "redo" -> ic.performContextMenuAction(android.R.id.redo)
         }
+    }
+
+    private fun executeAppAction(actionId: String) {
+        getService()?.inputView?.executeButtonAction(actionId)
     }
 
     /**

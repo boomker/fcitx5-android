@@ -527,6 +527,7 @@
     <string name="macro_editor_step_type_tap">Tap Keys</string>
     <string name="macro_editor_step_type_shortcut">Shortcut</string>
     <string name="macro_editor_step_type_edit">Edit Action</string>
+    <string name="macro_editor_step_type_app">App Action</string>
     <string name="macro_editor_step_type_down">Press Key</string>
     <string name="macro_editor_step_type_up">Release Key</string>
     <string name="macro_editor_step_type_text">Input Text</string>
@@ -550,12 +551,15 @@
     <string name="macro_editor_step_shortcut_modifiers_empty">Step %1$d requires at least one modifier key (Ctrl/Alt/Shift/Meta)</string>
     <string name="macro_editor_step_shortcut_multiple_keys">Step %1$d can only have one target key</string>
     <string name="macro_editor_step_edit_action_required">Step %1$d requires an action</string>
+    <string name="macro_editor_step_app_action_required">Step %1$d requires an app action</string>
     <string name="macro_editor_type_change_title">Change Step Type</string>
     <string name="macro_editor_type_change_message">Changing step type will clear current data. Continue?</string>
     <string name="macro_editor_delete_step_title">Delete Step</string>
     <string name="macro_editor_delete_step_message">Are you sure you want to delete this step?</string>
     <string name="macro_editor_select_modifier_title">Select Modifier</string>
     <string name="macro_editor_all_modifiers_added">All modifiers have been added</string>
+    <string name="macro_editor_app_picker_title">Select App Action</string>
+    <string name="macro_editor_app_action_more">Advanced Menu</string>
     <string name="custom_theme_confirm">OK</string>
     <string name="custom_theme_cancel">Cancel</string>
     <string name="custom_theme_preview_candidate">Candidate</string>

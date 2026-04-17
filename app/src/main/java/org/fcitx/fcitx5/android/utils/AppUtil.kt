@@ -44,6 +44,9 @@ object AppUtil {
         }
     }
 
+    fun launchMainToRoute(context: Context, route: SettingsRoute) =
+        launchMainToDest(context, route)
+
     fun launchMainToKeyboard(context: Context) =
         launchMainToDest(context, SettingsRoute.VirtualKeyboard)
 

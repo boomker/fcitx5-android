@@ -99,7 +99,7 @@ class MacroEditorActivity : AppCompatActivity() {
         const val EXTRA_EVENT_TYPE = "event_type"
         const val EXTRA_MACRO_RESULT = "macro_result"
 
-        val STEP_TYPES = arrayOf("tap", "shortcut", "edit", "down", "up", "text")
+        val STEP_TYPES = arrayOf("tap", "shortcut", "edit", "app", "down", "up", "text")
         val KEY_TYPES = arrayOf("fcitx", "android")
 
         /**
@@ -613,6 +613,11 @@ class MacroEditorActivity : AppCompatActivity() {
             keys = mutableListOf(KeyData(keyType = "fcitx", code = action))
         }
 
+        if (type == "app") {
+            val actionId = stepMap["id"] as? String ?: "theme"
+            keys = mutableListOf(KeyData(keyType = "fcitx", code = actionId))
+        }
+
         return MacroStepData(type = type, keys = keys, text = text)
     }
 
@@ -651,6 +656,12 @@ class MacroEditorActivity : AppCompatActivity() {
                         return
                     }
                 }
+                "app" -> {
+                    if (step.keys.isEmpty()) {
+                        Toast.makeText(this, getString(R.string.macro_editor_step_app_action_required, index + 1), Toast.LENGTH_SHORT).show()
+                        return
+                    }
+                }
             }
         }
 
@@ -682,6 +693,10 @@ class MacroEditorActivity : AppCompatActivity() {
                     Toast.makeText(this, getString(R.string.macro_editor_step_shortcut_multiple_keys, index + 1), Toast.LENGTH_SHORT).show()
                     return
                 }
+            }
+            if (step.type == "app" && step.keys.isEmpty()) {
+                Toast.makeText(this, getString(R.string.macro_editor_step_app_action_required, index + 1), Toast.LENGTH_SHORT).show()
+                return
             }
         }
 
@@ -726,7 +741,7 @@ class MacroEditorActivity : AppCompatActivity() {
                         keyEventCounts[keyId] = Pair(down + 1, up + 1)
                     }
                 }
-                // "text" and "edit" do not involve key events
+                // "text", "edit" and "app" do not involve key events
             }
         }
         // Check for unmatched down/up events
@@ -759,6 +774,9 @@ class MacroEditorActivity : AppCompatActivity() {
                     // Get action from the code of the first key for edit type
                     put("action", step.keys.firstOrNull()?.code ?: "copy")
                 }
+                if (step.type == "app") {
+                    put("id", step.keys.firstOrNull()?.code ?: "theme")
+                }
             }
         }
 
@@ -790,6 +808,9 @@ class MacroEditorActivity : AppCompatActivity() {
                 }
                 if (step.type == "edit") {
                     put("action", step.keys.firstOrNull()?.code ?: "copy")
+                }
+                if (step.type == "app") {
+                    put("id", step.keys.firstOrNull()?.code ?: "theme")
                 }
             }
         }
@@ -893,6 +914,7 @@ class MacroEditorActivity : AppCompatActivity() {
                     getString(R.string.macro_editor_step_type_tap),
                     getString(R.string.macro_editor_step_type_shortcut),
                     getString(R.string.macro_editor_step_type_edit),
+                    getString(R.string.macro_editor_step_type_app),
                     getString(R.string.macro_editor_step_type_down),
                     getString(R.string.macro_editor_step_type_up),
                     getString(R.string.macro_editor_step_type_text)
@@ -995,8 +1017,10 @@ class MacroEditorActivity : AppCompatActivity() {
                     val newType = STEP_TYPES[pos]
                     
                     // Check if type change would clear data
-                    val willClearData = (oldType == "edit" && newType != "edit" && step.keys.isNotEmpty()) ||
-                                        (oldType != "edit" && newType == "edit" && step.keys.isNotEmpty()) ||
+                    val willClearData = ((oldType == "edit" || oldType == "app") &&
+                        newType != oldType && step.keys.isNotEmpty()) ||
+                                        ((newType == "edit" || newType == "app") &&
+                                            oldType != newType && step.keys.isNotEmpty()) ||
                                         (oldType == "text" && newType != "text" && step.text.isNotEmpty()) ||
                                         (oldType != "text" && newType == "text" && step.text.isNotEmpty())
                     
@@ -1008,10 +1032,10 @@ class MacroEditorActivity : AppCompatActivity() {
                             .setPositiveButton(R.string.macro_editor_confirm) { _, _ ->
                                 step.type = newType
                                 // Clear old data when switching types
-                                if (oldType == "edit" && newType != "edit") {
+                                if ((oldType == "edit" || oldType == "app") && newType != oldType) {
                                     step.keys.clear()
                                 }
-                                if (oldType != "edit" && newType == "edit") {
+                                if ((newType == "edit" || newType == "app") && oldType != newType) {
                                     step.keys.clear()
                                 }
                                 if (oldType == "text" && newType != "text") {
@@ -1058,6 +1082,7 @@ class MacroEditorActivity : AppCompatActivity() {
             step.keys.forEachIndexed { index, key ->
                 val isShortcutType = step.type == "shortcut"
                 val isEditType = step.type == "edit"
+                val isAppType = step.type == "app"
                 val isModifier = isModifierKey(key.code)
 
                 // Chip color: shortcut modifier keys use gray, target key uses primary; edit uses button normal
@@ -1069,7 +1094,11 @@ class MacroEditorActivity : AppCompatActivity() {
                 }
 
                 val keyChip = TextView(this@MacroEditorActivity).apply {
-                    text = if (key.keyType == "fcitx") getFcitxKeyDisplayName(key.code) else key.code
+                    text = when {
+                        isAppType -> getAppActionLabel(key.code)
+                        key.keyType == "fcitx" -> getFcitxKeyDisplayName(key.code)
+                        else -> key.code
+                    }
                     textSize = 14f
                     setPadding(dp(10), dp(8), dp(10), dp(8))
                     gravity = Gravity.CENTER
@@ -1087,6 +1116,13 @@ class MacroEditorActivity : AppCompatActivity() {
                         if (isEditType) {
                             // Edit type: click to select action
                             showClipboardActionPicker { selectedAction ->
+                                step.keys.clear()
+                                step.keys.add(KeyData(keyType = "fcitx", code = selectedAction))
+                                renderKeys(step)
+                                updateSaveButtonState()
+                            }
+                        } else if (isAppType) {
+                            showAppActionPicker { selectedAction ->
                                 step.keys.clear()
                                 step.keys.add(KeyData(keyType = "fcitx", code = selectedAction))
                                 renderKeys(step)
@@ -1140,8 +1176,8 @@ class MacroEditorActivity : AppCompatActivity() {
                     }
                 }
                 keysFlow.addView(addKeyChip)
-            } else if (step.type == "edit" && step.keys.isEmpty()) {
-                // Edit type: show [+] button when empty
+            } else if ((step.type == "edit" || step.type == "app") && step.keys.isEmpty()) {
+                // Edit/App type: show [+] button when empty
                 val addClipboardChip = TextView(this@MacroEditorActivity).apply {
                     text = "+"
                     textSize = 14f
@@ -1159,11 +1195,20 @@ class MacroEditorActivity : AppCompatActivity() {
                         topMargin = dp(4)
                     }
                     setOnClickListener {
-                        showClipboardActionPicker { selectedAction ->
-                            step.keys.clear()
-                            step.keys.add(KeyData(keyType = "fcitx", code = selectedAction))
-                            renderKeys(step)
-                            updateSaveButtonState()
+                        if (step.type == "edit") {
+                            showClipboardActionPicker { selectedAction ->
+                                step.keys.clear()
+                                step.keys.add(KeyData(keyType = "fcitx", code = selectedAction))
+                                renderKeys(step)
+                                updateSaveButtonState()
+                            }
+                        } else {
+                            showAppActionPicker { selectedAction ->
+                                step.keys.clear()
+                                step.keys.add(KeyData(keyType = "fcitx", code = selectedAction))
+                                renderKeys(step)
+                                updateSaveButtonState()
+                            }
                         }
                     }
                 }
@@ -1192,6 +1237,95 @@ class MacroEditorActivity : AppCompatActivity() {
                 }
                 .setNegativeButton(R.string.macro_editor_picker_cancel, null)
                 .show()
+        }
+
+        private fun showAppActionPicker(onSelect: (String) -> Unit) {
+            val actionIds = arrayOf(
+                "theme",
+                "virtual_keyboard",
+                "more",
+                "browse_user_data_dir",
+                "clipboard",
+                "cursor_move",
+                "floating_toggle",
+                "language_switch",
+                "reload_config",
+                "one_handed_keyboard",
+                "input_method_options",
+                "undo",
+                "redo",
+                "settings_global_options",
+                "settings_input_methods",
+                "settings_candidates_window",
+                "settings_clipboard",
+                "settings_symbol",
+                "settings_plugin",
+                "settings_advanced",
+                "settings_developer",
+                "settings_about",
+                "settings_license"
+            )
+            val actionLabels = arrayOf(
+                getString(R.string.theme),
+                getString(R.string.virtual_keyboard),
+                getString(R.string.macro_editor_app_action_more),
+                getString(R.string.browse_user_data_dir),
+                getString(R.string.clipboard),
+                getString(R.string.text_editing),
+                getString(R.string.floating_keyboard),
+                getString(R.string.language_switch),
+                getString(R.string.reload_config),
+                getString(R.string.one_handed_keyboard),
+                getString(R.string.input_method_options),
+                getString(R.string.undo),
+                getString(R.string.redo),
+                getString(R.string.global_options),
+                getString(R.string.input_methods),
+                getString(R.string.candidates_window),
+                getString(R.string.clipboard),
+                getString(R.string.emoji_and_symbols),
+                getString(R.string.plugins),
+                getString(R.string.advanced),
+                getString(R.string.developer),
+                getString(R.string.about),
+                getString(R.string.license)
+            )
+            AlertDialog.Builder(this@MacroEditorActivity)
+                .setTitle(R.string.macro_editor_app_picker_title)
+                .setItems(actionLabels) { _, which ->
+                    onSelect(actionIds[which])
+                }
+                .setNegativeButton(R.string.macro_editor_picker_cancel, null)
+                .show()
+        }
+
+        private fun getAppActionLabel(actionId: String): String {
+            return when (actionId) {
+                "theme" -> getString(R.string.theme)
+                "virtual_keyboard" -> getString(R.string.virtual_keyboard)
+                "more" -> getString(R.string.macro_editor_app_action_more)
+                "browse_user_data_dir" -> getString(R.string.browse_user_data_dir)
+                "clipboard" -> getString(R.string.clipboard)
+                "cursor_move" -> getString(R.string.text_editing)
+                "floating_toggle" -> getString(R.string.floating_keyboard)
+                "language_switch" -> getString(R.string.language_switch)
+                "reload_config" -> getString(R.string.reload_config)
+                "one_handed_keyboard" -> getString(R.string.one_handed_keyboard)
+                "input_method_options" -> getString(R.string.input_method_options)
+                "undo" -> getString(R.string.undo)
+                "redo" -> getString(R.string.redo)
+                "settings_global_options" -> getString(R.string.global_options)
+                "settings_input_methods" -> getString(R.string.input_methods)
+                "settings_candidates_window" -> getString(R.string.candidates_window)
+                "settings_clipboard" -> getString(R.string.clipboard)
+                "settings_symbol" -> getString(R.string.emoji_and_symbols)
+                "settings_plugin" -> getString(R.string.plugins)
+                "settings_advanced" -> getString(R.string.advanced)
+                "settings_developer" -> getString(R.string.developer)
+                "settings_about" -> getString(R.string.about)
+                "settings_license" -> getString(R.string.license)
+                else -> actionId
+            }
         }
 
         private fun showEditKeyDialog(step: MacroStepData, key: KeyData, onSuccess: () -> Unit, onCancel: () -> Unit) {
