@@ -15,6 +15,14 @@ find_package(Fcitx5Core MODULE)
 find_package(Fcitx5Module MODULE)
 
 set(Rime_VERSION "1.12.0")
+
+# sqlite3 amalgamation (needed by librime-predict plugin's rule_trigger_engine)
+set(SQLITE3_SRC_DIR "${PREBUILT_DIR}/sqlite3")
+if(EXISTS "${SQLITE3_SRC_DIR}/sqlite3.c")
+    add_library(sqlite3_static STATIC "${SQLITE3_SRC_DIR}/sqlite3.c")
+    target_include_directories(sqlite3_static PUBLIC "${SQLITE3_SRC_DIR}")
+endif()
+
 set(Rime_dependencies
         log # glog links to android log
         "${PREBUILT_DIR}/glog/${ANDROID_ABI}/lib/libglog.a"
@@ -24,6 +32,9 @@ set(Rime_dependencies
         "${PREBUILT_DIR}/opencc/${ANDROID_ABI}/lib/libopencc.a"
         "${PREBUILT_DIR}/yaml-cpp/${ANDROID_ABI}/lib/libyaml-cpp.a"
         )
+if(TARGET sqlite3_static)
+    list(APPEND Rime_dependencies sqlite3_static)
+endif()
 
 add_library(Rime_static STATIC IMPORTED)
 set_target_properties(Rime_static PROPERTIES

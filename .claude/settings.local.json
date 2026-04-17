@@ -106,7 +106,13 @@
       "Bash(git checkout:*)",
       "Bash(rtk wc:*)",
       "Bash(git ls-tree:*)",
-      "Bash(./gradlew :app:compileMainlineDebugKotlin)"
+      "Bash(./gradlew :app:compileMainlineDebugKotlin)",
+      "Bash(gh search *)",
+      "Bash(curl -sL https://raw.githubusercontent.com/azadkuh/sqlite-amalgamation/master/sqlite3.c -o lib/fcitx5/src/main/cpp/prebuilt/sqlite3/sqlite3.c)",
+      "Bash(curl -sL https://raw.githubusercontent.com/azadkuh/sqlite-amalgamation/master/sqlite3.h -o lib/fcitx5/src/main/cpp/prebuilt/sqlite3/sqlite3.h)",
+      "Bash(./gradlew :plugin:rime:compileMainlineDebugKotlin)",
+      "Bash(./gradlew :plugin:rime:tasks --all)",
+      "Bash(./gradlew :plugin:rime:assembleRelease)"
     ]
   }
 }
