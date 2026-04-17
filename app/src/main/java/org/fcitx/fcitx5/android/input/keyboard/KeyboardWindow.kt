@@ -80,6 +80,11 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
 
     private val currentKeyboard: BaseKeyboard? get() = keyboards[currentKeyboardName]
 
+    private fun updateCompositionState() {
+        currentKeyboard?.onCompositionStateChanged(!preeditEmpty || !candidateEmpty)
+        service.inputView?.requestBlurRefresh(retryFrames = 2, hierarchyChanged = true)
+    }
+
     /**
      * Refresh all keyboard layouts.
      * Call this when split keyboard settings (gap, threshold, enabled) change.
@@ -137,7 +142,7 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
             it.onAttach()
             it.onReturnDrawableUpdate(returnKeyDrawable.resourceId)
             it.onInputMethodUpdate(fcitx.runImmediately { inputMethodEntryCached })
-            it.onCompositionStateChanged(!preeditEmpty || !candidateEmpty)
+            updateCompositionState()
         }
     }
 
@@ -172,7 +177,7 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
             else -> TextKeyboard.Name
         }
         switchLayout(targetLayout, remember = false)
-        currentKeyboard?.onCompositionStateChanged(false)
+        updateCompositionState()
     }
 
     override fun onImeUpdate(ime: InputMethodEntry) {
@@ -189,12 +194,12 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
 
     override fun onPreeditEmptyStateUpdate(empty: Boolean) {
         preeditEmpty = empty
-        currentKeyboard?.onCompositionStateChanged(!preeditEmpty || !candidateEmpty)
+        updateCompositionState()
     }
 
     override fun onCandidateUpdate(data: FcitxEvent.CandidateListEvent.Data) {
         candidateEmpty = data.candidates.isEmpty()
-        currentKeyboard?.onCompositionStateChanged(!preeditEmpty || !candidateEmpty)
+        updateCompositionState()
     }
 
     override fun onAttached() {
