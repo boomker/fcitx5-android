@@ -708,6 +708,7 @@ class AltTextKeyView(
     }
 
     private fun resolveLayoutMode(keyHeight: Int): AltTextLayoutMode {
+        if (altText.text.isNullOrBlank()) return AltTextLayoutMode.Hidden
         val pref = ThemeManager.prefs.punctuationPosition.getValue()
         if (pref == PunctuationPosition.None) return AltTextLayoutMode.Hidden
 

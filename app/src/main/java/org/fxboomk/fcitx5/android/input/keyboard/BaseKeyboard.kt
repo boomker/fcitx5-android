@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
  * SPDX-FileCopyrightText: Copyright 2021-2025 Fcitx5 for Android Contributors
  */
-package org.fcitx.fcitx5.android.input.keyboard
+package org.fxboomk.fcitx5.android.input.keyboard
 
 import android.content.Context
 import android.content.res.Configuration
@@ -24,29 +24,29 @@ import androidx.lifecycle.findViewTreeLifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import org.fcitx.fcitx5.android.core.FcitxKeyMapping
-import org.fcitx.fcitx5.android.core.InputMethodEntry
-import org.fcitx.fcitx5.android.core.KeyState
-import org.fcitx.fcitx5.android.core.KeyStates
-import org.fcitx.fcitx5.android.core.KeySym
-import org.fcitx.fcitx5.android.core.ScancodeMapping
-import org.fcitx.fcitx5.android.data.InputFeedbacks
-import org.fcitx.fcitx5.android.data.prefs.AppPrefs
-import org.fcitx.fcitx5.android.data.prefs.ManagedPreference
-import org.fcitx.fcitx5.android.data.prefs.SplitKeyboardStateManager
-import org.fcitx.fcitx5.android.data.theme.Theme
-import org.fcitx.fcitx5.android.input.font.FontProviders
-import org.fcitx.fcitx5.android.input.keyboard.CustomGestureView.GestureType
-import org.fcitx.fcitx5.android.input.keyboard.CustomGestureView.OnGestureListener
-import org.fcitx.fcitx5.android.input.keyboard.CustomGestureView.SwipeAxis
-import org.fcitx.fcitx5.android.input.popup.PopupAction
-import org.fcitx.fcitx5.android.input.popup.PopupActionListener
-import org.fcitx.fcitx5.android.utils.DeviceInfoCollector
+import org.fxboomk.fcitx5.android.core.FcitxKeyMapping
+import org.fxboomk.fcitx5.android.core.InputMethodEntry
+import org.fxboomk.fcitx5.android.core.KeyState
+import org.fxboomk.fcitx5.android.core.KeyStates
+import org.fxboomk.fcitx5.android.core.KeySym
+import org.fxboomk.fcitx5.android.core.ScancodeMapping
+import org.fxboomk.fcitx5.android.data.InputFeedbacks
+import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
+import org.fxboomk.fcitx5.android.data.prefs.ManagedPreference
+import org.fxboomk.fcitx5.android.data.prefs.SplitKeyboardStateManager
+import org.fxboomk.fcitx5.android.data.theme.Theme
+import org.fxboomk.fcitx5.android.input.font.FontProviders
+import org.fxboomk.fcitx5.android.input.keyboard.CustomGestureView.GestureType
+import org.fxboomk.fcitx5.android.input.keyboard.CustomGestureView.OnGestureListener
+import org.fxboomk.fcitx5.android.input.keyboard.CustomGestureView.SwipeAxis
+import org.fxboomk.fcitx5.android.input.popup.PopupAction
+import org.fxboomk.fcitx5.android.input.popup.PopupActionListener
+import org.fxboomk.fcitx5.android.utils.DeviceInfoCollector
 
 // Import Macro types
-import org.fcitx.fcitx5.android.input.keyboard.MacroAction
-import org.fcitx.fcitx5.android.input.keyboard.MacroStep
-import org.fcitx.fcitx5.android.input.keyboard.KeyRef
+import org.fxboomk.fcitx5.android.input.keyboard.MacroAction
+import org.fxboomk.fcitx5.android.input.keyboard.MacroStep
+import org.fxboomk.fcitx5.android.input.keyboard.KeyRef
 import splitties.dimensions.dp
 import splitties.views.dsl.constraintlayout.above
 import splitties.views.dsl.constraintlayout.below
@@ -166,7 +166,7 @@ abstract class BaseKeyboard(
         composeAwareKeys.clear()
 
         // Get all fonts once for batch setting - improves performance by reducing FontProviders access
-        val fontMap = org.fcitx.fcitx5.android.input.font.FontProviders.fontTypefaceMap
+        val fontMap = org.fxboomk.fcitx5.android.input.font.FontProviders.fontTypefaceMap
         val mainFont = fontMap["key_main_font"]
         val altFont = fontMap["key_alt_font"]
 
@@ -584,6 +584,20 @@ abstract class BaseKeyboard(
      */
     protected open fun onThemeUpdate(newTheme: Theme) {
         // default: no-op
+    }
+
+    /**
+     * Refresh all AltTextKeyView layouts with current final heights.
+     * Should be called after keyboard size is fully applied and stable.
+     */
+    fun refreshAltTextLayouts() {
+        if (::keyRows.isInitialized) {
+            keyRows.forEach { row ->
+                row.children.forEach { child ->
+                    (child as? AltTextKeyView)?.refreshLayout()
+                }
+            }
+        }
     }
 
     private fun createKeyView(
@@ -1297,6 +1311,10 @@ abstract class BaseKeyboard(
                         Timber.v("executeMacro: Edit action=%s", step.action)
                         executeEditAction(step.action)
                     }
+                    is MacroStep.AppAction -> {
+                        Timber.v("executeMacro: App action id=%s", step.id)
+                        executeAppAction(step.id)
+                    }
                     is MacroStep.Shortcut -> {
                         Timber.v("executeMacro: Shortcut modifiers=%d key=%s", step.modifiers.size, step.key)
                         executeShortcut(step.modifiers, step.key)
@@ -1385,6 +1403,10 @@ abstract class BaseKeyboard(
             "undo" -> ic.performContextMenuAction(android.R.id.undo)
             "redo" -> ic.performContextMenuAction(android.R.id.redo)
         }
+    }
+
+    private fun executeAppAction(actionId: String) {
+        getService()?.inputView?.executeButtonAction(actionId)
     }
 
     /**
@@ -1761,16 +1783,16 @@ abstract class BaseKeyboard(
     /**
      * Get FcitxInputMethodService instance
      */
-    private fun getService(): org.fcitx.fcitx5.android.input.FcitxInputMethodService? {
+    private fun getService(): org.fxboomk.fcitx5.android.input.FcitxInputMethodService? {
         // Try obtaining directly from context
         var ctx = context
         while (ctx is android.content.ContextWrapper) {
-            if (ctx is org.fcitx.fcitx5.android.input.FcitxInputMethodService) {
+            if (ctx is org.fxboomk.fcitx5.android.input.FcitxInputMethodService) {
                 return ctx
             }
             ctx = ctx.baseContext
         }
-        return context as? org.fcitx.fcitx5.android.input.FcitxInputMethodService
+        return context as? org.fxboomk.fcitx5.android.input.FcitxInputMethodService
     }
 
     protected fun isSimulatedCapsLockOn(): Boolean {

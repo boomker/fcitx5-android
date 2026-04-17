@@ -56,6 +56,12 @@ sealed class MacroStep {
      * @param key 目标按键
      */
     data class Shortcut(val modifiers: List<KeyRef>, val key: KeyRef) : MacroStep()
+
+    /**
+     * 调用应用内动作（复用 ButtonAction id）
+     * @param id 动作 ID，如 "theme", "virtual_keyboard", "more"
+     */
+    data class AppAction(val id: String) : MacroStep()
 }
 
 /**

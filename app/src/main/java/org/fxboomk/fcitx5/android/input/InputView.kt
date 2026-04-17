@@ -59,6 +59,7 @@ import org.fxboomk.fcitx5.android.input.broadcast.PunctuationComponent
 import org.fxboomk.fcitx5.android.input.broadcast.ReturnKeyDrawableComponent
 import org.fxboomk.fcitx5.android.input.candidates.horizontal.HorizontalCandidateComponent
 import org.fxboomk.fcitx5.android.input.keyboard.CommonKeyActionListener
+import org.fxboomk.fcitx5.android.input.action.ButtonAction
 import org.fxboomk.fcitx5.android.input.keyboard.BaseKeyboard
 import org.fxboomk.fcitx5.android.input.keyboard.KeyView
 import org.fxboomk.fcitx5.android.input.keyboard.KeyboardWindow
@@ -2475,6 +2476,17 @@ class InputView(
                 (child as? BaseKeyboard)?.onInputMethodUpdate(ime)
             }
         }
+    }
+
+    internal fun executeButtonAction(actionId: String) {
+        ButtonAction.fromId(actionId)?.execute(
+            context = context,
+            service = service,
+            fcitx = fcitx,
+            windowManager = windowManager,
+            view = null,
+            onActionComplete = null
+        )
     }
 
     /**

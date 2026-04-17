@@ -324,6 +324,7 @@
     <string name="macro_editor_step_type_tap">Tocar teclas</string>
     <string name="macro_editor_step_type_shortcut">Acceso directo</string>
     <string name="macro_editor_step_type_edit">Editar acción</string>
+    <string name="macro_editor_step_type_app">Acción de app</string>
     <string name="macro_editor_step_type_down">Presionar tecla</string>
     <string name="macro_editor_step_type_up">Soltar tecla</string>
     <string name="macro_editor_step_type_text">Introducir texto</string>
@@ -347,12 +348,15 @@
     <string name="macro_editor_step_shortcut_modifiers_empty">El paso %1$d requiere al menos una tecla modificadora (Ctrl/Alt/Mayús/Meta)</string>
     <string name="macro_editor_step_shortcut_multiple_keys">El paso %1$d solo puede tener una tecla objetivo</string>
     <string name="macro_editor_step_edit_action_required">El paso %1$d requiere una acción</string>
+    <string name="macro_editor_step_app_action_required">El paso %1$d requiere una acción de app</string>
     <string name="macro_editor_type_change_title">Cambiar tipo de paso</string>
     <string name="macro_editor_type_change_message">Cambiar el tipo de paso borrará los datos actuales. ¿Continuar?</string>
     <string name="macro_editor_delete_step_title">Eliminar paso</string>
     <string name="macro_editor_delete_step_message">¿Está seguro de que desea eliminar este paso?</string>
     <string name="macro_editor_select_modifier_title">Seleccionar modificador</string>
     <string name="macro_editor_all_modifiers_added">Se han agregado todos los modificadores</string>
+    <string name="macro_editor_app_picker_title">Seleccionar acción de app</string>
+    <string name="macro_editor_app_action_more">Menú avanzado</string>
     <string name="custom_theme_confirm">OK</string>
     <string name="custom_theme_cancel">Cancelar</string>
     <string name="custom_theme_preview_candidate">Candidato</string>

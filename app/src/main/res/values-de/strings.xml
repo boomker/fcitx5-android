@@ -367,6 +367,7 @@
     <string name="macro_editor_step_type_tap">Tasten tippen</string>
     <string name="macro_editor_step_type_shortcut">Tastenkombination</string>
     <string name="macro_editor_step_type_edit">Aktion bearbeiten</string>
+    <string name="macro_editor_step_type_app">App-Aktion</string>
     <string name="macro_editor_step_type_down">Taste drücken</string>
     <string name="macro_editor_step_type_up">Taste loslassen</string>
     <string name="macro_editor_step_type_text">Text eingeben</string>
@@ -390,12 +391,15 @@
     <string name="macro_editor_step_shortcut_modifiers_empty">Schritt %1$d benötigt mindestens eine Modifikatortaste (Strg/Alt/Umschalt/Meta)</string>
     <string name="macro_editor_step_shortcut_multiple_keys">Schritt %1$d kann nur eine Zieltaste haben</string>
     <string name="macro_editor_step_edit_action_required">Schritt %1$d benötigt eine Aktion</string>
+    <string name="macro_editor_step_app_action_required">Schritt %1$d benötigt eine App-Aktion</string>
     <string name="macro_editor_type_change_title">Schritttyp ändern</string>
     <string name="macro_editor_type_change_message">Das Ändern des Schritttyps löscht die aktuellen Daten. Fortfahren?</string>
     <string name="macro_editor_delete_step_title">Schritt löschen</string>
     <string name="macro_editor_delete_step_message">Sind Sie sicher, dass Sie diesen Schritt löschen möchten?</string>
     <string name="macro_editor_select_modifier_title">Modifikatortaste auswählen</string>
     <string name="macro_editor_all_modifiers_added">Alle Modifikatortasten wurden hinzugefügt</string>
+    <string name="macro_editor_app_picker_title">App-Aktion auswählen</string>
+    <string name="macro_editor_app_action_more">Erweitertes Menü</string>
     <string name="custom_theme_confirm">OK</string>
     <string name="custom_theme_cancel">Abbrechen</string>
     <string name="custom_theme_preview_candidate">Kandidat</string>

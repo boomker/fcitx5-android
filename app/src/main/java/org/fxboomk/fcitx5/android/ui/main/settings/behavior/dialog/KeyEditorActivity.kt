@@ -1122,6 +1122,10 @@ class KeyEditorActivity : AppCompatActivity() {
                     val action = stepMap["action"] as? String ?: return@mapNotNull null
                     "$type:$action"
                 }
+                "app" -> {
+                    val id = stepMap["id"] as? String ?: return@mapNotNull null
+                    "$type:$id"
+                }
                 "shortcut" -> {
                     val modifiers = (stepMap["modifiers"] as? List<*>)?.mapNotNull {
                         (it as? Map<*, *>)?.let { m ->

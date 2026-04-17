@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
  * SPDX-FileCopyrightText: Copyright 2021-2023 Fcitx5 for Android Contributors
  */
-package org.fcitx.fcitx5.android.input.keyboard
+package org.fxboomk.fcitx5.android.input.keyboard
 
 import android.text.InputType
 import android.view.Gravity
@@ -11,23 +11,23 @@ import android.view.inputmethod.EditorInfo
 import android.widget.FrameLayout
 import androidx.core.content.ContextCompat
 import androidx.transition.Slide
-import org.fcitx.fcitx5.android.R
-import org.fcitx.fcitx5.android.core.CapabilityFlags
-import org.fcitx.fcitx5.android.core.FcitxEvent
-import org.fcitx.fcitx5.android.core.InputMethodEntry
-import org.fcitx.fcitx5.android.data.prefs.AppPrefs
-import org.fcitx.fcitx5.android.input.bar.KawaiiBarComponent
-import org.fcitx.fcitx5.android.input.broadcast.InputBroadcastReceiver
-import org.fcitx.fcitx5.android.input.broadcast.ReturnKeyDrawableComponent
-import org.fcitx.fcitx5.android.input.dependency.fcitx
-import org.fcitx.fcitx5.android.input.dependency.inputMethodService
-import org.fcitx.fcitx5.android.input.dependency.theme
-import org.fcitx.fcitx5.android.input.picker.PickerWindow
-import org.fcitx.fcitx5.android.input.popup.PopupActionListener
-import org.fcitx.fcitx5.android.input.popup.PopupComponent
-import org.fcitx.fcitx5.android.input.wm.EssentialWindow
-import org.fcitx.fcitx5.android.input.wm.InputWindow
-import org.fcitx.fcitx5.android.input.wm.InputWindowManager
+import org.fxboomk.fcitx5.android.R
+import org.fxboomk.fcitx5.android.core.CapabilityFlags
+import org.fxboomk.fcitx5.android.core.FcitxEvent
+import org.fxboomk.fcitx5.android.core.InputMethodEntry
+import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
+import org.fxboomk.fcitx5.android.input.bar.KawaiiBarComponent
+import org.fxboomk.fcitx5.android.input.broadcast.InputBroadcastReceiver
+import org.fxboomk.fcitx5.android.input.broadcast.ReturnKeyDrawableComponent
+import org.fxboomk.fcitx5.android.input.dependency.fcitx
+import org.fxboomk.fcitx5.android.input.dependency.inputMethodService
+import org.fxboomk.fcitx5.android.input.dependency.theme
+import org.fxboomk.fcitx5.android.input.picker.PickerWindow
+import org.fxboomk.fcitx5.android.input.popup.PopupActionListener
+import org.fxboomk.fcitx5.android.input.popup.PopupComponent
+import org.fxboomk.fcitx5.android.input.wm.EssentialWindow
+import org.fxboomk.fcitx5.android.input.wm.InputWindow
+import org.fxboomk.fcitx5.android.input.wm.InputWindowManager
 import org.mechdancer.dependency.manager.must
 import splitties.views.dsl.core.add
 import splitties.views.dsl.core.frameLayout
@@ -93,9 +93,17 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
      * Call this when keyboard is about to show.
      */
     fun checkAndApplyFontRefresh() {
-        if (org.fcitx.fcitx5.android.input.font.FontProviders.checkAndClearRefreshFlag()) {
+        if (org.fxboomk.fcitx5.android.input.font.FontProviders.checkAndClearRefreshFlag()) {
             refreshAllKeyboards()
         }
+    }
+
+    /**
+     * Refresh all AltTextKeyView layouts with current final heights.
+     * Call this after keyboard size is fully applied and stable.
+     */
+    fun refreshAltTextLayouts() {
+        currentKeyboard?.refreshAltTextLayouts()
     }
 
     private val keyActionListener = KeyActionListener { it, source ->

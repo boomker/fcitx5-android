@@ -538,6 +538,7 @@
     <string name="macro_editor_step_type_tap">點擊按鍵</string>
     <string name="macro_editor_step_type_shortcut">快速鍵</string>
     <string name="macro_editor_step_type_edit">編輯操作</string>
+    <string name="macro_editor_step_type_app">應用動作</string>
     <string name="macro_editor_step_type_down">按下按鍵</string>
     <string name="macro_editor_step_type_up">釋放按鍵</string>
     <string name="macro_editor_step_type_text">輸入文字</string>
@@ -561,12 +562,15 @@
     <string name="macro_editor_step_shortcut_modifiers_empty">步驟 %1$d 需要至少一個修飾鍵（Ctrl/Alt/Shift/Meta）</string>
     <string name="macro_editor_step_shortcut_multiple_keys">步驟 %1$d 只能有一個目標按鍵</string>
     <string name="macro_editor_step_edit_action_required">步驟 %1$d 需要選擇一個操作</string>
+    <string name="macro_editor_step_app_action_required">步驟 %1$d 需要選擇一個應用動作</string>
     <string name="macro_editor_type_change_title">更改步驟類型</string>
     <string name="macro_editor_type_change_message">更改步驟類型將清除當前數據。是否繼續？</string>
     <string name="macro_editor_delete_step_title">刪除步驟</string>
     <string name="macro_editor_delete_step_message">確定要刪除此步驟嗎？</string>
     <string name="macro_editor_select_modifier_title">選擇修飾鍵</string>
     <string name="macro_editor_all_modifiers_added">已新增所有修飾鍵</string>
+    <string name="macro_editor_app_picker_title">選擇應用動作</string>
+    <string name="macro_editor_app_action_more">進階選單</string>
     <string name="custom_theme_confirm">確定</string>
     <string name="custom_theme_cancel">取消</string>
     <string name="custom_theme_preview_candidate">候選</string>
