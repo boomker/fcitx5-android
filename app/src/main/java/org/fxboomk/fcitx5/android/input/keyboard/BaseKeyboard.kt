@@ -631,6 +631,7 @@ abstract class BaseKeyboard(
                 swipeThresholdY = selectionSwipeThreshold * 1.5f
                 // Track the locked swipe direction to avoid conflicting gestures
                 var swipeDirectionLocked: SwipeAxis? = null
+                var verticalSwipeTriggered = false
                 onGestureListener = OnGestureListener { view, event ->
                     when (event.type) {
                         GestureType.Move -> {
@@ -662,14 +663,12 @@ abstract class BaseKeyboard(
                                     }
                                 }
                                 SwipeAxis.Y -> {
-                                    if (countY != 0) {
-                                        val sym =
-                                            if (countY > 0) FcitxKeyMapping.FcitxKey_Down else FcitxKeyMapping.FcitxKey_Up
-                                        val action = KeyAction.SymAction(KeySym(sym), KeyStates.Virtual)
-                                        repeat(countY.absoluteValue) {
-                                            onAction(action)
-                                            if (hapticOnRepeat) InputFeedbacks.hapticFeedback(view)
-                                        }
+                                    if (countY != 0 && !verticalSwipeTriggered) {
+                                        verticalSwipeTriggered = true
+                                        val action =
+                                            KeyAction.CandidatePageAction(if (countY > 0) 1 else -1)
+                                        onAction(action)
+                                        if (hapticOnRepeat) InputFeedbacks.hapticFeedback(view)
                                         true
                                     } else {
                                         false
@@ -682,6 +681,7 @@ abstract class BaseKeyboard(
                         GestureType.Up -> {
                             // Reset direction lock on finger up
                             swipeDirectionLocked = null
+                            verticalSwipeTriggered = false
                             false
                         }
                         else -> false
