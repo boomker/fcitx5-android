@@ -61,9 +61,20 @@ abstract class KeyView(
 ) :
     CustomGestureView(ctx) {
 
+    internal var useModifierBackgroundInGboardColorMode: Boolean = false
+        set(value) {
+            if (field == value) return
+            field = value
+            updateTheme(theme)
+        }
+
     private fun isMainKeyAreaById(viewId: Int): Boolean {
         return viewId == R.id.button_space ||
                 viewId == R.id.button_lang
+    }
+
+    private fun resolvedViewId(): Int {
+        return (tag as? Int) ?: def.viewId
     }
 
     private fun resolveKeyBackgroundColor(theme: Theme): Int {
@@ -148,20 +159,15 @@ abstract class KeyView(
             tag = def.viewId
         }
         // Side keys (?123 and return) - always handle first, before border check
-        val isSideKey = def.viewId == R.id.button_layout_switch || def.viewId == R.id.button_return
+        val viewId = resolvedViewId()
+        val isSideKey = viewId == R.id.button_layout_switch || viewId == R.id.button_return
         if (isSideKey) {
             val defaultBkgColor = when (def.variant) {
                 Variant.Normal, Variant.AltForeground -> theme.keyBackgroundColor
                 Variant.Alternative -> theme.altKeyBackgroundColor
                 Variant.Accent -> theme.accentKeyBackgroundColor
             }
-            // When gboardStyleColorKeys is true, use unified colors
-            // When off, use per-key color if set, otherwise use theme colors
-            val bkgColor = if (ThemeManager.prefs.gboardStyleColorKeys.getValue()) {
-                theme.altKeyBackgroundColor
-            } else {
-                resolveBackgroundColor(theme, defaultBkgColor)
-            }
+            val bkgColor = resolveStyledBackgroundColor(theme, defaultBkgColor)
             val borderOrShadowWidth = dp(1)
             if (ThemeManager.prefs.gboardStyleSideKeys.getValue()) {
                 // Gboard style - ellipse/oval shape
@@ -178,7 +184,7 @@ abstract class KeyView(
             }
             setupPressHighlight()
         } else if ((bordered && def.border != Border.Off) || def.border == Border.On) {
-            val defaultBkgColor = if (isMainKeyAreaById(def.viewId)) {
+            val defaultBkgColor = if (isMainKeyAreaById(viewId)) {
                 theme.keyBackgroundColor
             } else {
                 when (def.variant) {
@@ -187,17 +193,7 @@ abstract class KeyView(
                     Variant.Accent -> theme.accentKeyBackgroundColor
                 }
             }
-            // When gboardStyleColorKeys is true, use unified colors
-            // When off, use per-key color if set, otherwise use theme colors
-            val bkgColor = if (ThemeManager.prefs.gboardStyleColorKeys.getValue()) {
-                if (isMainKeyAreaById(def.viewId) || def.variant == Variant.Normal || def.variant == Variant.AltForeground) {
-                    theme.keyBackgroundColor
-                } else {
-                    theme.altKeyBackgroundColor
-                }
-            } else {
-                resolveBackgroundColor(theme, defaultBkgColor)
-            }
+            val bkgColor = resolveStyledBackgroundColor(theme, defaultBkgColor)
             val borderOrShadowWidth = dp(1)
             // background: key border
             appearanceView.background = if (borderStroke) borderedKeyBackgroundDrawable(
@@ -234,6 +230,22 @@ abstract class KeyView(
         return resolveColorOverride(def.backgroundColor, def.backgroundColorMonet) ?: defaultColor
     }
 
+    protected fun resolveStyledBackgroundColor(theme: Theme, defaultColor: Int): Int {
+        if (!ThemeManager.prefs.gboardStyleColorKeys.getValue()) {
+            return resolveBackgroundColor(theme, defaultColor)
+        }
+        return if (
+            useModifierBackgroundInGboardColorMode ||
+            (!isMainKeyAreaById(def.viewId) &&
+                def.variant != Variant.Normal &&
+                def.variant != Variant.AltForeground)
+        ) {
+            theme.altKeyBackgroundColor
+        } else {
+            theme.keyBackgroundColor
+        }
+    }
+
     protected fun resolveShadowColor(theme: Theme): Int {
         return resolveColorOverride(def.shadowColor, def.shadowColorMonet) ?: theme.keyShadowColor
     }
@@ -244,6 +256,48 @@ abstract class KeyView(
 
     protected fun resolveAltTextColor(defaultColor: Int): Int {
         return resolveColorOverride(def.altTextColor, def.altTextColorMonet) ?: defaultColor
+    }
+
+    private fun resolveSideKeyCircleInsets(viewWidth: Int, viewHeight: Int): Pair<Int, Int> {
+        val minInset = dp(4)
+        val usableWidth = (viewWidth - minInset * 2).coerceAtLeast(0)
+        val usableHeight = (viewHeight - minInset * 2).coerceAtLeast(0)
+        val diameter = min(usableWidth, usableHeight)
+        val horizontalInset = ((viewWidth - diameter) / 2).coerceAtLeast(minInset)
+        val verticalInset = ((viewHeight - diameter) / 2).coerceAtLeast(minInset)
+        return horizontalInset to verticalInset
+    }
+
+    private fun applyCircularSideKeyBackground(
+        viewWidth: Int,
+        viewHeight: Int,
+        @ColorInt backgroundColor: Int
+    ) {
+        val (hInset, vInset) = resolveSideKeyCircleInsets(viewWidth, viewHeight)
+        appearanceView.background = insetOvalDrawable(hInset, vInset, backgroundColor)
+        appearanceView.padding = 0
+        setupPressHighlight(
+            insetOvalDrawable(
+                hInset, vInset,
+                if (rippled) Color.WHITE else theme.keyPressHighlightColor
+            )
+        )
+    }
+
+    private fun maybeRefreshGboardSideKeyShape(viewWidth: Int, viewHeight: Int) {
+        if (!ThemeManager.prefs.gboardStyleSideKeys.getValue()) return
+        val viewId = resolvedViewId()
+        if (viewId != R.id.button_layout_switch && viewId != R.id.button_return) return
+        val defaultBkgColor = when (def.variant) {
+            Variant.Normal, Variant.AltForeground -> theme.keyBackgroundColor
+            Variant.Alternative -> theme.altKeyBackgroundColor
+            Variant.Accent -> theme.accentKeyBackgroundColor
+        }
+        applyCircularSideKeyBackground(
+            viewWidth = viewWidth,
+            viewHeight = viewHeight,
+            backgroundColor = resolveStyledBackgroundColor(theme, defaultBkgColor)
+        )
     }
 
     private fun setupPressHighlight(mask: Drawable? = null) {
@@ -317,18 +371,19 @@ abstract class KeyView(
         }
         super.onLayout(changed, left, top, right, bottom)
         onAppearanceLayoutChanged(appearanceView.width, appearanceView.height)
+        val appearanceWidth = appearanceView.width.takeIf { it > 0 } ?: (right - left)
+        val appearanceHeight = appearanceView.height.takeIf { it > 0 } ?: (bottom - top)
+        maybeRefreshGboardSideKeyShape(appearanceWidth, appearanceHeight)
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         if (
             bordered &&
-            def.viewId != R.id.button_layout_switch &&
-            def.viewId != R.id.button_return
+            resolvedViewId() != R.id.button_layout_switch &&
+            resolvedViewId() != R.id.button_return
         ) return
-        when (def.viewId) {
+        when (resolvedViewId()) {
             R.id.button_layout_switch -> {
-                val hInset = dp(6)
-                val vInset = dp(4)
                 // When gboardStyleColorKeys is true, use unified colors
                 // When off, use per-key color if set, otherwise use theme colors
                 val defaultBkgColor = when (def.variant) {
@@ -336,24 +391,12 @@ abstract class KeyView(
                     Variant.Alternative -> theme.altKeyBackgroundColor
                     Variant.Accent -> theme.accentKeyBackgroundColor
                 }
-                val bkgColor = if (ThemeManager.prefs.gboardStyleColorKeys.getValue()) {
-                    theme.altKeyBackgroundColor
-                } else {
-                    resolveBackgroundColor(theme, defaultBkgColor)
-                }
+                val bkgColor = resolveStyledBackgroundColor(theme, defaultBkgColor)
                 if (ThemeManager.prefs.gboardStyleSideKeys.getValue()) {
-                    // Gboard style - true oval shape, keep per-key color
-                    appearanceView.background = insetOvalDrawable(
-                        hInset, vInset, bkgColor
-                    )
-                    appearanceView.padding = 0
-                    setupPressHighlight(
-                        insetOvalDrawable(
-                            hInset, vInset,
-                            if (rippled) Color.WHITE else theme.keyPressHighlightColor
-                        )
-                    )
+                    applyCircularSideKeyBackground(w, h, bkgColor)
                 } else {
+                    val hInset = dp(6)
+                    val vInset = dp(4)
                     // Uses user configured radius when switch is OFF
                     val borderOrShadowWidth = dp(1)
                     appearanceView.background = shadowedKeyBackgroundDrawable(
@@ -390,8 +433,6 @@ abstract class KeyView(
             }
 
             R.id.button_return -> {
-                val hInset = dp(6)
-                val vInset = dp(4)
                 // When gboardStyleColorKeys is true, use unified colors
                 // When off, use per-key color if set, otherwise use theme colors
                 val defaultBkgColor = when (def.variant) {
@@ -399,24 +440,12 @@ abstract class KeyView(
                     Variant.Alternative -> theme.altKeyBackgroundColor
                     Variant.Accent -> theme.accentKeyBackgroundColor
                 }
-                val bkgColor = if (ThemeManager.prefs.gboardStyleColorKeys.getValue()) {
-                    theme.altKeyBackgroundColor
-                } else {
-                    resolveBackgroundColor(theme, defaultBkgColor)
-                }
+                val bkgColor = resolveStyledBackgroundColor(theme, defaultBkgColor)
                 if (ThemeManager.prefs.gboardStyleSideKeys.getValue()) {
-                    // Gboard style - true oval shape, keep per-key color
-                    appearanceView.background = insetOvalDrawable(
-                        hInset, vInset, bkgColor
-                    )
-                    appearanceView.padding = 0
-                    setupPressHighlight(
-                        insetOvalDrawable(
-                            hInset, vInset,
-                            if (rippled) Color.WHITE else theme.keyPressHighlightColor
-                        )
-                    )
+                    applyCircularSideKeyBackground(w, h, bkgColor)
                 } else {
+                    val hInset = dp(6)
+                    val vInset = dp(4)
                     // Uses user configured radius when switch is OFF
                     val borderOrShadowWidth = dp(1)
                     appearanceView.background = shadowedKeyBackgroundDrawable(
@@ -442,20 +471,15 @@ abstract class KeyView(
         theme = newTheme
 
         // Side keys (?123 and return) - always handle first, before border check
-        val isSideKey = def.viewId == R.id.button_layout_switch || def.viewId == R.id.button_return
+        val viewId = resolvedViewId()
+        val isSideKey = viewId == R.id.button_layout_switch || viewId == R.id.button_return
         if (isSideKey) {
             val defaultBkgColor = when (def.variant) {
                 Variant.Normal, Variant.AltForeground -> newTheme.keyBackgroundColor
                 Variant.Alternative -> newTheme.altKeyBackgroundColor
                 Variant.Accent -> newTheme.accentKeyBackgroundColor
             }
-            // When gboardStyleColorKeys is true, use unified colors
-            // When off, use per-key color if set, otherwise use theme colors
-            val bkgColor = if (ThemeManager.prefs.gboardStyleColorKeys.getValue()) {
-                newTheme.altKeyBackgroundColor
-            } else {
-                resolveBackgroundColor(newTheme, defaultBkgColor)
-            }
+            val bkgColor = resolveStyledBackgroundColor(newTheme, defaultBkgColor)
             val borderOrShadowWidth = dp(1)
             if (ThemeManager.prefs.gboardStyleSideKeys.getValue()) {
                 // Rounded rectangle (Gboard style) when switch is ON - uses configured radius
@@ -471,7 +495,7 @@ abstract class KeyView(
                 )
             }
         } else if ((bordered && def.border != Border.Off) || def.border == Border.On) {
-            val defaultBkgColor = if (isMainKeyAreaById(def.viewId)) {
+            val defaultBkgColor = if (isMainKeyAreaById(viewId)) {
                 newTheme.keyBackgroundColor
             } else {
                 when (def.variant) {
@@ -480,17 +504,7 @@ abstract class KeyView(
                     Variant.Accent -> newTheme.accentKeyBackgroundColor
                 }
             }
-            // When gboardStyleColorKeys is true, use unified colors
-            // When off, use per-key color if set, otherwise use theme colors
-            val bkgColor = if (ThemeManager.prefs.gboardStyleColorKeys.getValue()) {
-                if (isMainKeyAreaById(def.viewId) || def.variant == Variant.Normal || def.variant == Variant.AltForeground) {
-                    newTheme.keyBackgroundColor
-                } else {
-                    newTheme.altKeyBackgroundColor
-                }
-            } else {
-                resolveBackgroundColor(newTheme, defaultBkgColor)
-            }
+            val bkgColor = resolveStyledBackgroundColor(newTheme, defaultBkgColor)
             val borderOrShadowWidth = dp(1)
             // background: key border
             appearanceView.background = if (borderStroke) borderedKeyBackgroundDrawable(

@@ -174,6 +174,7 @@ abstract class BaseKeyboard(
         lastSplitLandscapeState = splitKeyboard
         keyRows = keyLayout.map { row ->
             val keyViews = row.map(::createKeyView).apply {
+                applyGboardModifierEdgeColors(row, this)
                 // Batch set fonts for all key views in this row using setFontTypeFace()
                 // to properly apply custom fonts from FontProviders
                 // Note: Check AltTextKeyView before TextKeyView since AltTextKeyView is a subclass of TextKeyView
@@ -228,6 +229,24 @@ abstract class BaseKeyboard(
             val equal = 1f / widths.size
             widths.map { equal }
         }
+    }
+
+    private fun applyGboardModifierEdgeColors(row: List<KeyDef>, keyViews: List<KeyView>) {
+        if (row.size != keyViews.size || row.size < 3) return
+        val labels = row.map { it.appearance.primaryDisplayLabel()?.trim()?.lowercase() }
+        if (labels.indexOf("z") == 1) {
+            keyViews.first().useModifierBackgroundInGboardColorMode = true
+        }
+        if (labels.indexOfLast { it == "m" } == row.lastIndex - 1) {
+            keyViews.last().useModifierBackgroundInGboardColorMode = true
+        }
+    }
+
+    private fun KeyDef.Appearance.primaryDisplayLabel(): String? = when (this) {
+        is KeyDef.Appearance.AltText -> displayText
+        is KeyDef.Appearance.ImageText -> displayText
+        is KeyDef.Appearance.Text -> displayText
+        else -> null
     }
 
     private fun chooseSplitIndex(row: List<KeyDef>, normalizedWidths: List<Float>): Int {

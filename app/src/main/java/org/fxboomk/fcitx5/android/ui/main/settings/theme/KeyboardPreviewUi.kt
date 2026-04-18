@@ -27,6 +27,16 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
+import androidx.lifecycle.findViewTreeLifecycleOwner
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import org.fxboomk.fcitx5.android.core.FcitxEvent
+import org.fxboomk.fcitx5.android.core.InputMethodEntry
+import org.fxboomk.fcitx5.android.daemon.FcitxConnection
+import org.fxboomk.fcitx5.android.daemon.FcitxDaemon
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.data.prefs.ManagedPreference
@@ -128,6 +138,9 @@ class KeyboardPreviewUi(override val ctx: Context, val theme: Theme) : Ui {
     private lateinit var fakeKeyboardWindow: TextKeyboard
     private var currentTheme: Theme? = null
     private var isUpdatingTheme = false
+    private val previewFcitxClientName = "KeyboardPreviewUi@${System.identityHashCode(this)}"
+    private var previewFcitx: FcitxConnection? = null
+    private var previewFcitxEventJob: Job? = null
 
     private inner class PreviewBlurMaskView : View(ctx) {
         private val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
@@ -383,6 +396,8 @@ class KeyboardPreviewUi(override val ctx: Context, val theme: Theme) : Ui {
 
         override fun onAttachedToWindow() {
             super.onAttachedToWindow()
+            attachPreviewFcitx()
+            currentTheme?.let { setTheme(it, forceRefresh = true) }
             recalculateSize()
             onSizeMeasured?.invoke(intrinsicWidth, intrinsicHeight)
             navbarBackground.registerOnChangeListener(previewChromeChangeListener)
@@ -396,6 +411,7 @@ class KeyboardPreviewUi(override val ctx: Context, val theme: Theme) : Ui {
         override fun onDetachedFromWindow() {
             navbarBackground.unregisterOnChangeListener(previewChromeChangeListener)
             navbarBorder.unregisterOnChangeListener(previewChromeChangeListener)
+            detachPreviewFcitx()
             super.onDetachedFromWindow()
         }
     }
@@ -584,6 +600,74 @@ class KeyboardPreviewUi(override val ctx: Context, val theme: Theme) : Ui {
         applyBlurMaskFromBitmap(sourceBitmap, blurRadius, brightness)
     }
 
+    private fun attachPreviewFcitx() {
+        if (previewFcitx == null) {
+            previewFcitx = FcitxDaemon.connect(previewFcitxClientName)
+        }
+        if (previewFcitxEventJob != null) return
+        val lifecycleOwner = root.findViewTreeLifecycleOwner() ?: return
+        val fcitx = previewFcitx ?: return
+        previewFcitxEventJob = lifecycleOwner.lifecycleScope.launch {
+            fcitx.runImmediately { eventFlow }.collect { event ->
+                if (event is FcitxEvent.IMChangeEvent && this@KeyboardPreviewUi::fakeKeyboardWindow.isInitialized) {
+                    root.post {
+                        currentTheme?.let { activeTheme ->
+                            setTheme(activeTheme, forceRefresh = true)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun detachPreviewFcitx() {
+        previewFcitxEventJob?.cancel()
+        previewFcitxEventJob = null
+        if (previewFcitx != null) {
+            FcitxDaemon.disconnect(previewFcitxClientName)
+            previewFcitx = null
+        }
+    }
+
+    private fun currentPreviewIme(): InputMethodEntry? =
+        runCatching { previewFcitx?.runImmediately { inputMethodEntryCached } }.getOrNull()
+
+    private fun resolvePreviewInputMethodEntry(): InputMethodEntry {
+        currentPreviewIme()?.let { return it }
+        val layoutJson = TextKeyboard.textLayoutJson
+        if (layoutJson != null) {
+            layoutJson.entries
+                .firstOrNull { (layoutName, value) ->
+                    layoutName != "default" && (value is JsonArray || value is JsonObject)
+                }
+                ?.let { (layoutName, layoutElement) ->
+                    return PreviewInputMethodEntry.create(
+                        layoutName = layoutName,
+                        subModeLabel = layoutElement.resolvePreviewSubModeLabel()
+                    )
+                }
+
+            layoutJson["default"]?.let { defaultElement ->
+                return PreviewInputMethodEntry.create(
+                    layoutName = "default",
+                    subModeLabel = defaultElement.resolvePreviewSubModeLabel()
+                )
+            }
+        }
+        return PreviewInputMethodEntry.create()
+    }
+
+    private fun Any?.resolvePreviewSubModeLabel(): String? = when (this) {
+        is JsonObject -> when {
+            this["default"] is JsonArray -> null
+            this[""] is JsonArray -> null
+            else -> entries.firstOrNull { (_, value) -> value is JsonArray }
+                ?.key
+                ?.takeIf { it.isNotBlank() && it != "default" }
+        }
+        else -> null
+    }
+
     fun setTheme(theme: Theme, background: Drawable? = null, forceRefresh: Boolean = false) {
         // Prevent re-entrant calls that could cause infinite loops
         if (isUpdatingTheme) return
@@ -611,7 +695,7 @@ class KeyboardPreviewUi(override val ctx: Context, val theme: Theme) : Ui {
 
             fakeKeyboardWindow.post {
                 fakeKeyboardWindow.onAttach()
-                fakeKeyboardWindow.onInputMethodUpdate(PreviewInputMethodEntry.create())
+                fakeKeyboardWindow.onInputMethodUpdate(resolvePreviewInputMethodEntry())
                 fakeKeyboardWindow.setTextScale(sizeScale)
                 fakeKeyboardWindow.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
                     blurMaskView.markKeyRegionsDirty()
@@ -644,6 +728,7 @@ class KeyboardPreviewUi(override val ctx: Context, val theme: Theme) : Ui {
             fakeKeyboardWindow.post {
                 try {
                     isUpdatingTheme = true
+                    fakeKeyboardWindow.onInputMethodUpdate(resolvePreviewInputMethodEntry())
                     if (forceRefresh || sameTheme) {
                         // Config changed: rebuild layout
                         // refreshStyle() reads latest config from ThemeManager.prefs

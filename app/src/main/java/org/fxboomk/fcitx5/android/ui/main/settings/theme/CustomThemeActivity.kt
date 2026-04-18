@@ -850,6 +850,7 @@ class CustomThemeActivity : AppCompatActivity() {
             add(previewWrapper, lParams(matchConstraints, wrapContent) {
                 below(toolbar)
                 centerHorizontally()
+                topMargin = dp(8)
             })
             previewWrapper.addView(previewUi.root, FrameLayout.LayoutParams(wrapContent, wrapContent).apply {
                 gravity = android.view.Gravity.TOP or android.view.Gravity.CENTER_HORIZONTAL
