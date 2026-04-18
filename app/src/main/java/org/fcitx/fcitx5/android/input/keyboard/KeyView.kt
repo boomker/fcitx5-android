@@ -61,6 +61,10 @@ abstract class KeyView(
 ) :
     CustomGestureView(ctx) {
 
+    private companion object {
+        private const val THEME_COLOR_REF_PREFIX = "theme:"
+    }
+
     val bordered: Boolean
     val borderStroke: Boolean
     val rippled: Boolean
@@ -167,8 +171,41 @@ abstract class KeyView(
         return runCatching { context.getColor(colorResId) }.getOrNull()
     }
 
-    private fun resolveColorOverride(staticColor: Int?, monetResourceName: String?): Int? {
-        return resolveMonetColor(monetResourceName) ?: staticColor
+    private fun resolveThemeTokenColor(theme: Theme, token: String): Int? {
+        return when (token) {
+            "backgroundColor" -> theme.backgroundColor
+            "barColor" -> theme.barColor
+            "keyboardColor" -> theme.keyboardColor
+            "keyBackgroundColor" -> theme.keyBackgroundColor
+            "keyTextColor" -> theme.keyTextColor
+            "candidateTextColor" -> theme.candidateTextColor
+            "candidateLabelColor" -> theme.candidateLabelColor
+            "candidateCommentColor" -> theme.candidateCommentColor
+            "altKeyBackgroundColor" -> theme.altKeyBackgroundColor
+            "altKeyTextColor" -> theme.altKeyTextColor
+            "accentKeyBackgroundColor" -> theme.accentKeyBackgroundColor
+            "accentKeyTextColor" -> theme.accentKeyTextColor
+            "keyPressHighlightColor" -> theme.keyPressHighlightColor
+            "keyShadowColor" -> theme.keyShadowColor
+            "popupBackgroundColor" -> theme.popupBackgroundColor
+            "popupTextColor" -> theme.popupTextColor
+            "spaceBarColor" -> theme.spaceBarColor
+            "dividerColor" -> theme.dividerColor
+            "clipboardEntryColor" -> theme.clipboardEntryColor
+            "genericActiveBackgroundColor" -> theme.genericActiveBackgroundColor
+            "genericActiveForegroundColor" -> theme.genericActiveForegroundColor
+            else -> null
+        }
+    }
+
+    private fun resolveColorOverride(staticColor: Int?, colorRef: String?, theme: Theme = this.theme): Int? {
+        val refValue = colorRef?.takeIf { it.isNotBlank() }
+        val resolved = if (refValue != null && refValue.startsWith(THEME_COLOR_REF_PREFIX)) {
+            resolveThemeTokenColor(theme, refValue.removePrefix(THEME_COLOR_REF_PREFIX))
+        } else {
+            resolveMonetColor(refValue)
+        }
+        return resolved ?: staticColor
     }
 
     protected fun resolveBackgroundColor(theme: Theme, defaultColor: Int): Int {

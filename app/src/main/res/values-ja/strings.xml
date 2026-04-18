@@ -321,6 +321,8 @@
     <string name="text_keyboard_layout_key_shadow_color">影の色</string>
     <string name="text_keyboard_layout_key_color_mode_theme">テーマに従う</string>
     <string name="text_keyboard_layout_key_color_mode_custom">カスタム色</string>
+    <string name="text_keyboard_layout_key_color_mode_theme_key_pick">テーマ色を使用</string>
+    <string name="text_keyboard_layout_key_color_mode_theme_ref">%1$s</string>
     <string name="text_keyboard_layout_key_color_mode_monet">Monet（%1$s）</string>
     <string name="text_keyboard_layout_key_color_mode_monet_pick">Monet の動的色</string>
     <string name="text_keyboard_layout_key_color_monet_unavailable">Monet の動的色は利用できません</string>

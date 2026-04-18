@@ -182,6 +182,8 @@
     <string name="text_keyboard_layout_key_shadow_color">Color de sombra</string>
     <string name="text_keyboard_layout_key_color_mode_theme">Seguir el tema</string>
     <string name="text_keyboard_layout_key_color_mode_custom">Color personalizado</string>
+    <string name="text_keyboard_layout_key_color_mode_theme_key_pick">Usar color del tema</string>
+    <string name="text_keyboard_layout_key_color_mode_theme_ref">%1$s</string>
     <string name="text_keyboard_layout_key_color_mode_monet">Monet (%1$s)</string>
     <string name="text_keyboard_layout_key_color_mode_monet_pick">Color dinámico de Monet</string>
     <string name="text_keyboard_layout_key_color_monet_unavailable">Color dinámico de Monet no disponible</string>

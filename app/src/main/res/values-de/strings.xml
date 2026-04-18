@@ -230,6 +230,8 @@
     <string name="text_keyboard_layout_key_shadow_color">Schattenfarbe</string>
     <string name="text_keyboard_layout_key_color_mode_theme">Dem Design folgen</string>
     <string name="text_keyboard_layout_key_color_mode_custom">Benutzerdefinierte Farbe</string>
+    <string name="text_keyboard_layout_key_color_mode_theme_key_pick">Themenfarbe verwenden</string>
+    <string name="text_keyboard_layout_key_color_mode_theme_ref">%1$s</string>
     <string name="text_keyboard_layout_key_color_mode_monet">Monet (%1$s)</string>
     <string name="text_keyboard_layout_key_color_mode_monet_pick">Monet-Dynamikfarbe</string>
     <string name="text_keyboard_layout_key_color_monet_unavailable">Monet-Dynamikfarbe nicht verfügbar</string>
