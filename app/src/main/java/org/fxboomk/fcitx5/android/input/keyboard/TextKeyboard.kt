@@ -691,10 +691,19 @@ class TextKeyboard(
             val appearance = keyView.def
             when (appearance) {
                 is KeyDef.Appearance.AltText -> {
-                    keyView.mainText.text = if (keepLettersUppercase) {
-                        appearance.character.uppercase()
-                    } else {
-                        if (displayUppercase) appearance.character.uppercase() else appearance.displayText.lowercase()
+                    val displayText = appearance.displayText
+                    val character = appearance.character
+                    val displayIsSingleLetter = displayText.length == 1 && displayText[0].isLetter()
+                    val characterIsSingleLetter = character.length == 1 && character[0].isLetter()
+
+                    keyView.mainText.text = when {
+                        keepLettersUppercase && displayIsSingleLetter -> displayText.uppercase()
+                        keepLettersUppercase -> displayText
+                        !displayUppercase && displayIsSingleLetter -> displayText.lowercase()
+                        !displayUppercase -> displayText
+                        displayIsSingleLetter -> displayText.uppercase()
+                        characterIsSingleLetter -> character.uppercase()
+                        else -> displayText
                     }
                 }
                 is KeyDef.Appearance.Text -> {

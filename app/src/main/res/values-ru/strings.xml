@@ -390,6 +390,8 @@
     <string name="text_keyboard_layout_key_shadow_color">Цвет тени</string>
     <string name="text_keyboard_layout_key_color_mode_theme">Следовать теме</string>
     <string name="text_keyboard_layout_key_color_mode_custom">Пользовательский цвет</string>
+    <string name="text_keyboard_layout_key_color_mode_theme_key_pick">Использовать цвет темы</string>
+    <string name="text_keyboard_layout_key_color_mode_theme_ref">%1$s</string>
     <string name="text_keyboard_layout_key_color_mode_monet">Monet (%1$s)</string>
     <string name="text_keyboard_layout_key_color_mode_monet_pick">Динамический цвет Monet</string>
     <string name="text_keyboard_layout_key_color_monet_unavailable">Динамический цвет Monet недоступен</string>

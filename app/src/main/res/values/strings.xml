@@ -535,6 +535,8 @@
     <string name="text_keyboard_layout_key_shadow_color">Shadow Color</string>
     <string name="text_keyboard_layout_key_color_mode_theme">Follow Theme</string>
     <string name="text_keyboard_layout_key_color_mode_custom">Custom Color</string>
+    <string name="text_keyboard_layout_key_color_mode_theme_key_pick">Use Theme Color</string>
+    <string name="text_keyboard_layout_key_color_mode_theme_ref">%1$s</string>
     <string name="text_keyboard_layout_key_color_mode_monet">Monet (%1$s)</string>
     <string name="text_keyboard_layout_key_color_mode_monet_pick">Monet Dynamic Color</string>
     <string name="text_keyboard_layout_key_color_monet_unavailable">Monet dynamic color is unavailable on this device</string>
