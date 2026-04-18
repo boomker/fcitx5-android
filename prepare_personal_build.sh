@@ -58,13 +58,3 @@ git -C "${PREBUILT_DIR}" remote add gh "${PREBUILT_REPO}" 2>/dev/null || \
     git -C "${PREBUILT_DIR}" remote set-url gh "${PREBUILT_REPO}"
 git -C "${PREBUILT_DIR}" fetch -v gh master
 git -C "${PREBUILT_DIR}" checkout gh/master
-
-# download sqlite3 amalgamation (needed by librime-predict plugin)
-SQLITE3_DIR="${PREBUILT_DIR}/sqlite3"
-if [ ! -f "${SQLITE3_DIR}/sqlite3.c" ]; then
-    echo "downloading sqlite3 amalgamation for librime-predict"
-    mkdir -p "${SQLITE3_DIR}"
-    SQLITE3_REPO="https://raw.githubusercontent.com/azadkuh/sqlite-amalgamation/master"
-    curl -sL "${SQLITE3_REPO}/sqlite3.c" -o "${SQLITE3_DIR}/sqlite3.c"
-    curl -sL "${SQLITE3_REPO}/sqlite3.h" -o "${SQLITE3_DIR}/sqlite3.h"
-fi
