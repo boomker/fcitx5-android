@@ -675,10 +675,19 @@ class TextKeyboard(
         textKeys.forEach {
             val keyDef = it.def
             if (keyDef is KeyDef.Appearance.AltText) {
-                it.mainText.text = if (keepLettersUppercase) {
-                    keyDef.character.uppercase()
-                } else {
-                    if (displayUppercase) keyDef.character.uppercase() else keyDef.displayText.lowercase()
+                val displayText = keyDef.displayText
+                val character = keyDef.character
+                val displayIsSingleLetter = displayText.length == 1 && displayText[0].isLetter()
+                val characterIsSingleLetter = character.length == 1 && character[0].isLetter()
+
+                it.mainText.text = when {
+                    keepLettersUppercase && displayIsSingleLetter -> displayText.uppercase()
+                    keepLettersUppercase -> displayText
+                    !displayUppercase && displayIsSingleLetter -> displayText.lowercase()
+                    !displayUppercase -> displayText
+                    displayIsSingleLetter -> displayText.uppercase()
+                    characterIsSingleLetter -> character.uppercase()
+                    else -> displayText
                 }
             } else if (keyDef is KeyDef.Appearance.Text) {
                 // handle other text keys if necessary, but mainly AlphabetKey is AltText
