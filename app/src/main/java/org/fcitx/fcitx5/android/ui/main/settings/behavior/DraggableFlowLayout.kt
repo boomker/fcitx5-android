@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
 import android.view.ViewGroup
 import kotlin.math.abs
 import kotlin.math.sqrt
@@ -40,7 +41,7 @@ open class DraggableFlowLayout @JvmOverloads constructor(
     private var lastSwapTime = 0L
     private val SWAP_DEBOUNCE_TIME = 100L
     private val REVERSE_SWAP_BLOCK_TIME = 300L
-    private val DRAG_START_HOLD_TIME = 200L
+    private val dragStartHoldTimeMs = ViewConfiguration.getLongPressTimeout().toLong()
     private var lastSwapFrom = -1
     private var lastSwapTo = -1
     private var touchSlop = 0
@@ -53,7 +54,7 @@ open class DraggableFlowLayout @JvmOverloads constructor(
 
 
     init {
-        touchSlop = android.view.ViewConfiguration.get(context).scaledTouchSlop
+        touchSlop = ViewConfiguration.get(context).scaledTouchSlop
     }
 
     fun setDragEnabled(enabled: Boolean) {
@@ -100,7 +101,7 @@ open class DraggableFlowLayout @JvmOverloads constructor(
 
                     val heldDuration = ev.eventTime - ev.downTime
 
-                    if (distance > touchSlop && heldDuration >= DRAG_START_HOLD_TIME) {
+                    if (distance > touchSlop && heldDuration >= dragStartHoldTimeMs) {
                         dragPosition = indexOfChild(dragView!!)
                         if (dragPosition != -1) {
                             val viewLocation = IntArray(2)
