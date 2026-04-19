@@ -58,6 +58,7 @@ import org.fxboomk.fcitx5.android.input.broadcast.PreeditEmptyStateComponent
 import org.fxboomk.fcitx5.android.input.broadcast.PunctuationComponent
 import org.fxboomk.fcitx5.android.input.broadcast.ReturnKeyDrawableComponent
 import org.fxboomk.fcitx5.android.input.candidates.horizontal.HorizontalCandidateComponent
+import org.fxboomk.fcitx5.android.input.predict.AiSuggestionStripComponent
 import org.fxboomk.fcitx5.android.input.keyboard.CommonKeyActionListener
 import org.fxboomk.fcitx5.android.input.action.ButtonAction
 import org.fxboomk.fcitx5.android.input.keyboard.BaseKeyboard
@@ -1113,6 +1114,7 @@ class InputView(
     private val commonKeyActionListener = CommonKeyActionListener()
     private val windowManager = InputWindowManager()
     private val kawaiiBar = KawaiiBarComponent()
+    private val aiSuggestionStrip = AiSuggestionStripComponent(service, themedContext, theme)
     private val horizontalCandidate = HorizontalCandidateComponent()
     private val keyboardWindow = KeyboardWindow()
     private val symbolPicker = symbolPicker()
@@ -1139,6 +1141,7 @@ class InputView(
         scope += commonKeyActionListener
         scope += windowManager
         scope += kawaiiBar
+        scope += aiSuggestionStrip
         scope += horizontalCandidate
         scope += ButtonsAdjustingWindow
         broadcaster.onScopeSetupFinished(scope)
@@ -2044,18 +2047,22 @@ class InputView(
                 topOfParent()
                 centerHorizontally()
             })
-            add(leftPaddingSpace, lParams {
+            add(aiSuggestionStrip.view, lParams(matchParent, wrapContent) {
                 below(kawaiiBar.view)
+                centerHorizontally()
+            })
+            add(leftPaddingSpace, lParams {
+                below(aiSuggestionStrip.view)
                 startOfParent()
                 bottomOfParent()
             })
             add(rightPaddingSpace, lParams {
-                below(kawaiiBar.view)
+                below(aiSuggestionStrip.view)
                 endOfParent()
                 bottomOfParent()
             })
             add(windowManager.view, lParams {
-                below(kawaiiBar.view)
+                below(aiSuggestionStrip.view)
                 above(bottomPaddingSpace)
                 /**
                  * set start and end constrain in [updateKeyboardSize]
@@ -2516,6 +2523,7 @@ class InputView(
         ConfigProviders.removeButtonsLayoutListener(onButtonsLayoutChangeListener)
         blurUpdateJob?.cancel()
         blurUpdateScope.cancel()
+        aiSuggestionStrip.close()
         // clear DynamicScope, implies that InputView should not be attached again after detached.
         scope.clear()
         super.onDetachedFromWindow()

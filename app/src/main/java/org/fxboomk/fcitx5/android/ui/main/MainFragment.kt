@@ -91,6 +91,11 @@ class MainFragment : PaddingPreferenceFragment() {
                     SettingsRoute.Plugin
                 )
                 addDestinationPreference(
+                    R.string.lan_llm_settings_title,
+                    R.drawable.ic_baseline_auto_awesome_24,
+                    SettingsRoute.LanLlm
+                )
+                addDestinationPreference(
                     R.string.advanced,
                     R.drawable.ic_baseline_more_horiz_24,
                     SettingsRoute.Advanced

@@ -301,6 +301,19 @@
     <string name="delete_theme">Delete Theme</string>
     <string name="delete_theme_msg">Do you really want to delete theme \"%1$s\"?</string>
     <string name="capture_heap_dump">Capture heap dump</string>
+    <string name="lan_llm_enable" translatable="false">启用 LLM 预测</string>
+    <string name="lan_llm_enable_summary" translatable="false">使用 OpenAI 兼容聊天接口或本地 /completion 接口提供预测候选。</string>
+    <string name="lan_llm_base_url" translatable="false">预测服务地址</string>
+    <string name="lan_llm_backend" translatable="false">后端类型</string>
+    <string name="lan_llm_backend_chat" translatable="false">聊天接口 (/v1/chat/completions)</string>
+    <string name="lan_llm_backend_completion" translatable="false">补全接口 (/completion)</string>
+    <string name="lan_llm_model" translatable="false">模型名称</string>
+    <string name="lan_llm_api_key" translatable="false">API 密钥</string>
+    <string name="lan_llm_api_key_set" translatable="false">已配置</string>
+    <string name="lan_llm_debounce_ms" translatable="false">请求防抖 (ms)</string>
+    <string name="lan_llm_sample_count" translatable="false">采样次数</string>
+    <string name="lan_llm_max_context_chars" translatable="false">最大上下文字数</string>
+    <string name="lan_llm_settings_title" translatable="false">LLM 预测</string>
     <string name="plugins">Plugins</string>
     <string name="manage_plugins">Manage Plugins</string>
     <string name="uninstall_plugin">Uninstall Plugin</string>
