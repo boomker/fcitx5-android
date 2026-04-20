@@ -699,16 +699,77 @@ abstract class BaseKeyboard(
     open fun onCompositionStateChanged(composing: Boolean) {
         if (this.composing == composing) return
         this.composing = composing
-        composeAwareKeys.forEach { item ->
+        data class PendingUpdate(
+            val item: ComposeAwareKey,
+            val activeDef: KeyDef,
+            val activeAppearance: KeyDef.Appearance,
+            val needsRecreate: Boolean
+        )
+
+        val updates = composeAwareKeys.map { item ->
             val (activeDef, activeAppearance) = resolveComposeActiveDef(item.baseDef)
-            val needsRecreate = !isAppearanceCompatible(item.keyView, activeAppearance) ||
-                item.keyView.def !== activeAppearance
-            if (needsRecreate) {
-                recreateComposeAwareKeyView(item, activeDef, activeAppearance)
-            }
-            applyAppearance(item.keyView, activeAppearance)
-            applyBehaviorPopupBindings(item.keyView, item.baseline, activeDef.behaviors, activeDef.popup)
+            val needsRecreate = shouldRecreateComposeAwareView(item.keyView.def, item.keyView, activeAppearance)
+            PendingUpdate(item, activeDef, activeAppearance, needsRecreate)
         }
+
+        // First, rebind behaviors on existing views so taps during transition already use new actions.
+        updates.forEach { u ->
+            applyBehaviorPopupBindings(u.item.keyView, u.item.baseline, u.activeDef.behaviors, u.activeDef.popup)
+        }
+
+        val recreateList = updates.filter { it.needsRecreate }
+        if (recreateList.isNotEmpty()) {
+            val parents = recreateList
+                .mapNotNull { it.item.keyView.parent as? ViewGroup }
+                .distinct()
+            parents.forEach { it.suppressLayout(true) }
+            try {
+                recreateList.forEach { u ->
+                    recreateComposeAwareKeyView(u.item, u.activeDef, u.activeAppearance)
+                }
+            } finally {
+                parents.forEach { it.suppressLayout(false) }
+            }
+        }
+
+        updates.forEach { u ->
+            applyAppearance(u.item.keyView, u.activeAppearance)
+            applyBehaviorPopupBindings(u.item.keyView, u.item.baseline, u.activeDef.behaviors, u.activeDef.popup)
+        }
+    }
+
+    private fun shouldRecreateComposeAwareView(
+        oldAppearance: KeyDef.Appearance,
+        currentView: KeyView,
+        newAppearance: KeyDef.Appearance
+    ): Boolean {
+        if (!isAppearanceCompatible(currentView, newAppearance)) return true
+
+        val textMetricsChanged = when {
+            oldAppearance is KeyDef.Appearance.Text && newAppearance is KeyDef.Appearance.Text -> {
+                oldAppearance.textStyle != newAppearance.textStyle ||
+                    oldAppearance.textSize != newAppearance.textSize
+            }
+            oldAppearance is KeyDef.Appearance.Text || newAppearance is KeyDef.Appearance.Text -> true
+            else -> false
+        }
+
+        // Recreate only when style-affecting attributes changed. For text/action-only changes,
+        // keep the same view instance to avoid touch race and expensive hierarchy churn.
+        return oldAppearance.variant != newAppearance.variant ||
+            oldAppearance.border != newAppearance.border ||
+            oldAppearance.margin != newAppearance.margin ||
+            oldAppearance.percentWidth != newAppearance.percentWidth ||
+            oldAppearance.viewId != newAppearance.viewId ||
+            textMetricsChanged ||
+            oldAppearance.textColor != newAppearance.textColor ||
+            oldAppearance.textColorMonet != newAppearance.textColorMonet ||
+            oldAppearance.altTextColor != newAppearance.altTextColor ||
+            oldAppearance.altTextColorMonet != newAppearance.altTextColorMonet ||
+            oldAppearance.backgroundColor != newAppearance.backgroundColor ||
+            oldAppearance.backgroundColorMonet != newAppearance.backgroundColorMonet ||
+            oldAppearance.shadowColor != newAppearance.shadowColor ||
+            oldAppearance.shadowColorMonet != newAppearance.shadowColorMonet
     }
 
     private fun isAppearanceCompatible(view: KeyView, appearance: KeyDef.Appearance): Boolean {
