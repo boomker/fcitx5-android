@@ -529,6 +529,7 @@
     <string name="text_keyboard_layout_macro_no_event">未配置事件</string>
     <string name="text_keyboard_layout_macro_event_preview">%1$s → … (共 %2$d 步)</string>
     <string name="text_keyboard_layout_alt_label">副標籤</string>
+    <string name="text_keyboard_layout_swipe_label">劃動標籤</string>
 
     <!-- Macro Editor -->
     <string name="macro_editor_title">編輯 %1$s</string>

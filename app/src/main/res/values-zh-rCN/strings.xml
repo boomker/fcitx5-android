@@ -522,6 +522,7 @@
     <string name="text_keyboard_layout_macro_no_event">未配置事件</string>
     <string name="text_keyboard_layout_macro_event_preview">%1$s → … (共 %2$d 步)</string>
     <string name="text_keyboard_layout_alt_label">副标签</string>
+    <string name="text_keyboard_layout_swipe_label">划动标签</string>
     <string name="text_keyboard_layout_validation_error">验证错误</string>
 
     <!-- Macro Editor -->

@@ -165,6 +165,41 @@ open class KeyDef(
             shadowColorMonet
         )
 
+        class ImageAltText(
+            @DrawableRes
+            val src: Int,
+            val altText: String,
+            percentWidth: Float = 0.1f,
+            variant: Variant = Variant.Normal,
+            border: Border = Border.Default,
+            margin: Boolean = true,
+            viewId: Int = -1,
+            soundEffect: InputFeedbacks.SoundEffect = InputFeedbacks.SoundEffect.Standard,
+            textColor: Int? = null,
+            textColorMonet: String? = null,
+            altTextColor: Int? = null,
+            altTextColorMonet: String? = null,
+            backgroundColor: Int? = null,
+            backgroundColorMonet: String? = null,
+            shadowColor: Int? = null,
+            shadowColorMonet: String? = null
+        ) : Appearance(
+            percentWidth,
+            variant,
+            border,
+            margin,
+            viewId,
+            soundEffect,
+            textColor,
+            textColorMonet,
+            altTextColor,
+            altTextColorMonet,
+            backgroundColor,
+            backgroundColorMonet,
+            shadowColor,
+            shadowColorMonet
+        )
+
         class ImageText(
             displayText: String,
             textSize: Float,

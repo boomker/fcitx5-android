@@ -739,8 +739,7 @@ class KeyboardLayoutAdapter(
             "CapsKey" -> context.getString(R.string.text_keyboard_layout_key_label_caps)
             "LayoutSwitchKey" -> {
                 val label = key["label"] as? String ?: "?123"
-                val subLabel = key["subLabel"] as? String ?: ""
-                if (subLabel.isNotEmpty()) "$label→$subLabel" else label
+                label
             }
             "CommaKey" -> ","
             "LanguageKey" -> context.getString(R.string.text_keyboard_layout_key_label_lang)

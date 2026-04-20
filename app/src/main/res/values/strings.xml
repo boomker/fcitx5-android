@@ -511,6 +511,7 @@
     <string name="text_keyboard_layout_macro_no_event">No event configured</string>
     <string name="text_keyboard_layout_macro_event_preview">%1$s → … (%2$d steps total)</string>
     <string name="text_keyboard_layout_alt_label">Alt Label</string>
+    <string name="text_keyboard_layout_swipe_label">Swipe Label</string>
     <string name="text_keyboard_layout_display_value_hint">Display value</string>
     <string name="text_keyboard_layout_key_label_caps">Caps</string>
     <string name="text_keyboard_layout_key_label_lang">Lang</string>

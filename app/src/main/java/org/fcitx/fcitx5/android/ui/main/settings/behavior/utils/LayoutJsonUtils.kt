@@ -203,6 +203,7 @@ object LayoutJsonUtils {
             altLabel = obj["altLabel"]?.jsonPrimitive?.content,
             longPressLabel = obj["longPressLabel"]?.jsonPrimitive?.content,
             subLabel = obj["subLabel"]?.jsonPrimitive?.content,
+            swipeLabel = obj["swipeLabel"]?.jsonPrimitive?.content,
             weight = parseOptionalFloat(obj["weight"]),
             textColor = parseOptionalInt(obj["textColor"]),
             textColorMonet = obj["textColorMonet"]?.jsonPrimitive?.contentOrNull,
@@ -405,6 +406,7 @@ object LayoutJsonUtils {
      * @property label 标签（LayoutSwitchKey, SymbolKey, MacroKey）
      * @property altLabel 备选标签（MacroKey）
      * @property subLabel 子标签（LayoutSwitchKey）
+    * @property swipeLabel 划动标签（支持 swipe 的普通键）
      * @property weight 权重
      * @property tap 点击宏（MacroKey）
      * @property swipe 划动宏（MacroKey）
@@ -419,6 +421,7 @@ object LayoutJsonUtils {
         val altLabel: String? = null,  // MacroKey 使用
         val longPressLabel: String? = null,  // MacroKey 使用
         val subLabel: String? = null,  // LayoutSwitchKey 使用
+        val swipeLabel: String? = null,  // 非 Macro 的 swipe 提示
         val weight: Float? = null,
         val textColor: Int? = null,
         val textColorMonet: String? = null,
@@ -476,11 +479,15 @@ object LayoutJsonUtils {
             }
             is CapsKey -> {
                 json["weight"] = appearance.percentWidth
+                keyDef.swipeLabel?.let { json["swipeLabel"] = it }
+                keyDef.swipe?.let { json["swipe"] = macroActionToJson(it) }
             }
             is LayoutSwitchKey -> {
                 json["label"] = (appearance as? KeyDef.Appearance.Text)?.displayText
                 json["subLabel"] = keyDef.to
                 json["weight"] = appearance.percentWidth
+                keyDef.swipeLabel?.let { json["swipeLabel"] = it }
+                keyDef.swipe?.let { json["swipe"] = macroActionToJson(it) }
             }
             is CommaKey -> {
                 json["weight"] = appearance.percentWidth
@@ -494,12 +501,18 @@ object LayoutJsonUtils {
             is SymbolKey -> {
                 json["label"] = keyDef.symbol
                 json["weight"] = appearance.percentWidth
+                keyDef.swipeLabel?.let { json["swipeLabel"] = it }
+                keyDef.swipe?.let { json["swipe"] = macroActionToJson(it) }
             }
             is ReturnKey -> {
                 json["weight"] = appearance.percentWidth
+                keyDef.swipeLabel?.let { json["swipeLabel"] = it }
+                keyDef.swipe?.let { json["swipe"] = macroActionToJson(it) }
             }
             is BackspaceKey -> {
                 json["weight"] = appearance.percentWidth
+                keyDef.swipeLabel?.let { json["swipeLabel"] = it }
+                keyDef.swipe?.let { json["swipe"] = macroActionToJson(it) }
             }
             is MacroKey -> {
                 json["label"] = keyDef.label
@@ -625,6 +638,8 @@ object LayoutJsonUtils {
                 shadowColorMonet = key.shadowColorMonet
             )
             "CapsKey" -> CapsKey(
+                swipe = key.swipe,
+                swipeLabel = key.swipeLabel,
                 percentWidth = key.weight ?: 0.15f,
                 textColor = key.textColor,
                 textColorMonet = key.textColorMonet,
@@ -636,6 +651,8 @@ object LayoutJsonUtils {
             "LayoutSwitchKey" -> LayoutSwitchKey(
                 displayText = key.label ?: "?123",
                 to = key.subLabel ?: "",
+                swipe = key.swipe,
+                swipeLabel = key.swipeLabel,
                 percentWidth = key.weight ?: 0.15f,
                 textColor = key.textColor,
                 textColorMonet = key.textColorMonet,
@@ -674,6 +691,8 @@ object LayoutJsonUtils {
             )
             "SymbolKey" -> SymbolKey(
                 symbol = key.label ?: ".",
+                swipe = key.swipe,
+                swipeLabel = key.swipeLabel,
                 percentWidth = key.weight ?: 0.1f,
                 variant = KeyDef.Appearance.Variant.Alternative,
                 textColor = key.textColor,
@@ -684,6 +703,8 @@ object LayoutJsonUtils {
                 shadowColorMonet = key.shadowColorMonet
             )
             "ReturnKey" -> ReturnKey(
+                swipe = key.swipe,
+                swipeLabel = key.swipeLabel,
                 percentWidth = key.weight ?: 0.15f,
                 textColor = key.textColor,
                 textColorMonet = key.textColorMonet,
@@ -693,6 +714,8 @@ object LayoutJsonUtils {
                 shadowColorMonet = key.shadowColorMonet
             )
             "BackspaceKey" -> BackspaceKey(
+                swipe = key.swipe,
+                swipeLabel = key.swipeLabel,
                 percentWidth = key.weight ?: 0.15f,
                 textColor = key.textColor,
                 textColorMonet = key.textColorMonet,

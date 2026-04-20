@@ -316,6 +316,7 @@
     <string name="text_keyboard_layout_macro_no_event">No hay evento configurado</string>
     <string name="text_keyboard_layout_macro_event_preview">%1$s → … (%2$d pasos en total)</string>
     <string name="text_keyboard_layout_alt_label">Etiqueta alternativa</string>
+    <string name="text_keyboard_layout_swipe_label">Etiqueta de deslizamiento</string>
 
     <!-- Macro Editor -->
     <string name="macro_editor_title">Editar %1$s</string>

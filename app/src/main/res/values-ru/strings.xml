@@ -497,6 +497,7 @@
     <string name="text_keyboard_layout_macro_no_event">Событие не настроено</string>
     <string name="text_keyboard_layout_macro_event_preview">%1$s → … (всего шагов: %2$d)</string>
     <string name="text_keyboard_layout_alt_label">Альтернативная метка</string>
+    <string name="text_keyboard_layout_swipe_label">Метка свайпа</string>
 
     <!-- Macro Editor -->
     <string name="macro_editor_title">Редактировать %1$s</string>
