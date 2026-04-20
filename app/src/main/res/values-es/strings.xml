@@ -14,13 +14,7 @@
     <string name="ignore_sys_cursor">Ignorar posición del cursor del sistema</string>
     <string name="hide_key_config">Ocultar configuraciones de atajos</string>
     <string name="toolbar_manually_toggled">Barra de herramientas alternada manualmente</string>
-    <string name="allow_original_plugins">Permitir plugins de terceros de Fcitx5</string>
-    <string name="allow_original_plugins_summary">Activa esto para permitir la conexión de plugins del Fcitx5 Android original (release y debug). No instales a la vez plugins originales y plugins modificados con la misma funcionalidad.</string>
-    <string name="allowed_plugin_prefixes">Prefijos de plugins permitidos</string>
-    <string name="allowed_plugin_prefixes_summary">Cuando "Permitir plugins de terceros de Fcitx5" está activado, los nombres de paquete que comienzan por org.fcitx.fcitx5.android se permiten por defecto. Aquí agrega solo prefijos adicionales.</string>
-    <string name="allowed_plugin_prefixes_dialog_title">Prefijos de nombre de paquete del plugin</string>
-    <string name="allowed_plugin_prefixes_dialog_message">Introduce prefijos de nombre de paquete adicionales (uno por línea). El prefijo integrado org.fcitx.fcitx5.android siempre está permitido.</string>
-    <string name="allowed_plugin_prefixes_add_hint">Introduce un prefijo adicional, p. ej. com.example.fcitx.plugin</string>
+    <string name="allow_original_plugins">Permitir plugins oficiales de Fcitx5</string>
     <string name="_not_available_">(No disponible)</string>
     <string name="button_haptic_feedback">Respuesta háptica al presionar teclas</string>
     <string name="button_vibration_milliseconds">Duración de vibración háptica</string>

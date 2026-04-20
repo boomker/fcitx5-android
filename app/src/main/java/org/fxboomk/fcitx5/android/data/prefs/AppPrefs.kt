@@ -67,20 +67,25 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
         val allowOriginalPlugins = switch(
             R.string.allow_original_plugins,
             "allow_original_plugins",
-            false,
-            R.string.allow_original_plugins_summary
+            false
         )
-        val allowedPluginPrefixes = stringSet(
-            R.string.allowed_plugin_prefixes,
-            "allowed_plugin_prefixes",
-            emptySet(),
-            R.string.allowed_plugin_prefixes_summary
-        ) { allowOriginalPlugins.getValue() }
         val blockedPluginPackages = ManagedPreference.PStringSet(
             sharedPreferences,
             "blocked_plugin_packages",
             emptySet()
         ).apply { register() }
+
+        val hideUnsupportedEmojis = switch(
+            R.string.hide_unsupported_emojis,
+            "hide_unsupported_emojis",
+            true
+        )
+
+        val defaultEmojiSkinTone = enumList(
+            R.string.default_emoji_skin_tone,
+            "default_emoji_skin_tone",
+            EmojiModifier.SkinTone.Default,
+        )
     }
 
     inner class Keyboard : ManagedPreferenceCategory(R.string.virtual_keyboard, sharedPreferences) {
@@ -466,20 +471,6 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
         ) { clipboardListening.getValue() }
     }
 
-    inner class Symbols : ManagedPreferenceCategory(R.string.emoji_and_symbols, sharedPreferences) {
-        val hideUnsupportedEmojis = switch(
-            R.string.hide_unsupported_emojis,
-            "hide_unsupported_emojis",
-            true
-        )
-
-        val defaultEmojiSkinTone = enumList(
-            R.string.default_emoji_skin_tone,
-            "default_emoji_skin_tone",
-            EmojiModifier.SkinTone.Default,
-        )
-    }
-
     private val providers = mutableListOf<ManagedPreferenceProvider>()
 
     fun <T : ManagedPreferenceProvider> registerProvider(
@@ -498,7 +489,6 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
     val keyboard = Keyboard().register()
     val candidates = Candidates().register()
     val clipboard = Clipboard().register()
-    val symbols = Symbols().register()
     val advanced = Advanced().register()
 
     @Keep

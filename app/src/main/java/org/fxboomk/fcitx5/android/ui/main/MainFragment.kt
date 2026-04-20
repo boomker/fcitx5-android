@@ -61,7 +61,7 @@ class MainFragment : PaddingPreferenceFragment() {
             }
             addCategory("Android") {
                 addDestinationPreference(
-                    R.string.theme,
+                    R.string.theme_appearance,
                     R.drawable.ic_baseline_palette_24,
                     SettingsRoute.Theme
                 )
@@ -76,24 +76,19 @@ class MainFragment : PaddingPreferenceFragment() {
                     SettingsRoute.CandidatesWindow
                 )
                 addDestinationPreference(
+                    R.string.lan_llm_settings_title,
+                    R.drawable.ic_baseline_auto_awesome_24,
+                    SettingsRoute.LanLlm
+                )
+                addDestinationPreference(
                     R.string.clipboard,
                     R.drawable.ic_clipboard,
                     SettingsRoute.Clipboard
                 )
                 addDestinationPreference(
-                    R.string.emoji_and_symbols,
-                    R.drawable.ic_baseline_emoji_symbols_24,
-                    SettingsRoute.Symbol
-                )
-                addDestinationPreference(
                     R.string.plugins,
                     R.drawable.ic_baseline_android_24,
                     SettingsRoute.Plugin
-                )
-                addDestinationPreference(
-                    R.string.lan_llm_settings_title,
-                    R.drawable.ic_baseline_auto_awesome_24,
-                    SettingsRoute.LanLlm
                 )
                 addDestinationPreference(
                     R.string.advanced,
