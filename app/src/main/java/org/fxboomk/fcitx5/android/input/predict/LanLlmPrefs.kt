@@ -5,6 +5,7 @@ import androidx.preference.PreferenceManager
 
 object LanLlmPrefs {
     const val KEY_BACKEND = "lan_llm_backend"
+    const val KEY_CHAT_API_ENABLED = "lan_llm_chat_api_enabled"
     const val KEY_ENABLED = "lan_llm_enabled"
     const val KEY_BASE_URL = "lan_llm_base_url"
     const val KEY_MODEL = "lan_llm_model"
@@ -45,6 +46,8 @@ object LanLlmPrefs {
         val chatEndpoint: String
             get() = when {
                 baseUrl.endsWith("/chat/completions") -> baseUrl
+                baseUrl.endsWith("/completion") -> baseUrl.removeSuffix("/completion") + "/v1/chat/completions"
+                baseUrl.endsWith("/api/generate") -> baseUrl.removeSuffix("/api/generate") + "/v1/chat/completions"
                 baseUrl.endsWith("/v1") -> "$baseUrl/chat/completions"
                 else -> "$baseUrl/v1/chat/completions"
             }
@@ -52,8 +55,26 @@ object LanLlmPrefs {
         val completionEndpoint: String
             get() = when {
                 baseUrl.endsWith("/completion") -> baseUrl
+                baseUrl.endsWith("/api/generate") -> baseUrl
+                baseUrl.endsWith("/chat/completions") -> baseUrl.removeSuffix("/chat/completions").removeSuffix("/v1") + "/completion"
                 baseUrl.endsWith("/v1") -> baseUrl.removeSuffix("/v1") + "/completion"
                 else -> "$baseUrl/completion"
+            }
+
+        val ollamaGenerateEndpoint: String
+            get() = when {
+                baseUrl.endsWith("/api/generate") -> baseUrl
+                baseUrl.endsWith("/completion") -> baseUrl.removeSuffix("/completion") + "/api/generate"
+                baseUrl.endsWith("/chat/completions") -> baseUrl.removeSuffix("/chat/completions").removeSuffix("/v1") + "/api/generate"
+                baseUrl.endsWith("/v1") -> baseUrl.removeSuffix("/v1") + "/api/generate"
+                else -> "$baseUrl/api/generate"
+            }
+
+        val completionCompatEndpoints: List<String>
+            get() = when {
+                baseUrl.endsWith("/completion") -> listOf(completionEndpoint)
+                baseUrl.endsWith("/api/generate") -> listOf(ollamaGenerateEndpoint)
+                else -> listOf(completionEndpoint, ollamaGenerateEndpoint).distinct()
             }
 
         val fetchWindowChars: Int
@@ -74,9 +95,14 @@ object LanLlmPrefs {
             ?.toIntOrNull()
             ?.coerceIn(8, 512)
             ?: DEFAULT_MAX_CONTEXT_CHARS
+        val chatApiEnabled = if (prefs.contains(KEY_CHAT_API_ENABLED)) {
+            prefs.getBoolean(KEY_CHAT_API_ENABLED, false)
+        } else {
+            prefs.getString(KEY_BACKEND, Backend.Completion.value) == Backend.ChatCompletions.value
+        }
         return Config(
             enabled = prefs.getBoolean(KEY_ENABLED, false),
-            backend = Backend.from(prefs.getString(KEY_BACKEND, Backend.ChatCompletions.value)),
+            backend = if (chatApiEnabled) Backend.ChatCompletions else Backend.Completion,
             baseUrl = normalizeBaseUrl(prefs.getString(KEY_BASE_URL, DEFAULT_BASE_URL).orEmpty()),
             model = prefs.getString(KEY_MODEL, DEFAULT_MODEL).orEmpty().trim(),
             apiKey = prefs.getString(KEY_API_KEY, "").orEmpty().trim(),

@@ -47,10 +47,14 @@ class LanLlmPredictor(
                 if (config.backend == LanLlmPrefs.Backend.Completion) {
                     predictCompletion(config, request)
                 } else {
+                    val useRecentCommitBias = config.preferLastCommit && request.recentCommittedText.isNotBlank()
                     client.predict(
                         LanLlmClient.PredictionRequest(
                             config = config,
                             beforeCursor = request.beforeCursor,
+                            recentCommittedText = request.recentCommittedText,
+                            historyText = request.historyText,
+                            useRecentCommitBias = useRecentCommitBias,
                         )
                     )
                 }

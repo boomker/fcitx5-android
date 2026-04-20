@@ -11,7 +11,7 @@ import org.junit.Test
 class LanLlmPromptTest {
 
     @Test
-    fun completionPromptWithoutRecentBiasFallsBackToBeforeCursorOnly() {
+    fun completionPromptWithoutRecentBiasBuildsStructuredChatMlPrompt() {
         val prompt = LanLlmPrompt.completionPrompt(
             beforeCursor = "光标前文本内容",
             recentCommittedText = "最近上屏",
@@ -19,11 +19,15 @@ class LanLlmPromptTest {
             useRecentCommitBias = false,
         )
 
-        assertEquals("光标前文本：光标前文本内容", prompt)
+        assertTrue(prompt.startsWith("<|im_start|>system"))
+        assertTrue(prompt.contains("<history>\n历史内容\n</history>"))
+        assertTrue(prompt.contains("<last_msg>\n无\n</last_msg>"))
+        assertTrue(prompt.contains("<memory>\n无\n</memory>"))
+        assertTrue(prompt.endsWith("</think>\n\n光标前文本内容"))
     }
 
     @Test
-    fun completionPromptWithRecentBiasIncludesRecentCommitAndHistory() {
+    fun completionPromptWithRecentBiasIncludesRecentCommitMemory() {
         val prompt = LanLlmPrompt.completionPrompt(
             beforeCursor = "继续写",
             recentCommittedText = "上一句",
@@ -31,8 +35,25 @@ class LanLlmPromptTest {
             useRecentCommitBias = true,
         )
 
-        assertTrue(prompt.contains("最近一次上屏：上一句"))
-        assertTrue(prompt.contains("近期上屏：更早内容"))
-        assertTrue(prompt.endsWith("光标前文本：继续写"))
+        assertTrue(prompt.contains("<history>\n更早内容\n</history>"))
+        assertTrue(prompt.contains("<memory>\n最近一次上屏：上一句\n</memory>"))
+        assertTrue(prompt.endsWith("</think>\n\n继续写"))
+    }
+
+    @Test
+    fun userPromptUsesStructuredContinuationContextForChatBackend() {
+        val prompt = LanLlmPrompt.userPrompt(
+            beforeCursor = "今晚一起去",
+            recentCommittedText = "上条刚发完",
+            historyText = "我们在约饭",
+            useRecentCommitBias = true,
+        )
+
+        assertTrue(prompt.contains("<persona>"))
+        assertTrue(prompt.contains("自然、得体、贴近上下文的中文续写助手"))
+        assertTrue(prompt.contains("<history>\n我们在约饭\n</history>"))
+        assertTrue(prompt.contains("<memory>\n最近一次上屏：上条刚发完\n</memory>"))
+        assertTrue(prompt.contains("只输出当前前缀后面的续写部分"))
+        assertTrue(prompt.endsWith("今晚一起去\n</instruction>"))
     }
 }

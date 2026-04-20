@@ -6,7 +6,6 @@ package org.fxboomk.fcitx5.android.ui.main.settings.behavior
 import android.os.Bundle
 import android.text.InputType
 import androidx.preference.EditTextPreference
-import androidx.preference.ListPreference
 import androidx.preference.Preference
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.input.predict.LanLlmPrefs
@@ -16,6 +15,18 @@ import org.fxboomk.fcitx5.android.utils.addPreference
 import org.fxboomk.fcitx5.android.utils.toast
 
 class LanLlmSettingsFragment : PaddingPreferenceFragment() {
+
+    override fun onDisplayPreferenceDialog(preference: Preference) {
+        if (preference.key == LanLlmPrefs.KEY_BASE_URL) {
+            if (childFragmentManager.findFragmentByTag(LanLlmApiUrlPreferenceDialogFragment::class.java.name) != null) {
+                return
+            }
+            LanLlmApiUrlPreferenceDialogFragment.newInstance(preference.key)
+                .show(childFragmentManager, LanLlmApiUrlPreferenceDialogFragment::class.java.name)
+            return
+        }
+        super.onDisplayPreferenceDialog(preference)
+    }
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         preferenceScreen = preferenceManager.createPreferenceScreen(requireContext()).apply {
@@ -27,27 +38,9 @@ class LanLlmSettingsFragment : PaddingPreferenceFragment() {
                 isIconSpaceReserved = false
                 isSingleLineTitle = false
             })
-            addPreference(ListPreference(context).apply {
-                key = LanLlmPrefs.KEY_BACKEND
-                setTitle(R.string.lan_llm_backend)
-                setDialogTitle(R.string.lan_llm_backend)
-                entries = arrayOf(
-                    context.getString(R.string.lan_llm_backend_chat),
-                    context.getString(R.string.lan_llm_backend_completion),
-                )
-                entryValues = arrayOf(
-                    LanLlmPrefs.Backend.ChatCompletions.value,
-                    LanLlmPrefs.Backend.Completion.value,
-                )
-                setDefaultValue(LanLlmPrefs.Backend.ChatCompletions.value)
-                summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
-                isIconSpaceReserved = false
-                isSingleLineTitle = false
-            })
-
             addPreference(textPreference(
                 key = LanLlmPrefs.KEY_BASE_URL,
-                titleRes = R.string.lan_llm_base_url,
+                titleRes = R.string.lan_llm_api_url,
                 defaultValue = "http://192.168.1.1:8000",
                 inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI,
             ))

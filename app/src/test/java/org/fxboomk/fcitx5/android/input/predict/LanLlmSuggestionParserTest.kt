@@ -46,4 +46,25 @@ class LanLlmSuggestionParserTest {
 
         assertEquals(emptyList<String>(), LanLlmSuggestionParser.parse(raw, "春风得意"))
     }
+
+    @Test
+    fun stripsThinkTagsAndReturnsSuggestionTailOnly() {
+        val raw = """<think>分析一下</think>春风得意去郊游"""
+
+        assertEquals(listOf("去郊游"), LanLlmSuggestionParser.parse(raw, "春风得意"))
+    }
+
+    @Test
+    fun filtersMemoryToolcallProtocolOutputs() {
+        val raw = """<MEM_RETRIEVAL> query="上次聚餐地点" </MEM_RETRIEVAL>"""
+
+        assertEquals(emptyList<String>(), LanLlmSuggestionParser.parse(raw, "今晚一起"))
+    }
+
+    @Test
+    fun filtersWideQueryProtocolOutputs() {
+        val raw = """query="上次约饭内容""""
+
+        assertEquals(emptyList<String>(), LanLlmSuggestionParser.parse(raw, "今晚一起"))
+    }
 }

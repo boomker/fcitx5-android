@@ -1,6 +1,12 @@
 package org.fxboomk.fcitx5.android.input.predict
 
 object LanLlmSuggestionParser {
+    private const val THINK_START = "<think>"
+    private const val THINK_END = "</think>"
+    private val queryWideRegex = Regex(
+        """(?i)\bquery\s*[:=]\s*(?:\"([^\"]{1,512})\"|'([^']{1,512})'|“([^”]{1,512})”|「([^」]{1,512})」|『([^』]{1,512})』|([^\s,;]{1,128}))"""
+    )
+
     fun parse(raw: String, typedPrefix: String): List<String> {
         if (raw.isBlank()) return emptyList()
 
@@ -26,6 +32,7 @@ object LanLlmSuggestionParser {
 
     private fun normalize(raw: String): String = raw
         .replace(Regex("￾stats:.*$", RegexOption.DOT_MATCHES_ALL), "")
+        .let { stripInvisibleAndControl(it) }
         .trim()
 
     private fun candidatePayloads(raw: String): List<String> = buildList {
@@ -107,12 +114,17 @@ object LanLlmSuggestionParser {
     }
 
     private fun sanitizeSuggestion(candidate: String, typedPrefix: String): String {
-        var text = candidate.trim()
+        var text = stripInvisibleAndControl(candidate).trim()
         if (text.isBlank()) return ""
+        text = stripThinkTagsOrNull(text) ?: return ""
         text = text.removePrefix("-").trimStart()
         text = text.removePrefix("•").trimStart()
         text = text.removePrefix("**").removeSuffix("**")
         text = text.removePrefix("`").removeSuffix("`")
+        text = text
+            .replace("<|im_end|>", "")
+            .replace("<|endoftext|>", "")
+            .trim()
         text = text.trim { it.isWhitespace() || it in "\"'`,:[]{}" }
         text = text.replace(Regex("^\\d+[.)、:]\\s*"), "")
         if (text.startsWith(typedPrefix)) {
@@ -127,6 +139,7 @@ object LanLlmSuggestionParser {
             "你好", "我是", "Qwen", "收到", "当前系统状态", "suggestions"
         )
         if (metadataMarkers.any { text.startsWith(it) || it in text }) return ""
+        if (looksLikeProtocolOrControl(text)) return ""
         if (text == typedPrefix.trim()) return ""
         if (text.length > 20) return ""
         if (text.count { it in "，。！？；：\n" } >= 2) return ""
@@ -180,4 +193,48 @@ object LanLlmSuggestionParser {
         return out.distinct()
     }
 
+    private fun looksLikeProtocolOrControl(text: String): Boolean {
+        val s = stripInvisibleAndControl(text).trim()
+        if (s.isEmpty()) return true
+        if (s.startsWith("__METRICS__")) return true
+        if (s.contains("<MEM_RETRIEVAL>", ignoreCase = true) || s.contains("</MEM_RETRIEVAL>", ignoreCase = true)) return true
+        if (s.contains("<NO_MEM>", ignoreCase = true)) return true
+        if (s.contains("search query", ignoreCase = true)) return true
+        if (s.contains("no longer", ignoreCase = true)) return true
+        if (queryWideRegex.containsMatchIn(s)) return true
+        return false
+    }
+
+    private fun stripThinkTagsOrNull(text: String): String? {
+        if (text.isEmpty()) return text
+        var out = text
+        while (true) {
+            val startIdx = out.indexOf(THINK_START)
+            if (startIdx == -1) break
+            val endIdx = out.indexOf(THINK_END, startIdx + THINK_START.length)
+            if (endIdx == -1) return null
+            out = out.removeRange(startIdx, endIdx + THINK_END.length)
+        }
+        if (out.contains(THINK_END)) {
+            out = out.replace(THINK_END, "")
+        }
+        return out
+    }
+
+    private fun stripInvisibleAndControl(input: String): String {
+        if (input.isEmpty()) return input
+        val sb = StringBuilder(input.length)
+        for (ch in input) {
+            if (ch.isISOControl()) continue
+            when (ch) {
+                '\u200B', '\u200C', '\u200D', '\u200E', '\u200F',
+                '\u202A', '\u202B', '\u202C', '\u202D', '\u202E',
+                '\u2060', '\u2061', '\u2062', '\u2063', '\u2064',
+                '\u2066', '\u2067', '\u2068', '\u2069',
+                '\uFEFF' -> continue
+            }
+            sb.append(ch)
+        }
+        return sb.toString()
+    }
 }
