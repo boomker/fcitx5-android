@@ -113,7 +113,10 @@
       "Bash(./gradlew :plugin:rime:compileMainlineDebugKotlin)",
       "Bash(./gradlew :plugin:rime:tasks --all)",
       "Bash(./gradlew :plugin:rime:assembleRelease)",
-      "Bash(git merge *)"
+      "Bash(git merge *)",
+      "Bash(xxd /Users/cyzhu/gitrepos/fcitx5-android/app/src/main/res/values-zh-rCN/strings.xml)",
+      "Bash(rtk grep *)",
+      "Bash(rtk proxy *)"
     ]
   }
 }

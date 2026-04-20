@@ -577,7 +577,7 @@ data object SettingsSymbolSettingsAction : ButtonAction() {
         view: View?,
         onActionComplete: (() -> Unit)?
     ) {
-        AppUtil.launchMainToRoute(context, SettingsRoute.Symbol)
+        AppUtil.launchMainToRoute(context, SettingsRoute.Advanced)
     }
 }
 

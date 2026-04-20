@@ -4,6 +4,7 @@
  */
 
 package org.fxboomk.fcitx5.android.input.keyboard
+
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
@@ -39,6 +40,7 @@ import org.fxboomk.fcitx5.android.input.keyboard.KeyAction.SpaceLongPressAction
 import org.fxboomk.fcitx5.android.input.keyboard.KeyAction.SymAction
 import org.fxboomk.fcitx5.android.input.keyboard.KeyAction.UnicodeAction
 import org.fxboomk.fcitx5.android.input.picker.PickerWindow
+import org.fxboomk.fcitx5.android.input.predict.AiSuggestionStripComponent
 import org.fxboomk.fcitx5.android.input.wm.InputWindowManager
 import org.fxboomk.fcitx5.android.utils.InputMethodUtil
 import org.fxboomk.fcitx5.android.utils.switchToNextIME
@@ -61,6 +63,7 @@ class CommonKeyActionListener :
     private val preeditState: PreeditEmptyStateComponent by manager.must()
     private val horizontalCandidate: HorizontalCandidateComponent by manager.must()
     private val windowManager: InputWindowManager by manager.must()
+    private val aiSuggestionStrip: AiSuggestionStripComponent by manager.must()
 
     private var lastPickerType by AppPrefs.getInstance().internal.lastPickerType
 
@@ -114,13 +117,25 @@ class CommonKeyActionListener :
                     sendKey(action.act, action.states.states, action.code, action.up)
                 }
                 is SymAction -> service.postFcitxJob {
-                    if (action.sym.sym == FcitxKeyMapping.FcitxKey_space &&
-                        horizontalCandidate.isRowShifted() &&
-                        horizontalCandidate.adapter.candidates.isNotEmpty()
-                    ) {
-                        select(horizontalCandidate.adapter.indexOffset)
-                    } else {
-                        sendKey(action.sym, action.states)
+                    when {
+                        action.sym.sym == FcitxKeyMapping.FcitxKey_space && aiSuggestionStrip.hasVisibleSuggestions() -> {
+                            service.lifecycleScope.launch { aiSuggestionStrip.commitPrimarySuggestion() }
+                        }
+                        action.sym.sym == FcitxKeyMapping.FcitxKey_BackSpace && aiSuggestionStrip.hasVisibleSuggestions() -> {
+                            service.lifecycleScope.launch { aiSuggestionStrip.dismissVisibleSuggestions() }
+                        }
+                        action.sym.sym == FcitxKeyMapping.FcitxKey_BackSpace -> {
+                            service.lifecycleScope.launch { aiSuggestionStrip.suppressAfterBackspace() }
+                            sendKey(action.sym, action.states)
+                        }
+                        action.sym.sym == FcitxKeyMapping.FcitxKey_space &&
+                            horizontalCandidate.isRowShifted() &&
+                            horizontalCandidate.adapter.candidates.isNotEmpty() -> {
+                            select(horizontalCandidate.adapter.indexOffset)
+                        }
+                        else -> {
+                            sendKey(action.sym, action.states)
+                        }
                     }
                 }
                 is CommitAction -> service.postFcitxJob {

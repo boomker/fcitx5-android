@@ -149,7 +149,7 @@ class PickerWindow(
 
     override fun onCreateBarExtension() = pickerLayout.tabsUi.root
 
-    val symbolPrefs = AppPrefs.getInstance().symbols
+    val symbolPrefs = AppPrefs.getInstance().advanced
     private val hideUnsupportedEmojisPrefs = symbolPrefs.hideUnsupportedEmojis
     private val defaultEmojiSkinTonePrefs = symbolPrefs.defaultEmojiSkinTone
 

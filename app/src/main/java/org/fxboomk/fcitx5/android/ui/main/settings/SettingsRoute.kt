@@ -29,7 +29,7 @@ import org.fxboomk.fcitx5.android.ui.main.settings.behavior.AdvancedSettingsFrag
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.CandidatesSettingsFragment
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.ClipboardSettingsFragment
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.KeyboardSettingsFragment
-import org.fxboomk.fcitx5.android.ui.main.settings.behavior.SymbolSettingsFragment
+import org.fxboomk.fcitx5.android.ui.main.settings.behavior.LanLlmSettingsFragment
 import org.fxboomk.fcitx5.android.ui.main.settings.global.GlobalConfigFragment
 import org.fxboomk.fcitx5.android.ui.main.settings.im.InputMethodConfigFragment
 import org.fxboomk.fcitx5.android.ui.main.settings.im.InputMethodListFragment
@@ -79,10 +79,10 @@ sealed class SettingsRoute : Parcelable {
     data object Clipboard : SettingsRoute()
 
     @Serializable
-    data object Symbol : SettingsRoute()
+    data object Plugin : SettingsRoute()
 
     @Serializable
-    data object Plugin : SettingsRoute()
+    data object LanLlm : SettingsRoute()
 
     @Serializable
     data object Advanced : SettingsRoute()
@@ -216,7 +216,7 @@ sealed class SettingsRoute : Parcelable {
             /* ========== Android ========== */
 
             fragment<ThemeFragment, Theme> {
-                label = ctx.getString(R.string.theme)
+                label = ctx.getString(R.string.theme_appearance)
             }
             fragment<KeyboardSettingsFragment, VirtualKeyboard> {
                 label = ctx.getString(R.string.virtual_keyboard)
@@ -227,11 +227,11 @@ sealed class SettingsRoute : Parcelable {
             fragment<ClipboardSettingsFragment, Clipboard> {
                 label = ctx.getString(R.string.clipboard)
             }
-            fragment<SymbolSettingsFragment, Symbol> {
-                label = ctx.getString(R.string.emoji_and_symbols)
-            }
             fragment<PluginFragment, Plugin> {
                 label = ctx.getString(R.string.plugins)
+            }
+            fragment<LanLlmSettingsFragment, LanLlm> {
+                label = ctx.getString(R.string.lan_llm_settings_title)
             }
             fragment<AdvancedSettingsFragment, Advanced> {
                 label = ctx.getString(R.string.advanced)

@@ -58,7 +58,7 @@ class PickerPagesAdapter(
     init {
         buildCategories(
             rawData,
-            isEmoji && AppPrefs.getInstance().symbols.hideUnsupportedEmojis.getValue()
+            isEmoji && AppPrefs.getInstance().advanced.hideUnsupportedEmojis.getValue()
         )
     }
 

@@ -43,7 +43,7 @@ object DataManager {
     )
 
     const val PLUGIN_INTENT = "${BuildConfig.APPLICATION_ID}.plugin.MANIFEST"
-    private const val BUILTIN_ALLOWED_PLUGIN_PREFIX = "org.fxboomk.fcitx5.android"
+    private const val OFFICIAL_PLUGIN_PREFIX = "org.fcitx.fcitx5"
 
     private val lock = ReentrantLock()
 
@@ -133,14 +133,12 @@ object DataManager {
         pluginPackages.addAll(originalPluginIntent)
         pluginPackages.addAll(originalDebugPluginIntent)
 
-        val allowThirdParty = AppPrefs.getInstance().advanced.allowOriginalPlugins.getValue()
-        val allowedPrefixes = AppPrefs.getInstance().advanced.allowedPluginPrefixes.getValue() +
-                BUILTIN_ALLOWED_PLUGIN_PREFIX
+        val allowOfficial = AppPrefs.getInstance().advanced.allowOriginalPlugins.getValue()
         val filteredPluginPackages = pluginPackages.filter { packageName ->
             if (hasSameSignature(packageName)) {
                 true
-            } else if (allowThirdParty) {
-                allowedPrefixes.any { prefix -> packageMatchesPrefix(packageName, prefix) }
+            } else if (allowOfficial) {
+                packageMatchesPrefix(packageName, OFFICIAL_PLUGIN_PREFIX)
             } else {
                 false
             }

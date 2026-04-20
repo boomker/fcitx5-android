@@ -48,7 +48,7 @@ object EmojiModifier {
         0x1F9D1, 0x200D, 0x1F91D, 0x200D, 0x1F9D1,
     )
 
-    private val defaultSkinTone by AppPrefs.getInstance().symbols.defaultEmojiSkinTone
+    private val defaultSkinTone by AppPrefs.getInstance().advanced.defaultEmojiSkinTone
 
     fun isSupported(): Boolean {
         // UProperty.EMOJI_MODIFIER_BASE requires API 28

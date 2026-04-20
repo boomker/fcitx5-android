@@ -11,7 +11,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
-import androidx.preference.Preference
 import androidx.preference.PreferenceScreen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
@@ -44,13 +43,6 @@ class AdvancedSettingsFragment : ManagedPreferenceFragment(AppPrefs.getInstance(
     private lateinit var exportLauncher: ActivityResultLauncher<String>
 
     private lateinit var importLauncher: ActivityResultLauncher<String>
-    private var allowedPrefixesPreference: Preference? = null
-
-    private fun allowedPrefixesSummaryText(): String {
-        return AppPrefs.getInstance().advanced.allowedPluginPrefixes
-            .getValue()
-            .joinToString(", ")
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -106,29 +98,10 @@ class AdvancedSettingsFragment : ManagedPreferenceFragment(AppPrefs.getInstance(
                     }
                 }
             }
-
-        childFragmentManager.setFragmentResultListener(
-            PrefixListDialogFragment.REQUEST_KEY,
-            this
-        ) { _, _ ->
-            allowedPrefixesPreference?.summary = allowedPrefixesSummaryText()
-        }
     }
 
     override fun onPreferenceUiCreated(screen: PreferenceScreen) {
         val ctx = requireContext()
-
-        // Set up click listener for allowed plugin prefixes
-        allowedPrefixesPreference =
-            screen.findPreference(AppPrefs.getInstance().advanced.allowedPluginPrefixes.key)
-        allowedPrefixesPreference?.apply {
-            setOnPreferenceClickListener {
-                PrefixListDialogFragment().show(childFragmentManager, PrefixListDialogFragment.TAG)
-                true
-            }
-            // Show current prefixes as summary
-            summary = allowedPrefixesSummaryText()
-        }
 
         screen.addPreference(
             R.string.browse_user_data_dir,

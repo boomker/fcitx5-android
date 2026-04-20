@@ -39,7 +39,7 @@ import java.util.PriorityQueue
 class FcitxRemoteService : Service() {
 
     companion object {
-        private const val BUILTIN_ALLOWED_PLUGIN_PREFIX = "org.fxboomk.fcitx5.android"
+        private const val OFFICIAL_PLUGIN_PREFIX = "org.fcitx.fcitx5"
     }
 
     private val clipboardTransformerLock = Mutex()
@@ -100,10 +100,7 @@ class FcitxRemoteService : Service() {
         if (callingPackage == packageName) return true
 
         if (AppPrefs.getInstance().advanced.allowOriginalPlugins.getValue()) {
-            // When enabled: always allow built-in prefix + user-defined extra prefixes
-            val prefixes = AppPrefs.getInstance().advanced.allowedPluginPrefixes.getValue() +
-                    BUILTIN_ALLOWED_PLUGIN_PREFIX
-            return prefixes.any { packageMatchesPrefix(callingPackage, it) }
+            return packageMatchesPrefix(callingPackage, OFFICIAL_PLUGIN_PREFIX)
         } else {
             // When disabled: only allow same-signed builds (self-built)
             return try {
