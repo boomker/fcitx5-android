@@ -112,7 +112,8 @@
       "Bash(curl -sL https://raw.githubusercontent.com/azadkuh/sqlite-amalgamation/master/sqlite3.h -o lib/fcitx5/src/main/cpp/prebuilt/sqlite3/sqlite3.h)",
       "Bash(./gradlew :plugin:rime:compileMainlineDebugKotlin)",
       "Bash(./gradlew :plugin:rime:tasks --all)",
-      "Bash(./gradlew :plugin:rime:assembleRelease)"
+      "Bash(./gradlew :plugin:rime:assembleRelease)",
+      "Bash(git merge *)"
     ]
   }
 }
