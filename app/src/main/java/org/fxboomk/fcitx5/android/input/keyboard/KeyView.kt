@@ -833,12 +833,12 @@ class ImageAltTextKeyView(
         Hidden
     }
 
-    private val baseAltTextSizeSp = org.fcitx.fcitx5.android.input.font.FontProviders.getFontSize(
+    private val baseAltTextSizeSp = org.fxboomk.fcitx5.android.input.font.FontProviders.getFontSize(
         "key_alt_font", 10.666667f
     )
     private var lastLayoutMode: AltTextLayoutMode? = null
 
-    val img = imageView { configure(theme, def.src, def.variant) }.apply {
+    val img = imageView { configure(theme, def.src, def.variant, def.viewId) }.apply {
         imageTintList = ColorStateList.valueOf(
             resolveTextColor(
                 when (def.variant) {

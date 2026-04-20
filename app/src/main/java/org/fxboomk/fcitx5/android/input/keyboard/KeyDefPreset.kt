@@ -1,6 +1,6 @@
 /*
  * SPDX-License-Identifier: LGPL-2.1-or-later
- * SPDX-FileCopyrightText: Copyright 2021-2023 Fcitx5 for Android Contributors
+ * SPDX-FileCopyrightText: Copyright 2021-2025 Fcitx5 for Android Contributors
  */
 package org.fxboomk.fcitx5.android.input.keyboard
 
@@ -212,22 +212,59 @@ class LayoutSwitchKey(
     val swipe: MacroAction? = null,
     val swipeLabel: String? = null
 ) : KeyDef(
+    if (swipeLabel.isNullOrEmpty()) {
+        Appearance.Text(
+            displayText,
+            textSize = 16f,
+            textStyle = Typeface.BOLD,
+            percentWidth = percentWidth,
+            variant = variant,
+            viewId = R.id.button_layout_switch,
+            textColor = textColor,
+            textColorMonet = textColorMonet,
+            backgroundColor = backgroundColor,
+            backgroundColorMonet = backgroundColorMonet,
+            shadowColor = shadowColor,
+            shadowColorMonet = shadowColorMonet
+        )
+    } else {
+        Appearance.AltText(
+            displayText = displayText,
+            altText = swipeLabel,
+            character = displayText,
+            textSize = 16f,
+            textStyle = Typeface.BOLD,
+            percentWidth = percentWidth,
+            variant = variant,
+            viewId = R.id.button_layout_switch,
+            textColor = textColor,
+            textColorMonet = textColorMonet,
+            backgroundColor = backgroundColor,
+            backgroundColorMonet = backgroundColorMonet,
+            shadowColor = shadowColor,
+            shadowColorMonet = shadowColorMonet
+        )
+    },
+    buildSet {
+        add(Behavior.Press(KeyAction.LayoutSwitchAction(to)))
+        swipe?.let { add(Behavior.Swipe(it)) }
+    },
     arrayOf(
-        Popup.Menu(
-            // PickerWindow symbols or numberkeyboard switch
-            arrayOf(
-                Popup.Menu.Item(
-                    "Symbols",
-                    R.drawable.ic_baseline_emoji_symbols_24,
-                    KeyAction.LayoutSwitchAction(PickerWindow.Key.Symbol.name)
-                ),
-                Popup.Menu.Item(
-                    "NumPad",
-                    R.drawable.ic_number_pad,
-                    KeyAction.LayoutSwitchAction(NumberKeyboard.Name)
-                )
+       Popup.Menu(
+        // PickerWindow symbols or numberkeyboard switch
+        arrayOf(
+            Popup.Menu.Item(
+                "Symbols",
+                R.drawable.ic_baseline_emoji_symbols_24,
+                KeyAction.LayoutSwitchAction(PickerWindow.Key.Symbol.name)
+            ),
+            Popup.Menu.Item(
+                "NumPad",
+                R.drawable.ic_number_pad,
+                KeyAction.LayoutSwitchAction(NumberKeyboard.Name)
             )
         )
+       )
     )
 )
 
@@ -243,6 +280,41 @@ class BackspaceKey(
     val swipe: MacroAction? = null,
     val swipeLabel: String? = null
 ) : KeyDef(
+    if (swipeLabel.isNullOrEmpty()) {
+        Appearance.Image(
+            src = R.drawable.ic_baseline_backspace_24,
+            percentWidth = percentWidth,
+            variant = variant,
+            viewId = R.id.button_backspace,
+            soundEffect = InputFeedbacks.SoundEffect.Delete,
+            textColor = textColor,
+            textColorMonet = textColorMonet,
+            backgroundColor = backgroundColor,
+            backgroundColorMonet = backgroundColorMonet,
+            shadowColor = shadowColor,
+            shadowColorMonet = shadowColorMonet
+        )
+    } else {
+        Appearance.ImageAltText(
+            src = R.drawable.ic_baseline_backspace_24,
+            altText = swipeLabel,
+            percentWidth = percentWidth,
+            variant = variant,
+            viewId = R.id.button_backspace,
+            soundEffect = InputFeedbacks.SoundEffect.Delete,
+            textColor = textColor,
+            textColorMonet = textColorMonet,
+            backgroundColor = backgroundColor,
+            backgroundColorMonet = backgroundColorMonet,
+            shadowColor = shadowColor,
+            shadowColorMonet = shadowColorMonet
+        )
+    },
+    setOf(
+        Behavior.Press(KeyAction.SymAction(KeySym(FcitxKeyMapping.FcitxKey_BackSpace))),
+        Behavior.Repeat(KeyAction.SymAction(KeySym(FcitxKeyMapping.FcitxKey_BackSpace)))
+    )
+)
 
 class QuickPhraseKey : KeyDef(
     Appearance.Image(
@@ -373,6 +445,42 @@ class ReturnKey(
     val swipe: MacroAction? = null,
     val swipeLabel: String? = null
 ) : KeyDef(
+    if (swipeLabel.isNullOrEmpty()) {
+        Appearance.Image(
+            src = R.drawable.ic_baseline_keyboard_return_24,
+            percentWidth = percentWidth,
+            variant = Variant.Accent,
+            border = Border.Special,
+            viewId = R.id.button_return,
+            soundEffect = InputFeedbacks.SoundEffect.Return,
+            textColor = textColor,
+            textColorMonet = textColorMonet,
+            backgroundColor = backgroundColor,
+            backgroundColorMonet = backgroundColorMonet,
+            shadowColor = shadowColor,
+            shadowColorMonet = shadowColorMonet
+        )
+    } else {
+        Appearance.ImageAltText(
+            src = R.drawable.ic_baseline_keyboard_return_24,
+            altText = swipeLabel,
+            percentWidth = percentWidth,
+            variant = Variant.Accent,
+            border = Border.Special,
+            viewId = R.id.button_return,
+            soundEffect = InputFeedbacks.SoundEffect.Return,
+            textColor = textColor,
+            textColorMonet = textColorMonet,
+            backgroundColor = backgroundColor,
+            backgroundColorMonet = backgroundColorMonet,
+            shadowColor = shadowColor,
+            shadowColorMonet = shadowColorMonet
+        )
+    },
+    buildSet {
+        add(Behavior.Press(KeyAction.SymAction(KeySym(FcitxKeyMapping.FcitxKey_Return))))
+        swipe?.let { add(Behavior.Swipe(it)) }
+    },
     arrayOf(
         Popup.Menu(
             arrayOf(
@@ -645,7 +753,6 @@ class MacroKey(
                             )
                         }
                     }
-
                     is KeyRef.Android -> {
                         // Android key codes show as numbers
                         arrayOf(Popup.Preview(singleTapKey.code.toString()))
