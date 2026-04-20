@@ -288,6 +288,7 @@
     <string name="text_keyboard_layout_macro_no_event">이벤트가 구성되지 않았습니다</string>
     <string name="text_keyboard_layout_macro_event_preview">%1$s → … (총 %2$d 단계)</string>
     <string name="text_keyboard_layout_alt_label">대체 레이블</string>
+    <string name="text_keyboard_layout_swipe_label">스와이프 레이블</string>
 
     <!-- Macro Editor -->
     <string name="macro_editor_title">%1$s 편집</string>

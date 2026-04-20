@@ -628,6 +628,7 @@ abstract class BaseKeyboard(
         val activeAppearance = appearanceOverride ?: resolvedAppearance
         return when (activeAppearance) {
             is KeyDef.Appearance.AltText -> AltTextKeyView(context, theme, activeAppearance, horizontalGapScale)
+            is KeyDef.Appearance.ImageAltText -> ImageAltTextKeyView(context, theme, activeAppearance, horizontalGapScale)
             is KeyDef.Appearance.ImageText -> ImageTextKeyView(context, theme, activeAppearance, horizontalGapScale)
             is KeyDef.Appearance.Text -> TextKeyView(context, theme, activeAppearance, horizontalGapScale)
             is KeyDef.Appearance.Image -> ImageKeyView(context, theme, activeAppearance, horizontalGapScale)
@@ -710,7 +711,7 @@ abstract class BaseKeyboard(
                 swipeEnabled = true
                 swipeRepeatEnabled = true
                 swipeThresholdX = selectionSwipeThreshold
-                swipeThresholdY = disabledSwipeThreshold
+                swipeThresholdY = if (def.swipe != null) inputSwipeThreshold else disabledSwipeThreshold
                 onGestureListener = OnGestureListener { view, event ->
                     when (event.type) {
                         GestureType.Move -> {
@@ -722,8 +723,17 @@ abstract class BaseKeyboard(
                             } else false
                         }
                         GestureType.Up -> {
-                            onAction(KeyAction.DeleteSelectionAction(event.totalX))
-                            false
+                            if (
+                                def.swipe != null &&
+                                kotlin.math.abs(event.totalY) > kotlin.math.abs(event.totalX) &&
+                                shouldTriggerSymbolBySwipe(view, event.totalY)
+                            ) {
+                                onAction(def.swipe)
+                                true
+                            } else {
+                                onAction(KeyAction.DeleteSelectionAction(event.totalX))
+                                false
+                            }
                         }
                         else -> false
                     }
@@ -823,6 +833,7 @@ abstract class BaseKeyboard(
     private fun isAppearanceCompatible(view: KeyView, appearance: KeyDef.Appearance): Boolean {
         return when (view) {
             is AltTextKeyView -> appearance is KeyDef.Appearance.AltText
+            is ImageAltTextKeyView -> appearance is KeyDef.Appearance.ImageAltText
             is ImageTextKeyView -> appearance is KeyDef.Appearance.ImageText
             is ImageKeyView -> appearance is KeyDef.Appearance.Image
             is TextKeyView -> appearance is KeyDef.Appearance.Text &&
@@ -900,6 +911,24 @@ abstract class BaseKeyboard(
             shadowColor = source.shadowColor,
             shadowColorMonet = source.shadowColorMonet
         )
+        is KeyDef.Appearance.ImageAltText -> KeyDef.Appearance.ImageAltText(
+            src = src,
+            altText = altText,
+            percentWidth = percentWidth,
+            variant = source.variant,
+            border = source.border,
+            margin = margin,
+            viewId = viewId,
+            soundEffect = soundEffect,
+            textColor = source.textColor,
+            textColorMonet = source.textColorMonet,
+            altTextColor = source.altTextColor,
+            altTextColorMonet = source.altTextColorMonet,
+            backgroundColor = source.backgroundColor,
+            backgroundColorMonet = source.backgroundColorMonet,
+            shadowColor = source.shadowColor,
+            shadowColorMonet = source.shadowColorMonet
+        )
         is KeyDef.Appearance.ImageText -> KeyDef.Appearance.ImageText(
             displayText = displayText,
             textSize = textSize,
@@ -961,6 +990,10 @@ abstract class BaseKeyboard(
         when (view) {
             is AltTextKeyView -> if (appearance is KeyDef.Appearance.AltText) {
                 view.mainText.text = appearance.displayText
+                view.altText.text = appearance.altText
+            }
+            is ImageAltTextKeyView -> if (appearance is KeyDef.Appearance.ImageAltText) {
+                view.img.setImageResource(appearance.src)
                 view.altText.text = appearance.altText
             }
             is ImageTextKeyView -> if (appearance is KeyDef.Appearance.ImageText) {
@@ -1322,7 +1355,7 @@ abstract class BaseKeyboard(
     }
 
     private fun shouldTriggerSymbolBySwipe(view: View, totalY: Int): Boolean {
-        val altTextView = view as? AltTextKeyView
+        val altTextView = view as? SwipeHintAwareKeyView
         return altTextView?.shouldTriggerAltBySwipe(totalY, swipeSymbolDirection)
             ?: swipeSymbolDirection.checkY(totalY)
     }

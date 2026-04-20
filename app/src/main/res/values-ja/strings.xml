@@ -351,6 +351,7 @@
     <string name="text_keyboard_layout_macro_no_event">イベントが設定されていません</string>
     <string name="text_keyboard_layout_macro_event_preview">%1$s → … (全 %2$d ステップ)</string>
     <string name="text_keyboard_layout_alt_label">代替ラベル</string>
+    <string name="text_keyboard_layout_swipe_label">スワイプラベル</string>
     <string name="text_keyboard_layout_display_value_hint">表示値</string>
     <string name="text_keyboard_layout_key_label_caps">Caps</string>
     <string name="text_keyboard_layout_key_label_lang">Lang</string>

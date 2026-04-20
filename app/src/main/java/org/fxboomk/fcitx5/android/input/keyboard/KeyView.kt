@@ -53,6 +53,10 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 
+interface SwipeHintAwareKeyView {
+    fun shouldTriggerAltBySwipe(totalY: Int, fallback: SwipeSymbolDirection): Boolean
+}
+
 abstract class KeyView(
     ctx: Context,
     var theme: Theme,
@@ -611,7 +615,7 @@ class AltTextKeyView(
     def: KeyDef.Appearance.AltText,
     horizontalGapScale: Float = 1f
 ) :
-    TextKeyView(ctx, theme, def, horizontalGapScale) {
+    TextKeyView(ctx, theme, def, horizontalGapScale), SwipeHintAwareKeyView {
     private enum class AltTextLayoutMode {
         TopRight,
         Bottom,
@@ -766,7 +770,7 @@ class AltTextKeyView(
         }
     }
 
-    fun shouldTriggerAltBySwipe(totalY: Int, fallback: SwipeSymbolDirection): Boolean {
+    override fun shouldTriggerAltBySwipe(totalY: Int, fallback: SwipeSymbolDirection): Boolean {
         if (totalY == 0) return false
         return when (lastLayoutMode ?: resolveLayoutMode(appearanceView.height)) {
             AltTextLayoutMode.Bottom -> totalY > 0
@@ -803,6 +807,213 @@ class AltTextKeyView(
         appearanceView.post {
             applyLayout()
         }
+        altText.setTextColor(
+            resolveAltTextColor(
+                when (def.variant) {
+                    Variant.Normal, Variant.AltForeground, Variant.Alternative -> newTheme.altKeyTextColor
+                    Variant.Accent -> newTheme.accentKeyTextColor
+                }
+            )
+        )
+        lastLayoutMode = null
+        applyLayout()
+    }
+}
+
+@SuppressLint("ViewConstructor")
+class ImageAltTextKeyView(
+    ctx: Context,
+    theme: Theme,
+    def: KeyDef.Appearance.ImageAltText,
+    horizontalGapScale: Float = 1f
+) : KeyView(ctx, theme, def, horizontalGapScale), SwipeHintAwareKeyView {
+    private enum class AltTextLayoutMode {
+        TopRight,
+        Bottom,
+        Hidden
+    }
+
+    private val baseAltTextSizeSp = org.fcitx.fcitx5.android.input.font.FontProviders.getFontSize(
+        "key_alt_font", 10.666667f
+    )
+    private var lastLayoutMode: AltTextLayoutMode? = null
+
+    val img = imageView { configure(theme, def.src, def.variant) }.apply {
+        imageTintList = ColorStateList.valueOf(
+            resolveTextColor(
+                when (def.variant) {
+                    Variant.Normal -> theme.keyTextColor
+                    Variant.AltForeground, Variant.Alternative -> theme.altKeyTextColor
+                    Variant.Accent -> theme.accentKeyTextColor
+                }
+            )
+        )
+    }
+
+    val altText = view(::AutoScaleTextView) {
+        isClickable = false
+        isFocusable = false
+        scaleMode = AutoScaleTextView.Mode.Proportional
+        gravity = Gravity.CENTER
+        setPadding(hMargin, 0, hMargin, 0)
+        setTextSize(TypedValue.COMPLEX_UNIT_SP, baseAltTextSizeSp)
+        fontKey = "key_alt_font"
+        setTypeface(typeface, Typeface.BOLD)
+        text = def.altText
+        textDirection = View.TEXT_DIRECTION_FIRST_STRONG_LTR
+        setTextColor(
+            resolveAltTextColor(
+                when (def.variant) {
+                    Variant.Normal, Variant.AltForeground, Variant.Alternative -> theme.altKeyTextColor
+                    Variant.Accent -> theme.accentKeyTextColor
+                }
+            )
+        )
+    }
+
+    init {
+        appearanceView.apply {
+            add(img, lParams(wrapContent, wrapContent))
+            add(altText, lParams(0, wrapContent))
+        }
+        applyLayout()
+    }
+
+    override fun setTextScale(scale: Float) {
+        altText.setTextSize(TypedValue.COMPLEX_UNIT_SP, baseAltTextSizeSp * scale)
+        altText.requestLayout()
+        lastLayoutMode = null
+        applyLayout()
+    }
+
+    private fun applyTopRightAltTextPosition() {
+        img.updateLayoutParams<ConstraintLayout.LayoutParams> {
+            topToTop = parentId
+            bottomToBottom = parentId
+            startToStart = parentId
+            endToEnd = parentId
+            topMargin = 0
+            bottomMargin = 0
+            bottomToTop = unset
+        }
+        altText.visibility = View.VISIBLE
+        altText.updateLayoutParams<ConstraintLayout.LayoutParams> {
+            width = 0
+            topToTop = parentId; topMargin = vMargin
+            bottomToBottom = unset; bottomMargin = 0
+            leftToLeft = parentId; leftMargin = hMargin
+            rightToRight = parentId; rightMargin = hMargin
+        }
+        altText.gravity = Gravity.END or Gravity.CENTER_VERTICAL
+    }
+
+    private fun applyBottomAltTextPosition() {
+        img.updateLayoutParams<ConstraintLayout.LayoutParams> {
+            topToTop = parentId; topMargin = vMargin
+            bottomToTop = altText.existingOrNewId
+            bottomToBottom = unset; bottomMargin = 0
+            startToStart = parentId
+            endToEnd = parentId
+        }
+        altText.visibility = View.VISIBLE
+        altText.updateLayoutParams<ConstraintLayout.LayoutParams> {
+            width = 0
+            topToTop = unset; topMargin = 0
+            leftToLeft = parentId; leftMargin = hMargin
+            rightToRight = parentId; rightMargin = hMargin
+            bottomToBottom = parentId; bottomMargin = vMargin + dp(2)
+        }
+        altText.gravity = Gravity.CENTER
+    }
+
+    private fun applyNoAltTextPosition() {
+        img.updateLayoutParams<ConstraintLayout.LayoutParams> {
+            topToTop = parentId
+            bottomToBottom = parentId
+            startToStart = parentId
+            endToEnd = parentId
+            topMargin = 0
+            bottomMargin = 0
+            bottomToTop = unset
+        }
+        altText.visibility = View.GONE
+        altText.gravity = Gravity.CENTER
+    }
+
+    private fun resolveLayoutMode(keyHeight: Int): AltTextLayoutMode {
+        if (altText.text.isNullOrBlank()) return AltTextLayoutMode.Hidden
+        val pref = ThemeManager.prefs.punctuationPosition.getValue()
+        if (pref == PunctuationPosition.None) return AltTextLayoutMode.Hidden
+
+        val preferred = when (pref) {
+            PunctuationPosition.TopRight -> AltTextLayoutMode.TopRight
+            PunctuationPosition.Bottom -> AltTextLayoutMode.Bottom
+            PunctuationPosition.None -> AltTextLayoutMode.Hidden
+        }
+        if (keyHeight <= 0) return preferred
+
+        val contentHeight = keyHeight - vMargin * 2
+        val iconHeight = img.measuredHeight.takeIf { it > 0 } ?: dp(24)
+        val altHeight = altText.paint.run { fontMetrics.bottom - fontMetrics.top }
+        val compactMinHeight = max(iconHeight.toFloat(), altHeight + dp(1).toFloat())
+        val stackedMinHeight = iconHeight + altHeight + dp(1)
+
+        return when (preferred) {
+            AltTextLayoutMode.Bottom -> when {
+                contentHeight >= stackedMinHeight -> AltTextLayoutMode.Bottom
+                contentHeight >= compactMinHeight && lastLayoutMode == AltTextLayoutMode.Bottom ->
+                    AltTextLayoutMode.Bottom
+                contentHeight >= compactMinHeight -> AltTextLayoutMode.TopRight
+                else -> AltTextLayoutMode.Hidden
+            }
+            AltTextLayoutMode.TopRight -> when {
+                contentHeight >= compactMinHeight -> AltTextLayoutMode.TopRight
+                else -> AltTextLayoutMode.Hidden
+            }
+            AltTextLayoutMode.Hidden -> AltTextLayoutMode.Hidden
+        }
+    }
+
+    private fun applyLayout(keyHeight: Int = appearanceView.height) {
+        val mode = resolveLayoutMode(keyHeight)
+        if (mode == lastLayoutMode) return
+        lastLayoutMode = mode
+        when (mode) {
+            AltTextLayoutMode.Bottom -> applyBottomAltTextPosition()
+            AltTextLayoutMode.TopRight -> applyTopRightAltTextPosition()
+            AltTextLayoutMode.Hidden -> applyNoAltTextPosition()
+        }
+    }
+
+    override fun shouldTriggerAltBySwipe(totalY: Int, fallback: SwipeSymbolDirection): Boolean {
+        if (totalY == 0) return false
+        return when (lastLayoutMode ?: resolveLayoutMode(appearanceView.height)) {
+            AltTextLayoutMode.Bottom -> totalY > 0
+            AltTextLayoutMode.TopRight -> totalY < 0
+            AltTextLayoutMode.Hidden -> fallback.checkY(totalY)
+        }
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        lastLayoutMode = null
+        applyLayout()
+    }
+
+    override fun onAppearanceLayoutChanged(width: Int, height: Int) {
+        applyLayout(height)
+    }
+
+    override fun updateTheme(newTheme: Theme) {
+        super.updateTheme(newTheme)
+        img.imageTintList = ColorStateList.valueOf(
+            resolveTextColor(
+                when (def.variant) {
+                    Variant.Normal -> newTheme.keyTextColor
+                    Variant.AltForeground, Variant.Alternative -> newTheme.altKeyTextColor
+                    Variant.Accent -> newTheme.accentKeyTextColor
+                }
+            )
+        )
         altText.setTextColor(
             resolveAltTextColor(
                 when (def.variant) {

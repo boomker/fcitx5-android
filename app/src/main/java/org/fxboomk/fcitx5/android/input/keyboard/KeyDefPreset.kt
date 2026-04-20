@@ -33,23 +33,43 @@ class SymbolKey(
     backgroundColor: Int? = null,
     backgroundColorMonet: String? = null,
     shadowColor: Int? = null,
-    shadowColorMonet: String? = null
+    shadowColorMonet: String? = null,
+    val swipe: MacroAction? = null,
+    val swipeLabel: String? = null
 ) : KeyDef(
-    Appearance.Text(
-        displayText = symbol,
-        textSize = 23f,
-        percentWidth = percentWidth,
-        variant = variant,
-        textColor = textColor,
-        textColorMonet = textColorMonet,
-        backgroundColor = backgroundColor,
-        backgroundColorMonet = backgroundColorMonet,
-        shadowColor = shadowColor,
-        shadowColorMonet = shadowColorMonet
-    ),
-    setOf(
-        Behavior.Press(KeyAction.FcitxKeyAction(symbol))
-    ),
+    if (swipeLabel.isNullOrEmpty()) {
+        Appearance.Text(
+            displayText = symbol,
+            textSize = 23f,
+            percentWidth = percentWidth,
+            variant = variant,
+            textColor = textColor,
+            textColorMonet = textColorMonet,
+            backgroundColor = backgroundColor,
+            backgroundColorMonet = backgroundColorMonet,
+            shadowColor = shadowColor,
+            shadowColorMonet = shadowColorMonet
+        )
+    } else {
+        Appearance.AltText(
+            displayText = symbol,
+            altText = swipeLabel,
+            character = symbol,
+            textSize = 23f,
+            percentWidth = percentWidth,
+            variant = variant,
+            textColor = textColor,
+            textColorMonet = textColorMonet,
+            backgroundColor = backgroundColor,
+            backgroundColorMonet = backgroundColorMonet,
+            shadowColor = shadowColor,
+            shadowColorMonet = shadowColorMonet
+        )
+    },
+    buildSet {
+        add(Behavior.Press(KeyAction.FcitxKeyAction(symbol)))
+        swipe?.let { add(Behavior.Swipe(it)) }
+    },
     popup ?: arrayOf(
         Popup.Preview(symbol),
         Popup.Keyboard(symbol)
@@ -138,25 +158,44 @@ class CapsKey(
     backgroundColor: Int? = null,
     backgroundColorMonet: String? = null,
     shadowColor: Int? = null,
-    shadowColorMonet: String? = null
+    shadowColorMonet: String? = null,
+    val swipe: MacroAction? = null,
+    val swipeLabel: String? = null
 ) : KeyDef(
-    Appearance.Image(
-        src = R.drawable.ic_capslock_none,
-        viewId = R.id.button_caps,
-        percentWidth = percentWidth,
-        variant = Variant.Alternative,
-        textColor = textColor,
-        textColorMonet = textColorMonet,
-        backgroundColor = backgroundColor,
-        backgroundColorMonet = backgroundColorMonet,
-        shadowColor = shadowColor,
-        shadowColorMonet = shadowColorMonet
-    ),
-    setOf(
-        Behavior.Press(KeyAction.CapsAction(false)),
-        Behavior.LongPress(KeyAction.CapsAction(true)),
-        Behavior.DoubleTap(KeyAction.CapsAction(true))
-    )
+    if (swipeLabel.isNullOrEmpty()) {
+        Appearance.Image(
+            src = R.drawable.ic_capslock_none,
+            viewId = R.id.button_caps,
+            percentWidth = percentWidth,
+            variant = Variant.Alternative,
+            textColor = textColor,
+            textColorMonet = textColorMonet,
+            backgroundColor = backgroundColor,
+            backgroundColorMonet = backgroundColorMonet,
+            shadowColor = shadowColor,
+            shadowColorMonet = shadowColorMonet
+        )
+    } else {
+        Appearance.ImageAltText(
+            src = R.drawable.ic_capslock_none,
+            altText = swipeLabel,
+            viewId = R.id.button_caps,
+            percentWidth = percentWidth,
+            variant = Variant.Alternative,
+            textColor = textColor,
+            textColorMonet = textColorMonet,
+            backgroundColor = backgroundColor,
+            backgroundColorMonet = backgroundColorMonet,
+            shadowColor = shadowColor,
+            shadowColorMonet = shadowColorMonet
+        )
+    },
+    buildSet {
+        add(Behavior.Press(KeyAction.CapsAction(false)))
+        add(Behavior.LongPress(KeyAction.CapsAction(true)))
+        add(Behavior.DoubleTap(KeyAction.CapsAction(true)))
+        swipe?.let { add(Behavior.Swipe(it)) }
+    }
 )
 
 class LayoutSwitchKey(
@@ -169,26 +208,10 @@ class LayoutSwitchKey(
     backgroundColor: Int? = null,
     backgroundColorMonet: String? = null,
     shadowColor: Int? = null,
-    shadowColorMonet: String? = null
+    shadowColorMonet: String? = null,
+    val swipe: MacroAction? = null,
+    val swipeLabel: String? = null
 ) : KeyDef(
-    Appearance.Text(
-        displayText,
-        textSize = 16f,
-        textStyle = Typeface.BOLD,
-        percentWidth = percentWidth,
-        variant = variant,
-        border = Border.Special,
-        viewId = R.id.button_layout_switch,
-        textColor = textColor,
-        textColorMonet = textColorMonet,
-        backgroundColor = backgroundColor,
-        backgroundColorMonet = backgroundColorMonet,
-        shadowColor = shadowColor,
-        shadowColorMonet = shadowColorMonet
-    ),
-    setOf(
-        Behavior.Press(KeyAction.LayoutSwitchAction(to))
-    ),
     arrayOf(
         Popup.Menu(
             // PickerWindow symbols or numberkeyboard switch
@@ -216,26 +239,10 @@ class BackspaceKey(
     backgroundColor: Int? = null,
     backgroundColorMonet: String? = null,
     shadowColor: Int? = null,
-    shadowColorMonet: String? = null
+    shadowColorMonet: String? = null,
+    val swipe: MacroAction? = null,
+    val swipeLabel: String? = null
 ) : KeyDef(
-    Appearance.Image(
-        src = R.drawable.ic_outline_backspace_24,
-        percentWidth = percentWidth,
-        variant = variant,
-        viewId = R.id.button_backspace,
-        soundEffect = InputFeedbacks.SoundEffect.Delete,
-        textColor = textColor,
-        textColorMonet = textColorMonet,
-        backgroundColor = backgroundColor,
-        backgroundColorMonet = backgroundColorMonet,
-        shadowColor = shadowColor,
-        shadowColorMonet = shadowColorMonet
-    ),
-    setOf(
-        Behavior.Press(KeyAction.SymAction(KeySym(FcitxKeyMapping.FcitxKey_BackSpace))),
-        Behavior.Repeat(KeyAction.SymAction(KeySym(FcitxKeyMapping.FcitxKey_BackSpace)))
-    )
-)
 
 class QuickPhraseKey : KeyDef(
     Appearance.Image(
@@ -362,25 +369,10 @@ class ReturnKey(
     backgroundColor: Int? = null,
     backgroundColorMonet: String? = null,
     shadowColor: Int? = null,
-    shadowColorMonet: String? = null
+    shadowColorMonet: String? = null,
+    val swipe: MacroAction? = null,
+    val swipeLabel: String? = null
 ) : KeyDef(
-    Appearance.Image(
-        src = R.drawable.ic_baseline_keyboard_return_24,
-        percentWidth = percentWidth,
-        variant = Variant.Alternative,
-        border = Border.Special,
-        viewId = R.id.button_return,
-        soundEffect = InputFeedbacks.SoundEffect.Return,
-        textColor = textColor,
-        textColorMonet = textColorMonet,
-        backgroundColor = backgroundColor,
-        backgroundColorMonet = backgroundColorMonet,
-        shadowColor = shadowColor,
-        shadowColorMonet = shadowColorMonet
-    ),
-    setOf(
-        Behavior.Press(KeyAction.SymAction(KeySym(FcitxKeyMapping.FcitxKey_Return)))
-    ),
     arrayOf(
         Popup.Menu(
             arrayOf(
