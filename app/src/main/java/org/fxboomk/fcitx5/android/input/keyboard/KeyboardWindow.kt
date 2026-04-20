@@ -77,11 +77,15 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
     private var lastSymbolType: String by AppPrefs.getInstance().internal.lastSymbolLayout
     private var preeditEmpty = true
     private var candidateEmpty = true
+    private var composingState = false
 
     private val currentKeyboard: BaseKeyboard? get() = keyboards[currentKeyboardName]
 
     private fun updateCompositionState() {
-        currentKeyboard?.onCompositionStateChanged(!preeditEmpty || !candidateEmpty)
+        val composing = !preeditEmpty || !candidateEmpty
+        if (composingState == composing) return
+        composingState = composing
+        currentKeyboard?.onCompositionStateChanged(composing)
         service.inputView?.requestBlurRefresh(retryFrames = 2, hierarchyChanged = true)
     }
 
@@ -179,6 +183,7 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
     override fun onStartInput(info: EditorInfo, capFlags: CapabilityFlags) {
         preeditEmpty = true
         candidateEmpty = true
+        composingState = false
         val targetLayout = when (info.inputType and InputType.TYPE_MASK_CLASS) {
             InputType.TYPE_CLASS_NUMBER -> NumberKeyboard.Name
             InputType.TYPE_CLASS_PHONE -> NumberKeyboard.Name
