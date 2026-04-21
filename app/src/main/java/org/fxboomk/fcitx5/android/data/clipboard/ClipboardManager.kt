@@ -242,6 +242,10 @@ object ClipboardManager : ClipboardManager.OnPrimaryClipChangedListener,
 
     suspend fun unpin(id: Int) = clbDao.updatePinStatus(id, false)
 
+    suspend fun markUsed(id: Int, timestamp: Long = System.currentTimeMillis()) {
+        clbDao.updateTime(id, timestamp)
+    }
+
     suspend fun updateText(id: Int, text: String) {
         lastEntry?.let {
             if (id == it.id) updateLastEntry(it.copy(text = text))

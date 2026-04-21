@@ -39,6 +39,47 @@ class LanLlmSuggestionParserTest {
     }
 
     @Test
+    fun parsesStrictJsonSuggestionsPayload() {
+        val raw = """{"suggestions":["今晚一起","吃饭","看电影"]}"""
+
+        assertEquals(listOf("吃饭", "看电影"), LanLlmSuggestionParser.parseJsonSuggestions(raw, "今晚一起"))
+    }
+
+    @Test
+    fun rejectsNonJsonPayloadForStrictJsonSuggestions() {
+        val raw = """<think>先想一下</think>今晚一起去吃饭吧"""
+
+        assertEquals(listOf("去吃饭吧"), LanLlmSuggestionParser.parseJsonSuggestions(raw, "今晚一起"))
+    }
+
+    @Test
+    fun parsesAnthropicMessageContentTextBody() {
+        val raw = """
+            {"id":"msg_123","type":"message","content":[{"type":"text","text":"一起吃饭"}]}
+        """.trimIndent()
+
+        assertEquals(listOf("一起吃饭"), LanLlmSuggestionParser.parse(raw, "今晚"))
+    }
+
+    @Test
+    fun parsesAnthropicMessageBodyAfterThinkBlock() {
+        val raw = """
+            {"id":"msg_123","type":"message","content":[{"type":"text","text":"<think>\n好的，先分析一下<\/think>\n\n吃饭吧。"}]}
+        """.trimIndent()
+
+        assertEquals(listOf("吃饭吧。"), LanLlmSuggestionParser.parse(raw, "今晚一起"))
+    }
+
+    @Test
+    fun shortensLongCompatibleApiBodyToFirstClause() {
+        val raw = """
+            {"id":"chatcmpl","choices":[{"message":{"role":"assistant","content":"<think>\n先想一想<\/think>\n\n一起看场电影吧，我听说新出的那部科幻片不错"}}]}
+        """.trimIndent()
+
+        assertEquals(listOf("一起看场电影吧"), LanLlmSuggestionParser.parse(raw, "今晚一起"))
+    }
+
+    @Test
     fun ignoresStructuredGarbageFallbackWhenJsonArrayIsEmpty() {
         val raw = """
             {"id":"chatcmpl","choices":[{"message":{"content":"```json\n{\n  \"suggestions\": []\n}\n```￾stats:15;75.6597","role":"assistant"}}]}

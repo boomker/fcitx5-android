@@ -3,6 +3,9 @@ package org.fxboomk.fcitx5.android.input.predict
 object LanLlmSuggestionParser {
     private const val THINK_START = "<think>"
     private const val THINK_END = "</think>"
+    private val structuredTextRegex = Regex(
+        """"type"\s*:\s*"text"[\s\S]*?"text"\s*:\s*"((?:\\.|[^"\\])*)""""
+    )
     private val queryWideRegex = Regex(
         """(?i)\bquery\s*[:=]\s*(?:\"([^\"]{1,512})\"|'([^']{1,512})'|“([^”]{1,512})”|「([^」]{1,512})」|『([^』]{1,512})』|([^\s,;]{1,128}))"""
     )
@@ -16,19 +19,39 @@ object LanLlmSuggestionParser {
             val fromQuoted = extractQuotedSuggestions(extracted, typedPrefix)
             if (fromQuoted.isNotEmpty()) return fromQuoted
 
+            val fromPlainText = extractPlainSuggestions(extracted, typedPrefix)
+            if (fromPlainText.isNotEmpty()) return fromPlainText
+
             if (looksLikeSuggestionsPayload(extracted)) return emptyList()
         }
 
         if (looksStructuredPayload(normalized)) return emptyList()
 
         return normalized
+            .let { extractPlainSuggestions(it, typedPrefix) }
+    }
+
+    fun parseJsonSuggestions(raw: String, typedPrefix: String): List<String> {
+        if (raw.isBlank()) return emptyList()
+
+        val normalized = normalize(raw)
+        candidatePayloads(normalized).forEach { payload ->
+            val extracted = extractJsonCandidate(payload)
+            val suggestions = extractQuotedSuggestions(extracted, typedPrefix)
+            if (suggestions.isNotEmpty()) return suggestions
+            if (looksLikeSuggestionsPayload(extracted)) return emptyList()
+        }
+
+        return parse(normalized, typedPrefix)
+    }
+
+    private fun extractPlainSuggestions(raw: String, typedPrefix: String): List<String> = raw
             .lineSequence()
             .map { sanitizeSuggestion(it, typedPrefix) }
             .filter { it.isNotBlank() }
             .distinct()
             .take(4)
             .toList()
-    }
 
     private fun normalize(raw: String): String = raw
         .replace(Regex("￾stats:.*$", RegexOption.DOT_MATCHES_ALL), "")
@@ -42,10 +65,18 @@ object LanLlmSuggestionParser {
         }
 
         addCandidate(extractFencePayload(raw))
-        addCandidate(extractOpenAiMessageContent(raw))
-        extractOpenAiMessageContent(raw)?.let { nested ->
+        val structuredText = extractStructuredText(raw)
+        val structuredPostThink = extractPostThinkContent(structuredText)
+        addCandidate(structuredPostThink)
+        if (structuredPostThink == null) addCandidate(structuredText)
+        val openAiContent = extractOpenAiMessageContent(raw)
+        val openAiPostThink = extractPostThinkContent(openAiContent)
+        addCandidate(openAiPostThink)
+        if (openAiPostThink == null) addCandidate(openAiContent)
+        openAiContent?.let { nested ->
             addCandidate(extractFencePayload(nested))
         }
+        addCandidate(extractPostThinkContent(raw))
         addCandidate(raw)
     }
 
@@ -99,6 +130,59 @@ object LanLlmSuggestionParser {
         return out.toString().ifBlank { null }
     }
 
+    private fun extractStructuredText(raw: String): String? {
+        val parts = structuredTextRegex.findAll(raw)
+            .mapNotNull { it.groupValues.getOrNull(1) }
+            .map(::decodeJsonString)
+            .filter { it.isNotBlank() }
+            .toList()
+        if (parts.isEmpty()) return null
+        return parts.joinToString(separator = "")
+    }
+
+    private fun decodeJsonString(raw: String): String {
+        val out = StringBuilder(raw.length)
+        var index = 0
+        while (index < raw.length) {
+            when (val ch = raw[index++]) {
+                '\\' -> {
+                    if (index >= raw.length) break
+                    when (val escaped = raw[index++]) {
+                        '"', '\\', '/' -> out.append(escaped)
+                        'b' -> out.append('\b')
+                        'f' -> out.append('\u000C')
+                        'n' -> out.append('\n')
+                        'r' -> out.append('\r')
+                        't' -> out.append('\t')
+                        'u' -> {
+                            if (index + 4 <= raw.length) {
+                                val hex = raw.substring(index, index + 4)
+                                hex.toIntOrNull(16)?.let { out.append(it.toChar()) }
+                                index += 4
+                            }
+                        }
+                        else -> out.append(escaped)
+                    }
+                }
+                else -> out.append(ch)
+            }
+        }
+        return out.toString()
+    }
+
+    private fun extractPostThinkContent(raw: String?): String? {
+        val text = raw?.trim().orEmpty()
+        if (text.isBlank()) return null
+        val thinkEnd = text.lastIndexOf(THINK_END)
+        if (thinkEnd >= 0) {
+            return text.substring(thinkEnd + THINK_END.length).trim().ifBlank { null }
+        }
+        if (text.startsWith(THINK_START)) {
+            return null
+        }
+        return text
+    }
+
     private fun looksLikeSuggestionsPayload(raw: String): Boolean {
         val text = raw.trim()
         return (text.startsWith("{") || text.startsWith("[")) && (
@@ -133,6 +217,7 @@ object LanLlmSuggestionParser {
         if (text.startsWith("\"") && text.endsWith("\"") && text.length > 1) {
             text = text.substring(1, text.lastIndex)
         }
+        text = collapseToImeCandidate(text)
         val metadataMarkers = listOf(
             "BeforeCursor", "AppPackage", "InputMethod",
             "光标前文本", "当前应用", "输入法",
@@ -144,6 +229,24 @@ object LanLlmSuggestionParser {
         if (text.length > 20) return ""
         if (text.count { it in "，。！？；：\n" } >= 2) return ""
         return text.trim()
+    }
+
+    private fun collapseToImeCandidate(text: String): String {
+        var candidate = text.trim()
+        if (candidate.isBlank()) return ""
+
+        val firstBoundary = candidate.indexOfFirst { it in "\n，,；;。！？" }
+        if (firstBoundary > 0 && (candidate.length > 20 || candidate.count { it in "，。！？；：\n" } >= 2)) {
+            val keepSentenceEnding = candidate[firstBoundary] in "。！？"
+            val endExclusive = if (keepSentenceEnding) firstBoundary + 1 else firstBoundary
+            candidate = candidate.substring(0, endExclusive).trim()
+        }
+
+        if (candidate.length > 20) {
+            candidate = candidate.take(20).trimEnd()
+        }
+
+        return candidate
     }
 
     private fun extractJsonCandidate(raw: String): String {

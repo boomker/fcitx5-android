@@ -22,6 +22,7 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContract
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
+import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
@@ -284,7 +285,11 @@ class MonetThemeEditorActivity : AppCompatActivity() {
             gravity = gravityCenter
             verticalPadding = dp(8f)
             horizontalPadding = dp(16f)
-            background = resources.getDrawable(android.R.drawable.list_selector_background, null)
+            background = ResourcesCompat.getDrawable(
+                resources,
+                android.R.drawable.list_selector_background,
+                this@MonetThemeEditorActivity.theme
+            )
 
             // 颜色预览
             val colorPreview = View(this@MonetThemeEditorActivity).apply {

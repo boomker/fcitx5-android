@@ -6,6 +6,7 @@ package org.fxboomk.fcitx5.android.ui.main.settings.behavior
 import android.os.Bundle
 import android.text.InputType
 import androidx.preference.EditTextPreference
+import androidx.preference.ListPreference
 import androidx.preference.Preference
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.input.predict.LanLlmPrefs
@@ -17,13 +18,31 @@ import org.fxboomk.fcitx5.android.utils.toast
 class LanLlmSettingsFragment : PaddingPreferenceFragment() {
 
     override fun onDisplayPreferenceDialog(preference: Preference) {
-        if (preference.key == LanLlmPrefs.KEY_BASE_URL) {
-            if (childFragmentManager.findFragmentByTag(LanLlmApiUrlPreferenceDialogFragment::class.java.name) != null) {
+        when (preference.key) {
+            LanLlmPrefs.KEY_BASE_URL -> {
+                if (childFragmentManager.findFragmentByTag(LanLlmApiUrlPreferenceDialogFragment::class.java.name) != null) {
+                    return
+                }
+                LanLlmApiUrlPreferenceDialogFragment.newInstance(preference.key)
+                    .show(childFragmentManager, LanLlmApiUrlPreferenceDialogFragment::class.java.name)
                 return
             }
-            LanLlmApiUrlPreferenceDialogFragment.newInstance(preference.key)
-                .show(childFragmentManager, LanLlmApiUrlPreferenceDialogFragment::class.java.name)
-            return
+            LanLlmPrefs.KEY_API_KEY -> {
+                if (childFragmentManager.findFragmentByTag(LanLlmApiKeyPreferenceDialogFragment::class.java.name) != null) {
+                    return
+                }
+                LanLlmApiKeyPreferenceDialogFragment.newInstance(preference.key)
+                    .show(childFragmentManager, LanLlmApiKeyPreferenceDialogFragment::class.java.name)
+                return
+            }
+            LanLlmPrefs.KEY_MODEL -> {
+                if (childFragmentManager.findFragmentByTag(LanLlmModelPreferenceDialogFragment::class.java.name) != null) {
+                    return
+                }
+                LanLlmModelPreferenceDialogFragment.newInstance(preference.key)
+                    .show(childFragmentManager, LanLlmModelPreferenceDialogFragment::class.java.name)
+                return
+            }
         }
         super.onDisplayPreferenceDialog(preference)
     }
@@ -38,16 +57,25 @@ class LanLlmSettingsFragment : PaddingPreferenceFragment() {
                 isIconSpaceReserved = false
                 isSingleLineTitle = false
             })
+            addPreference(providerPreference())
             addPreference(textPreference(
                 key = LanLlmPrefs.KEY_BASE_URL,
                 titleRes = R.string.lan_llm_api_url,
                 defaultValue = "http://192.168.1.1:8000",
+                summaryProvider = Preference.SummaryProvider<EditTextPreference> { pref ->
+                    val raw = pref.text.orEmpty().trim()
+                    if (raw.isNotBlank()) {
+                        raw
+                    } else {
+                        val provider = LanLlmPrefs.Provider.from(
+                            pref.preferenceManager.sharedPreferences?.getString(LanLlmPrefs.KEY_PROVIDER, null)
+                        )
+                        provider.defaultBaseUrl?.let {
+                            context.getString(R.string.lan_llm_api_url_default_summary, it)
+                        } ?: context.getString(R.string._not_available_)
+                    }
+                },
                 inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI,
-            ))
-            addPreference(textPreference(
-                key = LanLlmPrefs.KEY_MODEL,
-                titleRes = R.string.lan_llm_model,
-                defaultValue = "qwen",
             ))
             addPreference(textPreference(
                 key = LanLlmPrefs.KEY_API_KEY,
@@ -61,6 +89,18 @@ class LanLlmSettingsFragment : PaddingPreferenceFragment() {
                     }
                 },
                 inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD,
+            ))
+            addPreference(textPreference(
+                key = LanLlmPrefs.KEY_MODEL,
+                titleRes = R.string.lan_llm_model,
+                defaultValue = "qwen",
+                summaryProvider = Preference.SummaryProvider<EditTextPreference> { pref ->
+                    if (pref.text.isNullOrBlank()) {
+                        context.getString(R.string.lan_llm_model_summary_hint)
+                    } else {
+                        pref.text
+                    }
+                },
             ))
             addPreference(textPreference(
                 key = LanLlmPrefs.KEY_DEBOUNCE_MS,
@@ -120,6 +160,41 @@ class LanLlmSettingsFragment : PaddingPreferenceFragment() {
                 },
             ))
         }
+        ensureProviderDefaultsAndScopedApiKey()
+    }
+
+    private fun providerPreference() = ListPreference(requireContext()).apply {
+        key = LanLlmPrefs.KEY_PROVIDER
+        setTitle(R.string.lan_llm_provider)
+        setDialogTitle(R.string.lan_llm_provider)
+        entries = LanLlmPrefs.Provider.entries.map { context.getString(it.titleRes) }.toTypedArray()
+        entryValues = LanLlmPrefs.Provider.entries.map { it.value }.toTypedArray()
+        setDefaultValue(LanLlmPrefs.Provider.Custom.value)
+        isIconSpaceReserved = false
+        isSingleLineTitle = false
+        summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
+        setOnPreferenceChangeListener { _, newValue ->
+            val prefs = preferenceManager.sharedPreferences ?: return@setOnPreferenceChangeListener true
+            val nextProvider = LanLlmPrefs.Provider.from(newValue?.toString())
+            val nextBase = LanLlmPrefs.providerDefaultBaseUrl(nextProvider)
+            findPreference<EditTextPreference>(LanLlmPrefs.KEY_BASE_URL)?.text = nextBase
+            val nextApiKey = LanLlmPrefs.getScopedApiKey(prefs, nextProvider, nextBase)
+            findPreference<EditTextPreference>(LanLlmPrefs.KEY_API_KEY)?.text = nextApiKey
+            true
+        }
+    }
+
+    private fun ensureProviderDefaultsAndScopedApiKey() {
+        val prefs = preferenceManager.sharedPreferences ?: return
+        val provider = LanLlmPrefs.currentProvider(prefs)
+        val basePref = findPreference<EditTextPreference>(LanLlmPrefs.KEY_BASE_URL)
+        val currentRawBase = basePref?.text.orEmpty()
+        val effectiveBase = currentRawBase.ifBlank { LanLlmPrefs.providerDefaultBaseUrl(provider) }
+        if (currentRawBase != effectiveBase) {
+            basePref?.text = effectiveBase
+        }
+        val apiKey = LanLlmPrefs.syncScopedApiKeyToActivePreferences(prefs, provider, effectiveBase)
+        findPreference<EditTextPreference>(LanLlmPrefs.KEY_API_KEY)?.text = apiKey
     }
 
     private fun textPreference(

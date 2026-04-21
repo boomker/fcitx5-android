@@ -9,6 +9,7 @@ import android.text.InputType
 import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.SwitchCompat
 import androidx.core.os.bundleOf
@@ -17,12 +18,12 @@ import androidx.preference.EditTextPreference
 import androidx.preference.PreferenceFragmentCompat
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.input.predict.LanLlmPrefs
-import org.fxboomk.fcitx5.android.ui.main.modified.restore
 import splitties.dimensions.dp
 
 class LanLlmApiUrlPreferenceDialogFragment : DialogFragment() {
     private lateinit var editText: EditText
     private lateinit var chatApiSwitch: SwitchCompat
+    private lateinit var hintView: TextView
 
     private val preferenceKey: String
         get() = requireArguments().getString(ARG_KEY).orEmpty()
@@ -37,6 +38,7 @@ class LanLlmApiUrlPreferenceDialogFragment : DialogFragment() {
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val context = requireContext()
         val prefs = apiUrlPreference.preferenceManager.sharedPreferences
+        val provider = LanLlmPrefs.Provider.from(prefs?.getString(LanLlmPrefs.KEY_PROVIDER, null))
         val currentText = savedInstanceState?.getString(STATE_TEXT)
             ?: apiUrlPreference.text.orEmpty()
         val currentChatApiEnabled = savedInstanceState?.getBoolean(STATE_CHAT_API_ENABLED)
@@ -55,6 +57,12 @@ class LanLlmApiUrlPreferenceDialogFragment : DialogFragment() {
             setSelection(text.length)
         }
 
+        hintView = TextView(context).apply {
+            text = provider.defaultBaseUrl?.let {
+                context.getString(R.string.lan_llm_api_url_default_hint, it)
+            } ?: context.getString(R.string.lan_llm_api_url_custom_hint)
+        }
+
         chatApiSwitch = SwitchCompat(context).apply {
             text = context.getString(R.string.lan_llm_chat_api_enabled)
             isChecked = currentChatApiEnabled
@@ -66,6 +74,15 @@ class LanLlmApiUrlPreferenceDialogFragment : DialogFragment() {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
             )
+        )
+        contentView.addView(
+            hintView,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                topMargin = context.dp(12)
+            }
         )
         contentView.addView(
             chatApiSwitch,
@@ -89,10 +106,8 @@ class LanLlmApiUrlPreferenceDialogFragment : DialogFragment() {
 
         dialog.setOnShowListener {
             dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
-                apiUrlPreference.restore()
-                editText.setText(apiUrlPreference.text.orEmpty())
+                editText.setText(LanLlmPrefs.providerDefaultBaseUrl(provider))
                 editText.setSelection(editText.text.length)
-                chatApiSwitch.isChecked = false
             }
         }
         return dialog
@@ -113,10 +128,14 @@ class LanLlmApiUrlPreferenceDialogFragment : DialogFragment() {
         if (apiUrlPreference.callChangeListener(newValue)) {
             apiUrlPreference.text = newValue
         }
-        apiUrlPreference.preferenceManager.sharedPreferences
-            ?.edit()
-            ?.putBoolean(LanLlmPrefs.KEY_CHAT_API_ENABLED, chatApiSwitch.isChecked)
-            ?.apply()
+        apiUrlPreference.preferenceManager.sharedPreferences?.let { prefs ->
+            prefs.edit()
+                .putBoolean(LanLlmPrefs.KEY_CHAT_API_ENABLED, chatApiSwitch.isChecked)
+                .apply()
+            val provider = LanLlmPrefs.currentProvider(prefs)
+            val scopedApiKey = LanLlmPrefs.syncScopedApiKeyToActivePreferences(prefs, provider, newValue)
+            preferenceFragment.findPreference<EditTextPreference>(LanLlmPrefs.KEY_API_KEY)?.text = scopedApiKey
+        }
     }
 
     companion object {

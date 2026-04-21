@@ -26,6 +26,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SwitchCompat
 import androidx.appcompat.widget.Toolbar
+import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -826,7 +827,11 @@ class KeyEditorActivity : AppCompatActivity() {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
                 setPadding(0, dp(8), 0, dp(8))
-                background = resources.getDrawable(android.R.drawable.list_selector_background, null)
+                background = ResourcesCompat.getDrawable(
+                    resources,
+                    android.R.drawable.list_selector_background,
+                    this@KeyEditorActivity.theme
+                )
                 if (colorEditorEnabled) {
                     setOnClickListener { showColorFieldOptions(field) }
                     isClickable = true

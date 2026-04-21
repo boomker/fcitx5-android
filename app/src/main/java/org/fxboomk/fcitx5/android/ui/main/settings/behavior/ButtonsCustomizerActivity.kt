@@ -18,6 +18,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
@@ -901,7 +902,7 @@ class ButtonEntryUi(
         if (iconRes != 0) {
             icon.visibility = android.view.View.VISIBLE
             textIcon.visibility = android.view.View.GONE
-            icon.setImageDrawable(ctx.getDrawable(iconRes))
+            icon.setImageDrawable(AppCompatResources.getDrawable(ctx, iconRes))
             // Apply tint to icon (similar to StatusAreaEntryUi)
             icon.imageDrawable?.setTint(contentColor)
             bkg.addView(icon, android.widget.FrameLayout.LayoutParams(ctx.dp(32), ctx.dp(32)).apply {

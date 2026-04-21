@@ -41,6 +41,24 @@ class LanLlmPromptTest {
     }
 
     @Test
+    fun completionPromptPartsExposeStructuredMessagesForCompatibleChatApis() {
+        val system = LanLlmPrompt.completionSystemPrompt()
+        val user = LanLlmPrompt.completionUserPrompt(
+            beforeCursor = "今晚一起",
+            recentCommittedText = "要不要",
+            historyText = "我们在约饭",
+            useRecentCommitBias = true,
+        )
+        val assistant = LanLlmPrompt.completionAssistantPrefill("今晚一起")
+
+        assertTrue(system.contains("当前任务是“对话续写/补全”"))
+        assertTrue(user.contains("<history>\n我们在约饭\n</history>"))
+        assertTrue(user.contains("<memory>\n最近一次上屏：要不要\n</memory>"))
+        assertTrue(user.endsWith("今晚一起\n</instruction>"))
+        assertEquals("<think>\n\n</think>\n\n今晚一起", assistant)
+    }
+
+    @Test
     fun userPromptUsesStructuredContinuationContextForChatBackend() {
         val prompt = LanLlmPrompt.userPrompt(
             beforeCursor = "今晚一起去",

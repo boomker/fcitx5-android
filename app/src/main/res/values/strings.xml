@@ -298,11 +298,33 @@
     <string name="capture_heap_dump">Capture heap dump</string>
     <string name="lan_llm_enable" translatable="false">启用 LLM 预测</string>
     <string name="lan_llm_enable_summary" translatable="false">使用本地或局域网 LLM API 提供预测候选。</string>
+    <string name="lan_llm_provider" translatable="false">模型服务商</string>
+    <string name="lan_llm_provider_custom" translatable="false">自定义</string>
+    <string name="lan_llm_provider_openai" translatable="false">OpenAI</string>
+    <string name="lan_llm_provider_anthropic" translatable="false">Anthropic</string>
+    <string name="lan_llm_provider_gemini" translatable="false">Gemini</string>
+    <string name="lan_llm_provider_deepseek" translatable="false">DeepSeek</string>
+    <string name="lan_llm_provider_zhipu" translatable="false">BigModel(智谱)</string>
+    <string name="lan_llm_provider_minimax" translatable="false">MiniMax</string>
     <string name="lan_llm_api_url" translatable="false">API 地址</string>
+    <string name="lan_llm_api_url_default_hint" translatable="false">留空时将使用服务商默认地址：%1$s</string>
+    <string name="lan_llm_api_url_custom_hint" translatable="false">当前为自定义服务商，请填写完整 API 地址。</string>
+    <string name="lan_llm_api_url_default_summary" translatable="false">留空时使用默认地址：%1$s</string>
     <string name="lan_llm_chat_api_enabled" translatable="false">聊天对话接口</string>
     <string name="lan_llm_model" translatable="false">模型名称</string>
+    <string name="lan_llm_model_summary_hint" translatable="false">可手动填写，也可远程拉取后选择</string>
+    <string name="lan_llm_model_select" translatable="false">选择模型</string>
+    <string name="lan_llm_model_fetching" translatable="false">正在远程拉取模型列表…</string>
+    <string name="lan_llm_model_fetch_success" translatable="false">已获取 %1$d 个模型，可点按选择。</string>
+    <string name="lan_llm_model_fetch_empty" translatable="false">未获取到模型列表，请手动填写模型名称。</string>
+    <string name="lan_llm_model_fetch_failed" translatable="false">模型列表获取失败：%1$s</string>
+    <string name="lan_llm_fetch_models" translatable="false">拉取模型列表</string>
     <string name="lan_llm_api_key" translatable="false">API 密钥</string>
     <string name="lan_llm_api_key_set" translatable="false">已配置</string>
+    <string name="lan_llm_test_connectivity" translatable="false">连通性检测</string>
+    <string name="lan_llm_connectivity_checking" translatable="false">正在检测服务连通性…</string>
+    <string name="lan_llm_connectivity_success" translatable="false">连接成功，发现 %1$d 个模型。\n%2$s</string>
+    <string name="lan_llm_connectivity_failed" translatable="false">连通性检测失败：%1$s</string>
     <string name="lan_llm_debounce_ms" translatable="false">请求防抖 (ms)</string>
     <string name="lan_llm_sample_count" translatable="false">采样次数</string>
     <string name="lan_llm_max_context_chars" translatable="false">最大上下文字数</string>

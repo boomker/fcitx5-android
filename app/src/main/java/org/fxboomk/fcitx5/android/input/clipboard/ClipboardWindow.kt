@@ -194,6 +194,9 @@ class ClipboardWindow : InputWindow.ExtendedInputWindow<ClipboardWindow>() {
 
             override fun onPaste(entry: ClipboardEntry) {
                 service.commitClipboardEntry(entry.text)
+                service.lifecycleScope.launch {
+                    ClipboardManager.markUsed(entry.id)
+                }
                 if (clipboardReturnAfterPaste) windowManager.attachWindow(KeyboardWindow)
             }
         }

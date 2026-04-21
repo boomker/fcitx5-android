@@ -402,7 +402,15 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
      */
     fun postFcitxJob(block: suspend FcitxAPI.() -> Unit): Job {
         val job = fcitx.lifecycleScope.launch(start = CoroutineStart.LAZY) {
-            fcitx.runOnReady(block)
+            runCatching {
+                fcitx.runOnReady(block)
+            }.onFailure { error ->
+                if (error is IllegalStateException && error.message?.contains("is disconnected") == true) {
+                    Timber.i("Skip fcitx job after service disconnect: ${error.message}")
+                } else {
+                    throw error
+                }
+            }
         }
         jobs.trySend(job)
         return job

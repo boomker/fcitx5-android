@@ -7,12 +7,12 @@ object LanLlmPrompt {
 你是$STYLE_PERSONA。
 你的任务是像输入法一样，根据上下文给出 1-4 个自然续写候选。
 1. 只能输出 JSON。
-2. 格式必须是 {"suggestions":["候选1","候选2"]}
+2. 顶层格式必须且只能是 {"suggestions":["候选1","候选2"]}。
 3. 不要解释，不要寒暄，不要自我介绍，不要输出 markdown 符号。
 4. 不要重复当前前缀已经输入的文本。
 5. 每个候选尽量不超过 12 个汉字或 20 个字符。
 6. 候选必须简短、自然、可直接上屏，像输入法联想，不要写整句说明文。
-7. 不要输出字段名以外的任何额外文字。
+7. 不要输出 suggestions 字段以外的任何额外字段或文字。
 8. 如果无法预测，也输出空数组：{"suggestions":[]}
 """
 
@@ -79,6 +79,25 @@ object LanLlmPrompt {
         useRecentCommitBias = useRecentCommitBias,
     ).trim()
 
+    fun completionSystemPrompt(): String = COMPLETION_SYSTEM_PROMPT.trim()
+
+    fun completionUserPrompt(
+        beforeCursor: String,
+        recentCommittedText: String,
+        historyText: String,
+        useRecentCommitBias: Boolean,
+    ): String = buildStructuredUserPrompt(
+        beforeCursor = beforeCursor,
+        recentCommittedText = recentCommittedText,
+        historyText = historyText,
+        useRecentCommitBias = useRecentCommitBias,
+    ).trim()
+
+    fun completionAssistantPrefill(beforeCursor: String): String = buildString {
+        append("<think>\n\n</think>\n\n")
+        append(beforeCursor)
+    }
+
     fun completionPrompt(
         beforeCursor: String,
         recentCommittedText: String,
@@ -86,20 +105,19 @@ object LanLlmPrompt {
         useRecentCommitBias: Boolean,
     ): String = buildString {
         append("<|im_start|>system\n")
-        append(COMPLETION_SYSTEM_PROMPT.trim())
+        append(completionSystemPrompt())
         append("<|im_end|>\n")
         append("<|im_start|>user\n")
         append(
-            buildStructuredUserPrompt(
+            completionUserPrompt(
                 beforeCursor = beforeCursor,
                 recentCommittedText = recentCommittedText,
                 historyText = historyText,
                 useRecentCommitBias = useRecentCommitBias,
-            ).trim()
+            )
         )
         append("<|im_end|>\n")
         append("<|im_start|>assistant\n")
-        append("<think>\n\n</think>\n\n")
-        append(beforeCursor)
+        append(completionAssistantPrefill(beforeCursor))
     }.trim()
 }

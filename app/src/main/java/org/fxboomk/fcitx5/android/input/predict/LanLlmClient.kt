@@ -19,10 +19,12 @@ class LanLlmClient {
         val responseBody: String,
     ) : IllegalStateException("LAN LLM request failed: HTTP $statusCode ${responseBody.take(240)}")
 
-    private data class CompletionPlan(
+    private data class RequestPlan(
         val endpoint: String,
         val protocol: String,
         val payload: JSONObject,
+        val extractContent: (String) -> String,
+        val parseSuggestions: (String, String) -> List<String>,
     )
 
     data class PredictionRequest(
@@ -54,8 +56,16 @@ class LanLlmClient {
             doOutput = true
             setRequestProperty("Content-Type", "application/json")
             setRequestProperty("Accept", "application/json")
-            if (apiKey.isNotBlank()) {
-                setRequestProperty("Authorization", "Bearer $apiKey")
+            when {
+                isAnthropicEndpoint(endpoint) -> {
+                    if (apiKey.isNotBlank()) {
+                        setRequestProperty("x-api-key", apiKey)
+                    }
+                    setRequestProperty("anthropic-version", "2023-06-01")
+                }
+                apiKey.isNotBlank() -> {
+                    setRequestProperty("Authorization", "Bearer $apiKey")
+                }
             }
         }
         return connection
@@ -67,6 +77,7 @@ class LanLlmClient {
         payload: JSONObject,
         beforeCursor: String,
         extractContent: (String) -> String,
+        parseSuggestions: (String, String) -> List<String> = LanLlmSuggestionParser::parse,
     ): PredictionResponse {
         Log.d(TAG, "POST $endpoint beforeCursor='${beforeCursor.take(60)}'")
         val connection = openConnection(endpoint, apiKey)
@@ -88,7 +99,7 @@ class LanLlmClient {
         }
 
         val rawContent = extractContent(responseBody)
-        val suggestions = LanLlmSuggestionParser.parse(rawContent, beforeCursor)
+        val suggestions = parseSuggestions(rawContent, beforeCursor)
         Log.d(TAG, "parsed suggestions=$suggestions rawContent=${rawContent.take(240)}")
         return PredictionResponse(
             suggestions = suggestions,
@@ -98,11 +109,11 @@ class LanLlmClient {
 
     private fun predictChat(request: PredictionRequest): PredictionResponse {
         val useRecentCommitBias = request.useRecentCommitBias && request.recentCommittedText.isNotBlank()
-        val payload = JSONObject()
+        val openAiPayload = JSONObject()
             .put("model", request.config.model)
             .put("stream", false)
             .put("temperature", 0.1)
-            .put("max_tokens", 18)
+            .put("max_tokens", 512)
             .put("response_format", JSONObject().put("type", "json_object"))
             .put(
                 "messages",
@@ -126,50 +137,104 @@ class LanLlmClient {
                             )
                     )
             )
-        return execute(
-            endpoint = request.config.chatEndpoint,
+        val anthropicPayload = JSONObject()
+            .put("model", request.config.model)
+            .put("system", LanLlmPrompt.systemPrompt())
+            .put("messages", JSONArray().put(
+                JSONObject()
+                    .put("role", "user")
+                    .put(
+                        "content",
+                        LanLlmPrompt.userPrompt(
+                            beforeCursor = request.beforeCursor,
+                            recentCommittedText = request.recentCommittedText,
+                            historyText = request.historyText,
+                            useRecentCommitBias = useRecentCommitBias,
+                        )
+                    )
+            ))
+            .put("max_tokens", 512)
+            .put("temperature", 0.1)
+
+        val plans = request.config.chatCompatEndpoints.map { endpoint ->
+            if (isAnthropicEndpoint(endpoint)) {
+                RequestPlan(
+                    endpoint = endpoint,
+                    protocol = "anthropic_messages",
+                    payload = JSONObject(anthropicPayload.toString()),
+                    extractContent = ::extractAnthropicContent,
+                    parseSuggestions = LanLlmSuggestionParser::parseJsonSuggestions,
+                )
+            } else {
+                RequestPlan(
+                    endpoint = endpoint,
+                    protocol = "openai_chat_completions",
+                    payload = JSONObject(openAiPayload.toString()),
+                    extractContent = ::extractMessageContent,
+                    parseSuggestions = LanLlmSuggestionParser::parseJsonSuggestions,
+                )
+            }
+        }
+
+        return executeWithFallback(
+            mode = "chat",
             apiKey = request.config.apiKey,
-            payload = payload,
             beforeCursor = request.beforeCursor,
-            extractContent = ::extractMessageContent,
+            plans = plans,
         )
     }
 
     private fun predictCompletion(request: PredictionRequest): PredictionResponse {
         val plans = buildCompletionPlans(request)
+        return executeWithFallback(
+            mode = "completion",
+            apiKey = request.config.apiKey,
+            beforeCursor = request.beforeCursor,
+            plans = plans,
+        )
+    }
+
+    private fun executeWithFallback(
+        mode: String,
+        apiKey: String,
+        beforeCursor: String,
+        plans: List<RequestPlan>,
+    ): PredictionResponse {
         var lastFailure: Throwable? = null
 
         for ((index, plan) in plans.withIndex()) {
             try {
-                Log.d(TAG, "predictCompletion protocol=${plan.protocol} endpoint=${plan.endpoint}")
+                Log.d(TAG, "predict$mode protocol=${plan.protocol} endpoint=${plan.endpoint}")
                 return execute(
                     endpoint = plan.endpoint,
-                    apiKey = request.config.apiKey,
+                    apiKey = apiKey,
                     payload = plan.payload,
-                    beforeCursor = request.beforeCursor,
-                    extractContent = ::extractCompletionContent,
+                    beforeCursor = beforeCursor,
+                    extractContent = plan.extractContent,
+                    parseSuggestions = plan.parseSuggestions,
                 )
             } catch (failure: HttpRequestFailure) {
                 lastFailure = failure
                 val canFallback = index < plans.lastIndex && shouldFallbackToNextPlan(failure)
                 Log.w(
                     TAG,
-                    "completion protocol=${plan.protocol} failed status=${failure.statusCode} fallback=$canFallback body=${failure.responseBody.take(160)}"
+                    "$mode protocol=${plan.protocol} failed status=${failure.statusCode} fallback=$canFallback body=${failure.responseBody.take(160)}"
                 )
                 if (!canFallback) throw failure
             }
         }
 
-        throw (lastFailure ?: IllegalStateException("No completion protocol candidates available"))
+        throw (lastFailure ?: IllegalStateException("No $mode protocol candidates available"))
     }
 
-    private fun buildCompletionPlans(request: PredictionRequest): List<CompletionPlan> {
-        val prompt = LanLlmPrompt.completionPrompt(
+    private fun buildCompletionPlans(request: PredictionRequest): List<RequestPlan> {
+        val completionUserPrompt = LanLlmPrompt.completionUserPrompt(
             beforeCursor = request.beforeCursor,
             recentCommittedText = request.recentCommittedText,
             historyText = request.historyText,
             useRecentCommitBias = request.useRecentCommitBias,
         )
+        val assistantPrefill = LanLlmPrompt.completionAssistantPrefill(request.beforeCursor)
 
         val stops = JSONArray()
             .put("<|im_start|>")
@@ -182,43 +247,75 @@ class LanLlmClient {
             .put("，")
             .put(",")
 
-        val llamaPayload = JSONObject()
-            .put("prompt", prompt)
-            .put("n_predict", 12)
-            .put("temperature", 1.1)
-            .put("top_k", 50)
-            .put("top_p", 0.95)
-            .put("min_p", 0.02)
-            .put("repeat_penalty", 1.05)
-            .put("cache_prompt", true)
-            .put("stop", stops)
-        request.seed?.let { llamaPayload.put("seed", it) }
-
-        val ollamaOptions = JSONObject()
-            .put("num_predict", 12)
-            .put("temperature", 1.1)
-            .put("top_k", 50)
-            .put("top_p", 0.95)
-            .put("min_p", 0.02)
-            .put("repeat_penalty", 1.05)
-            .put("stop", JSONArray(stops.toString()))
-        request.seed?.let { ollamaOptions.put("seed", it) }
-
-        val ollamaPayload = JSONObject()
+        val openAiPayload = JSONObject()
             .put("model", request.config.model)
-            .put("prompt", prompt)
             .put("stream", false)
-            .put("raw", true)
-            .put("options", ollamaOptions)
+            .put("temperature", 0.9)
+            .put("top_p", 0.95)
+            .put("max_tokens", 512)
+            .put("stop", stops)
+            .put(
+                "messages",
+                JSONArray()
+                    .put(
+                        JSONObject()
+                            .put("role", "system")
+                            .put("content", LanLlmPrompt.completionSystemPrompt())
+                    )
+                    .put(
+                        JSONObject()
+                            .put("role", "user")
+                            .put("content", completionUserPrompt)
+                    )
+                    .put(
+                        JSONObject()
+                            .put("role", "assistant")
+                            .put("content", assistantPrefill)
+                    )
+            )
+        request.seed?.let { openAiPayload.put("seed", it) }
+
+        val anthropicPayload = JSONObject()
+            .put("model", request.config.model)
+            .put("system", LanLlmPrompt.completionSystemPrompt())
+            .put("messages", JSONArray()
+                .put(
+                    JSONObject()
+                        .put("role", "user")
+                        .put("content", completionUserPrompt)
+                )
+                .put(
+                    JSONObject()
+                        .put("role", "assistant")
+                        .put("content", assistantPrefill)
+                ))
+            .put("max_tokens", 512)
+            .put("temperature", 0.9)
+            .put("top_p", 0.95)
+            .put("stop_sequences", JSONArray(stops.toString()))
 
         return request.config.completionCompatEndpoints.map { endpoint ->
-            if (endpoint.endsWith("/api/generate")) {
-                CompletionPlan(endpoint = endpoint, protocol = "ollama_generate", payload = JSONObject(ollamaPayload.toString()))
+            if (isAnthropicEndpoint(endpoint)) {
+                RequestPlan(
+                    endpoint = endpoint,
+                    protocol = "anthropic_messages",
+                    payload = JSONObject(anthropicPayload.toString()),
+                    extractContent = ::extractAnthropicContent,
+                    parseSuggestions = LanLlmSuggestionParser::parse,
+                )
             } else {
-                CompletionPlan(endpoint = endpoint, protocol = "llama_completion", payload = JSONObject(llamaPayload.toString()))
+                RequestPlan(
+                    endpoint = endpoint,
+                    protocol = "openai_chat_completions",
+                    payload = JSONObject(openAiPayload.toString()),
+                    extractContent = ::extractCompletionContent,
+                    parseSuggestions = LanLlmSuggestionParser::parse,
+                )
             }
         }
     }
+
+    private fun isAnthropicEndpoint(endpoint: String): Boolean = endpoint.endsWith("/messages")
 
     private fun shouldFallbackToNextPlan(failure: HttpRequestFailure): Boolean {
         if (failure.statusCode in listOf(400, 404, 405, 501)) return true
@@ -254,10 +351,25 @@ class LanLlmClient {
         return first.optString("text").ifBlank { responseBody }
     }
 
+    private fun extractAnthropicContent(responseBody: String): String {
+        val root = runCatching { JSONObject(responseBody) }.getOrNull() ?: return responseBody
+        val content = root.optJSONArray("content") ?: return responseBody
+        val text = buildString {
+            for (index in 0 until content.length()) {
+                val part = content.optJSONObject(index) ?: continue
+                if (part.optString("type") == "text") {
+                    val value = part.optString("text")
+                    if (value.isNotBlank()) append(value)
+                }
+            }
+        }
+        return text.ifBlank { responseBody }
+    }
+
     private fun extractCompletionContent(responseBody: String): String {
         val root = runCatching { JSONObject(responseBody) }.getOrNull() ?: return responseBody
         return root.optString("content").ifBlank {
-            root.optString("response").ifBlank { responseBody }
+            extractMessageContent(responseBody).ifBlank { responseBody }
         }
     }
 }

@@ -7,6 +7,7 @@ package org.fxboomk.fcitx5.android.input.keyboard
 import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Rect
+import android.os.Build
 import android.util.SparseIntArray
 import android.view.KeyEvent
 import android.view.MotionEvent
@@ -780,13 +781,13 @@ abstract class BaseKeyboard(
             val parents = recreateList
                 .mapNotNull { it.item.keyView.parent as? ViewGroup }
                 .distinct()
-            parents.forEach { it.suppressLayout(true) }
+            suppressLayouts(parents, true)
             try {
                 recreateList.forEach { u ->
                     recreateComposeAwareKeyView(u.item, u.activeDef, u.activeAppearance)
                 }
             } finally {
-                parents.forEach { it.suppressLayout(false) }
+                suppressLayouts(parents, false)
             }
         }
 
@@ -828,6 +829,11 @@ abstract class BaseKeyboard(
             oldAppearance.backgroundColorMonet != newAppearance.backgroundColorMonet ||
             oldAppearance.shadowColor != newAppearance.shadowColor ||
             oldAppearance.shadowColorMonet != newAppearance.shadowColorMonet
+    }
+
+    private fun suppressLayouts(parents: List<ViewGroup>, suppress: Boolean) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return
+        parents.forEach { it.suppressLayout(suppress) }
     }
 
     private fun isAppearanceCompatible(view: KeyView, appearance: KeyDef.Appearance): Boolean {
