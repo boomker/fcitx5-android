@@ -297,7 +297,9 @@
     <string name="delete_theme_msg">Do you really want to delete theme \"%1$s\"?</string>
     <string name="capture_heap_dump">Capture heap dump</string>
     <string name="lan_llm_enable" translatable="false">启用 LLM 预测</string>
-    <string name="lan_llm_enable_summary" translatable="false">使用本地或局域网 LLM API 提供预测候选。</string>
+    <string name="lan_llm_enable_summary" translatable="false">使用 LLM 提供预测候选。</string>
+    <string name="ai_clip_title" translatable="false">AI 候选</string>
+    <string name="ai_clip_open_count" translatable="false">AI 候选 (%1$d)</string>
     <string name="lan_llm_provider" translatable="false">模型服务商</string>
     <string name="lan_llm_provider_custom" translatable="false">自定义</string>
     <string name="lan_llm_provider_openai" translatable="false">OpenAI</string>
@@ -318,6 +320,9 @@
     <string name="lan_llm_model_fetch_success" translatable="false">已获取 %1$d 个模型，可点按选择。</string>
     <string name="lan_llm_model_fetch_empty" translatable="false">未获取到模型列表，请手动填写模型名称。</string>
     <string name="lan_llm_model_fetch_failed" translatable="false">模型列表获取失败：%1$s</string>
+    <string name="lan_llm_model_actual_id_empty" translatable="false"></string>
+    <string name="lan_llm_model_group_prefix" translatable="false">Provider：%1$s</string>
+    <string name="lan_llm_model_group_unprefixed" translatable="false">未带 provider 前缀</string>
     <string name="lan_llm_fetch_models" translatable="false">拉取模型列表</string>
     <string name="lan_llm_api_key" translatable="false">API 密钥</string>
     <string name="lan_llm_api_key_set" translatable="false">已配置</string>
@@ -327,6 +332,8 @@
     <string name="lan_llm_connectivity_failed" translatable="false">连通性检测失败：%1$s</string>
     <string name="lan_llm_debounce_ms" translatable="false">请求防抖 (ms)</string>
     <string name="lan_llm_sample_count" translatable="false">采样次数</string>
+    <string name="lan_llm_max_prediction_candidates" translatable="false">最多预测候选数</string>
+    <string name="lan_llm_max_output_tokens" translatable="false">最大输出文字数</string>
     <string name="lan_llm_max_context_chars" translatable="false">最大上下文字数</string>
     <string name="lan_llm_settings_title" translatable="false">智能预测</string>
     <string name="plugins">Plugins</string>

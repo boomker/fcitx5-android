@@ -4,9 +4,12 @@
 package org.fxboomk.fcitx5.android.ui.main.settings.behavior
 
 import android.app.Dialog
+import android.graphics.Typeface
 import android.os.Bundle
 import android.text.InputType
+import android.view.View
 import android.view.ViewGroup
+import android.widget.ArrayAdapter
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -14,6 +17,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.core.os.bundleOf
 import androidx.core.view.isVisible
+import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.DialogFragment
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.EditTextPreference
@@ -26,8 +30,14 @@ import splitties.dimensions.dp
 
 class LanLlmModelPreferenceDialogFragment : DialogFragment() {
     private lateinit var editText: EditText
+    private lateinit var actualIdView: TextView
     private lateinit var statusView: TextView
     private val catalogClient = LanLlmCatalogClient()
+
+    private sealed interface ModelChoiceItem {
+        data class Group(val label: String) : ModelChoiceItem
+        data class Model(val value: LanLlmCatalogClient.RemoteModel) : ModelChoiceItem
+    }
 
     private val preferenceKey: String
         get() = requireArguments().getString(ARG_KEY).orEmpty()
@@ -56,6 +66,13 @@ class LanLlmModelPreferenceDialogFragment : DialogFragment() {
             setSingleLine(true)
             setText(currentText)
             setSelection(text.length)
+            doAfterTextChanged {
+                updateActualIdPreview(it?.toString().orEmpty())
+            }
+        }
+
+        actualIdView = TextView(context).apply {
+            updateActualIdPreview(currentText)
         }
 
         statusView = TextView(context).apply {
@@ -69,6 +86,15 @@ class LanLlmModelPreferenceDialogFragment : DialogFragment() {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
             )
+        )
+        contentView.addView(
+            actualIdView,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                topMargin = context.dp(12)
+            }
         )
         contentView.addView(
             statusView,
@@ -106,10 +132,25 @@ class LanLlmModelPreferenceDialogFragment : DialogFragment() {
         }
     }
 
+    private fun updateActualIdPreview(rawModel: String) {
+        if (!::actualIdView.isInitialized) return
+        val normalizedModel = rawModel.trim()
+        actualIdView.text = if (normalizedModel.isBlank()) {
+            getString(R.string.lan_llm_model_actual_id_empty)
+        } else {
+            normalizedModel
+        }
+    }
+
     private fun persistValue() {
         val newValue = editText.text?.toString().orEmpty()
         if (modelPreference.callChangeListener(newValue)) {
             modelPreference.text = newValue
+            modelPreference.preferenceManager.sharedPreferences?.let { prefs ->
+                val provider = LanLlmPrefs.currentProvider(prefs)
+                val baseUrl = LanLlmPrefs.currentBaseUrl(prefs, provider)
+                LanLlmPrefs.persistScopedModel(prefs, provider, baseUrl, newValue)
+            }
         }
     }
 
@@ -131,13 +172,37 @@ class LanLlmModelPreferenceDialogFragment : DialogFragment() {
                     return@onSuccess
                 }
                 statusView.text = getString(R.string.lan_llm_model_fetch_success, models.size)
-                val labels = models.map {
-                    if (it.displayName == it.id) it.id else "${it.displayName} (${it.id})"
-                }.toTypedArray()
+                val items = buildChoiceItems(models)
+                val adapter = object : ArrayAdapter<ModelChoiceItem>(
+                    requireContext(),
+                    android.R.layout.simple_list_item_1,
+                    items,
+                ) {
+                    override fun isEnabled(position: Int): Boolean =
+                        getItem(position) is ModelChoiceItem.Model
+
+                    override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+                        val view = super.getView(position, convertView, parent) as TextView
+                        when (val item = getItem(position)) {
+                            is ModelChoiceItem.Group -> {
+                                view.text = getString(R.string.lan_llm_model_group_prefix, item.label)
+                                view.setTypeface(null, Typeface.BOLD)
+                                view.alpha = 0.75f
+                            }
+                            is ModelChoiceItem.Model -> {
+                                view.text = item.value.id
+                                view.setTypeface(null, Typeface.NORMAL)
+                                view.alpha = 1f
+                            }
+                            null -> Unit
+                        }
+                        return view
+                    }
+                }
                 AlertDialog.Builder(requireContext())
                     .setTitle(R.string.lan_llm_model_select)
-                    .setItems(labels) { _, which ->
-                        val selected = models[which].id
+                    .setAdapter(adapter) { _, which ->
+                        val selected = (items.getOrNull(which) as? ModelChoiceItem.Model)?.value?.id ?: return@setAdapter
                         editText.setText(selected)
                         editText.setSelection(selected.length)
                     }
@@ -154,6 +219,18 @@ class LanLlmModelPreferenceDialogFragment : DialogFragment() {
                     Toast.LENGTH_SHORT,
                 ).show()
             }
+        }
+    }
+
+    private fun buildChoiceItems(models: List<LanLlmCatalogClient.RemoteModel>): List<ModelChoiceItem> = buildList {
+        var lastGroupLabel: String? = null
+        models.forEach { model ->
+            val groupLabel = model.providerPrefix ?: getString(R.string.lan_llm_model_group_unprefixed)
+            if (groupLabel != lastGroupLabel) {
+                add(ModelChoiceItem.Group(groupLabel))
+                lastGroupLabel = groupLabel
+            }
+            add(ModelChoiceItem.Model(model))
         }
     }
 

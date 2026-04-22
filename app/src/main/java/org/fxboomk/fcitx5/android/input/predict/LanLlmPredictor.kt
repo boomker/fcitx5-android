@@ -59,7 +59,7 @@ class LanLlmPredictor(
                     )
                 }
             }.onSuccess {
-                onResult(it.suggestions)
+                onResult(it.suggestions.take(config.maxPredictionCandidates))
             }.onFailure {
                 onError?.invoke(it)
                 onResult(emptyList())
@@ -118,7 +118,7 @@ class LanLlmPredictor(
                     .thenBy { it.key }
             )
             .map { it.key }
-            .take(4)
+            .take(config.maxPredictionCandidates)
 
         return LanLlmClient.PredictionResponse(
             suggestions = suggestions,

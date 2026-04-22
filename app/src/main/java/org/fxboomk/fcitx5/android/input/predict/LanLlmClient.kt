@@ -113,7 +113,7 @@ class LanLlmClient {
             .put("model", request.config.model)
             .put("stream", false)
             .put("temperature", 0.1)
-            .put("max_tokens", 512)
+            .put("max_tokens", request.config.maxOutputTokens)
             .put("response_format", JSONObject().put("type", "json_object"))
             .put(
                 "messages",
@@ -153,7 +153,7 @@ class LanLlmClient {
                         )
                     )
             ))
-            .put("max_tokens", 512)
+            .put("max_tokens", request.config.maxOutputTokens)
             .put("temperature", 0.1)
 
         val plans = request.config.chatCompatEndpoints.map { endpoint ->
@@ -252,7 +252,7 @@ class LanLlmClient {
             .put("stream", false)
             .put("temperature", 0.9)
             .put("top_p", 0.95)
-            .put("max_tokens", 512)
+            .put("max_tokens", request.config.maxOutputTokens)
             .put("stop", stops)
             .put(
                 "messages",
@@ -288,8 +288,8 @@ class LanLlmClient {
                     JSONObject()
                         .put("role", "assistant")
                         .put("content", assistantPrefill)
-                ))
-            .put("max_tokens", 512)
+            ))
+            .put("max_tokens", request.config.maxOutputTokens)
             .put("temperature", 0.9)
             .put("top_p", 0.95)
             .put("stop_sequences", JSONArray(stops.toString()))

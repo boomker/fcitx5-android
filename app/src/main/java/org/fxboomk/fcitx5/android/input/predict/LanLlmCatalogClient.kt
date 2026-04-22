@@ -20,7 +20,10 @@ class LanLlmCatalogClient {
     data class RemoteModel(
         val id: String,
         val displayName: String = id,
-    )
+    ) {
+        val providerPrefix: String?
+            get() = id.substringBefore('/').takeIf { '/' in id && it.isNotBlank() }
+    }
 
     data class ConnectivityResult(
         val endpoint: String,
@@ -49,19 +52,35 @@ class LanLlmCatalogClient {
     }
 
     suspend fun fetchModels(config: LanLlmPrefs.Config): List<RemoteModel> = withContext(Dispatchers.IO) {
-        val models = runCatching { fetchModelsFromEndpoint(config.modelsEndpoint, config) }
-            .recoverCatching {
-                if (config.provider == LanLlmPrefs.Provider.Gemini) {
-                    fetchGeminiNativeModels(config.apiKey)
-                } else {
-                    throw it
+        var lastFailure: Throwable? = null
+        val models = runCatching {
+            for ((index, endpoint) in config.modelsCompatEndpoints.withIndex()) {
+                try {
+                    return@runCatching fetchModelsFromEndpoint(endpoint, config)
+                } catch (failure: CatalogRequestFailure) {
+                    lastFailure = failure
+                    val canFallback = index < config.modelsCompatEndpoints.lastIndex &&
+                        shouldFallbackToNextEndpoint(failure)
+                    if (!canFallback) throw failure
                 }
             }
+            throw (lastFailure ?: IllegalStateException("模型列表地址为空"))
+        }.recoverCatching {
+            if (config.provider == LanLlmPrefs.Provider.Gemini) {
+                fetchGeminiNativeModels(config.apiKey)
+            } else {
+                throw it
+            }
+        }
             .getOrThrow()
 
         models
             .distinctBy { it.id }
-            .sortedWith(compareBy<RemoteModel> { it.displayName.lowercase() }.thenBy { it.id.lowercase() })
+            .sortedWith(
+                compareBy<RemoteModel> { it.providerPrefix.orEmpty().lowercase() }
+                    .thenBy { it.displayName.lowercase() }
+                    .thenBy { it.id.lowercase() }
+            )
     }
 
     private fun fetchModelsFromEndpoint(
@@ -129,6 +148,19 @@ class LanLlmCatalogClient {
             "unsupported" in body ||
             "no route" in body ||
             "cannot get" in body
+    }
+
+    private fun shouldFallbackToNextEndpoint(failure: CatalogRequestFailure): Boolean {
+        if (failure.statusCode !in listOf(400, 404, 405, 501)) return false
+        val body = failure.responseBody.lowercase()
+        return body.isBlank() ||
+            "not found" in body ||
+            "404" in body ||
+            "unsupported" in body ||
+            "no route" in body ||
+            "cannot get" in body ||
+            "unknown route" in body ||
+            "invalid request" in body
     }
 
     private fun probeChatEndpoint(config: LanLlmPrefs.Config) {
@@ -209,11 +241,11 @@ class LanLlmCatalogClient {
             val rawId = item.optString("id").ifBlank {
                 item.optString("name")
             }
-            val id = rawId.substringAfterLast('/').trim()
+            val id = rawId.trim()
             if (id.isBlank()) continue
             val displayName = item.optString("display_name")
                 .ifBlank { item.optString("displayName") }
-                .ifBlank { item.optString("name").substringAfterLast('/').trim() }
+                .ifBlank { id.substringAfterLast('/').trim() }
                 .ifBlank { id }
             add(RemoteModel(id = id, displayName = displayName))
         }

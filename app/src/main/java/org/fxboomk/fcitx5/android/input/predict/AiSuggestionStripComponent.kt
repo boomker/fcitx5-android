@@ -2,14 +2,11 @@ package org.fxboomk.fcitx5.android.input.predict
 
 import android.content.Context
 import android.graphics.drawable.GradientDrawable
-import android.text.TextUtils
 import android.util.Log
 import android.view.Gravity
 import android.view.View
-import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
-import android.widget.HorizontalScrollView
-import android.widget.LinearLayout
+import android.widget.FrameLayout
 import android.widget.TextView
 import org.fxboomk.fcitx5.android.core.CapabilityFlag
 import org.fxboomk.fcitx5.android.core.CapabilityFlags
@@ -19,6 +16,11 @@ import org.fxboomk.fcitx5.android.data.theme.Theme
 import org.fxboomk.fcitx5.android.input.FcitxInputMethodService
 import org.fxboomk.fcitx5.android.input.broadcast.InputBroadcastReceiver
 import org.fxboomk.fcitx5.android.input.dependency.UniqueViewComponent
+import org.fxboomk.fcitx5.android.input.keyboard.KeyboardWindow
+import org.fxboomk.fcitx5.android.input.wm.InputWindow
+import org.fxboomk.fcitx5.android.input.wm.InputWindowManager
+import org.fxboomk.fcitx5.android.R
+import org.mechdancer.dependency.manager.must
 import splitties.dimensions.dp
 
 private const val TAG = "LanLlmChip"
@@ -27,9 +29,10 @@ class AiSuggestionStripComponent(
     private val service: FcitxInputMethodService,
     private val themedContext: Context,
     private val theme: Theme,
-) : UniqueViewComponent<AiSuggestionStripComponent, HorizontalScrollView>(), InputBroadcastReceiver {
+) : UniqueViewComponent<AiSuggestionStripComponent, FrameLayout>(), InputBroadcastReceiver {
 
     private val predictor by lazy { LanLlmPredictor(service.applicationContext) }
+    private val windowManager: InputWindowManager by manager.must()
     private val recentCommittedSegments = ArrayDeque<String>()
 
     private var allowPrediction = false
@@ -39,26 +42,41 @@ class AiSuggestionStripComponent(
     private var lastRequestedBeforeCursor = ""
     private var lastObservedBeforeCursor = ""
     private var lastCommittedText = ""
+    private var lastPureLongDigitRequestAtMs = 0L
     private var commitRevision = 0
     private var predictionSuppressed = false
     private var suppressionUntilCommitRevision = -1
     private var activeSuggestions: List<String> = emptyList()
+    private var expandedWindowVisible = false
 
-    private val chipContainer = LinearLayout(themedContext).apply {
-        orientation = LinearLayout.HORIZONTAL
-        gravity = Gravity.CENTER_VERTICAL
-        setPadding(dp(8), dp(2), dp(8), dp(4))
+    private val openButton = TextView(themedContext).apply {
+        gravity = Gravity.CENTER
+        textSize = 14f
+        setTextColor(theme.accentKeyTextColor)
+        setPadding(dp(16), dp(10), dp(16), dp(10))
+        background = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = themedContext.dp(18).toFloat()
+            setColor(theme.accentKeyBackgroundColor)
+            setStroke(themedContext.dp(1), theme.dividerColor)
+        }
+        setOnClickListener {
+            openSuggestionTable()
+        }
     }
 
-    override val view = HorizontalScrollView(themedContext).apply {
+    override val view = FrameLayout(themedContext).apply {
         id = View.generateViewId()
         visibility = View.GONE
-        overScrollMode = View.OVER_SCROLL_NEVER
-        isHorizontalScrollBarEnabled = false
-        isFillViewport = false
+        setPadding(dp(8), dp(4), dp(8), dp(4))
         addView(
-            chipContainer,
-            ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            openButton,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                gravity = Gravity.CENTER
+            }
         )
     }
 
@@ -69,6 +87,7 @@ class AiSuggestionStripComponent(
         selectionCollapsed = true
         lastObservedBeforeCursor = ""
         lastCommittedText = ""
+        lastPureLongDigitRequestAtMs = 0L
         commitRevision = 0
         suppressionUntilCommitRevision = -1
         recentCommittedSegments.clear()
@@ -95,7 +114,7 @@ class AiSuggestionStripComponent(
         requestPredictionIfNeeded()
     }
 
-    fun hasVisibleSuggestions(): Boolean = activeSuggestions.isNotEmpty() && view.visibility == View.VISIBLE
+    fun hasVisibleSuggestions(): Boolean = activeSuggestions.isNotEmpty() && (view.visibility == View.VISIBLE || expandedWindowVisible)
 
     fun commitPrimarySuggestion(): Boolean {
         val suggestion = activeSuggestions.firstOrNull() ?: return false
@@ -109,12 +128,36 @@ class AiSuggestionStripComponent(
         return true
     }
 
+    fun openSuggestionTable(): Boolean {
+        if (activeSuggestions.isEmpty()) return false
+        windowManager.attachWindow(AiSuggestionWindow)
+        return true
+    }
+
     fun suppressAfterBackspace() {
         suppressPredictionUntilNextCommit("backspace")
     }
 
+    internal fun currentSuggestionsSnapshot(): List<String> = activeSuggestions.toList()
+
+    internal fun commitSuggestionFromWindow(suggestion: String) {
+        commitSuggestion(suggestion)
+    }
+
     fun close() {
         predictor.close()
+    }
+
+    override fun onWindowAttached(window: InputWindow) {
+        expandedWindowVisible = window === AiSuggestionWindow
+        updateButtonVisibility()
+    }
+
+    override fun onWindowDetached(window: InputWindow) {
+        if (window === AiSuggestionWindow) {
+            expandedWindowVisible = false
+            updateButtonVisibility()
+        }
     }
 
     private fun suppressPredictionUntilNextCommit(reason: String) {
@@ -139,6 +182,17 @@ class AiSuggestionStripComponent(
             clearSuggestions(resetRequestState = true)
             return
         }
+        if (!LanLlmRequestGate.shouldRequestPrediction(beforeCursor)) {
+            Log.d(TAG, "skip request no predictive chars beforeCursor='${beforeCursor.take(40)}'")
+            clearSuggestions(resetRequestState = true)
+            return
+        }
+        val nowMs = System.currentTimeMillis()
+        if (LanLlmRequestGate.shouldThrottlePureLongDigitInput(beforeCursor, lastPureLongDigitRequestAtMs, nowMs)) {
+            Log.d(TAG, "skip request throttled pure long digits beforeCursor='${beforeCursor.take(40)}'")
+            clearSuggestions(resetRequestState = false)
+            return
+        }
         updateCommitContext(fetchedBeforeCursor, config)
         if (predictionSuppressed) {
             if (commitRevision > suppressionUntilCommitRevision) {
@@ -158,6 +212,9 @@ class AiSuggestionStripComponent(
         Log.d(TAG, "request beforeCursor='${beforeCursor.take(60)}'")
 
         lastRequestedBeforeCursor = beforeCursor
+        if (LanLlmRequestGate.isPureLongDigitInput(beforeCursor)) {
+            lastPureLongDigitRequestAtMs = nowMs
+        }
         predictor.request(
             request = LanLlmPredictor.Request(
                 beforeCursor = beforeCursor,
@@ -184,46 +241,16 @@ class AiSuggestionStripComponent(
     }
 
     private fun renderSuggestions(suggestions: List<String>) {
-        chipContainer.removeAllViews()
-        activeSuggestions = suggestions.take(4)
+        val maxPredictionCandidates = LanLlmPrefs.read(service.applicationContext).maxPredictionCandidates
+        activeSuggestions = suggestions.take(maxPredictionCandidates)
         if (activeSuggestions.isEmpty()) {
-            Log.d(TAG, "hide chip strip: empty suggestions")
-            view.visibility = View.GONE
+            Log.d(TAG, "hide ai suggestion button: empty suggestions")
+            updateButtonVisibility()
             return
         }
-
-        activeSuggestions.forEachIndexed { index, suggestion ->
-            chipContainer.addView(createChip(suggestion, isPrimary = index == 0))
-        }
-        view.visibility = View.VISIBLE
-    }
-
-    private fun createChip(suggestion: String, isPrimary: Boolean): TextView {
-        return TextView(themedContext).apply {
-            text = suggestion
-            maxLines = 1
-            ellipsize = TextUtils.TruncateAt.END
-            gravity = Gravity.CENTER
-            textSize = 14f
-            setTextColor(if (isPrimary) theme.accentKeyTextColor else theme.candidateTextColor)
-            setPadding(dp(12), dp(8), dp(12), dp(8))
-            background = GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                cornerRadius = themedContext.dp(18).toFloat()
-                setColor(if (isPrimary) theme.accentKeyBackgroundColor else theme.keyBackgroundColor)
-                setStroke(themedContext.dp(1), theme.dividerColor)
-            }
-            val params = LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            ).apply {
-                rightMargin = themedContext.dp(8)
-            }
-            layoutParams = params
-            setOnClickListener {
-                commitSuggestion(suggestion)
-            }
-        }
+        openButton.text = themedContext.getString(R.string.ai_clip_open_count, activeSuggestions.size)
+        openButton.contentDescription = openButton.text
+        updateButtonVisibility()
     }
 
     private fun commitSuggestion(suggestion: String) {
@@ -231,6 +258,7 @@ class AiSuggestionStripComponent(
         noteCommittedText(suggestion, config)
         service.commitText(suggestion)
         clearSuggestions(resetRequestState = true)
+        returnToKeyboardIfNeeded()
     }
 
     private fun fetchBeforeCursor(config: LanLlmPrefs.Config): String {
@@ -282,10 +310,24 @@ class AiSuggestionStripComponent(
     private fun clearSuggestions(resetRequestState: Boolean) {
         predictor.cancel()
         activeSuggestions = emptyList()
-        chipContainer.removeAllViews()
-        view.visibility = View.GONE
+        if (expandedWindowVisible) {
+            expandedWindowVisible = false
+            returnToKeyboardIfNeeded()
+        }
+        updateButtonVisibility()
         if (resetRequestState) {
             lastRequestedBeforeCursor = ""
+        }
+    }
+
+    private fun updateButtonVisibility() {
+        view.visibility = if (activeSuggestions.isNotEmpty() && !expandedWindowVisible) View.VISIBLE else View.GONE
+    }
+
+    private fun returnToKeyboardIfNeeded() {
+        val keyboardWindow = windowManager.getEssentialWindow(KeyboardWindow)
+        if (windowManager.currentWindowOrNull() !== keyboardWindow) {
+            windowManager.attachWindow(KeyboardWindow)
         }
     }
 }

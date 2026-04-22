@@ -5,6 +5,7 @@
 
 package org.fxboomk.fcitx5.android.input.keyboard
 
+import android.view.KeyEvent
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
@@ -76,6 +77,9 @@ class CommonKeyActionListener :
 
     private var backspaceSwipeState = Stopped
 
+    private fun hasNativePredictionCandidatesVisible(): Boolean =
+        preeditState.isEmpty && horizontalCandidate.adapter.total > 0
+
     // there should be a new fcitx API for this
     private suspend fun FcitxAPI.commitAndReset() {
         if (inputMethodEntryCached.languageCode.startsWith("zh")) {
@@ -118,7 +122,12 @@ class CommonKeyActionListener :
                 }
                 is SymAction -> service.postFcitxJob {
                     when {
-                        action.sym.sym == FcitxKeyMapping.FcitxKey_space && aiSuggestionStrip.hasVisibleSuggestions() -> {
+                        action.sym.keyCode == KeyEvent.KEYCODE_ESCAPE && aiSuggestionStrip.hasVisibleSuggestions() -> {
+                            service.lifecycleScope.launch { aiSuggestionStrip.dismissVisibleSuggestions() }
+                        }
+                        action.sym.sym == FcitxKeyMapping.FcitxKey_space &&
+                            aiSuggestionStrip.hasVisibleSuggestions() &&
+                            !hasNativePredictionCandidatesVisible() -> {
                             service.lifecycleScope.launch { aiSuggestionStrip.commitPrimarySuggestion() }
                         }
                         action.sym.sym == FcitxKeyMapping.FcitxKey_BackSpace && aiSuggestionStrip.hasVisibleSuggestions() -> {

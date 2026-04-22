@@ -3,6 +3,13 @@ package org.fxboomk.fcitx5.android.input.predict
 object LanLlmSuggestionParser {
     private const val THINK_START = "<think>"
     private const val THINK_END = "</think>"
+    private val dialogueRoleRegex = Regex("""(?:\[\s*(?:对方|我)\s*])""")
+    private val hanRegex = Regex("\\p{IsHan}")
+    private val latinLetterRegex = Regex("[A-Za-z]")
+    private val jsonFieldNoiseRegex = Regex(
+        """^(?:id|object|model|role|index|created|finish_reason|system_fingerprint|response)\s*"?\s*:\s*"?[A-Za-z0-9._:-]{2,}"?$""",
+        RegexOption.IGNORE_CASE
+    )
     private val structuredTextRegex = Regex(
         """"type"\s*:\s*"text"[\s\S]*?"text"\s*:\s*"((?:\\.|[^"\\])*)""""
     )
@@ -50,7 +57,7 @@ object LanLlmSuggestionParser {
             .map { sanitizeSuggestion(it, typedPrefix) }
             .filter { it.isNotBlank() }
             .distinct()
-            .take(4)
+            .take(8)
             .toList()
 
     private fun normalize(raw: String): String = raw
@@ -201,6 +208,7 @@ object LanLlmSuggestionParser {
         var text = stripInvisibleAndControl(candidate).trim()
         if (text.isBlank()) return ""
         text = stripThinkTagsOrNull(text) ?: return ""
+        if (dialogueRoleRegex.containsMatchIn(text)) return ""
         text = text.removePrefix("-").trimStart()
         text = text.removePrefix("•").trimStart()
         text = text.removePrefix("**").removeSuffix("**")
@@ -225,10 +233,20 @@ object LanLlmSuggestionParser {
         )
         if (metadataMarkers.any { text.startsWith(it) || it in text }) return ""
         if (looksLikeProtocolOrControl(text)) return ""
+        if (shouldSuppressMostlyLatin(text)) return ""
         if (text == typedPrefix.trim()) return ""
         if (text.length > 20) return ""
         if (text.count { it in "，。！？；：\n" } >= 2) return ""
         return text.trim()
+    }
+
+    private fun shouldSuppressMostlyLatin(text: String): Boolean {
+        if (text.isBlank()) return true
+        if (hanRegex.containsMatchIn(text)) return false
+        val letters = latinLetterRegex.findAll(text).count()
+        if (letters < 6) return false
+        val ratio = letters.toFloat() / text.length.coerceAtLeast(1)
+        return ratio >= 0.45f
     }
 
     private fun collapseToImeCandidate(text: String): String {
@@ -268,7 +286,7 @@ object LanLlmSuggestionParser {
         var inString = false
         var escaped = false
         slice.forEach { ch ->
-            if (out.size >= 4) return@forEach
+            if (out.size >= 8) return@forEach
             if (!inString) {
                 when (ch) {
                     '"' -> {
@@ -300,6 +318,7 @@ object LanLlmSuggestionParser {
         val s = stripInvisibleAndControl(text).trim()
         if (s.isEmpty()) return true
         if (s.startsWith("__METRICS__")) return true
+        if (jsonFieldNoiseRegex.matches(s)) return true
         if (s.contains("<MEM_RETRIEVAL>", ignoreCase = true) || s.contains("</MEM_RETRIEVAL>", ignoreCase = true)) return true
         if (s.contains("<NO_MEM>", ignoreCase = true)) return true
         if (s.contains("search query", ignoreCase = true)) return true

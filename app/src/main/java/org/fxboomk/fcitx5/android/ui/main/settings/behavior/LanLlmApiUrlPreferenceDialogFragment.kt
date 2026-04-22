@@ -135,6 +135,8 @@ class LanLlmApiUrlPreferenceDialogFragment : DialogFragment() {
             val provider = LanLlmPrefs.currentProvider(prefs)
             val scopedApiKey = LanLlmPrefs.syncScopedApiKeyToActivePreferences(prefs, provider, newValue)
             preferenceFragment.findPreference<EditTextPreference>(LanLlmPrefs.KEY_API_KEY)?.text = scopedApiKey
+            val scopedModel = LanLlmPrefs.syncScopedModelToActivePreferences(prefs, provider, newValue)
+            preferenceFragment.findPreference<EditTextPreference>(LanLlmPrefs.KEY_MODEL)?.text = scopedModel
         }
     }
 

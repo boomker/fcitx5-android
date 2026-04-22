@@ -11,7 +11,7 @@ import org.junit.Test
 class LanLlmPrefsTest {
 
     @Test
-    fun completionCompatEndpointsPrefersLlamaAndFallsBackToOllamaForBaseHost() {
+    fun completionCompatEndpointsTryKnownOpenAiCompatiblePrefixesForCustomBaseHost() {
         val config = LanLlmPrefs.Config(
             enabled = true,
             backend = LanLlmPrefs.Backend.Completion,
@@ -25,10 +25,24 @@ class LanLlmPrefsTest {
         )
 
         assertEquals(
-            listOf("http://127.0.0.1:11434/chat/completions"),
+            listOf(
+                "http://127.0.0.1:11434/v1/chat/completions",
+                "http://127.0.0.1:11434/api/chat/completions",
+                "http://127.0.0.1:11434/v1/api/chat/completions",
+                "http://127.0.0.1:11434/chat/completions",
+            ),
             config.completionCompatEndpoints,
         )
-        assertEquals("http://127.0.0.1:11434/models", config.modelsEndpoint)
+        assertEquals("http://127.0.0.1:11434/v1/models", config.modelsEndpoint)
+        assertEquals(
+            listOf(
+                "http://127.0.0.1:11434/v1/models",
+                "http://127.0.0.1:11434/api/models",
+                "http://127.0.0.1:11434/v1/api/models",
+                "http://127.0.0.1:11434/models",
+            ),
+            config.modelsCompatEndpoints,
+        )
     }
 
     @Test
@@ -46,7 +60,12 @@ class LanLlmPrefsTest {
         )
 
         assertEquals(
-            listOf("http://127.0.0.1:8080/chat/completions"),
+            listOf(
+                "http://127.0.0.1:8080/v1/chat/completions",
+                "http://127.0.0.1:8080/api/chat/completions",
+                "http://127.0.0.1:8080/v1/api/chat/completions",
+                "http://127.0.0.1:8080/chat/completions",
+            ),
             config.completionCompatEndpoints,
         )
     }
@@ -66,7 +85,12 @@ class LanLlmPrefsTest {
         )
 
         assertEquals(
-            listOf("http://127.0.0.1:11434/chat/completions"),
+            listOf(
+                "http://127.0.0.1:11434/v1/chat/completions",
+                "http://127.0.0.1:11434/api/chat/completions",
+                "http://127.0.0.1:11434/v1/api/chat/completions",
+                "http://127.0.0.1:11434/chat/completions",
+            ),
             config.completionCompatEndpoints,
         )
     }
@@ -138,6 +162,10 @@ class LanLlmPrefsTest {
             "https://api.anthropic.com/v1/models",
             config.modelsEndpoint,
         )
+        assertEquals(
+            listOf("https://api.anthropic.com/v1/models"),
+            config.modelsCompatEndpoints,
+        )
     }
 
     @Test
@@ -155,7 +183,7 @@ class LanLlmPrefsTest {
         )
 
         assertEquals(
-            "http://127.0.0.1:8080/chat/completions",
+            "http://127.0.0.1:8080/v1/chat/completions",
             config.chatEndpoint,
         )
     }
@@ -309,6 +337,126 @@ class LanLlmPrefsTest {
 
         assertEquals("sk-deepseek", restored)
         assertEquals("sk-deepseek", prefs.getString(LanLlmPrefs.KEY_API_KEY, ""))
+    }
+
+    @Test
+    fun readUsesScopedModelForProviderAndApiAddress() {
+        val prefs = FakeSharedPreferences(
+            mutableMapOf(
+                LanLlmPrefs.KEY_PROVIDER to LanLlmPrefs.Provider.Custom.value,
+                LanLlmPrefs.KEY_BASE_URL to "http://192.168.10.45:11444",
+                LanLlmPrefs.KEY_MODEL to "grok-4-1-fast-non-reasoning",
+            )
+        )
+        LanLlmPrefs.persistScopedModel(
+            prefs,
+            LanLlmPrefs.Provider.Custom,
+            "http://192.168.10.45:11444",
+            "qwen3-8b",
+        )
+
+        val config = LanLlmPrefs.read(prefs)
+
+        assertEquals("qwen3-8b", config.model)
+    }
+
+    @Test
+    fun syncScopedModelToActivePreferencesRestoresModelForMatchingScope() {
+        val prefs = FakeSharedPreferences()
+        LanLlmPrefs.persistScopedModel(
+            prefs,
+            LanLlmPrefs.Provider.DeepSeek,
+            "https://api.deepseek.com",
+            "deepseek-chat",
+        )
+        LanLlmPrefs.persistScopedModel(
+            prefs,
+            LanLlmPrefs.Provider.Custom,
+            "http://192.168.10.45:11444",
+            "qwen3-8b",
+        )
+
+        val restored = LanLlmPrefs.syncScopedModelToActivePreferences(
+            prefs,
+            LanLlmPrefs.Provider.Custom,
+            "http://192.168.10.45:11444",
+        )
+
+        assertEquals("qwen3-8b", restored)
+        assertEquals("qwen3-8b", prefs.getString(LanLlmPrefs.KEY_MODEL, ""))
+    }
+
+    @Test
+    fun syncScopedModelToActivePreferencesMigratesLegacyCurrentValueOnlyForActiveScope() {
+        val prefs = FakeSharedPreferences(
+            mutableMapOf(
+                LanLlmPrefs.KEY_MODEL to "qwen3-8b",
+            )
+        )
+
+        val restored = LanLlmPrefs.syncScopedModelToActivePreferences(
+            prefs,
+            LanLlmPrefs.Provider.Custom,
+            "http://192.168.10.45:11444",
+            legacyFallback = "qwen3-8b",
+        )
+
+        assertEquals("qwen3-8b", restored)
+        assertEquals(
+            "qwen3-8b",
+            LanLlmPrefs.getScopedModel(
+                prefs,
+                LanLlmPrefs.Provider.Custom,
+                "http://192.168.10.45:11444",
+            ),
+        )
+    }
+
+    @Test
+    fun readSupportsIntBackedSampleCountAndMaxOutputTokens() {
+        val prefs = FakeSharedPreferences(
+            mutableMapOf(
+                LanLlmPrefs.KEY_PROVIDER to LanLlmPrefs.Provider.Custom.value,
+                LanLlmPrefs.KEY_SAMPLE_COUNT to 6,
+                LanLlmPrefs.KEY_MAX_OUTPUT_TOKENS to 256,
+                LanLlmPrefs.KEY_MAX_PREDICTION_CANDIDATES to 7,
+            )
+        )
+
+        val config = LanLlmPrefs.read(prefs)
+
+        assertEquals(6, config.sampleCount)
+        assertEquals(256, config.maxOutputTokens)
+        assertEquals(7, config.maxPredictionCandidates)
+    }
+
+    @Test
+    fun readForcesVendorProviderSampleCountToOne() {
+        val prefs = FakeSharedPreferences(
+            mutableMapOf(
+                LanLlmPrefs.KEY_PROVIDER to LanLlmPrefs.Provider.OpenAI.value,
+                LanLlmPrefs.KEY_SAMPLE_COUNT to 6,
+            )
+        )
+
+        val config = LanLlmPrefs.read(prefs)
+
+        assertEquals(1, config.sampleCount)
+    }
+
+    @Test
+    fun migrateSeekBarBackedPreferencesConvertsLegacySampleCountStringToInt() {
+        val prefs = FakeSharedPreferences(
+            mutableMapOf(
+                LanLlmPrefs.KEY_SAMPLE_COUNT to "8",
+                LanLlmPrefs.KEY_MAX_PREDICTION_CANDIDATES to "10",
+            )
+        )
+
+        LanLlmPrefs.migrateSeekBarBackedPreferences(prefs)
+
+        assertEquals(6, prefs.getInt(LanLlmPrefs.KEY_SAMPLE_COUNT, 0))
+        assertEquals(8, prefs.getInt(LanLlmPrefs.KEY_MAX_PREDICTION_CANDIDATES, 0))
     }
 
     private class FakeSharedPreferences(

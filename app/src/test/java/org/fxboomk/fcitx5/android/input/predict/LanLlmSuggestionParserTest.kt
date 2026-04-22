@@ -108,4 +108,42 @@ class LanLlmSuggestionParserTest {
 
         assertEquals(emptyList<String>(), LanLlmSuggestionParser.parse(raw, "今晚一起"))
     }
+
+    @Test
+    fun filtersJsonIdFieldNoiseOutputs() {
+        val raw = """id":"msg_12345-67890"""
+
+        assertEquals(emptyList<String>(), LanLlmSuggestionParser.parse(raw, "今晚一起"))
+    }
+
+    @Test
+    fun filtersJsonMetadataFieldNoiseOutputs() {
+        val raw = """finish_reason":"stop"""
+
+        assertEquals(emptyList<String>(), LanLlmSuggestionParser.parse(raw, "今晚一起"))
+    }
+
+    @Test
+    fun filtersDialogueRoleMarkers() {
+        val raw = """[对方] 明天见"""
+
+        assertEquals(emptyList<String>(), LanLlmSuggestionParser.parse(raw, "今晚一起"))
+    }
+
+    @Test
+    fun filtersMostlyLatinNoiseCandidates() {
+        val raw = """assistant_response_id_abc-123"""
+
+        assertEquals(emptyList<String>(), LanLlmSuggestionParser.parse(raw, "今晚一起"))
+    }
+
+    @Test
+    fun jsonSuggestionParserKeepsUpToEightDistinctCandidates() {
+        val raw = """{"suggestions":["候选1","候选2","候选3","候选4","候选5","候选6","候选7","候选8","候选9"]}"""
+
+        assertEquals(
+            listOf("候选1", "候选2", "候选3", "候选4", "候选5", "候选6", "候选7", "候选8"),
+            LanLlmSuggestionParser.parse(raw, ""),
+        )
+    }
 }

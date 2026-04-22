@@ -8,6 +8,7 @@ import android.text.InputType
 import androidx.preference.EditTextPreference
 import androidx.preference.ListPreference
 import androidx.preference.Preference
+import androidx.preference.SeekBarPreference
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.input.predict.LanLlmPrefs
 import org.fxboomk.fcitx5.android.ui.common.PaddingPreferenceFragment
@@ -48,6 +49,7 @@ class LanLlmSettingsFragment : PaddingPreferenceFragment() {
     }
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
+        preferenceManager.sharedPreferences?.let(LanLlmPrefs::migrateSeekBarBackedPreferences)
         preferenceScreen = preferenceManager.createPreferenceScreen(requireContext()).apply {
             addPreference(MySwitchPreference(context).apply {
                 key = LanLlmPrefs.KEY_ENABLED
@@ -98,7 +100,7 @@ class LanLlmSettingsFragment : PaddingPreferenceFragment() {
                     if (pref.text.isNullOrBlank()) {
                         context.getString(R.string.lan_llm_model_summary_hint)
                     } else {
-                        pref.text
+                        pref.text.orEmpty()
                     }
                 },
             ))
@@ -121,10 +123,12 @@ class LanLlmSettingsFragment : PaddingPreferenceFragment() {
                     }
                 },
             ))
+            addPreference(sampleCountPreference())
+            addPreference(maxPredictionCandidatesPreference())
             addPreference(textPreference(
-                key = LanLlmPrefs.KEY_SAMPLE_COUNT,
-                titleRes = R.string.lan_llm_sample_count,
-                defaultValue = "4",
+                key = LanLlmPrefs.KEY_MAX_OUTPUT_TOKENS,
+                titleRes = R.string.lan_llm_max_output_tokens,
+                defaultValue = "512",
                 summaryProvider = Preference.SummaryProvider<EditTextPreference> { pref ->
                     val value = pref.text?.toIntOrNull()
                     if (value == null) context.getString(R.string.invalid_value) else value.toString()
@@ -132,7 +136,7 @@ class LanLlmSettingsFragment : PaddingPreferenceFragment() {
                 inputType = InputType.TYPE_CLASS_NUMBER,
                 onChange = { raw ->
                     val value = raw.toIntOrNull()
-                    if (value == null || value !in 1..8) {
+                    if (value == null || value !in 1..16384) {
                         context.toast(R.string.invalid_value)
                         false
                     } else {
@@ -163,6 +167,36 @@ class LanLlmSettingsFragment : PaddingPreferenceFragment() {
         ensureProviderDefaultsAndScopedApiKey()
     }
 
+    private fun sampleCountPreference() = SeekBarPreference(requireContext()).apply {
+        key = LanLlmPrefs.KEY_SAMPLE_COUNT
+        setTitle(R.string.lan_llm_sample_count)
+        setDefaultValue(4)
+        min = 1
+        max = 6
+        showSeekBarValue = true
+        isAdjustable = true
+        isIconSpaceReserved = false
+        isSingleLineTitle = false
+        summaryProvider = Preference.SummaryProvider<SeekBarPreference> { pref ->
+            pref.value.toString()
+        }
+    }
+
+    private fun maxPredictionCandidatesPreference() = SeekBarPreference(requireContext()).apply {
+        key = LanLlmPrefs.KEY_MAX_PREDICTION_CANDIDATES
+        setTitle(R.string.lan_llm_max_prediction_candidates)
+        setDefaultValue(4)
+        min = 1
+        max = 8
+        showSeekBarValue = true
+        isAdjustable = true
+        isIconSpaceReserved = false
+        isSingleLineTitle = false
+        summaryProvider = Preference.SummaryProvider<SeekBarPreference> { pref ->
+            pref.value.toString()
+        }
+    }
+
     private fun providerPreference() = ListPreference(requireContext()).apply {
         key = LanLlmPrefs.KEY_PROVIDER
         setTitle(R.string.lan_llm_provider)
@@ -180,6 +214,9 @@ class LanLlmSettingsFragment : PaddingPreferenceFragment() {
             findPreference<EditTextPreference>(LanLlmPrefs.KEY_BASE_URL)?.text = nextBase
             val nextApiKey = LanLlmPrefs.getScopedApiKey(prefs, nextProvider, nextBase)
             findPreference<EditTextPreference>(LanLlmPrefs.KEY_API_KEY)?.text = nextApiKey
+            val nextModel = LanLlmPrefs.syncScopedModelToActivePreferences(prefs, nextProvider, nextBase)
+            findPreference<EditTextPreference>(LanLlmPrefs.KEY_MODEL)?.text = nextModel
+            syncSamplingPreferenceState(nextProvider)
             true
         }
     }
@@ -195,6 +232,24 @@ class LanLlmSettingsFragment : PaddingPreferenceFragment() {
         }
         val apiKey = LanLlmPrefs.syncScopedApiKeyToActivePreferences(prefs, provider, effectiveBase)
         findPreference<EditTextPreference>(LanLlmPrefs.KEY_API_KEY)?.text = apiKey
+        val currentModel = findPreference<EditTextPreference>(LanLlmPrefs.KEY_MODEL)?.text.orEmpty()
+        val restoredModel = LanLlmPrefs.syncScopedModelToActivePreferences(
+            prefs,
+            provider,
+            effectiveBase,
+            legacyFallback = currentModel,
+        )
+        findPreference<EditTextPreference>(LanLlmPrefs.KEY_MODEL)?.text = restoredModel
+        syncSamplingPreferenceState(provider)
+    }
+
+    private fun syncSamplingPreferenceState(provider: LanLlmPrefs.Provider) {
+        val samplePreference = findPreference<SeekBarPreference>(LanLlmPrefs.KEY_SAMPLE_COUNT) ?: return
+        val isLockedToSingleSample = provider.isVendorProvidedApiService
+        if (isLockedToSingleSample && samplePreference.value != 1) {
+            samplePreference.value = 1
+        }
+        samplePreference.isEnabled = !isLockedToSingleSample
     }
 
     private fun textPreference(
