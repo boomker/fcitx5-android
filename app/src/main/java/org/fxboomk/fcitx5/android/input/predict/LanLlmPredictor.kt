@@ -14,6 +14,25 @@ class LanLlmPredictor(
     private val appContext: Context,
     private val client: LanLlmClient = LanLlmClient(),
 ) {
+    internal class RequestTracker {
+        private var activeRequestId = 0L
+
+        fun replaceActiveRequest(): Long = synchronized(this) {
+            activeRequestId += 1
+            activeRequestId
+        }
+
+        fun invalidate() {
+            synchronized(this) {
+                activeRequestId += 1
+            }
+        }
+
+        fun isActive(requestId: Long): Boolean = synchronized(this) {
+            requestId == activeRequestId
+        }
+    }
+
     data class Request(
         val beforeCursor: String,
         val recentCommittedText: String = "",
@@ -27,6 +46,7 @@ class LanLlmPredictor(
     )
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private val requestTracker = RequestTracker()
     private var pendingJob: Job? = null
 
     fun request(
@@ -35,34 +55,49 @@ class LanLlmPredictor(
         onError: ((Throwable) -> Unit)? = null,
     ) {
         val config = LanLlmPrefs.read(appContext)
+        val requestId = requestTracker.replaceActiveRequest()
+        pendingJob?.cancel()
+        pendingJob = null
         if (!config.isUsable || request.beforeCursor.isBlank()) {
             onResult(emptyList())
             return
         }
 
-        cancel()
         pendingJob = scope.launch {
-            delay(config.debounceMs)
-            runCatching {
-                if (config.backend == LanLlmPrefs.Backend.Completion) {
-                    predictCompletion(config, request)
-                } else {
-                    val useRecentCommitBias = config.preferLastCommit && request.recentCommittedText.isNotBlank()
-                    client.predict(
-                        LanLlmClient.PredictionRequest(
-                            config = config,
-                            beforeCursor = request.beforeCursor,
-                            recentCommittedText = request.recentCommittedText,
-                            historyText = request.historyText,
-                            useRecentCommitBias = useRecentCommitBias,
+            val runningJob = checkNotNull(coroutineContext[Job])
+            try {
+                delay(config.debounceMs)
+                val result = runCatching {
+                    if (config.backend == LanLlmPrefs.Backend.Completion) {
+                        predictCompletion(config, request)
+                    } else {
+                        val useRecentCommitBias = config.preferLastCommit && request.recentCommittedText.isNotBlank()
+                        client.predict(
+                            LanLlmClient.PredictionRequest(
+                                config = config,
+                                beforeCursor = request.beforeCursor,
+                                recentCommittedText = request.recentCommittedText,
+                                historyText = request.historyText,
+                                useRecentCommitBias = useRecentCommitBias,
+                            )
                         )
-                    )
+                    }
                 }
-            }.onSuccess {
-                onResult(it.suggestions.take(config.maxPredictionCandidates))
-            }.onFailure {
-                onError?.invoke(it)
-                onResult(emptyList())
+
+                if (!runningJob.isActive || !requestTracker.isActive(requestId)) {
+                    return@launch
+                }
+
+                result.onSuccess {
+                    onResult(it.suggestions.take(config.maxPredictionCandidates))
+                }.onFailure {
+                    onError?.invoke(it)
+                    onResult(emptyList())
+                }
+            } finally {
+                if (pendingJob === runningJob) {
+                    pendingJob = null
+                }
             }
         }
     }
@@ -127,6 +162,7 @@ class LanLlmPredictor(
     }
 
     fun cancel() {
+        requestTracker.invalidate()
         pendingJob?.cancel()
         pendingJob = null
     }

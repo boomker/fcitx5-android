@@ -223,9 +223,16 @@ class LanLlmModelPreferenceDialogFragment : DialogFragment() {
     }
 
     private fun buildChoiceItems(models: List<LanLlmCatalogClient.RemoteModel>): List<ModelChoiceItem> = buildList {
+        val prefs = modelPreference.preferenceManager.sharedPreferences
+        val provider = LanLlmPrefs.currentProvider(prefs ?: return@buildList)
+        val unprefixedGroupLabel = resolveUnprefixedGroupLabel(
+            providerLabel = getString(provider.titleRes),
+            isCustomProvider = provider == LanLlmPrefs.Provider.Custom,
+            emptyLabel = getString(R.string.lan_llm_model_group_empty),
+        )
         var lastGroupLabel: String? = null
         models.forEach { model ->
-            val groupLabel = model.providerPrefix ?: getString(R.string.lan_llm_model_group_unprefixed)
+            val groupLabel = model.providerPrefix ?: unprefixedGroupLabel
             if (groupLabel != lastGroupLabel) {
                 add(ModelChoiceItem.Group(groupLabel))
                 lastGroupLabel = groupLabel
@@ -238,6 +245,12 @@ class LanLlmModelPreferenceDialogFragment : DialogFragment() {
         private const val ARG_KEY = "key"
         private const val STATE_TEXT = "lan_llm_model_text"
         private const val STATE_STATUS = "lan_llm_model_status"
+
+        internal fun resolveUnprefixedGroupLabel(
+            providerLabel: String,
+            isCustomProvider: Boolean,
+            emptyLabel: String,
+        ): String = if (isCustomProvider) emptyLabel else providerLabel
 
         fun newInstance(key: String): LanLlmModelPreferenceDialogFragment =
             LanLlmModelPreferenceDialogFragment().apply {

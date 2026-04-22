@@ -109,6 +109,7 @@ class LanLlmClient {
 
     private fun predictChat(request: PredictionRequest): PredictionResponse {
         val useRecentCommitBias = request.useRecentCommitBias && request.recentCommittedText.isNotBlank()
+        val systemPrompt = LanLlmPrompt.systemPrompt(request.config.maxPredictionCandidates)
         val openAiPayload = JSONObject()
             .put("model", request.config.model)
             .put("stream", false)
@@ -121,7 +122,7 @@ class LanLlmClient {
                     .put(
                         JSONObject()
                             .put("role", "system")
-                            .put("content", LanLlmPrompt.systemPrompt())
+                            .put("content", systemPrompt)
                     )
                     .put(
                         JSONObject()
@@ -139,7 +140,7 @@ class LanLlmClient {
             )
         val anthropicPayload = JSONObject()
             .put("model", request.config.model)
-            .put("system", LanLlmPrompt.systemPrompt())
+            .put("system", systemPrompt)
             .put("messages", JSONArray().put(
                 JSONObject()
                     .put("role", "user")

@@ -3,19 +3,6 @@ package org.fxboomk.fcitx5.android.input.predict
 object LanLlmPrompt {
     private const val STYLE_PERSONA = "自然、得体、贴近上下文的中文续写助手"
 
-    private const val CHAT_SYSTEM_PROMPT = """
-你是$STYLE_PERSONA。
-你的任务是像输入法一样，根据上下文给出 1-4 个自然续写候选。
-1. 只能输出 JSON。
-2. 顶层格式必须且只能是 {"suggestions":["候选1","候选2"]}。
-3. 不要解释，不要寒暄，不要自我介绍，不要输出 markdown 符号。
-4. 不要重复当前前缀已经输入的文本。
-5. 每个候选尽量不超过 12 个汉字或 20 个字符。
-6. 候选必须简短、自然、可直接上屏，像输入法联想，不要写整句说明文。
-7. 不要输出 suggestions 字段以外的任何额外字段或文字。
-8. 如果无法预测，也输出空数组：{"suggestions":[]}
-"""
-
     private const val COMPLETION_SYSTEM_PROMPT = """
 你是$STYLE_PERSONA。
 当前任务是“对话续写/补全”。
@@ -28,7 +15,22 @@ object LanLlmPrompt {
 
     private const val EMPTY_CONTEXT = "无"
 
-    fun systemPrompt(): String = CHAT_SYSTEM_PROMPT.trim()
+    fun systemPrompt(maxPredictionCandidates: Int): String {
+        val candidateLimit = maxPredictionCandidates.coerceIn(1, 8)
+        return """
+你是$STYLE_PERSONA。
+你的任务是像输入法一样，根据上下文给出 1-$candidateLimit 个自然续写候选。
+1. 只能输出 JSON。
+2. 顶层格式必须且只能是 {"suggestions":["候选1","候选2"]}。
+3. 不要解释，不要寒暄，不要自我介绍，不要输出 markdown 符号。
+4. 不要重复当前前缀已经输入的文本。
+5. 每个候选尽量不超过 12 个汉字或 20 个字符。
+6. 候选必须简短、自然、可直接上屏，像输入法联想，不要写整句说明文。
+7. 尽量给满 $candidateLimit 个候选；如果确实无法给满，再输出更少的候选。
+8. 不要输出 suggestions 字段以外的任何额外字段或文字。
+9. 如果无法预测，也输出空数组：{"suggestions":[]}
+""".trim()
+    }
 
     private fun normalizeContext(value: String): String = value.trim().ifBlank { EMPTY_CONTEXT }
 

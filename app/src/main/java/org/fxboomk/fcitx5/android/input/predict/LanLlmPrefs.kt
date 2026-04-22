@@ -43,6 +43,7 @@ object LanLlmPrefs {
         val titleRes: Int,
         val defaultBaseUrl: String?,
         val compatApi: CompatApi?,
+        val defaultModel: String? = null,
     ) {
         Custom("custom", R.string.lan_llm_provider_custom, null, null),
         OpenAI("openai", R.string.lan_llm_provider_openai, "https://api.openai.com/v1", CompatApi.OpenAI),
@@ -50,7 +51,13 @@ object LanLlmPrefs {
         Gemini("gemini", R.string.lan_llm_provider_gemini, "https://generativelanguage.googleapis.com/v1beta/openai", CompatApi.OpenAI),
         DeepSeek("deepseek", R.string.lan_llm_provider_deepseek, "https://api.deepseek.com", CompatApi.OpenAI),
         Zhipu("zhipu", R.string.lan_llm_provider_zhipu, "https://open.bigmodel.cn/api/paas/v4", CompatApi.OpenAI),
-        MiniMax("minimax", R.string.lan_llm_provider_minimax, "https://api.minimaxi.com/v1", CompatApi.OpenAI);
+        MiniMax(
+            "minimax",
+            R.string.lan_llm_provider_minimax,
+            "https://api.minimaxi.com/v1",
+            CompatApi.OpenAI,
+            "MiniMax-M2.7",
+        );
 
         val isVendorProvidedApiService: Boolean
             get() = this != Custom
@@ -206,7 +213,7 @@ object LanLlmPrefs {
             baseUrl = normalizeBaseUrl(baseUrl),
             model = (overrides.model ?: getScopedModel(prefs, provider, baseUrl).ifBlank {
                 prefs.getString(KEY_MODEL, DEFAULT_MODEL).orEmpty()
-            }).trim(),
+            }).trim().ifBlank { providerDefaultModel(provider) },
             apiKey = (overrides.apiKey ?: getScopedApiKey(prefs, provider, baseUrl)).trim(),
             debounceMs = debounceMs,
             sampleCount = sampleCount,
@@ -239,6 +246,9 @@ object LanLlmPrefs {
 
     fun providerDefaultBaseUrl(provider: Provider): String =
         provider.defaultBaseUrl ?: customDefaultBaseUrl()
+
+    fun providerDefaultModel(provider: Provider): String =
+        provider.defaultModel.orEmpty()
 
     fun getScopedApiKey(
         prefs: SharedPreferences,
@@ -306,7 +316,9 @@ object LanLlmPrefs {
         baseUrl: String,
         legacyFallback: String = "",
     ): String {
-        val restoredModel = getScopedModel(prefs, provider, baseUrl).ifBlank { legacyFallback.trim() }
+        val restoredModel = getScopedModel(prefs, provider, baseUrl)
+            .ifBlank { legacyFallback.trim() }
+            .ifBlank { providerDefaultModel(provider) }
         val editor = prefs.edit()
         if (restoredModel.isBlank()) {
             editor.remove(scopedModelKey(provider, baseUrl))

@@ -1,0 +1,249 @@
+--------- Device Info
+OS Name: JKM-AL00b 9.1.0.228(C00E33R4P2)
+OS Version: 4.9.148 (9.1.0.228C00)
+OS API Level: 28
+Device: HWJKM-HM
+Model (product): JKM-AL00b (JKM-AL00b)
+Manufacturer: HUAWEI
+Tags: release-keys
+Screen Size: 1080 x 2340
+Screen Density: 3.0
+Screen orientation: Portrait
+--------- Package Info
+Package Name: org.fxboomk.fcitx5.android
+Version Code: 102
+Version Name: 0.1.2-379-g4c963259
+--------- Build Info
+Build Type: release
+Build Time: 2026-04-22T09:37:47Z
+Build Git Hash: 4c963259b7aee15bef581980787c113af53e3ec6
+--------- Crash stacktrace
+java.lang.ExceptionInInitializerError
+	at org.fxboomk.fcitx5.android.input.predict.AiSuggestionStripComponent.requestPredictionIfNeeded(r8-map-id-03fde049293ad13048c9d9c79c7b1a1b94f15572fc472a0a18e6dc2cf4e40c2b:59)
+	at org.fxboomk.fcitx5.android.input.predict.AiSuggestionStripComponent.onInputPanelUpdate(r8-map-id-03fde049293ad13048c9d9c79c7b1a1b94f15572fc472a0a18e6dc2cf4e40c2b:11)
+	at org.fxboomk.fcitx5.android.input.broadcast.InputBroadcaster.onInputPanelUpdate(r8-map-id-03fde049293ad13048c9d9c79c7b1a1b94f15572fc472a0a18e6dc2cf4e40c2b:19)
+	at org.fxboomk.fcitx5.android.input.InputView.handleFcitxEvent(r8-map-id-03fde049293ad13048c9d9c79c7b1a1b94f15572fc472a0a18e6dc2cf4e40c2b:160)
+	at androidx.paging.ChannelFlowCollector.emit(r8-map-id-03fde049293ad13048c9d9c79c7b1a1b94f15572fc472a0a18e6dc2cf4e40c2b:206)
+	at kotlinx.coroutines.flow.SharedFlowImpl.collect$suspendImpl(r8-map-id-03fde049293ad13048c9d9c79c7b1a1b94f15572fc472a0a18e6dc2cf4e40c2b:169)
+	at kotlinx.coroutines.flow.SharedFlowImpl$collect$1.invokeSuspend(r8-map-id-03fde049293ad13048c9d9c79c7b1a1b94f15572fc472a0a18e6dc2cf4e40c2b:13)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(r8-map-id-03fde049293ad13048c9d9c79c7b1a1b94f15572fc472a0a18e6dc2cf4e40c2b:5)
+	at kotlinx.coroutines.DispatchedTask.run(r8-map-id-03fde049293ad13048c9d9c79c7b1a1b94f15572fc472a0a18e6dc2cf4e40c2b:112)
+	at android.os.Handler.handleCallback(Handler.java:907)
+	at android.os.Handler.dispatchMessage(Handler.java:105)
+	at android.os.Looper.loop(Looper.java:216)
+	at android.app.ActivityThread.main(ActivityThread.java:7779)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:524)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:990)
+	Suppressed: kotlinx.coroutines.internal.DiagnosticCoroutineContextException: [StandaloneCoroutine{Cancelling}@124f4a5, Dispatchers.Main.immediate]
+Caused by: java.util.regex.PatternSyntaxException: U_ILLEGAL_ARGUMENT_ERROR
+\p{IsHan}
+	at java.util.regex.Pattern.compileImpl(Native Method)
+	at java.util.regex.Pattern.compile(Pattern.java:1344)
+	at java.util.regex.Pattern.<init>(Pattern.java:1328)
+	at java.util.regex.Pattern.compile(Pattern.java:950)
+	at kotlin.text.Regex.<init>(r8-map-id-03fde049293ad13048c9d9c79c7b1a1b94f15572fc472a0a18e6dc2cf4e40c2b:39)
+	at org.fxboomk.fcitx5.android.input.predict.LanLlmRequestGate.<clinit>(r8-map-id-03fde049293ad13048c9d9c79c7b1a1b94f15572fc472a0a18e6dc2cf4e40c2b:5)
+	... 16 more
+
+--------- beginning of main
+I/chatty  ( 3754): uid=10343(org.fxboomk.fcitx5.android) expire 96 lines
+--------- beginning of system
+D/ActivityThread( 3754): Attach thread to application
+I/chatty  ( 3754): uid=10343(org.fxboomk.fcitx5.android) expire 4 lines
+I/chatty  ( 3754): uid=10343(org.fxboomk.fcitx5.android) expire 6 lines
+I/chatty  ( 3754): uid=10343(org.fxboomk.fcitx5.android) expire 2 lines
+I/chatty  ( 3754): uid=10343(org.fxboomk.fcitx5.android) expire 3 lines
+V/ActivityThread( 3754): callActivityOnCreate
+D/ActivityThread( 3754): add activity client record, r= ActivityRecord{c52d5ed token=android.os.BinderProxy@e467e4c {org.fxboomk.fcitx5.android/org.fxboomk.fcitx5.android.ui.main.LogActivity}} token= android.os.BinderProxy@e467e4c
+I/chatty  ( 3754): uid=10343(org.fxboomk.fcitx5.android) expire 2 lines
+I/chatty  ( 3754): uid=10343(org.fxboomk.fcitx5.android) expire 15 lines
+I/chatty  ( 3754): uid=10343(org.fxboomk.fcitx5.android) expire 2 lines
+I/chatty  ( 3754): uid=10343(org.fxboomk.fcitx5.android) expire 17 lines
+D/ActivityThread( 3754): Remove activity client record, r= ActivityRecord{c52d5ed token=android.os.BinderProxy@e467e4c {org.fxboomk.fcitx5.android/org.fxboomk.fcitx5.android.ui.main.LogActivity}} token= android.os.BinderProxy@e467e4c
+I/chatty  ( 3754): uid=10343(org.fxboomk.fcitx5.android) expire 6 lines
+I/chatty  ( 3754): uid=10343(org.fxboomk.fcitx5.android) expire 1772 lines
+W/InputMethodSubtype( 3754): list size = 224
+W/InputMethodSubtype( 3754): list size = 1
+W/InputMethodSubtype( 3754): list size = 2
+W/InputMethodSubtype( 3754): list size = 1
+I/chatty  ( 3754): uid=10343(org.fxboomk.fcitx5.android) identical 2 lines
+W/InputMethodSubtype( 3754): list size = 1
+W/InputMethodSubtype( 3754): list size = 224
+W/InputMethodSubtype( 3754): list size = 1
+W/InputMethodSubtype( 3754): list size = 2
+W/InputMethodSubtype( 3754): list size = 1
+I/chatty  ( 3754): uid=10343(org.fxboomk.fcitx5.android) identical 2 lines
+W/InputMethodSubtype( 3754): list size = 1
+I/chatty  ( 3754): uid=10343(org.fxboomk.fcitx5.android) expire 32 lines
+I/chatty  ( 3754): uid=10343(org.fxboomk.fcitx5.android) expire 2 lines
+I/chatty  ( 3754): uid=10343(org.fxboomk.fcitx5.android) expire 2 lines
+I/chatty  ( 3754): uid=10343(org.fxboomk.fcitx5.android) expire 1 line
+I/chatty  ( 3754): uid=10343(org.fxboomk.fcitx5.android) expire 38 lines
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......I. 0,0-157,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......ID 0,0-158,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......ID 0,0-157,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......I. 0,0-158,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......I. 0,0-157,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......ID 0,0-158,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......ID 0,0-157,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......I. 0,0-158,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......I. 0,0-157,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......ID 0,0-158,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......ID 0,0-157,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......I. 0,0-158,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......I. 0,0-157,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......ID 0,0-158,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......ID 0,0-157,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......I. 0,0-158,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......I. 0,0-157,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......ID 0,0-158,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......ID 0,0-157,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......I. 0,0-158,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......I. 0,0-157,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......ID 0,0-158,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......ID 0,0-157,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......I. 0,0-158,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......I. 0,0-157,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......ID 0,0-158,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......ID 0,0-157,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......I. 0,0-158,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......I. 0,0-157,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......ID 0,0-158,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......ID 0,0-157,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......I. 0,0-158,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......I. 0,0-157,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......ID 0,0-158,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......ID 0,0-157,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......I. 0,0-158,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......I. 0,0-157,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......ID 0,0-158,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......ID 0,0-157,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......I. 0,0-158,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......I. 0,0-157,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......ID 0,0-158,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......ID 0,0-157,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......I. 0,0-158,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......I. 0,0-157,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......ID 0,0-158,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......ID 0,0-157,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......I. 0,0-158,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......I. 0,0-157,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......ID 0,0-158,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......ID 0,0-157,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......I. 0,0-158,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......I. 0,0-157,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......ID 0,0-158,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......ID 0,0-157,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......I. 0,0-158,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......I. 0,0-157,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......ID 0,0-158,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......ID 0,0-157,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......I. 0,0-158,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......I. 0,0-157,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......ID 0,0-158,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......ID 0,0-157,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......I. 0,0-158,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......I. 0,0-157,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......ID 0,0-158,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......ID 0,0-157,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......I. 0,0-158,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......I. 0,0-157,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......ID 0,0-158,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......ID 0,0-157,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......I. 0,0-158,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......I. 0,0-157,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......ID 0,0-158,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......ID 0,0-157,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......I. 0,0-158,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......I. 0,0-157,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......ID 0,0-158,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......ID 0,0-157,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......I. 0,0-158,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......I. 0,0-157,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......ID 0,0-158,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......ID 0,0-157,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......I. 0,0-158,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......I. 0,0-157,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......ID 0,0-158,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......ID 0,0-157,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......I. 0,0-158,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......I. 0,0-157,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......ID 0,0-158,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......ID 0,0-157,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......I. 0,0-158,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......I. 0,0-157,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......ID 0,0-158,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......ID 0,0-157,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......I. 0,0-158,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......I. 0,0-157,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......ID 0,0-158,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......ID 0,0-157,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......I. 0,0-158,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......I. 0,0-157,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......ID 0,0-158,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......ID 0,0-157,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......I. 0,0-158,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......I. 0,0-157,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......ID 0,0-158,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......ID 0,0-157,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......I. 0,0-158,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......I. 0,0-157,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......ID 0,0-158,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......ID 0,0-157,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......I. 0,0-158,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......I. 0,0-157,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......ID 0,0-158,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......ID 0,0-157,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......I. 0,0-158,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......I. 0,0-157,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......ID 0,0-158,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......ID 0,0-157,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......I. 0,0-158,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......I. 0,0-157,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......ID 0,0-158,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......ID 0,0-157,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......I. 0,0-158,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......I. 0,0-157,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......ID 0,0-158,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......ID 0,0-157,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......I. 0,0-158,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......I. 0,0-157,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......ID 0,0-158,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......ID 0,0-157,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......I. 0,0-158,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......I. 0,0-157,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......ID 0,0-158,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......ID 0,0-157,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......I. 0,0-158,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......I. 0,0-157,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......ID 0,0-158,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......ID 0,0-157,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......I. 0,0-158,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......I. 0,0-157,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......ID 0,0-158,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......ID 0,0-157,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......I. 0,0-158,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......I. 0,0-157,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......ID 0,0-158,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......ID 0,0-157,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......I. 0,0-158,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......I. 0,0-157,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......ID 0,0-158,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......ID 0,0-157,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......I. 0,0-158,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......I. 0,0-157,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......ID 0,0-158,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......ID 0,0-157,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......I. 0,0-158,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......I. 0,0-157,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......ID 0,0-158,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......ID 0,0-157,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......I. 0,0-158,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......I. 0,0-157,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......ID 0,0-158,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......ID 0,0-157,154} during layout: running second layout pass
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{ba25980 V.E...... ......I. 0,0-158,154} during second layout pass: posting in next frame
+W/View    ( 3754): requestLayout() improperly called by androidx.constraintlayout.widget.ConstraintLayout{bc9b404 V.E...... ......I. 0,0-157,154} during second layout pass: posting in next frame
+I/.fcitx5.androi( 3754): System.exit called, status: 10
+I/AndroidRuntime( 3754): VM exiting with result code 10, cleanup skipped.

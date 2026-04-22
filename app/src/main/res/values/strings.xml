@@ -307,7 +307,7 @@
     <string name="lan_llm_provider_gemini" translatable="false">Gemini</string>
     <string name="lan_llm_provider_deepseek" translatable="false">DeepSeek</string>
     <string name="lan_llm_provider_zhipu" translatable="false">BigModel(智谱)</string>
-    <string name="lan_llm_provider_minimax" translatable="false">MiniMax</string>
+    <string name="lan_llm_provider_minimax" translatable="false">MiniMax CN</string>
     <string name="lan_llm_api_url" translatable="false">API 地址</string>
     <string name="lan_llm_api_url_default_hint" translatable="false">留空时将使用服务商默认地址：%1$s</string>
     <string name="lan_llm_api_url_custom_hint" translatable="false">当前为自定义服务商，请填写完整 API 地址。</string>
@@ -321,8 +321,8 @@
     <string name="lan_llm_model_fetch_empty" translatable="false">未获取到模型列表，请手动填写模型名称。</string>
     <string name="lan_llm_model_fetch_failed" translatable="false">模型列表获取失败：%1$s</string>
     <string name="lan_llm_model_actual_id_empty" translatable="false"></string>
-    <string name="lan_llm_model_group_prefix" translatable="false">Provider：%1$s</string>
-    <string name="lan_llm_model_group_unprefixed" translatable="false">未带 provider 前缀</string>
+    <string name="lan_llm_model_group_prefix" translatable="false">模型服务商：%1$s</string>
+    <string name="lan_llm_model_group_empty" translatable="false">空</string>
     <string name="lan_llm_fetch_models" translatable="false">拉取模型列表</string>
     <string name="lan_llm_api_key" translatable="false">API 密钥</string>
     <string name="lan_llm_api_key_set" translatable="false">已配置</string>

@@ -12,6 +12,24 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 class LanLlmCatalogClient {
+    companion object {
+        internal fun builtInModelsForProvider(provider: LanLlmPrefs.Provider): List<RemoteModel> = when (provider) {
+            LanLlmPrefs.Provider.MiniMax -> listOf(
+                RemoteModel("MiniMax-M2.7"),
+                RemoteModel("MiniMax-M2.7-highspeed"),
+                RemoteModel("MiniMax-M2.5"),
+                RemoteModel("MiniMax-M2.5-highspeed"),
+                RemoteModel("MiniMax-M2.1"),
+                RemoteModel("MiniMax-M2.1-highspeed"),
+                RemoteModel("MiniMax-M2"),
+            )
+            else -> emptyList()
+        }
+
+        internal fun connectivityProbeModel(config: LanLlmPrefs.Config): String =
+            config.model.ifBlank { LanLlmPrefs.providerDefaultModel(config.provider) }
+    }
+
     private class CatalogRequestFailure(
         val statusCode: Int,
         val responseBody: String,
@@ -31,6 +49,14 @@ class LanLlmCatalogClient {
     )
 
     suspend fun checkConnectivity(config: LanLlmPrefs.Config): ConnectivityResult {
+        if (config.provider == LanLlmPrefs.Provider.MiniMax) {
+            probeChatEndpoint(config)
+            return ConnectivityResult(
+                endpoint = config.chatEndpoint,
+                modelCount = builtInModelsForProvider(config.provider).size,
+            )
+        }
+
         val modelListing = runCatching { fetchModels(config) }
         modelListing.getOrNull()?.let { models ->
             return ConnectivityResult(
@@ -68,6 +94,9 @@ class LanLlmCatalogClient {
         }.recoverCatching {
             if (config.provider == LanLlmPrefs.Provider.Gemini) {
                 fetchGeminiNativeModels(config.apiKey)
+            } else if (config.provider == LanLlmPrefs.Provider.MiniMax) {
+                probeChatEndpoint(config)
+                builtInModelsForProvider(config.provider)
             } else {
                 throw it
             }
@@ -165,9 +194,7 @@ class LanLlmCatalogClient {
 
     private fun probeChatEndpoint(config: LanLlmPrefs.Config) {
         if (config.chatEndpoint.isBlank()) error("聊天接口地址为空")
-        val probeModel = config.model.ifBlank {
-            if (config.provider == LanLlmPrefs.Provider.MiniMax) "MiniMax-M2.7" else ""
-        }
+        val probeModel = connectivityProbeModel(config)
         if (probeModel.isBlank()) error("当前未填写模型名称，无法执行连通性检测")
 
         val payload = JSONObject()

@@ -289,6 +289,23 @@ class LanLlmPrefsTest {
 
         assertEquals("https://api.minimaxi.com/v1/chat/completions", config.chatEndpoint)
         assertEquals("https://api.minimaxi.com/v1/models", config.modelsEndpoint)
+        assertEquals("MiniMax-M2.7", LanLlmPrefs.providerDefaultModel(LanLlmPrefs.Provider.MiniMax))
+    }
+
+    @Test
+    fun readFallsBackToMiniMaxDefaultModelWhenCurrentModelBlank() {
+        val prefs = FakeSharedPreferences(
+            mutableMapOf(
+                LanLlmPrefs.KEY_PROVIDER to LanLlmPrefs.Provider.MiniMax.value,
+                LanLlmPrefs.KEY_BASE_URL to "https://api.minimaxi.com/v1",
+                LanLlmPrefs.KEY_MODEL to "",
+                LanLlmPrefs.KEY_API_KEY to "minimax-key",
+            )
+        )
+
+        val config = LanLlmPrefs.read(prefs)
+
+        assertEquals("MiniMax-M2.7", config.model)
     }
 
     @Test
@@ -384,6 +401,20 @@ class LanLlmPrefsTest {
 
         assertEquals("qwen3-8b", restored)
         assertEquals("qwen3-8b", prefs.getString(LanLlmPrefs.KEY_MODEL, ""))
+    }
+
+    @Test
+    fun syncScopedModelToActivePreferencesUsesMiniMaxDefaultWhenScopeEmpty() {
+        val prefs = FakeSharedPreferences()
+
+        val restored = LanLlmPrefs.syncScopedModelToActivePreferences(
+            prefs,
+            LanLlmPrefs.Provider.MiniMax,
+            "https://api.minimaxi.com/v1",
+        )
+
+        assertEquals("MiniMax-M2.7", restored)
+        assertEquals("MiniMax-M2.7", prefs.getString(LanLlmPrefs.KEY_MODEL, ""))
     }
 
     @Test

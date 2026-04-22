@@ -34,6 +34,7 @@ class LanLlmRequestGateTest {
     @Test
     fun allowsChineseOrLatinInput() {
         assertTrue(LanLlmRequestGate.shouldRequestPrediction("今天"))
+        assertTrue(LanLlmRequestGate.shouldRequestPrediction("\uD840\uDC00"))
         assertTrue(LanLlmRequestGate.shouldRequestPrediction("hello"))
         assertTrue(LanLlmRequestGate.shouldRequestPrediction("今晚!"))
         assertTrue(LanLlmRequestGate.shouldRequestPrediction("abc123"))
@@ -43,6 +44,7 @@ class LanLlmRequestGateTest {
     fun identifiesPureLongDigitInputForThrottle() {
         assertTrue(LanLlmRequestGate.isPureLongDigitInput("123456"))
         assertTrue(LanLlmRequestGate.isPureLongDigitInput("13800138000"))
+        assertTrue(LanLlmRequestGate.isPureLongDigitInput(" 123456 "))
         assertFalse(LanLlmRequestGate.isPureLongDigitInput("12345"))
         assertFalse(LanLlmRequestGate.isPureLongDigitInput("100kg"))
         assertFalse(LanLlmRequestGate.isPureLongDigitInput("1+2="))

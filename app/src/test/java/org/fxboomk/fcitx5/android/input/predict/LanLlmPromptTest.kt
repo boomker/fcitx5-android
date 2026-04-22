@@ -11,6 +11,15 @@ import org.junit.Test
 class LanLlmPromptTest {
 
     @Test
+    fun systemPromptReflectsConfiguredCandidateLimit() {
+        val prompt = LanLlmPrompt.systemPrompt(maxPredictionCandidates = 7)
+
+        assertTrue(prompt.contains("给出 1-7 个自然续写候选"))
+        assertTrue(prompt.contains("尽量给满 7 个候选"))
+        assertTrue(prompt.contains("如果无法预测，也输出空数组"))
+    }
+
+    @Test
     fun completionPromptWithoutRecentBiasBuildsStructuredChatMlPrompt() {
         val prompt = LanLlmPrompt.completionPrompt(
             beforeCursor = "光标前文本内容",
