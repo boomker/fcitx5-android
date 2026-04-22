@@ -130,6 +130,7 @@ class AiSuggestionStripComponent(
 
     fun openSuggestionTable(): Boolean {
         if (activeSuggestions.isEmpty()) return false
+        syncExpandedWindowSuggestions()
         windowManager.attachWindow(AiSuggestionWindow)
         return true
     }
@@ -137,8 +138,6 @@ class AiSuggestionStripComponent(
     fun suppressAfterBackspace() {
         suppressPredictionUntilNextCommit("backspace")
     }
-
-    internal fun currentSuggestionsSnapshot(): List<String> = activeSuggestions.toList()
 
     internal fun commitSuggestionFromWindow(suggestion: String) {
         commitSuggestion(suggestion)
@@ -248,6 +247,9 @@ class AiSuggestionStripComponent(
             updateButtonVisibility()
             return
         }
+        if (expandedWindowVisible) {
+            syncExpandedWindowSuggestions()
+        }
         openButton.text = themedContext.getString(R.string.ai_clip_open_count, activeSuggestions.size)
         openButton.contentDescription = openButton.text
         updateButtonVisibility()
@@ -322,6 +324,12 @@ class AiSuggestionStripComponent(
 
     private fun updateButtonVisibility() {
         view.visibility = if (activeSuggestions.isNotEmpty() && !expandedWindowVisible) View.VISIBLE else View.GONE
+    }
+
+    private fun syncExpandedWindowSuggestions() {
+        AiSuggestionWindow.present(activeSuggestions) { suggestion ->
+            commitSuggestionFromWindow(suggestion)
+        }
     }
 
     private fun returnToKeyboardIfNeeded() {

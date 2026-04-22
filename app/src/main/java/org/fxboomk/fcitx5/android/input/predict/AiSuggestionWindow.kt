@@ -19,13 +19,45 @@ import org.mechdancer.dependency.manager.must
 import splitties.dimensions.dp
 
 object AiSuggestionWindow : InputWindow.ExtendedInputWindow<AiSuggestionWindow>() {
-
     private val theme by manager.theme()
     private val windowManager: InputWindowManager by manager.must()
-    private val aiSuggestionStrip: AiSuggestionStripComponent by manager.must()
+    private val presentationState = PresentationState()
+    private var attached = false
 
     private val adapter = SuggestionAdapter { suggestion ->
-        aiSuggestionStrip.commitSuggestionFromWindow(suggestion)
+        presentationState.dispatchSelection(suggestion)
+    }
+
+    internal class PresentationState {
+        private var suggestions: List<String> = emptyList()
+        private var onSuggestionClick: ((String) -> Unit)? = null
+
+        fun update(
+            values: List<String>,
+            onSuggestionClick: ((String) -> Unit)? = null,
+        ) {
+            suggestions = values.toList()
+            if (onSuggestionClick != null) {
+                this.onSuggestionClick = onSuggestionClick
+            }
+        }
+
+        fun snapshot(): List<String> = suggestions.toList()
+
+        fun dispatchSelection(suggestion: String) {
+            onSuggestionClick?.invoke(suggestion)
+        }
+    }
+
+    internal fun present(
+        suggestions: List<String>,
+        onSuggestionClick: (String) -> Unit,
+    ) {
+        val snapshot = suggestions.toList()
+        presentationState.update(snapshot, onSuggestionClick)
+        if (attached) {
+            adapter.submitList(snapshot)
+        }
     }
 
     override val title: String
@@ -59,7 +91,8 @@ object AiSuggestionWindow : InputWindow.ExtendedInputWindow<AiSuggestionWindow>(
     }
 
     override fun onAttached() {
-        val suggestions = aiSuggestionStrip.currentSuggestionsSnapshot()
+        attached = true
+        val suggestions = presentationState.snapshot()
         if (suggestions.isEmpty()) {
             windowManager.attachWindow(KeyboardWindow)
             return
@@ -67,7 +100,9 @@ object AiSuggestionWindow : InputWindow.ExtendedInputWindow<AiSuggestionWindow>(
         adapter.submitList(suggestions)
     }
 
-    override fun onDetached() = Unit
+    override fun onDetached() {
+        attached = false
+    }
 
     private class SuggestionAdapter(
         private val onSuggestionClick: (String) -> Unit,
