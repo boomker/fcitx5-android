@@ -41,7 +41,7 @@ class TokenizedClipboardTokenUi(
 
     fun setToken(text: String, selected: Boolean) {
         textView.text = text
-        textView.setTextColor(if (selected) theme.altKeyTextColor else theme.keyTextColor)
+        textView.setTextColor(if (selected) theme.accentKeyTextColor else theme.keyTextColor)
         root.foreground = RippleDrawable(
             ColorStateList.valueOf(theme.keyPressHighlightColor),
             null,
@@ -52,7 +52,7 @@ class TokenizedClipboardTokenUi(
         )
         root.background = GradientDrawable().apply {
             cornerRadius = ctx.dp(18).toFloat()
-            setColor(if (selected) theme.genericActiveBackgroundColor else theme.keyBackgroundColor)
+            setColor(if (selected) theme.accentKeyBackgroundColor else theme.keyBackgroundColor)
         }
     }
 }

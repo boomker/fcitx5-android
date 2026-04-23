@@ -166,6 +166,15 @@ class ClipboardWindow : InputWindow.ExtendedInputWindow<ClipboardWindow>() {
                 }
             }
 
+            override fun onOpenFile(uri: Uri) {
+                val intent = Intent(Intent.ACTION_VIEW, uri).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                runCatching {
+                    service.startActivity(intent)
+                }
+            }
+
             override fun onOpenLink(uri: android.net.Uri) {
                 val intent = Intent(Intent.ACTION_VIEW, uri).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

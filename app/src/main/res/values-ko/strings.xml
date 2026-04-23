@@ -56,8 +56,8 @@
     <string name="real_time_logs">실시간 로그</string>
     <string name="developer">개발자</string>
     <string name="clear_clb_db">클립보드 데이터베이스 지우기</string>
-    <string name="pin">고정</string>
-    <string name="unpin">고정 해제</string>
+    <string name="add_to_favorites">즐겨찾기에 추가</string>
+    <string name="remove_from_favorites">즐겨찾기에서 제거</string>
     <string name="delete">삭제</string>
     <string name="clipboard">클립보드</string>
     <string name="keyboard_height">키보드 높이</string>
@@ -641,4 +641,14 @@
     <string name="text_keyboard_layout_compose_override_clear_button">지우기</string>
     <string name="text_keyboard_layout_compose_override_editor_title">조합 중 키 편집</string>
     <string name="text_keyboard_layout_compose_override_follow_base_key_colors">기본 키 색상 따르기</string>
+    <string name="tokenized_clipboard">키워드 분할</string>
+    <string name="tokenized_clipboard_select_all">모두 선택</string>
+    <string name="tokenized_clipboard_unselect_all">모두 선택 해제</string>
+    <string name="tokenized_clipboard_invert_selection">선택 반전</string>
+    <string name="tokenized_clipboard_clear_selection">취소</string>
+    <string name="tokenized_clipboard_send">전송</string>
+    <string name="tokenized_clipboard_empty_selection">먼저 하나 이상의 토큰을 선택하세요</string>
+    <string name="tokenized_clipboard_empty_state">사용 가능한 토큰이 없습니다</string>
+    <string name="tokenized_clipboard_loading">처리 중...</string>
+    <string name="tokenized_clipboard_copied">선택한 토큰이 복사되었습니다</string>
     </resources>

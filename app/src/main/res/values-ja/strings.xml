@@ -59,8 +59,8 @@
     <string name="real_time_logs">リアルタイムログ</string>
     <string name="developer">デベロッパー</string>
     <string name="clear_clb_db">クリップボードデータベースをクリア</string>
-    <string name="pin">固定する</string>
-    <string name="unpin">固定を解除</string>
+    <string name="add_to_favorites">お気に入りに追加</string>
+    <string name="remove_from_favorites">お気に入りから削除</string>
     <string name="delete">削除</string>
     <string name="clipboard">クリップボード</string>
     <string name="keyboard_height">キーボードの高さ</string>
@@ -641,4 +641,14 @@
     <string name="text_keyboard_layout_compose_override_clear_button">クリア</string>
     <string name="text_keyboard_layout_compose_override_editor_title">変換中キーを編集</string>
     <string name="text_keyboard_layout_compose_override_follow_base_key_colors">独立キー色</string>
+    <string name="tokenized_clipboard">キーワード分割</string>
+    <string name="tokenized_clipboard_select_all">すべて選択</string>
+    <string name="tokenized_clipboard_unselect_all">すべての選択を解除</string>
+    <string name="tokenized_clipboard_invert_selection">選択を反転</string>
+    <string name="tokenized_clipboard_clear_selection">キャンセル</string>
+    <string name="tokenized_clipboard_send">送信</string>
+    <string name="tokenized_clipboard_empty_selection">まず1つ以上のトークンを選択してください</string>
+    <string name="tokenized_clipboard_empty_state">利用可能なトークンはありません</string>
+    <string name="tokenized_clipboard_loading">処理中...</string>
+    <string name="tokenized_clipboard_copied">選択したトークンをコピーしました</string>
     </resources>

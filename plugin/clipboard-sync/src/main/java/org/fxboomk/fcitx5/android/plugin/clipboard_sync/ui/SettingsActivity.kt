@@ -344,11 +344,7 @@ class SettingsActivity : AppCompatActivity() {
             if (preference.isChecked != enabled) {
                 preference.isChecked = enabled
             }
-            val disabledByUnreachable = enabled && unreachable
-            if (preference.isEnabled == disabledByUnreachable) {
-                preference.isEnabled = !disabledByUnreachable
-            }
-            preference.summary = if (disabledByUnreachable) {
+            preference.summary = if (enabled && unreachable) {
                 getString(R.string.local_quick_sync_summary_unreachable)
             } else {
                 getString(R.string.local_quick_sync_summary)

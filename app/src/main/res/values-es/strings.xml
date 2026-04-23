@@ -41,8 +41,8 @@
     <string name="faq">Preguntas frecuentes</string>
     <string name="current_version">Versión actual</string>
     <string name="real_time_logs">Registros en tiempo real</string>
-    <string name="pin">Anclar</string>
-    <string name="unpin">Desanclar</string>
+    <string name="add_to_favorites">Agregar a Favoritos</string>
+    <string name="remove_from_favorites">Quitar de Favoritos</string>
     <string name="delete">Eliminar</string>
     <string name="clipboard">Portapapeles</string>
     <string name="keyboard_height">Altura de teclado</string>
@@ -643,4 +643,14 @@
     <string name="text_keyboard_layout_compose_override_clear_button">Borrar</string>
     <string name="text_keyboard_layout_compose_override_editor_title">Editar tecla en composición</string>
     <string name="text_keyboard_layout_compose_override_follow_base_key_colors">Seguir colores de la tecla base</string>
+    <string name="tokenized_clipboard">Palabras clave</string>
+    <string name="tokenized_clipboard_select_all">Seleccionar todo</string>
+    <string name="tokenized_clipboard_unselect_all">Deseleccionar todo</string>
+    <string name="tokenized_clipboard_invert_selection">Invertir selección</string>
+    <string name="tokenized_clipboard_clear_selection">Cancelar</string>
+    <string name="tokenized_clipboard_send">Enviar</string>
+    <string name="tokenized_clipboard_empty_selection">Seleccione primero uno o más tokens</string>
+    <string name="tokenized_clipboard_empty_state">Sin tokens disponibles</string>
+    <string name="tokenized_clipboard_loading">Procesando...</string>
+    <string name="tokenized_clipboard_copied">Tokens seleccionados copiados</string>
     </resources>

@@ -62,8 +62,8 @@
     <string name="real_time_logs">实时日志</string>
     <string name="developer">开发者</string>
     <string name="clear_clb_db">清空剪贴板数据库</string>
-    <string name="pin">收藏</string>
-    <string name="unpin">取消收藏</string>
+    <string name="add_to_favorites">添加到收藏</string>
+    <string name="remove_from_favorites">从收藏移除</string>
     <string name="delete">删除</string>
     <string name="clipboard">剪贴板</string>
     <string name="clipboard_category_all">全部</string>
@@ -463,6 +463,7 @@
     <string name="tokenized_clipboard_copied">已复制选中的词块</string>
     <string name="tokenized_clipboard_empty_selection">请先选择一个或多个词块</string>
     <string name="tokenized_clipboard_empty_state">没有可用的词块</string>
+    <string name="tokenized_clipboard_loading">处理中...</string>
     <string name="split_words">拆词</string>
     <string name="default_emoji_skin_tone">默认表情肤色</string>
     <string name="emoji_skin_tone_none">无</string>

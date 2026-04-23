@@ -64,8 +64,8 @@
     <string name="real_time_logs">Real-time logs</string>
     <string name="developer">Developer</string>
     <string name="clear_clb_db">Clear clipboard database</string>
-    <string name="pin">Favorite</string>
-    <string name="unpin">Unfavorite</string>
+    <string name="add_to_favorites">Add to Favorites</string>
+    <string name="remove_from_favorites">Remove from Favorites</string>
     <string name="delete">Delete</string>
     <string name="clipboard">Clipboard</string>
     <string name="clipboard_category_all">All</string>
@@ -512,6 +512,7 @@
     <string name="tokenized_clipboard_copied">Copied selected tokens</string>
     <string name="tokenized_clipboard_empty_selection">Select one or more tokens first</string>
     <string name="tokenized_clipboard_empty_state">No tokens available</string>
+    <string name="tokenized_clipboard_loading">Processing...</string>
     <string name="split_words">Split words</string>
     <string name="default_emoji_skin_tone">Default emoji skin tone modifier</string>
     <string name="emoji_skin_tone_none">No modifier</string>

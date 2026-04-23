@@ -60,8 +60,8 @@
     <string name="real_time_logs">Журналы в реальном времени</string>
     <string name="developer">Разработчик</string>
     <string name="clear_clb_db">Очистить базу данных буфера обмена</string>
-    <string name="pin">Прикрепить</string>
-    <string name="unpin">Открепить</string>
+    <string name="add_to_favorites">Добавить в избранное</string>
+    <string name="remove_from_favorites">Удалить из избранного</string>
     <string name="delete">Удалить</string>
     <string name="clipboard">Буфер обмена</string>
     <string name="keyboard_height">Высота клавиатуры</string>
@@ -641,4 +641,14 @@
     <string name="text_keyboard_layout_compose_override_clear_button">Очистить</string>
     <string name="text_keyboard_layout_compose_override_editor_title">Изменить клавишу в режиме набора</string>
     <string name="text_keyboard_layout_compose_override_follow_base_key_colors">Независимый цвет клавиши</string>
+    <string name="tokenized_clipboard">Разбиение ключевых слов</string>
+    <string name="tokenized_clipboard_select_all">Выбрать все</string>
+    <string name="tokenized_clipboard_unselect_all">Отменить выделение всех</string>
+    <string name="tokenized_clipboard_invert_selection">Инвертировать выделение</string>
+    <string name="tokenized_clipboard_clear_selection">Отмена</string>
+    <string name="tokenized_clipboard_send">Отправить</string>
+    <string name="tokenized_clipboard_empty_selection">Сначала выберите один или несколько токенов</string>
+    <string name="tokenized_clipboard_empty_state">Нет доступных токенов</string>
+    <string name="tokenized_clipboard_loading">Обработка...</string>
+    <string name="tokenized_clipboard_copied">Выбранные токены скопированы</string>
     </resources>

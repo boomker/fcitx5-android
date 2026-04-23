@@ -14,7 +14,7 @@ data class ClipboardToken(
 
 object ClipboardTextTokenizer {
 
-    private val segmenter by lazy(LazyThreadSafetyMode.NONE) { JiebaSegmenter() }
+    private val segmenter by lazy(LazyThreadSafetyMode.SYNCHRONIZED) { JiebaSegmenter() }
     private val coarseTokenPattern = Regex(
         """\p{IsHan}+|[A-Za-z0-9]+(?:[._-][A-Za-z0-9]+)*|[~\\/]+|[^\s]"""
     )

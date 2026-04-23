@@ -142,72 +142,116 @@ abstract class ClipboardAdapter(
                 }
             }
             root.setOnClickListener {
-                onPaste(entry)
+                if (entry.isUriEntry()) {
+                    showEntryMenu(
+                        anchor = root,
+                        entry = entry,
+                        linkUri = linkUri,
+                        searchQuery = searchQuery,
+                        dialNumber = dialNumber,
+                        splittableText = splittableText
+                    )
+                } else {
+                    onPaste(entry)
+                }
             }
             root.setOnLongClickListener {
-                val popup = PopupMenu(ctx, root)
-                val menu = popup.menu
-                val iconTint = ctx.styledColor(android.R.attr.colorControlNormal)
-                if (entry.pinned) {
-                    menu.item(R.string.unpin, R.drawable.ic_outline_push_pin_24, iconTint) {
-                        onUnpin(entry.id)
-                    }
-                } else {
-                    menu.item(R.string.pin, R.drawable.ic_baseline_push_pin_24, iconTint) {
-                        onPin(entry.id)
-                    }
-                }
-                menu.item(R.string.edit, R.drawable.ic_baseline_edit_24, iconTint) {
-                    onEdit(entry.id)
-                }
-                menu.item(R.string.share, R.drawable.ic_baseline_share_24, iconTint) {
-                    onShare(entry)
-                }
-                if (shouldShowUpload(entry)) {
-                    menu.item(R.string.upload, R.drawable.ic_baseline_send_24, iconTint) {
-                        onUpload(entry)
-                    }
-                }
-                if (splittableText != null) {
-                    menu.item(R.string.split_words, R.drawable.ic_baseline_spellcheck_24, iconTint) {
-                        onSplitText(splittableText)
-                    }
-                }
-                entry.viewableImageUri()?.let { imageUri ->
-                    menu.item(R.string.view_image, R.drawable.ic_baseline_image_24, iconTint) {
-                        onViewImage(imageUri)
-                    }
-                }
-                if (linkUri != null) {
-                    menu.item(R.string.open_link, R.drawable.ic_baseline_language_24, iconTint) {
-                        onOpenLink(linkUri)
-                    }
-                }
-                if (searchQuery != null) {
-                    menu.item(R.string.search, R.drawable.ic_baseline_search_24, iconTint) {
-                        onSearch(searchQuery)
-                    }
-                }
-                if (dialNumber != null) {
-                    menu.item(R.string.dial, R.drawable.ic_baseline_call_24, iconTint) {
-                        onDial(dialNumber)
-                    }
-                }
-                menu.item(R.string.delete, R.drawable.ic_baseline_delete_24, iconTint) {
-                    onDelete(entry.id)
-                }
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && !DeviceUtil.isSamsungOneUI && !DeviceUtil.isFlyme) {
-                    popup.setForceShowIcon(true)
-                }
-                popup.setOnDismissListener {
-                    if (it === popupMenu) popupMenu = null
-                }
-                popupMenu?.dismiss()
-                popupMenu = popup
-                popup.show()
+                showEntryMenu(
+                    anchor = root,
+                    entry = entry,
+                    linkUri = linkUri,
+                    searchQuery = searchQuery,
+                    dialNumber = dialNumber,
+                    splittableText = splittableText
+                )
                 true
             }
         }
+    }
+
+    private fun showEntryMenu(
+        anchor: android.view.View,
+        entry: ClipboardEntry,
+        linkUri: Uri?,
+        searchQuery: String?,
+        dialNumber: String?,
+        splittableText: String?
+    ) {
+        val popup = PopupMenu(anchor.context, anchor)
+        val menu = popup.menu
+        val iconTint = anchor.context.styledColor(android.R.attr.colorControlNormal)
+        val isUriEntry = entry.isUriEntry()
+        val imageUri = entry.viewableImageUri()
+        val fileUri = if (isUriEntry) runCatching { Uri.parse(entry.text) }.getOrNull() else null
+
+        if (!isUriEntry) {
+            menu.item(android.R.string.paste, R.drawable.ic_baseline_content_paste_24, iconTint) {
+                onPaste(entry)
+            }
+        }
+        if (entry.pinned) {
+            menu.item(R.string.remove_from_favorites, R.drawable.ic_outline_push_pin_24, iconTint) {
+                onUnpin(entry.id)
+            }
+        } else {
+            menu.item(R.string.add_to_favorites, R.drawable.ic_baseline_push_pin_24, iconTint) {
+                onPin(entry.id)
+            }
+        }
+        if (!isUriEntry) {
+            menu.item(R.string.edit, R.drawable.ic_baseline_edit_24, iconTint) {
+                onEdit(entry.id)
+            }
+        } else if (imageUri == null && fileUri != null) {
+            menu.item(R.string.open_link, R.drawable.ic_baseline_language_24, iconTint) {
+                onOpenFile(fileUri)
+            }
+        }
+        menu.item(R.string.share, R.drawable.ic_baseline_share_24, iconTint) {
+            onShare(entry)
+        }
+        if (shouldShowUpload(entry)) {
+            menu.item(R.string.upload, R.drawable.ic_baseline_send_24, iconTint) {
+                onUpload(entry)
+            }
+        }
+        if (splittableText != null) {
+            menu.item(R.string.split_words, R.drawable.ic_baseline_spellcheck_24, iconTint) {
+                onSplitText(splittableText)
+            }
+        }
+        imageUri?.let { uri ->
+            menu.item(R.string.view_image, R.drawable.ic_baseline_image_24, iconTint) {
+                onViewImage(uri)
+            }
+        }
+        if (linkUri != null) {
+            menu.item(R.string.open_link, R.drawable.ic_baseline_language_24, iconTint) {
+                onOpenLink(linkUri)
+            }
+        }
+        if (searchQuery != null) {
+            menu.item(R.string.search, R.drawable.ic_baseline_search_24, iconTint) {
+                onSearch(searchQuery)
+            }
+        }
+        if (dialNumber != null) {
+            menu.item(R.string.dial, R.drawable.ic_baseline_call_24, iconTint) {
+                onDial(dialNumber)
+            }
+        }
+        menu.item(R.string.delete, R.drawable.ic_baseline_delete_24, iconTint) {
+            onDelete(entry.id)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && !DeviceUtil.isSamsungOneUI && !DeviceUtil.isFlyme) {
+            popup.setForceShowIcon(true)
+        }
+        popup.setOnDismissListener {
+            if (it === popupMenu) popupMenu = null
+        }
+        popupMenu?.dismiss()
+        popupMenu = popup
+        popup.show()
     }
 
     override fun onViewRecycled(holder: ViewHolder) {
@@ -244,6 +288,8 @@ abstract class ClipboardAdapter(
     abstract fun onSearch(query: String)
 
     abstract fun onDial(number: String)
+
+    abstract fun onOpenFile(uri: Uri)
 
     abstract fun onOpenLink(uri: Uri)
 
