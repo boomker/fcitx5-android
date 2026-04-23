@@ -31,6 +31,7 @@ import org.fcitx.fcitx5.android.core.CapabilityFlag
 import org.fcitx.fcitx5.android.core.CapabilityFlags
 import org.fcitx.fcitx5.android.core.FcitxEvent.CandidateListEvent
 import org.fcitx.fcitx5.android.data.clipboard.ClipboardManager
+import org.fcitx.fcitx5.android.data.clipboard.ClipboardCategory
 import org.fcitx.fcitx5.android.data.clipboard.db.ClipboardEntry
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.data.prefs.ManagedPreference
@@ -185,8 +186,8 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
     private fun launchClipboardTimeoutJob() {
         clipboardTimeoutJob?.cancel()
         val timeout = clipboardItemTimeout.getValue() * 1000L
-        // never transition to ClipboardTimedOut state when timeout < 0
-        if (timeout < 0L) return
+        // never transition to ClipboardTimedOut state when timeout is disabled (<= 0)
+        if (timeout <= 0L) return
         clipboardTimeoutJob = service.lifecycleScope.launch {
             delay(timeout)
             isClipboardFresh = false
@@ -433,7 +434,11 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         ui.clipboardUi.suggestionView.apply {
             setOnClickListener {
                 ClipboardManager.lastEntry?.let {
-                    service.commitText(it.text)
+                    if (it.isUriEntry()) {
+                        windowManager.attachWindow(ClipboardWindow(ClipboardCategory.Media))
+                    } else {
+                        service.commitText(it.text)
+                    }
                 }
                 clipboardTimeoutJob?.cancel()
                 clipboardTimeoutJob = null

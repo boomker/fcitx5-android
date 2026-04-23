@@ -6,6 +6,8 @@
 package org.fcitx.fcitx5.android.input
 
 import android.annotation.SuppressLint
+import android.content.ClipDescription
+import android.content.Intent
 import android.app.Dialog
 import android.content.pm.ActivityInfo
 import android.content.res.ColorStateList
@@ -44,6 +46,8 @@ import androidx.autofill.inline.common.TextViewStyle
 import androidx.autofill.inline.common.ViewStyle
 import androidx.autofill.inline.v1.InlineSuggestionUi
 import androidx.core.view.updateLayoutParams
+import androidx.core.view.inputmethod.InputConnectionCompat
+import androidx.core.view.inputmethod.InputContentInfoCompat
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
@@ -61,6 +65,7 @@ import org.fcitx.fcitx5.android.core.KeyStates
 import org.fcitx.fcitx5.android.core.KeySym
 import org.fcitx.fcitx5.android.core.ScancodeMapping
 import org.fcitx.fcitx5.android.core.SubtypeManager
+import org.fcitx.fcitx5.android.clipboardsync.MainService
 import org.fcitx.fcitx5.android.daemon.FcitxConnection
 import org.fcitx.fcitx5.android.daemon.FcitxDaemon
 import org.fcitx.fcitx5.android.data.InputFeedbacks
@@ -74,6 +79,7 @@ import org.fcitx.fcitx5.android.input.cursor.CursorRange
 import org.fcitx.fcitx5.android.input.cursor.CursorTracker
 import org.fcitx.fcitx5.android.input.keyboard.TextKeyboard
 import org.fcitx.fcitx5.android.utils.InputMethodUtil
+import org.fcitx.fcitx5.android.utils.ClipboardUriStore
 import org.fcitx.fcitx5.android.utils.alpha
 import org.fcitx.fcitx5.android.utils.forceShowSelf
 import org.fcitx.fcitx5.android.utils.inputMethodManager
@@ -674,6 +680,31 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         }
     }
 
+    fun commitClipboardEntry(text: String): Boolean {
+        return commitUriContent(text) || run {
+            commitText(text)
+            false
+        }
+    }
+
+    private fun commitUriContent(text: String): Boolean {
+        val staged = ClipboardUriStore.stageForCommit(this, text) ?: return false
+        val editorInfo = currentInputEditorInfo ?: return false
+        val inputConnection = currentInputConnection ?: return false
+        val packageName = editorInfo.packageName
+        if (!packageName.isNullOrEmpty()) {
+            grantUriPermission(packageName, staged.uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        val description = ClipDescription(staged.uri.lastPathSegment ?: "clipboard", arrayOf(staged.mimeType))
+        return InputConnectionCompat.commitContent(
+            inputConnection,
+            editorInfo,
+            InputContentInfoCompat(staged.uri, description, null),
+            InputConnectionCompat.INPUT_CONTENT_GRANT_READ_URI_PERMISSION,
+            null
+        )
+    }
+
     private fun sendDownKeyEvent(eventTime: Long, keyEventCode: Int, metaState: Int = 0) {
         val ic = currentInputConnection ?: return
         val scanCode = getCachedScancode(keyEventCode)
@@ -1217,6 +1248,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     override fun onStartInput(attribute: EditorInfo, restarting: Boolean) {
         isInInputLifecycleCriticalPhase = true
         try {
+            MainService.startSyncService(this, "ime-start-input", imeSyncActive = true)
             selection.resetTo(attribute.initialSelStart, attribute.initialSelEnd)
             resetComposingState()
             val flags = CapabilityFlags.fromEditorInfo(attribute)
@@ -1245,6 +1277,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         isInInputLifecycleCriticalPhase = true
         try {
             Timber.d("onStartInputView: restarting=$restarting")
+            MainService.startSyncService(this, "ime-start-input-view", imeSyncActive = true)
             if (org.fcitx.fcitx5.android.input.font.FontProviders.needsRefresh()) {
                 refreshViewsForFontChange()
             }
@@ -1544,6 +1577,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
 
     override fun onFinishInputView(finishingInput: Boolean) {
         Timber.d("onFinishInputView: finishingInput=$finishingInput")
+        MainService.stopSyncService(this)
         decorLocationUpdated = false
         inputDeviceManager.onFinishInputView()
         currentInputConnection?.apply {
@@ -1559,6 +1593,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
 
     override fun onFinishInput() {
         Timber.d("onFinishInput")
+        MainService.stopSyncService(this)
         postFcitxJob {
             focus(false)
         }
@@ -1578,6 +1613,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     }
 
     override fun onDestroy() {
+        MainService.stopSyncService(this)
         recreateInputViewPrefs.forEach {
             it.unregisterOnChangeListener(recreateInputViewListener)
         }

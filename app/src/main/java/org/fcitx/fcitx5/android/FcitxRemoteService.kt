@@ -25,6 +25,7 @@ import org.fcitx.fcitx5.android.core.reloadPinyinDict
 import org.fcitx.fcitx5.android.core.reloadQuickPhrase
 import org.fcitx.fcitx5.android.daemon.FcitxDaemon
 import org.fcitx.fcitx5.android.data.clipboard.ClipboardManager
+import org.fcitx.fcitx5.android.data.clipboard.HostClipboardFilter
 import org.fcitx.fcitx5.android.data.prefs.AppPrefs
 import org.fcitx.fcitx5.android.utils.Const
 import org.fcitx.fcitx5.android.utils.desc
@@ -45,9 +46,13 @@ class FcitxRemoteService : Service() {
     private val clipboardTransformers =
         PriorityQueue<IClipboardEntryTransformer>(3, compareByDescending { it.priority })
 
+    private fun orderedClipboardTransformers() =
+        clipboardTransformers.toList()
+            .sortedWith(compareByDescending<IClipboardEntryTransformer> { it.priority }.thenBy { it.desc })
+
     private fun transformClipboard(source: String): String {
-        var result = source
-        clipboardTransformers.forEach {
+        var result = HostClipboardFilter.transform(source)
+        orderedClipboardTransformers().forEach {
             try {
                 result = it.transform(result)!!
             } catch (e: Exception) {
@@ -60,8 +65,12 @@ class FcitxRemoteService : Service() {
 
     private suspend fun updateClipboardManager() = clipboardTransformerLock.withLock {
         ClipboardManager.transformer =
-            if (clipboardTransformers.isEmpty()) null else ::transformClipboard
-        Timber.d("All clipboard transformers: ${clipboardTransformers.joinToString { it.desc }}")
+            if (clipboardTransformers.isEmpty() && !HostClipboardFilter.isEnabled()) null else ::transformClipboard
+        val transformers = buildList {
+            HostClipboardFilter.description()?.let(::add)
+            addAll(orderedClipboardTransformers().map { it.desc })
+        }
+        Timber.d("All clipboard transformers: ${transformers.joinToString()}")
     }
 
     /**
@@ -158,6 +167,37 @@ class FcitxRemoteService : Service() {
             }
         }
 
+        override fun importRemoteClipboardEntry(
+            text: String,
+            originalText: String,
+            originalRootUri: String,
+            type: String,
+            timestamp: Long,
+            sensitive: Boolean
+        ) {
+            val callingPackage = getCallingPackageName()
+            if (!isCallerAllowed(callingPackage)) {
+                Timber.w("Rejected remote clipboard import from $callingPackage (allowOriginalPlugins=${AppPrefs.getInstance().advanced.allowOriginalPlugins.getValue()})")
+                throw SecurityException("IPC compatibility mode does not allow access from $callingPackage")
+            }
+            val filteredText = HostClipboardFilter.transform(text)
+            runBlocking {
+                ClipboardManager.importRemoteEntry(
+                    text = filteredText,
+                    originalText = when {
+                        originalText.isNotEmpty() -> originalText
+                        filteredText != text -> text
+                        else -> ""
+                    },
+                    originalRootUri = originalRootUri,
+                    type = type,
+                    timestamp = timestamp,
+                    sensitive = sensitive,
+                    notifyListeners = false
+                )
+            }
+        }
+
         override fun reloadPinyinDict() {
             FcitxDaemon.getFirstConnectionOrNull()?.runIfReady { reloadPinyinDict() }
         }
@@ -170,6 +210,7 @@ class FcitxRemoteService : Service() {
     override fun onCreate() {
         Timber.d("FcitxRemoteService onCreate")
         super.onCreate()
+        runBlocking { updateClipboardManager() }
     }
 
     override fun onBind(intent: Intent): IBinder {
