@@ -158,6 +158,7 @@ class LanLlmPrefsTest {
             listOf("https://api.anthropic.com/v1/messages"),
             config.chatCompatEndpoints,
         )
+        assertEquals("https://api.anthropic.com/v1/messages", config.chatEndpoint)
         assertEquals(
             "https://api.anthropic.com/v1/models",
             config.modelsEndpoint,
@@ -287,9 +288,78 @@ class LanLlmPrefsTest {
             preferLastCommit = true,
         )
 
-        assertEquals("https://api.minimaxi.com/v1/chat/completions", config.chatEndpoint)
-        assertEquals("https://api.minimaxi.com/v1/models", config.modelsEndpoint)
+        assertEquals("https://api.minimaxi.com/anthropic/v1/messages", config.chatEndpoint)
+        assertEquals("https://api.minimaxi.com/anthropic/v1/models", config.modelsEndpoint)
+        assertEquals(
+            listOf(
+                "https://api.minimaxi.com/anthropic/v1/messages",
+                "https://api.minimax.io/anthropic/v1/messages",
+            ),
+            config.chatCompatEndpoints,
+        )
+        assertEquals(
+            listOf(
+                "https://api.minimaxi.com/anthropic/v1/models",
+                "https://api.minimax.io/anthropic/v1/models",
+            ),
+            config.modelsCompatEndpoints,
+        )
         assertEquals("MiniMax-M2.7", LanLlmPrefs.providerDefaultModel(LanLlmPrefs.Provider.MiniMax))
+    }
+
+    @Test
+    fun builtInMiniMaxProviderKeepsOfficialIoHostAsFallbackWhenUserUsesComHost() {
+        val config = LanLlmPrefs.Config(
+            enabled = true,
+            backend = LanLlmPrefs.Backend.ChatCompletions,
+            provider = LanLlmPrefs.Provider.MiniMax,
+            baseUrl = "https://api.minimaxi.com/anthropic",
+            model = "MiniMax-M2.7",
+            apiKey = "minimax-key",
+            debounceMs = 450,
+            sampleCount = 4,
+            maxContextChars = 64,
+            preferLastCommit = true,
+        )
+
+        assertEquals(
+            listOf(
+                "https://api.minimaxi.com/anthropic/v1/messages",
+                "https://api.minimax.io/anthropic/v1/messages",
+            ),
+            config.chatCompatEndpoints,
+        )
+    }
+
+    @Test
+    fun builtInMiniMaxProviderDoesNotDuplicateV1WhenBaseUrlAlreadyIncludesIt() {
+        val config = LanLlmPrefs.Config(
+            enabled = true,
+            backend = LanLlmPrefs.Backend.ChatCompletions,
+            provider = LanLlmPrefs.Provider.MiniMax,
+            baseUrl = "https://api.minimaxi.com/anthropic/v1",
+            model = "MiniMax-M2.7",
+            apiKey = "minimax-key",
+            debounceMs = 450,
+            sampleCount = 4,
+            maxContextChars = 64,
+            preferLastCommit = true,
+        )
+
+        assertEquals(
+            listOf(
+                "https://api.minimaxi.com/anthropic/v1/messages",
+                "https://api.minimax.io/anthropic/v1/messages",
+            ),
+            config.chatCompatEndpoints,
+        )
+        assertEquals(
+            listOf(
+                "https://api.minimaxi.com/anthropic/v1/models",
+                "https://api.minimax.io/anthropic/v1/models",
+            ),
+            config.modelsCompatEndpoints,
+        )
     }
 
     @Test
@@ -297,7 +367,7 @@ class LanLlmPrefsTest {
         val prefs = FakeSharedPreferences(
             mutableMapOf(
                 LanLlmPrefs.KEY_PROVIDER to LanLlmPrefs.Provider.MiniMax.value,
-                LanLlmPrefs.KEY_BASE_URL to "https://api.minimaxi.com/v1",
+                LanLlmPrefs.KEY_BASE_URL to "https://api.minimaxi.com/anthropic",
                 LanLlmPrefs.KEY_MODEL to "",
                 LanLlmPrefs.KEY_API_KEY to "minimax-key",
             )
@@ -410,7 +480,7 @@ class LanLlmPrefsTest {
         val restored = LanLlmPrefs.syncScopedModelToActivePreferences(
             prefs,
             LanLlmPrefs.Provider.MiniMax,
-            "https://api.minimaxi.com/v1",
+            "https://api.minimaxi.com/anthropic",
         )
 
         assertEquals("MiniMax-M2.7", restored)

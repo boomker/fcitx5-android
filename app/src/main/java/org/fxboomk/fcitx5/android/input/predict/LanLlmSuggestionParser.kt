@@ -1,8 +1,14 @@
 package org.fxboomk.fcitx5.android.input.predict
 
 object LanLlmSuggestionParser {
+    private data class SuggestionLengthPolicy(
+        val softLimit: Int,
+        val hardLimit: Int,
+    )
+
     private const val THINK_START = "<think>"
     private const val THINK_END = "</think>"
+    private const val MAX_OVER_LIMIT_SUGGESTIONS = 1
     private val dialogueRoleRegex = Regex("""(?:\[\s*(?:对方|我)\s*])""")
     private val hanRegex = Regex("\\p{IsHan}")
     private val latinLetterRegex = Regex("[A-Za-z]")
@@ -25,11 +31,10 @@ object LanLlmSuggestionParser {
             val extracted = extractJsonCandidate(payload)
             val fromQuoted = extractQuotedSuggestions(extracted, typedPrefix)
             if (fromQuoted.isNotEmpty()) return fromQuoted
+            if (looksLikeSuggestionsPayload(extracted)) return emptyList()
 
             val fromPlainText = extractPlainSuggestions(extracted, typedPrefix)
             if (fromPlainText.isNotEmpty()) return fromPlainText
-
-            if (looksLikeSuggestionsPayload(extracted)) return emptyList()
         }
 
         if (looksStructuredPayload(normalized)) return emptyList()
@@ -52,13 +57,14 @@ object LanLlmSuggestionParser {
         return parse(normalized, typedPrefix)
     }
 
-    private fun extractPlainSuggestions(raw: String, typedPrefix: String): List<String> = raw
-            .lineSequence()
-            .map { sanitizeSuggestion(it, typedPrefix) }
-            .filter { it.isNotBlank() }
-            .distinct()
-            .take(8)
-            .toList()
+    private fun extractPlainSuggestions(raw: String, typedPrefix: String): List<String> =
+        finalizeSuggestions(
+            raw.lineSequence()
+                .map { sanitizeSuggestion(it, typedPrefix) }
+                .filter { it.isNotBlank() }
+                .toList(),
+            typedPrefix,
+        )
 
     private fun normalize(raw: String): String = raw
         .replace(Regex("￾stats:.*$", RegexOption.DOT_MATCHES_ALL), "")
@@ -205,8 +211,10 @@ object LanLlmSuggestionParser {
     }
 
     private fun sanitizeSuggestion(candidate: String, typedPrefix: String): String {
-        var text = stripInvisibleAndControl(candidate).trim()
-        if (text.isBlank()) return ""
+        val raw = stripInvisibleAndControl(candidate)
+        if (raw.isBlank()) return ""
+        val hadLeadingWhitespace = raw.firstOrNull()?.isWhitespace() == true
+        var text = raw.trim()
         text = stripThinkTagsOrNull(text) ?: return ""
         if (dialogueRoleRegex.containsMatchIn(text)) return ""
         text = text.removePrefix("-").trimStart()
@@ -217,7 +225,7 @@ object LanLlmSuggestionParser {
             .replace("<|im_end|>", "")
             .replace("<|endoftext|>", "")
             .trim()
-        text = text.trim { it.isWhitespace() || it in "\"'`,:[]{}" }
+        text = text.trim { it.isWhitespace() || it in "\"'`,:[]{}“”" }
         text = text.replace(Regex("^\\d+[.)、:]\\s*"), "")
         if (text.startsWith(typedPrefix)) {
             text = text.removePrefix(typedPrefix).trimStart()
@@ -225,7 +233,13 @@ object LanLlmSuggestionParser {
         if (text.startsWith("\"") && text.endsWith("\"") && text.length > 1) {
             text = text.substring(1, text.lastIndex)
         }
-        text = collapseToImeCandidate(text)
+        if (looksLikeProtocolOrControl(text)) return ""
+        text = normalizeContinuationPrefix(
+            text = text,
+            typedPrefix = typedPrefix,
+            hadLeadingWhitespace = hadLeadingWhitespace,
+        )
+        text = collapseToImeCandidate(text, typedPrefix)
         val metadataMarkers = listOf(
             "BeforeCursor", "AppPackage", "InputMethod",
             "光标前文本", "当前应用", "输入法",
@@ -233,35 +247,32 @@ object LanLlmSuggestionParser {
         )
         if (metadataMarkers.any { text.startsWith(it) || it in text }) return ""
         if (looksLikeProtocolOrControl(text)) return ""
-        if (shouldSuppressMostlyLatin(text)) return ""
+        if (shouldSuppressMostlyLatin(text, typedPrefix)) return ""
         if (text == typedPrefix.trim()) return ""
-        if (text.length > 20) return ""
-        if (text.count { it in "，。！？；：\n" } >= 2) return ""
-        return text.trim()
+        return text.trimEnd()
     }
 
-    private fun shouldSuppressMostlyLatin(text: String): Boolean {
+    private fun shouldSuppressMostlyLatin(text: String, typedPrefix: String): Boolean {
         if (text.isBlank()) return true
         if (hanRegex.containsMatchIn(text)) return false
+        if (LanLlmLanguageDetector.prefersLatinSuggestions(typedPrefix)) return false
         val letters = latinLetterRegex.findAll(text).count()
         if (letters < 6) return false
         val ratio = letters.toFloat() / text.length.coerceAtLeast(1)
         return ratio >= 0.45f
     }
 
-    private fun collapseToImeCandidate(text: String): String {
-        var candidate = text.trim()
+    private fun collapseToImeCandidate(text: String, typedPrefix: String): String {
+        var candidate = text.trimEnd()
         if (candidate.isBlank()) return ""
-
-        val firstBoundary = candidate.indexOfFirst { it in "\n，,；;。！？" }
-        if (firstBoundary > 0 && (candidate.length > 20 || candidate.count { it in "，。！？；：\n" } >= 2)) {
-            val keepSentenceEnding = candidate[firstBoundary] in "。！？"
-            val endExclusive = if (keepSentenceEnding) firstBoundary + 1 else firstBoundary
-            candidate = candidate.substring(0, endExclusive).trim()
+        val policy = lengthPolicy(typedPrefix)
+        val suspiciousSymbolRunStart = findSuspiciousSymbolRunStart(candidate)
+        if (suspiciousSymbolRunStart >= 0) {
+            candidate = candidate.substring(0, suspiciousSymbolRunStart).trimEnd()
         }
 
-        if (candidate.length > 20) {
-            candidate = candidate.take(20).trimEnd()
+        if (candidate.length > policy.hardLimit) {
+            candidate = candidate.take(policy.hardLimit).trimEnd()
         }
 
         return candidate
@@ -285,15 +296,17 @@ object LanLlmSuggestionParser {
         val current = StringBuilder()
         var inString = false
         var escaped = false
+        var closingQuote: Char? = null
         slice.forEach { ch ->
             if (out.size >= 8) return@forEach
             if (!inString) {
                 when (ch) {
-                    '"' -> {
+                    '"', '“', '”' -> {
                         inString = true
+                        closingQuote = matchingClosingQuote(ch)
                         current.clear()
                     }
-                    ']' -> return out.distinct()
+                    ']' -> return finalizeSuggestions(out, typedPrefix)
                 }
             } else {
                 when {
@@ -302,17 +315,162 @@ object LanLlmSuggestionParser {
                         escaped = false
                     }
                     ch == '\\' -> escaped = true
-                    ch == '"' -> {
+                    isMatchingClosingQuote(ch, closingQuote) -> {
                         val sanitized = sanitizeSuggestion(current.toString(), typedPrefix)
                         if (sanitized.isNotBlank()) out.add(sanitized)
                         inString = false
+                        closingQuote = null
                     }
                     else -> current.append(ch)
                 }
             }
         }
-        return out.distinct()
+        return finalizeSuggestions(out, typedPrefix)
     }
+
+    private fun matchingClosingQuote(openingQuote: Char): Char = when (openingQuote) {
+        '“', '”' -> '”'
+        else -> '"'
+    }
+
+    private fun isMatchingClosingQuote(char: Char, closingQuote: Char?): Boolean = when (closingQuote) {
+        '"' -> char == '"' || char == '”'
+        '”' -> char == '”' || char == '"'
+        else -> false
+    }
+
+    private fun finalizeSuggestions(candidates: List<String>, typedPrefix: String): List<String> {
+        val policy = lengthPolicy(typedPrefix)
+        var overLimitCount = 0
+        return candidates.asSequence()
+            .map(String::trimEnd)
+            .filter(String::isNotBlank)
+            .distinct()
+            .filter { candidate ->
+                if (candidate.length <= policy.softLimit) {
+                    true
+                } else if (overLimitCount < MAX_OVER_LIMIT_SUGGESTIONS) {
+                    overLimitCount += 1
+                    true
+                } else {
+                    false
+                }
+            }
+            .take(8)
+            .toList()
+    }
+
+    private fun lengthPolicy(typedPrefix: String): SuggestionLengthPolicy =
+        when (LanLlmLanguageDetector.detect(typedPrefix)) {
+            LanLlmLanguage.Chinese -> SuggestionLengthPolicy(softLimit = 20, hardLimit = 120)
+            LanLlmLanguage.English -> SuggestionLengthPolicy(softLimit = 30, hardLimit = 160)
+        }
+
+    private fun normalizeContinuationPrefix(
+        text: String,
+        typedPrefix: String,
+        hadLeadingWhitespace: Boolean,
+    ): String {
+        if (text.isBlank()) return text
+        return when (LanLlmLanguageDetector.detect(typedPrefix)) {
+            LanLlmLanguage.English -> normalizeEnglishPrefix(text, typedPrefix, hadLeadingWhitespace)
+            LanLlmLanguage.Chinese -> normalizeChinesePrefix(text, typedPrefix)
+        }
+    }
+
+    private fun normalizeEnglishPrefix(
+        text: String,
+        typedPrefix: String,
+        hadLeadingWhitespace: Boolean,
+    ): String {
+        val trimmed = text.trimStart()
+        if (trimmed.isBlank()) return ""
+        val needsLeadingSpace = shouldPrefixEnglishSpace(typedPrefix, trimmed)
+        return when {
+            needsLeadingSpace -> " $trimmed"
+            hadLeadingWhitespace -> trimmed
+            else -> text.trimEnd()
+        }
+    }
+
+    private fun shouldPrefixEnglishSpace(typedPrefix: String, suggestion: String): Boolean {
+        val prefix = typedPrefix
+        if (prefix.isBlank()) return false
+        if (prefix.lastOrNull()?.isWhitespace() == true) return false
+        val prefixLast = prefix.lastOrNull() ?: return false
+        val first = suggestion.firstOrNull() ?: return false
+        if (!isAsciiWordLike(prefixLast) || !isAsciiWordLike(first)) return false
+        if (prefixLast in "'-/_" || first in "'-/_") return false
+        return true
+    }
+
+    private fun normalizeChinesePrefix(text: String, typedPrefix: String): String {
+        val trimmedPrefix = typedPrefix.trimEnd()
+        val prefixLast = trimmedPrefix.lastOrNull()
+        val trimmedLeading = text.trimStart()
+        if (trimmedLeading.isBlank()) return ""
+        val suggestionFirst = trimmedLeading.firstOrNull() ?: return trimmedLeading
+        val prefixEndsWithPunctuation = prefixLast != null && prefixLast in "，。！？；：,.!?;:"
+        return if (prefixEndsWithPunctuation && suggestionFirst in "，。！？；：") {
+            trimmedLeading.drop(1).trimStart()
+        } else {
+            trimmedLeading
+        }
+    }
+
+    private fun findSuspiciousSymbolRunStart(text: String): Int {
+        var index = 0
+        while (index < text.length - 1) {
+            if (!isSuspiciousSymbol(text[index])) {
+                index += 1
+                continue
+            }
+            val start = index
+            var end = index + 1
+            while (end < text.length && isSuspiciousSymbol(text[end])) {
+                end += 1
+            }
+            if (end - start >= 2) {
+                val run = text.substring(start, end)
+                if (!isAllowedSymbolRun(run, text, start, end)) {
+                    return start
+                }
+            }
+            index = end
+        }
+        return -1
+    }
+
+    private fun isSuspiciousSymbol(char: Char): Boolean =
+        !char.isLetterOrDigit() &&
+            !char.isWhitespace() &&
+            !isHanCharacter(char)
+
+    private fun isAllowedSymbolRun(
+        run: String,
+        text: String,
+        start: Int,
+        end: Int,
+    ): Boolean {
+        if (run == "……") return true
+        val allMathSymbols = run.all { it in "+-*/=<>%^~" }
+        if (!allMathSymbols) return false
+        val left = text.getOrNull(start - 1)
+        val right = text.getOrNull(end)
+        return isMathContextChar(left) && isMathContextChar(right)
+    }
+
+    private fun isMathContextChar(char: Char?): Boolean =
+        char != null && (char.isDigit() || char in ".()")
+
+    private fun isHanCharacter(char: Char): Boolean =
+        char == 0x3007.toChar() ||
+            char.code in 0x3400..0x4DBF ||
+            char.code in 0x4E00..0x9FFF ||
+            char.code in 0xF900..0xFAFF
+
+    private fun isAsciiWordLike(char: Char): Boolean =
+        char in 'a'..'z' || char in 'A'..'Z' || char.isDigit()
 
     private fun looksLikeProtocolOrControl(text: String): Boolean {
         val s = stripInvisibleAndControl(text).trim()

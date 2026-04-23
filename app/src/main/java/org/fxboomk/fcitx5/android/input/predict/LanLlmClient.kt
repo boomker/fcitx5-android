@@ -13,7 +13,9 @@ import org.json.JSONObject
 
 private const val TAG = "LanLlmClient"
 
-class LanLlmClient {
+internal class LanLlmClient(
+    private val thinkingSuppressionStore: LanLlmThinkingSuppressionStore = NoOpLanLlmThinkingSuppressionStore,
+) {
     private class HttpRequestFailure(
         val statusCode: Int,
         val responseBody: String,
@@ -21,7 +23,10 @@ class LanLlmClient {
 
     private data class RequestPlan(
         val endpoint: String,
+        val config: LanLlmPrefs.Config,
+        val baseProtocol: String,
         val protocol: String,
+        val augmentation: RequestAugmentation,
         val payload: JSONObject,
         val extractContent: (String) -> String,
         val parseSuggestions: (String, String) -> List<String>,
@@ -57,7 +62,7 @@ class LanLlmClient {
             setRequestProperty("Content-Type", "application/json")
             setRequestProperty("Accept", "application/json")
             when {
-                isAnthropicEndpoint(endpoint) -> {
+                LanLlmRequestPolicy.isAnthropicEndpoint(endpoint) -> {
                     if (apiKey.isNotBlank()) {
                         setRequestProperty("x-api-key", apiKey)
                     }
@@ -109,7 +114,10 @@ class LanLlmClient {
 
     private fun predictChat(request: PredictionRequest): PredictionResponse {
         val useRecentCommitBias = request.useRecentCommitBias && request.recentCommittedText.isNotBlank()
-        val systemPrompt = LanLlmPrompt.systemPrompt(request.config.maxPredictionCandidates)
+        val systemPrompt = LanLlmPrompt.systemPrompt(
+            maxPredictionCandidates = request.config.maxPredictionCandidates,
+            beforeCursor = request.beforeCursor,
+        )
         val openAiPayload = JSONObject()
             .put("model", request.config.model)
             .put("stream", false)
@@ -157,24 +165,18 @@ class LanLlmClient {
             .put("max_tokens", request.config.maxOutputTokens)
             .put("temperature", 0.1)
 
-        val plans = request.config.chatCompatEndpoints.map { endpoint ->
-            if (isAnthropicEndpoint(endpoint)) {
-                RequestPlan(
-                    endpoint = endpoint,
-                    protocol = "anthropic_messages",
-                    payload = JSONObject(anthropicPayload.toString()),
-                    extractContent = ::extractAnthropicContent,
-                    parseSuggestions = LanLlmSuggestionParser::parseJsonSuggestions,
-                )
-            } else {
-                RequestPlan(
-                    endpoint = endpoint,
-                    protocol = "openai_chat_completions",
-                    payload = JSONObject(openAiPayload.toString()),
-                    extractContent = ::extractMessageContent,
-                    parseSuggestions = LanLlmSuggestionParser::parseJsonSuggestions,
-                )
-            }
+        val plans = request.config.chatCompatEndpoints.flatMap { endpoint ->
+            buildRequestPlans(
+                config = request.config,
+                endpoint = endpoint,
+                payload = if (LanLlmRequestPolicy.isAnthropicEndpoint(endpoint)) anthropicPayload else openAiPayload,
+                extractContent = if (LanLlmRequestPolicy.isAnthropicEndpoint(endpoint)) {
+                    ::extractAnthropicContent
+                } else {
+                    ::extractMessageContent
+                },
+                parseSuggestions = LanLlmSuggestionParser::parseJsonSuggestions,
+            )
         }
 
         return executeWithFallback(
@@ -216,7 +218,23 @@ class LanLlmClient {
                 )
             } catch (failure: HttpRequestFailure) {
                 lastFailure = failure
-                val canFallback = index < plans.lastIndex && shouldFallbackToNextPlan(failure)
+                if (
+                    LanLlmRequestPolicy.shouldPersistThinkingDisabledSuppression(
+                        statusCode = failure.statusCode,
+                        responseBody = failure.responseBody,
+                        augmentation = plan.augmentation,
+                    )
+                ) {
+                    thinkingSuppressionStore.suppress(
+                        config = plan.config,
+                        protocol = plan.baseProtocol,
+                    )
+                }
+                val canFallback = index < plans.lastIndex && if (plan.augmentation != RequestAugmentation.None) {
+                    true
+                } else {
+                    shouldFallbackToNextPlan(failure)
+                }
                 Log.w(
                     TAG,
                     "$mode protocol=${plan.protocol} failed status=${failure.statusCode} fallback=$canFallback body=${failure.responseBody.take(160)}"
@@ -261,7 +279,7 @@ class LanLlmClient {
                     .put(
                         JSONObject()
                             .put("role", "system")
-                            .put("content", LanLlmPrompt.completionSystemPrompt())
+                            .put("content", LanLlmPrompt.completionSystemPrompt(request.beforeCursor))
                     )
                     .put(
                         JSONObject()
@@ -278,7 +296,7 @@ class LanLlmClient {
 
         val anthropicPayload = JSONObject()
             .put("model", request.config.model)
-            .put("system", LanLlmPrompt.completionSystemPrompt())
+            .put("system", LanLlmPrompt.completionSystemPrompt(request.beforeCursor))
             .put("messages", JSONArray()
                 .put(
                     JSONObject()
@@ -295,28 +313,46 @@ class LanLlmClient {
             .put("top_p", 0.95)
             .put("stop_sequences", JSONArray(stops.toString()))
 
-        return request.config.completionCompatEndpoints.map { endpoint ->
-            if (isAnthropicEndpoint(endpoint)) {
-                RequestPlan(
-                    endpoint = endpoint,
-                    protocol = "anthropic_messages",
-                    payload = JSONObject(anthropicPayload.toString()),
-                    extractContent = ::extractAnthropicContent,
-                    parseSuggestions = LanLlmSuggestionParser::parse,
-                )
-            } else {
-                RequestPlan(
-                    endpoint = endpoint,
-                    protocol = "openai_chat_completions",
-                    payload = JSONObject(openAiPayload.toString()),
-                    extractContent = ::extractCompletionContent,
-                    parseSuggestions = LanLlmSuggestionParser::parse,
-                )
-            }
+        return request.config.completionCompatEndpoints.flatMap { endpoint ->
+            buildRequestPlans(
+                config = request.config,
+                endpoint = endpoint,
+                payload = if (LanLlmRequestPolicy.isAnthropicEndpoint(endpoint)) anthropicPayload else openAiPayload,
+                extractContent = if (LanLlmRequestPolicy.isAnthropicEndpoint(endpoint)) {
+                    ::extractAnthropicContent
+                } else {
+                    ::extractCompletionContent
+                },
+                parseSuggestions = LanLlmSuggestionParser::parse,
+            )
         }
     }
 
-    private fun isAnthropicEndpoint(endpoint: String): Boolean = endpoint.endsWith("/messages")
+    private fun buildRequestPlans(
+        config: LanLlmPrefs.Config,
+        endpoint: String,
+        payload: JSONObject,
+        extractContent: (String) -> String,
+        parseSuggestions: (String, String) -> List<String>,
+    ): List<RequestPlan> = LanLlmRequestPolicy.variants(
+        config = config,
+        endpoint = endpoint,
+        isSuppressed = { baseProtocol, augmentation ->
+            augmentation == RequestAugmentation.ThinkingDisabled &&
+                thinkingSuppressionStore.isSuppressed(config, baseProtocol)
+        },
+    ).map { variant ->
+        RequestPlan(
+            endpoint = endpoint,
+            config = config,
+            baseProtocol = variant.baseProtocol,
+            protocol = variant.protocol,
+            augmentation = variant.augmentation,
+            payload = LanLlmRequestPolicy.applyAugmentation(payload, variant.augmentation),
+            extractContent = extractContent,
+            parseSuggestions = parseSuggestions,
+        )
+    }
 
     private fun shouldFallbackToNextPlan(failure: HttpRequestFailure): Boolean {
         if (failure.statusCode in listOf(400, 404, 405, 501)) return true
@@ -324,7 +360,11 @@ class LanLlmClient {
         return "not found" in body ||
             "unknown route" in body ||
             "unsupported" in body ||
+            "unsupported parameter" in body ||
+            "unknown parameter" in body ||
+            "unexpected field" in body ||
             "invalid request" in body ||
+            "invalid value" in body ||
             "json: unknown field" in body
     }
 

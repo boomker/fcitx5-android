@@ -3,7 +3,6 @@ package org.fxboomk.fcitx5.android.input.predict
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.preference.PreferenceManager
-import java.net.URI
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import org.fxboomk.fcitx5.android.R
@@ -54,8 +53,8 @@ object LanLlmPrefs {
         MiniMax(
             "minimax",
             R.string.lan_llm_provider_minimax,
-            "https://api.minimaxi.com/v1",
-            CompatApi.OpenAI,
+            "https://api.minimaxi.com/anthropic",
+            CompatApi.Anthropic,
             "MiniMax-M2.7",
         );
 
@@ -118,51 +117,20 @@ object LanLlmPrefs {
         val resolvedBaseUrl: String
             get() = normalizeBaseUrl(baseUrl.ifBlank { provider.defaultBaseUrl.orEmpty() })
 
-        private val openAiRoot: String
-            get() = trimKnownSuffix(
-                resolvedBaseUrl,
-                listOf("/chat/completions", "/models", "/completion", "/responses", "/api/generate"),
-            )
-
-        private val openAiRoots: List<String>
-            get() = if (provider == Provider.Custom && compatApi == CompatApi.OpenAI && hasBareHostPath(openAiRoot)) {
-                listOf(
-                    joinPrefix(openAiRoot, "/v1"),
-                    joinPrefix(openAiRoot, "/api"),
-                    joinPrefix(openAiRoot, "/v1/api"),
-                    openAiRoot,
-                ).distinct()
-            } else {
-                listOf(openAiRoot)
-            }
-
-        private val anthropicRoot: String
-            get() = trimKnownSuffix(
-                resolvedBaseUrl,
-                listOf("/messages", "/models", "/chat/completions", "/completion", "/responses", "/api/generate"),
-            )
-
         val chatEndpoint: String
-            get() = openAiRoots.firstOrNull()?.let { root -> joinPath(root, "/chat/completions") }.orEmpty()
+            get() = chatCompatEndpoints.firstOrNull().orEmpty()
 
         val messagesEndpoint: String
-            get() = joinPath(anthropicRoot, "/messages")
+            get() = LanLlmProviderProfile.messagesEndpoint(this)
 
         val modelsEndpoint: String
             get() = modelsCompatEndpoints.firstOrNull().orEmpty()
 
         val modelsCompatEndpoints: List<String>
-            get() = when (compatApi) {
-                CompatApi.OpenAI -> openAiRoots.map { root -> joinPath(root, "/models") }.distinct()
-                CompatApi.Anthropic -> joinPath(anthropicRoot, "/models")
-                    .let(::listOf)
-            }
+            get() = LanLlmProviderProfile.modelsCompatEndpoints(this)
 
         val chatCompatEndpoints: List<String>
-            get() = when (compatApi) {
-                CompatApi.OpenAI -> openAiRoots.map { root -> joinPath(root, "/chat/completions") }.distinct()
-                CompatApi.Anthropic -> listOf(messagesEndpoint)
-            }
+            get() = LanLlmProviderProfile.chatCompatEndpoints(this)
 
         val completionCompatEndpoints: List<String>
             get() = chatCompatEndpoints
@@ -382,24 +350,4 @@ object LanLlmPrefs {
         return parsed.coerceIn(validRange.first, validRange.last)
     }
 
-    private fun trimKnownSuffix(raw: String, suffixes: List<String>): String {
-        val normalized = raw.removeSuffix("/")
-        val suffix = suffixes.firstOrNull { normalized.endsWith(it) } ?: return normalized
-        return normalized.removeSuffix(suffix)
-    }
-
-    private fun hasBareHostPath(raw: String): Boolean {
-        val path = runCatching { URI(raw).path.orEmpty() }.getOrDefault("")
-        return path.isBlank() || path == "/"
-    }
-
-    private fun joinPrefix(root: String, prefix: String): String {
-        if (root.isBlank()) return ""
-        return root.removeSuffix("/") + prefix
-    }
-
-    private fun joinPath(root: String, path: String): String {
-        if (root.isBlank()) return ""
-        return if (root.endsWith(path)) root else root.removeSuffix("/") + path
-    }
 }

@@ -10,9 +10,11 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-class LanLlmPredictor(
+internal class LanLlmPredictor(
     private val appContext: Context,
-    private val client: LanLlmClient = LanLlmClient(),
+    private val client: LanLlmClient = LanLlmClient(
+        thinkingSuppressionStore = LanLlmSharedPrefsThinkingSuppressionStore.fromContext(appContext.applicationContext),
+    ),
 ) {
     internal class RequestTracker {
         private var activeRequestId = 0L

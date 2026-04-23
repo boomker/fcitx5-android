@@ -39,6 +39,18 @@ class LanLlmSuggestionParserTest {
     }
 
     @Test
+    fun parsesNestedOpenAiResponseBodyWithCurlyQuotesInSuggestions() {
+        val raw = """
+            {"created":1776935595,"choices":[{"message":{"role":"assistant","content":"{\"suggestions\":[\"，婉若游龙”，“，姿容绝世”，“，秾纤得衷”，“，骨像天成”，“，窈窕淑女，君子好逑”]}","role":"assistant"}}]}
+        """.trimIndent()
+
+        assertEquals(
+            listOf("，婉若游龙", "，姿容绝世", "，秾纤得衷", "，骨像天成", "，窈窕淑女，君子好逑"),
+            LanLlmSuggestionParser.parse(raw, "翩若惊鸿"),
+        )
+    }
+
+    @Test
     fun parsesStrictJsonSuggestionsPayload() {
         val raw = """{"suggestions":["今晚一起","吃饭","看电影"]}"""
 
@@ -71,12 +83,15 @@ class LanLlmSuggestionParserTest {
     }
 
     @Test
-    fun shortensLongCompatibleApiBodyToFirstClause() {
+    fun keepsLongCompatibleApiBodyAsSingleCandidate() {
         val raw = """
             {"id":"chatcmpl","choices":[{"message":{"role":"assistant","content":"<think>\n先想一想<\/think>\n\n一起看场电影吧，我听说新出的那部科幻片不错"}}]}
         """.trimIndent()
 
-        assertEquals(listOf("一起看场电影吧"), LanLlmSuggestionParser.parse(raw, "今晚一起"))
+        assertEquals(
+            listOf("一起看场电影吧，我听说新出的那部科幻片不错"),
+            LanLlmSuggestionParser.parse(raw, "今晚一起"),
+        )
     }
 
     @Test
@@ -135,6 +150,148 @@ class LanLlmSuggestionParserTest {
         val raw = """assistant_response_id_abc-123"""
 
         assertEquals(emptyList<String>(), LanLlmSuggestionParser.parse(raw, "今晚一起"))
+    }
+
+    @Test
+    fun keepsEnglishCandidatesForEnglishPrefix() {
+        val raw = """
+            {"id":"chatcmpl","choices":[{"message":{"role":"assistant","content":"{\"suggestions\":[\" tomorrow morning\",\" the updated draft\"]}"}}]}
+        """.trimIndent()
+
+        assertEquals(
+            listOf(" tomorrow morning", " the updated draft"),
+            LanLlmSuggestionParser.parse(raw, "Please send"),
+        )
+    }
+
+    @Test
+    fun keepsOnlyOneOverLimitEnglishCandidate() {
+        val raw = """
+            {"suggestions":[" the revised project schedule update"," tomorrow morning"," the additional appendix summary note"]}
+        """.trimIndent()
+
+        assertEquals(
+            listOf(" the revised project schedule update", " tomorrow morning"),
+            LanLlmSuggestionParser.parse(raw, "Please send"),
+        )
+    }
+
+    @Test
+    fun keepsOnlyOneOverLimitChineseCandidate() {
+        val raw = """
+            {"suggestions":["我们晚上一起去外滩江边散步聊天再吃点夜宵吧","然后顺便吃饭","周末有空的话我们再一起去看展览拍照然后喝咖啡吧"]}
+        """.trimIndent()
+
+        assertEquals(
+            listOf("我们晚上一起去外滩江边散步聊天再吃点夜宵吧", "然后顺便吃饭"),
+            LanLlmSuggestionParser.parse(raw, "今晚"),
+        )
+    }
+
+    @Test
+    fun keepsSingleLongChineseSuggestionAsOneCandidate() {
+        val raw = """{"suggestions":["，窈窕淑女，君子好逑"]}"""
+
+        assertEquals(
+            listOf("，窈窕淑女，君子好逑"),
+            LanLlmSuggestionParser.parse(raw, "关关雎鸠"),
+        )
+    }
+
+    @Test
+    fun keepsChineseSuggestionWithoutInjectingLeadingComma() {
+        val raw = """{"suggestions":["婉若游龙"]}"""
+
+        assertEquals(
+            listOf("婉若游龙"),
+            LanLlmSuggestionParser.parse(raw, "翩若惊鸿"),
+        )
+    }
+
+    @Test
+    fun keepsChineseSuggestionWithoutInjectingLeadingQuestionMark() {
+        val raw = """{"suggestions":["我也想知道"]}"""
+
+        assertEquals(
+            listOf("我也想知道"),
+            LanLlmSuggestionParser.parse(raw, "你今天会来吗"),
+        )
+    }
+
+    @Test
+    fun keepsChineseSuggestionWithoutInjectingLeadingExclamationMark() {
+        val raw = """{"suggestions":["终于等到了"]}"""
+
+        assertEquals(
+            listOf("终于等到了"),
+            LanLlmSuggestionParser.parse(raw, "太好了啊"),
+        )
+    }
+
+    @Test
+    fun keepsChineseSuggestionWithoutInjectingLeadingPeriod() {
+        val raw = """{"suggestions":["我们明天继续"]}"""
+
+        assertEquals(
+            listOf("我们明天继续"),
+            LanLlmSuggestionParser.parse(raw, "今天就先这样"),
+        )
+    }
+
+    @Test
+    fun prefixesEnglishWordContinuationWithSingleSpaceWhenNeeded() {
+        val raw = """{"suggestions":["the draft"]}"""
+
+        assertEquals(
+            listOf(" the draft"),
+            LanLlmSuggestionParser.parse(raw, "Please send"),
+        )
+    }
+
+    @Test
+    fun avoidsDuplicatingEnglishLeadingSpaceWhenPrefixAlreadyEndsWithSpace() {
+        val raw = """{"suggestions":[" the draft"]}"""
+
+        assertEquals(
+            listOf("the draft"),
+            LanLlmSuggestionParser.parse(raw, "Please send "),
+        )
+    }
+
+    @Test
+    fun dropsDuplicatedChineseLeadingCommaWhenPrefixAlreadyHasPunctuation() {
+        val raw = """{"suggestions":["，婉若游龙"]}"""
+
+        assertEquals(
+            listOf("婉若游龙"),
+            LanLlmSuggestionParser.parse(raw, "翩若惊鸿，"),
+        )
+    }
+
+    @Test
+    fun dropsDuplicatedChineseLeadingQuestionMarkWhenPrefixAlreadyHasPunctuation() {
+        val raw = """{"suggestions":["？我也想知道"]}"""
+
+        assertEquals(
+            listOf("我也想知道"),
+            LanLlmSuggestionParser.parse(raw, "你今天会来吗？"),
+        )
+    }
+
+    @Test
+    fun truncatesAtSuspiciousRepeatedSymbolsButKeepsEllipsis() {
+        assertEquals(
+            listOf("继续写"),
+            LanLlmSuggestionParser.parse("""{"suggestions":["继续写！！然后展开"]}""", "今晚"),
+        )
+        assertEquals(
+            listOf("继续写……再慢慢说"),
+            LanLlmSuggestionParser.parse("""{"suggestions":["继续写……再慢慢说"]}""", "今晚"),
+        )
+        assertEquals(
+            listOf("计算1<=2成立"),
+            LanLlmSuggestionParser.parse("""{"suggestions":["计算1<=2成立"]}""", "题目："),
+        )
     }
 
     @Test

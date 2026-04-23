@@ -12,24 +12,6 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 class LanLlmCatalogClient {
-    companion object {
-        internal fun builtInModelsForProvider(provider: LanLlmPrefs.Provider): List<RemoteModel> = when (provider) {
-            LanLlmPrefs.Provider.MiniMax -> listOf(
-                RemoteModel("MiniMax-M2.7"),
-                RemoteModel("MiniMax-M2.7-highspeed"),
-                RemoteModel("MiniMax-M2.5"),
-                RemoteModel("MiniMax-M2.5-highspeed"),
-                RemoteModel("MiniMax-M2.1"),
-                RemoteModel("MiniMax-M2.1-highspeed"),
-                RemoteModel("MiniMax-M2"),
-            )
-            else -> emptyList()
-        }
-
-        internal fun connectivityProbeModel(config: LanLlmPrefs.Config): String =
-            config.model.ifBlank { LanLlmPrefs.providerDefaultModel(config.provider) }
-    }
-
     private class CatalogRequestFailure(
         val statusCode: Int,
         val responseBody: String,
@@ -50,10 +32,18 @@ class LanLlmCatalogClient {
 
     suspend fun checkConnectivity(config: LanLlmPrefs.Config): ConnectivityResult {
         if (config.provider == LanLlmPrefs.Provider.MiniMax) {
+            val models = runCatching { fetchModels(config) }.getOrNull()
+            if (models != null) {
+                return ConnectivityResult(
+                    endpoint = config.modelsEndpoint,
+                    modelCount = models.size,
+                )
+            }
+
             probeChatEndpoint(config)
             return ConnectivityResult(
                 endpoint = config.chatEndpoint,
-                modelCount = builtInModelsForProvider(config.provider).size,
+                modelCount = LanLlmCatalogPolicy.builtInModelsForProvider(config.provider).size,
             )
         }
 
@@ -66,7 +56,10 @@ class LanLlmCatalogClient {
         }
 
         val failure = modelListing.exceptionOrNull()
-        if (failure is CatalogRequestFailure && shouldProbeChatEndpoint(failure)) {
+        if (
+            failure is CatalogRequestFailure &&
+            LanLlmCatalogPolicy.shouldProbeChatEndpoint(failure.statusCode, failure.responseBody)
+        ) {
             probeChatEndpoint(config)
             return ConnectivityResult(
                 endpoint = config.chatEndpoint,
@@ -86,20 +79,17 @@ class LanLlmCatalogClient {
                 } catch (failure: CatalogRequestFailure) {
                     lastFailure = failure
                     val canFallback = index < config.modelsCompatEndpoints.lastIndex &&
-                        shouldFallbackToNextEndpoint(failure)
+                        LanLlmCatalogPolicy.shouldFallbackToNextEndpoint(failure.statusCode, failure.responseBody)
                     if (!canFallback) throw failure
                 }
             }
             throw (lastFailure ?: IllegalStateException("模型列表地址为空"))
         }.recoverCatching {
-            if (config.provider == LanLlmPrefs.Provider.Gemini) {
-                fetchGeminiNativeModels(config.apiKey)
-            } else if (config.provider == LanLlmPrefs.Provider.MiniMax) {
-                probeChatEndpoint(config)
-                builtInModelsForProvider(config.provider)
-            } else {
-                throw it
-            }
+            LanLlmCatalogPolicy.recoverModelListing(
+                config = config,
+                fetchGeminiNativeModels = { fetchGeminiNativeModels(config.apiKey) },
+                probeChatEndpoint = { probeChatEndpoint(config) },
+            ) ?: throw it
         }
             .getOrThrow()
 
@@ -168,33 +158,9 @@ class LanLlmCatalogClient {
         return parseModels(responseBody)
     }
 
-    private fun shouldProbeChatEndpoint(failure: CatalogRequestFailure): Boolean {
-        if (failure.statusCode !in listOf(404, 405, 501)) return false
-        val body = failure.responseBody.lowercase()
-        return body.isBlank() ||
-            "not found" in body ||
-            "404" in body ||
-            "unsupported" in body ||
-            "no route" in body ||
-            "cannot get" in body
-    }
-
-    private fun shouldFallbackToNextEndpoint(failure: CatalogRequestFailure): Boolean {
-        if (failure.statusCode !in listOf(400, 404, 405, 501)) return false
-        val body = failure.responseBody.lowercase()
-        return body.isBlank() ||
-            "not found" in body ||
-            "404" in body ||
-            "unsupported" in body ||
-            "no route" in body ||
-            "cannot get" in body ||
-            "unknown route" in body ||
-            "invalid request" in body
-    }
-
     private fun probeChatEndpoint(config: LanLlmPrefs.Config) {
         if (config.chatEndpoint.isBlank()) error("聊天接口地址为空")
-        val probeModel = connectivityProbeModel(config)
+        val probeModel = LanLlmCatalogPolicy.connectivityProbeModel(config)
         if (probeModel.isBlank()) error("当前未填写模型名称，无法执行连通性检测")
 
         val payload = JSONObject()
@@ -210,42 +176,64 @@ class LanLlmCatalogClient {
                             .put("content", "ping")
                     )
             )
+        val variants = LanLlmRequestPolicy.variants(config, config.chatEndpoint)
 
-        val connection = (URL(config.chatEndpoint).openConnection() as HttpURLConnection).apply {
-            requestMethod = "POST"
-            connectTimeout = 5000
-            readTimeout = 15000
-            doOutput = true
-            setRequestProperty("Content-Type", "application/json")
-            setRequestProperty("Accept", "application/json")
-            when (config.compatApi) {
-                LanLlmPrefs.CompatApi.OpenAI -> {
-                    if (config.apiKey.isNotBlank()) {
-                        setRequestProperty("Authorization", "Bearer ${config.apiKey}")
+        var lastFailure: CatalogRequestFailure? = null
+        for ((index, variant) in variants.withIndex()) {
+            val connection = (URL(config.chatEndpoint).openConnection() as HttpURLConnection).apply {
+                requestMethod = "POST"
+                connectTimeout = 5000
+                readTimeout = 15000
+                doOutput = true
+                setRequestProperty("Content-Type", "application/json")
+                setRequestProperty("Accept", "application/json")
+                when (config.compatApi) {
+                    LanLlmPrefs.CompatApi.OpenAI -> {
+                        if (config.apiKey.isNotBlank()) {
+                            setRequestProperty("Authorization", "Bearer ${config.apiKey}")
+                        }
+                    }
+                    LanLlmPrefs.CompatApi.Anthropic -> {
+                        if (config.apiKey.isNotBlank()) {
+                            setRequestProperty("x-api-key", config.apiKey)
+                        }
+                        setRequestProperty("anthropic-version", "2023-06-01")
                     }
                 }
-                LanLlmPrefs.CompatApi.Anthropic -> {
-                    if (config.apiKey.isNotBlank()) {
-                        setRequestProperty("x-api-key", config.apiKey)
-                    }
-                    setRequestProperty("anthropic-version", "2023-06-01")
+            }
+            connection.outputStream.use { output ->
+                output.write(
+                    LanLlmRequestPolicy.applyAugmentation(payload, variant.augmentation)
+                        .toString()
+                        .toByteArray(StandardCharsets.UTF_8)
+                )
+            }
+
+            val responseCode = connection.responseCode
+            val stream = if (responseCode in 200..299) connection.inputStream else connection.errorStream
+            val responseBody = stream?.use { input ->
+                BufferedReader(InputStreamReader(input, StandardCharsets.UTF_8)).use { reader ->
+                    reader.readText()
                 }
+            }.orEmpty()
+            if (responseCode in 200..299) return
+
+            val failure = CatalogRequestFailure(responseCode, responseBody)
+            lastFailure = failure
+            val canFallback = index < variants.lastIndex &&
+                LanLlmCatalogPolicy.shouldFallbackToNextEndpoint(failure.statusCode, failure.responseBody)
+            if (!canFallback) {
+                throw IllegalStateException(responseBody.ifBlank { "HTTP $responseCode" })
             }
         }
-        connection.outputStream.use { output ->
-            output.write(payload.toString().toByteArray(StandardCharsets.UTF_8))
+
+        val failure = lastFailure
+        val message = if (failure != null) {
+            failure.responseBody.ifBlank { "HTTP ${failure.statusCode}" }
+        } else {
+            "连通性检测失败"
         }
-
-        val responseCode = connection.responseCode
-        val stream = if (responseCode in 200..299) connection.inputStream else connection.errorStream
-        val responseBody = stream?.use { input ->
-            BufferedReader(InputStreamReader(input, StandardCharsets.UTF_8)).use { reader ->
-                reader.readText()
-            }
-        }.orEmpty()
-        if (responseCode in 200..299) return
-
-        throw IllegalStateException(responseBody.ifBlank { "HTTP $responseCode" })
+        throw IllegalStateException(message)
     }
 
     private fun parseModels(responseBody: String): List<RemoteModel> {
