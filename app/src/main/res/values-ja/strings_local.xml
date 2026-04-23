@@ -4,7 +4,6 @@
     <string name="settings_title">クリップボード同期設定</string>
     <string name="quick_sync_tile_label">クリップボード同期</string>
     <string name="clipboard_category_all">すべて</string>
-    <string name="clipboard_category_favorites">お気に入り</string>
     <string name="clipboard_category_local">ローカル</string>
     <string name="clipboard_category_media">メディア</string>
     <string name="clipboard_category_remote">他のデバイス</string>
@@ -109,13 +108,4 @@
     <string name="manual_capture_success">システムクリップボードを読み取り、同期キューに追加しました</string>
     <string name="search">検索</string>
     <string name="split_words">分詞</string>
-    <string name="tokenized_clipboard">分詞</string>
-    <string name="tokenized_clipboard_send">送信</string>
-    <string name="tokenized_clipboard_select_all">すべて選択</string>
-    <string name="tokenized_clipboard_invert_selection">選択を反転</string>
-    <string name="tokenized_clipboard_clear_selection">選択をクリア</string>
-    <string name="tokenized_clipboard_unselect_all">すべて解除</string>
-    <string name="tokenized_clipboard_copied">選択したトークンをコピーしました</string>
-    <string name="tokenized_clipboard_empty_selection">先に1つ以上のトークンを選択してください</string>
-    <string name="tokenized_clipboard_empty_state">利用可能なトークンがありません</string>
 </resources>

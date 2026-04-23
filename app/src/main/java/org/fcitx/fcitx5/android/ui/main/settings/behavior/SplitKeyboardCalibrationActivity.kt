@@ -449,7 +449,7 @@ class SplitKeyboardCalibrationActivity : AppCompatActivity() {
                     keyboardPrefs.keyboardHeightPercentLandscape.getValue()
                 else -> keyboardPrefs.keyboardHeightPercent.getValue()
             }
-            val keyboardHeight = (screenHeight * heightPercent / 100).toInt()
+            val keyboardHeight = screenHeight * heightPercent / 100
 
             val sidePaddingDp = when (resources.configuration.orientation) {
                 Configuration.ORIENTATION_LANDSCAPE ->

@@ -121,7 +121,7 @@ class ClipboardUi(override val ctx: Context, private val theme: Theme) : Ui {
         ColorStateList.valueOf(theme.keyPressHighlightColor),
         GradientDrawable().apply {
             cornerRadius = ctx.dp(15).toFloat()
-            setColor(if (selected) theme.genericActiveBackgroundColor else theme.clipboardEntryColor)
+            setColor(if (selected) theme.accentKeyBackgroundColor else theme.keyBackgroundColor)
         },
         GradientDrawable().apply {
             cornerRadius = ctx.dp(15).toFloat()
@@ -142,7 +142,7 @@ class ClipboardUi(override val ctx: Context, private val theme: Theme) : Ui {
         categoryButtons.forEach { (buttonCategory, button) ->
             val selected = buttonCategory == category
             button.background = categoryBackground(selected)
-            button.setTextColor(if (selected) theme.altKeyTextColor else theme.keyTextColor)
+            button.setTextColor(if (selected) theme.accentKeyTextColor else theme.keyTextColor)
         }
     }
 

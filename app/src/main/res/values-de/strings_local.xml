@@ -4,7 +4,6 @@
     <string name="settings_title">Zwischenablage-Synchronisierung</string>
     <string name="quick_sync_tile_label">Zwischenablage-Sync</string>
     <string name="clipboard_category_all">Alle</string>
-    <string name="clipboard_category_favorites">Favoriten</string>
     <string name="clipboard_category_local">Lokal</string>
     <string name="clipboard_category_media">Medien</string>
     <string name="clipboard_category_remote">Andere Geräte</string>
@@ -109,13 +108,4 @@
     <string name="manual_capture_success">Systemzwischenablage gelesen und zur Synchronisierungswarteschlange hinzugefügt</string>
     <string name="search">Suchen</string>
     <string name="split_words">Wörter teilen</string>
-    <string name="tokenized_clipboard">Wörter aufteilen</string>
-    <string name="tokenized_clipboard_send">Senden</string>
-    <string name="tokenized_clipboard_select_all">Alle auswählen</string>
-    <string name="tokenized_clipboard_invert_selection">Auswahl umkehren</string>
-    <string name="tokenized_clipboard_clear_selection">Auswahl löschen</string>
-    <string name="tokenized_clipboard_unselect_all">Alles abwählen</string>
-    <string name="tokenized_clipboard_copied">Ausgewählte Tokens kopiert</string>
-    <string name="tokenized_clipboard_empty_selection">Wähle zuerst ein oder mehrere Tokens aus</string>
-    <string name="tokenized_clipboard_empty_state">Keine Tokens verfügbar</string>
 </resources>

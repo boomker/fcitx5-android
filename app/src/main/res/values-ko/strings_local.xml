@@ -4,7 +4,6 @@
     <string name="settings_title">클립보드 동기화 설정</string>
     <string name="quick_sync_tile_label">클립보드 동기화</string>
     <string name="clipboard_category_all">전체</string>
-    <string name="clipboard_category_favorites">즐겨찾기</string>
     <string name="clipboard_category_local">로컬</string>
     <string name="clipboard_category_media">미디어</string>
     <string name="clipboard_category_remote">다른 기기</string>
@@ -109,13 +108,4 @@
     <string name="manual_capture_success">시스템 클립보드를 읽어 동기화 대기열에 추가했습니다</string>
     <string name="search">검색</string>
     <string name="split_words">단어 분리</string>
-    <string name="tokenized_clipboard">토큰화</string>
-    <string name="tokenized_clipboard_send">보내기</string>
-    <string name="tokenized_clipboard_select_all">모두 선택</string>
-    <string name="tokenized_clipboard_invert_selection">선택 반전</string>
-    <string name="tokenized_clipboard_clear_selection">선택 지우기</string>
-    <string name="tokenized_clipboard_unselect_all">모두 선택 해제</string>
-    <string name="tokenized_clipboard_copied">선택한 토큰을 복사했습니다</string>
-    <string name="tokenized_clipboard_empty_selection">먼저 하나 이상의 토큰을 선택하세요</string>
-    <string name="tokenized_clipboard_empty_state">사용할 수 있는 토큰이 없습니다</string>
 </resources>

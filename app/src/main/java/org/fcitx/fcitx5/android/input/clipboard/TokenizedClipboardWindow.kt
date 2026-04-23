@@ -6,10 +6,13 @@ package org.fcitx.fcitx5.android.input.clipboard
 
 import android.content.ClipData
 import android.widget.Toast
+import androidx.lifecycle.lifecycleScope
 import com.google.android.flexbox.FlexDirection
 import com.google.android.flexbox.FlexWrap
 import com.google.android.flexbox.FlexboxLayoutManager
 import com.google.android.flexbox.JustifyContent
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.input.FcitxInputMethodService
@@ -27,7 +30,7 @@ class TokenizedClipboardWindow(
     private val service: FcitxInputMethodService by manager.inputMethodService()
     private val theme: Theme by manager.theme()
     private val windowManager: InputWindowManager by manager.must()
-    private val tokens by lazy { ClipboardTextTokenizer.tokenize(sourceText) }
+    private var tokens = emptyList<ClipboardToken>()
     private val adapter by lazy {
         TokenizedClipboardAdapter(theme) { selectedCount, totalCount ->
             ui.updateSelectionState(selectedCount, totalCount)
@@ -77,8 +80,14 @@ class TokenizedClipboardWindow(
     }.root
 
     override fun onAttached() {
-        adapter.submitTokens(tokens)
-        ui.setEmptyState(tokens.isEmpty())
+        ui.setEmptyState(true, isLoading = true)
+        service.lifecycleScope.launch(Dispatchers.Default) {
+            tokens = ClipboardTextTokenizer.tokenize(sourceText)
+            service.lifecycleScope.launch(Dispatchers.Main) {
+                adapter.submitTokens(tokens)
+                ui.setEmptyState(tokens.isEmpty(), isLoading = false)
+            }
+        }
     }
 
     override fun onDetached() = Unit

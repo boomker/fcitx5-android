@@ -62,7 +62,7 @@
     <string name="real_time_logs">Echtzeitprotokolle</string>
     <string name="developer">Entwickler</string>
     <string name="clear_clb_db">Datenbank der Zwischenablage leeren</string>
-    <string name="pin">Festlegen</string>
+    <string name="add_to_favorites">Zu Favoriten hinzufügen</string>
     <string name="delete">Löschen</string>
     <string name="clipboard">Zwischenablage</string>
     <string name="keyboard_height">Tastaturhöhe</string>
@@ -631,7 +631,7 @@
     <string name="theme_message_follow_system_day_night_mode_enabled">„Systemweiten Tag-/Nachtmodus folgen“ ist aktiviert, Theme kann nicht manuell gewechselt werden.</string>
     <string name="theme_migrated">Theme wurde auf die aktuelle Version migriert</string>
     <string name="toolbar_num_row_on_password">In der Werkzeugleiste bei Passwortfeldern Zahlenreihe anzeigen</string>
-    <string name="unpin">Lösen</string>
+    <string name="remove_from_favorites">Aus Favoriten entfernen</string>
     <string name="update_table">Tabelle aktualisieren</string>
     <string name="user_data_imported">Benutzerdaten aus %1$s wurden importiert, Neustart läuft…</string>
     <string name="vivo_keypress_workaround">Problem bei der Tastenereigniserkennung auf vivo Origin OS beheben</string>
@@ -642,4 +642,14 @@
     <string name="text_keyboard_layout_compose_override_clear_button">Löschen</string>
     <string name="text_keyboard_layout_compose_override_editor_title">Taste im Eingabemodus bearbeiten</string>
     <string name="text_keyboard_layout_compose_override_follow_base_key_colors">Farben der Basistaste folgen</string>
+    <string name="tokenized_clipboard">分词</string>
+    <string name="tokenized_clipboard_select_all">全选</string>
+    <string name="tokenized_clipboard_unselect_all">取消全选</string>
+    <string name="tokenized_clipboard_invert_selection">反选</string>
+    <string name="tokenized_clipboard_clear_selection">取消</string>
+    <string name="tokenized_clipboard_send">发送</string>
+    <string name="tokenized_clipboard_copied">已复制所选token</string>
+    <string name="tokenized_clipboard_empty_selection">先选择一个或多个token</string>
+    <string name="tokenized_clipboard_empty_state">没有可用token</string>
+    <string name="tokenized_clipboard_loading">处理中...</string>
     </resources>

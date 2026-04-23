@@ -142,16 +142,23 @@ abstract class ClipboardAdapter(
                 }
             }
             root.setOnClickListener {
-                showEntryMenu(
-                    anchor = root,
-                    entry = entry,
-                    linkUri = linkUri,
-                    searchQuery = searchQuery,
-                    dialNumber = dialNumber,
-                    splittableText = splittableText
-                )
+                if (entry.isUriEntry()) {
+                    // For media entries, click shows menu
+                    showEntryMenu(
+                        anchor = root,
+                        entry = entry,
+                        linkUri = linkUri,
+                        searchQuery = searchQuery,
+                        dialNumber = dialNumber,
+                        splittableText = splittableText
+                    )
+                } else {
+                    // For text entries, click pastes
+                    onPaste(entry)
+                }
             }
             root.setOnLongClickListener {
+                // For all entries, long click shows menu
                 showEntryMenu(
                     anchor = root,
                     entry = entry,
@@ -180,16 +187,16 @@ abstract class ClipboardAdapter(
         val imageUri = entry.viewableImageUri()
 
         if (!isUriEntry) {
-            menu.item(android.R.string.paste, iconTint = iconTint) {
+            menu.item(android.R.string.paste, R.drawable.ic_baseline_content_paste_24, iconTint) {
                 onPaste(entry)
             }
         }
         if (entry.pinned) {
-            menu.item(R.string.unpin, R.drawable.ic_outline_push_pin_24, iconTint) {
+            menu.item(R.string.remove_from_favorites, R.drawable.ic_outline_push_pin_24, iconTint) {
                 onUnpin(entry.id)
             }
         } else {
-            menu.item(R.string.pin, R.drawable.ic_baseline_push_pin_24, iconTint) {
+            menu.item(R.string.add_to_favorites, R.drawable.ic_baseline_push_pin_24, iconTint) {
                 onPin(entry.id)
             }
         }

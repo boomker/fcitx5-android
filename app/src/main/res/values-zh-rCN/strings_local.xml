@@ -3,11 +3,6 @@
     <string name="plugin_description">与 OneClip / ClipCascade / SyncClipboard 服务同步剪贴板</string>
     <string name="settings_title">剪贴板同步设置</string>
     <string name="quick_sync_tile_label">剪贴板同步</string>
-    <string name="clipboard_category_all">全部</string>
-    <string name="clipboard_category_favorites">收藏</string>
-    <string name="clipboard_category_local">本地</string>
-    <string name="clipboard_category_media">媒体</string>
-    <string name="clipboard_category_remote">其他设备</string>
     <string name="clipboard_limit_local">本地剪贴板历史上限</string>
     <string name="clipboard_limit_remote">远端剪贴板历史上限</string>
     <string name="clipboard_limit_media">媒体历史上限</string>
@@ -125,15 +120,4 @@
     <string name="keep_alive_notification_capture">抓取并同步</string>
     <string name="manual_capture_empty">当前系统剪贴板为空或不可读</string>
     <string name="manual_capture_success">已读取系统剪贴板并加入同步队列</string>
-    <string name="search">搜索</string>
-    <string name="split_words">分词</string>
-    <string name="tokenized_clipboard">分词</string>
-    <string name="tokenized_clipboard_send">发送</string>
-    <string name="tokenized_clipboard_select_all">全选</string>
-    <string name="tokenized_clipboard_invert_selection">反选</string>
-    <string name="tokenized_clipboard_clear_selection">取消选择</string>
-    <string name="tokenized_clipboard_unselect_all">取消全选</string>
-    <string name="tokenized_clipboard_copied">已复制所选词元</string>
-    <string name="tokenized_clipboard_empty_selection">请先选择一个或多个词元</string>
-    <string name="tokenized_clipboard_empty_state">暂无可用词元</string>
 </resources>

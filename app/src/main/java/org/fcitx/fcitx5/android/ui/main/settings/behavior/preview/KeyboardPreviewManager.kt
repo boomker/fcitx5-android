@@ -174,7 +174,7 @@ class KeyboardPreviewManager(
             // Get keyboard height percentage from preferences
             val keyboardPrefs = AppPrefs.getInstance().keyboard
             val heightPercent = keyboardPrefs.keyboardHeightPercent.getValue()
-            val keyboardHeight = (screenHeight * heightPercent / 100).toInt()
+            val keyboardHeight = screenHeight * heightPercent / 100
 
             // Get keyboard side and bottom padding from preferences
             val sidePadding = keyboardPrefs.keyboardSidePadding.getValue()

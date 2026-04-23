@@ -4,7 +4,6 @@
     <string name="settings_title">Настройки синхронизации буфера обмена</string>
     <string name="quick_sync_tile_label">Синхр. буфера</string>
     <string name="clipboard_category_all">Все</string>
-    <string name="clipboard_category_favorites">Избранное</string>
     <string name="clipboard_category_local">Локальные</string>
     <string name="clipboard_category_media">Медиа</string>
     <string name="clipboard_category_remote">Другие устройства</string>
@@ -109,13 +108,4 @@
     <string name="manual_capture_success">Системный буфер обмена прочитан и добавлен в очередь синхронизации</string>
     <string name="search">Поиск</string>
     <string name="split_words">Разбить на слова</string>
-    <string name="tokenized_clipboard">Разбивка на слова</string>
-    <string name="tokenized_clipboard_send">Отправить</string>
-    <string name="tokenized_clipboard_select_all">Выбрать все</string>
-    <string name="tokenized_clipboard_invert_selection">Инвертировать</string>
-    <string name="tokenized_clipboard_clear_selection">Очистить выбор</string>
-    <string name="tokenized_clipboard_unselect_all">Снять выбор со всех</string>
-    <string name="tokenized_clipboard_copied">Выбранные токены скопированы</string>
-    <string name="tokenized_clipboard_empty_selection">Сначала выберите один или несколько токенов</string>
-    <string name="tokenized_clipboard_empty_state">Нет доступных токенов</string>
 </resources>

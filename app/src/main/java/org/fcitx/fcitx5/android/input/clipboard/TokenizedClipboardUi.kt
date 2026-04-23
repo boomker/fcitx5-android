@@ -61,7 +61,6 @@ class TokenizedClipboardUi(
     }
 
     val emptyView = textView {
-        text = ctx.getString(R.string.tokenized_clipboard_empty_state)
         gravity = gravityCenter
         textSize = 15f
         setTextColor(theme.altKeyTextColor)
@@ -137,7 +136,14 @@ class TokenizedClipboardUi(
         )
     }
 
-    fun setEmptyState(show: Boolean) {
+    fun setEmptyState(show: Boolean, isLoading: Boolean = false) {
+        if (show) {
+            emptyView.text = if (isLoading) {
+                ctx.getString(R.string.tokenized_clipboard_loading)
+            } else {
+                ctx.getString(R.string.tokenized_clipboard_empty_state)
+            }
+        }
         emptyView.isVisible = show
         recyclerView.isVisible = !show
     }

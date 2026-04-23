@@ -4,7 +4,6 @@
     <string name="settings_title">Ajustes de sincronización del portapapeles</string>
     <string name="quick_sync_tile_label">Sync del portapapeles</string>
     <string name="clipboard_category_all">Todo</string>
-    <string name="clipboard_category_favorites">Favoritos</string>
     <string name="clipboard_category_local">Local</string>
     <string name="clipboard_category_media">Medios</string>
     <string name="clipboard_category_remote">Otros dispositivos</string>
@@ -109,13 +108,4 @@
     <string name="manual_capture_success">Se leyó el portapapeles del sistema y se añadió a la cola de sincronización</string>
     <string name="search">Buscar</string>
     <string name="split_words">Dividir palabras</string>
-    <string name="tokenized_clipboard">Tokenizar</string>
-    <string name="tokenized_clipboard_send">Enviar</string>
-    <string name="tokenized_clipboard_select_all">Seleccionar todo</string>
-    <string name="tokenized_clipboard_invert_selection">Invertir</string>
-    <string name="tokenized_clipboard_clear_selection">Borrar selección</string>
-    <string name="tokenized_clipboard_unselect_all">Deseleccionar todo</string>
-    <string name="tokenized_clipboard_copied">Se copiaron los tokens seleccionados</string>
-    <string name="tokenized_clipboard_empty_selection">Primero selecciona uno o más tokens</string>
-    <string name="tokenized_clipboard_empty_state">No hay tokens disponibles</string>
 </resources>
