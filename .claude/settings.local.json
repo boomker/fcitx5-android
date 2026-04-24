@@ -116,7 +116,9 @@
       "Bash(git merge *)",
       "Bash(xxd /Users/cyzhu/gitrepos/fcitx5-android/app/src/main/res/values-zh-rCN/strings.xml)",
       "Bash(rtk grep *)",
-      "Bash(rtk proxy *)"
+      "Bash(rtk proxy *)",
+      "Bash(./gradlew :app:compileMainlineDebugKotlin --stacktrace)",
+      "Bash(grep *)"
     ]
   }
 }

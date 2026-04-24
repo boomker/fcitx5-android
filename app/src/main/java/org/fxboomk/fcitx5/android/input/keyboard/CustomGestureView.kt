@@ -86,6 +86,8 @@ open class CustomGestureView(ctx: Context) : FrameLayout(ctx) {
 
     var onDoubleTapListener: ((View) -> Unit)? = null
     var onRepeatListener: ((View) -> Unit)? = null
+    var onRepeatStartListener: ((View) -> Unit)? = null
+    var onRepeatMoveListener: ((View, Float, Float) -> Unit)? = null
     var onGestureListener: OnGestureListener? = null
 
     var soundEffect: InputFeedbacks.SoundEffect = InputFeedbacks.SoundEffect.Standard
@@ -165,6 +167,7 @@ open class CustomGestureView(ctx: Context) : FrameLayout(ctx) {
                     repeatJob = lifecycleScope.launch {
                         delay(longPressDelayMillis)
                         repeatStarted = true
+                        onRepeatStartListener?.invoke(this@CustomGestureView)
                         while (isActive && isEnabled) {
                             val lastTriggerTime = SystemClock.uptimeMillis()
                             onRepeatListener?.invoke(this@CustomGestureView)
@@ -222,7 +225,12 @@ open class CustomGestureView(ctx: Context) : FrameLayout(ctx) {
                         isPressed = false
                     }
                 }
-                if (!swipeEnabled || longPressTriggered || repeatStarted) return true
+                if (!swipeEnabled || longPressTriggered || repeatStarted) {
+                    if (repeatStarted) {
+                        onRepeatMoveListener?.invoke(this, x, y)
+                    }
+                    return true
+                }
                 val countX = consumeSwipe(x, SwipeAxis.X)
                 val countY = consumeSwipe(y, SwipeAxis.Y)
                 dispatchGestureEvent(GestureType.Move, x, y, countX, countY)

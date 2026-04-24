@@ -7,12 +7,16 @@ package org.fxboomk.fcitx5.android.input.keyboard
 import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Rect
+import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.util.SparseIntArray
+import android.view.Gravity
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.widget.PopupWindow
+import android.widget.TextView
 import androidx.annotation.CallSuper
 import androidx.annotation.Keep
 import androidx.annotation.DrawableRes
@@ -26,6 +30,7 @@ import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.fxboomk.fcitx5.android.core.FcitxKeyMapping
+import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.core.InputMethodEntry
 import org.fxboomk.fcitx5.android.core.KeyState
 import org.fxboomk.fcitx5.android.core.KeyStates
@@ -62,6 +67,7 @@ import splitties.views.dsl.constraintlayout.rightOfParent
 import splitties.views.dsl.constraintlayout.rightToLeftOf
 import splitties.views.dsl.constraintlayout.topOfParent
 import splitties.views.dsl.core.add
+import splitties.views.imageResource
 import timber.log.Timber
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
@@ -110,6 +116,9 @@ abstract class BaseKeyboard(
     private lateinit var keyRows: List<ConstraintLayout>
     private var horizontalGapScale = 1f
     private var composing = false
+
+    private var backspaceClearPopup: PopupWindow? = null
+    private var backspaceClearTriggered = false
 
     private data class GestureBaseline(
         val swipeEnabled: Boolean,
@@ -161,6 +170,7 @@ abstract class BaseKeyboard(
     }
 
     protected open fun reloadLayout() {
+        dismissBackspaceClearPopup()
         removeAllViews()
         spaceKeys.clear()
         touchTarget.clear()
@@ -558,6 +568,7 @@ abstract class BaseKeyboard(
         reloadLayout()
         reapplyTextScale()
         onStyleRefreshFinished()
+        updateGboardStyleIcons()
         requestLayout()
         updateBounds()
     }
@@ -724,6 +735,7 @@ abstract class BaseKeyboard(
                             } else false
                         }
                         GestureType.Up -> {
+                            dismissBackspaceClearPopup()
                             if (
                                 def.swipe != null &&
                                 kotlin.math.abs(event.totalY) > kotlin.math.abs(event.totalX) &&
@@ -732,7 +744,9 @@ abstract class BaseKeyboard(
                                 onAction(def.swipe)
                                 true
                             } else {
-                                onAction(KeyAction.DeleteSelectionAction(event.totalX))
+                                if (!backspaceClearTriggered) {
+                                    onAction(KeyAction.DeleteSelectionAction(event.totalX))
+                                }
                                 false
                             }
                         }
@@ -749,6 +763,19 @@ abstract class BaseKeyboard(
             )
             applyAppearance(this, activeAppearance)
             applyBehaviorPopupBindings(this, baseline, activeDef.behaviors, activeDef.popup)
+            if (def is BackspaceKey) {
+                this.onRepeatStartListener = { v ->
+                    showBackspaceClearPopup(v)
+                }
+                this.onRepeatMoveListener = { v, x, y ->
+                    if (!backspaceClearTriggered && checkBackspaceClearPopupHit(v, x, y)) {
+                        backspaceClearTriggered = true
+                        InputFeedbacks.hapticFeedback(v, true)
+                        executeClearAll()
+                        dismissBackspaceClearPopup()
+                    }
+                }
+            }
             if (registerComposeAware && def.composeOverride != null) {
                 composeAwareKeys += ComposeAwareKey(def, this, baseline)
             }
@@ -1025,6 +1052,8 @@ abstract class BaseKeyboard(
         view.setOnLongClickListener(null)
         view.repeatEnabled = false
         view.onRepeatListener = null
+        view.onRepeatStartListener = null
+        view.onRepeatMoveListener = null
         view.doubleTapEnabled = false
         view.onDoubleTapListener = null
         view.swipeEnabled = baseline.swipeEnabled
@@ -1528,6 +1557,57 @@ abstract class BaseKeyboard(
         getService()?.inputView?.executeButtonAction(actionId)
     }
 
+    private fun showBackspaceClearPopup(anchorView: View) {
+        dismissBackspaceClearPopup()
+        backspaceClearTriggered = false
+        val popupWidth = anchorView.width * 2
+        val popupHeight = dp(40)
+        val textView = TextView(context).apply {
+            text = "上滑清空🆑"
+            gravity = Gravity.CENTER
+            setTextColor(theme.keyTextColor)
+            textSize = 14f
+            val bg = GradientDrawable().apply {
+                setColor(theme.altKeyBackgroundColor)
+                cornerRadius = dp(8f)
+            }
+            background = bg
+            setPadding(dp(8), dp(6), dp(8), dp(6))
+        }
+        val popup = PopupWindow(textView, popupWidth, popupHeight, false).apply {
+            isTouchable = false
+            isOutsideTouchable = false
+            animationStyle = 0
+        }
+        val xOffset = -(anchorView.width / 2)
+        val yOffset = -(popupHeight + anchorView.height)
+        popup.showAsDropDown(anchorView, xOffset, yOffset)
+        backspaceClearPopup = popup
+    }
+
+    private fun dismissBackspaceClearPopup() {
+        backspaceClearPopup?.dismiss()
+        backspaceClearPopup = null
+    }
+
+    private fun checkBackspaceClearPopupHit(anchorView: View, touchX: Float, touchY: Float): Boolean {
+        backspaceClearPopup ?: return false
+        val popupWidth = anchorView.width * 2
+        val popupHeight = dp(40)
+        val popupLeft = -(anchorView.width / 2).toFloat()
+        val popupRight = popupLeft + popupWidth
+        return touchX in popupLeft..popupRight && touchY in -(popupHeight.toFloat())..0f
+    }
+
+    private fun executeClearAll() {
+        val service = getService() ?: return
+        val ic = service.currentInputConnection ?: return
+        ic.beginBatchEdit()
+        ic.performContextMenuAction(android.R.id.selectAll)
+        ic.commitText("", 1)
+        ic.endBatchEdit()
+    }
+
     /**
      * Check whether it is a function key (F1-F12)
      */
@@ -1991,10 +2071,48 @@ abstract class BaseKeyboard(
     }
 
     open fun onAttach() {
+        updateGboardStyleIcons()
     }
 
     open fun onReturnDrawableUpdate(@DrawableRes returnDrawable: Int) {
-        // do nothing by default
+        val drawable = resolveGboardReturnDrawable(returnDrawable)
+        allViews.forEach { view ->
+            if (view.tag == R.id.button_return) {
+                when (view) {
+                    is ImageKeyView -> view.img.imageResource = drawable
+                    is ImageAltTextKeyView -> view.img.imageResource = drawable
+                }
+            }
+        }
+    }
+
+    protected fun resolveGboardReturnDrawable(@DrawableRes returnDrawable: Int): Int {
+        return if (
+            returnDrawable == R.drawable.ic_baseline_keyboard_return_24 &&
+            org.fxboomk.fcitx5.android.data.theme.ThemeManager.prefs.gboardStyleSideKeys.getValue()
+        ) {
+            R.drawable.ic_rounded_keyboard_return_24
+        } else {
+            returnDrawable
+        }
+    }
+
+    protected fun updateGboardStyleIcons() {
+        val gboardStyle = org.fxboomk.fcitx5.android.data.theme.ThemeManager.prefs.gboardStyleSideKeys.getValue()
+        val bsRes = if (gboardStyle) R.drawable.ic_outline_backspace_24 else R.drawable.ic_baseline_backspace_24
+        val retRes = if (gboardStyle) R.drawable.ic_rounded_keyboard_return_24 else R.drawable.ic_baseline_keyboard_return_24
+        allViews.forEach { view ->
+            when (view.tag) {
+                R.id.button_backspace -> when (view) {
+                    is ImageKeyView -> view.img.imageResource = bsRes
+                    is ImageAltTextKeyView -> view.img.imageResource = bsRes
+                }
+                R.id.button_return -> when (view) {
+                    is ImageKeyView -> view.img.imageResource = retRes
+                    is ImageAltTextKeyView -> view.img.imageResource = retRes
+                }
+            }
+        }
     }
 
     open fun onPunctuationUpdate(mapping: Map<String, String>) {

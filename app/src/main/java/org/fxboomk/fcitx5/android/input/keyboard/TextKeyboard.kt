@@ -543,12 +543,6 @@ class TextKeyboard(
         super.onDetachedFromWindow()
     }
 
-    override fun onReturnDrawableUpdate(returnDrawable: Int) {
-        specialKeyViews.`return`.forEach { returnKey ->
-            returnKey.img.imageResource = returnDrawable
-        }
-    }
-
     override fun onPunctuationUpdate(mapping: Map<String, String>) {
         punctuationMapping = mapping
         updatePunctuationKeys()
@@ -585,6 +579,7 @@ class TextKeyboard(
         updateCapsButtonIcon()
         updateAlphabetKeys()
         updatePunctuationKeys()
+        updateGboardStyleIcons()
         updateSpaceLabel(currentIme, spaceKeyLabelMode.getValue())
         post { refreshAltTextLayouts() }
     }

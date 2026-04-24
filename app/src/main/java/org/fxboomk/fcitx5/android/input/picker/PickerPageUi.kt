@@ -99,7 +99,8 @@ class PickerPageUi(
     }
 
     private val backspaceAppearance = Appearance.Image(
-        src = R.drawable.ic_baseline_backspace_24,
+        src = if (org.fxboomk.fcitx5.android.data.theme.ThemeManager.prefs.gboardStyleSideKeys.getValue())
+            R.drawable.ic_outline_backspace_24 else R.drawable.ic_baseline_backspace_24,
         variant = Variant.Alternative,
         border = if (bordered) Border.On else Border.Off,
         viewId = R.id.button_backspace

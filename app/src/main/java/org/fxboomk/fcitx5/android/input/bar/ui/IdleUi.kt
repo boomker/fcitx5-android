@@ -157,12 +157,7 @@ class IdleUi(
             hideKeyboardButton.setIcon(R.drawable.ic_baseline_keyboard_voice_24)
             hideKeyboardButton.contentDescription = ctx.getString(R.string.switch_to_voice_input)
         } else {
-            // Use icon font if configured, otherwise show keyboard hide icon
-            if (org.fxboomk.fcitx5.android.input.font.FontProviders.hasFont("button_icon_font")) {
-                hideKeyboardButton.setIconText(IconFont.KEYBOARD_CLOSE)
-            } else {
-                hideKeyboardButton.setIcon(R.drawable.ic_keyboard_hide_24)
-            }
+            hideKeyboardButton.setIcon(R.drawable.ic_keyboard_hide_24)
             hideKeyboardButton.contentDescription = ctx.getString(R.string.hide_keyboard)
         }
         hideKeyboardButton.setOnClickListener(callback)
