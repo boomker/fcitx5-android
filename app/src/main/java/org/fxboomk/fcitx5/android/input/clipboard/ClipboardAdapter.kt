@@ -143,14 +143,16 @@ abstract class ClipboardAdapter(
             }
             root.setOnClickListener {
                 if (entry.isUriEntry()) {
-                    showEntryMenu(
-                        anchor = root,
-                        entry = entry,
-                        linkUri = linkUri,
-                        searchQuery = searchQuery,
-                        dialNumber = dialNumber,
-                        splittableText = splittableText
-                    )
+                    if (!onPasteContent(entry)) {
+                        showEntryMenu(
+                            anchor = root,
+                            entry = entry,
+                            linkUri = linkUri,
+                            searchQuery = searchQuery,
+                            dialNumber = dialNumber,
+                            splittableText = splittableText
+                        )
+                    }
                 } else {
                     onPaste(entry)
                 }
@@ -288,6 +290,8 @@ abstract class ClipboardAdapter(
     abstract fun onSearch(query: String)
 
     abstract fun onDial(number: String)
+
+    abstract fun onPasteContent(entry: ClipboardEntry): Boolean
 
     abstract fun onOpenFile(uri: Uri)
 

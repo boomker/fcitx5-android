@@ -62,8 +62,8 @@
     <string name="real_time_logs">实时日志</string>
     <string name="developer">开发者</string>
     <string name="clear_clb_db">清空剪贴板数据库</string>
-    <string name="add_to_favorites">添加到收藏</string>
-    <string name="remove_from_favorites">从收藏移除</string>
+    <string name="add_to_favorites">收藏</string>
+    <string name="remove_from_favorites">取消</string>
     <string name="delete">删除</string>
     <string name="clipboard">剪贴板</string>
     <string name="clipboard_category_all">全部</string>

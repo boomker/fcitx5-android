@@ -6,8 +6,9 @@ package org.fxboomk.fcitx5.android.input.clipboard
 
 import android.annotation.SuppressLint
 import android.app.SearchManager
-import android.content.Intent
+import android.content.ClipDescription
 import android.content.ComponentName
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
@@ -21,6 +22,8 @@ import androidx.core.text.bold
 import androidx.core.text.buildSpannedString
 import androidx.core.text.color
 import androidx.core.view.updateLayoutParams
+import androidx.core.view.inputmethod.InputConnectionCompat
+import androidx.core.view.inputmethod.InputContentInfoCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
@@ -55,6 +58,7 @@ import org.fxboomk.fcitx5.android.input.keyboard.KeyboardWindow
 import org.fxboomk.fcitx5.android.input.wm.InputWindow
 import org.fxboomk.fcitx5.android.input.wm.InputWindowManager
 import org.fxboomk.fcitx5.android.utils.AppUtil
+import org.fxboomk.fcitx5.android.utils.ClipboardUriStore
 import org.fxboomk.fcitx5.android.utils.EventStateMachine
 import org.fxboomk.fcitx5.android.utils.item
 import org.mechdancer.dependency.manager.must
@@ -164,6 +168,35 @@ class ClipboardWindow : InputWindow.ExtendedInputWindow<ClipboardWindow>() {
                 runCatching {
                     service.startActivity(intent)
                 }
+            }
+
+            override fun onPasteContent(entry: ClipboardEntry): Boolean {
+                val staged = ClipboardUriStore.stageForCommit(context, entry.text) ?: return false
+                val editorInfo = service.currentInputEditorInfo ?: return false
+                val inputConnection = service.currentInputConnection ?: return false
+                editorInfo.packageName?.takeIf { it.isNotEmpty() }?.let { packageName ->
+                    service.grantUriPermission(packageName, staged.uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                val description = ClipDescription(
+                    staged.uri.lastPathSegment ?: "clipboard",
+                    arrayOf(staged.mimeType)
+                )
+                val committed = InputConnectionCompat.commitContent(
+                    inputConnection,
+                    editorInfo,
+                    InputContentInfoCompat(staged.uri, description, null),
+                    InputConnectionCompat.INPUT_CONTENT_GRANT_READ_URI_PERMISSION,
+                    null
+                )
+                if (committed) {
+                    service.lifecycleScope.launch {
+                        ClipboardManager.markUsed(entry.id)
+                    }
+                    if (clipboardReturnAfterPaste) {
+                        windowManager.attachWindow(KeyboardWindow)
+                    }
+                }
+                return committed
             }
 
             override fun onOpenFile(uri: Uri) {

@@ -639,14 +639,14 @@
     <string name="text_keyboard_layout_compose_override_clear_button">Löschen</string>
     <string name="text_keyboard_layout_compose_override_editor_title">Taste im Eingabemodus bearbeiten</string>
     <string name="text_keyboard_layout_compose_override_follow_base_key_colors">Farben der Basistaste folgen</string>
-    <string name="tokenized_clipboard">分词</string>
-    <string name="tokenized_clipboard_select_all">全选</string>
-    <string name="tokenized_clipboard_unselect_all">取消全选</string>
-    <string name="tokenized_clipboard_invert_selection">反选</string>
-    <string name="tokenized_clipboard_clear_selection">取消</string>
-    <string name="tokenized_clipboard_send">发送</string>
-    <string name="tokenized_clipboard_copied">已复制所选token</string>
-    <string name="tokenized_clipboard_empty_selection">先选择一个或多个token</string>
-    <string name="tokenized_clipboard_empty_state">没有可用token</string>
-    <string name="tokenized_clipboard_loading">处理中...</string>
+    <string name="tokenized_clipboard">Tokenisierung</string>
+    <string name="tokenized_clipboard_select_all">Alle auswählen</string>
+    <string name="tokenized_clipboard_unselect_all">Alles abwählen</string>
+    <string name="tokenized_clipboard_invert_selection">Auswahl umkehren</string>
+    <string name="tokenized_clipboard_clear_selection">Abbrechen</string>
+    <string name="tokenized_clipboard_send">Senden</string>
+    <string name="tokenized_clipboard_copied">Ausgewählte Tokens kopiert</string>
+    <string name="tokenized_clipboard_empty_selection">Wählen Sie zuerst ein oder mehrere Tokens aus</string>
+    <string name="tokenized_clipboard_empty_state">Keine Tokens verfügbar</string>
+    <string name="tokenized_clipboard_loading">Wird verarbeitet...</string>
     </resources>

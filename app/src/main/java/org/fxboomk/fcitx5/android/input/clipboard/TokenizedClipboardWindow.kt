@@ -30,7 +30,6 @@ class TokenizedClipboardWindow(
     private val service: FcitxInputMethodService by manager.inputMethodService()
     private val theme: Theme by manager.theme()
     private val windowManager: InputWindowManager by manager.must()
-    private var tokens = emptyList<ClipboardToken>()
     private val adapter by lazy {
         TokenizedClipboardAdapter(theme) { selectedCount, totalCount ->
             ui.updateSelectionState(selectedCount, totalCount)
@@ -82,7 +81,7 @@ class TokenizedClipboardWindow(
     override fun onAttached() {
         ui.setEmptyState(true, isLoading = true)
         service.lifecycleScope.launch(Dispatchers.Default) {
-            tokens = ClipboardTextTokenizer.tokenize(sourceText)
+            val tokens = ClipboardTextTokenizer.tokenize(sourceText)
             service.lifecycleScope.launch(Dispatchers.Main) {
                 adapter.submitTokens(tokens)
                 ui.setEmptyState(tokens.isEmpty(), isLoading = false)
