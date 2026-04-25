@@ -241,7 +241,7 @@
                 android:resource="@xml/clipboard_file_paths" />
         </provider>
         <provider
-            android:name="androidx.core.content.FileProvider"
+            android:name=".utils.ShareFileProvider"
             android:authorities="${applicationId}.share.fileprovider"
             android:exported="false"
             android:grantUriPermissions="true">

@@ -199,24 +199,62 @@ object LayoutQrBitmapUtil {
         )
         val found = linkedSetOf<String>()
         val pageHeight = PAGE_PADDING + QR_SIZE + TEXT_GAP + TEXT_SIZE.toInt() + PAGE_PADDING
-        val pages = maxOf(1, bitmap.height / pageHeight)
-        var i = 0
-        while (i < pages) {
-            val top = i * pageHeight
-            val safeLeft = minOf(PAGE_PADDING, maxOf(0, bitmap.width - 1))
-            val safeTop = minOf(maxOf(0, top + PAGE_PADDING), bitmap.height - 1)
-            val cropWidth = minOf(QR_SIZE, bitmap.width - safeLeft)
-            val cropHeight = minOf(QR_SIZE, bitmap.height - safeTop)
+        val safeLeft = minOf(PAGE_PADDING, maxOf(0, bitmap.width - 1))
+        val cropWidth = minOf(QR_SIZE, bitmap.width - safeLeft)
+
+        var firstQrAbsoluteY = -1
+        var scanY = 0
+        while (firstQrAbsoluteY < 0 && scanY + PAGE_PADDING + QR_SIZE <= bitmap.height) {
+            val qrTop = scanY + PAGE_PADDING
+            val cropHeight = minOf(QR_SIZE, bitmap.height - qrTop)
             if (cropWidth > 0 && cropHeight > 0) {
-                val cropped = Bitmap.createBitmap(bitmap, safeLeft, safeTop, cropWidth, cropHeight)
-                decodeSingle(cropped, hints)?.let { found += it }
+                val cropped = Bitmap.createBitmap(bitmap, safeLeft, qrTop, cropWidth, cropHeight)
+                val text = decodeSingle(cropped, hints)
                 cropped.recycle()
+                if (text != null) {
+                    found += text
+                    firstQrAbsoluteY = qrTop
+                }
             }
-            i++
+            if (firstQrAbsoluteY < 0) scanY += PAGE_PADDING
         }
-        if (found.isNotEmpty()) return found.toList()
-        decodeSingle(bitmap, hints)?.let { return listOf(it) }
-        return emptyList()
+
+        if (firstQrAbsoluteY < 0) {
+            decodeSingle(bitmap, hints)?.let { return listOf(it) }
+            return emptyList()
+        }
+
+        val scanTolerance = 50
+        var index = 1
+        while (true) {
+            val expectedQrY = firstQrAbsoluteY + index * pageHeight
+            if (expectedQrY - scanTolerance >= bitmap.height) break
+
+            var foundAtThisIndex = false
+            for (offset in -scanTolerance..scanTolerance step 10) {
+                val qrY = expectedQrY + offset
+                if (qrY < 0 || qrY + PAGE_PADDING + QR_SIZE > bitmap.height) continue
+
+                val cropHeight = minOf(QR_SIZE, bitmap.height - qrY)
+                if (cropWidth > 0 && cropHeight > 0) {
+                    val cropped = Bitmap.createBitmap(bitmap, safeLeft, qrY, cropWidth, cropHeight)
+                    decodeSingle(cropped, hints)?.let { text ->
+                        found += text
+                        foundAtThisIndex = true
+                    }
+                    cropped.recycle()
+                    if (foundAtThisIndex) break
+                }
+            }
+
+            index++
+        }
+
+        return if (found.isNotEmpty()) {
+            found.toList()
+        } else {
+            decodeSingle(bitmap, hints)?.let(::listOf) ?: emptyList()
+        }
     }
 
     private fun decodeSingle(bitmap: Bitmap, hints: Map<DecodeHintType, Any>): String? {
