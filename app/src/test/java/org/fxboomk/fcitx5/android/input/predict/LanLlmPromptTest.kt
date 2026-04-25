@@ -37,6 +37,21 @@ class LanLlmPromptTest {
     }
 
     @Test
+    fun systemPromptSwitchesToQuestionAnswerMode() {
+        val prompt = LanLlmPrompt.systemPrompt(
+            maxPredictionCandidates = 5,
+            beforeCursor = "今天吃什么？",
+            taskMode = LanLlmTaskMode.QuestionAnswer,
+        )
+
+        assertTrue(prompt.contains("问题或请求"))
+        assertTrue(prompt.contains("可直接上屏的回答"))
+        assertTrue(prompt.contains("不要把它当成待续写前缀"))
+        assertTrue(prompt.contains("只输出最终回答文本本身"))
+        assertTrue(prompt.contains("只返回 1 条回答"))
+    }
+
+    @Test
     fun completionPromptWithoutRecentBiasBuildsStructuredChatMlPrompt() {
         val prompt = LanLlmPrompt.completionPrompt(
             beforeCursor = "光标前文本内容",
@@ -104,6 +119,31 @@ class LanLlmPromptTest {
     }
 
     @Test
+    fun completionPromptPartsSwitchToQuestionAnswerMode() {
+        val system = LanLlmPrompt.completionSystemPrompt(
+            beforeCursor = "今天午饭吃什么？",
+            taskMode = LanLlmTaskMode.QuestionAnswer,
+        )
+        val user = LanLlmPrompt.completionUserPrompt(
+            beforeCursor = "今天午饭吃什么？",
+            recentCommittedText = "早上刚开完会",
+            historyText = "同事在群里讨论吃饭",
+            useRecentCommitBias = true,
+            taskMode = LanLlmTaskMode.QuestionAnswer,
+        )
+        val assistant = LanLlmPrompt.completionAssistantPrefill(
+            beforeCursor = "今天午饭吃什么？",
+            taskMode = LanLlmTaskMode.QuestionAnswer,
+        )
+
+        assertTrue(system.contains("问答回复候选"))
+        assertTrue(system.contains("不要把它当作待续写前缀"))
+        assertTrue(user.contains("问题或请求"))
+        assertTrue(user.contains("不要把它当成待续写前缀"))
+        assertEquals("<think>\n\n</think>\n\n", assistant)
+    }
+
+    @Test
     fun userPromptUsesStructuredContinuationContextForChatBackend() {
         val prompt = LanLlmPrompt.userPrompt(
             beforeCursor = "今晚一起去",
@@ -153,5 +193,20 @@ class LanLlmPromptTest {
         assertTrue(prompt.contains("English continuation assistant"))
         assertTrue(prompt.contains("Continue my input naturally based on the context"))
         assertTrue(prompt.endsWith("Please send me\n</instruction>"))
+    }
+
+    @Test
+    fun userPromptUsesQuestionAnswerInstructionWhenEnabled() {
+        val prompt = LanLlmPrompt.userPrompt(
+            beforeCursor = "帮我回一句礼貌一点的话",
+            recentCommittedText = "对方刚发来邀请",
+            historyText = "朋友约我周末见面",
+            useRecentCommitBias = true,
+            taskMode = LanLlmTaskMode.QuestionAnswer,
+        )
+
+        assertTrue(prompt.contains("问题或请求"))
+        assertTrue(prompt.contains("给出一条简短、自然、可直接发送的回答"))
+        assertTrue(prompt.endsWith("帮我回一句礼貌一点的话\n</instruction>"))
     }
 }

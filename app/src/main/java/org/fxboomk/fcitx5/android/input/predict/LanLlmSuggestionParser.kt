@@ -257,9 +257,25 @@ object LanLlmSuggestionParser {
         if (hanRegex.containsMatchIn(text)) return false
         if (LanLlmLanguageDetector.prefersLatinSuggestions(typedPrefix)) return false
         val letters = latinLetterRegex.findAll(text).count()
+        if (letters == 0) return false
+        if (!allowsStandaloneLatinCandidate(typedPrefix)) {
+            val asciiOnly = text.all { it.isWhitespace() || isAsciiWordLike(it) || it in "_-./@:" }
+            if (asciiOnly && letters <= 4) return true
+            val shortAlphabeticOnly = text.length <= 6 && text.all { it.isLetter() }
+            if (shortAlphabeticOnly) return true
+        }
         if (letters < 6) return false
         val ratio = letters.toFloat() / text.length.coerceAtLeast(1)
         return ratio >= 0.45f
+    }
+
+    private fun allowsStandaloneLatinCandidate(typedPrefix: String): Boolean {
+        val trimmed = typedPrefix.trimEnd()
+        if (trimmed.isBlank()) return false
+        val last = trimmed.last()
+        if (isAsciiWordLike(last) || last in "_-./@:") return true
+        val trailingAsciiToken = trimmed.takeLastWhile { isAsciiWordLike(it) || it in "_-./@:" }
+        return trailingAsciiToken.any(Char::isLetter)
     }
 
     private fun collapseToImeCandidate(text: String, typedPrefix: String): String {

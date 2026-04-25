@@ -58,6 +58,7 @@ import org.fxboomk.fcitx5.android.input.broadcast.PreeditEmptyStateComponent
 import org.fxboomk.fcitx5.android.input.broadcast.PunctuationComponent
 import org.fxboomk.fcitx5.android.input.broadcast.ReturnKeyDrawableComponent
 import org.fxboomk.fcitx5.android.input.candidates.horizontal.HorizontalCandidateComponent
+import org.fxboomk.fcitx5.android.input.predict.AiSuggestionOverlay
 import org.fxboomk.fcitx5.android.input.predict.AiSuggestionStripComponent
 import org.fxboomk.fcitx5.android.input.keyboard.CommonKeyActionListener
 import org.fxboomk.fcitx5.android.input.action.ButtonAction
@@ -1114,7 +1115,16 @@ class InputView(
     private val commonKeyActionListener = CommonKeyActionListener()
     private val windowManager = InputWindowManager()
     private val kawaiiBar = KawaiiBarComponent()
-    private val aiSuggestionStrip = AiSuggestionStripComponent(service, themedContext, theme)
+    private val aiSuggestionStrip = AiSuggestionStripComponent(service, themedContext)
+    private val aiSuggestionOverlay = AiSuggestionOverlay(themedContext, theme).apply {
+        onBubbleClick = { aiSuggestionStrip.openSuggestionTable() }
+        onDismissRequest = { aiSuggestionStrip.collapsePanel() }
+        onCollapseClick = { aiSuggestionStrip.collapsePanel() }
+        onQuestionAnswerClick = { aiSuggestionStrip.toggleQuestionAnswerMode() }
+        onThinkingClick = { aiSuggestionStrip.toggleThinkingMode() }
+        onLongFormClick = { aiSuggestionStrip.toggleLongFormMode() }
+        onSuggestionClick = { suggestion -> aiSuggestionStrip.commitSuggestionFromUi(suggestion) }
+    }
     private val horizontalCandidate = HorizontalCandidateComponent()
     private val keyboardWindow = KeyboardWindow()
     private val symbolPicker = symbolPicker()
@@ -1789,6 +1799,7 @@ class InputView(
         // No extra inset needed now as handles provide padding and coverage
 
         outRegion.set(rect)
+        aiSuggestionOverlay.unionTouchableRegion(outRegion)
     }
 
     fun getDockedKeyboardRegion(outRegion: Region) {
@@ -1866,6 +1877,17 @@ class InputView(
         }
 
         outRegion.set(rect)
+        aiSuggestionOverlay.unionTouchableRegion(outRegion)
+    }
+
+    private fun updateAiSuggestionOverlayFallbackTop() {
+        val keyboardLocation = IntArray(2)
+        keyboardView.getLocationInWindow(keyboardLocation)
+        aiSuggestionOverlay.updateKeyboardFrame(
+            left = keyboardLocation[0].toFloat(),
+            width = keyboardView.width.toFloat(),
+        )
+        aiSuggestionOverlay.updateFallbackTop(keyboardLocation[1] + kawaiiBar.view.bottom.toFloat())
     }
 
     private fun updateFloatingState() {
@@ -1928,6 +1950,7 @@ class InputView(
         }
         // Always update handle position to ensure appearance is set correctly
         updateHandlePosition()
+        updateAiSuggestionOverlayFallbackTop()
         keyboardView.layoutParams = params
         updateOneHandHandleVisibility()
         updateSplitBackgroundVisibility()
@@ -2050,22 +2073,18 @@ class InputView(
                 topOfParent()
                 centerHorizontally()
             })
-            add(aiSuggestionStrip.view, lParams(matchParent, wrapContent) {
-                below(kawaiiBar.view)
-                centerHorizontally()
-            })
             add(leftPaddingSpace, lParams {
-                below(aiSuggestionStrip.view)
+                below(kawaiiBar.view)
                 startOfParent()
                 bottomOfParent()
             })
             add(rightPaddingSpace, lParams {
-                below(aiSuggestionStrip.view)
+                below(kawaiiBar.view)
                 endOfParent()
                 bottomOfParent()
             })
             add(windowManager.view, lParams {
-                below(aiSuggestionStrip.view)
+                below(kawaiiBar.view)
                 above(bottomPaddingSpace)
                 /**
                  * set start and end constrain in [updateKeyboardSize]
@@ -2092,6 +2111,17 @@ class InputView(
         windowManager.view.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
             keyBlurMaskView.markKeyRegionsDirty()
             keyBlurMaskView.invalidate()
+            updateAiSuggestionOverlayFallbackTop()
+        }
+        keyboardView.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+            updateAiSuggestionOverlayFallbackTop()
+        }
+        aiSuggestionStrip.onPresentationChanged = { state ->
+            aiSuggestionOverlay.render(state)
+            service.updateFullscreenMode()
+        }
+        keyboardView.post {
+            updateAiSuggestionOverlayFallbackTop()
         }
         windowManager.view.setOnHierarchyChangeListener(object : ViewGroup.OnHierarchyChangeListener {
             override fun onChildViewAdded(parent: View?, child: View?) {
@@ -2158,6 +2188,12 @@ class InputView(
             startToStart = keyboardView.id
             endToEnd = keyboardView.id
         })
+        add(aiSuggestionOverlay, lParams(matchParent, matchParent) {
+            topToTop = ConstraintLayout.LayoutParams.PARENT_ID
+            bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID
+            startToStart = ConstraintLayout.LayoutParams.PARENT_ID
+            endToEnd = ConstraintLayout.LayoutParams.PARENT_ID
+        })
         keyboardPrefs.registerOnChangeListener(onKeyboardSizeChangeListener)
         updateFloatingState()
         updateFloatingHandlesVisibility()
@@ -2205,6 +2241,7 @@ class InputView(
 
                     // Sync handles position
                     updateHandlePosition()
+                    updateAiSuggestionOverlayFallbackTop()
                     lastTouchX = event.rawX
                     lastTouchY = event.rawY
                     true
@@ -2213,6 +2250,7 @@ class InputView(
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     v.parent?.requestDisallowInterceptTouchEvent(false)
                     refreshKeyboardBounds() // Ensure bounds are correct after drag
+                    updateAiSuggestionOverlayFallbackTop()
                     // Save position
                     saveFloatingPosition(
                         keyboardView.translationX.toInt(),
@@ -2440,6 +2478,10 @@ class InputView(
 
     fun updateSelection(start: Int, end: Int) {
         broadcaster.onSelectionUpdate(start, end)
+    }
+
+    internal fun updateAiSuggestionCursorAnchor(anchor: FloatArray?, parent: FloatArray) {
+        aiSuggestionStrip.updateCursorAnchor(anchor, parent)
     }
 
     /**

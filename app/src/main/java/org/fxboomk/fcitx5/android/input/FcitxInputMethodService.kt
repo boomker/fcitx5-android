@@ -128,12 +128,15 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     private var candidatesView: CandidatesView? = null
 
     private val navbarMgr = NavigationBarManager()
+    private fun refreshCursorAnchorMonitoring(): Boolean =
+        currentInputConnection?.monitorCursorAnchor(true) == true
+
     internal val inputDeviceManager = InputDeviceManager(
         onChange = { isVirtualKeyboard ->
             postFcitxJob {
                 setCandidatePagingMode(1)
             }
-            currentInputConnection?.monitorCursorAnchor(!isVirtualKeyboard)
+            refreshCursorAnchorMonitoring()
             window.window?.let {
                 navbarMgr.evaluate(it, isVirtualKeyboard)
             }
@@ -159,18 +162,15 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             postFcitxJob {
                 setCandidatePagingMode(1)
             }
-            // Disable cursor anchor monitoring
-            currentInputConnection?.monitorCursorAnchor(false)
         } else {
             // Switching to "Always" mode: enable paging mode for digit key selection
             postFcitxJob {
                 setCandidatePagingMode(1)
             }
-            // Enable cursor anchor monitoring for floating candidates positioning
-            currentInputConnection?.monitorCursorAnchor(true)
             // Update candidates view position
             updateCandidatesViewPagingAndBounds()
         }
+        refreshCursorAnchorMonitoring()
         // Re-configure InputView and CandidatesView based on the new mode
         inputDeviceManager.onFloatingModeChanged()
     }
@@ -1314,13 +1314,12 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             }
             if (inputDeviceManager.evaluateOnStartInputView(info, this)) {
                 inputView?.startInput(info, capabilityFlags, restarting)
-            } else {
-                if (currentInputConnection?.monitorCursorAnchor() != true) {
-                    if (!decorLocationUpdated) {
-                        updateDecorLocation()
-                    }
-                    workaroundNullCursorAnchorInfo()
+            }
+            if (!refreshCursorAnchorMonitoring()) {
+                if (!decorLocationUpdated) {
+                    updateDecorLocation()
                 }
+                workaroundNullCursorAnchorInfo()
             }
         } finally {
             contentView.post {
@@ -1374,6 +1373,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         anchorPosition[2] = 0f
         anchorPosition[3] = contentSize[1]
         candidatesView?.updateCursorAnchor(anchorPosition, contentSize)
+        inputView?.updateAiSuggestionCursorAnchor(null, contentSize)
     }
 
     override fun onUpdateCursorAnchorInfo(info: CursorAnchorInfo) {
@@ -1411,7 +1411,8 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         
         // Update candidates view with cursor anchor
         candidatesView?.updateCursorAnchor(anchorPosition, contentSize)
-        
+        inputView?.updateAiSuggestionCursorAnchor(anchorPosition.copyOf(), contentSize.copyOf())
+
         // Also update floating candidates position in "Always" mode
         val floatingMode = AppPrefs.getInstance().candidates.mode.getValue()
         if (floatingMode == FloatingCandidatesMode.Always) {

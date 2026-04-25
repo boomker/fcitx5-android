@@ -15,6 +15,7 @@ class LanLlmClientTest {
         val variants = LanLlmRequestPolicy.variants(
             config = config(provider = LanLlmPrefs.Provider.Custom),
             endpoint = "http://127.0.0.1:11434/v1/chat/completions",
+            enableThinking = false,
         )
 
         assertEquals(
@@ -36,6 +37,7 @@ class LanLlmClientTest {
             LanLlmRequestPolicy.variants(
                 config = config(provider = LanLlmPrefs.Provider.OpenAI),
                 endpoint = "https://api.openai.com/v1/chat/completions",
+                enableThinking = false,
             ),
         )
         assertEquals(
@@ -46,6 +48,7 @@ class LanLlmClientTest {
             LanLlmRequestPolicy.variants(
                 config = config(provider = LanLlmPrefs.Provider.Gemini, baseUrl = "https://generativelanguage.googleapis.com/v1beta/openai"),
                 endpoint = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+                enableThinking = false,
             ),
         )
     }
@@ -60,6 +63,7 @@ class LanLlmClientTest {
             LanLlmRequestPolicy.variants(
                 config = config(provider = LanLlmPrefs.Provider.DeepSeek, baseUrl = "https://api.deepseek.com"),
                 endpoint = "https://api.deepseek.com/chat/completions",
+                enableThinking = false,
             ),
         )
         assertEquals(
@@ -70,6 +74,7 @@ class LanLlmClientTest {
             LanLlmRequestPolicy.variants(
                 config = config(provider = LanLlmPrefs.Provider.Zhipu, baseUrl = "https://open.bigmodel.cn/api/paas/v4"),
                 endpoint = "https://open.bigmodel.cn/api/paas/v4/chat/completions",
+                enableThinking = false,
             ),
         )
     }
@@ -88,6 +93,7 @@ class LanLlmClientTest {
                     model = "claude-3-7-sonnet",
                 ),
                 endpoint = "https://api.anthropic.com/v1/messages",
+                enableThinking = false,
             ),
         )
         assertEquals(
@@ -101,14 +107,16 @@ class LanLlmClientTest {
                     baseUrl = "https://api.minimaxi.com/anthropic",
                 ),
                 endpoint = "https://api.minimaxi.com/anthropic/messages",
+                enableThinking = false,
             ),
         )
     }
 
     @Test
-    fun deepSeekChatSkipsThinkingDisabledAugmentation() {
+    fun deepSeekChatStillUsesProviderLevelThinkingPolicy() {
         assertEquals(
             listOf(
+                RequestVariant("openai_chat_completions", "openai_chat_completions_thinking_disabled", RequestAugmentation.ThinkingDisabled),
                 RequestVariant("openai_chat_completions", "openai_chat_completions", RequestAugmentation.None),
             ),
             LanLlmRequestPolicy.variants(
@@ -118,6 +126,7 @@ class LanLlmClientTest {
                     model = "deepseek-chat",
                 ),
                 endpoint = "https://api.deepseek.com/chat/completions",
+                enableThinking = false,
             ),
         )
     }
@@ -135,6 +144,7 @@ class LanLlmClientTest {
                     model = "claude-3-7-sonnet",
                 ),
                 endpoint = "https://api.anthropic.com/v1/messages",
+                enableThinking = false,
                 isSuppressed = { baseProtocol, augmentation ->
                     baseProtocol == "anthropic_messages" &&
                         augmentation == RequestAugmentation.ThinkingDisabled

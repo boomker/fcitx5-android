@@ -176,7 +176,11 @@ class LanLlmCatalogClient {
                             .put("content", "ping")
                     )
             )
-        val variants = LanLlmRequestPolicy.variants(config, config.chatEndpoint)
+        val variants = LanLlmRequestPolicy.variants(
+            config = config,
+            endpoint = config.chatEndpoint,
+            enableThinking = false,
+        )
 
         var lastFailure: CatalogRequestFailure? = null
         for ((index, variant) in variants.withIndex()) {
@@ -203,7 +207,11 @@ class LanLlmCatalogClient {
             }
             connection.outputStream.use { output ->
                 output.write(
-                    LanLlmRequestPolicy.applyAugmentation(payload, variant.augmentation)
+                    LanLlmRequestPolicy.applyAugmentation(
+                        config = config,
+                        payload = payload,
+                        augmentation = variant.augmentation,
+                    )
                         .toString()
                         .toByteArray(StandardCharsets.UTF_8)
                 )

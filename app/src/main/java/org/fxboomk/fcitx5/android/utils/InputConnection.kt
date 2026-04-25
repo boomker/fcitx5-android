@@ -22,12 +22,14 @@ fun InputConnection.monitorCursorAnchor(enable: Boolean = true): Boolean {
     var scheduled = false
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         scheduled = requestCursorUpdates(
-            InputConnection.CURSOR_UPDATE_MONITOR,
+            InputConnection.CURSOR_UPDATE_IMMEDIATE or InputConnection.CURSOR_UPDATE_MONITOR,
             InputConnection.CURSOR_UPDATE_FILTER_CHARACTER_BOUNDS or InputConnection.CURSOR_UPDATE_FILTER_INSERTION_MARKER
         )
     }
     if (!scheduled) {
-        scheduled = requestCursorUpdates(InputConnection.CURSOR_UPDATE_MONITOR)
+        scheduled = requestCursorUpdates(
+            InputConnection.CURSOR_UPDATE_IMMEDIATE or InputConnection.CURSOR_UPDATE_MONITOR
+        )
     }
     return scheduled
 }

@@ -10,6 +10,16 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+internal enum class LanLlmOutputMode {
+    Suggestions,
+    LongForm,
+}
+
+internal enum class LanLlmTaskMode {
+    Completion,
+    QuestionAnswer,
+}
+
 internal class LanLlmPredictor(
     private val appContext: Context,
     private val client: LanLlmClient = LanLlmClient(
@@ -39,6 +49,9 @@ internal class LanLlmPredictor(
         val beforeCursor: String,
         val recentCommittedText: String = "",
         val historyText: String = "",
+        val outputMode: LanLlmOutputMode = LanLlmOutputMode.Suggestions,
+        val taskMode: LanLlmTaskMode = LanLlmTaskMode.Completion,
+        val enableThinking: Boolean = false,
     )
 
     private data class SamplePlan(
@@ -55,6 +68,7 @@ internal class LanLlmPredictor(
         request: Request,
         onResult: (List<String>) -> Unit,
         onError: ((Throwable) -> Unit)? = null,
+        onPartial: ((String) -> Unit)? = null,
     ) {
         val config = LanLlmPrefs.read(appContext)
         val requestId = requestTracker.replaceActiveRequest()
@@ -70,7 +84,9 @@ internal class LanLlmPredictor(
             try {
                 delay(config.debounceMs)
                 val result = runCatching {
-                    if (config.backend == LanLlmPrefs.Backend.Completion) {
+                    if (config.backend == LanLlmPrefs.Backend.Completion &&
+                        request.outputMode == LanLlmOutputMode.Suggestions
+                    ) {
                         predictCompletion(config, request)
                     } else {
                         val useRecentCommitBias = config.preferLastCommit && request.recentCommittedText.isNotBlank()
@@ -81,7 +97,24 @@ internal class LanLlmPredictor(
                                 recentCommittedText = request.recentCommittedText,
                                 historyText = request.historyText,
                                 useRecentCommitBias = useRecentCommitBias,
-                            )
+                                outputMode = request.outputMode,
+                                taskMode = request.taskMode,
+                                enableThinking = request.enableThinking,
+                            ),
+                            onPartialText = if (
+                                request.outputMode == LanLlmOutputMode.LongForm ||
+                                request.taskMode == LanLlmTaskMode.QuestionAnswer
+                            ) {
+                                { partial ->
+                                    scope.launch {
+                                        if (runningJob.isActive && requestTracker.isActive(requestId)) {
+                                            onPartial?.invoke(partial)
+                                        }
+                                    }
+                                }
+                            } else {
+                                null
+                            },
                         )
                     }
                 }
@@ -91,7 +124,15 @@ internal class LanLlmPredictor(
                 }
 
                 result.onSuccess {
-                    onResult(it.suggestions.take(config.maxPredictionCandidates))
+                    val limit = if (
+                        request.outputMode == LanLlmOutputMode.LongForm ||
+                        request.taskMode == LanLlmTaskMode.QuestionAnswer
+                    ) {
+                        1
+                    } else {
+                        config.maxPredictionCandidates
+                    }
+                    onResult(it.suggestions.take(limit))
                 }.onFailure {
                     onError?.invoke(it)
                     onResult(emptyList())
@@ -128,6 +169,9 @@ internal class LanLlmPredictor(
                             historyText = request.historyText,
                             useRecentCommitBias = plan.useRecentCommitBias,
                             seed = plan.seed,
+                            outputMode = request.outputMode,
+                            taskMode = request.taskMode,
+                            enableThinking = request.enableThinking,
                         )
                     )
                 }
@@ -155,7 +199,13 @@ internal class LanLlmPredictor(
                     .thenBy { it.key }
             )
             .map { it.key }
-            .take(config.maxPredictionCandidates)
+            .take(
+                if (request.taskMode == LanLlmTaskMode.QuestionAnswer) {
+                    1
+                } else {
+                    config.maxPredictionCandidates
+                }
+            )
 
         return LanLlmClient.PredictionResponse(
             suggestions = suggestions,

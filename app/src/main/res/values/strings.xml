@@ -300,6 +300,12 @@
     <string name="lan_llm_enable_summary" translatable="false">使用 LLM 提供预测候选。</string>
     <string name="ai_clip_title" translatable="false">AI 候选</string>
     <string name="ai_clip_open_count" translatable="false">AI 候选 (%1$d)</string>
+    <string name="ai_clip_collapse" translatable="false">收起 AI 候选面板</string>
+    <string name="ai_clip_question_answer" translatable="false">问答</string>
+    <string name="ai_clip_thinking" translatable="false">思考</string>
+    <string name="ai_clip_long_form" translatable="false">长文</string>
+    <string name="ai_clip_answer_loading" translatable="false">正在生成回答…</string>
+    <string name="ai_clip_long_form_loading" translatable="false">正在生成长文候选…</string>
     <string name="lan_llm_provider" translatable="false">模型服务商</string>
     <string name="lan_llm_provider_custom" translatable="false">自定义</string>
     <string name="lan_llm_provider_openai" translatable="false">OpenAI</string>
