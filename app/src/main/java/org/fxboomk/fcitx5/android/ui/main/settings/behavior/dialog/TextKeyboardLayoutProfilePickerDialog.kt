@@ -4,37 +4,21 @@
  */
 package org.fxboomk.fcitx5.android.ui.main.settings.behavior.dialog
 
-import android.content.Intent
-import android.os.Bundle
+import android.content.Context
 import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.app.AppCompatActivity
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.input.config.ConfigProviders
 import org.fxboomk.fcitx5.android.input.config.UserConfigFiles
 import org.fxboomk.fcitx5.android.utils.toast
 
-class TextKeyboardLayoutProfilePickerActivity : AppCompatActivity() {
-    private var pickerDialog: AlertDialog? = null
+object TextKeyboardLayoutProfilePickerDialog {
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        showPickerDialog()
-    }
-
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        showPickerDialog()
-    }
-
-    override fun onDestroy() {
-        pickerDialog?.dismiss()
-        pickerDialog = null
-        super.onDestroy()
-    }
-
-    private fun showPickerDialog() {
-        pickerDialog?.dismiss()
+    fun build(
+        context: Context,
+        onProfileSelected: ((String) -> Unit)? = null,
+        onDismiss: (() -> Unit)? = null
+    ): AlertDialog {
         val current = UserConfigFiles.normalizeTextKeyboardLayoutProfile(
             AppPrefs.getInstance().keyboard.textKeyboardLayoutProfile.getValue()
         ) ?: UserConfigFiles.DEFAULT_TEXT_KEYBOARD_LAYOUT_PROFILE
@@ -45,36 +29,34 @@ class TextKeyboardLayoutProfilePickerActivity : AppCompatActivity() {
         val sortedProfiles = profiles
             .distinct()
             .sortedWith(compareBy({ it != UserConfigFiles.DEFAULT_TEXT_KEYBOARD_LAYOUT_PROFILE }, { it }))
-        val labels = sortedProfiles.map {
-            if (it == UserConfigFiles.DEFAULT_TEXT_KEYBOARD_LAYOUT_PROFILE) {
-                getString(R.string.default_)
-            } else {
-                it
-            }
-        }.toTypedArray()
+        val labels = sortedProfiles.map { profile -> context.displayProfile(profile) }.toTypedArray()
         val selected = sortedProfiles.indexOf(current).coerceAtLeast(0)
 
-        pickerDialog = AlertDialog.Builder(this)
+        return AlertDialog.Builder(context)
             .setTitle(R.string.text_keyboard_layout_file_select_title)
             .setSingleChoiceItems(labels, selected) { dialog, which ->
                 val target = sortedProfiles.getOrNull(which) ?: return@setSingleChoiceItems
                 AppPrefs.getInstance().keyboard.textKeyboardLayoutProfile.setValue(target)
                 ConfigProviders.provider = ConfigProviders.provider
-                toast(
-                    getString(
+                context.toast(
+                    context.getString(
                         R.string.text_keyboard_layout_file_select_summary,
-                        if (target == UserConfigFiles.DEFAULT_TEXT_KEYBOARD_LAYOUT_PROFILE) {
-                            getString(R.string.default_)
-                        } else {
-                            target
-                        }
+                        context.displayProfile(target)
                     )
                 )
+                onProfileSelected?.invoke(target)
                 dialog.dismiss()
-                finish()
             }
-            .setOnDismissListener { finish() }
+            .setOnDismissListener { onDismiss?.invoke() }
             .setNegativeButton(android.R.string.cancel, null)
-            .show()
+            .create()
+    }
+
+    private fun Context.displayProfile(profile: String): String {
+        return if (profile == UserConfigFiles.DEFAULT_TEXT_KEYBOARD_LAYOUT_PROFILE) {
+            getString(R.string.default_)
+        } else {
+            profile
+        }
     }
 }
