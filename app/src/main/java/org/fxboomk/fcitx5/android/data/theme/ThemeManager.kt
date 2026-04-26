@@ -18,6 +18,7 @@ import org.fxboomk.fcitx5.android.ui.main.settings.theme.MonetThemePrefs
 import org.fxboomk.fcitx5.android.utils.WeakHashSet
 import org.fxboomk.fcitx5.android.utils.appContext
 import org.fxboomk.fcitx5.android.utils.isDarkMode
+import org.fxboomk.fcitx5.android.utils.userManager
 
 object ThemeManager {
 
@@ -40,9 +41,16 @@ object ThemeManager {
 
     val DefaultTheme = ThemePreset.PixelDark
 
-    private var monetThemes = loadMonetThemes()
+    private var monetThemes = defaultMonetThemes()
+
+    private fun defaultMonetThemes(): List<Theme.Monet> {
+        return listOf(ThemeMonet.getLight(), ThemeMonet.getDark())
+    }
 
     private fun loadMonetThemes(): List<Theme.Monet> {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && !appContext.userManager.isUserUnlocked) {
+            return defaultMonetThemes()
+        }
         // 检查是否存在自定义映射配置
         val lightMapping = MonetThemePrefs.getMapping("MonetLight")
         val darkMapping = MonetThemePrefs.getMapping("MonetDark")
