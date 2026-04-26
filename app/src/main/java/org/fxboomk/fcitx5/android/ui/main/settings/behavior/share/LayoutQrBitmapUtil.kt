@@ -198,62 +198,103 @@ object LayoutQrBitmapUtil {
             DecodeHintType.POSSIBLE_FORMATS to listOf(com.google.zxing.BarcodeFormat.QR_CODE)
         )
         val found = linkedSetOf<String>()
-        val pageHeight = PAGE_PADDING + QR_SIZE + TEXT_GAP + TEXT_SIZE.toInt() + PAGE_PADDING
-        val safeLeft = minOf(PAGE_PADDING, maxOf(0, bitmap.width - 1))
-        val cropWidth = minOf(QR_SIZE, bitmap.width - safeLeft)
+        val baseWidth = QR_SIZE + PAGE_PADDING * 2
+        val scale = if (baseWidth > 0) bitmap.width.toFloat() / baseWidth else 1f
+        val scaledPadding = maxOf(1, (PAGE_PADDING * scale).toInt())
+        val scaledQrSize = maxOf(1, (QR_SIZE * scale).toInt())
+        val scaledTextGap = maxOf(1, (TEXT_GAP * scale).toInt())
+        val scaledTextSize = maxOf(1, (TEXT_SIZE * scale).toInt())
+        val pageHeight = scaledPadding + scaledQrSize + scaledTextGap + scaledTextSize + scaledPadding
+        val safeLeft = minOf(scaledPadding, maxOf(0, bitmap.width - 1))
+        val cropWidth = minOf(scaledQrSize, bitmap.width - safeLeft)
+        if (cropWidth <= 0 || bitmap.height <= 0) return emptyList()
 
+        fun hasCompleteChunkSet(): Boolean {
+            val parsed = found.mapNotNull { runCatching { LayoutQrTransferCodec.parseChunk(it) }.getOrNull() }
+            val first = parsed.firstOrNull() ?: return false
+            val completeCount = parsed
+                .asSequence()
+                .filter { it.transferId == first.transferId && it.total == first.total }
+                .map { it.index }
+                .toSet()
+                .size
+            return completeCount == first.total
+        }
+
+        fun addDecodedText(text: String?): Boolean {
+            if (text == null) return false
+            val isNew = found.add(text)
+            return isNew && hasCompleteChunkSet()
+        }
+
+        fun decodeAtTop(qrTop: Int): String? {
+            if (qrTop < 0 || qrTop >= bitmap.height) return null
+            val cropSize = minOf(cropWidth, bitmap.height - qrTop)
+            if (cropSize <= 0) return null
+            val cropped = Bitmap.createBitmap(bitmap, safeLeft, qrTop, cropSize, cropSize)
+            return try {
+                decodeSingle(cropped, hints)
+            } finally {
+                cropped.recycle()
+            }
+        }
+
+        // Phase 1: Find the first QR code.
+        // Start from y=0 and scan with PAGE_PADDING stride to handle variable preview heights.
         var firstQrAbsoluteY = -1
         var scanY = 0
-        while (firstQrAbsoluteY < 0 && scanY + PAGE_PADDING + QR_SIZE <= bitmap.height) {
-            val qrTop = scanY + PAGE_PADDING
-            val cropHeight = minOf(QR_SIZE, bitmap.height - qrTop)
-            if (cropWidth > 0 && cropHeight > 0) {
-                val cropped = Bitmap.createBitmap(bitmap, safeLeft, qrTop, cropWidth, cropHeight)
-                val text = decodeSingle(cropped, hints)
-                cropped.recycle()
-                if (text != null) {
-                    found += text
-                    firstQrAbsoluteY = qrTop
-                }
+        while (firstQrAbsoluteY < 0 && scanY + scaledPadding + scaledQrSize <= bitmap.height) {
+            val qrTop = scanY + scaledPadding
+            val text = decodeAtTop(qrTop)
+            if (text != null) {
+                found += text
+                firstQrAbsoluteY = qrTop
             }
-            if (firstQrAbsoluteY < 0) scanY += PAGE_PADDING
+            if (firstQrAbsoluteY < 0) scanY += scaledPadding
         }
 
         if (firstQrAbsoluteY < 0) {
+            // No QR found at regular positions; try full bitmap decode.
             decodeSingle(bitmap, hints)?.let { return listOf(it) }
             return emptyList()
         }
 
-        val scanTolerance = 50
+        // Phase 2: Find subsequent QR codes.
+        // They should be at intervals of pageHeight from the first QR position.
+        // But allow some tolerance for positioning variations.
+        val scanTolerance = maxOf(16, (50 * scale).toInt())
+        val scanStep = maxOf(4, scaledPadding / 2)
         var index = 1
         while (true) {
             val expectedQrY = firstQrAbsoluteY + index * pageHeight
             if (expectedQrY - scanTolerance >= bitmap.height) break
 
-            var foundAtThisIndex = false
-            for (offset in -scanTolerance..scanTolerance step 10) {
+            // Try scanning around the expected position with tolerance.
+            for (offset in -scanTolerance..scanTolerance step scanStep) {
                 val qrY = expectedQrY + offset
-                if (qrY < 0 || qrY + PAGE_PADDING + QR_SIZE > bitmap.height) continue
-
-                val cropHeight = minOf(QR_SIZE, bitmap.height - qrY)
-                if (cropWidth > 0 && cropHeight > 0) {
-                    val cropped = Bitmap.createBitmap(bitmap, safeLeft, qrY, cropWidth, cropHeight)
-                    decodeSingle(cropped, hints)?.let { text ->
-                        found += text
-                        foundAtThisIndex = true
-                    }
-                    cropped.recycle()
-                    if (foundAtThisIndex) break
+                val text = decodeAtTop(qrY)
+                if (text != null) {
+                    if (addDecodedText(text)) return found.toList()
+                    break
                 }
             }
 
             index++
         }
 
-        return if (found.isNotEmpty()) {
-            found.toList()
-        } else {
-            decodeSingle(bitmap, hints)?.let(::listOf) ?: emptyList()
+        if (!hasCompleteChunkSet()) {
+            val legacyPages = maxOf(1, (bitmap.height + pageHeight - 1) / pageHeight)
+            var i = 0
+            while (i < legacyPages) {
+                val qrTop = i * pageHeight + scaledPadding
+                if (addDecodedText(decodeAtTop(qrTop))) return found.toList()
+                i++
+            }
+        }
+
+        return if (found.isNotEmpty()) found.toList()
+        else {
+            decodeSingle(bitmap, hints)?.let { listOf(it) } ?: emptyList()
         }
     }
 
