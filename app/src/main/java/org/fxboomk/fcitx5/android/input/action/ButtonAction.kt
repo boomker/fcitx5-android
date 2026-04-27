@@ -114,6 +114,7 @@ sealed class ButtonAction {
             RedoAction,
             CursorMoveAction,
             FloatingToggleAction,
+            AiCandidatesAction,
             ClipboardAction,
             ThemeToggleAction,
             LanguageSwitchAction,
@@ -142,6 +143,7 @@ sealed class ButtonAction {
             RedoAction,
             CursorMoveAction,
             FloatingToggleAction,
+            AiCandidatesAction,
             ClipboardAction,
             ThemeToggleAction
         )
@@ -270,6 +272,28 @@ data object ClipboardAction : ButtonAction() {
         onActionComplete: (() -> Unit)?
     ) {
         windowManager.attachWindow(ClipboardWindow())
+    }
+}
+
+data object AiCandidatesAction : ButtonAction() {
+    override val id = "ai_candidates"
+    override val defaultIcon = R.drawable.ic_baseline_auto_awesome_24
+    override val defaultLabelRes = R.string.ai_clip_title
+
+    override fun isActive(service: FcitxInputMethodService): Boolean {
+        return service.inputView?.isAiSuggestionPanelVisible() == true
+    }
+
+    override fun execute(
+        context: Context,
+        service: FcitxInputMethodService,
+        fcitx: FcitxConnection,
+        windowManager: InputWindowManager,
+        view: View?,
+        onActionComplete: (() -> Unit)?
+    ) {
+        service.inputView?.openAiSuggestionPanel()
+        onActionComplete?.invoke()
     }
 }
 

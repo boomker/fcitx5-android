@@ -1122,6 +1122,7 @@ class InputView(
         onCollapseClick = { aiSuggestionStrip.collapsePanel() }
         onQuestionAnswerClick = { aiSuggestionStrip.toggleQuestionAnswerMode() }
         onThinkingClick = { aiSuggestionStrip.toggleThinkingMode() }
+        onTranslateClick = { aiSuggestionStrip.toggleTranslateMode() }
         onLongFormClick = { aiSuggestionStrip.toggleLongFormMode() }
         onSuggestionClick = { suggestion -> aiSuggestionStrip.commitSuggestionFromUi(suggestion) }
     }
@@ -2483,6 +2484,10 @@ class InputView(
     internal fun updateAiSuggestionCursorAnchor(anchor: FloatArray?, parent: FloatArray) {
         aiSuggestionStrip.updateCursorAnchor(anchor, parent)
     }
+
+    internal fun openAiSuggestionPanel(): Boolean = aiSuggestionStrip.openSuggestionTable()
+
+    internal fun isAiSuggestionPanelVisible(): Boolean = aiSuggestionStrip.isPanelVisible()
 
     /**
      * Control whether the preedit component should display preedit text.

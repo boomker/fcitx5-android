@@ -41,7 +41,9 @@ class DialogSeekBarPreference @JvmOverloads constructor(
     defStyleAttr: Int = androidx.preference.R.attr.preferenceStyle
 ) : DialogPreference(context, attrs, defStyleAttr) {
 
-    private var value = 0
+    private var currentValue = 0
+    val value: Int
+        get() = currentValue
     var min: Int
     var max: Int
     var step: Int
@@ -68,7 +70,7 @@ class DialogSeekBarPreference @JvmOverloads constructor(
 
     override fun persistInt(value: Int): Boolean {
         return super.persistInt(value).also {
-            if (it) this@DialogSeekBarPreference.value = value
+            if (it) currentValue = value
         }
     }
 
@@ -82,7 +84,7 @@ class DialogSeekBarPreference @JvmOverloads constructor(
     }
 
     override fun onSetInitialValue(defaultValue: Any?) {
-        value = getPersistedInt(defaultValue as? Int ?: default)
+        currentValue = getPersistedInt(defaultValue as? Int ?: default)
     }
 
     override fun onClick() {
@@ -136,7 +138,7 @@ class DialogSeekBarPreference @JvmOverloads constructor(
             .show()
     }
 
-    private fun setValue(value: Int) {
+    fun setValue(value: Int) {
         if (callChangeListener(value)) {
             persistInt(value)
             notifyChanged()
@@ -160,8 +162,14 @@ class DialogSeekBarPreference @JvmOverloads constructor(
      */
     private fun valueForProgress(progress: Int) = (progress * step) + min
 
-    private fun textForValue(value: Int = this@DialogSeekBarPreference.value): String =
-        if (value == default && defaultLabel != null) defaultLabel!! else "$value $unit"
+    private fun textForValue(value: Int = currentValue): String =
+        if (value == default && defaultLabel != null) {
+            defaultLabel!!
+        } else if (unit.isBlank()) {
+            value.toString()
+        } else {
+            "$value $unit"
+        }
 
     object SimpleSummaryProvider : SummaryProvider<DialogSeekBarPreference> {
         override fun provideSummary(preference: DialogSeekBarPreference): CharSequence {

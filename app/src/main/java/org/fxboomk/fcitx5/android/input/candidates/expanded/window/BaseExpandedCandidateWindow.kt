@@ -118,6 +118,7 @@ abstract class BaseExpandedCandidateWindow<T : BaseExpandedCandidateWindow<T>> :
     override fun onAttached() {
         bar.expandButtonStateMachine.push(ExpandedCandidatesAttached)
         candidateLayout.embeddedKeyboard.also {
+            it.onAttach()
             it.onReturnDrawableUpdate(returnKeyDrawable.resourceId)
             it.keyActionListener = keyActionListener
         }

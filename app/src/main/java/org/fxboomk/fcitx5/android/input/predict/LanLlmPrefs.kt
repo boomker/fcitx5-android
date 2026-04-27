@@ -3,6 +3,8 @@ package org.fxboomk.fcitx5.android.input.predict
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.preference.PreferenceManager
+import java.net.Inet4Address
+import java.net.NetworkInterface
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import org.fxboomk.fcitx5.android.R
@@ -11,13 +13,15 @@ object LanLlmPrefs {
     const val KEY_BACKEND = "lan_llm_backend"
     const val KEY_CHAT_API_ENABLED = "lan_llm_chat_api_enabled"
     const val KEY_ENABLED = "lan_llm_enabled"
+    const val KEY_AUTO_PREDICT_ENABLED = "lan_llm_auto_predict_enabled"
     const val KEY_PROVIDER = "lan_llm_provider"
     const val KEY_BASE_URL = "lan_llm_base_url"
     const val KEY_MODEL = "lan_llm_model"
     const val KEY_API_KEY = "lan_llm_api_key"
+    private const val KEY_CUSTOM_DEFAULT_BASE_URL = "lan_llm_custom_default_base_url"
+    private const val KEY_CUSTOM_DEFAULT_API_KEY = "lan_llm_custom_default_api_key"
     private const val KEY_MODEL_SCOPE_PREFIX = "lan_llm_model_scope_"
     private const val KEY_API_KEY_SCOPE_PREFIX = "lan_llm_api_key_scope_"
-    const val KEY_DEBOUNCE_MS = "lan_llm_debounce_ms"
     const val KEY_SAMPLE_COUNT = "lan_llm_sample_count"
     const val KEY_MAX_OUTPUT_TOKENS = "lan_llm_max_output_tokens"
     const val KEY_MAX_PREDICTION_CANDIDATES = "lan_llm_max_prediction_candidates"
@@ -75,8 +79,9 @@ object LanLlmPrefs {
     )
 
     private const val DEFAULT_BASE_URL = "http://192.168.1.1:8000"
+    private const val DEFAULT_CUSTOM_PORT = 8000
     private const val DEFAULT_MODEL = "qwen"
-    private const val DEFAULT_DEBOUNCE_MS = 450
+    private const val DEFAULT_DEBOUNCE_MS = 200
     private const val DEFAULT_SAMPLE_COUNT = 4
     private const val DEFAULT_MAX_OUTPUT_TOKENS = 512
     private const val DEFAULT_MAX_PREDICTION_CANDIDATES = 4
@@ -84,6 +89,7 @@ object LanLlmPrefs {
 
     data class Config(
         val enabled: Boolean,
+        val autoPredictEnabled: Boolean = false,
         val backend: Backend,
         val provider: Provider = Provider.Custom,
         val baseUrl: String,
@@ -143,7 +149,7 @@ object LanLlmPrefs {
         read(PreferenceManager.getDefaultSharedPreferences(context), overrides)
 
     fun read(prefs: SharedPreferences, overrides: Overrides = Overrides()): Config {
-        val debounceMs = readBoundedIntPreference(prefs, KEY_DEBOUNCE_MS, DEFAULT_DEBOUNCE_MS, 100..3000).toLong()
+        val debounceMs = DEFAULT_DEBOUNCE_MS.toLong()
         val chatApiEnabled = if (prefs.contains(KEY_CHAT_API_ENABLED)) {
             prefs.getBoolean(KEY_CHAT_API_ENABLED, false)
         } else {
@@ -173,9 +179,13 @@ object LanLlmPrefs {
             DEFAULT_MAX_CONTEXT_CHARS,
             8..512,
         )
-        val baseUrl = overrides.baseUrl ?: prefs.getString(KEY_BASE_URL, DEFAULT_BASE_URL).orEmpty()
+        val baseUrl = overrides.baseUrl ?: prefs.getString(
+            KEY_BASE_URL,
+            providerDefaultBaseUrl(provider, prefs),
+        ).orEmpty()
         return Config(
             enabled = prefs.getBoolean(KEY_ENABLED, false),
+            autoPredictEnabled = prefs.getBoolean(KEY_AUTO_PREDICT_ENABLED, false),
             backend = overrides.backend ?: if (chatApiEnabled) Backend.ChatCompletions else Backend.Completion,
             provider = provider,
             baseUrl = normalizeBaseUrl(baseUrl),
@@ -200,6 +210,12 @@ object LanLlmPrefs {
             DEFAULT_MAX_PREDICTION_CANDIDATES,
             1..8,
         )
+        migrateIntPreference(
+            prefs,
+            KEY_MAX_CONTEXT_CHARS,
+            DEFAULT_MAX_CONTEXT_CHARS,
+            8..512,
+        )
     }
 
     fun normalizeBaseUrl(raw: String): String {
@@ -210,10 +226,18 @@ object LanLlmPrefs {
         return url
     }
 
-    fun customDefaultBaseUrl(): String = DEFAULT_BASE_URL
+    fun customDefaultBaseUrl(prefs: SharedPreferences? = null): String {
+        val persisted = prefs?.getString(KEY_CUSTOM_DEFAULT_BASE_URL, null)
+            ?.orEmpty()
+            ?.trim()
+            ?.takeIf { it.isNotBlank() }
+        return normalizeBaseUrl(persisted ?: generatedCustomDefaultBaseUrl())
+    }
 
-    fun providerDefaultBaseUrl(provider: Provider): String =
-        provider.defaultBaseUrl ?: customDefaultBaseUrl()
+    fun providerDefaultBaseUrl(
+        provider: Provider,
+        prefs: SharedPreferences? = null,
+    ): String = provider.defaultBaseUrl ?: customDefaultBaseUrl(prefs)
 
     fun providerDefaultModel(provider: Provider): String =
         provider.defaultModel.orEmpty()
@@ -223,7 +247,13 @@ object LanLlmPrefs {
         provider: Provider,
         baseUrl: String,
     ): String {
-        return prefs.getString(scopedApiKeyKey(provider, baseUrl), "").orEmpty().ifBlank {
+        return prefs.getString(scopedApiKeyKey(prefs, provider, baseUrl), "").orEmpty().ifBlank {
+            if (provider == Provider.Custom) {
+                prefs.getString(KEY_CUSTOM_DEFAULT_API_KEY, "").orEmpty().trim()
+            } else {
+                ""
+            }
+        }.ifBlank {
             prefs.getString(KEY_API_KEY, "").orEmpty().trim()
         }
     }
@@ -233,7 +263,7 @@ object LanLlmPrefs {
         provider: Provider,
         baseUrl: String,
     ): String {
-        return prefs.getString(scopedModelKey(provider, baseUrl), "").orEmpty().trim()
+        return prefs.getString(scopedModelKey(prefs, provider, baseUrl), "").orEmpty().trim()
     }
 
     fun persistScopedApiKey(
@@ -245,9 +275,12 @@ object LanLlmPrefs {
         val normalizedApiKey = apiKey.trim()
         val editor = prefs.edit()
         if (normalizedApiKey.isBlank()) {
-            editor.remove(scopedApiKeyKey(provider, baseUrl))
+            editor.remove(scopedApiKeyKey(prefs, provider, baseUrl))
         } else {
-            editor.putString(scopedApiKeyKey(provider, baseUrl), normalizedApiKey)
+            editor.putString(scopedApiKeyKey(prefs, provider, baseUrl), normalizedApiKey)
+        }
+        if (provider == Provider.Custom) {
+            editor.putString(KEY_CUSTOM_DEFAULT_API_KEY, normalizedApiKey)
         }
         editor.putString(KEY_API_KEY, normalizedApiKey).apply()
     }
@@ -261,11 +294,20 @@ object LanLlmPrefs {
         val normalizedModel = model.trim()
         val editor = prefs.edit()
         if (normalizedModel.isBlank()) {
-            editor.remove(scopedModelKey(provider, baseUrl))
+            editor.remove(scopedModelKey(prefs, provider, baseUrl))
         } else {
-            editor.putString(scopedModelKey(provider, baseUrl), normalizedModel)
+            editor.putString(scopedModelKey(prefs, provider, baseUrl), normalizedModel)
         }
         editor.putString(KEY_MODEL, normalizedModel).apply()
+    }
+
+    fun persistCustomDefaultBaseUrl(
+        prefs: SharedPreferences,
+        baseUrl: String,
+    ) {
+        prefs.edit()
+            .putString(KEY_CUSTOM_DEFAULT_BASE_URL, normalizeBaseUrl(baseUrl))
+            .apply()
     }
 
     fun syncScopedApiKeyToActivePreferences(
@@ -289,9 +331,9 @@ object LanLlmPrefs {
             .ifBlank { providerDefaultModel(provider) }
         val editor = prefs.edit()
         if (restoredModel.isBlank()) {
-            editor.remove(scopedModelKey(provider, baseUrl))
+            editor.remove(scopedModelKey(prefs, provider, baseUrl))
         } else {
-            editor.putString(scopedModelKey(provider, baseUrl), restoredModel)
+            editor.putString(scopedModelKey(prefs, provider, baseUrl), restoredModel)
         }
         editor.putString(KEY_MODEL, restoredModel).apply()
         return restoredModel
@@ -302,24 +344,63 @@ object LanLlmPrefs {
 
     fun currentBaseUrl(prefs: SharedPreferences, provider: Provider = currentProvider(prefs)): String =
         normalizeBaseUrl(
-            prefs.getString(KEY_BASE_URL, providerDefaultBaseUrl(provider)).orEmpty()
-                .ifBlank { providerDefaultBaseUrl(provider) }
+            prefs.getString(KEY_BASE_URL, providerDefaultBaseUrl(provider, prefs)).orEmpty()
+                .ifBlank { providerDefaultBaseUrl(provider, prefs) }
         )
 
-    private fun apiKeyScope(provider: Provider, baseUrl: String): String =
-        "${provider.value}|${normalizeBaseUrl(baseUrl.ifBlank { providerDefaultBaseUrl(provider) })}"
+    private fun apiKeyScope(
+        prefs: SharedPreferences,
+        provider: Provider,
+        baseUrl: String,
+    ): String = "${provider.value}|${
+        normalizeBaseUrl(baseUrl.ifBlank { providerDefaultBaseUrl(provider, prefs) })
+    }"
 
-    private fun scopedModelKey(provider: Provider, baseUrl: String): String =
+    private fun scopedModelKey(
+        prefs: SharedPreferences,
+        provider: Provider,
+        baseUrl: String,
+    ): String =
         KEY_MODEL_SCOPE_PREFIX + URLEncoder.encode(
-            apiKeyScope(provider, baseUrl),
+            apiKeyScope(prefs, provider, baseUrl),
             StandardCharsets.UTF_8.name(),
         )
 
-    private fun scopedApiKeyKey(provider: Provider, baseUrl: String): String =
+    private fun scopedApiKeyKey(
+        prefs: SharedPreferences,
+        provider: Provider,
+        baseUrl: String,
+    ): String =
         KEY_API_KEY_SCOPE_PREFIX + URLEncoder.encode(
-            apiKeyScope(provider, baseUrl),
+            apiKeyScope(prefs, provider, baseUrl),
             StandardCharsets.UTF_8.name(),
         )
+
+    private fun generatedCustomDefaultBaseUrl(): String {
+        val host = detectLanIpv4Address() ?: "192.168.1.1"
+        return "http://$host:$DEFAULT_CUSTOM_PORT"
+    }
+
+    private fun detectLanIpv4Address(): String? {
+        return runCatching {
+            val interfaces = NetworkInterface.getNetworkInterfaces()?.toList().orEmpty()
+                .filter { !it.isLoopback && it.isUp }
+                .sortedBy { preferredInterfaceScore(it.name) }
+            interfaces.asSequence()
+                .flatMap { it.inetAddresses.toList().asSequence() }
+                .filterIsInstance<Inet4Address>()
+                .firstOrNull { !it.isLoopbackAddress && it.isSiteLocalAddress }
+                ?.hostAddress
+        }.getOrNull()
+    }
+
+    private fun preferredInterfaceScore(name: String?): Int = when {
+        name.isNullOrBlank() -> Int.MAX_VALUE
+        name.startsWith("wlan", ignoreCase = true) -> 0
+        name.startsWith("wifi", ignoreCase = true) -> 1
+        name.startsWith("eth", ignoreCase = true) -> 2
+        else -> 10
+    }
 
     private fun migrateIntPreference(
         prefs: SharedPreferences,

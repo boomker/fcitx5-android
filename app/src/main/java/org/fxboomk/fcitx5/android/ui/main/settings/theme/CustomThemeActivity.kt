@@ -59,10 +59,12 @@ import org.fxboomk.fcitx5.android.ui.common.withLoadingDialog
 import org.fxboomk.fcitx5.android.ui.main.CropImageActivity.CropContract
 import org.fxboomk.fcitx5.android.ui.main.CropImageActivity.CropOption
 import org.fxboomk.fcitx5.android.ui.main.CropImageActivity.CropResult
+import org.fxboomk.fcitx5.android.utils.alpha
 import org.fxboomk.fcitx5.android.utils.DarkenColorFilter
 import org.fxboomk.fcitx5.android.utils.DeviceUtil
 import org.fxboomk.fcitx5.android.utils.item
 import org.fxboomk.fcitx5.android.utils.parcelable
+import org.fxboomk.fcitx5.android.utils.styledFloat
 import org.fxboomk.fcitx5.android.utils.toast
 import splitties.dimensions.dp
 import splitties.resources.color
@@ -169,6 +171,7 @@ class CustomThemeActivity : AppCompatActivity() {
             theme = item.setter(originalTheme, result.color)
             colorPreviewDrawables[item.name]?.setColor(result.color)
             applyThemePreview(theme)
+            updateSaveButtonState()
         }
 
     private fun createTextView(@StringRes string: Int? = null, ripple: Boolean = false) = textView {
@@ -218,6 +221,8 @@ class CustomThemeActivity : AppCompatActivity() {
                 ThemeManager.saveTheme(theme)
                 // Update originalThemeName so the result will have the correct name
                 originalThemeName = newName
+                savedThemeSnapshot = currentEditableThemeSnapshot()
+                updateSaveButtonState()
                 dialog.dismiss()
             }
         }
@@ -872,7 +877,9 @@ class CustomThemeActivity : AppCompatActivity() {
 
     private lateinit var theme: Theme.Custom
     private var originalThemeName: String? = null
+    private lateinit var savedThemeSnapshot: Theme.Custom
     private var backgroundControlsBound = false
+    private var saveMenuItem: MenuItem? = null
 
     private class BackgroundStates {
         lateinit var launcher: ActivityResultLauncher<CropOption>
@@ -916,6 +923,7 @@ class CustomThemeActivity : AppCompatActivity() {
             background.cropRotation
         )
         applyThemePreview(theme, filteredDrawable)
+        updateSaveButtonState()
     }
 
     /**
@@ -1007,6 +1015,7 @@ class CustomThemeActivity : AppCompatActivity() {
                     updateBackgroundEditorVisibility()
                     updateBlurRadiusLabel(blurRadiusSeekBar.progress)
                     backgroundStates.updateState()
+                    updateSaveButtonState()
                 }
             }
         }
@@ -1061,6 +1070,7 @@ class CustomThemeActivity : AppCompatActivity() {
             override fun onProgressChanged(bar: SeekBar, progress: Int, fromUser: Boolean) {
                 if (fromUser && theme.backgroundImage != null) {
                     backgroundStates.updateState()
+                    updateSaveButtonState()
                 }
             }
         })
@@ -1071,6 +1081,7 @@ class CustomThemeActivity : AppCompatActivity() {
                 updateBlurRadiusLabel(progress)
                 if (fromUser && theme.backgroundImage != null) {
                     backgroundStates.updateState()
+                    updateSaveButtonState()
                 }
             }
         })
@@ -1086,6 +1097,7 @@ class CustomThemeActivity : AppCompatActivity() {
         backgroundStates.pendingSrcFile = null
         applyThemePreview(theme)
         updateBackgroundEditorVisibility()
+        updateSaveButtonState()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -1146,6 +1158,7 @@ class CustomThemeActivity : AppCompatActivity() {
             updateBlurRadiusLabel(blurRadiusSeekBar.progress)
         }
         updateBackgroundEditorVisibility()
+        savedThemeSnapshot = currentEditableThemeSnapshot()
 
         if (newCreated) {
             cropLabel.visibility = View.GONE
@@ -1190,6 +1203,36 @@ class CustomThemeActivity : AppCompatActivity() {
         filteredDrawable.colorFilter = DarkenColorFilter(100 - progress)
         val blurRadius = blurRadiusSeekBar.progress.toFloat()
         previewUi.setBackgroundWithBlur(filteredDrawable, croppedBitmap, blurRadius, progress)
+    }
+
+    private fun currentEditableThemeSnapshot(): Theme.Custom {
+        var snapshot = theme
+        whenHasBackground {
+            snapshot = snapshot.copy(
+                backgroundImage = it.copy(
+                    brightness = brightnessSeekBar.progress,
+                    blurRadius = blurRadiusSeekBar.progress.toFloat(),
+                    cropRect = backgroundStates.cropRect,
+                    cropRotation = backgroundStates.cropRotation
+                )
+            )
+        }
+        return snapshot
+    }
+
+    private fun hasPendingChanges(): Boolean {
+        if (newCreated) return true
+        return backgroundStates.srcImageDirty || currentEditableThemeSnapshot() != savedThemeSnapshot
+    }
+
+    private fun updateSaveButtonState() {
+        val changed = hasPendingChanges()
+        saveMenuItem?.isEnabled = changed
+        saveMenuItem?.icon?.setTint(
+            styledColor(android.R.attr.colorControlNormal).alpha(
+                if (changed) 1f else styledFloat(android.R.attr.disabledAlpha)
+            )
+        )
     }
 
     private fun cancel() {
@@ -1348,9 +1391,10 @@ class CustomThemeActivity : AppCompatActivity() {
         menu.item(R.string.theme_name, R.drawable.ic_baseline_edit_24, iconTint, true) {
             promptRenameTheme()
         }
-        menu.item(R.string.save, R.drawable.ic_baseline_check_24, iconTint, true) {
+        saveMenuItem = menu.item(R.string.save, R.drawable.ic_baseline_check_24, iconTint, true) {
             done()
         }
+        updateSaveButtonState()
         return true
     }
 

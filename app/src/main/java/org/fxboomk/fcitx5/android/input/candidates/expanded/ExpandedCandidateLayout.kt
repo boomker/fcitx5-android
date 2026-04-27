@@ -69,7 +69,7 @@ class ExpandedCandidateLayout(context: Context, theme: Theme) : ConstraintLayout
         val `return`: ImageKeyView? by lazy { findKeyViewById<ImageKeyView>(R.id.button_return) }
 
         override fun onReturnDrawableUpdate(returnDrawable: Int) {
-            `return`?.img?.imageResource = returnDrawable
+            `return`?.img?.imageResource = resolveGboardReturnDrawable(returnDrawable)
         }
     }
 

@@ -637,8 +637,8 @@
     <string name="fontset_save_failed_permission_error">保存字体集失败：权限被拒绝</string>
     <string name="fontset_save_failed_unknown_error">保存字体集失败：%1$s</string>
     <string name="macro_editor_key_event_unmatched">按键事件不匹配：%1$s 的按下和释放次数不等</string>
-    <string name="text_keyboard_layout_qr_export">通过二维码图片分享</string>
-    <string name="text_keyboard_layout_qr_import_scan">扫码导入</string>
+    <string name="text_keyboard_layout_qr_export">分享布局为二维码</string>
+    <string name="text_keyboard_layout_qr_import_scan">扫二维码导入</string>
     <string name="text_keyboard_layout_qr_import_image">从二维码图片导入</string>
     <string name="text_keyboard_layout_qr_share_title">分享布局二维码图片</string>
     <string name="text_keyboard_layout_qr_exported">二维码长图已生成，请选择应用分享</string>

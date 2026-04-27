@@ -18,6 +18,7 @@ internal enum class LanLlmOutputMode {
 internal enum class LanLlmTaskMode {
     Completion,
     QuestionAnswer,
+    Translate,
 }
 
 internal class LanLlmPredictor(
@@ -83,6 +84,9 @@ internal class LanLlmPredictor(
             val runningJob = checkNotNull(coroutineContext[Job])
             try {
                 delay(config.debounceMs)
+                if (!runningJob.isActive || !requestTracker.isActive(requestId)) {
+                    return@launch
+                }
                 val result = runCatching {
                     if (config.backend == LanLlmPrefs.Backend.Completion &&
                         request.outputMode == LanLlmOutputMode.Suggestions
@@ -103,7 +107,8 @@ internal class LanLlmPredictor(
                             ),
                             onPartialText = if (
                                 request.outputMode == LanLlmOutputMode.LongForm ||
-                                request.taskMode == LanLlmTaskMode.QuestionAnswer
+                                request.taskMode == LanLlmTaskMode.QuestionAnswer ||
+                                request.taskMode == LanLlmTaskMode.Translate
                             ) {
                                 { partial ->
                                     scope.launch {
@@ -126,7 +131,8 @@ internal class LanLlmPredictor(
                 result.onSuccess {
                     val limit = if (
                         request.outputMode == LanLlmOutputMode.LongForm ||
-                        request.taskMode == LanLlmTaskMode.QuestionAnswer
+                        request.taskMode == LanLlmTaskMode.QuestionAnswer ||
+                        request.taskMode == LanLlmTaskMode.Translate
                     ) {
                         1
                     } else {
@@ -200,7 +206,10 @@ internal class LanLlmPredictor(
             )
             .map { it.key }
             .take(
-                if (request.taskMode == LanLlmTaskMode.QuestionAnswer) {
+                if (
+                    request.taskMode == LanLlmTaskMode.QuestionAnswer ||
+                    request.taskMode == LanLlmTaskMode.Translate
+                ) {
                     1
                 } else {
                     config.maxPredictionCandidates

@@ -145,7 +145,14 @@ internal class LanLlmClient(
         val openAiPayload = JSONObject()
             .put("model", request.config.model)
             .put("stream", streaming)
-            .put("temperature", if (request.outputMode == LanLlmOutputMode.LongForm) 0.5 else 0.1)
+            .put(
+                "temperature",
+                when {
+                    request.taskMode == LanLlmTaskMode.Translate -> 0.2
+                    request.outputMode == LanLlmOutputMode.LongForm -> 0.5
+                    else -> 0.1
+                }
+            )
             .put("max_tokens", maxTokens)
             .put(
                 "messages",
@@ -194,7 +201,14 @@ internal class LanLlmClient(
                     )
             ))
             .put("max_tokens", maxTokens)
-            .put("temperature", if (request.outputMode == LanLlmOutputMode.LongForm) 0.5 else 0.1)
+            .put(
+                "temperature",
+                when {
+                    request.taskMode == LanLlmTaskMode.Translate -> 0.2
+                    request.outputMode == LanLlmOutputMode.LongForm -> 0.5
+                    else -> 0.1
+                }
+            )
 
         val plans = request.config.chatCompatEndpoints.flatMap { endpoint ->
             buildRequestPlans(
@@ -207,7 +221,7 @@ internal class LanLlmClient(
                     ::extractMessageContent
                 },
                 parseSuggestions = if (shouldReturnPlainText(request)) {
-                    LanLlmSuggestionParser::parse
+                    { raw, _ -> LanLlmSuggestionParser.parseSingleText(raw) }
                 } else {
                     LanLlmSuggestionParser::parseJsonSuggestions
                 },
@@ -320,8 +334,16 @@ internal class LanLlmClient(
             }
         }
         val maxTokens = resolveMaxTokens(request)
-        val temperature = if (request.outputMode == LanLlmOutputMode.LongForm) 0.7 else 0.9
-        val topP = if (request.outputMode == LanLlmOutputMode.LongForm) 0.9 else 0.95
+        val temperature = when {
+            request.taskMode == LanLlmTaskMode.Translate -> 0.3
+            request.outputMode == LanLlmOutputMode.LongForm -> 0.7
+            else -> 0.9
+        }
+        val topP = when {
+            request.taskMode == LanLlmTaskMode.Translate -> 0.85
+            request.outputMode == LanLlmOutputMode.LongForm -> 0.9
+            else -> 0.95
+        }
 
         val openAiPayload = JSONObject()
             .put("model", request.config.model)
@@ -395,7 +417,11 @@ internal class LanLlmClient(
                 } else {
                     ::extractCompletionContent
                 },
-                parseSuggestions = LanLlmSuggestionParser::parse,
+                parseSuggestions = if (shouldReturnPlainText(request)) {
+                    { raw, _ -> LanLlmSuggestionParser.parseSingleText(raw) }
+                } else {
+                    LanLlmSuggestionParser::parse
+                },
                 request = request,
             )
         }
@@ -435,10 +461,10 @@ internal class LanLlmClient(
     }
 
     private fun resolveMaxTokens(request: PredictionRequest): Int {
-        val base = if (request.outputMode == LanLlmOutputMode.LongForm) {
-            maxOf(request.config.maxOutputTokens, 96)
-        } else {
-            request.config.maxOutputTokens
+        val base = when {
+            request.taskMode == LanLlmTaskMode.Translate -> maxOf(request.config.maxOutputTokens, 192)
+            request.outputMode == LanLlmOutputMode.LongForm -> maxOf(request.config.maxOutputTokens, 96)
+            else -> request.config.maxOutputTokens
         }
         return if (request.enableThinking && request.config.compatApi == LanLlmPrefs.CompatApi.Anthropic) {
             maxOf(base, 1280)
@@ -449,12 +475,14 @@ internal class LanLlmClient(
 
     private fun shouldStreamResponse(request: PredictionRequest): Boolean {
         return request.outputMode == LanLlmOutputMode.LongForm ||
-            request.taskMode == LanLlmTaskMode.QuestionAnswer
+            request.taskMode == LanLlmTaskMode.QuestionAnswer ||
+            request.taskMode == LanLlmTaskMode.Translate
     }
 
     private fun shouldReturnPlainText(request: PredictionRequest): Boolean {
         return request.outputMode == LanLlmOutputMode.LongForm ||
-            request.taskMode == LanLlmTaskMode.QuestionAnswer
+            request.taskMode == LanLlmTaskMode.QuestionAnswer ||
+            request.taskMode == LanLlmTaskMode.Translate
     }
 
     private fun resolveThinkingBudgetTokens(request: PredictionRequest): Int {

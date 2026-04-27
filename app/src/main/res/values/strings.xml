@@ -298,13 +298,18 @@
     <string name="capture_heap_dump">Capture heap dump</string>
     <string name="lan_llm_enable" translatable="false">启用 LLM 预测</string>
     <string name="lan_llm_enable_summary" translatable="false">使用 LLM 提供预测候选。</string>
+    <string name="lan_llm_auto_predict" translatable="false">启用自动预测</string>
+    <string name="lan_llm_auto_predict_summary" translatable="false">候选字词上屏后自动触发预测；关闭后仅可通过工具栏的 AI 候选按钮手动触发。</string>
     <string name="ai_clip_title" translatable="false">AI 候选</string>
     <string name="ai_clip_open_count" translatable="false">AI 候选 (%1$d)</string>
     <string name="ai_clip_collapse" translatable="false">收起 AI 候选面板</string>
     <string name="ai_clip_question_answer" translatable="false">问答</string>
     <string name="ai_clip_thinking" translatable="false">思考</string>
+    <string name="ai_clip_translate" translatable="false">翻译</string>
     <string name="ai_clip_long_form" translatable="false">长文</string>
+    <string name="ai_clip_suggestions_loading" translatable="false">正在生成候选…</string>
     <string name="ai_clip_answer_loading" translatable="false">正在生成回答…</string>
+    <string name="ai_clip_translate_loading" translatable="false">正在翻译…</string>
     <string name="ai_clip_long_form_loading" translatable="false">正在生成长文候选…</string>
     <string name="lan_llm_provider" translatable="false">模型服务商</string>
     <string name="lan_llm_provider_custom" translatable="false">自定义</string>
@@ -339,7 +344,8 @@
     <string name="lan_llm_debounce_ms" translatable="false">请求防抖 (ms)</string>
     <string name="lan_llm_sample_count" translatable="false">采样次数</string>
     <string name="lan_llm_max_prediction_candidates" translatable="false">最多预测候选数</string>
-    <string name="lan_llm_max_output_tokens" translatable="false">最大输出文字数</string>
+    <string name="lan_llm_max_output_tokens" translatable="false">最大输出词元数</string>
+    <string name="lan_llm_max_output_tokens_summary" translatable="false">%1$d。该参数仅在向 LLM 请求时携带，不是最终输出结果的字符数限制。</string>
     <string name="lan_llm_max_context_chars" translatable="false">最大上下文字数</string>
     <string name="lan_llm_settings_title" translatable="false">智能预测</string>
     <string name="plugins">Plugins</string>
@@ -697,8 +703,8 @@
     <string name="text_keyboard_layout_file_saved">Saved: %1$s</string>
     <string name="text_keyboard_layout_save_failed">Failed to save layout. Check logcat for details.</string>
     <string name="macro_editor_key_event_unmatched">Key event mismatch: The number of key down and up events for %1$s does not match</string>
-    <string name="text_keyboard_layout_qr_export">Share via QR image</string>
-    <string name="text_keyboard_layout_qr_import_scan">Import by scanning QR</string>
+    <string name="text_keyboard_layout_qr_export">Share layout as QR code</string>
+    <string name="text_keyboard_layout_qr_import_scan">Import by scanning QR code</string>
     <string name="text_keyboard_layout_qr_import_image">Import from QR image</string>
     <string name="text_keyboard_layout_qr_share_title">Share layout QR image</string>
     <string name="text_keyboard_layout_qr_exported">QR long image generated, choose an app to share</string>

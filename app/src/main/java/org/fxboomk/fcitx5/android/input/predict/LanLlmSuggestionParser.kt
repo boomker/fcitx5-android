@@ -57,6 +57,17 @@ object LanLlmSuggestionParser {
         return parse(normalized, typedPrefix)
     }
 
+    fun parseSingleText(raw: String): List<String> {
+        if (raw.isBlank()) return emptyList()
+
+        val normalized = normalize(raw)
+        candidatePayloads(normalized).forEach { payload ->
+            val sanitized = sanitizeSingleTextPayload(payload)
+            if (sanitized.isNotBlank()) return listOf(sanitized)
+        }
+        return emptyList()
+    }
+
     private fun extractPlainSuggestions(raw: String, typedPrefix: String): List<String> =
         finalizeSuggestions(
             raw.lineSequence()
@@ -65,6 +76,18 @@ object LanLlmSuggestionParser {
                 .toList(),
             typedPrefix,
         )
+
+    private fun sanitizeSingleTextPayload(raw: String): String {
+        var text = raw
+            .replace("<|im_end|>", "")
+            .replace("<|endoftext|>", "")
+            .trim()
+        if (text.startsWith("\"") && text.endsWith("\"") && text.length > 1 && !text.contains('\n')) {
+            text = text.substring(1, text.lastIndex)
+        }
+        if (looksLikeSuggestionsPayload(text) || looksLikeProtocolOrControl(text)) return ""
+        return text.trim()
+    }
 
     private fun normalize(raw: String): String = raw
         .replace(Regex("￾stats:.*$", RegexOption.DOT_MATCHES_ALL), "")

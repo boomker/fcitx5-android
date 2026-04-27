@@ -37,7 +37,9 @@ import org.fxboomk.fcitx5.android.data.theme.MonetThemeMapping
 import org.fxboomk.fcitx5.android.data.theme.SystemColorResourceId
 import org.fxboomk.fcitx5.android.data.theme.Theme
 import org.fxboomk.fcitx5.android.data.theme.ThemeMonet
+import org.fxboomk.fcitx5.android.utils.alpha
 import org.fxboomk.fcitx5.android.utils.parcelable
+import org.fxboomk.fcitx5.android.utils.styledFloat
 import splitties.resources.styledColor
 import splitties.views.backgroundColor
 import splitties.views.bottomPadding
@@ -78,7 +80,9 @@ class MonetThemeEditorActivity : AppCompatActivity() {
     private lateinit var themeName: String
     private var isDark: Boolean = false
     private lateinit var mapping: MonetThemeMapping
+    private lateinit var originalMapping: MonetThemeMapping
     private lateinit var currentTheme: Theme.Monet
+    private var saveMenuItem: MenuItem? = null
     
     // 颜色编辑项列表
     private val colorEditItems = listOf<ColorEditItem>(
@@ -127,6 +131,7 @@ class MonetThemeEditorActivity : AppCompatActivity() {
         
         // 加载当前的映射配置
         mapping = MonetThemePrefs.getMapping(themeName) ?: MonetThemeMapping.createDefault(isDark)
+        originalMapping = mapping
         currentTheme = buildThemeFromMapping()
         
         initUi()
@@ -337,9 +342,10 @@ class MonetThemeEditorActivity : AppCompatActivity() {
                 // 更新主题预览
                 currentTheme = buildThemeFromMapping()
                 applyThemePreview(currentTheme)
-                
+
                 // 更新 UI
                 updateColorEditorUi(item, resourceId)
+                updateSaveButtonState()
             }
         })
     }
@@ -430,6 +436,16 @@ class MonetThemeEditorActivity : AppCompatActivity() {
         setResult(RESULT_OK, intent)
         finish()
     }
+
+    private fun updateSaveButtonState() {
+        val changed = mapping != originalMapping
+        saveMenuItem?.isEnabled = changed
+        saveMenuItem?.icon?.setTint(
+            styledColor(android.R.attr.textColorPrimary).alpha(
+                if (changed) 1f else styledFloat(android.R.attr.disabledAlpha)
+            )
+        )
+    }
     
     override fun onDestroy() {
         unregisterLayoutChangeObserver()
@@ -437,7 +453,7 @@ class MonetThemeEditorActivity : AppCompatActivity() {
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menu.add(
+        saveMenuItem = menu.add(
             Menu.NONE,
             MENU_SAVE,
             Menu.NONE,
@@ -446,12 +462,13 @@ class MonetThemeEditorActivity : AppCompatActivity() {
             setIcon(R.drawable.ic_baseline_check_24)
             setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
 
-            // Use themed text color so the icon follows other UI elements and respects theming
+            // Use themed color and refresh it in updateSaveButtonState() for a visible disabled state.
             icon?.let { ic ->
                 val tintColor = styledColor(android.R.attr.textColorPrimary)
                 ic.setTint(tintColor)
             }
         }
+        updateSaveButtonState()
         return true
     }
 

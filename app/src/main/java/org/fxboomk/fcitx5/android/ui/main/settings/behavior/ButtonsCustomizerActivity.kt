@@ -128,6 +128,7 @@ class ButtonsCustomizerActivity : AppCompatActivity() {
         ButtonDefinition("redo", R.drawable.ic_baseline_redo_24, R.string.redo),
         ButtonDefinition("cursor_move", R.drawable.ic_cursor_move, R.string.text_editing),
         ButtonDefinition("floating_toggle", R.drawable.ic_floating_toggle_24, R.string.floating_keyboard),
+        ButtonDefinition("ai_candidates", R.drawable.ic_baseline_auto_awesome_24, R.string.ai_clip_title),
         ButtonDefinition("clipboard", R.drawable.ic_clipboard, R.string.clipboard),
         ButtonDefinition("theme_toggle", R.drawable.ic_baseline_dark_mode_24, R.string.toggle_day_night_theme),
         ButtonDefinition("language_switch", R.drawable.ic_baseline_language_24, R.string.language_switch),

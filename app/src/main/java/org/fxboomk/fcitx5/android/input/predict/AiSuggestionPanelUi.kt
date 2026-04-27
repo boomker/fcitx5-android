@@ -23,6 +23,7 @@ class AiSuggestionPanelUi(
     private val onCollapseClick: () -> Unit,
     private val onQuestionAnswerClick: () -> Unit,
     private val onThinkingClick: () -> Unit,
+    private val onTranslateClick: () -> Unit,
     private val onLongFormClick: () -> Unit,
 ) : LinearLayout(context) {
 
@@ -32,7 +33,7 @@ class AiSuggestionPanelUi(
     )
 
     private val collapseButton = ImageView(context).apply {
-        setImageResource(R.drawable.ic_baseline_expand_less_24)
+        setImageResource(R.drawable.ic_baseline_arrow_back_24)
         contentDescription = context.getString(R.string.ai_clip_collapse)
         setColorFilter(theme.altKeyTextColor)
         background = GradientDrawable().apply {
@@ -58,6 +59,10 @@ class AiSuggestionPanelUi(
 
     private val questionAnswerChip = createActionChip(context.getString(R.string.ai_clip_question_answer)) {
         onQuestionAnswerClick()
+    }
+
+    private val translateChip = createActionChip(context.getString(R.string.ai_clip_translate)) {
+        onTranslateClick()
     }
 
     private val longFormChip = createActionChip(context.getString(R.string.ai_clip_long_form)) {
@@ -88,6 +93,15 @@ class AiSuggestionPanelUi(
         )
         addView(
             thinkingChip,
+            LayoutParams(
+                LayoutParams.WRAP_CONTENT,
+                LayoutParams.WRAP_CONTENT,
+            ).apply {
+                marginEnd = context.dp(8)
+            }
+        )
+        addView(
+            translateChip,
             LayoutParams(
                 LayoutParams.WRAP_CONTENT,
                 LayoutParams.WRAP_CONTENT,
@@ -155,27 +169,26 @@ class AiSuggestionPanelUi(
         values: List<String>,
         isLongFormEnabled: Boolean,
         isSingleTextMode: Boolean,
-        isSingleTextLoading: Boolean,
+        isLoading: Boolean,
+        loadingLabel: String?,
         isQuestionAnswerEnabled: Boolean,
         isThinkingEnabled: Boolean,
+        isTranslateEnabled: Boolean,
     ) {
         singleTextMode = isSingleTextMode
         updateActionChip(questionAnswerChip, active = isQuestionAnswerEnabled)
         updateActionChip(thinkingChip, active = isThinkingEnabled)
+        updateActionChip(translateChip, active = isTranslateEnabled)
         updateActionChip(longFormChip, active = isLongFormEnabled)
-        val items = if (isSingleTextLoading && values.isEmpty()) {
+        val items = if (isLoading && values.isEmpty()) {
             listOf(
                 PanelItem(
-                    if (isQuestionAnswerEnabled) {
-                        context.getString(R.string.ai_clip_answer_loading)
-                    } else {
-                        context.getString(R.string.ai_clip_long_form_loading)
-                    },
+                    loadingLabel.orEmpty(),
                     false,
                 )
             )
         } else {
-            values.map { PanelItem(it, !isSingleTextLoading) }
+            values.map { PanelItem(it, !isLoading) }
         }
         adapter.submitList(items, isSingleTextMode)
         (recyclerView.layoutManager as? GridLayoutManager)?.spanCount =

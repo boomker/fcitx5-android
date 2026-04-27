@@ -81,4 +81,22 @@ class LanLlmRequestGateTest {
             )
         )
     }
+
+    @Test
+    fun pureLongDigitThrottleWindowRemainsOneAndHalfSeconds() {
+        assertTrue(
+            LanLlmRequestGate.shouldThrottlePureLongDigitInput(
+                beforeCursor = "1234567",
+                lastRequestAtMs = 1_000L,
+                nowMs = 2_499L,
+            ),
+        )
+        assertFalse(
+            LanLlmRequestGate.shouldThrottlePureLongDigitInput(
+                beforeCursor = "1234567",
+                lastRequestAtMs = 1_000L,
+                nowMs = 2_500L,
+            ),
+        )
+    }
 }

@@ -427,6 +427,39 @@ class LanLlmPrefsTest {
     }
 
     @Test
+    fun customProviderUsesPersistedDefaultBaseUrl() {
+        val prefs = FakeSharedPreferences()
+
+        LanLlmPrefs.persistCustomDefaultBaseUrl(prefs, "10.0.0.9:9000")
+
+        assertEquals(
+            "http://10.0.0.9:9000",
+            LanLlmPrefs.providerDefaultBaseUrl(LanLlmPrefs.Provider.Custom, prefs),
+        )
+    }
+
+    @Test
+    fun customProviderUsesPersistedDefaultApiKeyWhenScopeEmpty() {
+        val prefs = FakeSharedPreferences()
+
+        LanLlmPrefs.persistScopedApiKey(
+            prefs,
+            LanLlmPrefs.Provider.Custom,
+            "http://10.0.0.9:9000",
+            "sk-custom-default",
+        )
+
+        assertEquals(
+            "sk-custom-default",
+            LanLlmPrefs.getScopedApiKey(
+                prefs,
+                LanLlmPrefs.Provider.Custom,
+                "http://10.0.0.10:9000",
+            ),
+        )
+    }
+
+    @Test
     fun readUsesScopedModelForProviderAndApiAddress() {
         val prefs = FakeSharedPreferences(
             mutableMapOf(
@@ -518,6 +551,7 @@ class LanLlmPrefsTest {
         val prefs = FakeSharedPreferences(
             mutableMapOf(
                 LanLlmPrefs.KEY_PROVIDER to LanLlmPrefs.Provider.Custom.value,
+                LanLlmPrefs.KEY_AUTO_PREDICT_ENABLED to true,
                 LanLlmPrefs.KEY_SAMPLE_COUNT to 6,
                 LanLlmPrefs.KEY_MAX_OUTPUT_TOKENS to 256,
                 LanLlmPrefs.KEY_MAX_PREDICTION_CANDIDATES to 7,
@@ -529,6 +563,20 @@ class LanLlmPrefsTest {
         assertEquals(6, config.sampleCount)
         assertEquals(256, config.maxOutputTokens)
         assertEquals(7, config.maxPredictionCandidates)
+        assertEquals(true, config.autoPredictEnabled)
+    }
+
+    @Test
+    fun readUsesInternalFixedDebounce() {
+        val prefs = FakeSharedPreferences(
+            mutableMapOf(
+                "lan_llm_debounce_ms" to 999,
+            )
+        )
+
+        val config = LanLlmPrefs.read(prefs)
+
+        assertEquals(200L, config.debounceMs)
     }
 
     @Test
@@ -551,6 +599,7 @@ class LanLlmPrefsTest {
             mutableMapOf(
                 LanLlmPrefs.KEY_SAMPLE_COUNT to "8",
                 LanLlmPrefs.KEY_MAX_PREDICTION_CANDIDATES to "10",
+                LanLlmPrefs.KEY_MAX_CONTEXT_CHARS to "1024",
             )
         )
 
@@ -558,6 +607,7 @@ class LanLlmPrefsTest {
 
         assertEquals(6, prefs.getInt(LanLlmPrefs.KEY_SAMPLE_COUNT, 0))
         assertEquals(8, prefs.getInt(LanLlmPrefs.KEY_MAX_PREDICTION_CANDIDATES, 0))
+        assertEquals(512, prefs.getInt(LanLlmPrefs.KEY_MAX_CONTEXT_CHARS, 0))
     }
 
     private class FakeSharedPreferences(

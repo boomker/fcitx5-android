@@ -40,7 +40,9 @@ class LanLlmApiUrlPreferenceDialogFragment : DialogFragment() {
         val prefs = apiUrlPreference.preferenceManager.sharedPreferences
         val provider = LanLlmPrefs.Provider.from(prefs?.getString(LanLlmPrefs.KEY_PROVIDER, null))
         val currentText = savedInstanceState?.getString(STATE_TEXT)
-            ?: apiUrlPreference.text.orEmpty()
+            ?: apiUrlPreference.text.orEmpty().ifBlank {
+                LanLlmPrefs.providerDefaultBaseUrl(provider, prefs)
+            }
         val currentChatApiEnabled = savedInstanceState?.getBoolean(STATE_CHAT_API_ENABLED)
             ?: (prefs?.getBoolean(LanLlmPrefs.KEY_CHAT_API_ENABLED, false) == true)
 
@@ -60,7 +62,10 @@ class LanLlmApiUrlPreferenceDialogFragment : DialogFragment() {
         hintView = TextView(context).apply {
             text = provider.defaultBaseUrl?.let {
                 context.getString(R.string.lan_llm_api_url_default_hint, it)
-            } ?: context.getString(R.string.lan_llm_api_url_custom_hint)
+            } ?: context.getString(
+                R.string.lan_llm_api_url_default_hint,
+                LanLlmPrefs.providerDefaultBaseUrl(provider, prefs),
+            )
         }
 
         chatApiSwitch = SwitchCompat(context).apply {
@@ -106,7 +111,7 @@ class LanLlmApiUrlPreferenceDialogFragment : DialogFragment() {
 
         dialog.setOnShowListener {
             dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
-                editText.setText(LanLlmPrefs.providerDefaultBaseUrl(provider))
+                editText.setText(LanLlmPrefs.providerDefaultBaseUrl(provider, prefs))
                 editText.setSelection(editText.text.length)
             }
         }
@@ -129,10 +134,13 @@ class LanLlmApiUrlPreferenceDialogFragment : DialogFragment() {
             apiUrlPreference.text = newValue
         }
         apiUrlPreference.preferenceManager.sharedPreferences?.let { prefs ->
+            val provider = LanLlmPrefs.currentProvider(prefs)
+            if (provider == LanLlmPrefs.Provider.Custom) {
+                LanLlmPrefs.persistCustomDefaultBaseUrl(prefs, newValue)
+            }
             prefs.edit()
                 .putBoolean(LanLlmPrefs.KEY_CHAT_API_ENABLED, chatApiSwitch.isChecked)
                 .apply()
-            val provider = LanLlmPrefs.currentProvider(prefs)
             val scopedApiKey = LanLlmPrefs.syncScopedApiKeyToActivePreferences(prefs, provider, newValue)
             preferenceFragment.findPreference<EditTextPreference>(LanLlmPrefs.KEY_API_KEY)?.text = scopedApiKey
             val scopedModel = LanLlmPrefs.syncScopedModelToActivePreferences(prefs, provider, newValue)

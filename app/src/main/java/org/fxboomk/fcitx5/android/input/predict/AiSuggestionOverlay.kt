@@ -26,6 +26,7 @@ class AiSuggestionOverlay(
     var onCollapseClick: (() -> Unit)? = null
     var onQuestionAnswerClick: (() -> Unit)? = null
     var onThinkingClick: (() -> Unit)? = null
+    var onTranslateClick: (() -> Unit)? = null
     var onLongFormClick: (() -> Unit)? = null
 
     private val edgeGap = context.dp(12).toFloat()
@@ -42,9 +43,11 @@ class AiSuggestionOverlay(
         panelSuggestions = emptyList(),
         isLongFormEnabled = false,
         isSingleTextMode = false,
-        isSingleTextLoading = false,
+        isLoading = false,
+        loadingLabel = null,
         isQuestionAnswerEnabled = false,
         isThinkingEnabled = false,
+        isTranslateEnabled = false,
     )
 
     private val bubbleUi = AiSuggestionBubbleUi(context, theme).apply {
@@ -59,6 +62,7 @@ class AiSuggestionOverlay(
         onCollapseClick = { onCollapseClick?.invoke() ?: onDismissRequest?.invoke() },
         onQuestionAnswerClick = { onQuestionAnswerClick?.invoke() },
         onThinkingClick = { onThinkingClick?.invoke() },
+        onTranslateClick = { onTranslateClick?.invoke() },
         onLongFormClick = { onLongFormClick?.invoke() },
     ).apply {
         visibility = GONE
@@ -91,9 +95,11 @@ class AiSuggestionOverlay(
             values = state.panelSuggestions,
             isLongFormEnabled = state.isLongFormEnabled,
             isSingleTextMode = state.isSingleTextMode,
-            isSingleTextLoading = state.isSingleTextLoading,
+            isLoading = state.isLoading,
+            loadingLabel = state.loadingLabel,
             isQuestionAnswerEnabled = state.isQuestionAnswerEnabled,
             isThinkingEnabled = state.isThinkingEnabled,
+            isTranslateEnabled = state.isTranslateEnabled,
         )
 
         bubbleUi.visibility = when (state.mode) {

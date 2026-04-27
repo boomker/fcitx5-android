@@ -12,7 +12,10 @@ internal object LanLlmPrompt {
         outputMode: LanLlmOutputMode = LanLlmOutputMode.Suggestions,
         taskMode: LanLlmTaskMode = LanLlmTaskMode.Completion,
     ): String {
-        val candidateLimit = if (taskMode == LanLlmTaskMode.QuestionAnswer) {
+        val candidateLimit = if (
+            taskMode == LanLlmTaskMode.QuestionAnswer ||
+            taskMode == LanLlmTaskMode.Translate
+        ) {
             1
         } else {
             maxPredictionCandidates.coerceIn(1, 8)
@@ -24,9 +27,19 @@ internal object LanLlmPrompt {
 你的任务是像输入法一样，根据用户刚输入的问题或请求，生成 1 条可直接上屏的简短回答。
 1. 只输出最终回答文本本身，不要输出 JSON，不要输出标签。
 2. 将当前输入视为完整的问题/请求本身，不要把它当成待续写前缀。
-3. 回答长度控制在 30 到 50 个中文字符之间，尽量写成一条自然、完整、可直接发送的短句。
+3. 回答尽量控制在 60 个中文字符左右，写成一条自然、完整、可直接发送的长回答。
 4. 不要解释你的思考过程，不要寒暄，不要自我介绍，不要输出 markdown 符号。
 5. 如果当前输入以中文为主，默认输出中文回答；不要输出英文字母缩写、拼音、ID、URL、代码片段，除非问题本身就在明确要求英文、缩写或代码。
+""".trim()
+
+                taskMode == LanLlmTaskMode.Translate -> """
+你是$STYLE_PERSONA_ZH。
+你的任务是像输入法一样，将用户当前输入框里的整段中文文本翻译成自然、准确、可直接发送的英文。
+1. 只输出最终译文文本本身，不要输出 JSON，不要输出标签。
+2. 将当前输入视为完整待翻译文本，不要续写，不要总结，不要解释。
+3. 保持原意，保留必要的人名、专有名词、数字、URL、邮箱和代码片段；不确定时优先保留原样。
+4. 译文要自然、简洁、符合英文表达习惯，可分句，但不要补充原文没有的信息。
+5. 不要输出 markdown 符号、引号、前缀说明或额外注释。
 """.trim()
 
                 outputMode == LanLlmOutputMode.LongForm -> """
@@ -34,7 +47,7 @@ internal object LanLlmPrompt {
 你的任务是像输入法一样，根据上下文生成 1 条可直接上屏的短句候选。
 1. 只输出最终候选文本本身，不要输出 JSON，不要输出标签。
 2. 候选应当是当前前缀后面的自然续写，不要重复当前前缀。
-3. 候选长度控制在 30 到 50 个中文字符之间，尽量写成一条完整、自然、贴近上下文的短句。
+3. 候选尽量控制在 60 个中文字符左右，尽量写成一条更完整、自然、贴近上下文的续写内容。
 4. 不要解释，不要寒暄，不要自我介绍，不要输出 markdown 符号。
 5. 如果当前上下文以中文为主，默认输出中文；不要输出英文字母缩写、拼音、ID、URL、代码片段，除非当前前缀本身就在明确输入英文、缩写或代码。
 """.trim()
@@ -44,7 +57,7 @@ internal object LanLlmPrompt {
 你的任务是像输入法一样，根据用户刚输入的问题或请求给出 1 条可直接上屏的回答。
 1. 只输出最终回答文本本身，不要输出 JSON，不要输出标签。
 2. 将当前输入视为完整的问题或请求本身，不要把它当成待续写前缀。
-3. 只返回 1 条回答，且回答必须简短、自然、可直接发送，尽量控制在 24 个中文字符以内。
+3. 只返回 1 条回答，且回答必须简短、自然、可直接发送，尽量控制在 20 个中文字符左右。
 4. 不要解释，不要寒暄，不要自我介绍，不要输出 markdown 符号。
 5. 如果当前输入以中文为主，默认输出中文回答；不要输出英文字母缩写、拼音、ID、URL、代码片段，除非问题本身就在明确要求英文、缩写或代码。
 """.trim()
@@ -72,8 +85,18 @@ You are $STYLE_PERSONA_EN.
 Act like an IME and return exactly one concise answer to the user's latest question or request.
 1. Output only the final answer text itself, not JSON or labels.
 2. Treat the current input as a complete question/request, not as a prefix to continue.
-3. Keep the answer within about 40 to 90 English characters as one natural sentence ready to commit.
+3. Keep the answer to around 50 English words as one natural, ready-to-send longer answer.
 4. Do not explain, greet, introduce yourself, or output markdown symbols.
+""".trim()
+
+                taskMode == LanLlmTaskMode.Translate -> """
+You are $STYLE_PERSONA_EN.
+Act like an IME and translate the entire current English text into natural, accurate Chinese.
+1. Output only the final translation text itself, not JSON or labels.
+2. Treat the current input as the complete source text to translate, not as a prefix to continue.
+3. Preserve the original meaning and keep names, numbers, URLs, emails, and code snippets when needed.
+4. Make the Chinese translation natural, concise, and ready to send directly without adding new information.
+5. Do not explain, annotate, quote, or output markdown symbols.
 """.trim()
 
                 outputMode == LanLlmOutputMode.LongForm -> """
@@ -82,7 +105,7 @@ Act like an IME and return exactly one longer continuation candidate.
 1. Output only the final continuation text itself, not JSON or labels.
 2. Return exactly one candidate.
 3. Output only the continuation after the current prefix without repeating the prefix.
-4. Keep the continuation within about 40 to 90 English characters, as one natural short sentence ready to commit.
+4. Keep the continuation to around 50 English words, as one fuller continuation ready to commit.
 5. Do not explain, greet, introduce yourself, or output markdown symbols.
 """.trim()
 
@@ -91,7 +114,7 @@ You are $STYLE_PERSONA_EN.
 Act like an IME and provide exactly one concise answer to the user's latest question or request.
 1. Output only the final answer text itself, not JSON or labels.
 2. Treat the current input as a complete question/request, not as a prefix to continue.
-3. Return only one answer, and keep it concise and ready to send directly, preferably within 36 characters.
+3. Return only one answer, and keep it concise and ready to send directly, preferably around 10 English words.
 4. Do not explain, greet, introduce yourself, or output markdown symbols.
 """.trim()
 
@@ -152,22 +175,26 @@ Your task is to act like an IME and provide 1-$candidateLimit natural continuati
             when (language) {
                 LanLlmLanguage.Chinese -> when {
                     outputMode == LanLlmOutputMode.LongForm && taskMode == LanLlmTaskMode.QuestionAnswer ->
-                        "请把下面输入当作用户刚提出的问题或请求，给出一条 30 到 50 字之间、可直接发送的自然回答。不要续写前缀本身：\n"
+                        "请把下面输入当作用户刚提出的问题或请求，给出一条 60 个中文字符左右、可直接发送的自然长回答。不要续写前缀本身：\n"
+                    taskMode == LanLlmTaskMode.Translate ->
+                        "请把下面整段文本翻译成自然、准确、可直接发送的英文。只输出译文本身，不要解释：\n"
                     outputMode == LanLlmOutputMode.LongForm ->
-                        "请基于上下文，为我续写一条 30 到 50 字之间、可直接上屏的自然短句。只输出当前前缀后面的续写部分，不要重复前缀：\n"
+                        "请基于上下文，为我续写一条 60 个中文字符左右、可直接上屏的自然内容。只输出当前前缀后面的续写部分，不要重复前缀：\n"
                     taskMode == LanLlmTaskMode.QuestionAnswer ->
-                        "请把下面输入当作用户刚提出的问题或请求，给出一条简短、自然、可直接发送的回答。不要把它当成待续写前缀：\n"
+                        "请把下面输入当作用户刚提出的问题或请求，给出一条简短、自然、可直接发送的回答，尽量控制在 20 个中文字符左右。不要把它当成待续写前缀：\n"
                     else ->
                         "请基于上下文，自然地续写我的输入。只输出当前前缀后面的续写部分，不要重复前缀：\n"
                 }
 
                 LanLlmLanguage.English -> when {
                     outputMode == LanLlmOutputMode.LongForm && taskMode == LanLlmTaskMode.QuestionAnswer ->
-                        "Treat the text below as the user's latest question or request and answer with one natural short sentence of about 40 to 90 English characters. Do not continue the prefix itself:\n"
+                        "Treat the text below as the user's latest question or request and answer with one natural longer reply of around 50 English words. Do not continue the prefix itself:\n"
+                    taskMode == LanLlmTaskMode.Translate ->
+                        "Translate the full text below into natural Chinese. Output only the translation itself without explanation:\n"
                     outputMode == LanLlmOutputMode.LongForm ->
-                        "Continue my input with one natural short sentence of about 40 to 90 English characters. Output only the continuation after the current prefix without repeating the prefix:\n"
+                        "Continue my input with one fuller continuation of around 50 English words. Output only the continuation after the current prefix without repeating the prefix:\n"
                     taskMode == LanLlmTaskMode.QuestionAnswer ->
-                        "Treat the text below as the user's latest question or request and provide one concise answer. Do not treat it as a prefix to continue:\n"
+                        "Treat the text below as the user's latest question or request and provide one concise answer of around 10 English words. Do not treat it as a prefix to continue:\n"
                     else ->
                         "Continue my input naturally based on the context. Output only the continuation after the current prefix without repeating the prefix:\n"
                 }
@@ -204,9 +231,19 @@ Your task is to act like an IME and provide 1-$candidateLimit natural continuati
 当前任务是“问答短文回复”。
 - 你会看到 <history>、<last_msg>、<memory> 和 <instruction>。
 - 将 <instruction> 中的当前输入视为用户刚提出的问题或请求，不要把它当作待续写前缀。
-- 输出 1 条自然、完整、可直接发送的短句回答，长度控制在 30 到 50 个中文字符之间。
+- 输出 1 条自然、完整、可直接发送的长回答，尽量控制在 60 个中文字符左右。
 - 不要解释，不要寒暄，不要输出标签，不要输出 JSON。
 - 如果问题以中文为主，默认回答中文；不要输出英文字母缩写、拼音、ID、URL、代码片段，除非问题本身就在明确要求英文、缩写或代码。
+""".trim()
+
+            taskMode == LanLlmTaskMode.Translate -> """
+你是$STYLE_PERSONA_ZH。
+当前任务是“整段文本翻译”。
+- 你会看到 <history>、<last_msg>、<memory> 和 <instruction>。
+- 将 <instruction> 中的整段文本翻译成自然、准确、可直接发送的英文。
+- 只输出译文本身，不要解释，不要续写，不要输出标签，不要输出 JSON。
+- 保留必要的人名、专有名词、数字、URL、邮箱和代码片段；不确定时优先保留原样。
+- 不要补充原文没有的信息。
 """.trim()
 
             outputMode == LanLlmOutputMode.LongForm -> """
@@ -214,7 +251,7 @@ Your task is to act like an IME and provide 1-$candidateLimit natural continuati
 当前任务是“长一点的短句续写”。
 - 你会看到 <history>、<last_msg>、<memory> 和 <instruction>。
 - 只输出当前前缀后面的续写部分，不要复述前缀。
-- 输出 1 条自然、完整、可直接上屏的短句，长度控制在 30 到 50 个中文字符之间。
+- 输出 1 条自然、完整、可直接上屏的续写内容，尽量控制在 60 个中文字符左右。
 - 优先延续当前语气、节奏和表达习惯，像自然接着上一句往下写。
 - 不要解释，不要寒暄，不要输出标签，不要输出 JSON。
 - 如果当前上下文以中文为主，默认续写中文；不要输出英文字母缩写、拼音、ID、URL、代码片段，除非当前前缀本身就在明确输入英文、缩写或代码。
@@ -225,7 +262,7 @@ Your task is to act like an IME and provide 1-$candidateLimit natural continuati
 当前任务是“问答回复候选”。
 - 你会看到 <history>、<last_msg>、<memory> 和 <instruction>。
 - 将 <instruction> 中的当前输入视为用户刚提出的问题或请求，不要把它当作待续写前缀。
-- 输出 1 条简短、自然、可直接发送的回答候选。
+- 输出 1 条简短、自然、可直接发送的回答候选，尽量控制在 20 个中文字符左右。
 - 优先利用上下文保持语气自然，但不要复述问题。
 - 不要解释，不要寒暄，不要输出标签，不要输出 JSON。
 - 如果问题以中文为主，默认回答中文；不要输出英文字母缩写、拼音、ID、URL、代码片段，除非问题本身就在明确要求英文、缩写或代码。
@@ -251,8 +288,18 @@ You are $STYLE_PERSONA_EN.
 The current task is a slightly longer direct answer.
 - You will see <history>, <last_msg>, <memory>, and <instruction>.
 - Treat the current input as the user's latest question or request, not as a prefix to continue.
-- Output one natural answer sentence of about 40 to 90 English characters.
+- Output one natural longer answer of around 50 English words.
 - Do not explain, greet, add labels, or output JSON.
+""".trim()
+
+            taskMode == LanLlmTaskMode.Translate -> """
+You are $STYLE_PERSONA_EN.
+The current task is full-text translation.
+- You will see <history>, <last_msg>, <memory>, and <instruction>.
+- Translate the full input text into natural Chinese.
+- Output only the translation itself, without explanation, labels, or JSON.
+- Preserve the original meaning and keep names, numbers, URLs, emails, and code snippets when needed.
+- Do not add information that is not present in the source text.
 """.trim()
 
             outputMode == LanLlmOutputMode.LongForm -> """
@@ -260,7 +307,7 @@ You are $STYLE_PERSONA_EN.
 The current task is a slightly longer single-sentence continuation.
 - You will see <history>, <last_msg>, <memory>, and <instruction>.
 - Output only the continuation after the typed prefix and do not repeat the prefix.
-- Return one natural short sentence of about 40 to 90 English characters.
+- Return one natural fuller continuation of around 50 English words.
 - Match the tone, rhythm, and style of the context.
 - Do not explain, greet, add labels, or output JSON.
 """.trim()
@@ -270,7 +317,7 @@ You are $STYLE_PERSONA_EN.
 The current task is direct answer generation.
 - You will see <history>, <last_msg>, <memory>, and <instruction>.
 - Treat the current input as the user's latest question or request, not as a prefix to continue.
-- Output one concise, natural answer ready to send directly.
+- Output one concise, natural answer ready to send directly, preferably around 10 English words.
 - Do not explain, greet, add labels, or output JSON.
 """.trim()
 

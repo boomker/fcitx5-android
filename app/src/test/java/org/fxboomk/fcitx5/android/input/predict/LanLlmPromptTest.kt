@@ -48,7 +48,33 @@ class LanLlmPromptTest {
         assertTrue(prompt.contains("可直接上屏的回答"))
         assertTrue(prompt.contains("不要把它当成待续写前缀"))
         assertTrue(prompt.contains("只输出最终回答文本本身"))
-        assertTrue(prompt.contains("只返回 1 条回答"))
+        assertTrue(prompt.contains("20 个中文字符左右"))
+    }
+
+    @Test
+    fun systemPromptUsesLongFormAnswerLimitWhenQuestionAnswerAndLongFormEnabled() {
+        val prompt = LanLlmPrompt.systemPrompt(
+            maxPredictionCandidates = 5,
+            beforeCursor = "帮我回个稍微详细一点的答复",
+            outputMode = LanLlmOutputMode.LongForm,
+            taskMode = LanLlmTaskMode.QuestionAnswer,
+        )
+
+        assertTrue(prompt.contains("60 个中文字符左右"))
+        assertTrue(prompt.contains("可直接发送的长回答"))
+    }
+
+    @Test
+    fun systemPromptSwitchesToTranslateMode() {
+        val prompt = LanLlmPrompt.systemPrompt(
+            maxPredictionCandidates = 5,
+            beforeCursor = "今天晚上一起吃饭吗？",
+            taskMode = LanLlmTaskMode.Translate,
+        )
+
+        assertTrue(prompt.contains("整段中文文本翻译成自然、准确"))
+        assertTrue(prompt.contains("只输出最终译文文本本身"))
+        assertTrue(prompt.contains("不要续写，不要总结"))
     }
 
     @Test
@@ -140,6 +166,51 @@ class LanLlmPromptTest {
         assertTrue(system.contains("不要把它当作待续写前缀"))
         assertTrue(user.contains("问题或请求"))
         assertTrue(user.contains("不要把它当成待续写前缀"))
+        assertTrue(user.contains("20 个中文字符左右"))
+        assertEquals("<think>\n\n</think>\n\n", assistant)
+    }
+
+    @Test
+    fun completionPromptPartsUseLongFormLimitsWhenQuestionAnswerAndLongFormEnabled() {
+        val system = LanLlmPrompt.completionSystemPrompt(
+            beforeCursor = "帮我回一句稍微详细一点的话",
+            outputMode = LanLlmOutputMode.LongForm,
+            taskMode = LanLlmTaskMode.QuestionAnswer,
+        )
+        val user = LanLlmPrompt.completionUserPrompt(
+            beforeCursor = "帮我回一句稍微详细一点的话",
+            recentCommittedText = "对方刚发来邀请",
+            historyText = "朋友在约周末活动",
+            useRecentCommitBias = true,
+            outputMode = LanLlmOutputMode.LongForm,
+            taskMode = LanLlmTaskMode.QuestionAnswer,
+        )
+
+        assertTrue(system.contains("60 个中文字符左右"))
+        assertTrue(user.contains("60 个中文字符左右"))
+    }
+
+    @Test
+    fun completionPromptPartsSwitchToTranslateMode() {
+        val system = LanLlmPrompt.completionSystemPrompt(
+            beforeCursor = "Let's meet after lunch.",
+            taskMode = LanLlmTaskMode.Translate,
+        )
+        val user = LanLlmPrompt.completionUserPrompt(
+            beforeCursor = "Let's meet after lunch.",
+            recentCommittedText = "",
+            historyText = "",
+            useRecentCommitBias = false,
+            taskMode = LanLlmTaskMode.Translate,
+        )
+        val assistant = LanLlmPrompt.completionAssistantPrefill(
+            beforeCursor = "Let's meet after lunch.",
+            taskMode = LanLlmTaskMode.Translate,
+        )
+
+        assertTrue(system.contains("full-text translation"))
+        assertTrue(system.contains("Translate the full input text into natural Chinese"))
+        assertTrue(user.contains("Translate the full text below into natural Chinese"))
         assertEquals("<think>\n\n</think>\n\n", assistant)
     }
 
