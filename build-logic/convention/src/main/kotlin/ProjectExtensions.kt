@@ -10,6 +10,8 @@ import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.kotlin.dsl.the
 import java.io.File
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.util.Properties
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
@@ -52,7 +54,9 @@ val Project.buildToolsVersion
 
 val Project.buildVersionName
     get() = ep("BUILD_VERSION_NAME", "buildVersionName") {
-        runCmd("git describe --tags --long --always", Versions.baseVersionName)
+        val date = LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE)
+        val shortHash = runCmd("git rev-parse --short=8 HEAD", "unknown")
+        "$date-$shortHash"
     }
 
 val Project.buildCommitHash

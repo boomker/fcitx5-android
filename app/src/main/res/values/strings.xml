@@ -61,6 +61,13 @@
     <string name="about">About</string>
     <string name="faq">FAQ</string>
     <string name="current_version">Current version</string>
+    <string name="check_for_updates">Check for updates</string>
+    <string name="checking_for_updates">Checking for updates</string>
+    <string name="already_latest_version">You are already on the latest release</string>
+    <string name="enable_unknown_apps_install">Allow this app to install unknown apps, then try again</string>
+    <string name="no_compatible_update_package">No compatible release package was found for this device or app variant</string>
+    <string name="update_check_failed">Failed to check or download the latest release</string>
+    <string name="update_download_ready">Downloaded %1$s and ready to install</string>
     <string name="real_time_logs">Real-time logs</string>
     <string name="developer">Developer</string>
     <string name="clear_clb_db">Clear clipboard database</string>

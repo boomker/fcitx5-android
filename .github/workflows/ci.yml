@@ -4,9 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - '*'
-    tags:
-      - '![0-9]+.*'
+      - main
     paths:
       - '**/**'
       - '!*.md'
