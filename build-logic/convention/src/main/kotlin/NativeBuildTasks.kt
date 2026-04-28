@@ -17,8 +17,10 @@ import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.TaskAction
 import org.gradle.kotlin.dsl.property
 import org.gradle.kotlin.dsl.withType
+import org.gradle.process.ExecOperations
 import org.gradle.process.ExecSpec
 import java.io.File
+import javax.inject.Inject
 
 fun ExternalNativeBuildJsonTask.abiModel(): CxxAbiModel {
     val abi = ExternalNativeBuildJsonTask::class.java.declaredFields.find { it.name == "abi" }!!
@@ -48,6 +50,9 @@ fun Project.getCxxAbiModelProperty(): Property<CxxAbiModel> {
 }
 
 abstract class CMakeBuildInstallTask : DefaultTask() {
+    @get:Inject
+    abstract val execOperations: ExecOperations
+
     @get:Input
     @get:Optional
     abstract val cxxAbiModel: Property<CxxAbiModel>
@@ -64,7 +69,7 @@ abstract class CMakeBuildInstallTask : DefaultTask() {
     abstract val destDir: Property<File>
 
     private fun exec(action: Action<ExecSpec>) {
-        project.providers.exec(action).result.get()
+        execOperations.exec(action).rethrowFailure().assertNormalExitValue()
     }
 
     @TaskAction

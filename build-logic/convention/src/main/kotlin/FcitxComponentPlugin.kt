@@ -47,11 +47,13 @@ class FcitxComponentPlugin : Plugin<Project> {
                 registerCMakeTask(target, "translation-file", "translation", project)
             }
             if (ext.excludeFiles.isNotEmpty()) {
+                val assetsDir = target.assetsDir
+                val excludedFiles = ext.excludeFiles.toList()
                 deleteTask.get().apply {
                     dependsOn(installTask)
                     doLast {
-                        ext.excludeFiles.forEach {
-                            project.assetsDir.resolve(it).delete()
+                        excludedFiles.forEach {
+                            assetsDir.resolve(it).delete()
                         }
                     }
                 }
