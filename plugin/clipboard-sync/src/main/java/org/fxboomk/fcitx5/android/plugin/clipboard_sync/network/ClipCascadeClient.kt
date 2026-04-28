@@ -4,6 +4,7 @@ import android.util.Base64
 import android.util.Log
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import okhttp3.Cookie
@@ -32,7 +33,8 @@ import javax.crypto.spec.SecretKeySpec
 class ClipCascadeClient(
     serverUrl: String,
     private val username: String,
-    private val password: String
+    private val password: String,
+    timeoutMillis: Long? = null
 ) {
     companion object {
         private const val TAG = "FcitxClipboardSync"
@@ -59,9 +61,9 @@ class ClipCascadeClient(
     private val cookieJar = MemoryCookieJar()
     private val client = OkHttpClient.Builder()
         .cookieJar(cookieJar)
-        .connectTimeout(10, TimeUnit.SECONDS)
-        .readTimeout(0, TimeUnit.SECONDS)
-        .writeTimeout(30, TimeUnit.SECONDS)
+        .connectTimeout(timeoutMillis ?: 10_000L, TimeUnit.MILLISECONDS)
+        .readTimeout(if (timeoutMillis == null) 0 else timeoutMillis, TimeUnit.MILLISECONDS)
+        .writeTimeout(timeoutMillis ?: 30_000L, TimeUnit.MILLISECONDS)
         .pingInterval(30, TimeUnit.SECONDS)
         .build()
 
@@ -126,7 +128,9 @@ class ClipCascadeClient(
 
     suspend fun testConnection(): String {
         return try {
-            connect { }
+            withTimeout(client.connectTimeoutMillis.toLong().coerceAtLeast(1L)) {
+                connect { }
+            }
             "Connection Successful: ClipCascade session established"
         } finally {
             close()

@@ -196,6 +196,9 @@ class MainService : FcitxPluginService() {
     private var lastNetworkAvailableAt = 0L
     private var connectionSessionId = 0
     private var activeEndpointIdentity: String? = null
+    private var observedActiveNetwork: Network? = null
+    private var observedWifiConnected = false
+    private var observedWifiSsid: String? = null
 
     // Cache to avoid circular updates (Pull -> Local -> Push -> Loop)
     private var lastLocalContent: String? = null
@@ -205,6 +208,7 @@ class MainService : FcitxPluginService() {
     private var lastSuccessfulRemoteSyncAt = 0L
     private var lastBackendActivityAt = 0L
     private var lastClipboardReadFailureLoggedAt = 0L
+    private var lastSyncNetworkBlockReason: String? = null
     private val remoteFetchMutex = Mutex()
     private val pendingUploadMutex = Mutex()
     private val pendingUploadDrainMutex = Mutex()
@@ -223,12 +227,14 @@ class MainService : FcitxPluginService() {
 
     private val networkCallback = object : ConnectivityManager.NetworkCallback() {
         override fun onAvailable(network: Network) {
+            refreshObservedNetworkState(network = network)
             val now = SystemClock.elapsedRealtime()
             lastNetworkAvailableAt = now
             scheduleReconnect("network-available")
         }
 
         override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
+            refreshObservedNetworkState(network = network, capabilities = networkCapabilities)
             if (networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)) {
                 val now = SystemClock.elapsedRealtime()
                 if (now - lastNetworkAvailableAt >= NETWORK_RECONNECT_DEBOUNCE_MS) {
@@ -236,6 +242,11 @@ class MainService : FcitxPluginService() {
                     scheduleReconnect("network-capabilities")
                 }
             }
+        }
+
+        override fun onLost(network: Network) {
+            clearObservedNetworkStateIfMatches(network)
+            scheduleReconnect("network-lost")
         }
     }
 
@@ -361,6 +372,14 @@ class MainService : FcitxPluginService() {
             resetFailureState()
             refreshSyncRuntime()
         } else if (
+            key == SyncNetworkPolicy.PREF_WIFI_ONLY ||
+            key == SyncNetworkPolicy.PREF_ALLOWED_WIFI_ONLY ||
+            key == SyncNetworkPolicy.PREF_ALLOWED_SSIDS
+        ) {
+            Log.d(TAG, "Sync network policy changed: $key, restarting sync")
+            resetFailureState()
+            refreshSyncRuntime()
+        } else if (
             key == SyncFilterPrefs.PREF_FILTER_BLOCKED_EXTENSIONS ||
             key == SyncFilterPrefs.PREF_FILTER_MAX_FILE_SIZE ||
             key == SyncFilterPrefs.PREF_FILTER_MAX_FILE_SIZE_UNIT ||
@@ -395,6 +414,10 @@ class MainService : FcitxPluginService() {
             if (!queued) {
                 return@launch
             }
+            if (shouldBlockSyncForCurrentNetwork()) {
+                Log.d(TAG, "[Push] Deferred queued upload until sync network policy allows it")
+                return@launch
+            }
             Log.d(TAG, "[Push] Detected local change from $origin, queued for upload")
             flushPendingUploads("local-change:$origin")
         }
@@ -417,6 +440,9 @@ class MainService : FcitxPluginService() {
             while (isActive) {
                 delay(currentHealthCheckDelayMs())
                 if (!prefs.getBoolean(PREF_QUICK_SYNC, DEFAULT_QUICK_SYNC_ENABLED)) {
+                    continue
+                }
+                if (shouldBlockSyncForCurrentNetwork()) {
                     continue
                 }
                 val endpoint = currentEndpoint()
@@ -494,12 +520,15 @@ class MainService : FcitxPluginService() {
         Log.d(TAG, "[Pull] Starting periodic sync")
         syncJob = scope.launch {
             while (isActive) {
+                val safeInterval = prefs.getString(PREF_SYNC_INTERVAL, "3")?.toLongOrNull()
+                    ?.coerceIn(1, 60)
+                    ?: 3L
+                if (shouldBlockSyncForCurrentNetwork()) {
+                    delay(currentPollingIntervalSeconds(safeInterval) * 1000L)
+                    continue
+                }
                 val endpoint = currentEndpoint()
                 try {
-                    val safeInterval = prefs.getString(PREF_SYNC_INTERVAL, "3")?.toLongOrNull()
-                        ?.coerceIn(1, 60)
-                        ?: 3L
-
                     checkRemoteClipboard()
                     resetFailureState()
                     flushPendingUploads("poll-loop")
@@ -531,6 +560,10 @@ class MainService : FcitxPluginService() {
         disconnectClipCascadeClient()
         syncJob = scope.launch {
             while (isActive) {
+                if (shouldBlockSyncForCurrentNetwork()) {
+                    delay(NETWORK_RECONNECT_DEBOUNCE_MS)
+                    continue
+                }
                 val endpoint = currentEndpoint()
                 if (endpoint.address.isBlank()) {
                     Log.d(TAG, "[ClipCascade] Server address is blank, skipping websocket sync")
@@ -587,6 +620,10 @@ class MainService : FcitxPluginService() {
         disconnectOneClipClient()
         syncJob = scope.launch {
             while (isActive) {
+                if (shouldBlockSyncForCurrentNetwork()) {
+                    delay(NETWORK_RECONNECT_DEBOUNCE_MS)
+                    continue
+                }
                 val endpoint = currentEndpoint()
                 if (endpoint.address.isBlank()) {
                     Log.d(TAG, "[OneClip] Server address is blank, skipping SSE sync")
@@ -645,6 +682,9 @@ class MainService : FcitxPluginService() {
     }
 
     private suspend fun checkRemoteClipboard(forceRefresh: Boolean = false) {
+        if (shouldBlockSyncForCurrentNetwork()) {
+            return
+        }
         remoteFetchMutex.withLock {
             importedProfileIdsInCurrentSync.clear()
             val endpoint = currentEndpoint()
@@ -1131,6 +1171,7 @@ class MainService : FcitxPluginService() {
                 connectivityManager.registerNetworkCallback(request, networkCallback)
             }
             networkCallbackRegistered = true
+            refreshObservedNetworkState()
         }.onFailure {
             Log.w(TAG, "Failed to register network callback", it)
         }
@@ -1144,6 +1185,9 @@ class MainService : FcitxPluginService() {
             Log.w(TAG, "Failed to unregister network callback", it)
         }
         networkCallbackRegistered = false
+        observedActiveNetwork = null
+        observedWifiConnected = false
+        observedWifiSsid = null
     }
 
     private fun handleActionIntent(intent: Intent?) {
@@ -1439,6 +1483,134 @@ class MainService : FcitxPluginService() {
         return ServerBackend.fromProfileType(
             prefs.getString(SERVER_PROFILE_TYPE_KEY, null)
         )
+    }
+
+    private fun shouldBlockSyncForCurrentNetwork(): Boolean {
+        val state = SyncNetworkPolicy.loadState(prefs)
+        if (!state.wifiOnly && !state.allowedWifiOnly) {
+            lastSyncNetworkBlockReason = null
+            return false
+        }
+        val decision = currentSyncNetworkDecision(state)
+        if (decision.allowed) {
+            lastSyncNetworkBlockReason = null
+            return false
+        }
+        val reason = when (decision.reason) {
+            SyncNetworkPolicy.Reason.NonWifiNetwork ->
+                "current network is not Wi-Fi"
+
+            SyncNetworkPolicy.Reason.NoAllowedWifiSelected ->
+                "no allowed Wi-Fi networks are selected"
+
+            SyncNetworkPolicy.Reason.UnknownWifiSsid ->
+                "current Wi-Fi SSID is unavailable"
+
+            SyncNetworkPolicy.Reason.WifiNotAllowed ->
+                "current Wi-Fi ${decision.currentSsid.orEmpty()} is not in the allow-list"
+
+            SyncNetworkPolicy.Reason.Allowed ->
+                ""
+        }
+        if (reason.isNotEmpty() && reason != lastSyncNetworkBlockReason) {
+            Log.d(TAG, "[NetworkPolicy] Sync paused because $reason")
+            lastSyncNetworkBlockReason = reason
+        }
+        resetFailureState()
+        return true
+    }
+
+    private fun currentSyncNetworkDecision(
+        state: SyncNetworkPolicy.State = SyncNetworkPolicy.loadState(prefs)
+    ): SyncNetworkPolicy.Decision {
+        if (!state.wifiOnly && !state.allowedWifiOnly) {
+            return SyncNetworkPolicy.Decision(
+                allowed = true,
+                reason = SyncNetworkPolicy.Reason.Allowed
+            )
+        }
+
+        refreshObservedNetworkState()
+        if (!observedWifiConnected) {
+            return SyncNetworkPolicy.Decision(
+                allowed = false,
+                reason = SyncNetworkPolicy.Reason.NonWifiNetwork
+            )
+        }
+        if (!state.allowedWifiOnly) {
+            return SyncNetworkPolicy.Decision(
+                allowed = true,
+                reason = SyncNetworkPolicy.Reason.Allowed,
+                currentSsid = observedWifiSsid
+            )
+        }
+        if (state.allowedSsids.isEmpty()) {
+            return SyncNetworkPolicy.Decision(
+                allowed = false,
+                reason = SyncNetworkPolicy.Reason.NoAllowedWifiSelected
+            )
+        }
+
+        val effectiveSsid = observedWifiSsid
+            ?: SyncNetworkPolicy.currentConnectedWifiSsid(this)?.also { observedWifiSsid = it }
+            ?: return SyncNetworkPolicy.Decision(
+                allowed = false,
+                reason = SyncNetworkPolicy.Reason.UnknownWifiSsid
+            )
+
+        return if (effectiveSsid in state.allowedSsids) {
+            SyncNetworkPolicy.Decision(
+                allowed = true,
+                reason = SyncNetworkPolicy.Reason.Allowed,
+                currentSsid = effectiveSsid
+            )
+        } else {
+            SyncNetworkPolicy.Decision(
+                allowed = false,
+                reason = SyncNetworkPolicy.Reason.WifiNotAllowed,
+                currentSsid = effectiveSsid
+            )
+        }
+    }
+
+    private fun refreshObservedNetworkState(
+        network: Network? = connectivityManager.activeNetwork,
+        capabilities: NetworkCapabilities? = network?.let(connectivityManager::getNetworkCapabilities)
+    ) {
+        if (network == null || capabilities == null) {
+            observedActiveNetwork = null
+            observedWifiConnected = false
+            observedWifiSsid = null
+            return
+        }
+
+        val previousNetwork = observedActiveNetwork
+        observedActiveNetwork = network
+        observedWifiConnected = capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+            SyncNetworkPolicy.currentConnectedWifiSsid(this) != null
+        if (!observedWifiConnected) {
+            observedWifiSsid = null
+            return
+        }
+
+        val capabilitySsid = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            SyncNetworkPolicy.normalizeSsid((capabilities.transportInfo as? android.net.wifi.WifiInfo)?.ssid)
+        } else {
+            null
+        }
+        val resolvedSsid = capabilitySsid ?: SyncNetworkPolicy.currentConnectedWifiSsid(this)
+        when {
+            resolvedSsid != null -> observedWifiSsid = resolvedSsid
+            previousNetwork != network -> observedWifiSsid = null
+        }
+    }
+
+    private fun clearObservedNetworkStateIfMatches(network: Network) {
+        if (observedActiveNetwork == null || observedActiveNetwork == network) {
+            observedActiveNetwork = null
+            observedWifiConnected = false
+            observedWifiSsid = null
+        }
     }
 
     private fun isScreenInteractive(): Boolean {
@@ -1916,6 +2088,9 @@ class MainService : FcitxPluginService() {
         if (!force && !prefs.getBoolean(PREF_QUICK_SYNC, DEFAULT_QUICK_SYNC_ENABLED)) {
             return
         }
+        if (shouldBlockSyncForCurrentNetwork()) {
+            return
+        }
         pendingUploadDrainMutex.withLock {
             while (true) {
                 val next = pendingUploadMutex.withLock {
@@ -1990,6 +2165,10 @@ class MainService : FcitxPluginService() {
         scope.launch {
             val queued = enqueuePendingUpload(normalizedContent)
             if (!queued) {
+                return@launch
+            }
+            if (shouldBlockSyncForCurrentNetwork()) {
+                Log.d(TAG, "[Push] Deferred explicit upload until sync network policy allows it")
                 return@launch
             }
             Log.d(TAG, "[Push] Received explicit upload request from $origin")

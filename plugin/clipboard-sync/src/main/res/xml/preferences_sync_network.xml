@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <SwitchPreferenceCompat
+        app:key="sync_network_wifi_only"
+        app:title="@string/sync_network_wifi_only_title"
+        app:defaultValue="false" />
+
+    <SwitchPreferenceCompat
+        app:key="sync_network_allowed_wifi_only"
+        app:title="@string/sync_network_allowed_wifi_only_title"
+        app:summary="@string/sync_network_allowed_wifi_only_summary"
+        app:defaultValue="false" />
+
+    <Preference
+        app:key="sync_network_allowed_ssids_entry"
+        app:title="@string/sync_network_selected_wifi_title"
+        app:summary="@string/sync_network_selected_wifi_summary_empty" />
+
+</PreferenceScreen>

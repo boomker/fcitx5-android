@@ -7,6 +7,7 @@ import android.util.Base64
 import android.util.Log
 import androidx.documentfile.provider.DocumentFile
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -67,6 +68,16 @@ object SyncClient {
         .writeTimeout(30, TimeUnit.SECONDS)
         .build()
 
+    private fun requestClient(timeoutMillis: Long? = null): OkHttpClient {
+        if (timeoutMillis == null) return client
+        return client.newBuilder()
+            .callTimeout(timeoutMillis, TimeUnit.MILLISECONDS)
+            .connectTimeout(timeoutMillis, TimeUnit.MILLISECONDS)
+            .readTimeout(timeoutMillis, TimeUnit.MILLISECONDS)
+            .writeTimeout(timeoutMillis, TimeUnit.MILLISECONDS)
+            .build()
+    }
+
     private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
     private val OCTET_STREAM_TYPE = "application/octet-stream".toMediaType()
 
@@ -118,10 +129,13 @@ object SyncClient {
         username: String,
         pass: String,
         backend: ServerBackend,
-        content: String
+        content: String,
+        timeoutMillis: Long? = null
     ) {
+        val httpClient = requestClient(timeoutMillis)
         when (backend) {
             ServerBackend.SYNCCLIPBOARD -> putSyncClipboard(
+                client = httpClient,
                 context = context,
                 serverUrl = serverUrl,
                 username = username,
@@ -130,27 +144,31 @@ object SyncClient {
             )
 
             ServerBackend.ONECLIP -> putOneClip(
+                client = httpClient,
                 context = context,
                 serverUrl = serverUrl,
                 content = content
             )
 
             ServerBackend.CLIPCASCADE -> runBlocking {
-                val client = ClipCascadeClient(
-                    serverUrl = serverUrl,
-                    username = username,
-                    password = pass
-                )
-                try {
-                    client.connect { }
-                    val outgoing = buildClipCascadeClipboardData(context, content)
-                    client.sendClipboard(
-                        payload = outgoing.payload,
-                        type = outgoing.type,
-                        filename = outgoing.filename
+                withTimeout(timeoutMillis ?: 10_000L) {
+                    val websocketClient = ClipCascadeClient(
+                        serverUrl = serverUrl,
+                        username = username,
+                        password = pass,
+                        timeoutMillis = timeoutMillis
                     )
-                } finally {
-                    client.close()
+                    try {
+                        websocketClient.connect { }
+                        val outgoing = buildClipCascadeClipboardData(context, content)
+                        websocketClient.sendClipboard(
+                            payload = outgoing.payload,
+                            type = outgoing.type,
+                            filename = outgoing.filename
+                        )
+                    } finally {
+                        websocketClient.close()
+                    }
                 }
             }
         }
@@ -160,9 +178,11 @@ object SyncClient {
         serverUrl: String,
         username: String,
         pass: String,
-        backend: ServerBackend
+        backend: ServerBackend,
+        timeoutMillis: Long? = null
     ): Result<String> {
         return try {
+            val httpClient = requestClient(timeoutMillis)
             val request = when (backend) {
                 ServerBackend.SYNCCLIPBOARD -> {
                     val (_, jsonUrl) = getBaseAndJsonUrl(serverUrl)
@@ -186,13 +206,15 @@ object SyncClient {
                 ServerBackend.CLIPCASCADE -> {
                     return runBlocking {
                         runCatching {
-                            ClipCascadeClient(serverUrl, username, pass).testConnection()
+                            withTimeout(timeoutMillis ?: 10_000L) {
+                                ClipCascadeClient(serverUrl, username, pass, timeoutMillis).testConnection()
+                            }
                         }
                     }
                 }
             }
 
-            client.newCall(request).execute().use { response ->
+            httpClient.newCall(request).execute().use { response ->
                 if (response.isSuccessful) {
                     Result.success("Connection Successful: ${response.code}")
                 } else {
@@ -434,6 +456,7 @@ object SyncClient {
     }
 
     private fun putSyncClipboard(
+        client: OkHttpClient,
         context: Context,
         serverUrl: String,
         username: String,
@@ -474,7 +497,7 @@ object SyncClient {
                     size = bytes.size.toLong()
                 )
 
-                uploadSyncClipboardJson(jsonUrl, credential, data)
+                uploadSyncClipboardJson(client, jsonUrl, credential, data)
             } else {
                 Log.d(TAG, "[Push] Uploading text (${content.length} chars)")
                 val hash = HashUtils.sha256(content)
@@ -485,7 +508,7 @@ object SyncClient {
                     hasData = false,
                     size = content.toByteArray().size.toLong()
                 )
-                uploadSyncClipboardJson(jsonUrl, credential, data)
+                uploadSyncClipboardJson(client, jsonUrl, credential, data)
             }
         } catch (e: Exception) {
             Log.e(TAG, "[Push] Error", e)
@@ -494,21 +517,22 @@ object SyncClient {
     }
 
     private fun putOneClip(
+        client: OkHttpClient,
         context: Context,
         serverUrl: String,
         content: String
     ) {
         val uri = content.toClipboardUriOrNull()
         try {
-            primeOneClipSession(serverUrl)
+            primeOneClipSession(client, serverUrl)
             if (uri != null && isImageUri(context, uri)) {
                 val bytes = readClipboardUriBytes(context, uri)
                     ?: throw StaleClipboardContentException("Clipboard image URI is no longer readable: $uri")
-                uploadOneClipImage(serverUrl, bytes)
+                uploadOneClipImage(client, serverUrl, bytes)
             } else if (uri != null && !isReadableClipboardUri(context, uri)) {
                 throw StaleClipboardContentException("Clipboard URI is no longer readable: $uri")
             } else {
-                uploadOneClipText(serverUrl, content)
+                uploadOneClipText(client, serverUrl, content)
             }
         } catch (e: Exception) {
             Log.e(TAG, "[Push] OneClip upload failed", e)
@@ -622,7 +646,7 @@ object SyncClient {
         return newData
     }
 
-    private fun uploadSyncClipboardJson(url: String, credential: String, data: ClipboardData) {
+    private fun uploadSyncClipboardJson(client: OkHttpClient, url: String, credential: String, data: ClipboardData) {
         val jsonString = json.encodeToString(data)
         val body = jsonString.toRequestBody(JSON_MEDIA_TYPE)
         val request = Request.Builder()
@@ -638,7 +662,7 @@ object SyncClient {
         }
     }
 
-    private fun uploadOneClipText(serverUrl: String, text: String) {
+    private fun uploadOneClipText(client: OkHttpClient, serverUrl: String, text: String) {
         val requestBody = json.encodeToString(OneClipUploadTextRequest(text))
             .toRequestBody(JSON_MEDIA_TYPE)
         val request = Request.Builder()
@@ -659,7 +683,7 @@ object SyncClient {
         }
     }
 
-    private fun uploadOneClipImage(serverUrl: String, bytes: ByteArray) {
+    private fun uploadOneClipImage(client: OkHttpClient, serverUrl: String, bytes: ByteArray) {
         val base64Image = Base64.encodeToString(bytes, Base64.NO_WRAP)
         val requestBody = json.encodeToString(OneClipUploadImageRequest(base64Image))
             .toRequestBody(JSON_MEDIA_TYPE)
@@ -681,7 +705,7 @@ object SyncClient {
         }
     }
 
-    private fun primeOneClipSession(serverUrl: String) {
+    private fun primeOneClipSession(client: OkHttpClient, serverUrl: String) {
         val warmupPaths = listOf("/", "/api/current")
         for (path in warmupPaths) {
             val request = Request.Builder()

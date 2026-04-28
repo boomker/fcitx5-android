@@ -14,11 +14,6 @@
         app:defaultValue="true" />
 
     <Preference
-        app:key="battery_optimization"
-        app:title="@string/battery_optimization_title"
-        app:summary="@string/battery_optimization_summary" />
-
-    <Preference
         app:key="clipboard_permission"
         app:title="@string/clipboard_permission_title"
         app:summary="@string/clipboard_permission_summary" />
@@ -32,6 +27,11 @@
         app:key="sync_account"
         app:title="@string/sync_account_title"
         app:summary="@string/credential_not_set" />
+
+    <Preference
+        app:key="sync_network"
+        app:title="@string/sync_network_title"
+        app:summary="@string/sync_network_summary_any" />
 
     <EditTextPreference
         app:key="sync_interval"

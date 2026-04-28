@@ -5,6 +5,10 @@ import android.content.ActivityNotFoundException
 import android.content.SharedPreferences
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
 import android.net.Uri
 import android.os.Build
 import android.os.PowerManager
@@ -37,6 +41,7 @@ import kotlinx.coroutines.withContext
 import org.fxboomk.fcitx5.android.plugin.clipboard_sync.MainService
 import org.fxboomk.fcitx5.android.plugin.clipboard_sync.R
 import org.fxboomk.fcitx5.android.plugin.clipboard_sync.SyncFilterPrefs
+import org.fxboomk.fcitx5.android.plugin.clipboard_sync.SyncNetworkPolicy
 import org.fxboomk.fcitx5.android.plugin.clipboard_sync.network.SyncClient
 import org.fxboomk.fcitx5.android.plugin.clipboard_sync.network.SyncClient.ServerBackend
 import org.fxboomk.fcitx5.android.plugin.clipboard_sync.service.QuickSyncTileService
@@ -93,9 +98,9 @@ class SettingsActivity : AppCompatActivity() {
             private const val BACKGROUND_KEEP_ALIVE_KEY = "background_keep_alive"
             private const val QUICK_SYNC_KEY = "quick_sync"
             private const val QUICK_SYNC_UNREACHABLE_KEY = "quick_sync_unreachable"
-            private const val BATTERY_OPTIMIZATION_KEY = "battery_optimization"
             private const val CLIPBOARD_PERMISSION_KEY = "clipboard_permission"
             private const val SYNC_ACCOUNT_KEY = "sync_account"
+            private const val SYNC_NETWORK_KEY = "sync_network"
             private const val PROFILE_SYNC_CLIPBOARD = "syncclipboard"
             private const val PROFILE_ONE_CLIP = "oneclip"
             private const val PROFILE_CLIP_CASCADE = "clipcascade"
@@ -103,10 +108,7 @@ class SettingsActivity : AppCompatActivity() {
             private const val DEFAULT_SYNC_CLIPBOARD_URL = "http://192.168.10.45:5033"
             private const val DEFAULT_ONE_CLIP_URL = "http://192.168.10.45:8899"
             private const val DEFAULT_CLIP_CASCADE_URL = "http://192.168.10.45:8080"
-            private const val SOURCE_REPOSITORY_URL = "https://github.com/boomker/fcitx5-android"
-            private const val ONECLIP_URL = "https://oneclip.cloud/"
-            private const val CLIPCASCADE_URL = "https://github.com/NOBB2333/ClipCascade_go"
-            private const val SYNCCLIPBOARD_URL = "https://github.com/Jeric-X/SyncClipboard"
+            private const val TEST_REQUEST_TIMEOUT_MS = 2_000L
         }
 
         private data class ServerProfile(
@@ -166,6 +168,23 @@ class SettingsActivity : AppCompatActivity() {
             syncQuickSyncSwitchState(prefs)
             context?.let { QuickSyncTileService.requestTileRefresh(it) }
         }
+        private var networkCallbackRegistered = false
+        private val connectivityManager by lazy {
+            requireContext().getSystemService(ConnectivityManager::class.java)
+        }
+        private val networkCallback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                view?.post { syncQuickSyncSwitchState(preferenceManager.sharedPreferences) }
+            }
+
+            override fun onLost(network: Network) {
+                view?.post { syncQuickSyncSwitchState(preferenceManager.sharedPreferences) }
+            }
+
+            override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
+                view?.post { syncQuickSyncSwitchState(preferenceManager.sharedPreferences) }
+            }
+        }
 
         private val openTestPushDocument =
             registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -184,22 +203,21 @@ class SettingsActivity : AppCompatActivity() {
             setPreferencesFromResource(R.xml.preferences_local, rootKey)
             val prefs = preferenceManager.sharedPreferences ?: return
             SyncFilterPrefs.ensureDefaults(prefs)
+            SyncNetworkPolicy.ensureDefaults(prefs)
             initializeServerProfileState()
             syncCredentialPreferencesForActiveProfile()
-            updateBatteryOptimizationSummary()
-
-            findPreference<Preference>(BATTERY_OPTIMIZATION_KEY)?.setOnPreferenceClickListener {
-                requestIgnoreBatteryOptimizations()
-                true
-            }
+            updateSyncNetworkSummary(findPreference(SYNC_NETWORK_KEY))
             findPreference<Preference>(CLIPBOARD_PERMISSION_KEY)?.setOnPreferenceClickListener {
                 showClipboardPermissionGuide()
                 true
             }
 
-            findPreference<Preference>(BACKGROUND_KEEP_ALIVE_KEY)?.setOnPreferenceChangeListener { _, newValue ->
+            findPreference<SwitchPreferenceCompat>(BACKGROUND_KEEP_ALIVE_KEY)?.setOnPreferenceChangeListener { _, newValue ->
                 if (newValue == true) {
                     view?.post {
+                        if (!isIgnoringBatteryOptimizations()) {
+                            requestIgnoreBatteryOptimizations()
+                        }
                         MainService.startSyncService(requireContext(), "settings-keepalive-enabled")
                     }
                 }
@@ -235,6 +253,10 @@ class SettingsActivity : AppCompatActivity() {
                 showSyncAccountDialog()
                 true
             }
+            findPreference<Preference>(SYNC_NETWORK_KEY)?.setOnPreferenceClickListener {
+                openPreferenceFragment(SyncNetworkSettingsFragment())
+                true
+            }
 
             val downloadPref = findPreference<Preference>(DOWNLOAD_PATH_KEY)
             updateDownloadPathSummary()
@@ -267,8 +289,8 @@ class SettingsActivity : AppCompatActivity() {
         override fun onResume() {
             super.onResume()
             requireActivity().title = getString(R.string.settings_title)
-            updateBatteryOptimizationSummary()
             updateSyncFilterSummary(findPreference(SyncFilterPrefs.PREF_FILTER_ENTRY))
+            updateSyncNetworkSummary(findPreference(SYNC_NETWORK_KEY))
             val prefs = preferenceManager.sharedPreferences
             syncQuickSyncSwitchState(prefs)
             QuickSyncTileService.requestTileRefresh(requireContext())
@@ -282,11 +304,13 @@ class SettingsActivity : AppCompatActivity() {
             val prefs = preferenceManager.sharedPreferences ?: return
             prefs.registerOnSharedPreferenceChangeListener(quickSyncPreferenceListener)
             syncQuickSyncSwitchState(prefs)
+            registerNetworkCallbackIfNeeded()
         }
 
         override fun onStop() {
             preferenceManager.sharedPreferences
                 ?.unregisterOnSharedPreferenceChangeListener(quickSyncPreferenceListener)
+            unregisterNetworkCallbackIfNeeded()
             super.onStop()
         }
 
@@ -340,11 +364,15 @@ class SettingsActivity : AppCompatActivity() {
             val sharedPrefs = prefs ?: return
             val enabled = isQuickSyncEnabled(sharedPrefs)
             val unreachable = isQuickSyncUnreachable(sharedPrefs)
+            val blockedByNetwork = isBlockedByCurrentNetwork(sharedPrefs)
             val preference = findPreference<SwitchPreferenceCompat>(QUICK_SYNC_KEY) ?: return
             if (preference.isChecked != enabled) {
                 preference.isChecked = enabled
             }
-            preference.summary = if (enabled && unreachable) {
+            preference.isEnabled = !blockedByNetwork
+            preference.summary = if (enabled && blockedByNetwork) {
+                getString(R.string.local_quick_sync_summary_network_blocked)
+            } else if (enabled && unreachable) {
                 getString(R.string.local_quick_sync_summary_unreachable)
             } else {
                 getString(R.string.local_quick_sync_summary)
@@ -357,6 +385,36 @@ class SettingsActivity : AppCompatActivity() {
 
         private fun isQuickSyncUnreachable(prefs: SharedPreferences?): Boolean {
             return prefs?.getBoolean(QUICK_SYNC_UNREACHABLE_KEY, false) == true
+        }
+
+        private fun isBlockedByCurrentNetwork(prefs: SharedPreferences?): Boolean {
+            val sharedPrefs = prefs ?: return false
+            if (!isQuickSyncEnabled(sharedPrefs)) {
+                return false
+            }
+            val decision = SyncNetworkPolicy.evaluate(requireContext(), sharedPrefs)
+            return !decision.allowed && decision.reason == SyncNetworkPolicy.Reason.NonWifiNetwork
+        }
+
+        private fun registerNetworkCallbackIfNeeded() {
+            if (networkCallbackRegistered) return
+            runCatching {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    connectivityManager.registerDefaultNetworkCallback(networkCallback)
+                } else {
+                    val request = NetworkRequest.Builder()
+                        .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                        .build()
+                    connectivityManager.registerNetworkCallback(request, networkCallback)
+                }
+                networkCallbackRegistered = true
+            }
+        }
+
+        private fun unregisterNetworkCallbackIfNeeded() {
+            if (!networkCallbackRegistered) return
+            runCatching { connectivityManager.unregisterNetworkCallback(networkCallback) }
+            networkCallbackRegistered = false
         }
 
         private fun migrateLegacyCredentialProfiles(
@@ -399,19 +457,18 @@ class SettingsActivity : AppCompatActivity() {
             editor.putInt(CREDENTIAL_MIGRATION_VERSION_KEY, CREDENTIAL_MIGRATION_VERSION)
         }
 
-        private fun updateBatteryOptimizationSummary() {
-            val preference = findPreference<Preference>(BATTERY_OPTIMIZATION_KEY) ?: return
+        private fun isIgnoringBatteryOptimizations(): Boolean {
             val powerManager = requireContext().getSystemService(PowerManager::class.java)
-            val ignored = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 powerManager?.isIgnoringBatteryOptimizations(requireContext().packageName) == true
             } else {
                 true
             }
-            preference.summary = if (ignored) {
-                getString(R.string.battery_optimization_summary_enabled)
-            } else {
-                getString(R.string.battery_optimization_summary_disabled)
-            }
+        }
+
+        private fun updateSyncNetworkSummary(preference: Preference?) {
+            val prefs = preferenceManager.sharedPreferences ?: return
+            preference?.summary = SyncNetworkPolicy.buildSummary(requireContext(), prefs)
         }
 
         private fun requestIgnoreBatteryOptimizations() {
@@ -753,6 +810,9 @@ class SettingsActivity : AppCompatActivity() {
 
         private fun submitTestPush(dialog: AlertDialog) {
             val prefs = preferenceManager.sharedPreferences ?: return
+            if (!ensureNetworkPolicyAllowsManualSync(prefs)) {
+                return
+            }
             val activeProfile = prefs.getString(SERVER_PROFILE_TYPE_KEY, PROFILE_SYNC_CLIPBOARD)
                 ?: PROFILE_SYNC_CLIPBOARD
             val address = prefs.getString(SERVER_ADDRESS_KEY, "") ?: ""
@@ -788,7 +848,8 @@ class SettingsActivity : AppCompatActivity() {
                         username = username,
                         pass = password,
                         backend = backend,
-                        content = content
+                        content = content,
+                        timeoutMillis = TEST_REQUEST_TIMEOUT_MS
                     )
                 }
 
@@ -937,6 +998,9 @@ class SettingsActivity : AppCompatActivity() {
                     .show()
                 return
             }
+            if (!ensureNetworkPolicyAllowsManualSync(prefs)) {
+                return
+            }
             val activeProfile = prefs.getString(SERVER_PROFILE_TYPE_KEY, PROFILE_SYNC_CLIPBOARD)
                 ?: PROFILE_SYNC_CLIPBOARD
             val address = prefs.getString(SERVER_ADDRESS_KEY, "") ?: ""
@@ -957,7 +1021,13 @@ class SettingsActivity : AppCompatActivity() {
             progressDialog.show()
 
             CoroutineScope(Dispatchers.IO).launch {
-                val result = SyncClient.testConnection(address, username, password, backend)
+                val result = SyncClient.testConnection(
+                    serverUrl = address,
+                    username = username,
+                    pass = password,
+                    backend = backend,
+                    timeoutMillis = TEST_REQUEST_TIMEOUT_MS
+                )
 
                 withContext(Dispatchers.Main) {
                     progressDialog.dismiss()
@@ -974,6 +1044,37 @@ class SettingsActivity : AppCompatActivity() {
             }
         }
 
+        private fun ensureNetworkPolicyAllowsManualSync(prefs: SharedPreferences): Boolean {
+            val decision = SyncNetworkPolicy.evaluate(requireContext(), prefs)
+            if (decision.allowed) {
+                return true
+            }
+            val message = when (decision.reason) {
+                SyncNetworkPolicy.Reason.NonWifiNetwork ->
+                    getString(R.string.sync_network_manual_blocked_non_wifi)
+
+                SyncNetworkPolicy.Reason.NoAllowedWifiSelected ->
+                    getString(R.string.sync_network_manual_blocked_empty)
+
+                SyncNetworkPolicy.Reason.UnknownWifiSsid ->
+                    getString(R.string.sync_network_manual_blocked_unknown_ssid)
+
+                SyncNetworkPolicy.Reason.WifiNotAllowed ->
+                    getString(
+                        R.string.sync_network_manual_blocked_disallowed_ssid,
+                        decision.currentSsid.orEmpty()
+                    )
+
+                SyncNetworkPolicy.Reason.Allowed -> return true
+            }
+            AlertDialog.Builder(requireContext())
+                .setTitle(R.string.connection_failed)
+                .setMessage(message)
+                .setPositiveButton(android.R.string.ok, null)
+                .show()
+            return false
+        }
+
         private fun openWebPage(url: String) {
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
             runCatching {
@@ -986,6 +1087,183 @@ class SettingsActivity : AppCompatActivity() {
                 }
                 Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
             }
+        }
+    }
+
+    class SyncNetworkSettingsFragment : PreferenceFragmentCompat() {
+
+        companion object {
+            private const val ALLOWED_SSIDS_ENTRY_KEY = "sync_network_allowed_ssids_entry"
+        }
+
+        private var pendingAllowedWifiEnable = false
+
+        private val wifiPermissionLauncher =
+            registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { _ ->
+                if (!isAdded) return@registerForActivityResult
+                if (SyncNetworkPolicy.hasRequiredRuntimePermissions(requireContext())) {
+                    ensureLocationThenShowWifiDialog()
+                } else {
+                    showWifiPermissionRequiredDialog()
+                    resetAllowedWifiOnlyIfNoSelection()
+                }
+            }
+
+        override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
+            setPreferencesFromResource(R.xml.preferences_sync_network, rootKey)
+            val prefs = preferenceManager.sharedPreferences ?: return
+            SyncNetworkPolicy.ensureDefaults(prefs)
+
+            findPreference<SwitchPreferenceCompat>(SyncNetworkPolicy.PREF_ALLOWED_WIFI_ONLY)
+                ?.setOnPreferenceChangeListener { _, newValue ->
+                    if (newValue == true) {
+                        pendingAllowedWifiEnable = true
+                        view?.post { ensureWifiSelectionAccessible() }
+                        false
+                    } else {
+                        pendingAllowedWifiEnable = false
+                        true
+                    }
+                }
+
+            findPreference<Preference>(ALLOWED_SSIDS_ENTRY_KEY)?.setOnPreferenceClickListener {
+                ensureWifiSelectionAccessible()
+                true
+            }
+
+            updateSelectedWifiSummary()
+        }
+
+        override fun onResume() {
+            super.onResume()
+            requireActivity().title = getString(R.string.sync_network_title)
+            if (pendingAllowedWifiEnable) {
+                pendingAllowedWifiEnable = false
+                resetAllowedWifiOnlyIfNoSelection()
+            }
+            normalizeAllowedWifiOnlyState()
+            updateSelectedWifiSummary()
+        }
+
+        private fun ensureWifiSelectionAccessible() {
+            val context = requireContext()
+            if (!SyncNetworkPolicy.hasRequiredRuntimePermissions(context)) {
+                wifiPermissionLauncher.launch(SyncNetworkPolicy.requiredRuntimePermissions())
+                return
+            }
+            ensureLocationThenShowWifiDialog()
+        }
+
+        private fun ensureLocationThenShowWifiDialog() {
+            if (!SyncNetworkPolicy.isLocationEnabled(requireContext())) {
+                showLocationRequiredDialog()
+                return
+            }
+            showWifiSelectionDialog()
+        }
+
+        private fun showWifiPermissionRequiredDialog() {
+            AlertDialog.Builder(requireContext())
+                .setMessage(R.string.sync_network_permission_required)
+                .setPositiveButton(R.string.sync_network_open_app_settings) { _, _ ->
+                    openAppSettings()
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+        }
+
+        private fun showLocationRequiredDialog() {
+            AlertDialog.Builder(requireContext())
+                .setMessage(R.string.sync_network_location_required)
+                .setPositiveButton(R.string.sync_network_open_location_settings) { _, _ ->
+                    startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+            resetAllowedWifiOnlyIfNoSelection()
+        }
+
+        private fun openAppSettings() {
+            startActivity(
+                Intent(
+                    Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                    Uri.parse("package:${requireContext().packageName}")
+                )
+            )
+        }
+
+        private fun showWifiSelectionDialog() {
+            val prefs = preferenceManager.sharedPreferences ?: return
+            val selected = SyncNetworkPolicy.loadState(prefs).allowedSsids
+            val visibleSsids = SyncNetworkPolicy.availableScanSsids(requireContext())
+            val entries = buildList {
+                visibleSsids.forEach { ssid ->
+                    add(ssid to ssid)
+                }
+                selected.filter { it !in visibleSsids }
+                    .sorted()
+                    .forEach { ssid ->
+                        add(ssid to getString(R.string.sync_network_selected_wifi_unavailable, ssid))
+                    }
+            }
+            if (entries.isEmpty()) {
+                Toast.makeText(requireContext(), R.string.sync_network_scan_empty, Toast.LENGTH_SHORT).show()
+                return
+            }
+
+            val values = entries.map { it.first }
+            val labels = entries.map { it.second }.toTypedArray()
+            val checked = BooleanArray(values.size) { index ->
+                values[index] in selected
+            }
+
+            AlertDialog.Builder(requireContext())
+                .setTitle(R.string.sync_network_selected_wifi_title)
+                .setMultiChoiceItems(labels, checked) { _, which, isChecked ->
+                    checked[which] = isChecked
+                }
+                .setPositiveButton(android.R.string.ok) { _, _ ->
+                    val selectedSsids = values.filterIndexed { index, _ -> checked[index] }.toSet()
+                    prefs.edit()
+                        .putStringSet(SyncNetworkPolicy.PREF_ALLOWED_SSIDS, selectedSsids)
+                        .putBoolean(
+                            SyncNetworkPolicy.PREF_ALLOWED_WIFI_ONLY,
+                            selectedSsids.isNotEmpty()
+                        )
+                        .apply()
+                    pendingAllowedWifiEnable = false
+                    normalizeAllowedWifiOnlyState()
+                    updateSelectedWifiSummary()
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+        }
+
+        private fun normalizeAllowedWifiOnlyState() {
+            val prefs = preferenceManager.sharedPreferences ?: return
+            val selectedSsids = SyncNetworkPolicy.loadState(prefs).allowedSsids
+            val shouldEnable = selectedSsids.isNotEmpty() &&
+                prefs.getBoolean(SyncNetworkPolicy.PREF_ALLOWED_WIFI_ONLY, false)
+            if (!shouldEnable && prefs.getBoolean(SyncNetworkPolicy.PREF_ALLOWED_WIFI_ONLY, false)) {
+                prefs.edit().putBoolean(SyncNetworkPolicy.PREF_ALLOWED_WIFI_ONLY, false).apply()
+            }
+            findPreference<SwitchPreferenceCompat>(SyncNetworkPolicy.PREF_ALLOWED_WIFI_ONLY)?.isChecked =
+                shouldEnable
+        }
+
+        private fun resetAllowedWifiOnlyIfNoSelection() {
+            val prefs = preferenceManager.sharedPreferences ?: return
+            if (SyncNetworkPolicy.loadState(prefs).allowedSsids.isNotEmpty()) {
+                return
+            }
+            prefs.edit().putBoolean(SyncNetworkPolicy.PREF_ALLOWED_WIFI_ONLY, false).apply()
+            findPreference<SwitchPreferenceCompat>(SyncNetworkPolicy.PREF_ALLOWED_WIFI_ONLY)?.isChecked = false
+        }
+
+        private fun updateSelectedWifiSummary() {
+            val prefs = preferenceManager.sharedPreferences ?: return
+            findPreference<Preference>(ALLOWED_SSIDS_ENTRY_KEY)?.summary =
+                SyncNetworkPolicy.buildSelectedWifiSummary(requireContext(), prefs)
         }
     }
 
