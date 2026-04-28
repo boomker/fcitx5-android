@@ -3,6 +3,10 @@ package org.fxboomk.fcitx5.android.input.predict
 internal object LanLlmPrompt {
     private const val STYLE_PERSONA_ZH = "自然、得体、贴近上下文的中文续写助手"
     private const val STYLE_PERSONA_EN = "a natural, context-aware English continuation assistant"
+    private const val STYLE_ANSWERER_ZH = "自然、得体、贴近上下文的输入法应答助手"
+    private const val STYLE_ANSWERER_EN = "a natural, context-aware IME response assistant"
+    private const val STYLE_TRANSLATOR_ZH = "自然、准确、贴近上下文的输入法翻译助手"
+    private const val STYLE_TRANSLATOR_EN = "a natural, accurate, context-aware IME translation assistant"
 
     private const val EMPTY_CONTEXT = "无"
 
@@ -23,7 +27,7 @@ internal object LanLlmPrompt {
         return when (LanLlmLanguageDetector.detect(beforeCursor)) {
             LanLlmLanguage.Chinese -> when {
                 outputMode == LanLlmOutputMode.LongForm && taskMode == LanLlmTaskMode.QuestionAnswer -> """
-你是$STYLE_PERSONA_ZH。
+你是$STYLE_ANSWERER_ZH。
 你的任务是像输入法一样，根据用户刚输入的问题或请求，生成 1 条可直接上屏的简短回答。
 1. 只输出最终回答文本本身，不要输出 JSON，不要输出标签。
 2. 将当前输入视为完整的问题/请求本身，不要把它当成待续写前缀。
@@ -33,13 +37,14 @@ internal object LanLlmPrompt {
 """.trim()
 
                 taskMode == LanLlmTaskMode.Translate -> """
-你是$STYLE_PERSONA_ZH。
+你是$STYLE_TRANSLATOR_ZH。
 你的任务是像输入法一样，将用户当前输入框里的整段中文文本翻译成自然、准确、可直接发送的英文。
 1. 只输出最终译文文本本身，不要输出 JSON，不要输出标签。
 2. 将当前输入视为完整待翻译文本，不要续写，不要总结，不要解释。
 3. 保持原意，保留必要的人名、专有名词、数字、URL、邮箱和代码片段；不确定时优先保留原样。
 4. 译文要自然、简洁、符合英文表达习惯，可分句，但不要补充原文没有的信息。
-5. 不要输出 markdown 符号、引号、前缀说明或额外注释。
+5. 英文译文中的单词之间必须保留正常空格，不要把多个英文单词连写在一起。
+6. 不要输出 markdown 符号、引号、前缀说明或额外注释。
 """.trim()
 
                 outputMode == LanLlmOutputMode.LongForm -> """
@@ -53,7 +58,7 @@ internal object LanLlmPrompt {
 """.trim()
 
                 taskMode == LanLlmTaskMode.QuestionAnswer -> """
-你是$STYLE_PERSONA_ZH。
+你是$STYLE_ANSWERER_ZH。
 你的任务是像输入法一样，根据用户刚输入的问题或请求给出 1 条可直接上屏的回答。
 1. 只输出最终回答文本本身，不要输出 JSON，不要输出标签。
 2. 将当前输入视为完整的问题或请求本身，不要把它当成待续写前缀。
@@ -81,7 +86,7 @@ internal object LanLlmPrompt {
 
             LanLlmLanguage.English -> when {
                 outputMode == LanLlmOutputMode.LongForm && taskMode == LanLlmTaskMode.QuestionAnswer -> """
-You are $STYLE_PERSONA_EN.
+You are $STYLE_ANSWERER_EN.
 Act like an IME and return exactly one concise answer to the user's latest question or request.
 1. Output only the final answer text itself, not JSON or labels.
 2. Treat the current input as a complete question/request, not as a prefix to continue.
@@ -90,7 +95,7 @@ Act like an IME and return exactly one concise answer to the user's latest quest
 """.trim()
 
                 taskMode == LanLlmTaskMode.Translate -> """
-You are $STYLE_PERSONA_EN.
+You are $STYLE_TRANSLATOR_EN.
 Act like an IME and translate the entire current English text into natural, accurate Chinese.
 1. Output only the final translation text itself, not JSON or labels.
 2. Treat the current input as the complete source text to translate, not as a prefix to continue.
@@ -110,7 +115,7 @@ Act like an IME and return exactly one longer continuation candidate.
 """.trim()
 
                 taskMode == LanLlmTaskMode.QuestionAnswer -> """
-You are $STYLE_PERSONA_EN.
+You are $STYLE_ANSWERER_EN.
 Act like an IME and provide exactly one concise answer to the user's latest question or request.
 1. Output only the final answer text itself, not JSON or labels.
 2. Treat the current input as a complete question/request, not as a prefix to continue.
@@ -167,7 +172,7 @@ Your task is to act like an IME and provide 1-$candidateLimit natural continuati
         append(buildMemoryText(recentCommittedText, useRecentCommitBias))
         append("\n</memory>\n")
         append("<persona>\n")
-        append(persona(language))
+        append(persona(language, taskMode))
         append("\n</persona>\n")
         append("</env>\n")
         append("<instruction>\n")
@@ -177,7 +182,7 @@ Your task is to act like an IME and provide 1-$candidateLimit natural continuati
                     outputMode == LanLlmOutputMode.LongForm && taskMode == LanLlmTaskMode.QuestionAnswer ->
                         "请把下面输入当作用户刚提出的问题或请求，给出一条 60 个中文字符左右、可直接发送的自然长回答。不要续写前缀本身：\n"
                     taskMode == LanLlmTaskMode.Translate ->
-                        "请把下面整段文本翻译成自然、准确、可直接发送的英文。只输出译文本身，不要解释：\n"
+                        "请把下面整段文本翻译成自然、准确、可直接发送的英文。英文单词之间必须保留正常空格，不要把多个英文单词连写在一起。只输出译文本身，不要解释：\n"
                     outputMode == LanLlmOutputMode.LongForm ->
                         "请基于上下文，为我续写一条 60 个中文字符左右、可直接上屏的自然内容。只输出当前前缀后面的续写部分，不要重复前缀：\n"
                     taskMode == LanLlmTaskMode.QuestionAnswer ->
@@ -227,7 +232,7 @@ Your task is to act like an IME and provide 1-$candidateLimit natural continuati
     ): String = when (LanLlmLanguageDetector.detect(beforeCursor)) {
         LanLlmLanguage.Chinese -> when {
             outputMode == LanLlmOutputMode.LongForm && taskMode == LanLlmTaskMode.QuestionAnswer -> """
-你是$STYLE_PERSONA_ZH。
+你是$STYLE_ANSWERER_ZH。
 当前任务是“问答短文回复”。
 - 你会看到 <history>、<last_msg>、<memory> 和 <instruction>。
 - 将 <instruction> 中的当前输入视为用户刚提出的问题或请求，不要把它当作待续写前缀。
@@ -237,13 +242,14 @@ Your task is to act like an IME and provide 1-$candidateLimit natural continuati
 """.trim()
 
             taskMode == LanLlmTaskMode.Translate -> """
-你是$STYLE_PERSONA_ZH。
+你是$STYLE_TRANSLATOR_ZH。
 当前任务是“整段文本翻译”。
 - 你会看到 <history>、<last_msg>、<memory> 和 <instruction>。
 - 将 <instruction> 中的整段文本翻译成自然、准确、可直接发送的英文。
 - 只输出译文本身，不要解释，不要续写，不要输出标签，不要输出 JSON。
 - 保留必要的人名、专有名词、数字、URL、邮箱和代码片段；不确定时优先保留原样。
 - 不要补充原文没有的信息。
+- 英文译文中的单词之间必须保留正常空格，不要把多个英文单词连写在一起。
 """.trim()
 
             outputMode == LanLlmOutputMode.LongForm -> """
@@ -258,7 +264,7 @@ Your task is to act like an IME and provide 1-$candidateLimit natural continuati
 """.trim()
 
             taskMode == LanLlmTaskMode.QuestionAnswer -> """
-你是$STYLE_PERSONA_ZH。
+你是$STYLE_ANSWERER_ZH。
 当前任务是“问答回复候选”。
 - 你会看到 <history>、<last_msg>、<memory> 和 <instruction>。
 - 将 <instruction> 中的当前输入视为用户刚提出的问题或请求，不要把它当作待续写前缀。
@@ -284,7 +290,7 @@ Your task is to act like an IME and provide 1-$candidateLimit natural continuati
 
         LanLlmLanguage.English -> when {
             outputMode == LanLlmOutputMode.LongForm && taskMode == LanLlmTaskMode.QuestionAnswer -> """
-You are $STYLE_PERSONA_EN.
+You are $STYLE_ANSWERER_EN.
 The current task is a slightly longer direct answer.
 - You will see <history>, <last_msg>, <memory>, and <instruction>.
 - Treat the current input as the user's latest question or request, not as a prefix to continue.
@@ -293,7 +299,7 @@ The current task is a slightly longer direct answer.
 """.trim()
 
             taskMode == LanLlmTaskMode.Translate -> """
-You are $STYLE_PERSONA_EN.
+You are $STYLE_TRANSLATOR_EN.
 The current task is full-text translation.
 - You will see <history>, <last_msg>, <memory>, and <instruction>.
 - Translate the full input text into natural Chinese.
@@ -313,7 +319,7 @@ The current task is a slightly longer single-sentence continuation.
 """.trim()
 
             taskMode == LanLlmTaskMode.QuestionAnswer -> """
-You are $STYLE_PERSONA_EN.
+You are $STYLE_ANSWERER_EN.
 The current task is direct answer generation.
 - You will see <history>, <last_msg>, <memory>, and <instruction>.
 - Treat the current input as the user's latest question or request, not as a prefix to continue.
@@ -396,8 +402,23 @@ The current task is dialogue continuation/autocomplete.
         append(completionAssistantPrefill(beforeCursor, taskMode))
     }.trim()
 
-    private fun persona(language: LanLlmLanguage): String = when (language) {
-        LanLlmLanguage.Chinese -> STYLE_PERSONA_ZH
-        LanLlmLanguage.English -> STYLE_PERSONA_EN
+    private fun persona(
+        language: LanLlmLanguage,
+        taskMode: LanLlmTaskMode,
+    ): String = when (taskMode) {
+        LanLlmTaskMode.QuestionAnswer -> when (language) {
+            LanLlmLanguage.Chinese -> STYLE_ANSWERER_ZH
+            LanLlmLanguage.English -> STYLE_ANSWERER_EN
+        }
+
+        LanLlmTaskMode.Translate -> when (language) {
+            LanLlmLanguage.Chinese -> STYLE_TRANSLATOR_ZH
+            LanLlmLanguage.English -> STYLE_TRANSLATOR_EN
+        }
+
+        else -> when (language) {
+            LanLlmLanguage.Chinese -> STYLE_PERSONA_ZH
+            LanLlmLanguage.English -> STYLE_PERSONA_EN
+        }
     }
 }

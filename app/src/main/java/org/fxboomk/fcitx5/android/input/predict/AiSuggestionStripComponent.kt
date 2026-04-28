@@ -25,6 +25,20 @@ private const val QA_PSEUDO_STREAM_CHUNK_CHARS = 2
 private const val QA_PSEUDO_STREAM_DELAY_MS = 24L
 private const val FULL_TEXT_FETCH_CHARS = 20_000
 
+internal fun mergeSingleTextPanelResult(
+    streamedText: String,
+    finalText: String,
+): String {
+    val streamed = streamedText.trimEnd()
+    val final = finalText.trimEnd()
+    if (final.isBlank()) return streamed
+    if (streamed.isBlank()) return final
+    if (final == streamed) return final
+    if (final.startsWith(streamed)) return final
+    if (streamed.startsWith(final)) return streamed
+    return if (final.length >= streamed.length) final else streamed
+}
+
 class AiSuggestionStripComponent(
     private val service: FcitxInputMethodService,
     private val themedContext: Context,
@@ -277,6 +291,8 @@ class AiSuggestionStripComponent(
         activeSuggestions = activeSuggestions.take(1)
         panelDisplayedText = ""
         dispatchPresentationChanged()
+        var streamedLongForm = ""
+        var receivedStreamingPartial = false
         predictor.request(
             request = request,
             onResult = { suggestions ->
@@ -292,18 +308,27 @@ class AiSuggestionStripComponent(
                         )
                     }
                     .orEmpty()
-                if (longForm.isBlank()) {
+                val mergedLongForm = mergeSingleTextPanelResult(
+                    streamedText = streamedLongForm,
+                    finalText = longForm,
+                )
+                if (mergedLongForm.isBlank()) {
                     resetPanelContentState()
                     dispatchPresentationChanged()
                     return@request
                 }
-                panelDisplayedText = longForm
+                panelDisplayedText = mergedLongForm
                 panelContentMode = PanelContentMode.LongFormReady
                 dispatchPresentationChanged()
             },
             onError = { error ->
                 Log.e(TAG, "long-form predict failed: ${error.message}", error)
-                resetPanelContentState()
+                if (receivedStreamingPartial && streamedLongForm.isNotBlank()) {
+                    panelDisplayedText = streamedLongForm
+                    panelContentMode = PanelContentMode.LongFormReady
+                } else {
+                    resetPanelContentState()
+                }
                 dispatchPresentationChanged()
             },
             onPartial = { partial ->
@@ -317,6 +342,8 @@ class AiSuggestionStripComponent(
                     taskMode = taskMode,
                 )
                 if (streamed.isBlank()) return@request
+                receivedStreamingPartial = true
+                streamedLongForm = streamed
                 panelDisplayedText = streamed
                 panelContentMode = PanelContentMode.LongFormStreaming
                 dispatchPresentationChanged()
@@ -802,6 +829,8 @@ class AiSuggestionStripComponent(
         activeSuggestions = activeSuggestions.take(1)
         panelDisplayedText = ""
         dispatchPresentationChanged()
+        var streamedTranslation = ""
+        var receivedStreamingPartial = false
         predictor.request(
             request = request,
             onPartial = { partial ->
@@ -815,6 +844,8 @@ class AiSuggestionStripComponent(
                     taskMode = LanLlmTaskMode.Translate,
                 )
                 if (streamed.isBlank()) return@request
+                receivedStreamingPartial = true
+                streamedTranslation = streamed
                 activeSuggestions = listOf(streamed)
                 panelVisible = true
                 panelDisplayedText = streamed
@@ -835,20 +866,31 @@ class AiSuggestionStripComponent(
                         )
                     }
                     .orEmpty()
-                if (translated.isBlank()) {
+                val mergedTranslation = mergeSingleTextPanelResult(
+                    streamedText = streamedTranslation,
+                    finalText = translated,
+                )
+                if (mergedTranslation.isBlank()) {
                     resetPanelContentState()
                     dispatchPresentationChanged()
                     return@request
                 }
-                activeSuggestions = listOf(translated)
+                activeSuggestions = listOf(mergedTranslation)
                 panelVisible = true
-                panelDisplayedText = translated
+                panelDisplayedText = mergedTranslation
                 panelContentMode = PanelContentMode.TranslateReady
                 dispatchPresentationChanged()
             },
             onError = { error ->
                 Log.e(TAG, "translate predict failed: ${error.message}", error)
-                resetPanelContentState()
+                if (receivedStreamingPartial && streamedTranslation.isNotBlank()) {
+                    activeSuggestions = listOf(streamedTranslation)
+                    panelVisible = true
+                    panelDisplayedText = streamedTranslation
+                    panelContentMode = PanelContentMode.TranslateReady
+                } else {
+                    resetPanelContentState()
+                }
                 dispatchPresentationChanged()
             },
         )
@@ -925,8 +967,12 @@ class AiSuggestionStripComponent(
                     return@request
                 }
                 if (receivedStreamingPartial) {
-                    activeSuggestions = listOf(answer)
-                    panelDisplayedText = answer
+                    val mergedAnswer = mergeSingleTextPanelResult(
+                        streamedText = streamedAnswer,
+                        finalText = answer,
+                    )
+                    activeSuggestions = listOf(mergedAnswer)
+                    panelDisplayedText = mergedAnswer
                     panelContentMode = PanelContentMode.QuestionAnswerReady
                     dispatchPresentationChanged()
                 } else {

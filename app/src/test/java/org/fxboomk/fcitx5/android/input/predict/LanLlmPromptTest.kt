@@ -44,11 +44,13 @@ class LanLlmPromptTest {
             taskMode = LanLlmTaskMode.QuestionAnswer,
         )
 
+        assertTrue(prompt.contains("输入法应答助手"))
         assertTrue(prompt.contains("问题或请求"))
         assertTrue(prompt.contains("可直接上屏的回答"))
         assertTrue(prompt.contains("不要把它当成待续写前缀"))
         assertTrue(prompt.contains("只输出最终回答文本本身"))
         assertTrue(prompt.contains("20 个中文字符左右"))
+        assertTrue(!prompt.contains("中文续写助手"))
     }
 
     @Test
@@ -60,8 +62,10 @@ class LanLlmPromptTest {
             taskMode = LanLlmTaskMode.QuestionAnswer,
         )
 
+        assertTrue(prompt.contains("输入法应答助手"))
         assertTrue(prompt.contains("60 个中文字符左右"))
         assertTrue(prompt.contains("可直接发送的长回答"))
+        assertTrue(!prompt.contains("中文续写助手"))
     }
 
     @Test
@@ -72,9 +76,12 @@ class LanLlmPromptTest {
             taskMode = LanLlmTaskMode.Translate,
         )
 
+        assertTrue(prompt.contains("输入法翻译助手"))
         assertTrue(prompt.contains("整段中文文本翻译成自然、准确"))
         assertTrue(prompt.contains("只输出最终译文文本本身"))
         assertTrue(prompt.contains("不要续写，不要总结"))
+        assertTrue(prompt.contains("英文译文中的单词之间必须保留正常空格"))
+        assertTrue(!prompt.contains("中文续写助手"))
     }
 
     @Test
@@ -162,11 +169,14 @@ class LanLlmPromptTest {
             taskMode = LanLlmTaskMode.QuestionAnswer,
         )
 
+        assertTrue(system.contains("输入法应答助手"))
         assertTrue(system.contains("问答回复候选"))
         assertTrue(system.contains("不要把它当作待续写前缀"))
+        assertTrue(user.contains("输入法应答助手"))
         assertTrue(user.contains("问题或请求"))
         assertTrue(user.contains("不要把它当成待续写前缀"))
         assertTrue(user.contains("20 个中文字符左右"))
+        assertTrue(!user.contains("中文续写助手"))
         assertEquals("<think>\n\n</think>\n\n", assistant)
     }
 
@@ -186,8 +196,11 @@ class LanLlmPromptTest {
             taskMode = LanLlmTaskMode.QuestionAnswer,
         )
 
+        assertTrue(system.contains("输入法应答助手"))
+        assertTrue(user.contains("输入法应答助手"))
         assertTrue(system.contains("60 个中文字符左右"))
         assertTrue(user.contains("60 个中文字符左右"))
+        assertTrue(!user.contains("中文续写助手"))
     }
 
     @Test
@@ -211,7 +224,25 @@ class LanLlmPromptTest {
         assertTrue(system.contains("full-text translation"))
         assertTrue(system.contains("Translate the full input text into natural Chinese"))
         assertTrue(user.contains("Translate the full text below into natural Chinese"))
+        assertTrue(user.contains("IME translation assistant"))
+        assertTrue(!user.contains("English continuation assistant"))
         assertEquals("<think>\n\n</think>\n\n", assistant)
+    }
+
+    @Test
+    fun userPromptUsesTranslatorPersonaAndEnglishSpacingInstructionForChineseTranslateMode() {
+        val prompt = LanLlmPrompt.userPrompt(
+            beforeCursor = "今天晚上一起吃饭吗？",
+            recentCommittedText = "",
+            historyText = "",
+            useRecentCommitBias = false,
+            taskMode = LanLlmTaskMode.Translate,
+        )
+
+        assertTrue(prompt.contains("<persona>"))
+        assertTrue(prompt.contains("输入法翻译助手"))
+        assertTrue(prompt.contains("英文单词之间必须保留正常空格"))
+        assertTrue(!prompt.contains("中文续写助手"))
     }
 
     @Test
@@ -276,8 +307,10 @@ class LanLlmPromptTest {
             taskMode = LanLlmTaskMode.QuestionAnswer,
         )
 
+        assertTrue(prompt.contains("输入法应答助手"))
         assertTrue(prompt.contains("问题或请求"))
         assertTrue(prompt.contains("给出一条简短、自然、可直接发送的回答"))
+        assertTrue(!prompt.contains("中文续写助手"))
         assertTrue(prompt.endsWith("帮我回一句礼貌一点的话\n</instruction>"))
     }
 }

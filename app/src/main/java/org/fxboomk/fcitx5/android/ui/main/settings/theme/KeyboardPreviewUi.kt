@@ -501,7 +501,7 @@ class KeyboardPreviewUi(override val ctx: Context, val theme: Theme) : Ui {
     private fun applyPreviewChrome(theme: Theme) {
         val barBackgroundColor = resolveBarBackgroundColor(theme)
         fakeKawaiiBar.background = if (navbarBorder.getValue()) {
-            val cornerRadius = ctx.dp(kotlin.math.max(6f, ThemeManager.prefs.keyRadius.getValue().toFloat())).toFloat()
+            val cornerRadius = ctx.dp(kotlin.math.max(6f, ThemeManager.prefs.keyRadius.getValue().toFloat()))
             borderDrawable(
                 width = ctx.dp(1),
                 stroke = resolveBarBorderColor(theme, barBackgroundColor),

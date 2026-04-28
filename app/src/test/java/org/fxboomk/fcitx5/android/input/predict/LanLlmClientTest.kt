@@ -6,8 +6,10 @@ package org.fxboomk.fcitx5.android.input.predict
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.json.JSONObject
 
 class LanLlmClientTest {
     @Test
@@ -176,6 +178,66 @@ class LanLlmClientTest {
                 augmentation = RequestAugmentation.ThinkingDisabled,
             )
         )
+    }
+
+    @Test
+    fun extractDeltaTextIgnoresJsonNullContent() {
+        val client = LanLlmClient()
+        val method = LanLlmClient::class.java.getDeclaredMethod("extractDeltaText", JSONObject::class.java)
+        method.isAccessible = true
+
+        val result = method.invoke(client, JSONObject("""{"content":null}"""))
+
+        assertNull(result)
+    }
+
+    @Test
+    fun extractMessageContentFallsBackToNonNullArrayText() {
+        val client = LanLlmClient()
+        val method = LanLlmClient::class.java.getDeclaredMethod("extractMessageContent", String::class.java)
+        method.isAccessible = true
+
+        val result = method.invoke(
+            client,
+            """
+                {"choices":[{"message":{"content":[
+                    {"type":"text","text":null},
+                    {"type":"text","text":"完整回答"}
+                ]}}]}
+            """.trimIndent(),
+        ) as String
+
+        assertEquals("完整回答", result)
+    }
+
+    @Test
+    fun extractMessageContentReturnsPlainStreamTextWhenBodyIsNotJson() {
+        val client = LanLlmClient()
+        val method = LanLlmClient::class.java.getDeclaredMethod("extractMessageContent", String::class.java)
+        method.isAccessible = true
+
+        val result = method.invoke(client, "streamed plain text") as String
+
+        assertEquals("streamed plain text", result)
+    }
+
+    @Test
+    fun extractCompletionContentFallsBackToNestedMessageTextWhenTopLevelContentIsNull() {
+        val client = LanLlmClient()
+        val method = LanLlmClient::class.java.getDeclaredMethod("extractCompletionContent", String::class.java)
+        method.isAccessible = true
+
+        val result = method.invoke(
+            client,
+            """
+                {"content":null,"choices":[{"message":{"content":[
+                    {"type":"text","text":null},
+                    {"type":"text","text":"完整长文"}
+                ]}}]}
+            """.trimIndent(),
+        ) as String
+
+        assertEquals("完整长文", result)
     }
 
     private fun config(

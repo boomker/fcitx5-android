@@ -63,7 +63,7 @@ class CandidateItemUi(
         @ColorInt bgColor: Int,
         @ColorInt strokeColor: Int,
         @ColorInt pressColor: Int,
-        cornerRadius: Float = ctx.dp(6f).toFloat()
+        cornerRadius: Float = ctx.dp(6f)
     ) {
         root.background = firstCandidateDrawable(
             bgColor = bgColor,

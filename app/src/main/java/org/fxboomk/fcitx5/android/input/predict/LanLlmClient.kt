@@ -120,7 +120,11 @@ internal class LanLlmClient(
             throw HttpRequestFailure(responseCode, responseBody)
         }
 
-        val rawContent = extractContent(responseBody)
+        val rawContent = if (streaming) {
+            responseBody
+        } else {
+            extractContent(responseBody)
+        }
         val suggestions = parseSuggestions(rawContent, beforeCursor)
         Log.d(TAG, "parsed suggestions=$suggestions rawContent=${rawContent.take(240)}")
         return PredictionResponse(
@@ -556,13 +560,13 @@ internal class LanLlmClient(
             "content_block_start" -> {
                 val block = json.optJSONObject("content_block") ?: return
                 if (block.optString("type") == "text") {
-                    onTextDelta(block.optString("text"))
+                    block.optNonBlankText("text")?.let(onTextDelta)
                 }
             }
             "content_block_delta" -> {
                 val delta = json.optJSONObject("delta") ?: return
                 if (delta.optString("type") == "text_delta") {
-                    onTextDelta(delta.optString("text"))
+                    delta.optNonBlankText("text")?.let(onTextDelta)
                 }
             }
         }
@@ -579,7 +583,7 @@ internal class LanLlmClient(
             if (delta != null) {
                 extractDeltaText(delta)?.let(onTextDelta)
             } else {
-                first?.optString("text")?.takeIf(String::isNotBlank)?.let(onTextDelta)
+                first?.optNonBlankText("text")?.let(onTextDelta)
             }
             return
         }
@@ -587,21 +591,30 @@ internal class LanLlmClient(
     }
 
     private fun extractDeltaText(json: JSONObject): String? {
-        json.optString("content")
-            .takeIf(String::isNotBlank)
-            ?.let { return it }
+        json.optNonBlankText("content")?.let { return it }
         val content = json.opt("content")
         if (content is JSONArray) {
             val text = buildString {
                 for (index in 0 until content.length()) {
                     val item = content.optJSONObject(index) ?: continue
-                    val part = item.optString("text")
-                    if (part.isNotBlank()) append(part)
+                    val part = item.optNonBlankText("text")
+                    if (part != null) append(part)
                 }
             }
             if (text.isNotBlank()) return text
         }
         return null
+    }
+
+    private fun JSONObject.optNonBlankText(key: String): String? {
+        val value = opt(key)
+        return when (value) {
+            null, JSONObject.NULL -> null
+            is String -> value
+            else -> value.toString()
+        }
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() && !it.equals("null", ignoreCase = true) }
     }
 
     private fun shouldFallbackToNextPlan(failure: HttpRequestFailure): Boolean {
@@ -619,27 +632,33 @@ internal class LanLlmClient(
     }
 
     private fun extractMessageContent(responseBody: String): String {
-        val root = JSONObject(responseBody)
-        val choices = root.optJSONArray("choices") ?: return responseBody
-        if (choices.length() == 0) return responseBody
-        val first = choices.optJSONObject(0) ?: return responseBody
+        val root = runCatching { JSONObject(responseBody) }.getOrNull() ?: return responseBody
+        return extractMessageContent(root) ?: responseBody
+    }
+
+    private fun extractMessageContent(root: JSONObject): String? {
+        val choices = root.optJSONArray("choices") ?: return null
+        if (choices.length() == 0) return null
+        val first = choices.optJSONObject(0) ?: return null
         first.optJSONObject("message")?.let { message ->
             val content = message.opt("content")
             when (content) {
                 is String -> return content
+                    .trim()
+                    .takeIf { it.isNotEmpty() && !it.equals("null", ignoreCase = true) }
                 is JSONArray -> {
                     val text = buildString {
                         for (index in 0 until content.length()) {
                             val item = content.optJSONObject(index) ?: continue
-                            val part = item.optString("text")
-                            if (part.isNotBlank()) append(part)
+                            val part = item.optNonBlankText("text")
+                            if (part != null) append(part)
                         }
                     }
                     if (text.isNotBlank()) return text
                 }
             }
         }
-        return first.optString("text").ifBlank { responseBody }
+        return first.optNonBlankText("text")
     }
 
     private fun extractAnthropicContent(responseBody: String): String {
@@ -649,8 +668,8 @@ internal class LanLlmClient(
             for (index in 0 until content.length()) {
                 val part = content.optJSONObject(index) ?: continue
                 if (part.optString("type") == "text") {
-                    val value = part.optString("text")
-                    if (value.isNotBlank()) append(value)
+                    val value = part.optNonBlankText("text")
+                    if (value != null) append(value)
                 }
             }
         }
@@ -659,8 +678,8 @@ internal class LanLlmClient(
 
     private fun extractCompletionContent(responseBody: String): String {
         val root = runCatching { JSONObject(responseBody) }.getOrNull() ?: return responseBody
-        return root.optString("content").ifBlank {
-            extractMessageContent(responseBody).ifBlank { responseBody }
-        }
+        return root.optNonBlankText("content")
+            ?: extractMessageContent(root)
+            ?: responseBody
     }
 }

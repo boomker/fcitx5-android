@@ -440,6 +440,26 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
                 )
                 true
             }
+            setOnLongClickListener("ai_candidates") {
+                ButtonAction.fromId("ai_candidates")?.onLongPress(
+                    context = context,
+                    service = service,
+                    fcitx = fcitx,
+                    windowManager = windowManager,
+                    view = ui.buttonsUi.root
+                )
+                true
+            }
+            setOnLongClickListener("clipboard") {
+                ButtonAction.fromId("clipboard")?.onLongPress(
+                    context = context,
+                    service = service,
+                    fcitx = fcitx,
+                    windowManager = windowManager,
+                    view = ui.buttonsUi.root
+                )
+                true
+            }
             updateButtonsState(service)
         }
         refreshHideKeyboardButtonState(ui)
@@ -577,7 +597,7 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
             background = run {
                 val backgroundColor = resolveBarBackgroundColor()
                 if (ThemeManager.prefs.navbarBorder.getValue()) {
-                    val cornerRadius = dp(max(6f, ThemeManager.prefs.keyRadius.getValue().toFloat())).toFloat()
+                    val cornerRadius = dp(max(6f, ThemeManager.prefs.keyRadius.getValue().toFloat()))
                     borderDrawable(
                         width = dp(1),
                         stroke = resolveBarBorderColor(backgroundColor),

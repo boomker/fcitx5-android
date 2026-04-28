@@ -7,12 +7,15 @@ package org.fxboomk.fcitx5.android.utils
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import org.fxboomk.fcitx5.android.BuildConfig
 import org.fxboomk.fcitx5.android.R
+import org.fxboomk.fcitx5.android.core.data.DataManager
 import org.fxboomk.fcitx5.android.ui.main.ClipboardEditActivity
 import org.fxboomk.fcitx5.android.ui.main.MainActivity
 import org.fxboomk.fcitx5.android.ui.main.settings.SettingsRoute
@@ -59,6 +62,31 @@ object AppUtil {
 
     fun launchMainToRoute(context: Context, route: SettingsRoute) =
         launchMainToDest(context, route)
+
+    fun launchPluginSettings(context: Context, pluginName: String): Boolean {
+        val descriptor = DataManager.getManageablePlugins().firstOrNull { it.name == pluginName }
+            ?: DataManager.getLoadedPlugins().firstOrNull { it.name == pluginName }
+            ?: return false
+        val activities = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.packageManager.queryIntentActivities(
+                Intent(DataManager.PLUGIN_INTENT),
+                PackageManager.ResolveInfoFlags.of(PackageManager.MATCH_ALL.toLong())
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            context.packageManager.queryIntentActivities(
+                Intent(DataManager.PLUGIN_INTENT),
+                PackageManager.MATCH_ALL
+            )
+        }
+        val target = activities.firstOrNull { it.activityInfo.packageName == descriptor.packageName }
+            ?: return false
+        context.startActivity(Intent().apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            component = ComponentName(target.activityInfo.packageName, target.activityInfo.name)
+        })
+        return true
+    }
 
     fun launchMainToKeyboard(context: Context) =
         launchMainToDest(context, SettingsRoute.VirtualKeyboard)

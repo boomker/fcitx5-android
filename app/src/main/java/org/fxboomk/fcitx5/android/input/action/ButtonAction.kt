@@ -273,6 +273,18 @@ data object ClipboardAction : ButtonAction() {
     ) {
         windowManager.attachWindow(ClipboardWindow())
     }
+
+    override fun onLongPress(
+        context: Context,
+        service: FcitxInputMethodService,
+        fcitx: FcitxConnection,
+        windowManager: InputWindowManager,
+        view: View
+    ) {
+        if (!AppUtil.launchPluginSettings(context, "clipboard-sync")) {
+            AppUtil.launchMainToRoute(context, SettingsRoute.Clipboard)
+        }
+    }
 }
 
 data object AiCandidatesAction : ButtonAction() {
@@ -294,6 +306,16 @@ data object AiCandidatesAction : ButtonAction() {
     ) {
         service.inputView?.openAiSuggestionPanel()
         onActionComplete?.invoke()
+    }
+
+    override fun onLongPress(
+        context: Context,
+        service: FcitxInputMethodService,
+        fcitx: FcitxConnection,
+        windowManager: InputWindowManager,
+        view: View
+    ) {
+        AppUtil.launchMainToRoute(context, SettingsRoute.LanLlm)
     }
 }
 

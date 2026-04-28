@@ -70,13 +70,10 @@ class ToolButton(context: Context) : CustomGestureView(context) {
 
     fun setIconText(iconText: String, iconFontKey: String = "button_icon_font") {
         val typeface = FontProviders.resolveTypeface(iconFontKey, null)
-        if (typeface != null) {
-            image.visibility = GONE
-            text.visibility = VISIBLE
-            text.text = iconText
-            text.typeface = typeface
-        }
-        // If no font configured, keep current state (don't change visibility)
+        image.visibility = GONE
+        text.visibility = VISIBLE
+        text.text = iconText
+        text.typeface = typeface
     }
 
     fun setPressHighlightColor(@ColorInt color: Int) {
