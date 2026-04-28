@@ -21,9 +21,11 @@ import org.fxboomk.fcitx5.android.utils.addPreference
 import org.fxboomk.fcitx5.android.utils.formatDateTime
 import org.fxboomk.fcitx5.android.utils.navigateWithAnim
 import org.fxboomk.fcitx5.android.utils.toast
+import java.io.File
 
 class AboutFragment : PaddingPreferenceFragment() {
     private lateinit var updatePreference: ActionButtonPreference
+    private var downloadedUpdateApk: File? = null
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         preferenceScreen = preferenceManager.createPreferenceScreen(requireContext()).apply {
@@ -47,9 +49,8 @@ class AboutFragment : PaddingPreferenceFragment() {
                 updatePreference = ActionButtonPreference(context).apply {
                     title = getString(R.string.current_version)
                     summary = Const.versionName
-                    actionText = getString(R.string.check_for_updates)
-                    onActionClick = { checkForUpdates() }
                 }
+                applyCheckForUpdatesState()
                 addPreference(updatePreference)
                 addPreference(R.string.build_git_hash, BuildConfig.BUILD_GIT_HASH) {
                     val commit = BuildConfig.BUILD_GIT_HASH.substringBefore('-')
@@ -63,6 +64,7 @@ class AboutFragment : PaddingPreferenceFragment() {
 
     private fun checkForUpdates() {
         val ctx = requireContext()
+        downloadedUpdateApk = null
         updatePreference.actionEnabled = false
         updatePreference.actionText = getString(R.string.checking_for_updates)
         lifecycleScope.withLoadingDialog(ctx, R.string.checking_for_updates) {
@@ -93,10 +95,11 @@ class AboutFragment : PaddingPreferenceFragment() {
                             AppUpdateManager.downloadUpdate(ctx, result.asset)
                         }
                         withContext(Dispatchers.Main) {
+                            downloadedUpdateApk = apkFile
                             ctx.toast(
                                 getString(R.string.update_download_ready, result.versionName)
                             )
-                            AppUpdateManager.installDownloadedApk(ctx, apkFile)
+                            applyInstallUpdateState()
                         }
                     }
                 }
@@ -107,9 +110,38 @@ class AboutFragment : PaddingPreferenceFragment() {
             } finally {
                 withContext(Dispatchers.Main) {
                     updatePreference.actionEnabled = true
-                    updatePreference.actionText = getString(R.string.check_for_updates)
+                    if (downloadedUpdateApk == null) {
+                        applyCheckForUpdatesState()
+                    }
                 }
             }
         }
+    }
+
+    private fun installDownloadedUpdate() {
+        val ctx = requireContext()
+        val apk = downloadedUpdateApk
+        if (apk == null || !apk.exists()) {
+            downloadedUpdateApk = null
+            ctx.toast(R.string.update_package_missing)
+            applyCheckForUpdatesState()
+            return
+        }
+        if (!AppUpdateManager.ensureInstallPermission(ctx)) {
+            ctx.toast(R.string.enable_unknown_apps_install)
+            applyInstallUpdateState()
+            return
+        }
+        AppUpdateManager.installDownloadedApk(ctx, apk)
+    }
+
+    private fun applyCheckForUpdatesState() {
+        updatePreference.actionText = getString(R.string.check_for_updates)
+        updatePreference.onActionClick = { checkForUpdates() }
+    }
+
+    private fun applyInstallUpdateState() {
+        updatePreference.actionText = getString(R.string.install_update)
+        updatePreference.onActionClick = { installDownloadedUpdate() }
     }
 }

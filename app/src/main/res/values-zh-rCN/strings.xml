@@ -61,10 +61,12 @@
     <string name="current_version">当前版本</string>
     <string name="check_for_updates">检查更新</string>
     <string name="checking_for_updates">检查更新中</string>
+    <string name="install_update">安装更新</string>
     <string name="already_latest_version">当前已是最新正式版本</string>
     <string name="enable_unknown_apps_install">请先允许本应用安装未知来源应用，然后再重试</string>
     <string name="no_compatible_update_package">未找到适用于当前设备或当前应用变体的正式安装包</string>
     <string name="update_check_failed">检查更新或下载最新正式包失败</string>
+    <string name="update_package_missing">已下载的更新包不可用，请重新检查更新</string>
     <string name="update_download_ready">已下载 %1$s，准备安装</string>
     <string name="real_time_logs">实时日志</string>
     <string name="developer">开发者</string>
