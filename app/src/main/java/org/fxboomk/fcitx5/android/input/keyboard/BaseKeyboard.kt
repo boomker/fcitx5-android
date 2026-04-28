@@ -113,6 +113,7 @@ abstract class BaseKeyboard(
     private val disabledSwipeThreshold = dp(800f)
 
     private val bounds = Rect()
+    private val childLocationInWindow = intArrayOf(0, 0)
     private lateinit var keyRows: List<ConstraintLayout>
     private var horizontalGapScale = 1f
     private var composing = false
@@ -1280,9 +1281,9 @@ abstract class BaseKeyboard(
     }
 
     private fun findTargetChild(x: Float, y: Float): View? {
-        val y0 = y.roundToInt()
+        updateBounds()
         val x1 = x.roundToInt() + bounds.left
-        val y1 = y0 + bounds.top
+        val y1 = y.roundToInt() + bounds.top
         return keyRows.asSequence().flatMap { it.children }.find {
             if (it !is KeyView) false else it.bounds.contains(x1, y1)
         }
@@ -1298,8 +1299,9 @@ abstract class BaseKeyboard(
             Timber.w("child view is not KeyView when transforming MotionEvent $event")
             return event
         }
-        val childX = event.getX(pointerIndex) + bounds.left - child.bounds.left
-        val childY = event.getY(pointerIndex) + bounds.top - child.bounds.top
+        val (childWindowX, childWindowY) = childLocationInWindow.also { child.getLocationInWindow(it) }
+        val childX = event.getX(pointerIndex) + bounds.left - childWindowX
+        val childY = event.getY(pointerIndex) + bounds.top - childWindowY
         return MotionEvent.obtain(
             event.downTime, event.eventTime, action,
             childX, childY, event.getPressure(pointerIndex), event.getSize(pointerIndex),
