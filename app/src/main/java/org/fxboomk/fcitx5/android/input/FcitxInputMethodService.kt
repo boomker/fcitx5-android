@@ -653,7 +653,12 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             return
         }
         val editorInfo = currentInputEditorInfo
-        if (editorInfo.inputType and InputType.TYPE_MASK_CLASS == InputType.TYPE_NULL) {
+        val type = editorInfo.inputType and InputType.TYPE_MASK_CLASS
+        val variation = editorInfo.inputType and InputType.TYPE_MASK_VARIATION
+        if (type == InputType.TYPE_NULL ||
+            // confirm URL suggestion in browser location bar
+            type == InputType.TYPE_CLASS_TEXT && variation == InputType.TYPE_TEXT_VARIATION_URI
+        ) {
             sendDownUpKeyEvents(keyCode)
             return
         }

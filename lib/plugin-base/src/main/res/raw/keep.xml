@@ -5,10 +5,10 @@
 -->
 <!--
     AGP 9.0+ enables "optimized resource shrinking" by default, which uses R8's static analysis
-    and does NOT track dynamic Resources.getIdentifier() calls. Since plugin.xml is accessed
-    only via getIdentifier("plugin", "xml", packageName) in AboutActivity and DataManager,
-    it has no static R.xml.plugin reference and would be removed by the shrinker.
+    and does NOT track dynamic Resources.getIdentifier() calls. Since plugin.xml and the plugin
+    aboutlibraries export are accessed dynamically in AboutActivity / DataManager, they have no
+    static R references and would be removed by the shrinker.
     This keep rule propagates to all plugin APKs that depend on lib:plugin-base.
 -->
 <resources xmlns:tools="http://schemas.android.com/tools"
-    tools:keep="@xml/plugin,@string/description" />
+    tools:keep="@xml/plugin,@string/description,@raw/aboutlibraries" />
