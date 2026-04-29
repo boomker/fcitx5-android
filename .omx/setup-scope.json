@@ -1,3 +1,4 @@
 {
-  "scope": "user"
+  "scope": "user",
+  "installMode": "legacy"
 }
