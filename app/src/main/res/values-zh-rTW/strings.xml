@@ -56,6 +56,7 @@
     <string name="about">關於</string>
     <string name="faq">常見問題</string>
     <string name="current_version">目前版本</string>
+    <string name="update_canceled">已取消更新</string>
     <string name="real_time_logs">即時紀錄檔</string>
     <string name="developer">開發人員</string>
     <string name="clear_clb_db">清除剪貼簿資料庫</string>
@@ -311,6 +312,13 @@
     <string name="clear_clp_db_confirm">剪貼簿資料庫將會被完全清空，包括已置頂條目。是否繼續？</string>
     <string name="expand_keypress_area">將按鍵範圍擴展至邊緣</string>
     <string name="update_table">更新碼表</string>
+    <string name="upgrade_plugin">升級外掛程式</string>
+    <string name="upgrade_selected_plugins">升級所選</string>
+    <string name="upgrading_plugins">升級外掛程式中</string>
+    <string name="plugin_upgrade_canceled">已取消外掛程式升級</string>
+    <string name="plugin_upgrade_failed">升級外掛程式失敗</string>
+    <string name="plugin_updates_download_ready">已下載 %1$d 個外掛程式更新包，準備安裝</string>
+    <string name="no_plugin_updates_available">所選外掛程式沒有可用的新版本</string>
     <string name="table_dict_replace_message">碼表字典 \"%1$s\" 已存在。您可以匯入新字典並覆蓋原字典。</string>
     <string name="lang_switch_key_behavior">語言切換鍵行為</string>
     <string name="lang_switch_behavior_next_ime_app">切換至下一個輸入法</string>

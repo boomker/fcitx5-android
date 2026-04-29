@@ -162,7 +162,7 @@ class MainActivity : AppCompatActivity() {
             viewModel.toolbarDeleteButtonOnClickListener
                 .observe(this@MainActivity) { listener -> isVisible = listener != null }
         }
-        menu.item(R.string.manage_plugins, R.drawable.ic_baseline_delete_24, iconTint, true) {
+        menu.item(R.string.manage_plugins, R.drawable.ic_baseline_apps_24, iconTint, true) {
             showPluginManagePopup()
         }.apply {
             viewModel.pluginMenuVisible.observe(this@MainActivity) { visible -> isVisible = visible }
@@ -175,8 +175,15 @@ class MainActivity : AppCompatActivity() {
         val popup = androidx.appcompat.widget.PopupMenu(this, binding.toolbar, Gravity.END)
         popup.menu.add(0, 0, 0, R.string.unbind_plugin)
         popup.menu.add(0, 1, 1, R.string.uninstall_plugin)
+        popup.menu.add(0, 2, 2, R.string.upgrade_plugin)
         popup.setOnMenuItemClickListener { item ->
-            viewModel.triggerPluginMenu(item.itemId == 0)
+            val action = when (item.itemId) {
+                0 -> MainViewModel.PluginMenuAction.Unbind
+                1 -> MainViewModel.PluginMenuAction.Uninstall
+                2 -> MainViewModel.PluginMenuAction.Upgrade
+                else -> return@setOnMenuItemClickListener false
+            }
+            viewModel.triggerPluginMenu(action)
             true
         }
         popup.show()

@@ -10,10 +10,12 @@ import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import androidx.core.content.FileProvider
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.fxboomk.fcitx5.android.BuildConfig
+import org.fxboomk.fcitx5.android.core.data.PluginDescriptor
 import org.fxboomk.fcitx5.android.utils.Const
 import timber.log.Timber
 import java.io.File
@@ -28,6 +30,7 @@ object AppUpdateManager {
     private const val READ_TIMEOUT_MS = 30000
     private const val SHARE_FILE_PROVIDER_SUFFIX = ".share.fileprovider"
     private const val UPDATE_CACHE_DIR = "shared/updates"
+    private const val DOWNLOAD_PROXY_PREFIX = "https://ghproxy.net/"
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -42,6 +45,48 @@ object AppUpdateManager {
             val versionName: String,
             val asset: RemoteAsset
         ) : CheckResult
+    }
+
+    data class PluginUpdate(
+        val plugin: PluginDescriptor,
+        val versionName: String,
+        val asset: RemoteAsset
+    )
+
+    class CancellationSignal {
+        @Volatile
+        private var canceled = false
+
+        @Volatile
+        private var activeConnection: HttpURLConnection? = null
+
+        val isCanceled: Boolean
+            get() = canceled
+
+        fun cancel() {
+            canceled = true
+            activeConnection?.disconnect()
+        }
+
+        internal fun throwIfCanceled() {
+            if (canceled) {
+                throw CancellationException("Update operation canceled")
+            }
+        }
+
+        internal fun setActiveConnection(connection: HttpURLConnection) {
+            activeConnection = connection
+            if (canceled) {
+                connection.disconnect()
+                throw CancellationException("Update operation canceled")
+            }
+        }
+
+        internal fun clearActiveConnection(connection: HttpURLConnection) {
+            if (activeConnection === connection) {
+                activeConnection = null
+            }
+        }
     }
 
     @Serializable
@@ -71,28 +116,29 @@ object AppUpdateManager {
     }
 
     @Throws(IOException::class)
-    fun checkForUpdates(context: Context): CheckResult {
+    fun checkForUpdates(
+        context: Context,
+        cancellationSignal: CancellationSignal? = null
+    ): CheckResult {
         if (!ensureInstallPermission(context)) {
             return CheckResult.InstallPermissionRequired
         }
-        val release = fetchLatestRelease()
+        val release = fetchLatestRelease(cancellationSignal)
         val asset = selectMatchingAsset(context.packageName, Build.SUPPORTED_ABIS, release.assets)
             ?: return CheckResult.NoCompatiblePackage
-        val remoteVersion = parseVersionName(context.packageName, asset.name)
+        val remoteVersion = parseAppVersionName(context.packageName, asset.name)
             ?: return CheckResult.NoCompatiblePackage
         val remotePublishedAt = runCatching { Instant.parse(release.publishedAt).toEpochMilli() }
             .getOrDefault(0L)
-        val isSameBuild = remoteVersion == BuildConfig.VERSION_NAME
-        val remoteDate = parseBuildDate(remoteVersion)
-        val localDate = parseBuildDate(BuildConfig.VERSION_NAME)
-        val remoteIsNewer = when {
-            isSameBuild -> false
-            remoteDate == null || localDate == null -> true
-            remoteDate > localDate -> true
-            remoteDate == localDate && remotePublishedAt > BuildConfig.BUILD_TIME -> true
-            else -> false
-        }
-        return if (!isSameBuild && remoteIsNewer) {
+        cancellationSignal?.throwIfCanceled()
+        return if (
+            isRemoteVersionNewer(
+                localVersion = BuildConfig.VERSION_NAME,
+                remoteVersion = remoteVersion,
+                remotePublishedAt = remotePublishedAt,
+                localBuildTime = BuildConfig.BUILD_TIME
+            )
+        ) {
             CheckResult.UpdateAvailable(remoteVersion, asset)
         } else {
             CheckResult.UpToDate
@@ -100,16 +146,74 @@ object AppUpdateManager {
     }
 
     @Throws(IOException::class)
-    fun downloadUpdate(context: Context, asset: RemoteAsset): File {
+    fun findPluginUpdates(
+        plugins: List<PluginDescriptor>,
+        cancellationSignal: CancellationSignal? = null
+    ): List<PluginUpdate> {
+        if (plugins.isEmpty()) return emptyList()
+        val release = fetchLatestRelease(cancellationSignal)
+        val remotePublishedAt = runCatching { Instant.parse(release.publishedAt).toEpochMilli() }
+            .getOrDefault(0L)
+        cancellationSignal?.throwIfCanceled()
+        return plugins.mapNotNull { plugin ->
+            val asset = selectPluginAsset(plugin.packageName, release.assets) ?: return@mapNotNull null
+            val remoteVersion = parsePluginVersionName(plugin.packageName, asset.name)
+                ?: return@mapNotNull null
+            if (
+                !isRemoteVersionNewer(
+                    localVersion = plugin.versionName,
+                    remoteVersion = remoteVersion,
+                    remotePublishedAt = remotePublishedAt
+                )
+            ) {
+                return@mapNotNull null
+            }
+            PluginUpdate(plugin, remoteVersion, asset)
+        }
+    }
+
+    @Throws(IOException::class)
+    fun downloadUpdate(
+        context: Context,
+        asset: RemoteAsset,
+        cancellationSignal: CancellationSignal? = null
+    ): File {
+        return downloadReleaseAsset(context, asset, cancellationSignal)
+    }
+
+    @Throws(IOException::class)
+    fun downloadReleaseAsset(
+        context: Context,
+        asset: RemoteAsset,
+        cancellationSignal: CancellationSignal? = null
+    ): File {
         val cacheDir = File(context.cacheDir, UPDATE_CACHE_DIR).apply { mkdirs() }
         val target = File(cacheDir, asset.name)
         val temp = File(cacheDir, "${asset.name}.download")
-        val connection = openConnection(asset.downloadUrl)
+        val connection = openConnection(asset.downloadUrl, cancellationSignal)
         try {
             connection.inputStream.use { input ->
-                temp.outputStream().use { output -> input.copyTo(output) }
+                temp.outputStream().use { output ->
+                    val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                    while (true) {
+                        cancellationSignal?.throwIfCanceled()
+                        val read = input.read(buffer)
+                        if (read < 0) break
+                        output.write(buffer, 0, read)
+                    }
+                }
             }
+        } catch (exception: CancellationException) {
+            temp.delete()
+            throw exception
+        } catch (exception: Exception) {
+            temp.delete()
+            if (cancellationSignal?.isCanceled == true) {
+                throw CancellationException("Update operation canceled")
+            }
+            throw exception
         } finally {
+            cancellationSignal?.clearActiveConnection(connection)
             connection.disconnect()
         }
         if (asset.size > 0 && temp.length() != asset.size) {
@@ -140,12 +244,19 @@ object AppUpdateManager {
     }
 
     @Throws(IOException::class)
-    private fun fetchLatestRelease(): RemoteRelease {
-        val connection = openConnection(Const.githubLatestReleaseApi)
+    private fun fetchLatestRelease(cancellationSignal: CancellationSignal? = null): RemoteRelease {
+        val connection = openConnection(Const.githubLatestReleaseApi, cancellationSignal)
         try {
+            cancellationSignal?.throwIfCanceled()
             val body = connection.inputStream.bufferedReader().use { it.readText() }
             return json.decodeFromString(body)
+        } catch (exception: Exception) {
+            if (cancellationSignal?.isCanceled == true) {
+                throw CancellationException("Update operation canceled")
+            }
+            throw exception
         } finally {
+            cancellationSignal?.clearActiveConnection(connection)
             connection.disconnect()
         }
     }
@@ -165,7 +276,17 @@ object AppUpdateManager {
             .firstOrNull()
     }
 
-    private fun parseVersionName(packageName: String, assetName: String): String? {
+    private fun selectPluginAsset(
+        packageName: String,
+        assets: List<RemoteAsset>
+    ): RemoteAsset? {
+        return assets.firstOrNull { asset ->
+            asset.name.startsWith("$packageName-") &&
+                asset.name.endsWith("-release.apk")
+        }
+    }
+
+    private fun parseAppVersionName(packageName: String, assetName: String): String? {
         if (!assetName.startsWith("$packageName-")) return null
         val versionAndAbi = assetName
             .removePrefix("$packageName-")
@@ -174,24 +295,76 @@ object AppUpdateManager {
         return versionAndAbi.removeSuffix("-$abi")
     }
 
+    private fun parsePluginVersionName(packageName: String, assetName: String): String? {
+        if (!assetName.startsWith("$packageName-")) return null
+        return assetName
+            .removePrefix("$packageName-")
+            .removeSuffix("-release.apk")
+            .takeIf { it.isNotBlank() }
+    }
+
     private fun parseBuildDate(versionName: String): Int? {
         val token = versionName.substringBefore('-')
         return token.takeIf { it.length == 8 && it.all(Char::isDigit) }?.toIntOrNull()
     }
 
-    private fun openConnection(url: String): HttpURLConnection {
-        return (URL(url).openConnection() as HttpURLConnection).apply {
-            instanceFollowRedirects = true
-            connectTimeout = CONNECT_TIMEOUT_MS
-            readTimeout = READ_TIMEOUT_MS
-            requestMethod = "GET"
-            setRequestProperty("Accept", "application/vnd.github+json")
-            setRequestProperty("User-Agent", "${BuildConfig.APPLICATION_ID}/${BuildConfig.VERSION_NAME}")
-            val code = responseCode
-            if (code !in 200..299) {
-                val message = errorStream?.bufferedReader()?.use { it.readText() }.orEmpty()
+    private fun isRemoteVersionNewer(
+        localVersion: String,
+        remoteVersion: String,
+        remotePublishedAt: Long = 0L,
+        localBuildTime: Long? = null
+    ): Boolean {
+        if (localVersion == remoteVersion) return false
+        val remoteDate = parseBuildDate(remoteVersion)
+        val localDate = parseBuildDate(localVersion)
+        return when {
+            remoteDate == null || localDate == null -> true
+            remoteDate > localDate -> true
+            remoteDate == localDate && localBuildTime != null -> remotePublishedAt > localBuildTime
+            remoteDate == localDate -> true
+            else -> false
+        }
+    }
+
+    private fun proxiedUrl(url: String): String {
+        if (url.startsWith(DOWNLOAD_PROXY_PREFIX)) return url
+        return if (url.startsWith("https://github.com/")) {
+            DOWNLOAD_PROXY_PREFIX + url
+        } else {
+            url
+        }
+    }
+
+    private fun openConnection(
+        url: String,
+        cancellationSignal: CancellationSignal? = null
+    ): HttpURLConnection {
+        cancellationSignal?.throwIfCanceled()
+        val resolvedUrl = if (url.contains("/releases/download/")) proxiedUrl(url) else url
+        return (URL(resolvedUrl).openConnection() as HttpURLConnection).apply {
+            cancellationSignal?.setActiveConnection(this)
+            try {
+                instanceFollowRedirects = true
+                connectTimeout = CONNECT_TIMEOUT_MS
+                readTimeout = READ_TIMEOUT_MS
+                requestMethod = "GET"
+                setRequestProperty("Accept", "application/vnd.github+json")
+                setRequestProperty("User-Agent", "${BuildConfig.APPLICATION_ID}/${BuildConfig.VERSION_NAME}")
+                val code = responseCode
+                if (code !in 200..299) {
+                    val message = errorStream?.bufferedReader()?.use { it.readText() }.orEmpty()
+                    cancellationSignal?.clearActiveConnection(this)
+                    disconnect()
+                    throw IOException("GitHub request failed: $code $message")
+                }
+                cancellationSignal?.throwIfCanceled()
+            } catch (exception: Exception) {
+                cancellationSignal?.clearActiveConnection(this)
                 disconnect()
-                throw IOException("GitHub request failed: $code $message")
+                if (cancellationSignal?.isCanceled == true) {
+                    throw CancellationException("Update operation canceled")
+                }
+                throw exception
             }
         }
     }

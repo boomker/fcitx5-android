@@ -13,10 +13,10 @@ import androidx.annotation.StringRes
 import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.LifecycleCoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.utils.getGlobalSettings
 import splitties.dimensions.dp
@@ -32,7 +32,12 @@ import splitties.views.dsl.core.verticalMargin
 import splitties.views.textAppearance
 
 @Suppress("FunctionName")
-fun Context.ProgressBarDialogIndeterminate(@StringRes title: Int): AlertDialog.Builder {
+fun Context.ProgressBarDialogIndeterminate(
+    @StringRes title: Int,
+    cancelable: Boolean = false,
+    @StringRes negativeButton: Int? = null,
+    onNegativeButtonClick: (() -> Unit)? = null
+): AlertDialog.Builder {
     val androidStyles = AndroidStyles(this)
     return AlertDialog.Builder(this)
         .setTitle(title)
@@ -57,22 +62,48 @@ fun Context.ProgressBarDialogIndeterminate(@StringRes title: Int): AlertDialog.B
                 horizontalMargin = dp(26)
             })
         })
-        .setCancelable(false)
+        .setCancelable(cancelable)
+        .apply {
+            if (negativeButton != null) {
+                setNegativeButton(negativeButton) { _, _ ->
+                    onNegativeButtonClick?.invoke()
+                }
+            }
+        }
 }
 
 fun LifecycleCoroutineScope.withLoadingDialog(
     context: Context,
     @StringRes title: Int = R.string.loading,
     threshold: Long = 200L,
+    cancellable: Boolean = false,
+    @StringRes negativeButton: Int? = null,
+    onCancel: (() -> Unit)? = null,
     action: suspend () -> Unit
-) {
+): Job {
     var loadingDialog: AlertDialog? = null
-    // Show dialog on Main thread
+    var cancelHandled = false
+    var actionJob: Job? = null
+    fun handleCancel() {
+        if (cancelHandled) return
+        cancelHandled = true
+        onCancel?.invoke()
+        actionJob?.cancel()
+    }
     val loadingJob = launch(Dispatchers.Main) {
         delay(threshold)
-        loadingDialog = context.ProgressBarDialogIndeterminate(title).show()
+        if (actionJob?.isActive != true) return@launch
+        loadingDialog = context.ProgressBarDialogIndeterminate(
+            title = title,
+            cancelable = cancellable,
+            negativeButton = negativeButton,
+            onNegativeButtonClick = { handleCancel() }
+        ).show().apply {
+            setCanceledOnTouchOutside(false)
+            setOnCancelListener { handleCancel() }
+        }
     }
-    launch {
+    actionJob = launch {
         try {
             action()
         } finally {
@@ -80,4 +111,5 @@ fun LifecycleCoroutineScope.withLoadingDialog(
             loadingDialog?.dismiss()
         }
     }
+    return checkNotNull(actionJob)
 }

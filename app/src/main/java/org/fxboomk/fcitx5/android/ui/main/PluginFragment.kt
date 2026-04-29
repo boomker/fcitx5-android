@@ -20,8 +20,11 @@ import android.view.View
 import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceScreen
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.core.data.DataManager
 import org.fxboomk.fcitx5.android.core.data.FileSource
@@ -30,10 +33,12 @@ import org.fxboomk.fcitx5.android.core.data.PluginLoadFailed
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.daemon.FcitxDaemon
 import org.fxboomk.fcitx5.android.ui.common.PaddingPreferenceFragment
+import org.fxboomk.fcitx5.android.ui.common.withLoadingDialog
 import org.fxboomk.fcitx5.android.utils.LongClickPreference
 import org.fxboomk.fcitx5.android.utils.addCategory
 import org.fxboomk.fcitx5.android.utils.addPreference
 import org.fxboomk.fcitx5.android.utils.toast
+import java.io.File
 import java.util.ArrayDeque
 
 class PluginFragment : PaddingPreferenceFragment() {
@@ -51,7 +56,9 @@ class PluginFragment : PaddingPreferenceFragment() {
 
     private var firstRun = true
     private val pendingUninstallPackages = ArrayDeque<UninstallTarget>()
+    private val pendingPluginInstallFiles = ArrayDeque<File>()
     private var continueBatchUninstallOnResume = false
+    private var continueBatchPluginInstallOnResume = false
 
     private lateinit var synced: DataManager.PluginSet
     private lateinit var detected: DataManager.PluginSet
@@ -110,13 +117,18 @@ class PluginFragment : PaddingPreferenceFragment() {
         // Observe plugin menu trigger from toolbar
         (requireActivity() as MainActivity).viewModel.pluginMenuTrigger.observe(
             viewLifecycleOwner
-        ) { unbindMode ->
-            if (unbindMode != null) {
+        ) { action ->
+            if (action != null) {
                 DataManager.whenSynced {
-                    showManagePluginsDialog(unbindMode = unbindMode)
+                    showManagePluginsDialog(action)
                 }
                 (requireActivity() as MainActivity).viewModel.clearPluginMenuTrigger()
             }
+        }
+        if (continueBatchPluginInstallOnResume) {
+            continueBatchPluginInstallOnResume = false
+            launchNextPendingPluginInstall()
+            return
         }
         if (continueBatchUninstallOnResume) {
             continueBatchUninstallOnResume = false
@@ -240,7 +252,7 @@ class PluginFragment : PaddingPreferenceFragment() {
             }
         }
 
-    private fun showManagePluginsDialog(unbindMode: Boolean = false) {
+    private fun showManagePluginsDialog(action: MainViewModel.PluginMenuAction) {
         val blockedPackages = AppPrefs.getInstance().advanced.blockedPluginPackages.getValue()
         val loadedPackages = synced.loaded.mapTo(mutableSetOf()) { it.packageName }
         val manageablePlugins = DataManager.getManageablePlugins()
@@ -280,27 +292,44 @@ class PluginFragment : PaddingPreferenceFragment() {
                 checked[which] = isChecked
             }
             .setNegativeButton(android.R.string.cancel, null)
-        if (unbindMode) {
-            builder.setPositiveButton(R.string.unbind_plugin) { _, _ ->
-                val selected = manageablePlugins.indices
-                    .filter { checked[it] }
-                    .map { manageablePlugins[it] }
-                if (selected.isEmpty()) {
-                    requireContext().toast(getString(R.string.generic_multiselect_min, 1))
-                    return@setPositiveButton
+        when (action) {
+            MainViewModel.PluginMenuAction.Unbind -> {
+                builder.setPositiveButton(R.string.unbind_plugin) { _, _ ->
+                    val selected = manageablePlugins.indices
+                        .filter { checked[it] }
+                        .map { manageablePlugins[it] }
+                    if (selected.isEmpty()) {
+                        requireContext().toast(getString(R.string.generic_multiselect_min, 1))
+                        return@setPositiveButton
+                    }
+                    togglePluginLoading(selected)
                 }
-                togglePluginLoading(selected)
             }
-        } else {
-            builder.setPositiveButton(R.string.uninstall_selected_plugins) { _, _ ->
-                val selected = manageablePlugins.indices
-                    .filter { checked[it] }
-                    .map { manageablePlugins[it].descriptor }
-                if (selected.isEmpty()) {
-                    requireContext().toast(getString(R.string.generic_multiselect_min, 1))
-                    return@setPositiveButton
+
+            MainViewModel.PluginMenuAction.Uninstall -> {
+                builder.setPositiveButton(R.string.uninstall_selected_plugins) { _, _ ->
+                    val selected = manageablePlugins.indices
+                        .filter { checked[it] }
+                        .map { manageablePlugins[it].descriptor }
+                    if (selected.isEmpty()) {
+                        requireContext().toast(getString(R.string.generic_multiselect_min, 1))
+                        return@setPositiveButton
+                    }
+                    confirmBatchUninstall(selected.map { UninstallTarget(it.name, it.packageName) })
                 }
-                confirmBatchUninstall(selected.map { UninstallTarget(it.name, it.packageName) })
+            }
+
+            MainViewModel.PluginMenuAction.Upgrade -> {
+                builder.setPositiveButton(R.string.upgrade_selected_plugins) { _, _ ->
+                    val selected = manageablePlugins.indices
+                        .filter { checked[it] }
+                        .map { manageablePlugins[it].descriptor }
+                    if (selected.isEmpty()) {
+                        requireContext().toast(getString(R.string.generic_multiselect_min, 1))
+                        return@setPositiveButton
+                    }
+                    upgradePlugins(selected)
+                }
             }
         }
         builder.show()
@@ -364,6 +393,69 @@ class PluginFragment : PaddingPreferenceFragment() {
                 data = Uri.parse("package:${target.packageName}")
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK
             })
+        }
+    }
+
+    private fun upgradePlugins(selected: List<PluginDescriptor>) {
+        val ctx = requireContext()
+        if (!AppUpdateManager.ensureInstallPermission(ctx)) {
+            ctx.toast(R.string.enable_unknown_apps_install)
+            return
+        }
+        val cancellationSignal = AppUpdateManager.CancellationSignal()
+        lifecycleScope.withLoadingDialog(
+            context = ctx,
+            title = R.string.upgrading_plugins,
+            cancellable = true,
+            negativeButton = android.R.string.cancel,
+            onCancel = { cancellationSignal.cancel() }
+        ) {
+            try {
+                val updates = withContext(Dispatchers.IO) {
+                    AppUpdateManager.findPluginUpdates(selected, cancellationSignal)
+                }
+                if (updates.isEmpty()) {
+                    withContext(Dispatchers.Main) {
+                        ctx.toast(R.string.no_plugin_updates_available)
+                    }
+                    return@withLoadingDialog
+                }
+                val apkFiles = withContext(Dispatchers.IO) {
+                    updates.map { update ->
+                        AppUpdateManager.downloadReleaseAsset(ctx, update.asset, cancellationSignal)
+                    }
+                }
+                withContext(Dispatchers.Main) {
+                    pendingPluginInstallFiles.clear()
+                    apkFiles.forEach { pendingPluginInstallFiles.addLast(it) }
+                    ctx.toast(getString(R.string.plugin_updates_download_ready, apkFiles.size))
+                    launchNextPendingPluginInstall()
+                }
+            } catch (exception: CancellationException) {
+                if (cancellationSignal.isCanceled) {
+                    withContext(Dispatchers.Main) {
+                        ctx.toast(R.string.plugin_upgrade_canceled)
+                    }
+                }
+            } catch (exception: Exception) {
+                withContext(Dispatchers.Main) {
+                    ctx.toast(R.string.plugin_upgrade_failed)
+                }
+            }
+        }
+    }
+
+    private fun launchNextPendingPluginInstall() {
+        val apkFile = pendingPluginInstallFiles.pollFirst() ?: return
+        continueBatchPluginInstallOnResume = pendingPluginInstallFiles.isNotEmpty()
+        try {
+            AppUpdateManager.installDownloadedApk(requireContext(), apkFile)
+        } catch (exception: Exception) {
+            continueBatchPluginInstallOnResume = false
+            requireContext().toast(R.string.plugin_upgrade_failed)
+            if (pendingPluginInstallFiles.isNotEmpty()) {
+                launchNextPendingPluginInstall()
+            }
         }
     }
 

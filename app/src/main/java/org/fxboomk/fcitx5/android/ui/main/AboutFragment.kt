@@ -8,6 +8,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.fxboomk.fcitx5.android.BuildConfig
@@ -64,13 +65,20 @@ class AboutFragment : PaddingPreferenceFragment() {
 
     private fun checkForUpdates() {
         val ctx = requireContext()
+        val cancellationSignal = AppUpdateManager.CancellationSignal()
         downloadedUpdateApk = null
         updatePreference.actionEnabled = false
         updatePreference.actionText = getString(R.string.checking_for_updates)
-        lifecycleScope.withLoadingDialog(ctx, R.string.checking_for_updates) {
+        lifecycleScope.withLoadingDialog(
+            context = ctx,
+            title = R.string.checking_for_updates,
+            cancellable = true,
+            negativeButton = android.R.string.cancel,
+            onCancel = { cancellationSignal.cancel() }
+        ) {
             try {
                 when (val result = withContext(Dispatchers.IO) {
-                    AppUpdateManager.checkForUpdates(ctx)
+                    AppUpdateManager.checkForUpdates(ctx, cancellationSignal)
                 }) {
                     AppUpdateManager.CheckResult.InstallPermissionRequired -> {
                         withContext(Dispatchers.Main) {
@@ -92,7 +100,7 @@ class AboutFragment : PaddingPreferenceFragment() {
 
                     is AppUpdateManager.CheckResult.UpdateAvailable -> {
                         val apkFile = withContext(Dispatchers.IO) {
-                            AppUpdateManager.downloadUpdate(ctx, result.asset)
+                            AppUpdateManager.downloadUpdate(ctx, result.asset, cancellationSignal)
                         }
                         withContext(Dispatchers.Main) {
                             downloadedUpdateApk = apkFile
@@ -101,6 +109,12 @@ class AboutFragment : PaddingPreferenceFragment() {
                             )
                             applyInstallUpdateState()
                         }
+                    }
+                }
+            } catch (exception: CancellationException) {
+                if (cancellationSignal.isCanceled) {
+                    withContext(Dispatchers.Main) {
+                        ctx.toast(R.string.update_canceled)
                     }
                 }
             } catch (exception: Exception) {
