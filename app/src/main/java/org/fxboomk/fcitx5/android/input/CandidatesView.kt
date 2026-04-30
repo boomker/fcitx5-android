@@ -494,6 +494,22 @@ class CandidatesView(
         updatePosition()
     }
 
+    /**
+     * Anchor candidates view to bottom-left corner and respect bottom insets.
+     * Used when CursorAnchorInfo is invalid.
+     */
+    fun updateCursorAnchor(@Size(2) parent: FloatArray) {
+        val (parentWidth, parentHeight) = parent
+        val bottom = parentHeight - bottomInsets
+        anchorPosition[0] = 0f
+        anchorPosition[1] = bottom
+        anchorPosition[2] = bottom
+        parentSize[0] = parentWidth
+        parentSize[1] = parentHeight
+        useKeyboardPosition = false
+        updatePosition()
+    }
+
     fun updateCursorAnchorForFloating(
         @Size(3) anchor: FloatArray,
         @Size(2) parent: FloatArray,
