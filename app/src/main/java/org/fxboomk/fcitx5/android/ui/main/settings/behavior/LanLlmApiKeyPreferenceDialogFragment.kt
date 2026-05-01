@@ -161,7 +161,7 @@ class LanLlmApiKeyPreferenceDialogFragment : DialogFragment() {
 
         fun newInstance(key: String): LanLlmApiKeyPreferenceDialogFragment =
             LanLlmApiKeyPreferenceDialogFragment().apply {
-                arguments = bundleOf(ARG_KEY to key)
+                arguments = Bundle().apply { putString(ARG_KEY, key) }
             }
     }
 }

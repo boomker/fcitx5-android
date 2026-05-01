@@ -254,7 +254,7 @@ class LanLlmModelPreferenceDialogFragment : DialogFragment() {
 
         fun newInstance(key: String): LanLlmModelPreferenceDialogFragment =
             LanLlmModelPreferenceDialogFragment().apply {
-                arguments = bundleOf(ARG_KEY to key)
+                arguments = Bundle().apply { putString(ARG_KEY, key) }
             }
     }
 }

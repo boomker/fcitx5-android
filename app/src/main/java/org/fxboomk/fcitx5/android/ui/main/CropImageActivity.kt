@@ -276,7 +276,7 @@ class CropImageActivity : AppCompatActivity() {
                 srcUri = sourceImageUri,
                 srcFile = tempSrcFile
             )
-            setResult(RESULT_OK, Intent().putExtras(bundleOf(CROP_RESULT to success)))
+            setResult(RESULT_OK, Intent().putExtras(Bundle().apply { putParcelable(CROP_RESULT, success) }))
         } catch (e: Exception) {
             tempOutFile.delete()
             Timber.e("Exception when cropping image: ${e.stackTraceToString()}")
