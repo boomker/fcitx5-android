@@ -73,6 +73,7 @@ fcitx5-android/
 | `fcitx5-lua/` | Lua scripting support |
 | `libime/` | IME core library |
 | `plugin-base/` | Plugin base classes |
+| `common/` | Shared Android utilities and helpers |
 | `anthy/` | Japanese Anthy engine |
 | `chewing/` | Traditional Chinese Chewing engine |
 | `hangul/` | Korean Hangul engine |
@@ -86,6 +87,21 @@ fcitx5-android/
 
 - Plugin schema and services
 - Plugin-based extensibility
+
+| Plugin | Purpose |
+|--------|---------|
+| `anthy/` | Japanese Anthy engine plugin |
+| `chewing/` | Traditional Chinese Chewing plugin |
+| `clipboard-filter/` | URL-filtering clipboard plugin with ClearURLs rules |
+| `clipboard-sync/` | Clipboard synchronization plugin |
+| `hangul/` | Korean Hangul engine plugin |
+| `jyutping/` | Cantonese Jyutping engine plugin |
+| `rime/` | Rime input engine plugin |
+| `sayura/` | Sinhala Sayura engine plugin |
+| `thai/` | Thai engine plugin |
+| `unikey/` | Vietnamese Unikey engine plugin |
+
+> Note: `pluginSchema.xsd` defines the plugin configuration schema.
 
 ## Key Execution Flows
 
