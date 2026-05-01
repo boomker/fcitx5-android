@@ -310,6 +310,54 @@
     <string name="lan_llm_enable_summary" translatable="false">使用 LLM 提供预测候选。</string>
     <string name="lan_llm_auto_predict" translatable="false">启用自动预测</string>
     <string name="lan_llm_auto_predict_summary" translatable="false">候选字词上屏后自动触发预测；关闭后仅可通过工具栏的 AI 候选按钮手动触发。</string>
+    <string name="lan_llm_local_model_status" translatable="false">本地模型状态</string>
+    <string name="lan_llm_local_model_not_configured" translatable="false">未配置本地模型</string>
+    <string name="lan_llm_local_model_source_imported" translatable="false">手动导入</string>
+    <string name="lan_llm_local_model_source_downloaded" translatable="false">应用下载</string>
+    <string name="lan_llm_local_model_status_summary" translatable="false">%1$s\n来源：%2$s · 大小：%3$s</string>
+    <string name="lan_llm_local_model_compatibility_compatible" translatable="false">兼容性：已通过本地运行时预检</string>
+    <string name="lan_llm_local_model_compatibility_skipped" translatable="false">兼容性：当前设备不支持导入时预检</string>
+    <string name="lan_llm_local_model_compatibility_unknown" translatable="false">兼容性：未预检（重新导入或重新下载后会自动检查）</string>
+    <string name="lan_llm_local_model_incompatible" translatable="false">模型文件与当前本地运行时不兼容：%1$s</string>
+    <string name="lan_llm_local_model_url" translatable="false">本地模型下载地址</string>
+    <string name="lan_llm_local_model_url_summary_hint" translatable="false">填写可直接下载模型文件的 URL</string>
+    <string name="lan_llm_local_model_url_required" translatable="false">请先填写模型下载地址</string>
+    <string name="lan_llm_local_model_download" translatable="false">下载本地模型</string>
+    <string name="lan_llm_local_model_download_summary" translatable="false">将模型文件下载到应用私有目录</string>
+    <string name="lan_llm_local_model_import" translatable="false">下载与导入模型</string>
+    <string name="lan_llm_local_model_import_summary" translatable="false">从其他目录选择已下载模型文件并导入</string>
+    <string name="lan_llm_local_model_import_merged_summary" translatable="false">导入推荐模型、本地模型文件，或通过自定义 URL 下载并导入</string>
+    <string name="lan_llm_local_model_import_recommended_title" translatable="false">1. 导入远端模型</string>
+    <string name="lan_llm_local_model_import_recommended_summary" translatable="false">提供推荐模型，确认后自动下载并导入</string>
+    <string name="lan_llm_local_model_import_recommended_action" translatable="false">选择推荐模型</string>
+    <string name="lan_llm_local_model_import_local_title" translatable="false">2. 导入本地模型</string>
+    <string name="lan_llm_local_model_import_local_summary" translatable="false">从设备其他目录选择已下载模型文件并导入</string>
+    <string name="lan_llm_local_model_import_local_action" translatable="false">选择本地模型文件</string>
+    <string name="lan_llm_local_model_import_custom_title" translatable="false">3. 自定义下载 URL</string>
+    <string name="lan_llm_local_model_import_custom_summary" translatable="false">填写模型下载地址，确认后下载并导入</string>
+    <string name="lan_llm_local_model_import_custom_action" translatable="false">输入下载 URL</string>
+    <string name="lan_llm_local_model_clear" translatable="false">清除本地模型</string>
+    <string name="lan_llm_local_model_clear_summary" translatable="false">删除应用私有目录中的当前本地模型</string>
+    <string name="lan_llm_local_model_cleared" translatable="false">已清除本地模型</string>
+    <string name="lan_llm_local_model_reloaded" translatable="false">已重载并重新校验当前模型</string>
+    <string name="lan_llm_local_model_download_success" translatable="false">模型下载完成：%1$s</string>
+    <string name="lan_llm_local_model_import_success" translatable="false">模型导入完成：%1$s</string>
+    <string name="lan_llm_local_model_manage_upgrade" translatable="false">升级</string>
+    <string name="lan_llm_local_model_manage_delete" translatable="false">删除</string>
+    <string name="lan_llm_local_model_manage_reload" translatable="false">重载</string>
+    <string name="lan_llm_local_model_delete_confirm" translatable="false">确认删除模型“%1$s”吗？</string>
+    <string name="lan_llm_model_test" translatable="false">测试模型文本生成</string>
+    <string name="lan_llm_model_test_summary" translatable="false">按当前运行方式测试模型文本生成能力，并查看原始输出</string>
+    <string name="lan_llm_local_model_smoke" translatable="false">测试模型文本生成</string>
+    <string name="lan_llm_local_model_smoke_summary" translatable="false">按当前运行方式测试模型文本生成能力，并查看原始输出</string>
+    <string name="lan_llm_local_model_smoke_result" translatable="false">模型文本生成测试结果</string>
+    <string name="lan_llm_local_model_smoke_stage_label" translatable="false">Stage: %1$s</string>
+    <string name="lan_llm_local_model_smoke_error_label" translatable="false">Error</string>
+    <string name="lan_llm_local_model_smoke_prompt_label" translatable="false">测试输入</string>
+    <string name="lan_llm_local_model_smoke_raw_label" translatable="false">Raw output</string>
+    <string name="lan_llm_local_model_smoke_parsed_label" translatable="false">Parsed suggestions</string>
+    <string name="lan_llm_local_model_runtime_unavailable" translatable="false">当前设备系统版本不支持本地 GenAI 运行时</string>
+    <string name="lan_llm_model_test_remote_unavailable" translatable="false">当前远端模型配置未完成，无法测试文本生成</string>
     <string name="ai_clip_title" translatable="false">AI 候选</string>
     <string name="ai_clip_open_count" translatable="false">AI 候选 (%1$d)</string>
     <string name="ai_clip_collapse" translatable="false">收起 AI 候选面板</string>
@@ -322,6 +370,7 @@
     <string name="ai_clip_translate_loading" translatable="false">正在翻译…</string>
     <string name="ai_clip_long_form_loading" translatable="false">正在生成长文候选…</string>
     <string name="lan_llm_provider" translatable="false">模型服务商</string>
+    <string name="lan_llm_provider_local_ai" translatable="false">Local AI</string>
     <string name="lan_llm_provider_custom" translatable="false">自定义</string>
     <string name="lan_llm_provider_openai" translatable="false">OpenAI</string>
     <string name="lan_llm_provider_anthropic" translatable="false">Anthropic</string>
@@ -335,7 +384,11 @@
     <string name="lan_llm_api_url_default_summary" translatable="false">留空时使用默认地址：%1$s</string>
     <string name="lan_llm_chat_api_enabled" translatable="false">聊天对话接口</string>
     <string name="lan_llm_model" translatable="false">模型名称</string>
+    <string name="lan_llm_model_status" translatable="false">模型名称与状态</string>
     <string name="lan_llm_model_summary_hint" translatable="false">可手动填写，也可远程拉取后选择</string>
+    <string name="lan_llm_model_status_remote_ready" translatable="false">状态：远端配置可用</string>
+    <string name="lan_llm_model_status_remote_unavailable" translatable="false">状态：远端配置未完成</string>
+    <string name="lan_llm_model_status_remote_summary" translatable="false">%1$s\n%2$s</string>
     <string name="lan_llm_model_select" translatable="false">选择模型</string>
     <string name="lan_llm_model_fetching" translatable="false">正在远程拉取模型列表…</string>
     <string name="lan_llm_model_fetch_success" translatable="false">已获取 %1$d 个模型，可点按选择。</string>

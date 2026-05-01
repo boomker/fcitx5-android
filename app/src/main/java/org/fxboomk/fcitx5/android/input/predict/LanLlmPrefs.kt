@@ -10,6 +10,8 @@ import java.nio.charset.StandardCharsets
 import org.fxboomk.fcitx5.android.R
 
 object LanLlmPrefs {
+    const val KEY_RUNTIME = "lan_llm_runtime"
+    const val KEY_LOCAL_MODEL_URL = "lan_llm_local_model_url"
     const val KEY_BACKEND = "lan_llm_backend"
     const val KEY_CHAT_API_ENABLED = "lan_llm_chat_api_enabled"
     const val KEY_ENABLED = "lan_llm_enabled"
@@ -26,6 +28,19 @@ object LanLlmPrefs {
     const val KEY_MAX_OUTPUT_TOKENS = "lan_llm_max_output_tokens"
     const val KEY_MAX_PREDICTION_CANDIDATES = "lan_llm_max_prediction_candidates"
     const val KEY_MAX_CONTEXT_CHARS = "lan_llm_max_context_chars"
+
+    enum class Runtime(
+        val value: String,
+        val defaultModel: String,
+    ) {
+        Remote("remote", DEFAULT_MODEL),
+        LocalOnDevice("local_on_device", DEFAULT_LOCAL_MODEL);
+
+        companion object {
+            fun from(value: String?): Runtime =
+                entries.firstOrNull { it.value == value } ?: Remote
+        }
+    }
 
     enum class Backend(val value: String) {
         ChatCompletions("chat"),
@@ -48,6 +63,7 @@ object LanLlmPrefs {
         val compatApi: CompatApi?,
         val defaultModel: String? = null,
     ) {
+        LocalAI("local_ai", R.string.lan_llm_provider_local_ai, null, null, DEFAULT_LOCAL_MODEL),
         Custom("custom", R.string.lan_llm_provider_custom, null, null),
         OpenAI("openai", R.string.lan_llm_provider_openai, "https://api.openai.com/v1", CompatApi.OpenAI),
         Anthropic("anthropic", R.string.lan_llm_provider_anthropic, "https://api.anthropic.com/v1", CompatApi.Anthropic),
@@ -63,7 +79,7 @@ object LanLlmPrefs {
         );
 
         val isVendorProvidedApiService: Boolean
-            get() = this != Custom
+            get() = this != Custom && this != LocalAI
 
         companion object {
             fun from(value: String?): Provider = entries.firstOrNull { it.value == value } ?: Custom
@@ -71,6 +87,7 @@ object LanLlmPrefs {
     }
 
     data class Overrides(
+        val runtime: Runtime? = null,
         val provider: Provider? = null,
         val baseUrl: String? = null,
         val model: String? = null,
@@ -81,6 +98,7 @@ object LanLlmPrefs {
     private const val DEFAULT_BASE_URL = "http://192.168.1.1:8000"
     private const val DEFAULT_CUSTOM_PORT = 8000
     private const val DEFAULT_MODEL = "qwen"
+    private const val DEFAULT_LOCAL_MODEL = "qwen3-0.6b-onnx-local"
     private const val DEFAULT_DEBOUNCE_MS = 200
     private const val DEFAULT_SAMPLE_COUNT = 4
     private const val DEFAULT_MAX_OUTPUT_TOKENS = 512
@@ -90,6 +108,7 @@ object LanLlmPrefs {
     data class Config(
         val enabled: Boolean,
         val autoPredictEnabled: Boolean = false,
+        val runtime: Runtime = Runtime.Remote,
         val backend: Backend,
         val provider: Provider = Provider.Custom,
         val baseUrl: String,
@@ -102,8 +121,11 @@ object LanLlmPrefs {
         val maxContextChars: Int,
         val preferLastCommit: Boolean,
     ) {
+        val isLocalOnDevice: Boolean
+            get() = runtime == Runtime.LocalOnDevice
+
         val isUsable: Boolean
-            get() = enabled && resolvedBaseUrl.isNotBlank() && model.isNotBlank()
+            get() = enabled && model.isNotBlank() && (isLocalOnDevice || resolvedBaseUrl.isNotBlank())
 
         private val inferredCompatApi: CompatApi
             get() = if (
@@ -150,12 +172,16 @@ object LanLlmPrefs {
 
     fun read(prefs: SharedPreferences, overrides: Overrides = Overrides()): Config {
         val debounceMs = DEFAULT_DEBOUNCE_MS.toLong()
+        val provider = overrides.provider ?: Provider.from(prefs.getString(KEY_PROVIDER, Provider.Custom.value))
+        val runtime = overrides.runtime ?: runtimeForProvider(
+            provider = provider,
+            storedRuntime = prefs.getString(KEY_RUNTIME, Runtime.Remote.value),
+        )
         val chatApiEnabled = if (prefs.contains(KEY_CHAT_API_ENABLED)) {
             prefs.getBoolean(KEY_CHAT_API_ENABLED, false)
         } else {
             prefs.getString(KEY_BACKEND, Backend.Completion.value) == Backend.ChatCompletions.value
         }
-        val provider = overrides.provider ?: Provider.from(prefs.getString(KEY_PROVIDER, Provider.Custom.value))
         val sampleCount = if (provider.isVendorProvidedApiService) {
             1
         } else {
@@ -186,12 +212,15 @@ object LanLlmPrefs {
         return Config(
             enabled = prefs.getBoolean(KEY_ENABLED, false),
             autoPredictEnabled = prefs.getBoolean(KEY_AUTO_PREDICT_ENABLED, false),
+            runtime = runtime,
             backend = overrides.backend ?: if (chatApiEnabled) Backend.ChatCompletions else Backend.Completion,
             provider = provider,
             baseUrl = normalizeBaseUrl(baseUrl),
             model = (overrides.model ?: getScopedModel(prefs, provider, baseUrl).ifBlank {
                 prefs.getString(KEY_MODEL, DEFAULT_MODEL).orEmpty()
-            }).trim().ifBlank { providerDefaultModel(provider) },
+            }).trim().ifBlank {
+                providerDefaultModel(provider).ifBlank { runtime.defaultModel }
+            },
             apiKey = (overrides.apiKey ?: getScopedApiKey(prefs, provider, baseUrl)).trim(),
             debounceMs = debounceMs,
             sampleCount = sampleCount,
@@ -341,6 +370,20 @@ object LanLlmPrefs {
 
     fun currentProvider(prefs: SharedPreferences): Provider =
         Provider.from(prefs.getString(KEY_PROVIDER, Provider.Custom.value))
+
+    fun currentRuntime(prefs: SharedPreferences): Runtime =
+        runtimeForProvider(
+            provider = currentProvider(prefs),
+            storedRuntime = prefs.getString(KEY_RUNTIME, Runtime.Remote.value),
+        )
+
+    fun runtimeForProvider(
+        provider: Provider,
+        storedRuntime: String? = null,
+    ): Runtime = when (provider) {
+        Provider.LocalAI -> Runtime.LocalOnDevice
+        else -> Runtime.from(storedRuntime).takeIf { it != Runtime.LocalOnDevice } ?: Runtime.Remote
+    }
 
     fun currentBaseUrl(prefs: SharedPreferences, provider: Provider = currentProvider(prefs)): String =
         normalizeBaseUrl(

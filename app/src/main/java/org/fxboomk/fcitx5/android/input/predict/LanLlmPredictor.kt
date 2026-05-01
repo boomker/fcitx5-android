@@ -5,7 +5,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -26,6 +25,9 @@ internal class LanLlmPredictor(
     private val client: LanLlmClient = LanLlmClient(
         thinkingSuppressionStore = LanLlmSharedPrefsThinkingSuppressionStore.fromContext(appContext.applicationContext),
     ),
+    private val remoteBackend: LanLlmPredictionBackend = RemoteLanLlmPredictionBackend(client),
+    private val localBackend: LanLlmPredictionBackend = LocalLanLlmPredictionBackend(appContext = appContext.applicationContext),
+    private val configReader: (Context) -> LanLlmPrefs.Config = { LanLlmPrefs.read(it) },
 ) {
     internal class RequestTracker {
         private var activeRequestId = 0L
@@ -55,12 +57,6 @@ internal class LanLlmPredictor(
         val enableThinking: Boolean = false,
     )
 
-    private data class SamplePlan(
-        val useRecentCommitBias: Boolean,
-        val weight: Int,
-        val seed: Int?,
-    )
-
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val requestTracker = RequestTracker()
     private var pendingJob: Job? = null
@@ -71,7 +67,8 @@ internal class LanLlmPredictor(
         onError: ((Throwable) -> Unit)? = null,
         onPartial: ((String) -> Unit)? = null,
     ) {
-        val config = LanLlmPrefs.read(appContext)
+        val config = configReader(appContext)
+        val backend = selectPredictionBackend(config, remoteBackend, localBackend)
         val requestId = requestTracker.replaceActiveRequest()
         pendingJob?.cancel()
         pendingJob = null
@@ -88,40 +85,25 @@ internal class LanLlmPredictor(
                     return@launch
                 }
                 val result = runCatching {
-                    if (config.backend == LanLlmPrefs.Backend.Completion &&
-                        request.outputMode == LanLlmOutputMode.Suggestions
-                    ) {
-                        predictCompletion(config, request)
-                    } else {
-                        val useRecentCommitBias = config.preferLastCommit && request.recentCommittedText.isNotBlank()
-                        client.predict(
-                            LanLlmClient.PredictionRequest(
-                                config = config,
-                                beforeCursor = request.beforeCursor,
-                                recentCommittedText = request.recentCommittedText,
-                                historyText = request.historyText,
-                                useRecentCommitBias = useRecentCommitBias,
-                                outputMode = request.outputMode,
-                                taskMode = request.taskMode,
-                                enableThinking = request.enableThinking,
-                            ),
-                            onPartialText = if (
-                                request.outputMode == LanLlmOutputMode.LongForm ||
-                                request.taskMode == LanLlmTaskMode.QuestionAnswer ||
-                                request.taskMode == LanLlmTaskMode.Translate
-                            ) {
-                                { partial ->
-                                    scope.launch {
-                                        if (runningJob.isActive && requestTracker.isActive(requestId)) {
-                                            onPartial?.invoke(partial)
-                                        }
+                    backend.predict(
+                        config = config,
+                        request = request,
+                        onPartialText = if (
+                            request.outputMode == LanLlmOutputMode.LongForm ||
+                            request.taskMode == LanLlmTaskMode.QuestionAnswer ||
+                            request.taskMode == LanLlmTaskMode.Translate
+                        ) {
+                            { partial ->
+                                scope.launch {
+                                    if (runningJob.isActive && requestTracker.isActive(requestId)) {
+                                        onPartial?.invoke(partial)
                                     }
                                 }
-                            } else {
-                                null
-                            },
-                        )
-                    }
+                            }
+                        } else {
+                            null
+                        },
+                    )
                 }
 
                 if (!runningJob.isActive || !requestTracker.isActive(requestId)) {
@@ -149,77 +131,6 @@ internal class LanLlmPredictor(
                 }
             }
         }
-    }
-
-    private suspend fun predictCompletion(
-        config: LanLlmPrefs.Config,
-        request: Request,
-    ): LanLlmClient.PredictionResponse {
-        val prioritizedSamples = if (config.preferLastCommit && request.recentCommittedText.isNotBlank()) 1 else 0
-        val plans = List(config.sampleCount) { index ->
-            SamplePlan(
-                useRecentCommitBias = index < prioritizedSamples,
-                weight = if (index < prioritizedSamples) 2 else 1,
-                seed = 20260419 + index,
-            )
-        }
-
-        val responses = kotlinx.coroutines.coroutineScope {
-            plans.map { plan ->
-                async(Dispatchers.IO) {
-                    plan to client.predict(
-                        LanLlmClient.PredictionRequest(
-                            config = config,
-                            beforeCursor = request.beforeCursor,
-                            recentCommittedText = request.recentCommittedText,
-                            historyText = request.historyText,
-                            useRecentCommitBias = plan.useRecentCommitBias,
-                            seed = plan.seed,
-                            outputMode = request.outputMode,
-                            taskMode = request.taskMode,
-                            enableThinking = request.enableThinking,
-                        )
-                    )
-                }
-            }.map { it.await() }
-        }
-
-        val ranked = linkedMapOf<String, Int>()
-        val rawContent = buildString {
-            responses.forEachIndexed { index, (plan, response) ->
-                response.suggestions.forEachIndexed { candidateIndex, suggestion ->
-                    val score = plan.weight * 10 - candidateIndex
-                    ranked[suggestion] = (ranked[suggestion] ?: 0) + score
-                }
-                if (response.rawContent.isNotBlank()) {
-                    if (index > 0) append(" | ")
-                    append(response.rawContent.take(80))
-                }
-            }
-        }
-
-        val suggestions = ranked.entries
-            .sortedWith(
-                compareByDescending<Map.Entry<String, Int>> { it.value }
-                    .thenBy { it.key.length }
-                    .thenBy { it.key }
-            )
-            .map { it.key }
-            .take(
-                if (
-                    request.taskMode == LanLlmTaskMode.QuestionAnswer ||
-                    request.taskMode == LanLlmTaskMode.Translate
-                ) {
-                    1
-                } else {
-                    config.maxPredictionCandidates
-                }
-            )
-
-        return LanLlmClient.PredictionResponse(
-            suggestions = suggestions,
-            rawContent = rawContent,
-        )
     }
 
     fun cancel() {

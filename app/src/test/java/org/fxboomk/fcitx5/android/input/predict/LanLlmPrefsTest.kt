@@ -6,9 +6,48 @@ package org.fxboomk.fcitx5.android.input.predict
 
 import android.content.SharedPreferences
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LanLlmPrefsTest {
+
+    @Test
+    fun localRuntimeIsUsableWithoutBaseUrl() {
+        val config = LanLlmPrefs.Config(
+            enabled = true,
+            runtime = LanLlmPrefs.Runtime.LocalOnDevice,
+            backend = LanLlmPrefs.Backend.ChatCompletions,
+            baseUrl = "",
+            model = "qwen3-local",
+            apiKey = "",
+            debounceMs = 450,
+            sampleCount = 1,
+            maxContextChars = 64,
+            preferLastCommit = true,
+        )
+
+        assertTrue(config.isUsable)
+        assertTrue(config.isLocalOnDevice)
+    }
+
+    @Test
+    fun readUsesLocalRuntimeWhenProviderIsLocalAi() {
+        val prefs = FakeSharedPreferences(
+            mutableMapOf(
+                LanLlmPrefs.KEY_ENABLED to true,
+                LanLlmPrefs.KEY_PROVIDER to LanLlmPrefs.Provider.LocalAI.value,
+                LanLlmPrefs.KEY_RUNTIME to LanLlmPrefs.Runtime.Remote.value,
+                LanLlmPrefs.KEY_MODEL to "",
+            )
+        )
+
+        val config = LanLlmPrefs.read(prefs)
+
+        assertEquals(LanLlmPrefs.Runtime.LocalOnDevice, config.runtime)
+        assertEquals(LanLlmPrefs.Provider.LocalAI, config.provider)
+        assertTrue(config.isLocalOnDevice)
+        assertEquals("qwen3-0.6b-onnx-local", config.model)
+    }
 
     @Test
     fun completionCompatEndpointsTryKnownOpenAiCompatiblePrefixesForCustomBaseHost() {
