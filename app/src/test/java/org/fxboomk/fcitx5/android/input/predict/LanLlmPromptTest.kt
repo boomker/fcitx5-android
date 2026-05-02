@@ -230,6 +230,16 @@ class LanLlmPromptTest {
     }
 
     @Test
+    fun completionAssistantPrefillSkipsForcedThinkBlockWhenThinkingEnabled() {
+        val assistant = LanLlmPrompt.completionAssistantPrefill(
+            beforeCursor = "今晚一起",
+            enableThinking = true,
+        )
+
+        assertEquals("今晚一起", assistant)
+    }
+
+    @Test
     fun userPromptUsesTranslatorPersonaAndEnglishSpacingInstructionForChineseTranslateMode() {
         val prompt = LanLlmPrompt.userPrompt(
             beforeCursor = "今天晚上一起吃饭吗？",

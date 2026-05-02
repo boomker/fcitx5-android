@@ -1,6 +1,7 @@
 package org.fxboomk.fcitx5.android.input.predict
 
 import android.os.Build
+import android.os.SystemClock
 import ai.onnxruntime.genai.Generator
 import ai.onnxruntime.genai.GeneratorParams
 import ai.onnxruntime.genai.Model
@@ -10,6 +11,12 @@ import java.io.File
 import timber.log.Timber
 
 internal object GenAiLocalLanLlmRuntime : LocalLanLlmRuntime {
+    private const val QWEN_THINKING_TEMPERATURE = 0.6
+    private const val QWEN_NON_THINKING_TEMPERATURE = 0.7
+    private const val QWEN_THINKING_TOP_P = 0.95
+    private const val QWEN_NON_THINKING_TOP_P = 0.8
+    private const val QWEN_TOP_K = 20.0
+
     data class CompatibilityResult(
         val isCompatible: Boolean,
         val stage: String,
@@ -30,6 +37,7 @@ internal object GenAiLocalLanLlmRuntime : LocalLanLlmRuntime {
     )
 
     private val lock = Any()
+    private val generationLock = Any()
 
     @Volatile
     private var activeBundlePath: String? = null
@@ -40,10 +48,61 @@ internal object GenAiLocalLanLlmRuntime : LocalLanLlmRuntime {
     @Volatile
     private var activeTokenizer: Tokenizer? = null
 
+    @Volatile
+    private var warmedBundleKey: String? = null
+
     override fun isAvailable(): Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N
 
     override fun predict(request: LocalLanLlmPredictionRequest): List<String> {
         return smoke(request).suggestions
+    }
+
+    override fun prewarm(request: LocalLanLlmPredictionRequest) {
+        if (!isAvailable()) return
+        val bundleDir = File(request.companionDirectory)
+        if (!bundleDir.exists()) return
+        val bundleKey = bundleKey(request)
+        if (bundleKey == warmedBundleKey) return
+        val prompt = buildPrompt(request)
+        val startAtMs = SystemClock.elapsedRealtime()
+        runCatching {
+            val model = ensureModel(bundleDir.absolutePath)
+            val tokenizer = ensureTokenizer(model)
+            val inputSequences = tokenizer.encode(prompt)
+            val inputTokenCount = inputSequences.getSequence(0).size
+            synchronized(generationLock) {
+                val stream = tokenizer.createStream()
+                val params = GeneratorParams(model).also {
+                    configureSearch(
+                        params = it,
+                        request = request,
+                        inputTokenCount = inputTokenCount,
+                    )
+                }
+                params.use { generatorParams ->
+                    inputSequences.use { sequences ->
+                        stream.use { tokenizerStream ->
+                            generateText(
+                                model = model,
+                                params = generatorParams,
+                                inputSequences = sequences,
+                                tokenizerStream = tokenizerStream,
+                                request = request,
+                            )
+                        }
+                    }
+                }
+            }
+            warmedBundleKey = bundleKey
+            Timber.i(
+                "GenAI prewarm complete bundle=%s durationMs=%d promptChars=%d",
+                bundleDir.absolutePath,
+                SystemClock.elapsedRealtime() - startAtMs,
+                prompt.length,
+            )
+        }.onFailure { error ->
+            Timber.w(error, "GenAI prewarm failed")
+        }
     }
 
     fun checkCompatibility(bundleDirectory: String): CompatibilityResult {
@@ -93,12 +152,7 @@ internal object GenAiLocalLanLlmRuntime : LocalLanLlmRuntime {
             )
         }
         val bundleDir = File(request.companionDirectory)
-        val prompt = LanLlmPrompt.completionPrompt(
-            beforeCursor = request.beforeCursor,
-            recentCommittedText = request.recentCommittedText,
-            historyText = request.historyText,
-            useRecentCommitBias = request.recentCommittedText.isNotBlank(),
-        )
+        val prompt = buildPrompt(request)
         if (!bundleDir.exists()) {
             return SmokeResult(
                 stage = "bundle",
@@ -109,6 +163,7 @@ internal object GenAiLocalLanLlmRuntime : LocalLanLlmRuntime {
             )
         }
         return runCatching {
+            val startAtMs = SystemClock.elapsedRealtime()
             val model = ensureModel(bundleDir.absolutePath)
             val tokenizer = ensureTokenizer(model)
             val inputSequences = tokenizer.encode(prompt)
@@ -122,30 +177,36 @@ internal object GenAiLocalLanLlmRuntime : LocalLanLlmRuntime {
                 )
             }
             Timber.i(
-                "GenAI smoke start bundle=%s promptChars=%d inputTokens=%d maxOutputTokens=%d",
+                "GenAI smoke start bundle=%s promptChars=%d inputTokens=%d maxOutputTokens=%d mode=%s task=%s thinking=%s",
                 bundleDir.absolutePath,
                 prompt.length,
                 inputTokenCount,
                 request.maxOutputTokens,
+                request.outputMode,
+                request.taskMode,
+                request.enableThinking,
             )
-            val generation = params.use { generatorParams ->
-                inputSequences.use { sequences ->
-                    stream.use { tokenizerStream ->
-                        generateText(
-                            model = model,
-                            params = generatorParams,
-                            inputSequences = sequences,
-                            tokenizerStream = tokenizerStream,
-                            maxOutputTokens = request.maxOutputTokens,
-                        )
+            val generation = synchronized(generationLock) {
+                params.use { generatorParams ->
+                    inputSequences.use { sequences ->
+                        stream.use { tokenizerStream ->
+                            generateText(
+                                model = model,
+                                params = generatorParams,
+                                inputSequences = sequences,
+                                tokenizerStream = tokenizerStream,
+                                request = request,
+                            )
+                        }
                     }
                 }
             }
             val rawText = generation.text.trim()
             Timber.i(
-                "GenAI smoke complete generatedTokens=%d rawChars=%d",
+                "GenAI smoke complete generatedTokens=%d rawChars=%d durationMs=%d",
                 generation.generatedTokenCount,
                 rawText.length,
+                SystemClock.elapsedRealtime() - startAtMs,
             )
             SmokeResult(
                 stage = if (generation.generatedTokenCount == 0) "complete_empty" else "complete",
@@ -172,11 +233,21 @@ internal object GenAiLocalLanLlmRuntime : LocalLanLlmRuntime {
         inputTokenCount: Int,
     ) {
         val targetMaxLength = (inputTokenCount + request.maxOutputTokens).toDouble()
+        val temperature = if (request.enableThinking) {
+            QWEN_THINKING_TEMPERATURE
+        } else {
+            QWEN_NON_THINKING_TEMPERATURE
+        }
+        val topP = if (request.enableThinking) {
+            QWEN_THINKING_TOP_P
+        } else {
+            QWEN_NON_THINKING_TOP_P
+        }
         params.setSearchOption("do_sample", true)
         params.setSearchOption("max_length", targetMaxLength)
-        params.setSearchOption("temperature", 0.6)
-        params.setSearchOption("top_k", 20.0)
-        params.setSearchOption("top_p", 0.95)
+        params.setSearchOption("temperature", temperature)
+        params.setSearchOption("top_k", QWEN_TOP_K)
+        params.setSearchOption("top_p", topP)
     }
 
     private fun ensureModel(bundlePath: String): Model = synchronized(lock) {
@@ -204,22 +275,47 @@ internal object GenAiLocalLanLlmRuntime : LocalLanLlmRuntime {
         params: GeneratorParams,
         inputSequences: ai.onnxruntime.genai.Sequences,
         tokenizerStream: TokenizerStream,
-        maxOutputTokens: Int,
+        request: LocalLanLlmPredictionRequest,
     ): GenerationResult {
         val builder = StringBuilder()
         Generator(model, params).use { generator ->
             generator.appendTokenSequences(inputSequences)
             var generatedCount = 0
-            while (!generator.isDone() && generatedCount < maxOutputTokens) {
+            while (!generator.isDone() && generatedCount < request.maxOutputTokens) {
                 generator.generateNextToken()
                 val token = generator.getLastTokenInSequence(0)
                 builder.append(tokenizerStream.decode(token))
                 generatedCount += 1
+                if (shouldStopLocalGeneration(request, builder.toString())) {
+                    break
+                }
             }
             return GenerationResult(
                 text = builder.toString(),
                 generatedTokenCount = generatedCount,
             )
+        }
+    }
+
+    private fun buildPrompt(request: LocalLanLlmPredictionRequest): String =
+        LanLlmPrompt.completionPrompt(
+            beforeCursor = request.beforeCursor,
+            recentCommittedText = request.recentCommittedText,
+            historyText = request.historyText,
+            useRecentCommitBias = request.recentCommittedText.isNotBlank(),
+            outputMode = request.outputMode,
+            taskMode = request.taskMode,
+            enableThinking = request.enableThinking,
+        )
+
+    private fun bundleKey(request: LocalLanLlmPredictionRequest): String {
+        val modelFile = File(request.modelPath)
+        return buildString {
+            append(request.companionDirectory)
+            append('|')
+            append(modelFile.length())
+            append('|')
+            append(modelFile.lastModified())
         }
     }
 
@@ -229,5 +325,32 @@ internal object GenAiLocalLanLlmRuntime : LocalLanLlmRuntime {
         activeModel?.close()
         activeModel = null
         activeBundlePath = null
+        warmedBundleKey = null
+    }
+}
+
+internal fun shouldStopLocalGeneration(
+    request: LocalLanLlmPredictionRequest,
+    generatedText: String,
+): Boolean {
+    if ("<|im_end|>" in generatedText || "<|endoftext|>" in generatedText) {
+        return true
+    }
+    if (request.outputMode != LanLlmOutputMode.Suggestions) {
+        return false
+    }
+    return when (request.taskMode) {
+        LanLlmTaskMode.Completion -> {
+            val suggestions = LanLlmSuggestionParser.parse(generatedText, request.beforeCursor)
+            suggestions.size >= request.maxPredictionCandidates ||
+                (suggestions.isNotEmpty() && generatedText.trimEnd().endsWith("}"))
+        }
+
+        LanLlmTaskMode.QuestionAnswer,
+        LanLlmTaskMode.Translate,
+        -> {
+            val suggestion = LanLlmSuggestionParser.parseSingleText(generatedText).firstOrNull()
+            !suggestion.isNullOrBlank() && '\n' in generatedText
+        }
     }
 }

@@ -590,6 +590,9 @@ class LanLlmSettingsFragment : PaddingPreferenceFragment() {
                 historyText = "",
                 maxPredictionCandidates = config.maxPredictionCandidates,
                 maxOutputTokens = minOf(config.maxOutputTokens, 128),
+                outputMode = LanLlmOutputMode.Suggestions,
+                taskMode = LanLlmTaskMode.Completion,
+                enableThinking = false,
             )
         )
         return ModelGenerationTestResult(

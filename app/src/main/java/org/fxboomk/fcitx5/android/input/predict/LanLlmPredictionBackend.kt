@@ -3,12 +3,20 @@ package org.fxboomk.fcitx5.android.input.predict
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 
+internal const val LOCAL_SUGGESTION_MAX_OUTPUT_TOKENS = 96
+private const val LOCAL_WARMUP_MAX_OUTPUT_TOKENS = 8
+private const val LOCAL_WARMUP_PROMPT = "你好"
+
 internal interface LanLlmPredictionBackend {
     suspend fun predict(
         config: LanLlmPrefs.Config,
         request: LanLlmPredictor.Request,
         onPartialText: ((String) -> Unit)? = null,
     ): LanLlmClient.PredictionResponse
+}
+
+internal interface WarmablePredictionBackend {
+    fun prewarm(config: LanLlmPrefs.Config)
 }
 
 internal data class LocalLanLlmPredictionRequest(
@@ -19,12 +27,28 @@ internal data class LocalLanLlmPredictionRequest(
     val historyText: String,
     val maxPredictionCandidates: Int,
     val maxOutputTokens: Int,
+    val outputMode: LanLlmOutputMode,
+    val taskMode: LanLlmTaskMode,
+    val enableThinking: Boolean,
 )
 
 internal interface LocalLanLlmRuntime {
     fun isAvailable(): Boolean
 
     fun predict(request: LocalLanLlmPredictionRequest): List<String>
+
+    fun prewarm(request: LocalLanLlmPredictionRequest)
+}
+
+internal fun optimizedLocalMaxOutputTokens(
+    config: LanLlmPrefs.Config,
+    request: LanLlmPredictor.Request,
+): Int = when {
+    request.outputMode == LanLlmOutputMode.Suggestions &&
+        request.taskMode == LanLlmTaskMode.Completion ->
+        minOf(config.maxOutputTokens, LOCAL_SUGGESTION_MAX_OUTPUT_TOKENS)
+
+    else -> config.maxOutputTokens
 }
 
 internal class RemoteLanLlmPredictionBackend(
@@ -142,7 +166,27 @@ internal class LocalLanLlmPredictionBackend(
     private val modelManager: LocalLanLlmModelStore = LanLlmLocalModelManager,
     private val resourceManager: LocalLanLlmResourceStore = LanLlmLocalResourceManager,
     private val appContext: android.content.Context,
-) : LanLlmPredictionBackend {
+) : LanLlmPredictionBackend, WarmablePredictionBackend {
+    override fun prewarm(config: LanLlmPrefs.Config) {
+        val model = modelManager.currentModel(appContext) ?: return
+        if (!runtime.isAvailable()) return
+        val resources = resourceManager.prepareRuntimeBundle(appContext, model.file)
+        runtime.prewarm(
+            LocalLanLlmPredictionRequest(
+                modelPath = resources.model.absolutePath,
+                companionDirectory = resources.directory.absolutePath,
+                beforeCursor = LOCAL_WARMUP_PROMPT,
+                recentCommittedText = "",
+                historyText = "",
+                maxPredictionCandidates = 1,
+                maxOutputTokens = LOCAL_WARMUP_MAX_OUTPUT_TOKENS,
+                outputMode = LanLlmOutputMode.Suggestions,
+                taskMode = LanLlmTaskMode.Completion,
+                enableThinking = false,
+            )
+        )
+    }
+
     override suspend fun predict(
         config: LanLlmPrefs.Config,
         request: LanLlmPredictor.Request,
@@ -156,6 +200,7 @@ internal class LocalLanLlmPredictionBackend(
             )
         }
         val resources = resourceManager.prepareRuntimeBundle(appContext, model.file)
+        val maxOutputTokens = optimizedLocalMaxOutputTokens(config, request)
         val suggestions = runtime.predict(
             LocalLanLlmPredictionRequest(
                 modelPath = resources.model.absolutePath,
@@ -164,7 +209,10 @@ internal class LocalLanLlmPredictionBackend(
                 recentCommittedText = request.recentCommittedText,
                 historyText = request.historyText,
                 maxPredictionCandidates = config.maxPredictionCandidates,
-                maxOutputTokens = config.maxOutputTokens,
+                maxOutputTokens = maxOutputTokens,
+                outputMode = request.outputMode,
+                taskMode = request.taskMode,
+                enableThinking = request.enableThinking,
             )
         ).take(
             if (

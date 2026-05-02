@@ -1,5 +1,6 @@
 package org.fxboomk.fcitx5.android.input.predict
 
+import android.util.Log
 import android.content.Context
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -8,6 +9,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+
+private const val TAG = "LanLlmPredictor"
 
 internal enum class LanLlmOutputMode {
     Suggestions,
@@ -60,6 +63,7 @@ internal class LanLlmPredictor(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val requestTracker = RequestTracker()
     private var pendingJob: Job? = null
+    private var prewarmJob: Job? = null
 
     fun request(
         request: Request,
@@ -76,6 +80,7 @@ internal class LanLlmPredictor(
             onResult(emptyList())
             return
         }
+        startPrewarmIfNeeded(config, backend)
 
         pendingJob = scope.launch {
             val runningJob = checkNotNull(coroutineContext[Job])
@@ -128,6 +133,27 @@ internal class LanLlmPredictor(
             } finally {
                 if (pendingJob === runningJob) {
                     pendingJob = null
+                }
+            }
+        }
+    }
+
+    private fun startPrewarmIfNeeded(
+        config: LanLlmPrefs.Config,
+        backend: LanLlmPredictionBackend,
+    ) {
+        val warmable = backend as? WarmablePredictionBackend ?: return
+        if (prewarmJob?.isActive == true) return
+        prewarmJob = scope.launch(Dispatchers.Default) {
+            runCatching {
+                warmable.prewarm(config)
+            }.onFailure { error ->
+                Log.w(TAG, "local prewarm failed: ${error.message}", error)
+            }
+        }.also { job ->
+            job.invokeOnCompletion {
+                if (prewarmJob === job) {
+                    prewarmJob = null
                 }
             }
         }

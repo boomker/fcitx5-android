@@ -360,8 +360,9 @@ The current task is dialogue continuation/autocomplete.
     fun completionAssistantPrefill(
         beforeCursor: String,
         taskMode: LanLlmTaskMode = LanLlmTaskMode.Completion,
+        enableThinking: Boolean = false,
     ): String = buildString {
-        if (beforeCursor.isNotBlank()) {
+        if (beforeCursor.isNotBlank() && !enableThinking) {
             append("<think>\n\n</think>\n\n")
         }
         if (taskMode == LanLlmTaskMode.Completion) {
@@ -376,6 +377,7 @@ The current task is dialogue continuation/autocomplete.
         useRecentCommitBias: Boolean,
         outputMode: LanLlmOutputMode = LanLlmOutputMode.Suggestions,
         taskMode: LanLlmTaskMode = LanLlmTaskMode.Completion,
+        enableThinking: Boolean = false,
     ): String = buildString {
         append("<|im_start|>system\n")
         append(
@@ -399,7 +401,13 @@ The current task is dialogue continuation/autocomplete.
         )
         append("<|im_end|>\n")
         append("<|im_start|>assistant\n")
-        append(completionAssistantPrefill(beforeCursor, taskMode))
+        append(
+            completionAssistantPrefill(
+                beforeCursor = beforeCursor,
+                taskMode = taskMode,
+                enableThinking = enableThinking,
+            )
+        )
     }.trim()
 
     private fun persona(
