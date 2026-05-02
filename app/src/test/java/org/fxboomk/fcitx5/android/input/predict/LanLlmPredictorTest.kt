@@ -6,6 +6,7 @@ package org.fxboomk.fcitx5.android.input.predict
 
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class LanLlmPredictorTest {
@@ -77,5 +78,19 @@ class LanLlmPredictorTest {
                 """{"suggestions":["好的呀","没问题"]}""",
             )
         )
+    }
+
+    @Test
+    fun optimizedLocalContextPayloadDropsHistoryForCompletionSuggestions() {
+        val payload = optimizedLocalContextPayload(
+            LanLlmPredictor.Request(
+                beforeCursor = "你好",
+                recentCommittedText = "这是最近一次上屏的很长内容，用来验证本地建议请求会裁剪上下文",
+                historyText = "这里是一大段历史上下文，当前本地建议模式不应该继续把它塞进 prompt",
+            )
+        )
+
+        assertEquals("", payload.historyText)
+        assertEquals("上屏的很长内容，用来验证本地建议请求会裁剪上下文", payload.recentCommittedText)
     }
 }

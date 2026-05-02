@@ -4,6 +4,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 
 internal const val LOCAL_SUGGESTION_MAX_OUTPUT_TOKENS = 96
+private const val LOCAL_SUGGESTION_CONTEXT_CHARS = 24
 private const val LOCAL_WARMUP_MAX_OUTPUT_TOKENS = 8
 private const val LOCAL_WARMUP_PROMPT = "你好"
 
@@ -49,6 +50,28 @@ internal fun optimizedLocalMaxOutputTokens(
         minOf(config.maxOutputTokens, LOCAL_SUGGESTION_MAX_OUTPUT_TOKENS)
 
     else -> config.maxOutputTokens
+}
+
+internal data class LocalContextPayload(
+    val recentCommittedText: String,
+    val historyText: String,
+)
+
+internal fun optimizedLocalContextPayload(
+    request: LanLlmPredictor.Request,
+): LocalContextPayload = if (
+    request.outputMode == LanLlmOutputMode.Suggestions &&
+    request.taskMode == LanLlmTaskMode.Completion
+) {
+    LocalContextPayload(
+        recentCommittedText = request.recentCommittedText.takeLast(LOCAL_SUGGESTION_CONTEXT_CHARS),
+        historyText = "",
+    )
+} else {
+    LocalContextPayload(
+        recentCommittedText = request.recentCommittedText,
+        historyText = request.historyText,
+    )
 }
 
 internal class RemoteLanLlmPredictionBackend(
@@ -182,7 +205,7 @@ internal class LocalLanLlmPredictionBackend(
                 maxOutputTokens = LOCAL_WARMUP_MAX_OUTPUT_TOKENS,
                 outputMode = LanLlmOutputMode.Suggestions,
                 taskMode = LanLlmTaskMode.Completion,
-                enableThinking = false,
+                enableThinking = true,
             )
         )
     }
@@ -201,13 +224,14 @@ internal class LocalLanLlmPredictionBackend(
         }
         val resources = resourceManager.prepareRuntimeBundle(appContext, model.file)
         val maxOutputTokens = optimizedLocalMaxOutputTokens(config, request)
+        val contextPayload = optimizedLocalContextPayload(request)
         val suggestions = runtime.predict(
             LocalLanLlmPredictionRequest(
                 modelPath = resources.model.absolutePath,
                 companionDirectory = resources.directory.absolutePath,
                 beforeCursor = request.beforeCursor,
-                recentCommittedText = request.recentCommittedText,
-                historyText = request.historyText,
+                recentCommittedText = contextPayload.recentCommittedText,
+                historyText = contextPayload.historyText,
                 maxPredictionCandidates = config.maxPredictionCandidates,
                 maxOutputTokens = maxOutputTokens,
                 outputMode = request.outputMode,

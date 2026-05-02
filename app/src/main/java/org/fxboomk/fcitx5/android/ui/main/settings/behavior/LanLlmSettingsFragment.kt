@@ -402,7 +402,7 @@ class LanLlmSettingsFragment : PaddingPreferenceFragment() {
     private fun showModelGenerationTestDialog() {
         showMultilineTextInputDialog(
             titleRes = R.string.lan_llm_model_test,
-            initialText = "你好，今天",
+            initialText = "今天是五一劳动节",
             onConfirm = ::runModelGenerationTest,
         )
     }
@@ -592,7 +592,7 @@ class LanLlmSettingsFragment : PaddingPreferenceFragment() {
                 maxOutputTokens = minOf(config.maxOutputTokens, 128),
                 outputMode = LanLlmOutputMode.Suggestions,
                 taskMode = LanLlmTaskMode.Completion,
-                enableThinking = false,
+                enableThinking = true,
             )
         )
         return ModelGenerationTestResult(

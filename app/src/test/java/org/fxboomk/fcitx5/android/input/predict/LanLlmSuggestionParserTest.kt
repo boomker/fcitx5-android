@@ -111,6 +111,20 @@ class LanLlmSuggestionParserTest {
     }
 
     @Test
+    fun parseSingleTextStripsLeadingOrphanThinkEndTag() {
+        val raw = """
+            </think>
+
+            我们晚上见。
+        """.trimIndent()
+
+        assertEquals(
+            listOf("我们晚上见。"),
+            LanLlmSuggestionParser.parseSingleText(raw),
+        )
+    }
+
+    @Test
     fun ignoresStructuredGarbageFallbackWhenJsonArrayIsEmpty() {
         val raw = """
             {"id":"chatcmpl","choices":[{"message":{"content":"```json\n{\n  \"suggestions\": []\n}\n```￾stats:15;75.6597","role":"assistant"}}]}

@@ -82,6 +82,7 @@ object LanLlmSuggestionParser {
             .replace("<|im_end|>", "")
             .replace("<|endoftext|>", "")
             .trim()
+        text = normalizeGeneratedThinkArtifacts(text)
         if (text.startsWith("\"") && text.endsWith("\"") && text.length > 1 && !text.contains('\n')) {
             text = text.substring(1, text.lastIndex)
         }
@@ -556,4 +557,12 @@ object LanLlmSuggestionParser {
         }
         return sb.toString()
     }
+}
+
+internal fun normalizeGeneratedThinkArtifacts(raw: String): String {
+    var text = raw.trim()
+    if (text.startsWith("</think>")) {
+        text = text.removePrefix("</think>").trimStart()
+    }
+    return text
 }

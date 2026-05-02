@@ -410,6 +410,115 @@ The current task is dialogue continuation/autocomplete.
         )
     }.trim()
 
+    internal fun localOnDevicePrompt(
+        beforeCursor: String,
+        recentCommittedText: String,
+        historyText: String,
+        maxPredictionCandidates: Int,
+        outputMode: LanLlmOutputMode = LanLlmOutputMode.Suggestions,
+        taskMode: LanLlmTaskMode = LanLlmTaskMode.Completion,
+    ): String = buildString {
+        append("<|im_start|>system\n")
+        append(
+            localOnDeviceSystemPrompt(
+                beforeCursor = beforeCursor,
+                maxPredictionCandidates = maxPredictionCandidates,
+                outputMode = outputMode,
+                taskMode = taskMode,
+            )
+        )
+        append("<|im_end|>\n")
+        append("<|im_start|>user\n")
+        append(
+            localOnDeviceUserPrompt(
+                beforeCursor = beforeCursor,
+                recentCommittedText = recentCommittedText,
+                historyText = historyText,
+                outputMode = outputMode,
+                taskMode = taskMode,
+            )
+        )
+        append("<|im_end|>\n")
+        append("<|im_start|>assistant\n")
+        append(localOnDeviceAssistantPrefill(beforeCursor, taskMode))
+    }.trim()
+
+    private fun localOnDeviceAssistantPrefill(
+        beforeCursor: String,
+        taskMode: LanLlmTaskMode = LanLlmTaskMode.Completion,
+    ): String = buildString {
+        if (taskMode == LanLlmTaskMode.Completion) {
+            append(beforeCursor)
+        }
+    }
+
+    private fun localOnDeviceSystemPrompt(
+        beforeCursor: String,
+        maxPredictionCandidates: Int,
+        outputMode: LanLlmOutputMode,
+        taskMode: LanLlmTaskMode,
+    ): String {
+        val candidateLimit = maxPredictionCandidates.coerceIn(1, 8)
+        return when (LanLlmLanguageDetector.detect(beforeCursor)) {
+            LanLlmLanguage.Chinese -> when {
+                taskMode == LanLlmTaskMode.Translate ->
+                    "你是输入法翻译助手。把输入翻译成自然英文，只输出译文本身，不解释。"
+
+                taskMode == LanLlmTaskMode.QuestionAnswer && outputMode == LanLlmOutputMode.LongForm ->
+                    "你是输入法应答助手。把输入当作问题或请求，输出 1 条自然、完整、可直接发送的中文长回答，不解释。"
+
+                taskMode == LanLlmTaskMode.QuestionAnswer ->
+                    "你是输入法应答助手。把输入当作问题或请求，输出 1 条简短、自然、可直接发送的中文回答，不解释。"
+
+                outputMode == LanLlmOutputMode.LongForm ->
+                    "你是中文输入法续写助手。只输出前缀后的一条自然续写，不重复前缀，不解释。"
+
+                else ->
+                    "你是中文输入法续写助手。根据前缀补全后续内容。输出最多 $candidateLimit 个候选，每个候选至少要有两个字符, 每行一个，不解释。"
+            }
+
+            LanLlmLanguage.English -> when {
+                taskMode == LanLlmTaskMode.Translate ->
+                    "You are an IME translator. Translate the input into natural Chinese and output only the translation."
+
+                taskMode == LanLlmTaskMode.QuestionAnswer && outputMode == LanLlmOutputMode.LongForm ->
+                    "You are an IME reply assistant. Treat the input as a request and output one natural longer reply only."
+
+                taskMode == LanLlmTaskMode.QuestionAnswer ->
+                    "You are an IME reply assistant. Treat the input as a request and output one concise reply only."
+
+                outputMode == LanLlmOutputMode.LongForm ->
+                    "You are an English IME continuation assistant. Output one natural continuation after the prefix only."
+
+                else ->
+                    "You are an English IME continuation assistant. Output up to $candidateLimit continuations after the prefix, one per line, with no explanation."
+            }
+        }
+    }
+
+    private fun localOnDeviceUserPrompt(
+        beforeCursor: String,
+        recentCommittedText: String,
+        historyText: String,
+        outputMode: LanLlmOutputMode,
+        taskMode: LanLlmTaskMode,
+    ): String = buildString {
+        if (historyText.isNotBlank()) {
+            append("历史：").append(historyText.trim()).append('\n')
+        }
+        if (recentCommittedText.isNotBlank()) {
+            append("最近上屏：").append(recentCommittedText.trim()).append('\n')
+        }
+        append(
+            when {
+                taskMode == LanLlmTaskMode.Translate -> "输入："
+                taskMode == LanLlmTaskMode.QuestionAnswer -> "问题："
+                else -> "前缀："
+            }
+        )
+        append(beforeCursor.trim())
+    }
+
     private fun persona(
         language: LanLlmLanguage,
         taskMode: LanLlmTaskMode,

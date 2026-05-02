@@ -240,6 +240,44 @@ class LanLlmPromptTest {
     }
 
     @Test
+    fun localOnDevicePromptIsShorterThanStructuredCompletionPrompt() {
+        val compact = LanLlmPrompt.localOnDevicePrompt(
+            beforeCursor = "今天是五一劳动节",
+            recentCommittedText = "",
+            historyText = "",
+            maxPredictionCandidates = 1,
+        )
+        val structured = LanLlmPrompt.completionPrompt(
+            beforeCursor = "今天是五一劳动节",
+            recentCommittedText = "",
+            historyText = "",
+            useRecentCommitBias = false,
+        )
+
+        assertTrue(compact.length < structured.length)
+        assertTrue(compact.contains("中文输入法续写助手"))
+        assertTrue(!compact.contains("<history>"))
+        assertTrue(!compact.contains("<think>"))
+        assertTrue(!compact.contains("</think>"))
+        assertTrue(compact.contains("前缀：今天是五一劳动节"))
+    }
+
+    @Test
+    fun localOnDeviceQuestionAnswerPromptAlsoOmitsThinkTags() {
+        val prompt = LanLlmPrompt.localOnDevicePrompt(
+            beforeCursor = "今晚吃什么？",
+            recentCommittedText = "中午刚吃了面",
+            historyText = "同事在讨论晚饭",
+            maxPredictionCandidates = 1,
+            taskMode = LanLlmTaskMode.QuestionAnswer,
+        )
+
+        assertTrue(!prompt.contains("<think>"))
+        assertTrue(!prompt.contains("</think>"))
+        assertTrue(prompt.contains("问题：今晚吃什么？"))
+    }
+
+    @Test
     fun userPromptUsesTranslatorPersonaAndEnglishSpacingInstructionForChineseTranslateMode() {
         val prompt = LanLlmPrompt.userPrompt(
             beforeCursor = "今天晚上一起吃饭吗？",

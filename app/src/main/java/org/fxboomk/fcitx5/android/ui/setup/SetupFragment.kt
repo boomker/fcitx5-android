@@ -12,7 +12,6 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import org.fxboomk.fcitx5.android.databinding.FragmentSetupBinding
 import org.fxboomk.fcitx5.android.ui.setup.SetupPage.Companion.isLastPage
-import org.fxboomk.fcitx5.android.utils.serializable
 
 class SetupFragment : Fragment() {
 
@@ -20,7 +19,10 @@ class SetupFragment : Fragment() {
 
     private lateinit var binding: FragmentSetupBinding
 
-    private val page: SetupPage by lazy { requireArguments().serializable(PAGE)!! }
+    private val page: SetupPage by lazy {
+        requireArguments().getString(PAGE)?.let(SetupPage::valueOf)
+            ?: error("Missing setup page argument")
+    }
 
     private var isDone: Boolean = false
         set(value) {

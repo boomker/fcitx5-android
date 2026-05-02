@@ -121,6 +121,7 @@ class AiSuggestionStripComponent(
     private var taskMode = LanLlmTaskMode.Completion
     private var longFormEnabled = false
     private var thinkingEnabled = false
+    private var thinkingModeRuntime: LanLlmPrefs.Runtime? = null
     private var pseudoStreamToken = 0L
     private var pseudoStreamRunnable: Runnable? = null
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -147,6 +148,7 @@ class AiSuggestionStripComponent(
         recentCommittedSegments.clear()
         anchorState = null
         longFormEnabled = false
+        thinkingModeRuntime = null
         resetPanelContentState()
         clearSuggestions(resetRequestState = true)
         requestPredictionIfNeeded()
@@ -277,6 +279,7 @@ class AiSuggestionStripComponent(
         trigger: PredictionTrigger,
     ): Boolean {
         if (beforeCursor.isBlank()) return false
+        syncThinkingModeForRuntime(config)
 
         val request = LanLlmPredictor.Request(
             beforeCursor = beforeCursor,
@@ -411,6 +414,7 @@ class AiSuggestionStripComponent(
         }
 
         val config = LanLlmPrefs.read(service.applicationContext)
+        syncThinkingModeForRuntime(config)
         if (isAutomatic && !config.autoPredictEnabled) {
             Log.d(TAG, "skip request auto prediction disabled")
             clearSuggestions(resetRequestState = true)
@@ -694,6 +698,12 @@ class AiSuggestionStripComponent(
         )
     }
 
+    private fun syncThinkingModeForRuntime(config: LanLlmPrefs.Config) {
+        if (thinkingModeRuntime == config.runtime) return
+        thinkingEnabled = config.isLocalOnDevice
+        thinkingModeRuntime = config.runtime
+    }
+
     private fun refreshPredictionsForModeToggle() {
         lastRequestedBeforeCursor = ""
         activeSuggestions = activeSuggestions.take(currentSuggestionLimit())
@@ -808,6 +818,7 @@ class AiSuggestionStripComponent(
         config: LanLlmPrefs.Config,
         trigger: PredictionTrigger,
     ): Boolean {
+        syncThinkingModeForRuntime(config)
         val inputSnapshot = fetchEntireInputText(config)
         val sourceText = inputSnapshot.text.trim()
         if (sourceText.isBlank()) {
@@ -902,6 +913,7 @@ class AiSuggestionStripComponent(
         config: LanLlmPrefs.Config,
         trigger: PredictionTrigger,
     ): Boolean {
+        syncThinkingModeForRuntime(config)
         val request = LanLlmPredictor.Request(
             beforeCursor = beforeCursor,
             recentCommittedText = if (config.preferLastCommit) lastCommittedText.takeLast(config.maxContextChars) else "",
