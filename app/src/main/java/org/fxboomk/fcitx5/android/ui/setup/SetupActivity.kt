@@ -15,7 +15,6 @@ import android.widget.Button
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.core.app.NotificationCompat
-import androidx.core.os.bundleOf
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
@@ -55,12 +54,12 @@ class SetupActivity : FragmentActivity() {
         }
         prevButton = binding.prevButton.apply {
             text = getString(R.string.prev)
-            setOnClickListener { viewPager.currentItem = viewPager.currentItem - 1 }
+            setOnClickListener { viewPager.currentItem -= 1 }
         }
         nextButton = binding.nextButton.apply {
             setOnClickListener {
                 if (viewPager.currentItem != SetupPage.entries.size - 1)
-                    viewPager.currentItem = viewPager.currentItem + 1
+                    viewPager.currentItem += 1
                 else finish()
             }
         }
@@ -68,10 +67,7 @@ class SetupActivity : FragmentActivity() {
             adapter = Adapter()
             registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
                 override fun onPageSelected(position: Int) {
-                    // manually call following observer when page changed
-                    // intentionally before changing the text of nextButton
                     viewModel.isAllDone.value = viewModel.isAllDone.value
-                    // hide prev button for the first page
                     prevButton.visibility = if (position != 0) View.VISIBLE else View.GONE
                     nextButton.text =
                         getString(if (position.isLastPage()) R.string.done else R.string.next)
@@ -83,13 +79,11 @@ class SetupActivity : FragmentActivity() {
                 visibility = if (allDone) View.GONE else View.VISIBLE
             }
             nextButton.apply {
-                // hide next button for the last page when allDone == false
                 (allDone || !viewPager.currentItem.isLastPage()).let {
                     visibility = if (it) View.VISIBLE else View.GONE
                 }
             }
         }
-        // skip to undone page
         firstUndonePage()?.let { viewPager.currentItem = it.ordinal }
         shown = true
         createNotificationChannel()
@@ -144,7 +138,9 @@ class SetupActivity : FragmentActivity() {
 
         override fun createFragment(position: Int): Fragment =
             SetupFragment().apply {
-                arguments = Bundle().apply { putString(SetupFragment.PAGE, SetupPage.valueOf(position).name) }
+                arguments = Bundle().apply {
+                    putString(SetupFragment.PAGE, SetupPage.valueOf(position).name)
+                }
             }
     }
 

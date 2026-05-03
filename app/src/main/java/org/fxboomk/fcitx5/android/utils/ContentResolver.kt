@@ -11,13 +11,8 @@ import android.provider.OpenableColumns
 import timber.log.Timber
 
 fun ContentResolver.queryFileName(uri: Uri): String? = runCatching {
-    query(uri, null, null, null, null)?.use {
-        val index = it.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-        if (index == -1 || !it.moveToFirst()) {
-            null
-        } else {
-            it.getString(index)
-        }
+    query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use {
+        if (it.moveToFirst() && !it.isNull(0)) it.getString(0) else null
     }
 }.onFailure { error ->
     Timber.w(error, "Failed to query file name for uri: %s", uri)

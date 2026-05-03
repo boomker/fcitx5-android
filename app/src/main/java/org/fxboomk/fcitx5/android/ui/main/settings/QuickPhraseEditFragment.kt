@@ -86,7 +86,6 @@ class QuickPhraseEditFragment : ProgressFragment(), OnItemChangedListener<QuickP
                     .show()
                     .onPositiveButtonClick onClick@{
                         val keyword = keywordField.str.trim()
-                        // "keyword" cannot contain any black characters
                         if (keyword.isBlank()) {
                             keywordField.error = getString(
                                 R.string._cannot_be_empty,
@@ -97,7 +96,6 @@ class QuickPhraseEditFragment : ProgressFragment(), OnItemChangedListener<QuickP
                         } else {
                             keywordField.error = null
                         }
-                        // "phrase" may contain blank characters
                         val phrase = phraseField.str
                         if (phrase.isEmpty()) {
                             phraseField.error = getString(
@@ -125,9 +123,6 @@ class QuickPhraseEditFragment : ProgressFragment(), OnItemChangedListener<QuickP
         return ui.root
     }
 
-    // The dustman didn't work well in this case,
-    // as one key may map to many phrases
-
     override fun onItemAdded(idx: Int, item: QuickPhraseEntry) {
         dustman.addOrUpdate(item.serialize(), item)
     }
@@ -150,8 +145,10 @@ class QuickPhraseEditFragment : ProgressFragment(), OnItemChangedListener<QuickP
         lifecycleScope.launch(NonCancellable + Dispatchers.IO) {
             quickPhrase.saveData(QuickPhraseData(ui.entries))
             launch(Dispatchers.Main) {
-                // tell parent that we need to reload
-                parentFragmentManager.setFragmentResult(RESULT, Bundle().apply { putParcelable(RESULT, quickPhrase) })
+                parentFragmentManager.setFragmentResult(
+                    RESULT,
+                    Bundle().apply { putParcelable(RESULT, quickPhrase) }
+                )
             }
         }
     }
@@ -189,5 +186,4 @@ class QuickPhraseEditFragment : ProgressFragment(), OnItemChangedListener<QuickP
     companion object {
         const val RESULT = "dirty"
     }
-
 }

@@ -155,7 +155,10 @@ class ListFragment : Fragment() {
 
     override fun onDestroy() {
         val items = Array(ui.entries.size) { RawConfig("$it", ui.entries[it]!!.toString()) }
-        parentFragmentManager.setFragmentResult(descriptor.name, Bundle().apply { putParcelableArray(descriptor.name, items) })
+        parentFragmentManager.setFragmentResult(
+            descriptor.name,
+            Bundle().apply { putParcelableArray(descriptor.name, items) }
+        )
         super.onDestroy()
     }
 
