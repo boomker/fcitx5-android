@@ -10,25 +10,21 @@ import android.view.ViewGroup
 import android.view.View.MeasureSpec
 import android.graphics.drawable.ShapeDrawable
 import android.graphics.drawable.shapes.RectShape
-import android.widget.PopupMenu
 import androidx.core.text.bold
 import androidx.core.text.buildSpannedString
 import androidx.core.text.color
 import androidx.core.view.updateLayoutParams
-import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.flexbox.FlexboxLayoutManager
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.core.FcitxEvent
 import org.fxboomk.fcitx5.android.core.FcitxEvent.PagedCandidateEvent
 import org.fxboomk.fcitx5.android.daemon.launchOnReady
-import org.fxboomk.fcitx5.android.data.InputFeedbacks
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.input.bar.ExpandButtonStateMachine.BooleanKey.ExpandedCandidatesEmpty
 import org.fxboomk.fcitx5.android.input.bar.ExpandButtonStateMachine.TransitionEvent.ExpandedCandidatesUpdated
@@ -43,12 +39,11 @@ import org.fxboomk.fcitx5.android.input.candidates.horizontal.HorizontalCandidat
 import org.fxboomk.fcitx5.android.input.dependency.UniqueViewComponent
 import org.fxboomk.fcitx5.android.input.dependency.context
 import org.fxboomk.fcitx5.android.input.dependency.fcitx
+import org.fxboomk.fcitx5.android.input.dependency.inputView
 import org.fxboomk.fcitx5.android.input.dependency.inputMethodService
 import org.fxboomk.fcitx5.android.input.dependency.theme
-import org.fxboomk.fcitx5.android.utils.item
 import org.mechdancer.dependency.manager.must
 import splitties.dimensions.dp
-import splitties.resources.styledColor
 import java.util.ArrayDeque
 import kotlin.math.max
 
@@ -58,6 +53,7 @@ class HorizontalCandidateComponent :
     private val service by manager.inputMethodService()
     private val context by manager.context()
     private val fcitx by manager.fcitx()
+    private val inputView by manager.inputView()
     private val theme by manager.theme()
     private val bar: KawaiiBarComponent by manager.must()
 
@@ -262,7 +258,7 @@ class HorizontalCandidateComponent :
                     fcitx.launchOnReady { it.select(holder.idx) }
                 }
                 holder.itemView.setOnLongClickListener {
-                    showCandidateActionMenu(holder)
+                    inputView.showCandidateActionMenu(holder.idx, holder.text, holder.ui.root)
                     true
                 }
             }
@@ -397,42 +393,7 @@ class HorizontalCandidateComponent :
         }
     }
 
-    private fun triggerCandidateAction(idx: Int, actionIdx: Int) {
-        fcitx.runIfReady { triggerCandidateAction(idx, actionIdx) }
-    }
-
-    private var candidateActionMenu: PopupMenu? = null
-
     fun showCandidateActionMenu(holder: CandidateViewHolder) {
-        val idx = holder.idx
-        val text = holder.text
-        val view = holder.ui.root
-        candidateActionMenu?.dismiss()
-        candidateActionMenu = null
-        service.lifecycleScope.launch {
-            val actions = fcitx.runOnReady { getCandidateActions(idx) }
-            if (actions.isEmpty()) return@launch
-            InputFeedbacks.hapticFeedback(view, longPress = true)
-            candidateActionMenu = PopupMenu(context, view).apply {
-                menu.add(buildSpannedString {
-                    bold {
-                        color(context.styledColor(android.R.attr.colorAccent)) {
-                            append(text)
-                        }
-                    }
-                }).apply {
-                    isEnabled = false
-                }
-                actions.forEach { action ->
-                    menu.item(action.text) {
-                        triggerCandidateAction(idx, action.id)
-                    }
-                }
-                setOnDismissListener {
-                    candidateActionMenu = null
-                }
-                show()
-            }
-        }
+        inputView.showCandidateActionMenu(holder.idx, holder.text, holder.ui.root)
     }
 }

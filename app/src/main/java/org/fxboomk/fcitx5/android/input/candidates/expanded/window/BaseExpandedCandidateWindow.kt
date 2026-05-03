@@ -30,6 +30,7 @@ import org.fxboomk.fcitx5.android.input.candidates.expanded.PagingCandidateViewA
 import org.fxboomk.fcitx5.android.input.candidates.horizontal.HorizontalCandidateComponent
 import org.fxboomk.fcitx5.android.input.dependency.fcitx
 import org.fxboomk.fcitx5.android.input.dependency.inputMethodService
+import org.fxboomk.fcitx5.android.input.dependency.inputView
 import org.fxboomk.fcitx5.android.input.dependency.theme
 import org.fxboomk.fcitx5.android.input.keyboard.CommonKeyActionListener
 import org.fxboomk.fcitx5.android.input.keyboard.KeyAction
@@ -47,6 +48,7 @@ abstract class BaseExpandedCandidateWindow<T : BaseExpandedCandidateWindow<T>> :
     protected val service by manager.inputMethodService()
     protected val theme by manager.theme()
     protected val fcitx by manager.fcitx()
+    protected val inputView by manager.inputView()
     private val commonKeyActionListener: CommonKeyActionListener by manager.must()
     private val bar: KawaiiBarComponent by manager.must()
     private val horizontalCandidate: HorizontalCandidateComponent by manager.must()
@@ -144,7 +146,7 @@ abstract class BaseExpandedCandidateWindow<T : BaseExpandedCandidateWindow<T>> :
             fcitx.launchOnReady { it.select(holder.idx) }
         }
         holder.itemView.setOnLongClickListener {
-            horizontalCandidate.showCandidateActionMenu(holder)
+            inputView.showCandidateActionMenu(holder.idx, holder.text, holder.ui.root)
             true
         }
     }
