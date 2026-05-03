@@ -197,6 +197,15 @@ class InputDeviceManager(
         return !isVirtualKeyboard && !startedInputView
     }
 
+    /**
+     * Should be called whenever active input method changes,
+     * eg. focus in/out, editor capability flag changes, user presses the shortcut, and so on...
+     * @return should update status icon for this change
+     */
+    fun evaluateOnInputMethodActivate(): Boolean {
+        return startedInputView && !isVirtualKeyboard
+    }
+
     fun onFinishInputView() {
         startedInputView = false
     }

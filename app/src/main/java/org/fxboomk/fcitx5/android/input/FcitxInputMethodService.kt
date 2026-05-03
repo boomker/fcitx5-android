@@ -148,6 +148,11 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         floatingModeProvider = {
             AppPrefs.getInstance().candidates.mode.getValue()
         }
+        if (isVirtualKeyboard) {
+            hideStatusIcon()
+        } else {
+            showStatusIcon(StatusIconMapping.fromEntry(fcitx.runImmediately { inputMethodEntryCached }))
+        }
     )
 
     /**
@@ -171,6 +176,11 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             updateCandidatesViewPagingAndBounds()
         }
         refreshCursorAnchorMonitoring()
+        if (inputDeviceManager.isVirtualKeyboard) {
+            hideStatusIcon()
+        } else {
+            showStatusIcon(StatusIconMapping.fromEntry(fcitx.runImmediately { inputMethodEntryCached }))
+        }
         // Re-configure InputView and CandidatesView based on the new mode
         inputDeviceManager.onFloatingModeChanged()
     }
@@ -553,6 +563,9 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
                     skipNextSubtypeChange = im
                     // [^1]: notify system that input method subtype has changed
                     switchInputMethod(InputMethodUtil.componentName, subtype)
+                }
+                if (inputDeviceManager.evaluateOnInputMethodActivate()) {
+                    showStatusIcon(StatusIconMapping.fromEntry(event.data))
                 }
                 // Update space key label in "Always" floating mode
                 inputView?.updateSpaceLabelOnFloatingMode()
@@ -1335,6 +1348,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
                 isInInputLifecycleCriticalPhase = false
                 applyPendingThemeIfPossible()
             }
+            showStatusIcon(StatusIconMapping.fromEntry(fcitx.runImmediately { inputMethodEntryCached }))
         }
     }
 
@@ -1611,6 +1625,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         postFcitxSessionJob(inputSessionGeneration) {
             focusOutIn()
         }
+        hideStatusIcon()
         showingDialog?.dismiss()
     }
 
