@@ -10,7 +10,6 @@ import android.view.View
 import android.view.inputmethod.EditorInfo
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.fxboomk.fcitx5.android.R
@@ -142,14 +141,15 @@ class QuickPhraseEditFragment : ProgressFragment(), OnItemChangedListener<QuickP
     private fun saveConfig() {
         if (!dustman.dirty) return
         resetDustman()
-        lifecycleScope.launch(NonCancellable + Dispatchers.IO) {
-            quickPhrase.saveData(QuickPhraseData(ui.entries))
-            launch(Dispatchers.Main) {
-                parentFragmentManager.setFragmentResult(
-                    RESULT,
-                    Bundle().apply { putParcelable(RESULT, quickPhrase) }
-                )
+        lifecycleScope.launch {
+            withContext(Dispatchers.IO) {
+                quickPhrase.saveData(QuickPhraseData(ui.entries))
             }
+            // tell parent that we need to reload
+            parentFragmentManager.setFragmentResult(
+                RESULT,
+                Bundle().apply { putParcelable(RESULT, quickPhrase) }
+            )
         }
     }
 
