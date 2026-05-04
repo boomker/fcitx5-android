@@ -7,6 +7,10 @@ import java.io.File
 import java.io.FileOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.utils.queryFileName
 
@@ -104,8 +108,12 @@ internal object LanLlmLocalModelManager : LocalLanLlmModelStore {
         url: String,
         displayNameOverride: String? = null,
     ): InstalledModel {
-        val normalizedUrl = url.trim()
+        val resolved = resolveModelUrl(url)
+        val normalizedUrl = resolved.url.trim()
         require(normalizedUrl.isNotBlank()) { "Model URL is empty" }
+        if (resolved.isBundle) {
+            return downloadBundleModel(context, resolved.modelId, resolved.resourcePath, displayNameOverride)
+        }
         val fileName = extractFileNameFromUrl(normalizedUrl).ifBlank { "downloaded-model.onnx" }
         val displayName = displayNameOverride?.trim().orEmpty().ifBlank { fileName }
         val target = stagingFile(modelDirectory(context), displayName)
@@ -118,6 +126,211 @@ internal object LanLlmLocalModelManager : LocalLanLlmModelStore {
             FileOutputStream(target).use { output -> input.copyTo(output) }
         }
         return installModel(context, target, displayName, Source.Downloaded)
+    }
+
+    private data class ResolvedModelUrl(
+        val url: String,
+        val modelId: String,
+        val isBundle: Boolean,
+        val resourcePath: String,
+    )
+
+    private fun resolveModelUrl(input: String): ResolvedModelUrl {
+        val trimmed = input.trim()
+        if (trimmed.isBlank()) return ResolvedModelUrl(trimmed, "", false, "")
+        if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+            val modelId = extractModelIdFromUrl(trimmed)
+            val isBundle = isBundleModelUrl(trimmed)
+            val resourcePath = trimmed.substringAfter("/resolve/main").substringBeforeLast("/")
+            return ResolvedModelUrl(trimmed, modelId, isBundle, resourcePath)
+        }
+        val modelId = trimmed.removePrefix("@")
+        val detected = detectModelPath(modelId)
+        val modelUrl = "https://huggingface.co/$modelId/resolve/main${detected.resourcePath}/model.onnx"
+        return ResolvedModelUrl(modelUrl, modelId, detected.isBundle, detected.resourcePath)
+    }
+
+    private data class ModelPathInfo(
+        val resourcePath: String,
+        val isBundle: Boolean,
+    )
+
+    private fun detectModelPath(modelId: String): ModelPathInfo {
+        return runCatching {
+            val hfApiUrl = "https://huggingface.co/api/repos/tree/main/$modelId"
+            val connection = URL(hfApiUrl).openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"
+            connection.setRequestProperty("Accept", "application/json")
+            connection.connectTimeout = 10_000
+            connection.readTimeout = 10_000
+            val responseCode = connection.responseCode
+            if (responseCode == 200) {
+                val body = connection.inputStream.bufferedReader().readText()
+                val paths = mutableSetOf<String>()
+                collectPathsRecursive(modelId, body, paths, 0)
+                when {
+                    paths.contains("onnxruntime/cpu_and_mobile/cpu-int4-kld-block-128/model.onnx") ->
+                        ModelPathInfo("/onnxruntime/cpu_and_mobile/cpu-int4-kld-block-128", false)
+                    paths.contains("onnx/decoder_model_merged.onnx") ||
+                    paths.contains("onnx/decoder_model_merged_q4.onnx") ||
+                    paths.contains("onnx/decoder_model_merged_quantized.onnx") ->
+                        ModelPathInfo("/onnx", true)
+                    else -> ModelPathInfo("", false)
+                }
+            } else {
+                ModelPathInfo("", false)
+            }
+        }.getOrElse { ModelPathInfo("", false) }
+    }
+
+    private fun collectPathsRecursive(modelId: String, body: String, paths: MutableSet<String>, depth: Int) {
+        if (depth > 3) return
+        try {
+            val jsonArray = if (body.startsWith("[")) {
+                Json.parseToJsonElement(body).jsonArray
+            } else {
+                Json.parseToJsonElement(body).jsonObject["children"]?.jsonArray
+            }
+            jsonArray?.forEach { element ->
+                val type = element.jsonObject["type"]?.jsonPrimitive?.content
+                val path = element.jsonObject["path"]?.jsonPrimitive?.content
+                    ?: element.jsonObject["name"]?.jsonPrimitive?.content
+                if (path != null) {
+                    paths.add(path)
+                    if (type == "directory" && (path == "onnx" || path.startsWith("onnxruntime/"))) {
+                        val subDirUrl = "https://huggingface.co/api/repos/tree/main/$modelId/$path"
+                        runCatching {
+                            val subConn = URL(subDirUrl).openConnection() as HttpURLConnection
+                            subConn.requestMethod = "GET"
+                            subConn.setRequestProperty("Accept", "application/json")
+                            subConn.connectTimeout = 5_000
+                            subConn.readTimeout = 5_000
+                            if (subConn.responseCode == 200) {
+                                collectPathsRecursive(modelId, subConn.inputStream.bufferedReader().readText(), paths, depth + 1)
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (_: Exception) {
+        }
+    }
+
+    private fun extractModelIdFromUrl(url: String): String {
+        return runCatching {
+            val path = URL(url).path
+            val parts = path.split("/").filter { it.isNotBlank() }
+            if (parts.size >= 2 && parts[parts.size - 3] == "resolve" && parts[parts.size - 4] == "main") {
+                parts.dropLast(4).joinToString("/")
+            } else if (parts.size >= 2) {
+                parts.takeLast(2).joinToString("/")
+            } else {
+                ""
+            }
+        }.getOrDefault("")
+    }
+
+    private fun isBundleModelUrl(url: String): Boolean {
+        return runCatching {
+            val baseUrl = url.substringBefore("/resolve/").substringBeforeLast("/")
+            val hfApiUrl = "${baseUrl.replace("https://huggingface.co", "https://huggingface.co/api")}/tree/main/onnxruntime/cpu_and_mobile/cpu-int4-kld-block-128"
+            val connection = URL(hfApiUrl).openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"
+            connection.setRequestProperty("Accept", "application/json")
+            connection.connectTimeout = 10_000
+            connection.readTimeout = 10_000
+            val responseCode = connection.responseCode
+            if (responseCode == 200) {
+                val body = connection.inputStream.bufferedReader().readText()
+                val filenames = mutableListOf<String>()
+                val jsonArray = if (body.startsWith("[")) {
+                    Json.parseToJsonElement(body).jsonArray
+                } else {
+                    Json.parseToJsonElement(body).jsonObject["children"]?.jsonArray
+                }
+                jsonArray?.forEach { element ->
+                    val name = element.jsonObject["path"]?.jsonPrimitive?.content
+                        ?: element.jsonObject["name"]?.jsonPrimitive?.content
+                    name?.let { filenames.add(it) }
+                }
+                filenames.containsAll(listOf("model.onnx", "tokenizer.json", "tokenizer_config.json", "config.json", "genai_config.json"))
+            } else {
+                false
+            }
+        }.getOrDefault(false)
+    }
+
+    private fun downloadBundleModel(
+        context: Context,
+        modelId: String,
+        resourcePath: String,
+        displayNameOverride: String?,
+    ): InstalledModel {
+        val displayName = displayNameOverride?.trim().orEmpty().ifBlank { modelId.substringAfterLast("/") }
+        val bundleDir = File(modelDirectory(context), sanitizeFileName(displayName))
+        bundleDir.mkdirs()
+        val allPaths = mutableSetOf<String>()
+        collectAllModelPaths(modelId, allPaths)
+        val basePath = resourcePath.removePrefix("/")
+        val onnxFiles = allPaths.filter { it.startsWith(basePath) && it.endsWith(".onnx") }
+        val onnxDataFiles = allPaths.filter { it.startsWith(basePath) && it.endsWith(".onnx_data") }
+        if (onnxFiles.isEmpty()) error("No ONNX model files found in repository")
+        val firstOnnx = onnxFiles.first()
+        val modelBaseName = firstOnnx.substringAfterLast("/").substringBeforeLast(".")
+        val modelRelatedFiles = (onnxFiles + onnxDataFiles).filter {
+            val name = it.substringAfterLast("/")
+            name.startsWith(modelBaseName) || name.contains("embed_tokens") || name.contains("vision_encoder")
+        }
+        val configFiles = listOf("tokenizer.json", "tokenizer_config.json", "config.json", "genai_config.json")
+        val filesToDownload = (modelRelatedFiles + configFiles).distinct()
+        filesToDownload.forEach { fileName ->
+            val fileUrl = "https://huggingface.co/$modelId/resolve/main$resourcePath/$fileName"
+            val targetFile = File(bundleDir, fileName)
+            if (targetFile.exists() && targetFile.length() > 0L) return@forEach
+            runCatching {
+                val connection = (URL(fileUrl).openConnection() as HttpURLConnection).apply {
+                    connectTimeout = 15_000
+                    readTimeout = 60_000
+                    instanceFollowRedirects = true
+                }
+                connection.inputStream.use { input ->
+                    FileOutputStream(targetFile).use { output -> input.copyTo(output) }
+                }
+            }
+        }
+        val modelFile = File(bundleDir, firstOnnx)
+        require(modelFile.exists() && modelFile.length() > 0L) { "Bundle download failed: model file not found" }
+        return persistModel(context, modelFile, displayName, Source.Downloaded, CompatibilityInfo(Compatibility.Unknown))
+    }
+
+    private fun collectAllModelPaths(modelId: String, paths: MutableSet<String>) {
+        runCatching {
+            val hfApiUrl = "https://huggingface.co/api/repos/tree/main/$modelId"
+            val connection = URL(hfApiUrl).openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"
+            connection.setRequestProperty("Accept", "application/json")
+            connection.connectTimeout = 5_000
+            connection.readTimeout = 5_000
+            if (connection.responseCode == 200) {
+                val body = connection.inputStream.bufferedReader().readText()
+                val jsonArray = if (body.startsWith("[")) {
+                    Json.parseToJsonElement(body).jsonArray
+                } else {
+                    Json.parseToJsonElement(body).jsonObject["children"]?.jsonArray
+                }
+                jsonArray?.forEach { element ->
+                    val type = element.jsonObject["type"]?.jsonPrimitive?.content
+                    val path = element.jsonObject["path"]?.jsonPrimitive?.content
+                        ?: element.jsonObject["name"]?.jsonPrimitive?.content
+                    if (path != null) {
+                        paths.add(path)
+                        if (type == "directory" && (path == "onnx" || path.startsWith("onnxruntime/"))) {
+                            collectAllModelPaths("$modelId/$path", paths)
+                        }
+                    }
+                }
+            }
+        }
     }
 
     fun reloadModel(context: Context): InstalledModel {
@@ -133,7 +346,13 @@ internal object LanLlmLocalModelManager : LocalLanLlmModelStore {
     }
 
     fun clearModel(context: Context) {
-        currentModel(context)?.file?.delete()
+        currentModel(context)?.let { model ->
+            model.file.delete()
+            val bundleDir = model.file.parentFile
+            if (bundleDir != null && bundleDir.name != "local-ai" && bundleDir.listFiles()?.isEmpty() == true) {
+                bundleDir.delete()
+            }
+        }
         PreferenceManager.getDefaultSharedPreferences(context)
             .edit()
             .remove(KEY_LOCAL_MODEL_PATH)

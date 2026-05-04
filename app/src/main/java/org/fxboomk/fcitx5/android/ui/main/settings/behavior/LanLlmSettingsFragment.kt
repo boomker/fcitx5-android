@@ -65,7 +65,7 @@ class LanLlmSettingsFragment : PaddingPreferenceFragment() {
 
         private val recommendedLocalModels = listOf(
             RecommendedLocalModel(
-                displayName = "Qwen3-0.6B-ONNX 移动端 int4",
+                displayName = "Qwen3-0.6B-ONNX",
                 description = "已验证可在当前本地运行时加载的推荐模型",
                 downloadUrl = "https://huggingface.co/onnx-community/Qwen3-0.6B-ONNX/resolve/main/onnxruntime/cpu_and_mobile/cpu-int4-kld-block-128/model.onnx",
             )
@@ -481,7 +481,7 @@ class LanLlmSettingsFragment : PaddingPreferenceFragment() {
 
     private fun showRecommendedModelDialog() {
         val ctx = requireContext()
-        val items = recommendedLocalModels.map { "${it.displayName}\n${it.description}" }.toTypedArray()
+        val items = recommendedLocalModels.map { it.displayName }.toTypedArray()
         var selectedIndex = 0
         AlertDialog.Builder(ctx)
             .setTitle(R.string.lan_llm_local_model_import_recommended_title)
