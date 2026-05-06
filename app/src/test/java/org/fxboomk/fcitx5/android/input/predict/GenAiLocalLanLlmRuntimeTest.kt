@@ -38,6 +38,18 @@ class GenAiLocalLanLlmRuntimeTest {
     }
 
     @Test
+    fun localGenerationStopReasonDoesNotStopQuestionAnswerOnFirstNewline() {
+        val request = baseRequest(
+            taskMode = LanLlmTaskMode.QuestionAnswer,
+        )
+
+        assertEquals(
+            null,
+            localGenerationStopReason(request, "思考过程：\n先想一下怎么回答"),
+        )
+    }
+
+    @Test
     fun formatLocalGenerationTelemetryIncludesDetailedFields() {
         val telemetry = GenAiLocalLanLlmRuntime.LocalGenerationTelemetry(
             provider = "CPU",
@@ -108,6 +120,8 @@ class GenAiLocalLanLlmRuntimeTest {
 
     private fun baseRequest(
         maxPredictionCandidates: Int = 1,
+        outputMode: LanLlmOutputMode = LanLlmOutputMode.Suggestions,
+        taskMode: LanLlmTaskMode = LanLlmTaskMode.Completion,
     ): LocalLanLlmPredictionRequest = LocalLanLlmPredictionRequest(
         modelPath = "/tmp/model.onnx",
         companionDirectory = "/tmp",
@@ -116,8 +130,8 @@ class GenAiLocalLanLlmRuntimeTest {
         historyText = "",
         maxPredictionCandidates = maxPredictionCandidates,
         maxOutputTokens = 96,
-        outputMode = LanLlmOutputMode.Suggestions,
-        taskMode = LanLlmTaskMode.Completion,
+        outputMode = outputMode,
+        taskMode = taskMode,
         enableThinking = false,
     )
 }

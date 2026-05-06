@@ -467,7 +467,9 @@ internal class LanLlmClient(
     private fun resolveMaxTokens(request: PredictionRequest): Int {
         val base = when {
             request.taskMode == LanLlmTaskMode.Translate -> maxOf(request.config.maxOutputTokens, 192)
-            request.outputMode == LanLlmOutputMode.LongForm -> maxOf(request.config.maxOutputTokens, 96)
+            request.outputMode == LanLlmOutputMode.LongForm ||
+                request.taskMode == LanLlmTaskMode.QuestionAnswer ->
+                maxOf(request.config.maxOutputTokens, FULL_TEXT_MODE_MIN_OUTPUT_TOKENS)
             else -> request.config.maxOutputTokens
         }
         return if (request.enableThinking && request.config.compatApi == LanLlmPrefs.CompatApi.Anthropic) {

@@ -124,14 +124,27 @@ internal object GenAiLocalLanLlmRuntime : LocalLanLlmRuntime {
         val prompt = buildPrompt(request)
         val startAtMs = SystemClock.elapsedRealtime()
         runCatching {
-            val run = runGeneration(bundleDir.absolutePath, prompt, request)
+            val sessionTuning = localSessionTuning()
+            val model = acquireModel(bundleDir.absolutePath, sessionTuning)
+            val tokenizer = acquireTokenizer(model.model)
+            val tokenizeStartAtMs = SystemClock.elapsedRealtime()
+            val inputTokenCount = tokenizer.value.encode(prompt).use { sequences ->
+                sequences.getSequence(0).size
+            }
+            val tokenizeMs = SystemClock.elapsedRealtime() - tokenizeStartAtMs
             warmedBundleKey = bundleKey
             Timber.i(
-                "GenAI prewarm complete bundle=%s durationMs=%d promptChars=%d %s",
+                "GenAI prewarm complete bundle=%s durationMs=%d promptChars=%d inputTokens=%d provider=%s modelCacheHit=%s tokenizerCacheHit=%s modelLoadMs=%d tokenizerLoadMs=%d tokenizeMs=%d",
                 bundleDir.absolutePath,
                 SystemClock.elapsedRealtime() - startAtMs,
                 prompt.length,
-                formatLocalGenerationTelemetry(run.telemetry),
+                inputTokenCount,
+                model.provider,
+                model.cacheHit,
+                tokenizer.cacheHit,
+                model.loadDurationMs,
+                tokenizer.loadDurationMs,
+                tokenizeMs,
             )
         }.onFailure { error ->
             Timber.w(error, "GenAI prewarm failed")
@@ -565,14 +578,7 @@ internal fun localGenerationStopReason(
 
         LanLlmTaskMode.QuestionAnswer,
         LanLlmTaskMode.Translate,
-        -> {
-            val suggestion = LanLlmSuggestionParser.parseSingleText(generatedText).firstOrNull()
-            if (!suggestion.isNullOrBlank() && '\n' in generatedText) {
-                "single_text_newline"
-            } else {
-                null
-            }
-        }
+        -> null
     }
 }
 

@@ -111,4 +111,39 @@ class LanLlmLocalModelManagerTest {
             LanLlmLocalModelManager.extractDecoderFileName(rewritten),
         )
     }
+
+    @Test
+    fun resolveUpgradeSourceRefPrefersPersistedRemoteSourceForDownloadedModels() {
+        assertEquals(
+            "onnx-community/Qwen3-1.7B-ONNX",
+            LanLlmLocalModelManager.resolveUpgradeSourceRef(
+                source = LanLlmLocalModelManager.Source.Downloaded,
+                savedSourceRef = "onnx-community/Qwen3-1.7B-ONNX",
+                legacyLocalModelUrl = "https://example.com/old.onnx",
+            ),
+        )
+    }
+
+    @Test
+    fun resolveUpgradeSourceRefFallsBackToLegacyCustomUrlForDownloadedModels() {
+        assertEquals(
+            "onnx-community/Qwen3-1.7B-ONNX",
+            LanLlmLocalModelManager.resolveUpgradeSourceRef(
+                source = LanLlmLocalModelManager.Source.Downloaded,
+                savedSourceRef = null,
+                legacyLocalModelUrl = "onnx-community/Qwen3-1.7B-ONNX",
+            ),
+        )
+    }
+
+    @Test
+    fun resolveUpgradeSourceRefIgnoresLegacyUrlForImportedModels() {
+        assertNull(
+            LanLlmLocalModelManager.resolveUpgradeSourceRef(
+                source = LanLlmLocalModelManager.Source.Imported,
+                savedSourceRef = "onnx-community/Qwen3-1.7B-ONNX",
+                legacyLocalModelUrl = "onnx-community/Qwen3-1.7B-ONNX",
+            )
+        )
+    }
 }

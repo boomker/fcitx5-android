@@ -2,8 +2,10 @@ package org.fxboomk.fcitx5.android.input.predict
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.withContext
 
 internal const val LOCAL_SUGGESTION_MAX_OUTPUT_TOKENS = 96
+internal const val FULL_TEXT_MODE_MIN_OUTPUT_TOKENS = 1024
 private const val LOCAL_SUGGESTION_CONTEXT_CHARS = 24
 private const val LOCAL_WARMUP_MAX_OUTPUT_TOKENS = 8
 private const val LOCAL_WARMUP_PROMPT = "你好"
@@ -48,6 +50,10 @@ internal fun optimizedLocalMaxOutputTokens(
     request.outputMode == LanLlmOutputMode.Suggestions &&
         request.taskMode == LanLlmTaskMode.Completion ->
         minOf(config.maxOutputTokens, LOCAL_SUGGESTION_MAX_OUTPUT_TOKENS)
+
+    request.outputMode == LanLlmOutputMode.LongForm ||
+        request.taskMode == LanLlmTaskMode.QuestionAnswer ->
+        maxOf(config.maxOutputTokens, FULL_TEXT_MODE_MIN_OUTPUT_TOKENS)
 
     else -> config.maxOutputTokens
 }
@@ -205,7 +211,7 @@ internal class LocalLanLlmPredictionBackend(
                 maxOutputTokens = LOCAL_WARMUP_MAX_OUTPUT_TOKENS,
                 outputMode = LanLlmOutputMode.Suggestions,
                 taskMode = LanLlmTaskMode.Completion,
-                enableThinking = true,
+                enableThinking = false,
             )
         )
     }
@@ -214,10 +220,10 @@ internal class LocalLanLlmPredictionBackend(
         config: LanLlmPrefs.Config,
         request: LanLlmPredictor.Request,
         onPartialText: ((String) -> Unit)?,
-    ): LanLlmClient.PredictionResponse {
+    ): LanLlmClient.PredictionResponse = withContext(Dispatchers.Default) {
         val model = modelManager.currentModel(appContext)
         if (model == null || !runtime.isAvailable()) {
-            return LanLlmClient.PredictionResponse(
+            return@withContext LanLlmClient.PredictionResponse(
                 suggestions = emptyList(),
                 rawContent = "",
             )
@@ -249,7 +255,7 @@ internal class LocalLanLlmPredictionBackend(
                 config.maxPredictionCandidates
             }
         )
-        return LanLlmClient.PredictionResponse(
+        LanLlmClient.PredictionResponse(
             suggestions = suggestions,
             rawContent = suggestions.joinToString(separator = " | "),
         )

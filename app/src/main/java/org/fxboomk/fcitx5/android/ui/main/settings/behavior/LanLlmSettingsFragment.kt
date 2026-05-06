@@ -67,7 +67,7 @@ class LanLlmSettingsFragment : PaddingPreferenceFragment() {
             RecommendedLocalModel(
                 displayName = "Qwen3-0.6B-ONNX",
                 description = "已验证可在当前本地运行时加载的推荐模型",
-                downloadUrl = "https://huggingface.co/onnx-community/Qwen3-0.6B-ONNX/resolve/main/onnxruntime/cpu_and_mobile/cpu-int4-kld-block-128/model.onnx",
+                downloadUrl = "onnx-community/Qwen3-0.6B-ONNX",
             )
         )
     }
@@ -534,11 +534,22 @@ class LanLlmSettingsFragment : PaddingPreferenceFragment() {
     private fun showLocalModelManagerDialog() {
         val ctx = requireContext()
         val model = LanLlmLocalModelManager.currentModel(ctx) ?: return
+        val canUpgrade = !model.upgradeSourceRef.isNullOrBlank()
         AlertDialog.Builder(ctx)
             .setTitle(R.string.lan_llm_model_status)
             .setMessage(LanLlmLocalModelManager.statusSummary(ctx))
-            .setPositiveButton(R.string.lan_llm_local_model_manage_upgrade) { _, _ ->
-                showImportModelDialog()
+            .setPositiveButton(
+                if (canUpgrade) {
+                    R.string.lan_llm_local_model_manage_upgrade
+                } else {
+                    R.string.lan_llm_local_model_manage_reimport
+                }
+            ) { _, _ ->
+                if (canUpgrade) {
+                    upgradeCurrentModel()
+                } else {
+                    showImportModelDialog()
+                }
             }
             .setNeutralButton(R.string.lan_llm_local_model_manage_reload) { _, _ ->
                 reloadCurrentModel()
@@ -567,6 +578,15 @@ class LanLlmSettingsFragment : PaddingPreferenceFragment() {
         runLocalModelManagerOperation(
             action = LanLlmLocalModelManager::reloadModel,
             onSuccess = { ctx, _ -> ctx.toast(R.string.lan_llm_local_model_reloaded) },
+        )
+    }
+
+    private fun upgradeCurrentModel() {
+        runLocalModelManagerOperation(
+            action = LanLlmLocalModelManager::upgradeModel,
+            onSuccess = { ctx, model ->
+                ctx.toast(getString(R.string.lan_llm_local_model_upgrade_success, model.displayName))
+            },
         )
     }
 

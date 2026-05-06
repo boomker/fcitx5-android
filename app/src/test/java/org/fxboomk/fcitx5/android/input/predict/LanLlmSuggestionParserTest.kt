@@ -125,6 +125,19 @@ class LanLlmSuggestionParserTest {
     }
 
     @Test
+    fun parseSingleTextStripsLeadingThinkingLabelBeforeAnswerBody() {
+        val raw = """
+            思考过程：
+            我建议先确认一下时间，如果今晚方便我们就定下来。
+        """.trimIndent()
+
+        assertEquals(
+            listOf("我建议先确认一下时间，如果今晚方便我们就定下来。"),
+            LanLlmSuggestionParser.parseSingleText(raw),
+        )
+    }
+
+    @Test
     fun ignoresStructuredGarbageFallbackWhenJsonArrayIsEmpty() {
         val raw = """
             {"id":"chatcmpl","choices":[{"message":{"content":"```json\n{\n  \"suggestions\": []\n}\n```￾stats:15;75.6597","role":"assistant"}}]}

@@ -93,4 +93,31 @@ class LanLlmPredictorTest {
         assertEquals("", payload.historyText)
         assertEquals("上屏的很长内容，用来验证本地建议请求会裁剪上下文", payload.recentCommittedText)
     }
+
+    @Test
+    fun optimizedLocalMaxOutputTokensGuaranteesExpandedBudgetForQuestionAnswer() {
+        val config = LanLlmPrefs.Config(
+            enabled = true,
+            runtime = LanLlmPrefs.Runtime.LocalOnDevice,
+            backend = LanLlmPrefs.Backend.ChatCompletions,
+            baseUrl = "",
+            model = "qwen3-local",
+            apiKey = "",
+            debounceMs = 200,
+            sampleCount = 1,
+            maxOutputTokens = 256,
+            maxContextChars = 64,
+            preferLastCommit = true,
+        )
+
+        val maxTokens = optimizedLocalMaxOutputTokens(
+            config = config,
+            request = LanLlmPredictor.Request(
+                beforeCursor = "帮我回一句话",
+                taskMode = LanLlmTaskMode.QuestionAnswer,
+            ),
+        )
+
+        assertEquals(FULL_TEXT_MODE_MIN_OUTPUT_TOKENS, maxTokens)
+    }
 }

@@ -83,6 +83,7 @@ object LanLlmSuggestionParser {
             .replace("<|endoftext|>", "")
             .trim()
         text = normalizeGeneratedThinkArtifacts(text)
+        text = stripLeadingSingleTextLabels(text)
         if (text.startsWith("\"") && text.endsWith("\"") && text.length > 1 && !text.contains('\n')) {
             text = text.substring(1, text.lastIndex)
         }
@@ -216,6 +217,29 @@ object LanLlmSuggestionParser {
         }
         if (text.startsWith(THINK_START)) {
             return null
+        }
+        return text
+    }
+
+    private fun stripLeadingSingleTextLabels(raw: String): String {
+        var text = raw.trimStart()
+        val prefixes = listOf(
+            "思考过程：",
+            "思考过程:",
+            "你的思考过程：",
+            "你的思考过程:",
+            "回答：",
+            "回答:",
+            "答：",
+            "答:",
+            "最终回答：",
+            "最终回答:",
+            "Response:",
+            "Answer:",
+        )
+        while (true) {
+            val matched = prefixes.firstOrNull { text.startsWith(it, ignoreCase = true) } ?: break
+            text = text.substring(matched.length).trimStart()
         }
         return text
     }

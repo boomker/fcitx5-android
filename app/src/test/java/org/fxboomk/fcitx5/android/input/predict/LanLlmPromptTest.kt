@@ -49,7 +49,7 @@ class LanLlmPromptTest {
         assertTrue(prompt.contains("可直接上屏的回答"))
         assertTrue(prompt.contains("不要把它当成待续写前缀"))
         assertTrue(prompt.contains("只输出最终回答文本本身"))
-        assertTrue(prompt.contains("20 个中文字符左右"))
+        assertTrue(prompt.contains("不要为了简短而省略关键信息"))
         assertTrue(!prompt.contains("中文续写助手"))
     }
 
@@ -63,8 +63,8 @@ class LanLlmPromptTest {
         )
 
         assertTrue(prompt.contains("输入法应答助手"))
-        assertTrue(prompt.contains("60 个中文字符左右"))
-        assertTrue(prompt.contains("可直接发送的长回答"))
+        assertTrue(prompt.contains("如果问题需要展开说明"))
+        assertTrue(prompt.contains("尽量完整回答"))
         assertTrue(!prompt.contains("中文续写助手"))
     }
 
@@ -175,7 +175,7 @@ class LanLlmPromptTest {
         assertTrue(user.contains("输入法应答助手"))
         assertTrue(user.contains("问题或请求"))
         assertTrue(user.contains("不要把它当成待续写前缀"))
-        assertTrue(user.contains("20 个中文字符左右"))
+        assertTrue(user.contains("不要为了简短而省略关键信息"))
         assertTrue(!user.contains("中文续写助手"))
         assertEquals("<think>\n\n</think>\n\n", assistant)
     }
@@ -198,8 +198,8 @@ class LanLlmPromptTest {
 
         assertTrue(system.contains("输入法应答助手"))
         assertTrue(user.contains("输入法应答助手"))
-        assertTrue(system.contains("60 个中文字符左右"))
-        assertTrue(user.contains("60 个中文字符左右"))
+        assertTrue(system.contains("更展开回答"))
+        assertTrue(user.contains("更展开回答"))
         assertTrue(!user.contains("中文续写助手"))
     }
 
@@ -357,7 +357,7 @@ class LanLlmPromptTest {
 
         assertTrue(prompt.contains("输入法应答助手"))
         assertTrue(prompt.contains("问题或请求"))
-        assertTrue(prompt.contains("给出一条简短、自然、可直接发送的回答"))
+        assertTrue(prompt.contains("给出一条自然、完整、可直接发送的回答"))
         assertTrue(!prompt.contains("中文续写助手"))
         assertTrue(prompt.endsWith("帮我回一句礼貌一点的话\n</instruction>"))
     }
