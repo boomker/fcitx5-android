@@ -104,6 +104,68 @@ class LanLlmPredictionBackendTest {
     }
 
     @Test
+    fun localBackendNormalizesPredictionCandidateLimitBeforeRuntimeAndFinalTake() {
+        val context = ContextWrapper(null)
+        val runtime = RecordingRuntime(
+            predictions = (1..10).map { "候选$it" }
+        )
+        val backend = LocalLanLlmPredictionBackend(
+            runtime = runtime,
+            modelManager = object : LocalLanLlmModelStore {
+                override fun currentModel(context: android.content.Context): LanLlmLocalModelManager.InstalledModel? =
+                    LanLlmLocalModelManager.InstalledModel(
+                        file = java.io.File("/tmp/model.onnx"),
+                        displayName = "model.onnx",
+                        source = LanLlmLocalModelManager.Source.Imported,
+                        sizeBytes = 123,
+                        updatedAtMillis = 1L,
+                        compatibility = LanLlmLocalModelManager.CompatibilityInfo(
+                            state = LanLlmLocalModelManager.Compatibility.Compatible,
+                        ),
+                    )
+            },
+            resourceManager = object : LocalLanLlmResourceStore {
+                override fun prepareRuntimeBundle(
+                    context: android.content.Context,
+                    modelFile: java.io.File,
+                ): LanLlmLocalResourceManager.ResourceBundle =
+                    LanLlmLocalResourceManager.ResourceBundle(
+                        directory = java.io.File("/tmp/runtime-bundle"),
+                        model = modelFile,
+                        tokenizer = java.io.File("/tmp/runtime-bundle/tokenizer.json"),
+                        tokenizerConfig = java.io.File("/tmp/runtime-bundle/tokenizer_config.json"),
+                        modelConfig = java.io.File("/tmp/runtime-bundle/config.json"),
+                        genAiConfig = java.io.File("/tmp/runtime-bundle/genai_config.json"),
+                    )
+            },
+            appContext = context,
+        )
+        val config = LanLlmPrefs.Config(
+            enabled = true,
+            runtime = LanLlmPrefs.Runtime.LocalOnDevice,
+            backend = LanLlmPrefs.Backend.ChatCompletions,
+            baseUrl = "",
+            model = "qwen3-local",
+            apiKey = "",
+            debounceMs = 200,
+            sampleCount = 1,
+            maxContextChars = 64,
+            preferLastCommit = true,
+            maxPredictionCandidates = 99,
+        )
+
+        val response = runBlocking {
+            backend.predict(
+                config = config,
+                request = LanLlmPredictor.Request(beforeCursor = "你好"),
+            )
+        }
+
+        assertEquals(MAX_PREDICTION_CANDIDATE_LIMIT, runtime.lastPredictRequest?.maxPredictionCandidates)
+        assertEquals(MAX_PREDICTION_CANDIDATE_LIMIT, response.suggestions.size)
+    }
+
+    @Test
     fun localBackendRunsPredictionOffCallerThread() {
         val context = ContextWrapper(null)
         val runtime = RecordingRuntime(
@@ -284,7 +346,7 @@ class LanLlmPredictionBackendTest {
             backend.predict(
                 config = config,
                 request = LanLlmPredictor.Request(
-                    beforeCursor = "今天是五一劳动节",
+                    beforeCursor = "今天天气真好",
                     recentCommittedText = "这是最近一次上屏的很长内容，用来验证本地建议请求会裁剪上下文",
                     historyText = "这里是一大段历史上下文，当前本地建议模式不应该继续把它塞进 prompt",
                 ),

@@ -308,6 +308,7 @@ internal class LanLlmClient(
     }
 
     private fun buildCompletionPlans(request: PredictionRequest): List<RequestPlan> {
+        val candidateLimit = normalizedPredictionCandidateLimit(request.config.maxPredictionCandidates)
         val completionUserPrompt = LanLlmPrompt.completionUserPrompt(
             beforeCursor = request.beforeCursor,
             recentCommittedText = request.recentCommittedText,
@@ -325,17 +326,6 @@ internal class LanLlmClient(
             put("<|im_start|>")
             put("<|im_end|>")
             put("<")
-            if (
-                request.outputMode == LanLlmOutputMode.Suggestions &&
-                request.taskMode == LanLlmTaskMode.Completion
-            ) {
-                put("\n")
-                put("。")
-                put("！")
-                put("？")
-                put("，")
-                put(",")
-            }
         }
         val maxTokens = resolveMaxTokens(request)
         val temperature = when {
@@ -365,6 +355,7 @@ internal class LanLlmClient(
                             .put(
                                 "content",
                                 LanLlmPrompt.completionSystemPrompt(
+                                    maxPredictionCandidates = candidateLimit,
                                     beforeCursor = request.beforeCursor,
                                     outputMode = request.outputMode,
                                     taskMode = request.taskMode,
@@ -389,6 +380,7 @@ internal class LanLlmClient(
             .put(
                 "system",
                 LanLlmPrompt.completionSystemPrompt(
+                    maxPredictionCandidates = candidateLimit,
                     beforeCursor = request.beforeCursor,
                     outputMode = request.outputMode,
                     taskMode = request.taskMode,

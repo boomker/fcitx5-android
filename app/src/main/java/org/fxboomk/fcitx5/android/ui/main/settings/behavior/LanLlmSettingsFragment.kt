@@ -402,7 +402,7 @@ class LanLlmSettingsFragment : PaddingPreferenceFragment() {
     private fun showModelGenerationTestDialog() {
         showMultilineTextInputDialog(
             titleRes = R.string.lan_llm_model_test,
-            initialText = "今天是五一劳动节",
+            initialText = "今天天气真好",
             onConfirm = ::runModelGenerationTest,
         )
     }

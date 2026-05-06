@@ -123,7 +123,7 @@ internal class LanLlmPredictor(
                     ) {
                         1
                     } else {
-                        config.maxPredictionCandidates
+                        normalizedPredictionCandidateLimit(config.maxPredictionCandidates)
                     }
                     onResult(it.suggestions.take(limit))
                 }.onFailure {

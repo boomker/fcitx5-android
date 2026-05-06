@@ -11,6 +11,13 @@ import org.junit.Test
 class GenAiLocalLanLlmRuntimeTest {
 
     @Test
+    fun normalizedPredictionCandidateLimitClampsToSupportedRange() {
+        assertEquals(1, normalizedPredictionCandidateLimit(0))
+        assertEquals(3, normalizedPredictionCandidateLimit(3))
+        assertEquals(MAX_PREDICTION_CANDIDATE_LIMIT, normalizedPredictionCandidateLimit(99))
+    }
+
+    @Test
     fun localGenerationStopReasonPrefersControlTokens() {
         val request = baseRequest()
 

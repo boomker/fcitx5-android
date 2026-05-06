@@ -9,6 +9,7 @@ internal const val FULL_TEXT_MODE_MIN_OUTPUT_TOKENS = 1024
 private const val LOCAL_SUGGESTION_CONTEXT_CHARS = 24
 private const val LOCAL_WARMUP_MAX_OUTPUT_TOKENS = 8
 private const val LOCAL_WARMUP_PROMPT = "你好"
+internal const val MAX_PREDICTION_CANDIDATE_LIMIT = 8
 
 internal interface LanLlmPredictionBackend {
     suspend fun predict(
@@ -57,6 +58,9 @@ internal fun optimizedLocalMaxOutputTokens(
 
     else -> config.maxOutputTokens
 }
+
+internal fun normalizedPredictionCandidateLimit(value: Int): Int =
+    value.coerceIn(1, MAX_PREDICTION_CANDIDATE_LIMIT)
 
 internal data class LocalContextPayload(
     val recentCommittedText: String,
@@ -121,6 +125,7 @@ internal class RemoteLanLlmPredictionBackend(
         config: LanLlmPrefs.Config,
         request: LanLlmPredictor.Request,
     ): LanLlmClient.PredictionResponse {
+        val candidateLimit = normalizedPredictionCandidateLimit(config.maxPredictionCandidates)
         val prioritizedSamples =
             if (config.preferLastCommit && request.recentCommittedText.isNotBlank()) 1 else 0
         val plans = List(config.sampleCount) { index ->
@@ -179,7 +184,7 @@ internal class RemoteLanLlmPredictionBackend(
                 ) {
                     1
                 } else {
-                    config.maxPredictionCandidates
+                    candidateLimit
                 }
             )
 
@@ -231,6 +236,7 @@ internal class LocalLanLlmPredictionBackend(
         val resources = resourceManager.prepareRuntimeBundle(appContext, model.file)
         val maxOutputTokens = optimizedLocalMaxOutputTokens(config, request)
         val contextPayload = optimizedLocalContextPayload(request)
+        val candidateLimit = normalizedPredictionCandidateLimit(config.maxPredictionCandidates)
         val suggestions = runtime.predict(
             LocalLanLlmPredictionRequest(
                 modelPath = resources.model.absolutePath,
@@ -238,7 +244,7 @@ internal class LocalLanLlmPredictionBackend(
                 beforeCursor = request.beforeCursor,
                 recentCommittedText = contextPayload.recentCommittedText,
                 historyText = contextPayload.historyText,
-                maxPredictionCandidates = config.maxPredictionCandidates,
+                maxPredictionCandidates = candidateLimit,
                 maxOutputTokens = maxOutputTokens,
                 outputMode = request.outputMode,
                 taskMode = request.taskMode,
@@ -252,7 +258,7 @@ internal class LocalLanLlmPredictionBackend(
             ) {
                 1
             } else {
-                config.maxPredictionCandidates
+                candidateLimit
             }
         )
         LanLlmClient.PredictionResponse(
