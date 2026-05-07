@@ -3,11 +3,11 @@
  * SPDX-FileCopyrightText: Copyright 2025 Fcitx5 for Android Contributors
  */
 
-package org.fcitx.fcitx5.android.input
+package org.fxboomk.fcitx5.android.input
 
 import androidx.annotation.DrawableRes
-import org.fcitx.fcitx5.android.R
-import org.fcitx.fcitx5.android.core.InputMethodEntry
+import org.fxboomk.fcitx5.android.R
+import org.fxboomk.fcitx5.android.core.InputMethodEntry
 
 object StatusIconMapping {
     @DrawableRes

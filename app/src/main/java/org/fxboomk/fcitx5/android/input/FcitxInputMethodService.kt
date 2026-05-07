@@ -144,14 +144,14 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             if (AppPrefs.getInstance().candidates.mode.getValue() == FloatingCandidatesMode.Always) {
                 updateCandidatesViewPagingAndBounds()
             }
+            if (isVirtualKeyboard) {
+                hideStatusIcon()
+            } else {
+                showStatusIcon(StatusIconMapping.fromEntry(fcitx.runImmediately { inputMethodEntryCached }))
+            }
         },
         floatingModeProvider = {
             AppPrefs.getInstance().candidates.mode.getValue()
-        }
-        if (isVirtualKeyboard) {
-            hideStatusIcon()
-        } else {
-            showStatusIcon(StatusIconMapping.fromEntry(fcitx.runImmediately { inputMethodEntryCached }))
         }
     )
 
@@ -1337,7 +1337,6 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
                 if (!decorLocationUpdated) {
                     updateDecorLocation()
                 }
-<<<<<<< HEAD:app/src/main/java/org/fxboomk/fcitx5/android/input/FcitxInputMethodService.kt
                 // anchor CandidatesView to bottom-left corner in case InputConnection does not
                 // support monitoring CursorAnchorInfo
                 candidatesView?.updateCursorAnchor(contentSize)
@@ -1348,7 +1347,9 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
                 isInInputLifecycleCriticalPhase = false
                 applyPendingThemeIfPossible()
             }
-            showStatusIcon(StatusIconMapping.fromEntry(fcitx.runImmediately { inputMethodEntryCached }))
+            if (!inputDeviceManager.isVirtualKeyboard) {
+                showStatusIcon(StatusIconMapping.fromEntry(fcitx.runImmediately { inputMethodEntryCached }))
+            }
         }
     }
 
