@@ -211,14 +211,14 @@ object LanLlmSuggestionParser {
     private fun extractPostThinkContent(raw: String?): String? {
         val text = raw?.trim().orEmpty()
         if (text.isBlank()) return null
-        val thinkEnd = text.lastIndexOf(THINK_END)
-        if (thinkEnd >= 0) {
-            return text.substring(thinkEnd + THINK_END.length).trim().ifBlank { null }
+        if (text.startsWith(THINK_END)) {
+            return text.removePrefix(THINK_END).trim().ifBlank { null }
         }
-        if (text.startsWith(THINK_START)) {
-            return null
-        }
-        return text
+        if (!text.startsWith(THINK_START)) return null
+
+        val thinkEnd = text.indexOf(THINK_END, THINK_START.length)
+        if (thinkEnd < 0) return null
+        return text.substring(thinkEnd + THINK_END.length).trim().ifBlank { null }
     }
 
     private fun stripLeadingSingleTextLabels(raw: String): String {

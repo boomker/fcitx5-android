@@ -154,6 +154,24 @@ class LanLlmSuggestionParserTest {
     }
 
     @Test
+    fun keepsFirstCandidateWhenOrphanThinkEndSplitsPlainTextSuggestions() {
+        val raw = """
+            ，我决定去公园散步。享受阳光，感受自然的宁静。
+            </think>
+
+            雨中漫步，屋檐下的水滴仿佛在诉说时光的流逝。
+        """.trimIndent()
+
+        assertEquals(
+            listOf(
+                "，我决定去公园散步。享受阳光，感受自然的宁静。",
+                "雨中漫步，屋檐下的水滴仿佛在诉说时光的流逝。",
+            ),
+            LanLlmSuggestionParser.parse(raw, "今天天气真好"),
+        )
+    }
+
+    @Test
     fun filtersMemoryToolcallProtocolOutputs() {
         val raw = """<MEM_RETRIEVAL> query="上次聚餐地点" </MEM_RETRIEVAL>"""
 
