@@ -190,12 +190,11 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
 
     private fun launchClipboardTimeoutJob() {
         clipboardTimeoutJob?.cancel()
-        val timeout = clipboardItemTimeout.getValue() * 1000L
+        val timeout = clipboardSuggestionTimeoutMillis(clipboardItemTimeout.getValue())
         // never transition to ClipboardTimedOut state when timeout < 0
         if (timeout < 0L) return
-        val effectiveTimeout = min(timeout, 3000L)
         clipboardTimeoutJob = service.lifecycleScope.launch {
-            delay(effectiveTimeout)
+            delay(timeout)
             isClipboardFresh = false
             clipboardTimeoutJob = null
             evalIdleUiState()
@@ -617,9 +616,8 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
     override fun onScopeSetupFinished(scope: DynamicScope) {
         ClipboardManager.lastEntry?.let {
             val now = System.currentTimeMillis()
-            val clipboardTimeout = clipboardItemTimeout.getValue() * 1000L
-            val effectiveTimeout = if (clipboardTimeout < 0L) clipboardTimeout else min(clipboardTimeout, 3000L)
-            if (now - it.timestamp < effectiveTimeout) {
+            val clipboardTimeout = clipboardSuggestionTimeoutMillis(clipboardItemTimeout.getValue())
+            if (clipboardTimeout < 0L || now - it.timestamp < clipboardTimeout) {
                 onClipboardUpdateListener.onUpdate(it)
             }
         }

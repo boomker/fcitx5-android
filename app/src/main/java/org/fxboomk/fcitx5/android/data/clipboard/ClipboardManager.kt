@@ -240,7 +240,14 @@ object ClipboardManager : ClipboardManager.OnPrimaryClipChangedListener,
 
     suspend fun pin(id: Int) = clbDao.updatePinStatus(id, true)
 
-    suspend fun unpin(id: Int) = clbDao.updatePinStatus(id, false)
+    suspend fun unpin(id: Int) {
+        mutex.withLock {
+            clbDb.withTransaction {
+                clbDao.updatePinStatus(id, false)
+                removeOutdated()
+            }
+        }
+    }
 
     suspend fun markUsed(id: Int, timestamp: Long = System.currentTimeMillis()) {
         clbDao.updateTime(id, timestamp)
@@ -433,18 +440,7 @@ object ClipboardManager : ClipboardManager.OnPrimaryClipChangedListener,
     }
 
     private suspend fun trimOutdatedEntries(entries: List<ClipboardEntry>, limit: Int): Boolean {
-        if (entries.size <= limit) {
-            return false
-        }
-        val retained = entries
-            .sortedBy { it.id }
-            .takeLast(limit.coerceAtLeast(0))
-            .mapTo(hashSetOf()) { it.id }
-        val toDelete = entries
-            .asSequence()
-            .map { it.id }
-            .filter { it !in retained }
-            .toList()
+        val toDelete = findClipboardIdsToTrim(entries, limit)
         if (toDelete.isEmpty()) {
             return false
         }
@@ -483,4 +479,15 @@ object ClipboardManager : ClipboardManager.OnPrimaryClipChangedListener,
             ?: text.takeIf { it.startsWith("content://") || it.startsWith("file://") }
     }
 
+}
+
+internal fun findClipboardIdsToTrim(entries: List<ClipboardEntry>, limit: Int): List<Int> {
+    if (entries.size <= limit) {
+        return emptyList()
+    }
+    val retainedCount = limit.coerceAtLeast(0)
+    return entries
+        .sortedWith(compareBy<ClipboardEntry> { it.timestamp }.thenBy { it.id })
+        .dropLast(retainedCount)
+        .map { it.id }
 }
