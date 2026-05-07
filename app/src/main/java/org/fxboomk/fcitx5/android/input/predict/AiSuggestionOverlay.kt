@@ -11,8 +11,7 @@ import androidx.core.view.updateLayoutParams
 import org.fxboomk.fcitx5.android.data.theme.Theme
 import org.fxboomk.fcitx5.android.input.bar.KawaiiBarComponent
 import splitties.dimensions.dp
-import kotlin.math.max
-import kotlin.math.min
+import kotlin.math.roundToInt
 
 @SuppressLint("ViewConstructor")
 class AiSuggestionOverlay(
@@ -30,12 +29,18 @@ class AiSuggestionOverlay(
     var onLongFormClick: (() -> Unit)? = null
 
     private val edgeGap = context.dp(12).toFloat()
+    private val keyboardBarHeight = context.dp(KawaiiBarComponent.HEIGHT).toFloat()
     private val minPanelWidth = context.dp(220)
     private val maxPanelWidth = context.dp(320)
 
     private var keyboardLeft = 0f
     private var keyboardWidth = 0f
     private var fallbackTop = 0f
+    private var panelExpanded = false
+    private var manualPanelPlacement: AiSuggestionPanelPlacement? = null
+    private var draggingPanel = false
+    private var panelDragOffsetX = 0f
+    private var panelDragOffsetY = 0f
     private var currentState = AiSuggestionStripComponent.PresentationState(
         mode = AiSuggestionStripComponent.PresentationMode.Hidden,
         suggestions = emptyList(),
@@ -60,6 +65,10 @@ class AiSuggestionOverlay(
         theme = theme,
         onSuggestionClick = { suggestion -> onSuggestionClick?.invoke(suggestion) },
         onCollapseClick = { onCollapseClick?.invoke() ?: onDismissRequest?.invoke() },
+        onResizeToggleRequest = { togglePanelExpanded() },
+        onHeaderDragStart = { rawX, rawY -> beginPanelDrag(rawX, rawY) },
+        onHeaderDragMove = { rawX, rawY -> updatePanelDrag(rawX, rawY) },
+        onHeaderDragEnd = { endPanelDrag() },
         onQuestionAnswerClick = { onQuestionAnswerClick?.invoke() },
         onThinkingClick = { onThinkingClick?.invoke() },
         onTranslateClick = { onTranslateClick?.invoke() },
@@ -89,6 +98,13 @@ class AiSuggestionOverlay(
     }
 
     fun render(state: AiSuggestionStripComponent.PresentationState) {
+        if (state.mode != AiSuggestionStripComponent.PresentationMode.PanelVisible) {
+            draggingPanel = false
+            manualPanelPlacement = null
+        }
+        if (state.mode == AiSuggestionStripComponent.PresentationMode.Hidden) {
+            panelExpanded = false
+        }
         currentState = state
         bubbleUi.updateCount(state.suggestions.size)
         panelUi.updateContent(
@@ -178,14 +194,34 @@ class AiSuggestionOverlay(
     private fun positionChildren() {
         if (width <= 0 || height <= 0) return
 
-        val preferredKeyboardWidth = keyboardWidth.takeIf { it > 0f }?.toInt()
-        val maxAllowedWidth = max(width, minPanelWidth)
-        val targetPanelWidth = preferredKeyboardWidth
-            ?.coerceAtMost(maxAllowedWidth)
-            ?.coerceAtLeast(minPanelWidth)
-            ?: min(maxPanelWidth, maxAllowedWidth)
+        val targetPanelWidth = resolveAiSuggestionPanelWidth(
+            containerWidth = width,
+            edgeGap = edgeGap.toInt(),
+            minPanelWidth = minPanelWidth,
+            maxPanelWidth = maxPanelWidth,
+            keyboardWidth = keyboardWidth.takeIf { it > 0f }?.toInt(),
+        )
+        val targetPanelHeight = if (panelExpanded) {
+            resolveAiSuggestionPanelExpandedHeight(
+                containerHeight = height,
+                edgeGap = edgeGap.roundToInt(),
+            )
+        } else {
+            LayoutParams.WRAP_CONTENT
+        }
+        val widthChanged = panelUi.layoutParams.width != targetPanelWidth
+        val heightChanged = panelUi.layoutParams.height != targetPanelHeight
+        panelUi.setExpandedState(
+            expanded = panelExpanded,
+            panelHeight = targetPanelHeight.takeIf { it > 0 },
+        )
         panelUi.updateLayoutParams<LayoutParams> {
             width = targetPanelWidth
+            height = targetPanelHeight
+        }
+        if (widthChanged || heightChanged) {
+            panelUi.requestLayout()
+            post { positionChildren() }
         }
 
         when (currentState.mode) {
@@ -224,31 +260,38 @@ class AiSuggestionOverlay(
     }
 
     private fun positionPanel() {
-        val panelWidth = panelUi.width.toFloat().takeIf { it > 0f } ?: return
-        val panelHeight = panelUi.height.toFloat().takeIf { it > 0f } ?: return
-        val anchor = currentState.anchor
-
-        val x = if (keyboardWidth > 0f) {
-            keyboardLeft.coerceIn(0f, width - panelWidth)
-        } else if (anchor != null) {
-            (anchor.horizontal - panelWidth / 2f).coerceIn(edgeGap, width - panelWidth - edgeGap)
-        } else {
-            width - panelWidth - edgeGap
+        val panelWidth = panelUi.width.toFloat().takeIf { it > 0f }
+            ?: panelUi.layoutParams.width.toFloat().takeIf { it > 0f }
+            ?: return
+        val panelHeight = panelUi.height.toFloat().takeIf { it > 0f }
+            ?: panelUi.layoutParams.height.toFloat().takeIf { it > 0f }
+            ?: return
+        val manualPlacement = manualPanelPlacement
+        if (manualPlacement != null) {
+            val clampedPlacement = clampPanelPlacement(
+                placement = manualPlacement,
+                panelWidth = panelWidth,
+                panelHeight = panelHeight,
+            )
+            manualPanelPlacement = clampedPlacement
+            applyPanelPlacement(clampedPlacement)
+            return
         }
-        val keyboardBarTop = fallbackTop - context.dp(KawaiiBarComponent.HEIGHT).toFloat()
-        val minTop = max(fallbackTop + edgeGap, edgeGap)
-        val maxTop = height - panelHeight - edgeGap
-        val preferredBelow = anchor?.let { max(it.bottom + edgeGap, minTop) } ?: minTop
-        val fallbackAbove = anchor?.let { it.top - panelHeight - edgeGap } ?: (keyboardBarTop - panelHeight - edgeGap)
-        val maxAboveTop = keyboardBarTop - panelHeight - edgeGap
-        val y = when {
-            preferredBelow <= maxTop -> preferredBelow
-            fallbackAbove <= maxAboveTop && fallbackAbove >= edgeGap -> fallbackAbove
-            else -> minTop.coerceAtMost(maxTop.coerceAtLeast(minTop))
-        }
-
-        panelUi.translationX = x
-        panelUi.translationY = y
+        val placement = computeAiSuggestionPanelPlacement(
+            AiSuggestionPanelLayoutRequest(
+                containerWidth = width.toFloat(),
+                containerHeight = height.toFloat(),
+                panelWidth = panelWidth,
+                panelHeight = panelHeight,
+                edgeGap = edgeGap,
+                fallbackTop = fallbackTop,
+                keyboardLeft = keyboardLeft,
+                keyboardWidth = keyboardWidth,
+                keyboardBarHeight = keyboardBarHeight,
+                anchor = currentState.anchor,
+            )
+        )
+        applyPanelPlacement(placement)
     }
 
     private fun isWithinKeyboardBar(event: MotionEvent): Boolean {
@@ -257,8 +300,70 @@ class AiSuggestionOverlay(
         val y = event.y
         val left = keyboardLeft
         val right = keyboardLeft + keyboardWidth
-        val top = fallbackTop - context.dp(KawaiiBarComponent.HEIGHT).toFloat()
+        val top = fallbackTop - keyboardBarHeight
         val bottom = fallbackTop
         return x in left..right && y in top..bottom
+    }
+
+    private fun togglePanelExpanded() {
+        if (currentState.mode != AiSuggestionStripComponent.PresentationMode.PanelVisible) return
+        panelExpanded = !panelExpanded
+        post { positionChildren() }
+    }
+
+    private fun beginPanelDrag(rawX: Float, rawY: Float) {
+        if (currentState.mode != AiSuggestionStripComponent.PresentationMode.PanelVisible) return
+        val panelWidth = panelUi.width.toFloat().takeIf { it > 0f } ?: return
+        val panelHeight = panelUi.height.toFloat().takeIf { it > 0f } ?: return
+        draggingPanel = true
+        val currentPlacement = clampPanelPlacement(
+            placement = AiSuggestionPanelPlacement(
+                x = panelUi.translationX,
+                y = panelUi.translationY,
+            ),
+            panelWidth = panelWidth,
+            panelHeight = panelHeight,
+        )
+        manualPanelPlacement = currentPlacement
+        panelDragOffsetX = rawX - currentPlacement.x
+        panelDragOffsetY = rawY - currentPlacement.y
+    }
+
+    private fun updatePanelDrag(rawX: Float, rawY: Float) {
+        if (!draggingPanel) return
+        val panelWidth = panelUi.width.toFloat().takeIf { it > 0f } ?: return
+        val panelHeight = panelUi.height.toFloat().takeIf { it > 0f } ?: return
+        val placement = clampPanelPlacement(
+            placement = AiSuggestionPanelPlacement(
+                x = rawX - panelDragOffsetX,
+                y = rawY - panelDragOffsetY,
+            ),
+            panelWidth = panelWidth,
+            panelHeight = panelHeight,
+        )
+        manualPanelPlacement = placement
+        applyPanelPlacement(placement)
+    }
+
+    private fun endPanelDrag() {
+        draggingPanel = false
+    }
+
+    private fun clampPanelPlacement(
+        placement: AiSuggestionPanelPlacement,
+        panelWidth: Float,
+        panelHeight: Float,
+    ): AiSuggestionPanelPlacement {
+        val maxX = (width - panelWidth - edgeGap).coerceAtLeast(edgeGap)
+        val maxY = (height - panelHeight - edgeGap).coerceAtLeast(edgeGap)
+        return AiSuggestionPanelPlacement(
+            x = placement.x.coerceIn(edgeGap, maxX),
+            y = placement.y.coerceIn(edgeGap, maxY),
+        )
+    }
+
+    private fun applyPanelPlacement(placement: AiSuggestionPanelPlacement) {
+        panelUi.translationX = placement.x
+        panelUi.translationY = placement.y
     }
 }

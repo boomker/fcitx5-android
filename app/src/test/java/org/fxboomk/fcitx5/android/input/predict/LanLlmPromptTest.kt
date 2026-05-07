@@ -321,6 +321,20 @@ class LanLlmPromptTest {
     }
 
     @Test
+    fun localOnDevicePromptUsesEnglishSpacingInstructionForChineseTranslateMode() {
+        val prompt = LanLlmPrompt.localOnDevicePrompt(
+            beforeCursor = "今天晚上一起吃饭吗？",
+            recentCommittedText = "",
+            historyText = "",
+            maxPredictionCandidates = 1,
+            taskMode = LanLlmTaskMode.Translate,
+        )
+
+        assertTrue(prompt.contains("英文单词之间必须保留正常空格"))
+        assertTrue(!prompt.contains("中文续写助手"))
+    }
+
+    @Test
     fun userPromptUsesStructuredContinuationContextForChatBackend() {
         val prompt = LanLlmPrompt.userPrompt(
             beforeCursor = "今晚一起去",

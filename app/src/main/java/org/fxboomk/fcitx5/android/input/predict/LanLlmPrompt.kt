@@ -230,7 +230,7 @@ internal object LanLlmPrompt {
         return when (LanLlmLanguageDetector.detect(beforeCursor)) {
             LanLlmLanguage.Chinese -> when {
                 taskMode == LanLlmTaskMode.Translate ->
-                    "你是输入法翻译助手。把输入翻译成自然英文，只输出译文本身，不解释。"
+                    "你是输入法翻译助手。把输入翻译成自然英文，只输出译文本身，不解释。英文单词之间必须保留正常空格，不要把多个英文单词连写在一起。"
 
                 taskMode == LanLlmTaskMode.QuestionAnswer && outputMode == LanLlmOutputMode.LongForm ->
                     "你是输入法应答助手。把输入当作问题或请求，输出 1 条自然、完整、可直接发送的中文回答；如果问题需要展开说明，就尽量完整回答，不解释。"
@@ -375,6 +375,7 @@ INSTRUCTION = the current input text to process
             taskMode == LanLlmTaskMode.Translate -> """
 只输出最终译文文本本身，不要输出 JSON，不要输出标签。
 将 INSTRUCTION 视为完整待翻译文本，不要续写，不要总结，不要解释。
+ 英文译文中的单词之间必须保留正常空格，不要把多个英文单词连写在一起。
 """.trim()
 
             outputMode == LanLlmOutputMode.LongForm -> """
