@@ -559,6 +559,21 @@ class AiSuggestionStripComponent(
 
     private fun commitSuggestion(suggestion: String) {
         val config = LanLlmPrefs.read(service.applicationContext)
+        val selection = service.currentInputSelection
+        val replacedText = if (selection.start == selection.end) {
+            ""
+        } else {
+            service.currentInputConnection
+                ?.getSelectedText(0)
+                ?.toString()
+                .orEmpty()
+        }
+        service.recordAiInsertionUndoSnapshot(
+            insertedText = suggestion,
+            replacedText = replacedText,
+            selectionStart = selection.start,
+            selectionEnd = selection.end,
+        )
         noteCommittedText(suggestion, config)
         service.commitText(suggestion)
         clearSuggestions(resetRequestState = true)
@@ -572,6 +587,13 @@ class AiSuggestionStripComponent(
             commitSuggestion(translation)
             return
         }
+        val selection = service.currentInputSelection
+        service.recordAiRewriteUndoSnapshot(
+            beforeCursor = snapshot.beforeCursor,
+            afterCursor = snapshot.afterCursor,
+            selectionStart = selection.start,
+            selectionEnd = selection.end,
+        )
         noteCommittedText(translation, config)
         lastObservedBeforeCursor = translation.takeLast(config.fetchWindowChars)
         inputConnection.withBatchEdit {

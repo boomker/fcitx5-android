@@ -92,6 +92,31 @@ import splitties.resources.styledColor
 import timber.log.Timber
 import kotlin.math.max
 
+internal fun canApplyAiInsertionUndo(
+    currentText: String,
+    insertedText: String,
+    selectionStart: Int,
+): Boolean {
+    if (selectionStart < 0) return false
+    val insertedEnd = selectionStart + insertedText.length
+    if (insertedEnd > currentText.length) return false
+    return currentText.substring(selectionStart, insertedEnd) == insertedText
+}
+
+internal fun applyAiInsertionUndo(
+    currentText: String,
+    insertedText: String,
+    replacedText: String,
+    selectionStart: Int,
+): String {
+    require(canApplyAiInsertionUndo(currentText, insertedText, selectionStart))
+    return buildString {
+        append(currentText.substring(0, selectionStart))
+        append(replacedText)
+        append(currentText.substring(selectionStart + insertedText.length))
+    }
+}
+
 class FcitxInputMethodService : LifecycleInputMethodService() {
 
     internal lateinit var fcitx: FcitxConnection
@@ -302,8 +327,26 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     val currentInputSelection: CursorRange
         get() = selection.latest
 
+    sealed interface AiCommitUndoSnapshot {
+        data class Insertion(
+            val insertedText: String,
+            val replacedText: String,
+            val selectionStart: Int,
+            val selectionEnd: Int,
+        ) : AiCommitUndoSnapshot
+
+        data class FullTextRewrite(
+            val beforeCursor: String,
+            val afterCursor: String,
+            val selectionStart: Int,
+            val selectionEnd: Int,
+        ) : AiCommitUndoSnapshot
+    }
+
     private val composing = CursorRange()
     private var composingText = FormattedText.Empty
+    private var pendingAiCommitUndoSnapshot: AiCommitUndoSnapshot? = null
+    private var keepPendingAiCommitUndoForNextCommit = false
 
     private fun resetComposingState() {
         composing.clear()
@@ -692,6 +735,11 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
 
     fun commitText(text: String, cursor: Int = -1) {
         val ic = currentInputConnection ?: return
+        if (keepPendingAiCommitUndoForNextCommit) {
+            keepPendingAiCommitUndoForNextCommit = false
+        } else {
+            pendingAiCommitUndoSnapshot = null
+        }
         // when composing text equals commit content, finish composing text as-is
         if (composing.isNotEmpty() && composingText.toString() == text) {
             val c = if (cursor == -1) text.length else cursor
@@ -728,6 +776,81 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             commitText(text)
             false
         }
+    }
+
+    fun recordAiInsertionUndoSnapshot(
+        insertedText: String,
+        replacedText: String,
+        selectionStart: Int = currentInputSelection.start,
+        selectionEnd: Int = currentInputSelection.end,
+    ) {
+        pendingAiCommitUndoSnapshot = AiCommitUndoSnapshot.Insertion(
+            insertedText = insertedText,
+            replacedText = replacedText,
+            selectionStart = selectionStart,
+            selectionEnd = selectionEnd,
+        )
+        keepPendingAiCommitUndoForNextCommit = true
+    }
+
+    fun recordAiRewriteUndoSnapshot(
+        beforeCursor: String,
+        afterCursor: String,
+        selectionStart: Int = currentInputSelection.start,
+        selectionEnd: Int = currentInputSelection.end,
+    ) {
+        pendingAiCommitUndoSnapshot = AiCommitUndoSnapshot.FullTextRewrite(
+            beforeCursor = beforeCursor,
+            afterCursor = afterCursor,
+            selectionStart = selectionStart,
+            selectionEnd = selectionEnd,
+        )
+        keepPendingAiCommitUndoForNextCommit = true
+    }
+
+    fun undoLastAiCommit(): Boolean {
+        val snapshot = pendingAiCommitUndoSnapshot ?: return false
+        val ic = currentInputConnection ?: return false
+        resetComposingState()
+        pendingAiCommitUndoSnapshot = null
+        keepPendingAiCommitUndoForNextCommit = false
+        val insertionRestore = if (snapshot is AiCommitUndoSnapshot.Insertion) {
+            val currentText = ic.getTextBeforeCursor(20_000, 0)?.toString().orEmpty() +
+                ic.getTextAfterCursor(20_000, 0)?.toString().orEmpty()
+            if (!canApplyAiInsertionUndo(currentText, snapshot.insertedText, snapshot.selectionStart)) {
+                return false
+            }
+            applyAiInsertionUndo(
+                currentText = currentText,
+                insertedText = snapshot.insertedText,
+                replacedText = snapshot.replacedText,
+                selectionStart = snapshot.selectionStart,
+            )
+        } else {
+            null
+        }
+        ic.withBatchEdit {
+            finishComposingText()
+            when (snapshot) {
+                is AiCommitUndoSnapshot.Insertion -> {
+                    performContextMenuAction(android.R.id.selectAll)
+                    commitText(insertionRestore.orEmpty(), 1)
+                    setSelection(snapshot.selectionStart, snapshot.selectionEnd)
+                }
+                is AiCommitUndoSnapshot.FullTextRewrite -> {
+                    performContextMenuAction(android.R.id.selectAll)
+                    commitText(snapshot.beforeCursor + snapshot.afterCursor, 1)
+                    setSelection(snapshot.selectionStart, snapshot.selectionEnd)
+                }
+            }
+        }
+        when (snapshot) {
+            is AiCommitUndoSnapshot.Insertion ->
+                selection.predict(snapshot.selectionStart, snapshot.selectionEnd)
+            is AiCommitUndoSnapshot.FullTextRewrite ->
+                selection.predict(snapshot.selectionStart, snapshot.selectionEnd)
+        }
+        return true
     }
 
     private fun commitUriContent(text: String): Boolean {

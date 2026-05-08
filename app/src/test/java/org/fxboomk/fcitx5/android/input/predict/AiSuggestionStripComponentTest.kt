@@ -1,6 +1,8 @@
 package org.fxboomk.fcitx5.android.input.predict
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class AiSuggestionStripComponentTest {
@@ -34,6 +36,52 @@ class AiSuggestionStripComponentTest {
             mergeSingleTextPanelResult(
                 streamedText = "streamed answer",
                 finalText = "",
+            ),
+        )
+    }
+
+    @Test
+    fun aiUndoInsertionShouldOnlyReplaceInsertedSegment() {
+        val result = applyAiInsertionUndo(
+            currentText = "hello world",
+            insertedText = " world",
+            replacedText = "",
+            selectionStart = 5,
+            selectionEnd = 5,
+        )
+        assertEquals("hello", result)
+    }
+
+    @Test
+    fun aiUndoInsertionShouldRestoreSelectedText() {
+        val result = applyAiInsertionUndo(
+            currentText = "hello earth",
+            insertedText = "earth",
+            replacedText = "world",
+            selectionStart = 6,
+            selectionEnd = 11,
+        )
+        assertEquals("hello world", result)
+    }
+
+    @Test
+    fun aiUndoInsertionShouldRejectMismatchedCurrentText() {
+        assertFalse(
+            canApplyAiInsertionUndo(
+                currentText = "hello planet",
+                insertedText = " world",
+                selectionStart = 5,
+            ),
+        )
+    }
+
+    @Test
+    fun aiUndoInsertionShouldAcceptMatchingCurrentText() {
+        assertTrue(
+            canApplyAiInsertionUndo(
+                currentText = "hello world",
+                insertedText = " world",
+                selectionStart = 5,
             ),
         )
     }

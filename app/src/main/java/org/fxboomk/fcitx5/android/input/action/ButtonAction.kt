@@ -183,7 +183,9 @@ data object UndoAction : ButtonAction() {
         view: View?,
         onActionComplete: (() -> Unit)?
     ) {
-        service.sendCombinationKeyEvents(KeyEvent.KEYCODE_Z, ctrl = true)
+        if (!service.undoLastAiCommit()) {
+            service.sendCombinationKeyEvents(KeyEvent.KEYCODE_Z, ctrl = true)
+        }
     }
 }
 
