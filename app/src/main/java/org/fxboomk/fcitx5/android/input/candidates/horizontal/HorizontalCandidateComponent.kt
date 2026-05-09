@@ -47,6 +47,21 @@ import splitties.dimensions.dp
 import java.util.ArrayDeque
 import kotlin.math.max
 
+internal fun activeCandidateIndex(cursorIndex: Int, candidateCount: Int): Int {
+    if (candidateCount <= 0) return -1
+    return cursorIndex.coerceIn(0, candidateCount - 1)
+}
+
+internal fun moveActiveCandidateIndex(
+    currentIndex: Int,
+    delta: Int,
+    candidateCount: Int,
+): Int {
+    if (candidateCount <= 0) return -1
+    val base = activeCandidateIndex(currentIndex, candidateCount)
+    return (base + delta).coerceIn(0, candidateCount - 1)
+}
+
 class HorizontalCandidateComponent :
     UniqueViewComponent<HorizontalCandidateComponent, RecyclerView>(), InputBroadcastReceiver {
 
@@ -130,9 +145,24 @@ class HorizontalCandidateComponent :
 
     fun isRowShifted(): Boolean = rowWindowHistory.isNotEmpty()
 
-    private fun candidateFetchBatchSize(): Int = max(maxSpanCountPref.getValue() * 3, 24)
+    fun hasCandidates(): Boolean = adapter.candidates.isNotEmpty()
 
-    private fun activeIndexFor(candidates: Array<String>): Int = if (candidates.isNotEmpty()) 0 else -1
+    fun moveActiveCandidate(delta: Int): Boolean {
+        if (delta == 0 || adapter.candidates.isEmpty()) return false
+        val nextIndex = moveActiveCandidateIndex(adapter.activeIndex, delta, adapter.candidates.size)
+        if (nextIndex == adapter.activeIndex) return false
+        adapter.updateActiveIndex(nextIndex)
+        return true
+    }
+
+    fun selectActiveCandidate(): Boolean {
+        val idx = adapter.activeIndex
+        if (idx !in adapter.candidates.indices) return false
+        fcitx.launchOnReady { it.select(idx + adapter.indexOffset) }
+        return true
+    }
+
+    private fun candidateFetchBatchSize(): Int = max(maxSpanCountPref.getValue() * 3, 24)
 
     private fun measuredCandidateWidth(candidate: String, layoutMinWidth: Int): Int {
         measurementCandidateUi.apply {
@@ -186,12 +216,13 @@ class HorizontalCandidateComponent :
         candidates: Array<String>,
         total: Int,
         indexOffset: Int,
+        activeIndex: Int,
     ) {
         val singleRowCandidates = normalizedSingleRowCandidates(candidates)
         updateCandidates(
             singleRowCandidates,
             total,
-            activeIndexFor(singleRowCandidates),
+            activeIndex,
             indexOffset
         )
     }
@@ -221,7 +252,12 @@ class HorizontalCandidateComponent :
                 rowWindowHistory.addLast(
                     RowWindow(snapshot.currentStart, snapshot.currentCandidates)
                 )
-                renderCandidateWindow(nextCandidates, -1, snapshot.nextStart)
+                renderCandidateWindow(
+                    nextCandidates,
+                    -1,
+                    snapshot.nextStart,
+                    activeCandidateIndex(0, normalizedSingleRowCandidates(nextCandidates).size)
+                )
                 true
             }
         }
@@ -230,7 +266,12 @@ class HorizontalCandidateComponent :
                 false
             } else {
                 val previous = rowWindowHistory.removeLast()
-                renderCandidateWindow(previous.candidates, -1, previous.start)
+                renderCandidateWindow(
+                    previous.candidates,
+                    -1,
+                    previous.start,
+                    activeCandidateIndex(0, normalizedSingleRowCandidates(previous.candidates).size)
+                )
                 true
             }
         }
@@ -245,13 +286,13 @@ class HorizontalCandidateComponent :
                     minWidth = layoutMinWidth
                     flexGrow = layoutFlexGrow
                 }
-                if (position == 0) {
+                if (position == activeIndex) {
                     holder.ui.applyFirstCandidateStyle(
                         bgColor = theme.genericActiveBackgroundColor,
                         strokeColor = theme.dividerColor,
                         pressColor = theme.keyPressHighlightColor
                     )
-                } else if (position != activeIndex) {
+                } else {
                     holder.ui.resetToDefaultBackground(theme.keyPressHighlightColor)
                 }
                 holder.itemView.setOnClickListener {
@@ -337,7 +378,12 @@ class HorizontalCandidateComponent :
         pendingLegacyCandidateUpdate?.let(view::removeCallbacks)
         pendingLegacyCandidateUpdate = Runnable {
             pendingLegacyCandidateUpdate = null
-            renderCandidateWindow(candidates, total, 0)
+            renderCandidateWindow(
+                candidates,
+                total,
+                0,
+                activeCandidateIndex(0, normalizedSingleRowCandidates(candidates).size)
+            )
         }.also(view::post)
     }
 
@@ -359,7 +405,12 @@ class HorizontalCandidateComponent :
             }
         }.toTypedArray()
         resetRowWindowState()
-        renderCandidateWindow(candidates, -1, 0)
+        renderCandidateWindow(
+            candidates,
+            -1,
+            0,
+            activeCandidateIndex(data.cursorIndex, normalizedSingleRowCandidates(candidates).size)
+        )
     }
 
     private fun updateCandidates(

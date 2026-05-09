@@ -138,9 +138,10 @@ class CommonKeyActionListener :
                             sendKey(action.sym, action.states)
                         }
                         action.sym.sym == FcitxKeyMapping.FcitxKey_space &&
-                            horizontalCandidate.isRowShifted() &&
-                            horizontalCandidate.adapter.candidates.isNotEmpty() -> {
-                            select(horizontalCandidate.adapter.indexOffset)
+                            horizontalCandidate.hasCandidates() -> {
+                            if (!horizontalCandidate.selectActiveCandidate()) {
+                                sendKey(action.sym, action.states)
+                            }
                         }
                         else -> {
                             sendKey(action.sym, action.states)
@@ -213,18 +214,15 @@ class CommonKeyActionListener :
                     backspaceSwipeState = Stopped
                 }
                 is CandidatePageAction -> service.postFcitxJob {
+                    if (horizontalCandidate.hasCandidates()) {
+                        horizontalCandidate.moveActiveCandidate(action.delta)
+                        return@postFcitxJob
+                    }
                     val shouldSwipeCandidateRows =
                         floatingCandidatesMode != FloatingCandidatesMode.Always &&
                                 horizontalCandidate.hasRowSwipeCandidates()
                     if (shouldSwipeCandidateRows) {
                         horizontalCandidate.shiftDisplayedCandidateRow(action.delta)
-                    } else {
-                        val sym = if (action.delta > 0) {
-                            FcitxKeyMapping.FcitxKey_Down
-                        } else {
-                            FcitxKeyMapping.FcitxKey_Up
-                        }
-                        sendKey(KeySym(sym), KeyStates.Virtual)
                     }
                 }
                 is PickerSwitchAction -> {

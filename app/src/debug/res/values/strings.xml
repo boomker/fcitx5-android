@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_debug_name">帝鹅输入法</string>
+    <string name="app_debug_name">Swan Input Method (Debug)</string>
 </resources>
