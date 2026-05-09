@@ -138,6 +138,7 @@ class CommonKeyActionListener :
                             sendKey(action.sym, action.states)
                         }
                         action.sym.sym == FcitxKeyMapping.FcitxKey_space &&
+                            floatingCandidatesMode != FloatingCandidatesMode.Always &&
                             horizontalCandidate.hasCandidates() -> {
                             if (!horizontalCandidate.selectActiveCandidate()) {
                                 sendKey(action.sym, action.states)
