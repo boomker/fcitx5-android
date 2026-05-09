@@ -1154,11 +1154,14 @@ class CustomThemeActivity : AppCompatActivity() {
         whenHasBackground { background ->
             brightnessSeekBar.progress = background.brightness
             blurRadiusSeekBar.progress = background.blurRadius.toInt()
+            savedThemeSnapshot = currentEditableThemeSnapshot()
             variantSwitch.isChecked = !theme.isDark
             updateBlurRadiusLabel(blurRadiusSeekBar.progress)
         }
         updateBackgroundEditorVisibility()
-        savedThemeSnapshot = currentEditableThemeSnapshot()
+        if (!this::savedThemeSnapshot.isInitialized) {
+            savedThemeSnapshot = currentEditableThemeSnapshot()
+        }
 
         if (newCreated) {
             cropLabel.visibility = View.GONE

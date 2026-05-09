@@ -12,6 +12,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.recyclerview.widget.RecyclerView
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -134,7 +135,7 @@ abstract class BaseExpandedCandidateWindow<T : BaseExpandedCandidateWindow<T>> :
                 }
             }
         }
-        candidatesSubmitJob = service.lifecycleScope.launch {
+        candidatesSubmitJob = service.lifecycleScope.launch(Dispatchers.Main.immediate) {
             candidatesPager.flow.collectLatest {
                 adapter.submitData(it)
             }

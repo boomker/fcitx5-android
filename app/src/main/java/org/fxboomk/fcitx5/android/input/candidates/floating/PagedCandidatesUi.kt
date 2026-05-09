@@ -37,6 +37,7 @@ class PagedCandidatesUi(
 ) : Ui {
 
     private var data = FcitxEvent.PagedCandidateEvent.Data.Empty
+    private var activeIndex = -1
 
     private var isVertical = false
 
@@ -91,7 +92,7 @@ class PagedCandidatesUi(
             when (holder) {
                 is UiHolder.Candidate -> {
                     val candidate = data.candidates[position]
-                    holder.ui.update(candidate, active = position == data.cursorIndex)
+                    holder.ui.update(candidate, active = position == activeIndex)
                     holder.ui.root.setOnClickListener {
                         onCandidateClick.invoke(position)
                     }
@@ -138,18 +139,21 @@ class PagedCandidatesUi(
     fun update(
         data: FcitxEvent.PagedCandidateEvent.Data,
         orientation: FloatingCandidatesOrientation,
-        maxRowWidthPx: Int
+        maxRowWidthPx: Int,
+        activeIndexOverride: Int? = null,
     ) {
         // Compute new vertical layout decision before any state mutation
         val newIsVertical = when (orientation) {
             FloatingCandidatesOrientation.Automatic -> shouldUseVerticalLayout(data, maxRowWidthPx)
             else -> orientation == FloatingCandidatesOrientation.Vertical
         }
+        val newActiveIndex = activeIndexOverride ?: data.cursorIndex
         // Skip update if nothing changed to avoid unnecessary rebind/redraw.
-        if (this.data === data && this.isVertical == newIsVertical) return
+        if (this.data === data && this.isVertical == newIsVertical && this.activeIndex == newActiveIndex) return
 
         this.data = data
         this.isVertical = newIsVertical
+        this.activeIndex = newActiveIndex
         candidatesLayoutManager.apply {
             if (isVertical) {
                 flexDirection = FlexDirection.COLUMN

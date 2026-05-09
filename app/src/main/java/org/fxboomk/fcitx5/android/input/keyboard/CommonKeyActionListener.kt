@@ -8,6 +8,7 @@ package org.fxboomk.fcitx5.android.input.keyboard
 import android.view.KeyEvent
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.fxboomk.fcitx5.android.core.CapabilityFlag
 import org.fxboomk.fcitx5.android.core.CapabilityFlags
@@ -29,7 +30,6 @@ import org.fxboomk.fcitx5.android.input.keyboard.CommonKeyActionListener.Backspa
 import org.fxboomk.fcitx5.android.input.keyboard.CommonKeyActionListener.BackspaceSwipeState.Selection
 import org.fxboomk.fcitx5.android.input.keyboard.CommonKeyActionListener.BackspaceSwipeState.Stopped
 import org.fxboomk.fcitx5.android.input.keyboard.KeyAction.CommitAction
-import org.fxboomk.fcitx5.android.input.keyboard.KeyAction.CandidatePageAction
 import org.fxboomk.fcitx5.android.input.keyboard.KeyAction.DeleteSelectionAction
 import org.fxboomk.fcitx5.android.input.keyboard.KeyAction.FcitxKeyAction
 import org.fxboomk.fcitx5.android.input.keyboard.KeyAction.LangSwitchAction
@@ -38,6 +38,7 @@ import org.fxboomk.fcitx5.android.input.keyboard.KeyAction.PickerSwitchAction
 import org.fxboomk.fcitx5.android.input.keyboard.KeyAction.QuickPhraseAction
 import org.fxboomk.fcitx5.android.input.keyboard.KeyAction.ShowInputMethodPickerAction
 import org.fxboomk.fcitx5.android.input.keyboard.KeyAction.SpaceLongPressAction
+import org.fxboomk.fcitx5.android.input.keyboard.KeyAction.SpaceSwipeVerticalAction
 import org.fxboomk.fcitx5.android.input.keyboard.KeyAction.SymAction
 import org.fxboomk.fcitx5.android.input.keyboard.KeyAction.UnicodeAction
 import org.fxboomk.fcitx5.android.input.picker.PickerWindow
@@ -74,8 +75,22 @@ class CommonKeyActionListener :
     private val langSwitchKeyBehavior by kbdPrefs.langSwitchKeyBehavior
     private val preferredVoiceInput by kbdPrefs.preferredVoiceInput
     private val floatingCandidatesMode by AppPrefs.getInstance().candidates.mode
+    private val spaceSwipeVerticalBehavior by kbdPrefs.spaceSwipeVerticalBehavior
 
     private var backspaceSwipeState = Stopped
+
+    private fun FcitxKeyAction.verticalArrowDelta(): Int? =
+        when (act.lowercase()) {
+            "up" -> -1
+            "down" -> 1
+            else -> null
+        }
+
+    private fun moveVisibleCandidateHighlight(delta: Int) {
+        service.lifecycleScope.launch(Dispatchers.Main.immediate) {
+            service.moveVisibleCandidateHighlight(delta)
+        }
+    }
 
     private fun hasNativePredictionCandidatesVisible(): Boolean =
         preeditState.isEmpty && horizontalCandidate.adapter.total > 0
@@ -117,8 +132,17 @@ class CommonKeyActionListener :
     val listener by lazy {
         KeyActionListener { action, _ ->
             when (action) {
-                is FcitxKeyAction -> service.postFcitxJob {
-                    sendKey(action.act, action.states.states, action.code, action.up)
+                is FcitxKeyAction -> {
+                    val delta = action.verticalArrowDelta()
+                    if (delta != null && service.hasVisibleCandidates()) {
+                        if (!action.up) {
+                            moveVisibleCandidateHighlight(delta)
+                        }
+                    } else {
+                        service.postFcitxJob {
+                            sendKey(action.act, action.states.states, action.code, action.up)
+                        }
+                    }
                 }
                 is SymAction -> service.postFcitxJob {
                     when {
@@ -138,11 +162,18 @@ class CommonKeyActionListener :
                             sendKey(action.sym, action.states)
                         }
                         action.sym.sym == FcitxKeyMapping.FcitxKey_space &&
-                            floatingCandidatesMode != FloatingCandidatesMode.Always &&
-                            horizontalCandidate.hasCandidates() -> {
-                            if (!horizontalCandidate.selectActiveCandidate()) {
+                            service.hasVisibleCandidates() -> {
+                            if (!service.selectVisibleCandidateHighlight()) {
                                 sendKey(action.sym, action.states)
                             }
+                        }
+                        action.sym.sym == FcitxKeyMapping.FcitxKey_Up &&
+                            service.hasVisibleCandidates() -> {
+                            moveVisibleCandidateHighlight(-1)
+                        }
+                        action.sym.sym == FcitxKeyMapping.FcitxKey_Down &&
+                            service.hasVisibleCandidates() -> {
+                            moveVisibleCandidateHighlight(1)
                         }
                         else -> {
                             sendKey(action.sym, action.states)
@@ -214,16 +245,32 @@ class CommonKeyActionListener :
                     }
                     backspaceSwipeState = Stopped
                 }
-                is CandidatePageAction -> service.postFcitxJob {
-                    if (horizontalCandidate.hasCandidates()) {
-                        horizontalCandidate.moveActiveCandidate(action.delta)
-                        return@postFcitxJob
+                is SpaceSwipeVerticalAction -> when (spaceSwipeVerticalBehavior) {
+                    SpaceSwipeVerticalBehavior.ArrowKeys -> {
+                        if (service.hasVisibleCandidates()) {
+                            moveVisibleCandidateHighlight(action.delta)
+                        } else {
+                            service.postFcitxJob {
+                                val sym = if (action.delta > 0) {
+                                    FcitxKeyMapping.FcitxKey_Down
+                                } else {
+                                    FcitxKeyMapping.FcitxKey_Up
+                                }
+                                sendKey(KeySym(sym), KeyStates.Virtual)
+                            }
+                        }
                     }
-                    val shouldSwipeCandidateRows =
-                        floatingCandidatesMode != FloatingCandidatesMode.Always &&
-                                horizontalCandidate.hasRowSwipeCandidates()
-                    if (shouldSwipeCandidateRows) {
-                        horizontalCandidate.shiftDisplayedCandidateRow(action.delta)
+                    SpaceSwipeVerticalBehavior.CandidateRows -> {
+                        val shouldSwipeCandidateRows =
+                            floatingCandidatesMode != FloatingCandidatesMode.Always &&
+                                    horizontalCandidate.hasRowSwipeCandidates()
+                        if (shouldSwipeCandidateRows) {
+                            service.postFcitxJob {
+                                horizontalCandidate.shiftDisplayedCandidateRow(action.delta)
+                            }
+                        } else if (service.hasVisibleCandidates()) {
+                            moveVisibleCandidateHighlight(action.delta)
+                        }
                     }
                 }
                 is PickerSwitchAction -> {

@@ -699,7 +699,7 @@ abstract class BaseKeyboard(
                                     if (countY != 0 && !verticalSwipeTriggered) {
                                         verticalSwipeTriggered = true
                                         val action =
-                                            KeyAction.CandidatePageAction(if (countY > 0) 1 else -1)
+                                            KeyAction.SpaceSwipeVerticalAction(if (countY > 0) 1 else -1)
                                         onAction(action)
                                         if (hapticOnRepeat) InputFeedbacks.hapticFeedback(view)
                                         true

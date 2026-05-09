@@ -20,6 +20,7 @@ import org.fxboomk.fcitx5.android.input.candidates.horizontal.HorizontalCandidat
 import org.fxboomk.fcitx5.android.input.keyboard.LangSwitchBehavior
 import org.fxboomk.fcitx5.android.input.keyboard.SpaceKeyLabelMode
 import org.fxboomk.fcitx5.android.input.keyboard.SpaceLongPressBehavior
+import org.fxboomk.fcitx5.android.input.keyboard.SpaceSwipeVerticalBehavior
 import org.fxboomk.fcitx5.android.input.keyboard.SwipeSymbolDirection
 import org.fxboomk.fcitx5.android.input.picker.PickerWindow
 import org.fxboomk.fcitx5.android.input.popup.EmojiModifier
@@ -220,6 +221,11 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
         )
         val spaceSwipeMoveCursor =
             switch(R.string.space_swipe_move_cursor, "space_swipe_move_cursor", true)
+        val spaceSwipeVerticalBehavior = enumList(
+            R.string.space_swipe_vertical_behavior,
+            "space_swipe_vertical_behavior",
+            SpaceSwipeVerticalBehavior.ArrowKeys
+        )
         val showLangSwitchKey =
             switch(R.string.show_lang_switch_key, "show_lang_switch_key", true)
         val textKeyboardLayoutProfile = ManagedPreference.PString(

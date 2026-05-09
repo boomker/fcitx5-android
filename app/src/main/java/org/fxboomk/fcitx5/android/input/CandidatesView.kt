@@ -75,6 +75,7 @@ class CandidatesView(
 
     private var inputPanel = FcitxEvent.InputPanelEvent.Data()
     private var paged = FcitxEvent.PagedCandidateEvent.Data.Empty
+    private var activeCandidateOverride: Int? = null
 
     /**
      * horizontal, bottom, top
@@ -155,6 +156,9 @@ class CandidatesView(
                 updateUi()
             }
             is FcitxEvent.PagedCandidateEvent -> {
+                if (paged != it.data) {
+                    activeCandidateOverride = null
+                }
                 paged = it.data
                 updateUi()
             }
@@ -182,7 +186,8 @@ class CandidatesView(
         candidatesUi.update(
             data = paged,
             orientation = orientation,
-            maxRowWidthPx = maxCandidateRowWidth
+            maxRowWidthPx = maxCandidateRowWidth,
+            activeIndexOverride = activeCandidateOverride
         )
         if (evaluateVisibility()) {
             visibility = VISIBLE
@@ -190,6 +195,26 @@ class CandidatesView(
             // RecyclerView won't update its items when ancestor view is GONE
             visibility = INVISIBLE
         }
+    }
+
+    fun hasCandidates(): Boolean = paged.candidates.isNotEmpty() && visibility == VISIBLE
+
+    fun moveActiveCandidate(delta: Int): Boolean {
+        if (delta == 0 || paged.candidates.isEmpty()) return false
+        val base = activeCandidateOverride ?: paged.cursorIndex
+        val next = (base + delta).coerceIn(paged.candidates.indices)
+        if (next == base) return false
+        activeCandidateOverride = next
+        updateUi()
+        return true
+    }
+
+    fun selectActiveCandidate(): Boolean {
+        if (paged.candidates.isEmpty()) return false
+        val index = activeCandidateOverride ?: paged.cursorIndex
+        if (index !in paged.candidates.indices) return false
+        fcitx.launchOnReady { it.select(index) }
+        return true
     }
 
     private var bottomInsets = 0

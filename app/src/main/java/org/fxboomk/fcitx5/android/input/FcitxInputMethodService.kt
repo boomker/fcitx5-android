@@ -50,6 +50,7 @@ import androidx.core.view.inputmethod.InputContentInfoCompat
 import androidx.core.view.updateLayoutParams
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.consumeEach
@@ -386,6 +387,63 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         return newCandidatesView
     }
 
+    private fun hasFloatingCandidates(): Boolean = candidatesView?.hasCandidates() == true
+
+    fun hasVisibleCandidates(): Boolean =
+        hasFloatingCandidates() || inputView?.hasHorizontalCandidates() == true
+
+    fun moveVisibleCandidateHighlight(delta: Int): Boolean =
+        when {
+            hasFloatingCandidates() -> candidatesView?.moveActiveCandidate(delta) == true
+            inputView?.hasHorizontalCandidates() == true -> inputView?.moveHorizontalCandidateHighlight(delta) == true
+            else -> false
+        }
+
+    fun selectVisibleCandidateHighlight(): Boolean =
+        when {
+            hasFloatingCandidates() -> candidatesView?.selectActiveCandidate() == true
+            inputView?.hasHorizontalCandidates() == true -> inputView?.selectHorizontalCandidateHighlight() == true
+            else -> false
+        }
+
+    private fun moveVisibleCandidateHighlightOnMain(delta: Int) {
+        lifecycleScope.launch(Dispatchers.Main.immediate) {
+            moveVisibleCandidateHighlight(delta)
+        }
+    }
+
+    private fun visibleCandidateArrowDelta(keyCode: Int): Int? =
+        when (keyCode) {
+            KeyEvent.KEYCODE_DPAD_UP -> -1
+            KeyEvent.KEYCODE_DPAD_DOWN -> 1
+            else -> null
+        }
+
+    private fun handleVisibleCandidateArrowKey(keyCode: Int): Boolean {
+        val delta = visibleCandidateArrowDelta(keyCode) ?: return false
+        if (!hasVisibleCandidates()) return false
+        moveVisibleCandidateHighlightOnMain(delta)
+        return true
+    }
+
+    private fun handleVisibleCandidateArrowKeyEvent(event: KeyEvent): Boolean {
+        val delta = visibleCandidateArrowDelta(event.keyCode) ?: return false
+        if (event.action != KeyEvent.ACTION_DOWN && event.action != KeyEvent.ACTION_UP) return false
+        if (
+            event.isShiftPressed ||
+            event.isAltPressed ||
+            event.isCtrlPressed ||
+            event.isMetaPressed ||
+            !hasVisibleCandidates()
+        ) {
+            return false
+        }
+        if (event.action == KeyEvent.ACTION_DOWN) {
+            moveVisibleCandidateHighlightOnMain(delta)
+        }
+        return true
+    }
+
     private fun refreshViewsForFontChange() {
         val theme = ThemeManager.activeTheme
         inputView?.let {
@@ -704,6 +762,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     }
 
     private fun handleArrowKey(keyCode: Int) {
+        if (handleVisibleCandidateArrowKey(keyCode)) return
         val ic = currentInputConnection ?: run {
             sendDownUpKeyEvents(keyCode)
             return
@@ -929,6 +988,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         ctrl: Boolean = false,
         shift: Boolean = false
     ) {
+        if (!alt && !ctrl && !shift && handleVisibleCandidateArrowKey(keyEventCode)) return
         var metaState = 0
         if (alt) metaState = KeyEvent.META_ALT_ON or KeyEvent.META_ALT_LEFT_ON
         if (ctrl) metaState = metaState or KeyEvent.META_CTRL_ON or KeyEvent.META_CTRL_LEFT_ON
@@ -1122,6 +1182,9 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             )
         } else {
             event
+        }
+        if (handleVisibleCandidateArrowKeyEvent(forwardedEvent)) {
+            return true
         }
         cachedKeyEvents.put(timestamp, forwardedEvent)
         val sym = KeySym.fromKeyEvent(forwardedEvent)

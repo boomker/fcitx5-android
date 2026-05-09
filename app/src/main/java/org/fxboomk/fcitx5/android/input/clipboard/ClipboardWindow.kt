@@ -29,6 +29,7 @@ import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
+import kotlinx.coroutines.Dispatchers
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import com.google.android.material.snackbar.BaseTransientBottomBar.BaseCallback
 import com.google.android.material.snackbar.Snackbar
@@ -263,7 +264,7 @@ class ClipboardWindow : InputWindow.ExtendedInputWindow<ClipboardWindow>() {
         currentCategory = category
         ui.setSelectedCategory(category)
         adapterSubmitJob?.cancel()
-        adapterSubmitJob = service.lifecycleScope.launch {
+        adapterSubmitJob = service.lifecycleScope.launch(Dispatchers.Main.immediate) {
             entriesPager(category).flow.collect {
                 adapter.submitData(it)
             }

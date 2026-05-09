@@ -143,8 +143,6 @@ class HorizontalCandidateComponent :
 
     fun hasRowSwipeCandidates(): Boolean = pagedCandidateFlowActive && adapter.candidates.isNotEmpty()
 
-    fun isRowShifted(): Boolean = rowWindowHistory.isNotEmpty()
-
     fun hasCandidates(): Boolean = adapter.candidates.isNotEmpty()
 
     fun moveActiveCandidate(delta: Int): Boolean {

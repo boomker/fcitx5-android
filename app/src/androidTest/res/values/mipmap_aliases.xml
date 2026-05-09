@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="ic_launcher_debug" type="mipmap">@android:color/transparent</item>
+    <item name="ic_launcher_round_debug" type="mipmap">@android:color/transparent</item>
+</resources>

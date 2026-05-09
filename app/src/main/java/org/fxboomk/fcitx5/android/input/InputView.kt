@@ -1192,6 +1192,14 @@ class InputView(
     var isAdjustingMode = false
         private set
 
+    fun hasHorizontalCandidates(): Boolean = horizontalCandidate.hasCandidates()
+
+    fun moveHorizontalCandidateHighlight(delta: Int): Boolean =
+        horizontalCandidate.moveActiveCandidate(delta)
+
+    fun selectHorizontalCandidateHighlight(): Boolean =
+        horizontalCandidate.selectActiveCandidate()
+
     private var oneHandOnRight = true
     private var oneHandWidthPx = 0
     private var lastTouchX = 0f
