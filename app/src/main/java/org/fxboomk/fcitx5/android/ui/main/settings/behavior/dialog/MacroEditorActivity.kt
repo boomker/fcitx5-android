@@ -37,6 +37,12 @@ import splitties.views.backgroundColor
 import splitties.views.dsl.core.matchParent
 import splitties.views.dsl.core.wrapContent
 
+internal fun List<MacroEditorActivity.MacroStepData>.findCurrentStepPosition(
+    step: MacroEditorActivity.MacroStepData
+): Int {
+    return indexOfFirst { it === step }
+}
+
 /**
  * Macro step editor activity
  * Supports editing arbitrary down/up/tap/text combinations
@@ -880,7 +886,7 @@ class MacroEditorActivity : AppCompatActivity() {
         }
 
         override fun onBindViewHolder(holder: StepViewHolder, position: Int) {
-            holder.bind(position, steps[position])
+            holder.bind(steps[position])
         }
 
         override fun getItemCount() = steps.size
@@ -892,7 +898,7 @@ class MacroEditorActivity : AppCompatActivity() {
         private lateinit var textEditContainer: LinearLayout
         private lateinit var deleteBtn: TextView
 
-        fun bind(position: Int, step: MacroStepData) {
+        fun bind(step: MacroStepData) {
             container.removeAllViews()
 
             // Content row: [type spinner] [key FlowLayout container (weight=1f)] [text input for text type]
@@ -990,8 +996,10 @@ class MacroEditorActivity : AppCompatActivity() {
                         .setTitle(R.string.macro_editor_delete_step_title)
                         .setMessage(R.string.macro_editor_delete_step_message)
                         .setPositiveButton(R.string.macro_editor_delete) { _, _ ->
-                            steps.removeAt(position)
-                            stepsAdapter.notifyItemRemoved(position)
+                            val currentPosition = steps.findCurrentStepPosition(step)
+                            if (currentPosition == -1) return@setPositiveButton
+                            steps.removeAt(currentPosition)
+                            stepsAdapter.notifyItemRemoved(currentPosition)
                             updateSaveButtonState()
                         }
                         .setNegativeButton(R.string.macro_editor_cancel, null)

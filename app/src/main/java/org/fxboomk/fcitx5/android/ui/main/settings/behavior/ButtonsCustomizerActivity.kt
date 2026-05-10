@@ -57,6 +57,17 @@ import java.io.File
 
 private val prettyJson = kotlinx.serialization.json.Json { prettyPrint = true }
 
+internal fun List<ButtonsCustomizerActivity.ListItem>.findCurrentButtonPosition(
+    buttonId: String,
+    section: ButtonsCustomizerActivity.Section
+): Int {
+    return indexOfFirst { item ->
+        item is ButtonsCustomizerActivity.ListItem.ButtonItem &&
+            item.section == section &&
+            item.button.id == buttonId
+    }
+}
+
 /**
  * Unified activity for customizing buttons in both Kawaii Bar and Status Area.
  * Uses a grid layout similar to Status Area for button display.
@@ -547,7 +558,11 @@ class ButtonsCustomizerActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun openButtonEditor(button: ConfigurableButton, position: Int, section: Section) {
+    private fun findCurrentButtonPosition(buttonId: String, section: Section): Int {
+        return items.findCurrentButtonPosition(buttonId, section)
+    }
+
+    private fun openButtonEditor(button: ConfigurableButton, section: Section) {
         val buttonDef = availableButtons.find { it.id == button.id }
         val isBuiltIn = button.id in builtInButtonIds
 
@@ -598,8 +613,10 @@ class ButtonsCustomizerActivity : AppCompatActivity() {
                         .setTitle(R.string.delete_button_title)
                         .setMessage(R.string.delete_button_confirm)
                         .setPositiveButton(R.string.delete) { _, _ ->
-                            items.removeAt(position)
-                            adapter?.notifyItemRemoved(position)
+                            val currentPosition = findCurrentButtonPosition(button.id, section)
+                            if (currentPosition == -1) return@setPositiveButton
+                            items.removeAt(currentPosition)
+                            adapter?.notifyItemRemoved(currentPosition)
                             updateAddButtonsSection()
                             adapter?.notifyDataSetChanged() // 更新 AddButtons 区域
                             updateSaveButtonState()
@@ -625,8 +642,10 @@ class ButtonsCustomizerActivity : AppCompatActivity() {
                     longPressAction = longPressAction
                 )
 
-                items[position] = ListItem.ButtonItem(updatedButton, section)
-                adapter?.notifyItemChanged(position)
+                val currentPosition = findCurrentButtonPosition(button.id, section)
+                if (currentPosition == -1) return@setPositiveButton
+                items[currentPosition] = ListItem.ButtonItem(updatedButton, section)
+                adapter?.notifyItemChanged(currentPosition)
                 updateSaveButtonState()
             }
             .setNegativeButton(R.string.cancel, null)
@@ -784,7 +803,11 @@ class ButtonsCustomizerActivity : AppCompatActivity() {
                         holder.ui.root.setOnClickListener(null)
                     } else {
                         holder.ui.root.setOnClickListener {
-                            openButtonEditor(buttonItem.button, position, buttonItem.section)
+                            val currentPosition = holder.bindingAdapterPosition
+                            if (currentPosition == RecyclerView.NO_POSITION) return@setOnClickListener
+                            val currentItem = items.getOrNull(currentPosition) as? ListItem.ButtonItem
+                                ?: return@setOnClickListener
+                            openButtonEditor(currentItem.button, currentItem.section)
                         }
                     }
                     holder.ui.root.setOnLongClickListener(null)
