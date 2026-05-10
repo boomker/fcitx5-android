@@ -6,6 +6,7 @@ package org.fxboomk.fcitx5.android.core
 
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.Runnable
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.isActive
@@ -56,6 +57,8 @@ class FcitxDispatcher(private val controller: FcitxController) : CoroutineDispat
     private val queue = ConcurrentLinkedQueue<WrappedRunnable>()
 
     private val isRunning = AtomicBoolean(false)
+    private val isAcceptingJobs = AtomicBoolean(false)
+    private val isNativeReady = AtomicBoolean(false)
 
     /**
      * Start the dispatcher
@@ -63,22 +66,33 @@ class FcitxDispatcher(private val controller: FcitxController) : CoroutineDispat
      */
     fun start() {
         Timber.d("FcitxDispatcher start()")
+        if (!isAcceptingJobs.compareAndSet(false, true)) {
+            Timber.w("Skip start: dispatcher is already active")
+            return
+        }
+        isRunning.set(true)
         internalScope.launch {
             runningLock.withLock {
-                if (isRunning.compareAndSet(false, true)) {
+                if (isRunning.get()) {
                     Timber.d("nativeStartup()")
-                    controller.nativeStartup()
-                    while (isActive && isRunning.get()) {
-                        // blocking...
-                        controller.nativeLoopOnce()
-                        // do scheduled jobs
-                        while (true) {
-                            val block = queue.poll() ?: break
-                            block.run()
+                    try {
+                        controller.nativeStartup()
+                        isNativeReady.set(true)
+                        controller.nativeScheduleEmpty()
+                        while (isActive && isRunning.get()) {
+                            controller.nativeLoopOnce()
+                            while (true) {
+                                val block = queue.poll() ?: break
+                                block.run()
+                            }
                         }
+                    } finally {
+                        isNativeReady.set(false)
+                        isRunning.set(false)
+                        isAcceptingJobs.set(false)
+                        Timber.i("nativeExit()")
+                        controller.nativeExit()
                     }
-                    Timber.i("nativeExit()")
-                    controller.nativeExit()
                 }
             }
         }
@@ -90,12 +104,16 @@ class FcitxDispatcher(private val controller: FcitxController) : CoroutineDispat
      */
     fun stop(): List<Runnable> {
         Timber.i("FcitxDispatcher stop()")
+        isAcceptingJobs.set(false)
         return if (isRunning.compareAndSet(true, false)) {
             runBlocking {
-                controller.nativeScheduleEmpty()
+                if (isNativeReady.get()) {
+                    controller.nativeScheduleEmpty()
+                }
                 runningLock.withLock {
                     val rest = queue.toList()
                     queue.clear()
+                    isNativeReady.set(false)
                     rest
                 }
             }
@@ -103,14 +121,17 @@ class FcitxDispatcher(private val controller: FcitxController) : CoroutineDispat
     }
 
     override fun dispatch(context: CoroutineContext, block: Runnable) {
-        if (!isRunning.get()) {
-            Timber.w("Drop runnable because dispatcher is not running: $block")
-            return
+        if (!isAcceptingJobs.get()) {
+            if (context[Job]?.isActive == false) {
+                Timber.d("Drop runnable from cancelled context while dispatcher is stopped: $block")
+                return
+            }
+            throw IllegalStateException("Dispatcher is not in running state!")
         }
         queue.offer(WrappedRunnable(block))
-        // always call `nativeScheduleEmpty()` to prevent `nativeLoopOnce()` from blocking
-        // the thread when we have something to run
-        controller.nativeScheduleEmpty()
+        if (isNativeReady.get()) {
+            controller.nativeScheduleEmpty()
+        }
     }
 
     companion object {

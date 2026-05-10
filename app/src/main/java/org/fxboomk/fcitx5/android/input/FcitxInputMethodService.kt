@@ -125,6 +125,9 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     private var jobs = Channel<Job>(capacity = Channel.UNLIMITED)
     private var inputBindingGeneration = 0
     private var inputSessionGeneration = 0
+    private var pendingCandidatePagingMode: Int? = null
+    private var appliedCandidatePagingMode: Int? = null
+    private var candidatePagingModeJob: Job? = null
 
     /**
      * Marks if we're in a critical input lifecycle phase to delay theme changes and avoid race conditions.
@@ -159,9 +162,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
 
     internal val inputDeviceManager = InputDeviceManager(
         onChange = { isVirtualKeyboard ->
-            postFcitxJob {
-                setCandidatePagingMode(1)
-            }
+            requestCandidatePagingMode(1)
             refreshCursorAnchorMonitoring()
             window.window?.let {
                 navbarMgr.evaluate(it, isVirtualKeyboard)
@@ -190,14 +191,10 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         // Reset state when switching away from "Always" mode
         if (newMode != FloatingCandidatesMode.Always) {
             // Keep paged candidate mode for consistent highlight + page behavior.
-            postFcitxJob {
-                setCandidatePagingMode(1)
-            }
+            requestCandidatePagingMode(1)
         } else {
             // Switching to "Always" mode: enable paging mode for digit key selection
-            postFcitxJob {
-                setCandidatePagingMode(1)
-            }
+            requestCandidatePagingMode(1)
             // Update candidates view position
             updateCandidatesViewPagingAndBounds()
         }
@@ -265,9 +262,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         // Enable candidate paging mode for "Always" floating mode
         if (useFloatingAlways) {
             android.util.Log.d("FloatingCandidates", "setCandidatePagingMode: 1")
-            postFcitxJob {
-                setCandidatePagingMode(1)
-            }
+            requestCandidatePagingMode(1)
         }
         
         // Enable cursor anchor monitoring to get actual cursor position from app
@@ -529,6 +524,38 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         return job
     }
 
+    private suspend fun FcitxAPI.applyCandidatePagingModeIfNeeded(mode: Int) {
+        if (appliedCandidatePagingMode == mode) return
+        setCandidatePagingMode(mode)
+        appliedCandidatePagingMode = mode
+    }
+
+    private fun resetCandidatePagingModeCache() {
+        pendingCandidatePagingMode = null
+        appliedCandidatePagingMode = null
+    }
+
+    private fun requestCandidatePagingMode(mode: Int) {
+        pendingCandidatePagingMode = mode
+        if (candidatePagingModeJob?.isActive == true) return
+        val job = postFcitxJob {
+            while (true) {
+                val nextMode = pendingCandidatePagingMode ?: break
+                pendingCandidatePagingMode = null
+                applyCandidatePagingModeIfNeeded(nextMode)
+            }
+        }
+        candidatePagingModeJob = job
+        job.invokeOnCompletion {
+            if (candidatePagingModeJob === job) {
+                candidatePagingModeJob = null
+            }
+            pendingCandidatePagingMode?.let { nextMode ->
+                requestCandidatePagingMode(nextMode)
+            }
+        }
+    }
+
     private fun postFcitxBindingJob(
         expectedGeneration: Int,
         block: suspend FcitxAPI.() -> Unit
@@ -576,6 +603,9 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
 
     private fun handleFcitxEvent(event: FcitxEvent<*>) {
         when (event) {
+            is FcitxEvent.ReadyEvent -> {
+                resetCandidatePagingModeCache()
+            }
             is FcitxEvent.CommitStringEvent -> {
                 commitText(event.data.text, event.data.cursor)
             }
@@ -1424,6 +1454,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     private var firstBindInput = true
 
     override fun onBindInput() {
+        resetCandidatePagingModeCache()
         val uid = currentInputBinding.uid
         val pkgName = pkgNameCache.forUid(uid)
         val bindingGeneration = ++inputBindingGeneration
@@ -1514,7 +1545,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             postFcitxSessionJob(inputSessionGeneration) {
                 focus(true)
                 // Keep paged candidate mode enabled so candidate cursor/highlight is available.
-                setCandidatePagingMode(1)
+                applyCandidatePagingModeIfNeeded(1)
             }
             if (inputDeviceManager.evaluateOnStartInputView(info, this)) {
                 inputView?.startInput(info, capabilityFlags, restarting)
@@ -1829,6 +1860,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         cachedKeyEvents.evictAll()
         cachedKeyEventIndex = 0
         cursorUpdateIndex = 0
+        resetCandidatePagingModeCache()
         // currentInputBinding can be null on some devices under some special Multi-screen mode
         val uid = currentInputBinding?.uid ?: return
         val bindingGeneration = inputBindingGeneration
