@@ -92,6 +92,12 @@ class CommonKeyActionListener :
         }
     }
 
+    private fun offsetVisibleCandidatePage(delta: Int) {
+        service.postFcitxJob {
+            offsetCandidatePage(delta)
+        }
+    }
+
     private fun hasNativePredictionCandidatesVisible(): Boolean =
         preeditState.isEmpty && horizontalCandidate.adapter.total > 0
 
@@ -261,15 +267,14 @@ class CommonKeyActionListener :
                         }
                     }
                     SpaceSwipeVerticalBehavior.CandidateRows -> {
-                        val shouldSwipeCandidateRows =
-                            floatingCandidatesMode != FloatingCandidatesMode.Always &&
-                                    horizontalCandidate.hasRowSwipeCandidates()
-                        if (shouldSwipeCandidateRows) {
+                        if (floatingCandidatesMode == FloatingCandidatesMode.Always &&
+                            service.hasVisibleCandidates()
+                        ) {
+                            offsetVisibleCandidatePage(action.delta)
+                        } else if (horizontalCandidate.hasRowSwipeCandidates()) {
                             service.postFcitxJob {
                                 horizontalCandidate.shiftDisplayedCandidateRow(action.delta)
                             }
-                        } else if (service.hasVisibleCandidates()) {
-                            moveVisibleCandidateHighlight(action.delta)
                         }
                     }
                 }
