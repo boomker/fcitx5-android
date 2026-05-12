@@ -32,9 +32,11 @@ import org.fxboomk.fcitx5.android.input.predict.LanLlmPrefs
 import org.fxboomk.fcitx5.android.input.predict.LanLlmTaskMode
 import org.fxboomk.fcitx5.android.ui.common.PaddingPreferenceFragment
 import org.fxboomk.fcitx5.android.ui.common.withLoadingDialog
+import org.fxboomk.fcitx5.android.ui.main.settings.SettingsRoute
 import org.fxboomk.fcitx5.android.ui.main.settings.DialogSeekBarPreference
 import org.fxboomk.fcitx5.android.ui.main.modified.MySwitchPreference
 import org.fxboomk.fcitx5.android.utils.addPreference
+import org.fxboomk.fcitx5.android.utils.navigateWithAnim
 import org.fxboomk.fcitx5.android.utils.toast
 
 class LanLlmSettingsFragment : PaddingPreferenceFragment() {
@@ -199,32 +201,18 @@ class LanLlmSettingsFragment : PaddingPreferenceFragment() {
                     }
                 },
             ))
-            addPreference(sampleCountPreference())
-            addPreference(maxContextCharsPreference())
             addPreference(maxPredictionCandidatesPreference())
-            addPreference(textPreference(
-                key = LanLlmPrefs.KEY_MAX_OUTPUT_TOKENS,
-                titleRes = R.string.lan_llm_max_output_tokens,
-                defaultValue = "512",
-                summaryProvider = Preference.SummaryProvider<EditTextPreference> { pref ->
-                    val value = pref.text?.toIntOrNull()
-                    if (value == null) {
-                        context.getString(R.string.invalid_value)
-                    } else {
-                        context.getString(R.string.lan_llm_max_output_tokens_summary, value)
-                    }
-                },
-                inputType = InputType.TYPE_CLASS_NUMBER,
-                onChange = { raw ->
-                    val value = raw.toIntOrNull()
-                    if (value == null || value !in 1..16384) {
-                        context.toast(R.string.invalid_value)
-                        false
-                    } else {
-                        true
-                    }
-                },
-            ))
+            addPreference(Preference(context).apply {
+                key = "lan_llm_advanced_entry"
+                setTitle(R.string.lan_llm_advanced)
+                setSummary(R.string.lan_llm_advanced_summary)
+                isIconSpaceReserved = false
+                isSingleLineTitle = false
+                setOnPreferenceClickListener {
+                    navigateWithAnim(SettingsRoute.LanLlmAdvanced)
+                    true
+                }
+            })
             addLocalModelPreferences(this)
         }
         ensureProviderDefaultsAndScopedApiKey()
@@ -254,35 +242,6 @@ class LanLlmSettingsFragment : PaddingPreferenceFragment() {
             }
         })
     }
-
-    private fun sampleCountPreference() = DialogSeekBarPreference(requireContext()).apply {
-        key = LanLlmPrefs.KEY_SAMPLE_COUNT
-        setTitle(R.string.lan_llm_sample_count)
-        setDialogTitle(R.string.lan_llm_sample_count)
-        setDefaultValue(4)
-        min = 1
-        max = 6
-        step = 1
-        unit = ""
-        isIconSpaceReserved = false
-        isSingleLineTitle = false
-        summaryProvider = DialogSeekBarPreference.SimpleSummaryProvider
-    }
-
-    private fun maxContextCharsPreference() = DialogSeekBarPreference(requireContext()).apply {
-        key = LanLlmPrefs.KEY_MAX_CONTEXT_CHARS
-        setTitle(R.string.lan_llm_max_context_chars)
-        setDialogTitle(R.string.lan_llm_max_context_chars)
-        setDefaultValue(64)
-        min = 8
-        max = 512
-        step = 1
-        unit = ""
-        isIconSpaceReserved = false
-        isSingleLineTitle = false
-        summaryProvider = DialogSeekBarPreference.SimpleSummaryProvider
-    }
-
     private fun maxPredictionCandidatesPreference() = DialogSeekBarPreference(requireContext()).apply {
         key = LanLlmPrefs.KEY_MAX_PREDICTION_CANDIDATES
         setTitle(R.string.lan_llm_max_prediction_candidates)
@@ -360,14 +319,7 @@ class LanLlmSettingsFragment : PaddingPreferenceFragment() {
 
     private fun syncSamplingPreferenceState(provider: LanLlmPrefs.Provider) {
         val samplePreference = findPreference<DialogSeekBarPreference>(LanLlmPrefs.KEY_SAMPLE_COUNT) ?: return
-        val runtime = preferenceManager.sharedPreferences?.let(LanLlmPrefs::currentRuntime)
-            ?: LanLlmPrefs.Runtime.Remote
-        val isLockedToSingleSample =
-            runtime == LanLlmPrefs.Runtime.LocalOnDevice || provider.isVendorProvidedApiService
-        if (isLockedToSingleSample && samplePreference.value != 1) {
-            samplePreference.setValue(1)
-        }
-        samplePreference.isEnabled = !isLockedToSingleSample
+        samplePreference.isEnabled = true
     }
 
     private fun syncRuntimePreferenceState(runtime: LanLlmPrefs.Runtime) {
@@ -381,10 +333,6 @@ class LanLlmSettingsFragment : PaddingPreferenceFragment() {
         }
         findPreference<Preference>(PREF_LOCAL_MODEL_IMPORT)?.isEnabled = !remoteEnabled
         findPreference<Preference>(PREF_MODEL_TEST)?.isEnabled = true
-        if (!remoteEnabled) {
-            findPreference<DialogSeekBarPreference>(LanLlmPrefs.KEY_SAMPLE_COUNT)?.setValue(1)
-        }
-        findPreference<DialogSeekBarPreference>(LanLlmPrefs.KEY_SAMPLE_COUNT)?.isEnabled = remoteEnabled
         refreshModelStatusPreference()
     }
 
@@ -613,6 +561,8 @@ class LanLlmSettingsFragment : PaddingPreferenceFragment() {
                 outputMode = LanLlmOutputMode.Suggestions,
                 taskMode = LanLlmTaskMode.Completion,
                 enableThinking = true,
+                personaPreset = config.personaPreset,
+                customPersona = config.customPersona,
             )
         )
         return ModelGenerationTestResult(

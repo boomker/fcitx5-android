@@ -41,6 +41,18 @@ class LanLlmPromptTest {
     }
 
     @Test
+    fun systemPromptIncludesConfiguredPersonaStyleHint() {
+        val prompt = LanLlmPrompt.systemPrompt(
+            maxPredictionCandidates = 4,
+            beforeCursor = "今晚吃点什么",
+            personaPreset = LanLlmPrefs.PersonaPreset.SocialStar,
+        )
+
+        assertTrue(prompt.contains("<style_hint>"))
+        assertTrue(prompt.contains("情商在线，幽默风趣的社交达人。"))
+    }
+
+    @Test
     fun systemPromptSwitchesToQuestionAnswerMode() {
         val prompt = LanLlmPrompt.systemPrompt(
             maxPredictionCandidates = 5,
@@ -332,6 +344,34 @@ class LanLlmPromptTest {
 
         assertTrue(prompt.contains("英文单词之间必须保留正常空格"))
         assertTrue(!prompt.contains("中文续写助手"))
+    }
+
+    @Test
+    fun localOnDevicePromptAppendsCustomPersonaGuidance() {
+        val prompt = LanLlmPrompt.localOnDevicePrompt(
+            beforeCursor = "今天晚上一起吃饭吗",
+            recentCommittedText = "",
+            historyText = "",
+            maxPredictionCandidates = 1,
+            personaPreset = LanLlmPrefs.PersonaPreset.Custom,
+            customPersona = "语气温柔一点，像很会照顾人。",
+        )
+
+        assertTrue(prompt.contains("额外口吻要求"))
+        assertTrue(prompt.contains("语气温柔一点，像很会照顾人。"))
+    }
+
+    @Test
+    fun systemPromptMergesBuiltInPersonaAndDetailedDescription() {
+        val prompt = LanLlmPrompt.systemPrompt(
+            maxPredictionCandidates = 4,
+            beforeCursor = "今晚吃点什么",
+            personaPreset = LanLlmPrefs.PersonaPreset.SocialStar,
+            customPersona = "说话再俏皮一点，但别太油。",
+        )
+
+        assertTrue(prompt.contains("情商在线，幽默风趣的社交达人。"))
+        assertTrue(prompt.contains("说话再俏皮一点，但别太油。"))
     }
 
     @Test

@@ -619,7 +619,32 @@ class LanLlmPrefsTest {
     }
 
     @Test
-    fun readForcesVendorProviderSampleCountToOne() {
+    fun readCustomPersonaNamesSortsAndFiltersBlankValues() {
+        val prefs = FakeSharedPreferences(
+            mutableMapOf(
+                LanLlmPrefs.KEY_CUSTOM_PERSONA_NAMES to setOf("  ", "活泼学姐", "冷静顾问"),
+            )
+        )
+
+        assertEquals(
+            listOf("冷静顾问", "活泼学姐"),
+            LanLlmPrefs.readCustomPersonaNames(prefs),
+        )
+    }
+
+    @Test
+    fun personaDetailsAreStoredPerPersonaValue() {
+        val prefs = FakeSharedPreferences()
+
+        LanLlmPrefs.writePersonaDetail(prefs, LanLlmPrefs.PersonaPreset.Custom.value, "默认详情")
+        LanLlmPrefs.writePersonaDetail(prefs, "活泼学姐", "学姐详情")
+
+        assertEquals("默认详情", LanLlmPrefs.readPersonaDetail(prefs, LanLlmPrefs.PersonaPreset.Custom.value))
+        assertEquals("学姐详情", LanLlmPrefs.readPersonaDetail(prefs, "活泼学姐"))
+    }
+
+    @Test
+    fun readPreservesVendorProviderSampleCount() {
         val prefs = FakeSharedPreferences(
             mutableMapOf(
                 LanLlmPrefs.KEY_PROVIDER to LanLlmPrefs.Provider.OpenAI.value,
@@ -629,7 +654,7 @@ class LanLlmPrefsTest {
 
         val config = LanLlmPrefs.read(prefs)
 
-        assertEquals(1, config.sampleCount)
+        assertEquals(6, config.sampleCount)
     }
 
     @Test

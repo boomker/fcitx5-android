@@ -19,12 +19,16 @@ internal object LanLlmPrompt {
         beforeCursor: String = "",
         outputMode: LanLlmOutputMode = LanLlmOutputMode.Suggestions,
         taskMode: LanLlmTaskMode = LanLlmTaskMode.Completion,
+        personaPreset: LanLlmPrefs.PersonaPreset = LanLlmPrefs.PersonaPreset.Custom,
+        customPersona: String = "",
     ): String = remoteSystemPrompt(
         transport = RemotePromptTransport.Chat,
         maxPredictionCandidates = maxPredictionCandidates,
         beforeCursor = beforeCursor,
         outputMode = outputMode,
         taskMode = taskMode,
+        personaPreset = personaPreset,
+        customPersona = customPersona,
     )
 
     private fun normalizeContext(value: String): String = value.trim().ifBlank { EMPTY_CONTEXT }
@@ -105,12 +109,16 @@ internal object LanLlmPrompt {
         beforeCursor: String = "",
         outputMode: LanLlmOutputMode = LanLlmOutputMode.Suggestions,
         taskMode: LanLlmTaskMode = LanLlmTaskMode.Completion,
+        personaPreset: LanLlmPrefs.PersonaPreset = LanLlmPrefs.PersonaPreset.Custom,
+        customPersona: String = "",
     ): String = remoteSystemPrompt(
         transport = RemotePromptTransport.Completion,
         maxPredictionCandidates = maxPredictionCandidates,
         beforeCursor = beforeCursor,
         outputMode = outputMode,
         taskMode = taskMode,
+        personaPreset = personaPreset,
+        customPersona = customPersona,
     )
 
     fun completionUserPrompt(
@@ -151,6 +159,8 @@ internal object LanLlmPrompt {
         outputMode: LanLlmOutputMode = LanLlmOutputMode.Suggestions,
         taskMode: LanLlmTaskMode = LanLlmTaskMode.Completion,
         enableThinking: Boolean = false,
+        personaPreset: LanLlmPrefs.PersonaPreset = LanLlmPrefs.PersonaPreset.Custom,
+        customPersona: String = "",
     ): String = buildString {
         append("<|im_start|>system\n")
         append(
@@ -159,6 +169,8 @@ internal object LanLlmPrompt {
                 beforeCursor = beforeCursor,
                 outputMode = outputMode,
                 taskMode = taskMode,
+                personaPreset = personaPreset,
+                customPersona = customPersona,
             )
         )
         append("<|im_end|>\n")
@@ -191,6 +203,8 @@ internal object LanLlmPrompt {
         maxPredictionCandidates: Int,
         outputMode: LanLlmOutputMode = LanLlmOutputMode.Suggestions,
         taskMode: LanLlmTaskMode = LanLlmTaskMode.Completion,
+        personaPreset: LanLlmPrefs.PersonaPreset = LanLlmPrefs.PersonaPreset.Custom,
+        customPersona: String = "",
     ): String = buildString {
         append("<|im_start|>system\n")
         append(
@@ -199,6 +213,8 @@ internal object LanLlmPrompt {
                 maxPredictionCandidates = maxPredictionCandidates,
                 outputMode = outputMode,
                 taskMode = taskMode,
+                personaPreset = personaPreset,
+                customPersona = customPersona,
             )
         )
         if (taskMode == LanLlmTaskMode.Completion) {
@@ -225,9 +241,12 @@ internal object LanLlmPrompt {
         maxPredictionCandidates: Int,
         outputMode: LanLlmOutputMode,
         taskMode: LanLlmTaskMode,
+        personaPreset: LanLlmPrefs.PersonaPreset,
+        customPersona: String,
     ): String {
         val candidateLimit = normalizedPredictionCandidateLimit(maxPredictionCandidates)
-        return when (LanLlmLanguageDetector.detect(beforeCursor)) {
+        val language = LanLlmLanguageDetector.detect(beforeCursor)
+        val basePrompt = when (language) {
             LanLlmLanguage.Chinese -> when {
                 taskMode == LanLlmTaskMode.Translate ->
                     "你是输入法翻译助手。把输入翻译成自然英文，只输出译文本身，不解释。英文单词之间必须保留正常空格，不要把多个英文单词连写在一起。"
@@ -262,6 +281,12 @@ internal object LanLlmPrompt {
                     "You are an English IME continuation assistant. Output up to $candidateLimit continuations after the prefix, one per line, with no explanation."
             }
         }
+        val styleHint = styleHint(language, taskMode, personaPreset, customPersona)
+        return if (styleHint.isBlank()) {
+            basePrompt
+        } else {
+            "$basePrompt ${inlineStyleHint(language, styleHint)}"
+        }
     }
 
     private fun localOnDeviceUserPrompt(
@@ -274,6 +299,8 @@ internal object LanLlmPrompt {
         beforeCursor: String,
         outputMode: LanLlmOutputMode,
         taskMode: LanLlmTaskMode,
+        personaPreset: LanLlmPrefs.PersonaPreset,
+        customPersona: String,
     ): String = buildString {
         val language = LanLlmLanguageDetector.detect(beforeCursor)
         val candidateLimit = if (
@@ -285,6 +312,9 @@ internal object LanLlmPrompt {
             normalizedPredictionCandidateLimit(maxPredictionCandidates)
         }
         appendXmlSection("persona", persona(language, taskMode))
+        styleHint(language, taskMode, personaPreset, customPersona)
+            .takeIf { it.isNotBlank() }
+            ?.let { appendXmlSection("style_hint", it) }
         appendXmlSection("task", remoteTaskLabel(language, outputMode, taskMode))
         appendXmlSection("input_fields", remoteInputFields(language))
         appendXmlSection(
@@ -559,6 +589,44 @@ Even if the context is incomplete, still provide brief, plausible candidates tha
             LanLlmLanguage.Chinese -> STYLE_PERSONA_ZH
             LanLlmLanguage.English -> STYLE_PERSONA_EN
         }
+    }
+
+    private fun styleHint(
+        language: LanLlmLanguage,
+        taskMode: LanLlmTaskMode,
+        personaPreset: LanLlmPrefs.PersonaPreset,
+        customPersona: String,
+    ): String {
+        if (taskMode == LanLlmTaskMode.Translate) return ""
+        val presetPrompt = when (personaPreset) {
+            LanLlmPrefs.PersonaPreset.Custom -> customPersona.trim()
+            else -> when (language) {
+                LanLlmLanguage.Chinese -> personaPreset.zhPrompt
+                LanLlmLanguage.English -> personaPreset.enPrompt
+            }
+        }.trim()
+        val detailPrompt = customPersona.trim()
+        val mergedPrompt = when {
+            presetPrompt.isBlank() -> detailPrompt
+            detailPrompt.isBlank() -> presetPrompt
+            detailPrompt == presetPrompt -> presetPrompt
+            else -> "$presetPrompt $detailPrompt"
+        }.trim()
+        if (mergedPrompt.isBlank()) return ""
+        return when (language) {
+            LanLlmLanguage.Chinese ->
+                "在保持内容自然、清晰、可直接发送的前提下，额外遵循这条人设与口吻偏好：$mergedPrompt"
+            LanLlmLanguage.English ->
+                "While keeping the result natural, clear, and ready to send, also follow this persona and tone preference: $mergedPrompt"
+        }
+    }
+
+    private fun inlineStyleHint(
+        language: LanLlmLanguage,
+        styleHint: String,
+    ): String = when (language) {
+        LanLlmLanguage.Chinese -> "额外口吻要求：$styleHint"
+        LanLlmLanguage.English -> "Additional persona and tone guidance: $styleHint"
     }
 
     private fun StringBuilder.appendXmlSection(

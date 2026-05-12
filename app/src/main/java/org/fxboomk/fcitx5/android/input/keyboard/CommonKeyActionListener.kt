@@ -43,6 +43,7 @@ import org.fxboomk.fcitx5.android.input.keyboard.KeyAction.SymAction
 import org.fxboomk.fcitx5.android.input.keyboard.KeyAction.UnicodeAction
 import org.fxboomk.fcitx5.android.input.picker.PickerWindow
 import org.fxboomk.fcitx5.android.input.predict.AiSuggestionStripComponent
+import org.fxboomk.fcitx5.android.input.predict.LanLlmPrefs
 import org.fxboomk.fcitx5.android.input.wm.InputWindowManager
 import org.fxboomk.fcitx5.android.utils.InputMethodUtil
 import org.fxboomk.fcitx5.android.utils.switchToNextIME
@@ -156,6 +157,7 @@ class CommonKeyActionListener :
                             service.lifecycleScope.launch { aiSuggestionStrip.dismissVisibleSuggestions() }
                         }
                         action.sym.sym == FcitxKeyMapping.FcitxKey_space &&
+                            LanLlmPrefs.read(service.applicationContext).spaceCommitPrediction &&
                             aiSuggestionStrip.hasVisibleSuggestions() &&
                             !hasNativePredictionCandidatesVisible() -> {
                             service.lifecycleScope.launch { aiSuggestionStrip.commitPrimarySuggestion() }

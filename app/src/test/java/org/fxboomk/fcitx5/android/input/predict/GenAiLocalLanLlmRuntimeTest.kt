@@ -140,5 +140,7 @@ class GenAiLocalLanLlmRuntimeTest {
         outputMode = outputMode,
         taskMode = taskMode,
         enableThinking = false,
+        personaPreset = LanLlmPrefs.PersonaPreset.Custom,
+        customPersona = "",
     )
 }

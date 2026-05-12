@@ -463,6 +463,8 @@ internal object GenAiLocalLanLlmRuntime : LocalLanLlmRuntime {
             maxPredictionCandidates = request.maxPredictionCandidates,
             outputMode = request.outputMode,
             taskMode = request.taskMode,
+            personaPreset = request.personaPreset,
+            customPersona = request.customPersona,
         )
 
     private fun summarizeProviderInitFailure(error: Throwable): String =

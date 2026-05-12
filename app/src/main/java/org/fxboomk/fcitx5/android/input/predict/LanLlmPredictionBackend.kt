@@ -34,6 +34,8 @@ internal data class LocalLanLlmPredictionRequest(
     val outputMode: LanLlmOutputMode,
     val taskMode: LanLlmTaskMode,
     val enableThinking: Boolean,
+    val personaPreset: LanLlmPrefs.PersonaPreset,
+    val customPersona: String,
 )
 
 internal interface LocalLanLlmRuntime {
@@ -217,6 +219,8 @@ internal class LocalLanLlmPredictionBackend(
                 outputMode = LanLlmOutputMode.Suggestions,
                 taskMode = LanLlmTaskMode.Completion,
                 enableThinking = false,
+                personaPreset = config.personaPreset,
+                customPersona = config.customPersona,
             )
         )
     }
@@ -249,6 +253,8 @@ internal class LocalLanLlmPredictionBackend(
                 outputMode = request.outputMode,
                 taskMode = request.taskMode,
                 enableThinking = request.enableThinking,
+                personaPreset = config.personaPreset,
+                customPersona = config.customPersona,
             )
         ).take(
             if (

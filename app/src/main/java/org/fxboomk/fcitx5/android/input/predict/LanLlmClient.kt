@@ -143,6 +143,8 @@ internal class LanLlmClient(
             beforeCursor = request.beforeCursor,
             outputMode = request.outputMode,
             taskMode = request.taskMode,
+            personaPreset = request.config.personaPreset,
+            customPersona = request.config.customPersona,
         )
         val streaming = shouldStreamResponse(request)
         val maxTokens = resolveMaxTokens(request)
@@ -359,6 +361,8 @@ internal class LanLlmClient(
                                     beforeCursor = request.beforeCursor,
                                     outputMode = request.outputMode,
                                     taskMode = request.taskMode,
+                                    personaPreset = request.config.personaPreset,
+                                    customPersona = request.config.customPersona,
                                 )
                             )
                     )
@@ -384,6 +388,8 @@ internal class LanLlmClient(
                     beforeCursor = request.beforeCursor,
                     outputMode = request.outputMode,
                     taskMode = request.taskMode,
+                    personaPreset = request.config.personaPreset,
+                    customPersona = request.config.customPersona,
                 )
             )
             .put("stream", shouldStreamResponse(request))

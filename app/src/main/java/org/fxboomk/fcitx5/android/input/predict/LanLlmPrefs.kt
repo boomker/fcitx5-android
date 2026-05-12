@@ -28,6 +28,11 @@ object LanLlmPrefs {
     const val KEY_MAX_OUTPUT_TOKENS = "lan_llm_max_output_tokens"
     const val KEY_MAX_PREDICTION_CANDIDATES = "lan_llm_max_prediction_candidates"
     const val KEY_MAX_CONTEXT_CHARS = "lan_llm_max_context_chars"
+    const val KEY_SPACE_COMMIT_PREDICTION = "lan_llm_space_commit_prediction"
+    const val KEY_PERSONA_PRESET = "lan_llm_persona_preset"
+    const val KEY_CUSTOM_PERSONA = "lan_llm_custom_persona"
+    const val KEY_CUSTOM_PERSONA_NAMES = "lan_llm_custom_persona_names"
+    private const val KEY_PERSONA_DETAIL_PREFIX = "lan_llm_persona_detail_"
 
     enum class Runtime(
         val value: String,
@@ -86,6 +91,51 @@ object LanLlmPrefs {
         }
     }
 
+    enum class PersonaPreset(
+        val value: String,
+        val titleRes: Int,
+        val descriptionRes: Int,
+        val zhPrompt: String,
+        val enPrompt: String,
+    ) {
+        Custom(
+            value = "custom",
+            titleRes = R.string.lan_llm_persona_custom_short,
+            descriptionRes = R.string.lan_llm_persona_custom_summary,
+            zhPrompt = "",
+            enPrompt = "",
+        ),
+        SocialStar(
+            value = "social_star",
+            titleRes = R.string.lan_llm_persona_social_star,
+            descriptionRes = R.string.lan_llm_persona_social_star_description,
+            zhPrompt = "情商在线，幽默风趣的社交达人。",
+            enPrompt = "Be a socially savvy, emotionally intelligent, witty social butterfly.",
+        ),
+        WorkplaceElite(
+            value = "workplace_elite",
+            titleRes = R.string.lan_llm_persona_workplace_elite,
+            descriptionRes = R.string.lan_llm_persona_workplace_elite_description,
+            zhPrompt = "大厂满嘴职场话术的产品经理。",
+            enPrompt = "Sound like a product manager from a big tech company using polished corporate workplace phrasing.",
+        );
+
+        companion object {
+            fun from(value: String?): PersonaPreset =
+                entries.firstOrNull { it.value == value } ?: Custom
+        }
+    }
+
+    data class PersonaOption(
+        val value: String,
+        val title: String,
+        val description: String,
+        val preset: PersonaPreset? = null,
+    ) {
+        val isBuiltIn: Boolean
+            get() = preset != null
+    }
+
     data class Overrides(
         val runtime: Runtime? = null,
         val provider: Provider? = null,
@@ -120,6 +170,10 @@ object LanLlmPrefs {
         val maxPredictionCandidates: Int = DEFAULT_MAX_PREDICTION_CANDIDATES,
         val maxContextChars: Int,
         val preferLastCommit: Boolean,
+        val spaceCommitPrediction: Boolean = false,
+        val personaPreset: PersonaPreset = PersonaPreset.Custom,
+        val personaName: String = "",
+        val customPersona: String = "",
     ) {
         val isLocalOnDevice: Boolean
             get() = runtime == Runtime.LocalOnDevice
@@ -182,11 +236,7 @@ object LanLlmPrefs {
         } else {
             prefs.getString(KEY_BACKEND, Backend.Completion.value) == Backend.ChatCompletions.value
         }
-        val sampleCount = if (provider.isVendorProvidedApiService) {
-            1
-        } else {
-            readBoundedIntPreference(prefs, KEY_SAMPLE_COUNT, DEFAULT_SAMPLE_COUNT, 1..6)
-        }
+        val sampleCount = readBoundedIntPreference(prefs, KEY_SAMPLE_COUNT, DEFAULT_SAMPLE_COUNT, 1..6)
         val maxOutputTokens = readBoundedIntPreference(
             prefs,
             KEY_MAX_OUTPUT_TOKENS,
@@ -228,7 +278,76 @@ object LanLlmPrefs {
             maxPredictionCandidates = maxPredictionCandidates,
             maxContextChars = maxContextChars,
             preferLastCommit = true,
+            spaceCommitPrediction = prefs.getBoolean(KEY_SPACE_COMMIT_PREDICTION, false),
+            personaPreset = PersonaPreset.from(prefs.getString(KEY_PERSONA_PRESET, PersonaPreset.Custom.value)),
+            personaName = currentPersonaName(prefs),
+            customPersona = readPersonaDetail(
+                prefs = prefs,
+                personaValue = prefs.getString(KEY_PERSONA_PRESET, PersonaPreset.Custom.value).orEmpty(),
+            ),
         )
+    }
+
+    fun builtInPersonaOptions(context: Context): List<PersonaOption> = PersonaPreset.entries.map { preset ->
+        PersonaOption(
+            value = preset.value,
+            title = context.getString(preset.titleRes),
+            description = context.getString(preset.descriptionRes),
+            preset = preset,
+        )
+    }
+
+    fun currentPersonaName(prefs: SharedPreferences): String {
+        val value = prefs.getString(KEY_PERSONA_PRESET, PersonaPreset.Custom.value).orEmpty()
+        return PersonaPreset.entries.firstOrNull { it.value == value }?.let {
+            ""
+        } ?: value
+    }
+
+    fun readCustomPersonaNames(prefs: SharedPreferences): List<String> {
+        return prefs.getStringSet(KEY_CUSTOM_PERSONA_NAMES, emptySet())
+            ?.map(String::trim)
+            ?.filter { it.isNotBlank() }
+            ?.sorted()
+            .orEmpty()
+    }
+
+    fun writeCustomPersonaNames(
+        prefs: SharedPreferences,
+        names: List<String>,
+    ) {
+        prefs.edit().putStringSet(
+            KEY_CUSTOM_PERSONA_NAMES,
+            names.map(String::trim).filter { it.isNotBlank() }.toSet(),
+        ).apply()
+    }
+
+    fun readPersonaDetail(
+        prefs: SharedPreferences,
+        personaValue: String,
+    ): String {
+        val scoped = prefs.getString(personaDetailKey(personaValue), null)
+            ?.trim()
+            .orEmpty()
+        if (scoped.isNotBlank()) return scoped
+        return prefs.getString(KEY_CUSTOM_PERSONA, "")
+            ?.trim()
+            .orEmpty()
+            .takeIf { personaValue == PersonaPreset.Custom.value }
+            .orEmpty()
+    }
+
+    fun writePersonaDetail(
+        prefs: SharedPreferences,
+        personaValue: String,
+        detail: String,
+    ) {
+        prefs.edit().putString(personaDetailKey(personaValue), detail.trim()).apply()
+    }
+
+    private fun personaDetailKey(personaValue: String): String {
+        val safeValue = URLEncoder.encode(personaValue, StandardCharsets.UTF_8.toString())
+        return "$KEY_PERSONA_DETAIL_PREFIX$safeValue"
     }
 
     fun migrateSeekBarBackedPreferences(prefs: SharedPreferences) {

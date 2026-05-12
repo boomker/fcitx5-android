@@ -70,6 +70,8 @@ class LanLlmPredictorTest {
             outputMode = LanLlmOutputMode.Suggestions,
             taskMode = LanLlmTaskMode.Completion,
             enableThinking = false,
+            personaPreset = LanLlmPrefs.PersonaPreset.Custom,
+            customPersona = "",
         )
 
         assertTrue(

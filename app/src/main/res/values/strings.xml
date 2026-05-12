@@ -419,6 +419,25 @@
     <string name="lan_llm_max_output_tokens_summary" translatable="false">%1$d。该参数仅在向 LLM 请求时携带，不是最终输出结果的字符数限制。</string>
     <string name="lan_llm_max_context_chars" translatable="false">最大上下文字数</string>
     <string name="lan_llm_settings_title" translatable="false">智能预测</string>
+    <string name="lan_llm_advanced" translatable="false">高级</string>
+    <string name="lan_llm_advanced_summary" translatable="false">配置空格提交预测、人设与口吻，以及采样与上下文等高级参数。</string>
+    <string name="lan_llm_space_commit_prediction" translatable="false">空格提交预测</string>
+    <string name="lan_llm_space_commit_prediction_summary" translatable="false">默认关闭。开启后，当编辑光标后出现预测提示气泡时，按空格会提交第一个预测项。</string>
+    <string name="lan_llm_persona_style" translatable="false">人设与口吻</string>
+    <string name="lan_llm_custom_persona" translatable="false">默认人设</string>
+    <string name="lan_llm_custom_persona_summary" translatable="false">你可以更详细地描述你想设定的人设与口吻。</string>
+    <string name="lan_llm_persona_custom_short" translatable="false">默认人设</string>
+    <string name="lan_llm_persona_custom_summary" translatable="false">默认人设，不预设任何描述。</string>
+    <string name="lan_llm_persona_social_star" translatable="false">社交达人</string>
+    <string name="lan_llm_persona_social_star_description" translatable="false">情商在线，幽默风趣的社交达人</string>
+    <string name="lan_llm_persona_workplace_elite" translatable="false">职场精英</string>
+    <string name="lan_llm_persona_workplace_elite_description" translatable="false">大厂满嘴职场话术的产品经理</string>
+    <string name="lan_llm_social_star_persona" translatable="false">社交达人人设</string>
+    <string name="lan_llm_workplace_elite_persona" translatable="false">职场精英人设</string>
+    <string name="lan_llm_persona_suffix" translatable="false">人设</string>
+    <string name="lan_llm_persona_add" translatable="false">新增人设</string>
+    <string name="lan_llm_persona_name_hint" translatable="false">输入新的人设名称</string>
+    <string name="lan_llm_persona_custom_name_description" translatable="false">%1$s。在下方还可以补充更详细的人设描述。</string>
     <string name="plugins">Plugins</string>
     <string name="manage_plugins">Manage Plugins</string>
     <string name="uninstall_plugin">Uninstall Plugin</string>
