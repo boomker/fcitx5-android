@@ -20,7 +20,7 @@ import org.fxboomk.fcitx5.android.utils.withBatchEdit
 import splitties.dimensions.dp
 import kotlin.math.abs
 
-private const val TAG = "LanLlmChip"
+private const val TAG = "LlmChip"
 private const val QA_PSEUDO_STREAM_CHUNK_CHARS = 2
 private const val QA_PSEUDO_STREAM_DELAY_MS = 24L
 private const val FULL_TEXT_FETCH_CHARS = 20_000
@@ -98,7 +98,7 @@ class AiSuggestionStripComponent(
         Explicit,
     }
 
-    private val predictor by lazy { LanLlmPredictor(service.applicationContext) }
+    private val predictor by lazy { LlmPredictor(service.applicationContext) }
     private val recentCommittedSegments = ArrayDeque<String>()
     private val anchorUpdateThresholdPx = themedContext.dp(6).toFloat()
 
@@ -118,10 +118,10 @@ class AiSuggestionStripComponent(
     private var anchorState: CursorAnchorState? = null
     private var panelContentMode = PanelContentMode.Suggestions
     private var panelDisplayedText = ""
-    private var taskMode = LanLlmTaskMode.Completion
+    private var taskMode = LlmTaskMode.Completion
     private var longFormEnabled = false
     private var thinkingEnabled = false
-    private var thinkingModeRuntime: LanLlmPrefs.Runtime? = null
+    private var thinkingModeRuntime: LlmPrefs.Runtime? = null
     private var pseudoStreamToken = 0L
     private var pseudoStreamRunnable: Runnable? = null
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -189,7 +189,7 @@ class AiSuggestionStripComponent(
 
     fun commitPrimarySuggestion(): Boolean {
         val suggestion = activeSuggestions.firstOrNull() ?: return false
-        if (taskMode == LanLlmTaskMode.Translate || isTranslatePanelMode()) {
+        if (taskMode == LlmTaskMode.Translate || isTranslatePanelMode()) {
             commitTranslatedText(suggestion)
         } else {
             commitSuggestion(suggestion)
@@ -227,25 +227,25 @@ class AiSuggestionStripComponent(
     }
 
     fun toggleQuestionAnswerMode(): Boolean {
-        taskMode = if (taskMode == LanLlmTaskMode.QuestionAnswer) {
-            LanLlmTaskMode.Completion
+        taskMode = if (taskMode == LlmTaskMode.QuestionAnswer) {
+            LlmTaskMode.Completion
         } else {
             exitTranslateMode()
-            LanLlmTaskMode.QuestionAnswer
+            LlmTaskMode.QuestionAnswer
         }
         refreshPredictionsForModeToggle()
-        return taskMode == LanLlmTaskMode.QuestionAnswer
+        return taskMode == LlmTaskMode.QuestionAnswer
     }
 
     fun toggleTranslateMode(): Boolean {
-        taskMode = if (taskMode == LanLlmTaskMode.Translate) {
-            LanLlmTaskMode.Completion
+        taskMode = if (taskMode == LlmTaskMode.Translate) {
+            LlmTaskMode.Completion
         } else {
             longFormEnabled = false
-            LanLlmTaskMode.Translate
+            LlmTaskMode.Translate
         }
         refreshPredictionsForModeToggle()
-        return taskMode == LanLlmTaskMode.Translate
+        return taskMode == LlmTaskMode.Translate
     }
 
     fun toggleLongFormMode(): Boolean {
@@ -258,8 +258,8 @@ class AiSuggestionStripComponent(
     }
 
     private fun exitTranslateMode() {
-        if (taskMode == LanLlmTaskMode.Translate) {
-            taskMode = LanLlmTaskMode.Completion
+        if (taskMode == LlmTaskMode.Translate) {
+            taskMode = LlmTaskMode.Completion
         }
     }
 
@@ -275,17 +275,17 @@ class AiSuggestionStripComponent(
 
     private fun requestLongForm(
         beforeCursor: String,
-        config: LanLlmPrefs.Config,
+        config: LlmPrefs.Config,
         trigger: PredictionTrigger,
     ): Boolean {
         if (beforeCursor.isBlank()) return false
         syncThinkingModeForRuntime(config)
 
-        val request = LanLlmPredictor.Request(
+        val request = LlmPredictor.Request(
             beforeCursor = beforeCursor,
             recentCommittedText = if (config.preferLastCommit) lastCommittedText.takeLast(config.maxContextChars) else "",
             historyText = buildHistoryText(config.maxContextChars),
-            outputMode = LanLlmOutputMode.LongForm,
+            outputMode = LlmOutputMode.LongForm,
             taskMode = taskMode,
             enableThinking = thinkingEnabled,
         )
@@ -306,7 +306,7 @@ class AiSuggestionStripComponent(
                         sanitizeSingleCandidate(
                             candidate = it,
                             beforeCursor = beforeCursor,
-                            outputMode = LanLlmOutputMode.LongForm,
+                            outputMode = LlmOutputMode.LongForm,
                             taskMode = taskMode,
                         )
                     }
@@ -341,7 +341,7 @@ class AiSuggestionStripComponent(
                 val streamed = sanitizeSingleCandidate(
                     candidate = partial,
                     beforeCursor = beforeCursor,
-                    outputMode = LanLlmOutputMode.LongForm,
+                    outputMode = LlmOutputMode.LongForm,
                     taskMode = taskMode,
                 )
                 if (streamed.isBlank()) return@request
@@ -360,7 +360,7 @@ class AiSuggestionStripComponent(
     }
 
     internal fun commitSuggestionFromUi(suggestion: String) {
-        if (taskMode == LanLlmTaskMode.Translate || isTranslatePanelMode()) {
+        if (taskMode == LlmTaskMode.Translate || isTranslatePanelMode()) {
             commitTranslatedText(suggestion)
         } else {
             commitSuggestion(suggestion)
@@ -413,14 +413,14 @@ class AiSuggestionStripComponent(
             return
         }
 
-        val config = LanLlmPrefs.read(service.applicationContext)
+        val config = LlmPrefs.read(service.applicationContext)
         syncThinkingModeForRuntime(config)
         if (isAutomatic && !config.autoPredictEnabled) {
             Log.d(TAG, "skip request auto prediction disabled")
             clearSuggestions(resetRequestState = true)
             return
         }
-        if (taskMode == LanLlmTaskMode.Translate) {
+        if (taskMode == LlmTaskMode.Translate) {
             if (shouldKeepSingleTextPanelVisible()) {
                 requestPanelTextContent(configOverride = config, trigger = trigger)
             } else {
@@ -435,14 +435,14 @@ class AiSuggestionStripComponent(
             clearSuggestions(resetRequestState = true)
             return
         }
-        if (!LanLlmRequestGate.shouldRequestPrediction(beforeCursor)) {
+        if (!LlmRequestGate.shouldRequestPrediction(beforeCursor)) {
             Log.d(TAG, "skip request no predictive chars beforeCursor='${beforeCursor.take(40)}'")
             clearSuggestions(resetRequestState = true)
             return
         }
         val nowMs = System.currentTimeMillis()
         if (isAutomatic &&
-            LanLlmRequestGate.shouldThrottlePureLongDigitInput(beforeCursor, lastPureLongDigitRequestAtMs, nowMs)
+            LlmRequestGate.shouldThrottlePureLongDigitInput(beforeCursor, lastPureLongDigitRequestAtMs, nowMs)
         ) {
             Log.d(TAG, "skip request throttled pure long digits beforeCursor='${beforeCursor.take(40)}'")
             clearSuggestions(resetRequestState = false)
@@ -471,10 +471,10 @@ class AiSuggestionStripComponent(
         }
 
         lastRequestedBeforeCursor = beforeCursor
-        if (isAutomatic && LanLlmRequestGate.isPureLongDigitInput(beforeCursor)) {
+        if (isAutomatic && LlmRequestGate.isPureLongDigitInput(beforeCursor)) {
             lastPureLongDigitRequestAtMs = nowMs
         }
-        val shouldShowQuestionAnswerPanel = taskMode == LanLlmTaskMode.QuestionAnswer && panelVisible
+        val shouldShowQuestionAnswerPanel = taskMode == LlmTaskMode.QuestionAnswer && panelVisible
         val shouldShowSuggestionsLoadingPanel = panelVisible && panelContentMode == PanelContentMode.SuggestionsLoading
         val fallbackSuggestions = activeSuggestions.take(1)
         if (shouldShowQuestionAnswerPanel) {
@@ -484,11 +484,11 @@ class AiSuggestionStripComponent(
             dispatchPresentationChanged()
         }
         predictor.request(
-            request = LanLlmPredictor.Request(
+            request = LlmPredictor.Request(
                 beforeCursor = beforeCursor,
                 recentCommittedText = if (config.preferLastCommit) lastCommittedText.takeLast(config.maxContextChars) else "",
                 historyText = buildHistoryText(config.maxContextChars),
-                outputMode = LanLlmOutputMode.Suggestions,
+                outputMode = LlmOutputMode.Suggestions,
                 taskMode = taskMode,
                 enableThinking = thinkingEnabled,
             ),
@@ -505,11 +505,11 @@ class AiSuggestionStripComponent(
                     sanitizeSingleCandidate(
                         candidate = it,
                         beforeCursor = beforeCursor,
-                        outputMode = LanLlmOutputMode.Suggestions,
+                        outputMode = LlmOutputMode.Suggestions,
                         taskMode = taskMode,
                     ).ifBlank { null }
                 }
-                if (taskMode == LanLlmTaskMode.QuestionAnswer && shouldShowQuestionAnswerPanel) {
+                if (taskMode == LlmTaskMode.QuestionAnswer && shouldShowQuestionAnswerPanel) {
                     val answer = normalized.firstOrNull()
                     if (answer.isNullOrBlank()) {
                         activeSuggestions = fallbackSuggestions
@@ -521,7 +521,7 @@ class AiSuggestionStripComponent(
                     startQuestionAnswerPseudoStreaming(
                         answer = answer,
                         beforeCursor = beforeCursor,
-                        outputMode = LanLlmOutputMode.Suggestions,
+                        outputMode = LlmOutputMode.Suggestions,
                     )
                     return@request
                 }
@@ -558,7 +558,7 @@ class AiSuggestionStripComponent(
     }
 
     private fun commitSuggestion(suggestion: String) {
-        val config = LanLlmPrefs.read(service.applicationContext)
+        val config = LlmPrefs.read(service.applicationContext)
         val selection = service.currentInputSelection
         val replacedText = if (selection.start == selection.end) {
             ""
@@ -580,7 +580,7 @@ class AiSuggestionStripComponent(
     }
 
     private fun commitTranslatedText(translation: String) {
-        val config = LanLlmPrefs.read(service.applicationContext)
+        val config = LlmPrefs.read(service.applicationContext)
         val snapshot = fetchEntireInputText(config)
         val inputConnection = service.currentInputConnection
         if (inputConnection == null) {
@@ -604,14 +604,14 @@ class AiSuggestionStripComponent(
         clearSuggestions(resetRequestState = true)
     }
 
-    private fun fetchBeforeCursor(config: LanLlmPrefs.Config): String {
+    private fun fetchBeforeCursor(config: LlmPrefs.Config): String {
         return service.currentInputConnection
             ?.getTextBeforeCursor(config.fetchWindowChars, 0)
             ?.toString()
             .orEmpty()
     }
 
-    private fun fetchEntireInputText(config: LanLlmPrefs.Config): InputTextSnapshot {
+    private fun fetchEntireInputText(config: LlmPrefs.Config): InputTextSnapshot {
         val inputConnection = service.currentInputConnection
             ?: return InputTextSnapshot(text = "", beforeCursor = "", afterCursor = "")
         val fetchChars = maxOf(config.fetchWindowChars, FULL_TEXT_FETCH_CHARS)
@@ -625,7 +625,7 @@ class AiSuggestionStripComponent(
         )
     }
 
-    private fun updateCommitContext(beforeCursor: String, config: LanLlmPrefs.Config) {
+    private fun updateCommitContext(beforeCursor: String, config: LlmPrefs.Config) {
         val previous = lastObservedBeforeCursor
         if (previous.isNotBlank() && beforeCursor.startsWith(previous)) {
             val appended = beforeCursor.removePrefix(previous).trim()
@@ -636,7 +636,7 @@ class AiSuggestionStripComponent(
         lastObservedBeforeCursor = beforeCursor
     }
 
-    private fun noteCommittedText(text: String, config: LanLlmPrefs.Config) {
+    private fun noteCommittedText(text: String, config: LlmPrefs.Config) {
         val committed = text.trim()
         if (committed.isBlank()) return
         commitRevision += 1
@@ -713,14 +713,14 @@ class AiSuggestionStripComponent(
                 isSingleTextMode = isSingleTextPanelMode(),
                 isLoading = isLoadingPanelMode(),
                 loadingLabel = loadingLabel(),
-                isQuestionAnswerEnabled = taskMode == LanLlmTaskMode.QuestionAnswer,
+                isQuestionAnswerEnabled = taskMode == LlmTaskMode.QuestionAnswer,
                 isThinkingEnabled = thinkingEnabled,
-                isTranslateEnabled = taskMode == LanLlmTaskMode.Translate,
+                isTranslateEnabled = taskMode == LlmTaskMode.Translate,
             )
         )
     }
 
-    private fun syncThinkingModeForRuntime(config: LanLlmPrefs.Config) {
+    private fun syncThinkingModeForRuntime(config: LlmPrefs.Config) {
         if (thinkingModeRuntime == config.runtime) return
         thinkingEnabled = config.isLocalOnDevice
         thinkingModeRuntime = config.runtime
@@ -740,14 +740,14 @@ class AiSuggestionStripComponent(
 
     private fun currentSuggestionLimit(): Int {
         return if (
-            taskMode == LanLlmTaskMode.QuestionAnswer ||
-            taskMode == LanLlmTaskMode.Translate ||
+            taskMode == LlmTaskMode.QuestionAnswer ||
+            taskMode == LlmTaskMode.Translate ||
             panelContentMode != PanelContentMode.Suggestions &&
             panelContentMode != PanelContentMode.SuggestionsLoading
         ) {
             1
         } else {
-            LanLlmPrefs.read(service.applicationContext).maxPredictionCandidates
+            LlmPrefs.read(service.applicationContext).maxPredictionCandidates
         }
     }
 
@@ -778,8 +778,8 @@ class AiSuggestionStripComponent(
         return isQuestionAnswerPanelMode() ||
             isTranslatePanelMode() ||
             isLongFormPanelMode() ||
-            taskMode == LanLlmTaskMode.QuestionAnswer ||
-            taskMode == LanLlmTaskMode.Translate ||
+            taskMode == LlmTaskMode.QuestionAnswer ||
+            taskMode == LlmTaskMode.Translate ||
             longFormEnabled
     }
 
@@ -800,8 +800,8 @@ class AiSuggestionStripComponent(
     }
 
     private fun shouldUseSingleTextPanel(): Boolean {
-        return taskMode == LanLlmTaskMode.QuestionAnswer ||
-            taskMode == LanLlmTaskMode.Translate ||
+        return taskMode == LlmTaskMode.QuestionAnswer ||
+            taskMode == LlmTaskMode.Translate ||
             longFormEnabled
     }
 
@@ -809,17 +809,17 @@ class AiSuggestionStripComponent(
         return panelVisible && shouldUseSingleTextPanel()
     }
 
-    private fun currentPanelOutputMode(): LanLlmOutputMode {
-        return if (longFormEnabled) LanLlmOutputMode.LongForm else LanLlmOutputMode.Suggestions
+    private fun currentPanelOutputMode(): LlmOutputMode {
+        return if (longFormEnabled) LlmOutputMode.LongForm else LlmOutputMode.Suggestions
     }
 
     private fun requestPanelTextContent(
         beforeCursorOverride: String? = null,
-        configOverride: LanLlmPrefs.Config? = null,
+        configOverride: LlmPrefs.Config? = null,
         trigger: PredictionTrigger = PredictionTrigger.Automatic,
     ): Boolean {
-        val config = configOverride ?: LanLlmPrefs.read(service.applicationContext)
-        if (taskMode == LanLlmTaskMode.Translate) {
+        val config = configOverride ?: LlmPrefs.read(service.applicationContext)
+        if (taskMode == LlmTaskMode.Translate) {
             return requestTranslateContent(config, trigger)
         }
         val beforeCursor = (beforeCursorOverride ?: fetchBeforeCursor(config)).takeLast(config.maxContextChars)
@@ -829,7 +829,7 @@ class AiSuggestionStripComponent(
             dispatchPresentationChanged()
             return false
         }
-        return if (taskMode == LanLlmTaskMode.QuestionAnswer) {
+        return if (taskMode == LlmTaskMode.QuestionAnswer) {
             requestQuestionAnswerContent(beforeCursor, config, trigger)
         } else {
             requestLongForm(beforeCursor, config, trigger)
@@ -837,7 +837,7 @@ class AiSuggestionStripComponent(
     }
 
     private fun requestTranslateContent(
-        config: LanLlmPrefs.Config,
+        config: LlmPrefs.Config,
         trigger: PredictionTrigger,
     ): Boolean {
         syncThinkingModeForRuntime(config)
@@ -849,10 +849,10 @@ class AiSuggestionStripComponent(
             dispatchPresentationChanged()
             return false
         }
-        val request = LanLlmPredictor.Request(
+        val request = LlmPredictor.Request(
             beforeCursor = sourceText,
-            outputMode = LanLlmOutputMode.Suggestions,
-            taskMode = LanLlmTaskMode.Translate,
+            outputMode = LlmOutputMode.Suggestions,
+            taskMode = LlmTaskMode.Translate,
             enableThinking = thinkingEnabled,
         )
         lastRequestedBeforeCursor = sourceText
@@ -873,8 +873,8 @@ class AiSuggestionStripComponent(
                 val streamed = sanitizeSingleCandidate(
                     candidate = partial,
                     beforeCursor = sourceText,
-                    outputMode = LanLlmOutputMode.Suggestions,
-                    taskMode = LanLlmTaskMode.Translate,
+                    outputMode = LlmOutputMode.Suggestions,
+                    taskMode = LlmTaskMode.Translate,
                 )
                 if (streamed.isBlank()) return@request
                 receivedStreamingPartial = true
@@ -894,8 +894,8 @@ class AiSuggestionStripComponent(
                         sanitizeSingleCandidate(
                             candidate = it,
                             beforeCursor = sourceText,
-                            outputMode = LanLlmOutputMode.Suggestions,
-                            taskMode = LanLlmTaskMode.Translate,
+                            outputMode = LlmOutputMode.Suggestions,
+                            taskMode = LlmTaskMode.Translate,
                         )
                     }
                     .orEmpty()
@@ -932,16 +932,16 @@ class AiSuggestionStripComponent(
 
     private fun requestQuestionAnswerContent(
         beforeCursor: String,
-        config: LanLlmPrefs.Config,
+        config: LlmPrefs.Config,
         trigger: PredictionTrigger,
     ): Boolean {
         syncThinkingModeForRuntime(config)
-        val request = LanLlmPredictor.Request(
+        val request = LlmPredictor.Request(
             beforeCursor = beforeCursor,
             recentCommittedText = if (config.preferLastCommit) lastCommittedText.takeLast(config.maxContextChars) else "",
             historyText = buildHistoryText(config.maxContextChars),
             outputMode = currentPanelOutputMode(),
-            taskMode = LanLlmTaskMode.QuestionAnswer,
+            taskMode = LlmTaskMode.QuestionAnswer,
             enableThinking = thinkingEnabled,
         )
         lastRequestedBeforeCursor = beforeCursor
@@ -963,7 +963,7 @@ class AiSuggestionStripComponent(
                     candidate = partial,
                     beforeCursor = beforeCursor,
                     outputMode = request.outputMode,
-                    taskMode = LanLlmTaskMode.QuestionAnswer,
+                    taskMode = LlmTaskMode.QuestionAnswer,
                 )
                 if (streamed.isBlank()) return@request
                 cancelPseudoStreaming()
@@ -985,7 +985,7 @@ class AiSuggestionStripComponent(
                             candidate = it,
                             beforeCursor = beforeCursor,
                             outputMode = request.outputMode,
-                            taskMode = LanLlmTaskMode.QuestionAnswer,
+                            taskMode = LlmTaskMode.QuestionAnswer,
                         )
                     }
                     .orEmpty()
@@ -1029,7 +1029,7 @@ class AiSuggestionStripComponent(
     private fun startQuestionAnswerPseudoStreaming(
         answer: String,
         beforeCursor: String,
-        outputMode: LanLlmOutputMode,
+        outputMode: LlmOutputMode,
     ) {
         cancelPseudoStreaming()
         val token = pseudoStreamToken
@@ -1037,7 +1037,7 @@ class AiSuggestionStripComponent(
             candidate = answer,
             beforeCursor = beforeCursor,
             outputMode = outputMode,
-            taskMode = LanLlmTaskMode.QuestionAnswer,
+            taskMode = LlmTaskMode.QuestionAnswer,
         )
         if (sanitizedAnswer.isBlank()) {
             resetPanelContentState()
@@ -1085,10 +1085,10 @@ class AiSuggestionStripComponent(
     private fun sanitizeSingleCandidate(
         candidate: String,
         beforeCursor: String,
-        outputMode: LanLlmOutputMode,
-        taskMode: LanLlmTaskMode,
+        outputMode: LlmOutputMode,
+        taskMode: LlmTaskMode,
     ): String {
-        val compact = if (taskMode == LanLlmTaskMode.Translate) {
+        val compact = if (taskMode == LlmTaskMode.Translate) {
             candidate
                 .replace("<|im_end|>", "")
                 .replace("<|endoftext|>", "")
@@ -1101,15 +1101,15 @@ class AiSuggestionStripComponent(
         }
         if (compact.isBlank()) return ""
         if (
-            taskMode == LanLlmTaskMode.Translate ||
-            taskMode == LanLlmTaskMode.QuestionAnswer ||
-            outputMode == LanLlmOutputMode.LongForm
+            taskMode == LlmTaskMode.Translate ||
+            taskMode == LlmTaskMode.QuestionAnswer ||
+            outputMode == LlmOutputMode.LongForm
         ) {
             return compact.trimEnd()
         }
-        val maxChars = when (LanLlmLanguageDetector.detect(beforeCursor)) {
-            LanLlmLanguage.Chinese -> 20
-            LanLlmLanguage.English -> 30
+        val maxChars = when (LlmLanguageDetector.detect(beforeCursor)) {
+            LlmLanguage.Chinese -> 20
+            LlmLanguage.English -> 30
         }
         return compact.take(maxChars).trimEnd()
     }

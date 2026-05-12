@@ -4,6 +4,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.fxboomk.fcitx5.android.input.applyAiInsertionUndo
+import org.fxboomk.fcitx5.android.input.canApplyAiInsertionUndo
 
 class AiSuggestionStripComponentTest {
 
@@ -47,7 +49,6 @@ class AiSuggestionStripComponentTest {
             insertedText = " world",
             replacedText = "",
             selectionStart = 5,
-            selectionEnd = 5,
         )
         assertEquals("hello", result)
     }
@@ -59,7 +60,6 @@ class AiSuggestionStripComponentTest {
             insertedText = "earth",
             replacedText = "world",
             selectionStart = 6,
-            selectionEnd = 11,
         )
         assertEquals("hello world", result)
     }

@@ -317,7 +317,7 @@ data object AiCandidatesAction : ButtonAction() {
         windowManager: InputWindowManager,
         view: View
     ) {
-        AppUtil.launchMainToRoute(context, SettingsRoute.LanLlm)
+        AppUtil.launchMainToRoute(context, SettingsRoute.Llm)
     }
 }
 

@@ -33,7 +33,7 @@ val ortGenAiAarName = "onnxruntime-genai-android-$ortGenAiVersion.aar"
 val ortGenAiAarUrl =
     "https://github.com/microsoft/onnxruntime-genai/releases/download/v$ortGenAiVersion/$ortGenAiAarName"
 val ortGenAiAar = layout.buildDirectory.file("external-libs/$ortGenAiAarName")
-val lanLlmFixedAssetsDir = layout.buildDirectory.dir("generated/lan-llm-fixed-assets")
+val llmFixedAssetsDir = layout.buildDirectory.dir("generated/lan-llm-fixed-assets")
 val downloadOrtGenAiAar by tasks.registering {
     outputs.file(ortGenAiAar)
     doLast {
@@ -45,8 +45,8 @@ val downloadOrtGenAiAar by tasks.registering {
         }
     }
 }
-val downloadLanLlmFixedAssets by tasks.registering {
-    outputs.dir(lanLlmFixedAssetsDir)
+val downloadLlmFixedAssets by tasks.registering {
+    outputs.dir(llmFixedAssetsDir)
     doLast {
         val baseUrl =
             "https://huggingface.co/onnx-community/Qwen3-0.6B-ONNX/resolve/main/onnxruntime/cpu_and_mobile/cpu-int4-kld-block-128"
@@ -56,7 +56,7 @@ val downloadLanLlmFixedAssets by tasks.registering {
             "config.json",
             "genai_config.json",
         )
-        val outDir = lanLlmFixedAssetsDir.get().asFile.resolve("local-ai/predict/qwen3-fixed")
+        val outDir = llmFixedAssetsDir.get().asFile.resolve("local-ai/predict/qwen3-fixed")
         outDir.mkdirs()
         targets.forEach { name ->
             val target = outDir.resolve(name)
@@ -148,7 +148,7 @@ android {
 afterEvaluate {
     tasks.matching { it.name == "preBuild" }.configureEach {
         dependsOn(downloadOrtGenAiAar)
-        dependsOn(downloadLanLlmFixedAssets)
+        dependsOn(downloadLlmFixedAssets)
     }
     val fxTasks = tasks.names
         .filter { it.contains("FxDebug") || it.contains("FxRelease") }

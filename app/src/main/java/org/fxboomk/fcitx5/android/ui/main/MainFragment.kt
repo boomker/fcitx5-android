@@ -76,9 +76,9 @@ class MainFragment : PaddingPreferenceFragment() {
                     SettingsRoute.CandidatesWindow
                 )
                 addDestinationPreference(
-                    R.string.lan_llm_settings_title,
+                    R.string.llm_settings_title,
                     R.drawable.ic_baseline_auto_awesome_24,
-                    SettingsRoute.LanLlm
+                    SettingsRoute.Llm
                 )
                 addDestinationPreference(
                     R.string.clipboard,

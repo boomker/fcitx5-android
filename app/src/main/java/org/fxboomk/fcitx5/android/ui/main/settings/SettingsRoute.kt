@@ -29,8 +29,8 @@ import org.fxboomk.fcitx5.android.ui.main.settings.behavior.AdvancedSettingsFrag
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.CandidatesSettingsFragment
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.ClipboardSettingsFragment
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.KeyboardSettingsFragment
-import org.fxboomk.fcitx5.android.ui.main.settings.behavior.LanLlmAdvancedSettingsFragment
-import org.fxboomk.fcitx5.android.ui.main.settings.behavior.LanLlmSettingsFragment
+import org.fxboomk.fcitx5.android.ui.main.settings.behavior.LlmAdvancedSettingsFragment
+import org.fxboomk.fcitx5.android.ui.main.settings.behavior.LlmSettingsFragment
 import org.fxboomk.fcitx5.android.ui.main.settings.global.GlobalConfigFragment
 import org.fxboomk.fcitx5.android.ui.main.settings.im.InputMethodConfigFragment
 import org.fxboomk.fcitx5.android.ui.main.settings.im.InputMethodListFragment
@@ -83,10 +83,10 @@ sealed class SettingsRoute : Parcelable {
     data object Plugin : SettingsRoute()
 
     @Serializable
-    data object LanLlm : SettingsRoute()
+    data object Llm : SettingsRoute()
 
     @Serializable
-    data object LanLlmAdvanced : SettingsRoute()
+    data object LlmAdvanced : SettingsRoute()
 
     @Serializable
     data object Advanced : SettingsRoute()
@@ -234,11 +234,11 @@ sealed class SettingsRoute : Parcelable {
             fragment<PluginFragment, Plugin> {
                 label = ctx.getString(R.string.plugins)
             }
-            fragment<LanLlmSettingsFragment, LanLlm> {
-                label = ctx.getString(R.string.lan_llm_settings_title)
+            fragment<LlmSettingsFragment, Llm> {
+                label = ctx.getString(R.string.llm_settings_title)
             }
-            fragment<LanLlmAdvancedSettingsFragment, LanLlmAdvanced> {
-                label = ctx.getString(R.string.lan_llm_advanced)
+            fragment<LlmAdvancedSettingsFragment, LlmAdvanced> {
+                label = ctx.getString(R.string.llm_advanced)
             }
             fragment<AdvancedSettingsFragment, Advanced> {
                 label = ctx.getString(R.string.advanced)
