@@ -48,9 +48,14 @@ class LlmSettingsFragment : PaddingPreferenceFragment() {
 
     private data class ModelGenerationTestResult(
         val stage: String,
-        val prompt: String,
-        val rawText: String,
+        val personaName: String,
+        val inputPrefix: String,
         val suggestions: List<String>,
+        val modelName: String,
+        val modelId: String,
+        val inputTokens: Int? = null,
+        val outputTokens: Int? = null,
+        val totalTokens: Int? = null,
         val error: String? = null,
     )
 
@@ -292,7 +297,7 @@ class LlmSettingsFragment : PaddingPreferenceFragment() {
                 modelPref?.text = runtime.defaultModel
             }
             syncRuntimePreferenceState(runtime)
-            refreshModelStatusPreference()
+            refreshModelStatusPreference(runtime)
             return
         }
         val provider = LlmPrefs.currentProvider(prefs)
@@ -314,7 +319,7 @@ class LlmSettingsFragment : PaddingPreferenceFragment() {
         findPreference<EditTextPreference>(LlmPrefs.KEY_MODEL)?.text = restoredModel
         syncSamplingPreferenceState(provider)
         syncRuntimePreferenceState(runtime)
-        refreshModelStatusPreference()
+        refreshModelStatusPreference(runtime)
     }
 
     private fun syncSamplingPreferenceState(provider: LlmPrefs.Provider) {
@@ -333,12 +338,12 @@ class LlmSettingsFragment : PaddingPreferenceFragment() {
         }
         findPreference<Preference>(PREF_LOCAL_MODEL_IMPORT)?.isEnabled = !remoteEnabled
         findPreference<Preference>(PREF_MODEL_TEST)?.isEnabled = true
-        refreshModelStatusPreference()
+        refreshModelStatusPreference(runtime)
     }
 
-    private fun refreshModelStatusPreference() {
+    private fun refreshModelStatusPreference(runtimeOverride: LlmPrefs.Runtime? = null) {
         val ctx = requireContext()
-        val runtime = preferenceManager.sharedPreferences?.let(LlmPrefs::currentRuntime)
+        val runtime = runtimeOverride ?: preferenceManager.sharedPreferences?.let(LlmPrefs::currentRuntime)
             ?: LlmPrefs.Runtime.Remote
         val modelPreference = findPreference<EditTextPreference>(LlmPrefs.KEY_MODEL) ?: return
         modelPreference.isEnabled =
@@ -357,13 +362,15 @@ class LlmSettingsFragment : PaddingPreferenceFragment() {
 
     private fun runModelGenerationTest(beforeCursor: String) {
         val ctx = requireContext()
+        val prefs = preferenceManager.sharedPreferences ?: return
         val config = LlmPrefs.read(ctx)
+        val personaName = LlmPrefs.currentPersonaDisplayName(ctx, prefs)
         lifecycleScope.withLoadingDialog(ctx) {
             withContext(Dispatchers.IO) {
                 runCatching {
                     when (config.runtime) {
-                        LlmPrefs.Runtime.LocalOnDevice -> runLocalModelGenerationTest(ctx, config, beforeCursor)
-                        LlmPrefs.Runtime.Remote -> runRemoteModelGenerationTest(config, beforeCursor)
+                        LlmPrefs.Runtime.LocalOnDevice -> runLocalModelGenerationTest(ctx, config, beforeCursor, personaName)
+                        LlmPrefs.Runtime.Remote -> runRemoteModelGenerationTest(config, beforeCursor, personaName)
                     }
                 }.onSuccess { result ->
                     withContext(Dispatchers.Main) {
@@ -542,6 +549,7 @@ class LlmSettingsFragment : PaddingPreferenceFragment() {
         ctx: android.content.Context,
         config: LlmPrefs.Config,
         beforeCursor: String,
+        personaName: String,
     ): ModelGenerationTestResult {
         val model = LlmLocalModelManager.currentModel(ctx)
             ?: error(ctx.getString(R.string.llm_local_model_not_configured))
@@ -567,9 +575,14 @@ class LlmSettingsFragment : PaddingPreferenceFragment() {
         )
         return ModelGenerationTestResult(
             stage = smoke.stage,
-            prompt = smoke.prompt,
-            rawText = smoke.rawText,
+            personaName = personaName,
+            inputPrefix = beforeCursor,
             suggestions = smoke.suggestions,
+            modelName = model.displayName,
+            modelId = model.file.name,
+            inputTokens = smoke.inputTokens,
+            outputTokens = smoke.outputTokens,
+            totalTokens = smoke.totalTokens,
             error = smoke.error,
         )
     }
@@ -577,6 +590,7 @@ class LlmSettingsFragment : PaddingPreferenceFragment() {
     private suspend fun runRemoteModelGenerationTest(
         config: LlmPrefs.Config,
         beforeCursor: String,
+        personaName: String,
     ): ModelGenerationTestResult {
         if (!config.isUsable) {
             error(getString(R.string.llm_model_test_remote_unavailable))
@@ -594,9 +608,14 @@ class LlmSettingsFragment : PaddingPreferenceFragment() {
         )
         return ModelGenerationTestResult(
             stage = if (response.rawContent.isBlank() && response.suggestions.isEmpty()) "complete_empty" else "complete",
-            prompt = beforeCursor,
-            rawText = response.rawContent,
+            personaName = personaName,
+            inputPrefix = beforeCursor,
             suggestions = response.suggestions,
+            modelName = response.modelId.ifBlank { config.model },
+            modelId = response.modelId.ifBlank { config.model },
+            inputTokens = response.usage?.inputTokens,
+            outputTokens = response.usage?.outputTokens,
+            totalTokens = response.usage?.totalTokens,
         )
     }
 
@@ -661,28 +680,67 @@ class LlmSettingsFragment : PaddingPreferenceFragment() {
     }
 
     private fun buildModelGenerationResultMessage(result: ModelGenerationTestResult): String = buildString {
-        appendLine(getString(R.string.llm_local_model_smoke_stage_label, result.stage))
-        if (!result.error.isNullOrBlank()) {
-            appendLine()
-            appendLine(getString(R.string.llm_local_model_smoke_error_label))
-            appendLine(result.error)
-            appendLine()
-        } else {
-            appendLine()
-        }
-        appendLine(getString(R.string.llm_local_model_smoke_prompt_label))
-        appendLine(result.prompt.ifBlank { "(empty)" })
+        appendLine(getString(R.string.llm_local_model_smoke_persona_label, result.personaName))
         appendLine()
-        appendLine(getString(R.string.llm_local_model_smoke_raw_label))
-        appendLine(result.rawText.ifBlank { "(empty)" })
+        appendLine(getString(R.string.llm_local_model_smoke_prompt_label, result.inputPrefix.ifBlank {
+            getString(R.string.llm_result_empty_value)
+        }))
         appendLine()
-        appendLine(getString(R.string.llm_local_model_smoke_parsed_label))
+        appendLine(getString(R.string.llm_local_model_smoke_stage_label, localizeStage(result.stage)))
+        appendLine()
+        appendLine(getString(R.string.llm_local_model_smoke_suggestions_label))
         if (result.suggestions.isEmpty()) {
-            append("(empty)")
+            appendLine(getString(R.string.llm_result_empty_value))
         } else {
             result.suggestions.forEachIndexed { index, suggestion ->
                 appendLine("${index + 1}. $suggestion")
             }
+        }
+        appendLine()
+        appendLine(getString(R.string.llm_local_model_smoke_model_label, buildModelIdentity(result)))
+        appendLine()
+        appendLine(
+            getString(
+                R.string.llm_local_model_smoke_usage_label,
+                formatUsageValue(result.inputTokens),
+                formatUsageValue(result.outputTokens),
+                formatUsageValue(result.totalTokens),
+            )
+        )
+        if (!result.error.isNullOrBlank()) {
+            appendLine()
+            appendLine(getString(R.string.llm_local_model_smoke_error_label, result.error))
+        }
+    }
+
+    private fun buildModelIdentity(result: ModelGenerationTestResult): String {
+        val name = result.modelName.trim()
+        val id = result.modelId.trim()
+        return when {
+            name.isBlank() && id.isBlank() -> getString(R.string.llm_result_empty_value)
+            name.isNotBlank() && id.isNotBlank() && name != id -> "$name ($id)"
+            else -> name.ifBlank { id }
+        }
+    }
+
+    private fun formatUsageValue(value: Int?): String =
+        value?.toString() ?: getString(R.string.llm_result_empty_value)
+
+    private fun localizeStage(stage: String): String {
+        val normalized = stage.trim().lowercase()
+        return when {
+            normalized == "complete" -> getString(R.string.llm_result_stage_complete)
+            normalized == "complete_empty" -> getString(R.string.llm_result_stage_complete_empty)
+            "timeout" in normalized -> getString(R.string.llm_result_stage_timeout)
+            "permission" in normalized || "forbidden" in normalized || "denied" in normalized ->
+                getString(R.string.llm_result_stage_permission_denied)
+            normalized == "unavailable" || "runtime_unavailable" in normalized ->
+                getString(R.string.llm_result_stage_runtime_unavailable)
+            normalized == "bundle" || "bundle_missing" in normalized ->
+                getString(R.string.llm_result_stage_bundle_missing)
+            "auth" in normalized || "unauthorized" in normalized ->
+                getString(R.string.llm_result_stage_auth_failed)
+            else -> getString(R.string.llm_result_stage_request_failed)
         }
     }
 

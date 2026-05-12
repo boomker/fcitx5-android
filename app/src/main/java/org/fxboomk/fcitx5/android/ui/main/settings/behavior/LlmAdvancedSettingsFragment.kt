@@ -5,12 +5,19 @@ package org.fxboomk.fcitx5.android.ui.main.settings.behavior
 
 import android.os.Bundle
 import android.text.InputType
+import android.view.ContextThemeWrapper
+import android.view.Gravity
+import android.view.View
+import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.ListView
+import android.widget.TextView
 import androidx.preference.EditTextPreference
 import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.appcompat.app.AlertDialog
+import android.widget.ArrayAdapter
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.input.predict.LlmPrefs
 import org.fxboomk.fcitx5.android.ui.common.PaddingPreferenceFragment
@@ -95,7 +102,9 @@ class LlmAdvancedSettingsFragment : PaddingPreferenceFragment() {
         unit = ""
         isIconSpaceReserved = false
         isSingleLineTitle = false
-        summaryProvider = DialogSeekBarPreference.SimpleSummaryProvider
+        summaryProvider = Preference.SummaryProvider<DialogSeekBarPreference> { pref ->
+            context.getString(R.string.llm_sample_count_summary, pref.value)
+        }
     }
 
     private fun maxContextCharsPreference() = DialogSeekBarPreference(requireContext()).apply {
@@ -109,7 +118,9 @@ class LlmAdvancedSettingsFragment : PaddingPreferenceFragment() {
         unit = ""
         isIconSpaceReserved = false
         isSingleLineTitle = false
-        summaryProvider = DialogSeekBarPreference.SimpleSummaryProvider
+        summaryProvider = Preference.SummaryProvider<DialogSeekBarPreference> { pref ->
+            context.getString(R.string.llm_max_context_chars_summary, pref.value)
+        }
     }
 
     private fun maxOutputTokensPreference() = EditTextPreference(requireContext()).apply {
@@ -210,13 +221,78 @@ class LlmAdvancedSettingsFragment : PaddingPreferenceFragment() {
         val prefs = preferenceManager.sharedPreferences ?: return
         val options = personaOptions()
         val selectedValue = prefs.getString(LlmPrefs.KEY_PERSONA_PRESET, LlmPrefs.PersonaPreset.Custom.value).orEmpty()
-        val checkedIndex = options.indexOfFirst { it.value == selectedValue }.coerceAtLeast(0)
-        var pendingIndex = checkedIndex
-        AlertDialog.Builder(ctx)
-            .setTitle(R.string.llm_persona_style)
-            .setSingleChoiceItems(options.map { it.title }.toTypedArray(), checkedIndex) { _, which ->
-                pendingIndex = which
+        var pendingIndex = options.indexOfFirst { it.value == selectedValue }.coerceAtLeast(0)
+        val sidePad = (20 * resources.displayMetrics.density).toInt()
+        val verticalPad = (16 * resources.displayMetrics.density).toInt()
+        lateinit var addButton: Button
+        lateinit var editButton: Button
+        lateinit var deleteButton: Button
+
+        fun selectedOption(): LlmPrefs.PersonaOption? = options.getOrNull(pendingIndex)
+        fun syncActionButtons() {
+            val editable = selectedOption()?.isBuiltIn == false
+            editButton.isEnabled = editable
+            deleteButton.isEnabled = editable
+        }
+
+        val currentLabel = TextView(ctx).apply {
+            textSize = 13f
+            alpha = 0.7f
+            text = getString(R.string.llm_persona_current_label)
+        }
+        val currentValue = TextView(ctx).apply {
+            textSize = 18f
+            text = options.getOrNull(pendingIndex)?.title.orEmpty()
+            setPadding(0, (4 * resources.displayMetrics.density).toInt(), 0, (12 * resources.displayMetrics.density).toInt())
+        }
+        val listView = ListView(ctx).apply {
+            choiceMode = ListView.CHOICE_MODE_SINGLE
+            adapter = ArrayAdapter(
+                ctx,
+                android.R.layout.simple_list_item_single_choice,
+                options.map { it.title },
+            )
+            divider = null
+            dividerHeight = 0
+            setItemChecked(pendingIndex, true)
+            setOnItemClickListener { _, _, position, _ ->
+                pendingIndex = position
+                currentValue.text = options.getOrNull(position)?.title.orEmpty()
+                syncActionButtons()
             }
+        }
+        val actionRow = LinearLayout(ctx).apply {
+            orientation = LinearLayout.HORIZONTAL
+            val gap = (12 * resources.displayMetrics.density).toInt()
+            setPadding(0, verticalPad, 0, 0)
+            weightSum = 3f
+            addButton = personaActionButton(ctx, R.string.add) { showAddPersonaDialog() }
+            addView(addButton, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                marginEnd = gap
+            })
+            editButton = personaActionButton(ctx, R.string.edit) {
+                options.getOrNull(pendingIndex)?.takeIf { !it.isBuiltIn }?.let { showRenamePersonaDialog(it.value) }
+            }
+            addView(editButton, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                marginEnd = gap
+            })
+            deleteButton = personaActionButton(ctx, R.string.delete) {
+                options.getOrNull(pendingIndex)?.takeIf { !it.isBuiltIn }?.let { showDeletePersonaDialog(it.value) }
+            }
+            addView(deleteButton, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        }
+        val container = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(sidePad, verticalPad, sidePad, 0)
+            addView(currentLabel)
+            addView(currentValue)
+            addView(listView, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, (280 * resources.displayMetrics.density).toInt()))
+            addView(actionRow)
+        }
+
+        val dialog = AlertDialog.Builder(ctx)
+            .setTitle(R.string.llm_persona_style)
+            .setView(container)
             .setPositiveButton(android.R.string.ok) { _, _ ->
                 val selected = options.getOrNull(pendingIndex) ?: return@setPositiveButton
                 persistSelectedPersona(selected.value)
@@ -224,10 +300,13 @@ class LlmAdvancedSettingsFragment : PaddingPreferenceFragment() {
                 syncPersonaPreferenceState()
             }
             .setNegativeButton(android.R.string.cancel, null)
-            .setNeutralButton(R.string.add) { _, _ ->
-                showAddPersonaDialog()
-            }
             .show()
+        val confirmButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+        listOf(addButton, editButton, deleteButton).forEach { button ->
+            button.background = confirmButton.background?.constantState?.newDrawable()?.mutate()
+            button.setTextColor(confirmButton.textColors)
+        }
+        syncActionButtons()
     }
 
     private fun showAddPersonaDialog() {
@@ -257,5 +336,78 @@ class LlmAdvancedSettingsFragment : PaddingPreferenceFragment() {
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
+    }
+
+    private fun showRenamePersonaDialog(currentName: String) {
+        val ctx = requireContext()
+        val input = EditText(ctx).apply {
+            inputType = InputType.TYPE_CLASS_TEXT
+            setText(currentName)
+            setSelection(currentName.length)
+        }
+        val container = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            val pad = (16 * resources.displayMetrics.density).toInt()
+            setPadding(pad, pad / 2, pad, 0)
+            addView(input)
+        }
+        AlertDialog.Builder(ctx)
+            .setTitle(R.string.edit)
+            .setView(container)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val nextName = input.text?.toString()?.trim().orEmpty()
+                if (nextName.isBlank() || nextName == currentName) return@setPositiveButton
+                val prefs = preferenceManager.sharedPreferences ?: return@setPositiveButton
+                val names = LlmPrefs.readCustomPersonaNames(prefs).toMutableList()
+                val index = names.indexOf(currentName)
+                if (index == -1) return@setPositiveButton
+                names[index] = nextName
+                LlmPrefs.writeCustomPersonaNames(prefs, names.distinct())
+                val detail = LlmPrefs.readPersonaDetail(prefs, currentName)
+                LlmPrefs.writePersonaDetail(prefs, nextName, detail)
+                if (prefs.getString(LlmPrefs.KEY_PERSONA_PRESET, "") == currentName) {
+                    persistSelectedPersona(nextName)
+                }
+                refreshPersonaOptions()
+                syncPersonaPreferenceState()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun showDeletePersonaDialog(name: String) {
+        val ctx = requireContext()
+        AlertDialog.Builder(ctx)
+            .setTitle(R.string.delete)
+            .setMessage(getString(R.string.llm_persona_delete_confirm, name))
+            .setPositiveButton(R.string.delete) { _, _ ->
+                val prefs = preferenceManager.sharedPreferences ?: return@setPositiveButton
+                val names = LlmPrefs.readCustomPersonaNames(prefs).filterNot { it == name }
+                LlmPrefs.writeCustomPersonaNames(prefs, names)
+                if (prefs.getString(LlmPrefs.KEY_PERSONA_PRESET, "") == name) {
+                    persistSelectedPersona(LlmPrefs.PersonaPreset.Custom.value)
+                }
+                refreshPersonaOptions()
+                syncPersonaPreferenceState()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun personaActionButton(
+        ctx: android.content.Context,
+        textRes: Int,
+        onClick: () -> Unit,
+    ): Button = Button(ContextThemeWrapper(ctx, android.R.style.Widget_DeviceDefault_Button_Borderless)).apply {
+        text = ctx.getString(textRes)
+        gravity = Gravity.CENTER
+        minHeight = (40 * resources.displayMetrics.density).toInt()
+        setPadding(
+            (12 * resources.displayMetrics.density).toInt(),
+            (10 * resources.displayMetrics.density).toInt(),
+            (12 * resources.displayMetrics.density).toInt(),
+            (10 * resources.displayMetrics.density).toInt(),
+        )
+        setOnClickListener { onClick() }
     }
 }

@@ -355,15 +355,26 @@
     <string name="llm_local_model_manage_reload" translatable="false">重载</string>
     <string name="llm_local_model_delete_confirm" translatable="false">确认删除模型“%1$s”吗？</string>
     <string name="llm_model_test" translatable="false">测试模型文本生成</string>
-    <string name="llm_model_test_summary" translatable="false">按当前运行方式测试模型文本生成能力，并查看原始输出</string>
+    <string name="llm_model_test_summary" translatable="false">按当前运行方式测试模型文本生成能力，并查看归纳后的结果摘要</string>
     <string name="llm_local_model_smoke" translatable="false">测试模型文本生成</string>
-    <string name="llm_local_model_smoke_summary" translatable="false">按当前运行方式测试模型文本生成能力，并查看原始输出</string>
+    <string name="llm_local_model_smoke_summary" translatable="false">按当前运行方式测试模型文本生成能力，并查看归纳后的结果摘要</string>
     <string name="llm_local_model_smoke_result" translatable="false">模型文本生成测试结果</string>
-    <string name="llm_local_model_smoke_stage_label" translatable="false">Stage: %1$s</string>
-    <string name="llm_local_model_smoke_error_label" translatable="false">Error</string>
-    <string name="llm_local_model_smoke_prompt_label" translatable="false">测试输入</string>
-    <string name="llm_local_model_smoke_raw_label" translatable="false">Raw output</string>
-    <string name="llm_local_model_smoke_parsed_label" translatable="false">Parsed suggestions</string>
+    <string name="llm_local_model_smoke_persona_label" translatable="false">所用人设: %1$s</string>
+    <string name="llm_local_model_smoke_prompt_label" translatable="false">已输入前缀: %1$s</string>
+    <string name="llm_local_model_smoke_stage_label" translatable="false">状态: %1$s</string>
+    <string name="llm_local_model_smoke_suggestions_label" translatable="false">模型建议内容:</string>
+    <string name="llm_local_model_smoke_model_label" translatable="false">模型名称与ID: %1$s</string>
+    <string name="llm_local_model_smoke_usage_label" translatable="false">请求用量统计: 输入 %1$s Token, 输出 %2$s Token, 总计 %3$s Token</string>
+    <string name="llm_local_model_smoke_error_label" translatable="false">补充说明: %1$s</string>
+    <string name="llm_result_empty_value" translatable="false">暂无</string>
+    <string name="llm_result_stage_complete" translatable="false">完成</string>
+    <string name="llm_result_stage_complete_empty" translatable="false">完成，但暂无建议</string>
+    <string name="llm_result_stage_timeout" translatable="false">超时</string>
+    <string name="llm_result_stage_permission_denied" translatable="false">权限拒绝</string>
+    <string name="llm_result_stage_runtime_unavailable" translatable="false">运行时不可用</string>
+    <string name="llm_result_stage_bundle_missing" translatable="false">模型包缺失</string>
+    <string name="llm_result_stage_auth_failed" translatable="false">鉴权失败</string>
+    <string name="llm_result_stage_request_failed" translatable="false">请求失败</string>
     <string name="llm_local_model_runtime_unavailable" translatable="false">当前设备系统版本不支持本地 GenAI 运行时</string>
     <string name="llm_model_test_remote_unavailable" translatable="false">当前远端模型配置未完成，无法测试文本生成</string>
     <string name="ai_clip_title" translatable="false">AI 候选</string>
@@ -378,7 +389,7 @@
     <string name="ai_clip_translate_loading" translatable="false">正在翻译…</string>
     <string name="ai_clip_long_form_loading" translatable="false">正在生成长文候选…</string>
     <string name="llm_provider" translatable="false">模型服务商</string>
-    <string name="llm_provider_local_ai" translatable="false">Local AI</string>
+    <string name="llm_provider_local_ai" translatable="false">本地模型</string>
     <string name="llm_provider_custom" translatable="false">自定义</string>
     <string name="llm_provider_openai" translatable="false">OpenAI</string>
     <string name="llm_provider_anthropic" translatable="false">Anthropic</string>
@@ -424,6 +435,8 @@
     <string name="llm_space_commit_prediction" translatable="false">空格提交预测</string>
     <string name="llm_space_commit_prediction_summary" translatable="false">默认关闭。开启后，当编辑光标后出现预测提示气泡时，按空格会提交第一个预测项。</string>
     <string name="llm_persona_style" translatable="false">人设与口吻</string>
+    <string name="llm_sample_count_summary" translatable="false">当前为 %1$d 次。数值越大，系统会多试几种说法，再挑更合适的结果。</string>
+    <string name="llm_max_context_chars_summary" translatable="false">当前为 %1$d 字。数值越大，系统参考的前文越多，但响应可能稍慢一点。</string>
     <string name="llm_custom_persona" translatable="false">默认人设</string>
     <string name="llm_custom_persona_summary" translatable="false">你可以更详细地描述你想设定的人设与口吻。</string>
     <string name="llm_persona_custom_short" translatable="false">默认人设</string>
@@ -438,6 +451,8 @@
     <string name="llm_persona_add" translatable="false">新增人设</string>
     <string name="llm_persona_name_hint" translatable="false">输入新的人设名称</string>
     <string name="llm_persona_custom_name_description" translatable="false">%1$s。在下方还可以补充更详细的人设描述。</string>
+    <string name="llm_persona_current_label" translatable="false">当前已选</string>
+    <string name="llm_persona_delete_confirm" translatable="false">删除人设“%1$s”？</string>
     <string name="plugins">Plugins</string>
     <string name="manage_plugins">Manage Plugins</string>
     <string name="uninstall_plugin">Uninstall Plugin</string>

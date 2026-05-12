@@ -85,6 +85,9 @@ internal object GenAiLocalLlmRuntime : LocalLlmRuntime {
         val prompt: String,
         val rawText: String,
         val suggestions: List<String>,
+        val inputTokens: Int? = null,
+        val outputTokens: Int? = null,
+        val totalTokens: Int? = null,
         val error: String? = null,
     )
 
@@ -238,6 +241,9 @@ internal object GenAiLocalLlmRuntime : LocalLlmRuntime {
                     request.beforeCursor,
                 )
                     .take(request.maxPredictionCandidates),
+                inputTokens = run.telemetry.inputTokenCount,
+                outputTokens = run.telemetry.generatedTokenCount,
+                totalTokens = run.telemetry.inputTokenCount + run.telemetry.generatedTokenCount,
             )
         }.getOrElse { error ->
             Timber.e(error, "GenAI smoke failed")

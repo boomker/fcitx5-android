@@ -48,6 +48,20 @@ internal class LlmClient(
     data class PredictionResponse(
         val suggestions: List<String>,
         val rawContent: String,
+        val modelId: String = "",
+        val usage: TokenUsage? = null,
+    )
+
+    data class TokenUsage(
+        val inputTokens: Int? = null,
+        val outputTokens: Int? = null,
+        val totalTokens: Int? = null,
+    )
+
+    private data class ResponseMetadata(
+        val modelId: String = "",
+        val usage: TokenUsage? = null,
+        val suggestions: List<String>? = null,
     )
 
     suspend fun predict(
@@ -120,16 +134,20 @@ internal class LlmClient(
             throw HttpRequestFailure(responseCode, responseBody)
         }
 
+        val metadata = if (streaming) null else extractResponseMetadata(responseBody)
         val rawContent = if (streaming) {
             responseBody
         } else {
             extractContent(responseBody)
         }
-        val suggestions = parseSuggestions(rawContent, beforeCursor)
+        val suggestions = metadata?.suggestions?.takeIf { it.isNotEmpty() }
+            ?: parseSuggestions(rawContent, beforeCursor)
         Log.d(TAG, "parsed suggestions=$suggestions rawContent=${rawContent.take(240)}")
         return PredictionResponse(
             suggestions = suggestions,
             rawContent = rawContent,
+            modelId = metadata?.modelId.orEmpty(),
+            usage = metadata?.usage,
         )
     }
 
@@ -610,6 +628,18 @@ internal class LlmClient(
             ?.takeIf { it.isNotEmpty() && !it.equals("null", ignoreCase = true) }
     }
 
+    private fun JSONObject.optNullableInt(key: String): Int? {
+        if (!has(key) || isNull(key)) return null
+        return optInt(key)
+    }
+
+    private fun JSONArray.toStringList(): List<String> = buildList {
+        for (index in 0 until length()) {
+            val value = optString(index).trim()
+            if (value.isNotEmpty()) add(value)
+        }
+    }
+
     private fun shouldFallbackToNextPlan(failure: HttpRequestFailure): Boolean {
         if (failure.statusCode in listOf(400, 404, 405, 501)) return true
         val body = failure.responseBody.lowercase()
@@ -653,6 +683,55 @@ internal class LlmClient(
             ?: extractStructuredTextContent(responseBody)
             ?: extractMessageContentString(responseBody)
             ?: responseBody
+    }
+
+    private fun extractResponseMetadata(responseBody: String): ResponseMetadata? {
+        val root = runCatching { JSONObject(responseBody) }.getOrNull() ?: return null
+        return ResponseMetadata(
+            modelId = root.optString("model").trim(),
+            usage = root.optJSONObject("usage")?.let {
+                TokenUsage(
+                    inputTokens = it.optNullableInt("prompt_tokens"),
+                    outputTokens = it.optNullableInt("completion_tokens"),
+                    totalTokens = it.optNullableInt("total_tokens"),
+                )
+            },
+            suggestions = extractSuggestionsArray(root),
+        )
+    }
+
+    private fun extractSuggestionsArray(root: JSONObject): List<String>? {
+        root.optJSONArray("suggestions")?.toStringList()
+            ?.takeIf { it.isNotEmpty() }
+            ?.let { return it }
+
+        val choices = root.optJSONArray("choices")
+        if (choices != null && choices.length() > 0) {
+            val first = choices.optJSONObject(0)
+            val content = first?.optJSONObject("message")?.optString("content")
+                ?: first?.optString("text")
+            extractSuggestionsArrayFromText(content)
+                .takeIf { it.isNotEmpty() }
+                ?.let { return it }
+        }
+
+        val content = root.optJSONArray("content")
+        if (content != null) {
+            for (index in 0 until content.length()) {
+                val item = content.optJSONObject(index) ?: continue
+                extractSuggestionsArrayFromText(item.optString("text"))
+                    .takeIf { it.isNotEmpty() }
+                    ?.let { return it }
+            }
+        }
+        return null
+    }
+
+    private fun extractSuggestionsArrayFromText(text: String?): List<String> {
+        val normalized = text?.trim().orEmpty()
+        if (normalized.isBlank()) return emptyList()
+        val json = runCatching { JSONObject(normalized) }.getOrNull() ?: return emptyList()
+        return json.optJSONArray("suggestions")?.toStringList().orEmpty()
     }
 
     private fun extractMessageContentString(raw: String): String? {

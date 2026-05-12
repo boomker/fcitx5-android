@@ -304,6 +304,19 @@ object LlmPrefs {
         } ?: value
     }
 
+    fun currentPersonaDisplayName(
+        context: Context,
+        prefs: SharedPreferences,
+    ): String {
+        val value = prefs.getString(KEY_PERSONA_PRESET, PersonaPreset.Custom.value).orEmpty()
+        val preset = PersonaPreset.entries.firstOrNull { it.value == value }
+        return if (preset != null) {
+            context.getString(preset.titleRes)
+        } else {
+            value.ifBlank { context.getString(PersonaPreset.Custom.titleRes) }
+        }
+    }
+
     fun readCustomPersonaNames(prefs: SharedPreferences): List<String> {
         return prefs.getStringSet(KEY_CUSTOM_PERSONA_NAMES, emptySet())
             ?.map(String::trim)
