@@ -26,10 +26,8 @@
         android:maxSdkVersion="32" />
     <uses-sdk tools:overrideLibrary="ai.onnxruntime,ai.onnxruntime.genai" />
 
-    <!-- remove intent queries merged from library manifest (namely Android-Image-Cropper) -->
-    <queries tools:node="removeAll" />
-
-    <queries>
+    <!-- replace intent queries merged from library manifests with the app-visible packages we need -->
+    <queries tools:node="replace">
         <intent>
             <action android:name="${applicationId}.plugin.MANIFEST" />
         </intent>

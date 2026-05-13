@@ -558,7 +558,7 @@
     <string name="please_wait">잠시만 기다려 주세요…</string>
     <string name="plugin_needs_reload">플러그인 변경이 감지되었습니다. 눌러서 다시 로드하세요</string>
     <string name="plugins">플러그인</string>
-    <string name="plugins_failed">로드 실패</string>
+    <string name="plugins_failed">로드 대기 중</string>
     <string name="plugins_loaded">로드됨</string>
     <string name="popup_on_key_press">키 입력 시 팝업 표시</string>
     <string name="popup_preset_saved_at">popuppreset.json 저장 위치: %1$s</string>
@@ -688,6 +688,9 @@
     <string name="space_swipe_vertical_behavior_arrow_keys">하이라이트를 단어 단위로 이동</string>
     <string name="space_swipe_vertical_behavior_candidate_rows">후보 행 전환</string>
     <string name="manage_plugins">플러그인 관리</string>
+    <string name="manage_plugins_hint">하나 이상의 플러그인을 선택한 다음 아래 관리 작업을 선택하세요.</string>
+    <string name="block_plugin">선택 항목 차단</string>
+    <string name="reload_plugin">선택 항목 다시 로드</string>
     <string name="uninstall_plugin">플러그인 제거</string>
     <string name="upgrade_plugin">플러그인 업그레이드</string>
     <string name="uninstall_plugin_confirm">%1$s을(를) 제거하시겠습니까?</string>

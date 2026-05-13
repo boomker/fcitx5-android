@@ -13,12 +13,6 @@ import org.fxboomk.fcitx5.android.utils.AppUtil
 import org.fxboomk.fcitx5.android.utils.appContext
 
 class MainViewModel : ViewModel() {
-    enum class PluginMenuAction {
-        Unbind,
-        Uninstall,
-        Upgrade
-    }
-
     private val appLabel = AppUtil.appLabel(appContext)
 
     val toolbarTitle = MutableLiveData(appLabel)
@@ -36,7 +30,7 @@ class MainViewModel : ViewModel() {
     val aboutButton = MutableLiveData(false)
 
     val pluginMenuVisible = MutableLiveData(false)
-    val pluginMenuTrigger = MutableLiveData<PluginMenuAction?>()
+    val pluginMenuTrigger = MutableLiveData<Unit?>()
 
     val fcitx: FcitxConnection = FcitxDaemon.connect(javaClass.name)
 
@@ -102,8 +96,8 @@ class MainViewModel : ViewModel() {
         pluginMenuVisible.value = false
     }
 
-    fun triggerPluginMenu(action: PluginMenuAction) {
-        pluginMenuTrigger.value = action
+    fun triggerPluginMenu() {
+        pluginMenuTrigger.value = Unit
     }
 
     fun clearPluginMenuTrigger() {

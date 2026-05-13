@@ -579,7 +579,7 @@
     <string name="path_conflict">Pfad "%1$s" wird bereits von %2$s verwendet</string>
     <string name="please_wait">Bitte warten…</string>
     <string name="plugin_needs_reload">Plugin-Änderungen erkannt, zum Neuladen tippen</string>
-    <string name="plugins_failed">Laden fehlgeschlagen</string>
+    <string name="plugins_failed">Laden ausstehend</string>
     <string name="plugins_loaded">Geladen</string>
     <string name="popup_on_key_press">Zeichen beim Tastendruck als Popup anzeigen</string>
     <string name="popup_preset_saved_at">PopupPreset.json gespeichert unter: %1$s</string>
@@ -684,6 +684,9 @@
     <string name="space_swipe_vertical_behavior_arrow_keys">Markierung wortweise verschieben</string>
     <string name="space_swipe_vertical_behavior_candidate_rows">Kandidatenzeilen wechseln</string>
     <string name="manage_plugins">Plugins verwalten</string>
+    <string name="manage_plugins_hint">Wählen Sie ein oder mehrere Plugins aus und wählen Sie unten eine Verwaltungsaktion.</string>
+    <string name="block_plugin">Auswahl blockieren</string>
+    <string name="reload_plugin">Auswahl neu laden</string>
     <string name="uninstall_plugin">Plugin deinstallieren</string>
     <string name="upgrade_plugin">Plugin aktualisieren</string>
     <string name="uninstall_plugin_confirm">%1$s deinstallieren?</string>

@@ -10,7 +10,6 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.view.Gravity
 import android.view.Menu
 import android.view.ViewGroup
 import androidx.activity.enableEdgeToEdge
@@ -163,30 +162,12 @@ class MainActivity : AppCompatActivity() {
                 .observe(this@MainActivity) { listener -> isVisible = listener != null }
         }
         menu.item(R.string.manage_plugins, R.drawable.ic_baseline_apps_24, iconTint, true) {
-            showPluginManagePopup()
+            viewModel.triggerPluginMenu()
         }.apply {
             viewModel.pluginMenuVisible.observe(this@MainActivity) { visible -> isVisible = visible }
         }
         // all menus should be invisible and enabled on demand
         menu.forEach { it.isVisible = false }
-    }
-
-    private fun showPluginManagePopup() {
-        val popup = androidx.appcompat.widget.PopupMenu(this, binding.toolbar, Gravity.END)
-        popup.menu.add(0, 0, 0, R.string.unbind_plugin)
-        popup.menu.add(0, 1, 1, R.string.uninstall_plugin)
-        popup.menu.add(0, 2, 2, R.string.upgrade_plugin)
-        popup.setOnMenuItemClickListener { item ->
-            val action = when (item.itemId) {
-                0 -> MainViewModel.PluginMenuAction.Unbind
-                1 -> MainViewModel.PluginMenuAction.Uninstall
-                2 -> MainViewModel.PluginMenuAction.Upgrade
-                else -> return@setOnMenuItemClickListener false
-            }
-            viewModel.triggerPluginMenu(action)
-            true
-        }
-        popup.show()
     }
 
     private var needNotifications by AppPrefs.getInstance().internal.needNotifications

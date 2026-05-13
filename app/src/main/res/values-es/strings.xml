@@ -117,7 +117,7 @@
     <string name="delete_theme">Eliminar tema</string>
     <string name="delete_theme_msg">¿Realmente quiere eliminar el tema «%1$s»?</string>
     <string name="plugins">Complementos</string>
-    <string name="plugins_failed">Falló la carga</string>
+    <string name="plugins_failed">Pendiente de carga</string>
     <string name="main_program">programa principal</string>
     <string name="edit_theme">Editar tema</string>
     <string name="show_voice_input_button">Mostrar botón de entrada por voz</string>
@@ -688,6 +688,9 @@
     <string name="space_swipe_vertical_behavior_arrow_keys">Mover el resaltado palabra por palabra</string>
     <string name="space_swipe_vertical_behavior_candidate_rows">Cambiar filas de candidatos</string>
     <string name="manage_plugins">Administrar complementos</string>
+    <string name="manage_plugins_hint">Seleccione uno o más complementos y elija abajo una acción de administración.</string>
+    <string name="block_plugin">Bloquear selección</string>
+    <string name="reload_plugin">Recargar selección</string>
     <string name="uninstall_plugin">Desinstalar complemento</string>
     <string name="upgrade_plugin">Actualizar complemento</string>
     <string name="uninstall_plugin_confirm">¿Desinstalar %1$s?</string>

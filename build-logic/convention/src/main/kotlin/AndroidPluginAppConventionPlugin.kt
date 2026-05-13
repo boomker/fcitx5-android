@@ -35,9 +35,18 @@ class AndroidPluginAppConventionPlugin : Plugin<Project> {
                 release {
                 }
                 debug {
-                    val debugMainApplicationId = target.findProperty("mainApplicationId")?.toString()
-                        ?: target.findProperty("applicationId")?.toString()?.let { "${it}.debug" }
-                        ?: "org.fxboomk.fcitx5.android.debug"
+                    val configuredMainApplicationId = target.findProperty("mainApplicationId")?.toString()
+                    val debugMainApplicationId = when {
+                        configuredMainApplicationId != null -> {
+                            if (configuredMainApplicationId.endsWith(".debug")) {
+                                configuredMainApplicationId
+                            } else {
+                                "${configuredMainApplicationId}.debug"
+                            }
+                        }
+                        else -> target.findProperty("applicationId")?.toString()?.let { "${it}.debug" }
+                            ?: "org.fxboomk.fcitx5.android.debug"
+                    }
                     buildConfigField("String", "MAIN_APPLICATION_ID", "\"$debugMainApplicationId\"")
                     addManifestPlaceholders(
                         mapOf(

@@ -218,7 +218,7 @@
     <string name="capture_heap_dump">ヒープダンプを取得する</string>
     <string name="plugins">プラグイン</string>
     <string name="plugins_loaded">読み込みました</string>
-    <string name="plugins_failed">読み込みに失敗しました</string>
+    <string name="plugins_failed">読み込み待ち</string>
     <string name="missing_plugin_descriptor">プラグインの記述語がありません</string>
     <string name="invalid_plugin_descriptor">プラグインの記述語が無効です</string>
     <string name="missing_data_descriptor">データの記述語がありません</string>
@@ -686,6 +686,9 @@
     <string name="space_swipe_vertical_behavior_arrow_keys">ハイライトを語単位で移動</string>
     <string name="space_swipe_vertical_behavior_candidate_rows">候補行を切り替え</string>
     <string name="manage_plugins">プラグインを管理</string>
+    <string name="manage_plugins_hint">1つ以上のプラグインを選択し、下の管理操作を選んでください。</string>
+    <string name="block_plugin">選択項目をブロック</string>
+    <string name="reload_plugin">選択項目を再読み込み</string>
     <string name="uninstall_plugin">プラグインを削除</string>
     <string name="upgrade_plugin">プラグインを更新</string>
     <string name="uninstall_plugin_confirm">%1$s を削除しますか？</string>

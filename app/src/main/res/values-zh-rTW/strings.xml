@@ -242,7 +242,7 @@
     <string name="plugins">外掛程式</string>
     <string name="plugins_loaded">已載入</string>
     <string name="rime_schema_selector_title">方案選單</string>
-    <string name="plugins_failed">載入失敗</string>
+    <string name="plugins_failed">待載入</string>
     <string name="missing_plugin_descriptor">缺少外掛程式描述元</string>
     <string name="invalid_plugin_descriptor">無效的外掛程式描述元</string>
     <string name="missing_data_descriptor">缺少資料描述元</string>
@@ -701,6 +701,9 @@
     <string name="wallpaper_blend_percent">鍵盤與桌布混合比例</string>
     <string name="navbar_border">導覽列邊框</string>
     <string name="manage_plugins">管理外掛</string>
+    <string name="manage_plugins_hint">選取一或多個外掛，然後直接執行下方管理操作。</string>
+    <string name="block_plugin">阻載所選</string>
+    <string name="reload_plugin">重載所選</string>
     <string name="uninstall_plugin">卸載外掛</string>
     <string name="uninstall_plugin_confirm">確定要卸載 %1$s 嗎？</string>
     <string name="uninstall_selected_plugins">卸載所選</string>

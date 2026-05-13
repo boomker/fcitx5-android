@@ -16,8 +16,17 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.util.TypedValue
+import android.view.ContextThemeWrapper
 import android.view.View
+import android.widget.Button
+import android.widget.CheckBox
+import android.widget.LinearLayout
+import android.widget.ScrollView
+import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
+import androidx.core.view.setPadding
+import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceScreen
 import kotlinx.coroutines.CancellationException
@@ -32,6 +41,7 @@ import org.fxboomk.fcitx5.android.core.data.PluginDescriptor
 import org.fxboomk.fcitx5.android.core.data.PluginLoadFailed
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.daemon.FcitxDaemon
+import org.fxboomk.fcitx5.android.daemon.launchOnReady
 import org.fxboomk.fcitx5.android.ui.common.PaddingPreferenceFragment
 import org.fxboomk.fcitx5.android.ui.common.withLoadingDialog
 import org.fxboomk.fcitx5.android.utils.LongClickPreference
@@ -59,6 +69,7 @@ class PluginFragment : PaddingPreferenceFragment() {
     private val pendingPluginInstallFiles = ArrayDeque<File>()
     private var continueBatchUninstallOnResume = false
     private var continueBatchPluginInstallOnResume = false
+    private val viewModel: MainViewModel by activityViewModels()
 
     private lateinit var synced: DataManager.PluginSet
     private lateinit var detected: DataManager.PluginSet
@@ -117,10 +128,10 @@ class PluginFragment : PaddingPreferenceFragment() {
         // Observe plugin menu trigger from toolbar
         (requireActivity() as MainActivity).viewModel.pluginMenuTrigger.observe(
             viewLifecycleOwner
-        ) { action ->
-            if (action != null) {
+        ) { trigger ->
+            if (trigger != null) {
                 DataManager.whenSynced {
-                    showManagePluginsDialog(action)
+                    showManagePluginsDialog()
                 }
                 (requireActivity() as MainActivity).viewModel.clearPluginMenuTrigger()
             }
@@ -252,7 +263,7 @@ class PluginFragment : PaddingPreferenceFragment() {
             }
         }
 
-    private fun showManagePluginsDialog(action: MainViewModel.PluginMenuAction) {
+    private fun showManagePluginsDialog() {
         val blockedPackages = AppPrefs.getInstance().advanced.blockedPluginPackages.getValue()
         val loadedPackages = synced.loaded.mapTo(mutableSetOf()) { it.packageName }
         val manageablePlugins = DataManager.getManageablePlugins()
@@ -268,71 +279,145 @@ class PluginFragment : PaddingPreferenceFragment() {
             requireContext().toast(R.string.no_plugins)
             return
         }
-        val checked = BooleanArray(manageablePlugins.size)
-        val items = manageablePlugins.map { plugin ->
-            buildString {
-                append(plugin.descriptor.name)
-                if (plugin.descriptor.versionName.isNotBlank()) {
-                    append(" · ")
-                    append(plugin.descriptor.versionName)
+        val ctx = requireContext()
+        val density = resources.displayMetrics.density
+        val horizontalPadding = (24 * density).toInt()
+        val verticalPadding = (20 * density).toInt()
+        val sectionGap = (12 * density).toInt()
+        val actionGap = (8 * density).toInt()
+        val actionColumnGap = (4 * density).toInt()
+
+        fun statusText(plugin: ManageablePlugin): String = when {
+            plugin.isBlocked -> getString(R.string.plugin_blocked)
+            plugin.isLoaded -> getString(R.string.plugins_loaded)
+            else -> getString(R.string.plugins_failed)
+        }
+
+        val selections = BooleanArray(manageablePlugins.size)
+        lateinit var manageDialog: AlertDialog
+
+        val content = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(horizontalPadding, verticalPadding, horizontalPadding, verticalPadding)
+            addView(TextView(ctx).apply {
+                setText(R.string.manage_plugins_hint)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+            })
+            addView(ScrollView(ctx).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    (320 * density).toInt()
+                ).apply {
+                    topMargin = sectionGap
                 }
-                append('\n')
-                append(
-                    when {
-                        plugin.isBlocked -> getString(R.string.plugin_blocked)
-                        plugin.isLoaded -> getString(R.string.plugins_loaded)
-                        else -> getString(R.string.plugins_failed)
+                addView(LinearLayout(ctx).apply {
+                    orientation = LinearLayout.VERTICAL
+                    manageablePlugins.forEachIndexed { index, plugin ->
+                        addView(CheckBox(ctx).apply {
+                            text = "${plugin.descriptor.name}\n${statusText(plugin)}"
+                            isSingleLine = false
+                            setPadding(0, actionGap, 0, actionGap)
+                            setOnCheckedChangeListener { _, isChecked ->
+                                selections[index] = isChecked
+                            }
+                        })
+                    }
+                })
+            })
+            addView(LinearLayout(ctx).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    topMargin = sectionGap
+                }
+
+                fun createActionButton(textRes: Int, onClick: () -> Unit): Button =
+                    Button(ContextThemeWrapper(ctx, androidx.appcompat.R.style.Widget_AppCompat_Button_ButtonBar_AlertDialog)).apply {
+                        setText(textRes)
+                        isAllCaps = false
+                        minimumWidth = 0
+                        layoutParams = LinearLayout.LayoutParams(
+                            0,
+                            LinearLayout.LayoutParams.WRAP_CONTENT,
+                            1f
+                        )
+                        setOnClickListener { onClick() }
+                    }
+
+                var actionRowCount = 0
+
+                fun addActionRow(vararg buttons: Button) {
+                    addView(LinearLayout(ctx).apply {
+                        orientation = LinearLayout.HORIZONTAL
+                        layoutParams = LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.MATCH_PARENT,
+                            LinearLayout.LayoutParams.WRAP_CONTENT
+                        ).apply {
+                            if (actionRowCount > 0) topMargin = actionGap
+                        }
+                        buttons.forEachIndexed { index, button ->
+                            (button.layoutParams as LinearLayout.LayoutParams).apply {
+                                if (index > 0) marginStart = actionColumnGap
+                            }
+                            addView(button)
+                        }
+                    })
+                    actionRowCount += 1
+                }
+
+                addActionRow(
+                    createActionButton(R.string.block_plugin) {
+                        val selected = selectedManageablePlugins(manageablePlugins, selections)
+                        if (selected.isEmpty()) return@createActionButton
+                        manageDialog.dismiss()
+                        blockPlugins(selected)
+                    },
+                    createActionButton(R.string.reload_plugin) {
+                        val selected = selectedManageablePlugins(manageablePlugins, selections)
+                        if (selected.isEmpty()) return@createActionButton
+                        manageDialog.dismiss()
+                        reloadPlugins(selected)
                     }
                 )
-            }
-        }.toTypedArray()
-        val builder = AlertDialog.Builder(requireContext())
-            .setTitle(R.string.manage_plugins)
-            .setMultiChoiceItems(items, checked) { _, which, isChecked ->
-                checked[which] = isChecked
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-        when (action) {
-            MainViewModel.PluginMenuAction.Unbind -> {
-                builder.setPositiveButton(R.string.unbind_plugin) { _, _ ->
-                    val selected = manageablePlugins.indices
-                        .filter { checked[it] }
-                        .map { manageablePlugins[it] }
-                    if (selected.isEmpty()) {
-                        requireContext().toast(getString(R.string.generic_multiselect_min, 1))
-                        return@setPositiveButton
+                addActionRow(
+                    createActionButton(R.string.uninstall_selected_plugins) {
+                        val selected = selectedManageablePlugins(manageablePlugins, selections)
+                            .map { it.descriptor }
+                        if (selected.isEmpty()) return@createActionButton
+                        manageDialog.dismiss()
+                        confirmBatchUninstall(selected.map { UninstallTarget(it.name, it.packageName) })
+                    },
+                    createActionButton(R.string.upgrade_selected_plugins) {
+                        val selected = selectedManageablePlugins(manageablePlugins, selections)
+                            .map { it.descriptor }
+                        if (selected.isEmpty()) return@createActionButton
+                        manageDialog.dismiss()
+                        upgradePlugins(selected)
                     }
-                    togglePluginLoading(selected)
-                }
-            }
-
-            MainViewModel.PluginMenuAction.Uninstall -> {
-                builder.setPositiveButton(R.string.uninstall_selected_plugins) { _, _ ->
-                    val selected = manageablePlugins.indices
-                        .filter { checked[it] }
-                        .map { manageablePlugins[it].descriptor }
-                    if (selected.isEmpty()) {
-                        requireContext().toast(getString(R.string.generic_multiselect_min, 1))
-                        return@setPositiveButton
-                    }
-                    confirmBatchUninstall(selected.map { UninstallTarget(it.name, it.packageName) })
-                }
-            }
-
-            MainViewModel.PluginMenuAction.Upgrade -> {
-                builder.setPositiveButton(R.string.upgrade_selected_plugins) { _, _ ->
-                    val selected = manageablePlugins.indices
-                        .filter { checked[it] }
-                        .map { manageablePlugins[it].descriptor }
-                    if (selected.isEmpty()) {
-                        requireContext().toast(getString(R.string.generic_multiselect_min, 1))
-                        return@setPositiveButton
-                    }
-                    upgradePlugins(selected)
-                }
-            }
+                )
+            })
         }
-        builder.show()
+
+        manageDialog = AlertDialog.Builder(ctx)
+            .setTitle(R.string.manage_plugins)
+            .setView(content)
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun selectedManageablePlugins(
+        manageablePlugins: List<ManageablePlugin>,
+        selections: BooleanArray
+    ): List<ManageablePlugin> {
+        val selected = manageablePlugins.indices
+            .filter { selections[it] }
+            .map { manageablePlugins[it] }
+        if (selected.isEmpty()) {
+            requireContext().toast(getString(R.string.generic_multiselect_min, 1))
+        }
+        return selected
     }
 
     private fun confirmBatchUninstall(targets: List<UninstallTarget>) {
@@ -354,14 +439,10 @@ class PluginFragment : PaddingPreferenceFragment() {
             .show()
     }
 
-    private fun togglePluginLoading(selected: List<ManageablePlugin>) {
+    private fun blockPlugins(selected: List<ManageablePlugin>) {
         val blockedPackages = AppPrefs.getInstance().advanced.blockedPluginPackages.getValue().toMutableSet()
         selected.forEach {
-            if (it.isBlocked) {
-                blockedPackages.remove(it.descriptor.packageName)
-            } else {
-                blockedPackages.add(it.descriptor.packageName)
-            }
+            blockedPackages.add(it.descriptor.packageName)
         }
         AppPrefs.getInstance().advanced.blockedPluginPackages.setValue(blockedPackages)
         detected = DataManager.detectPlugins()
@@ -373,6 +454,27 @@ class PluginFragment : PaddingPreferenceFragment() {
         }
         requireContext().toast(R.string.restarting_fcitx)
         FcitxDaemon.restartFcitx()
+    }
+
+    private fun reloadPlugins(selected: List<ManageablePlugin>) {
+        val blockedPackages = AppPrefs.getInstance().advanced.blockedPluginPackages.getValue().toMutableSet()
+        val addonNames = selected.map { it.descriptor.name }.distinct().toTypedArray()
+        selected.forEach {
+            blockedPackages.remove(it.descriptor.packageName)
+        }
+        AppPrefs.getInstance().advanced.blockedPluginPackages.setValue(blockedPackages)
+        detected = DataManager.detectPlugins()
+        preferenceScreen = createPreferenceScreen()
+        DataManager.addOnNextSyncedCallback {
+            synced = DataManager.getSyncedPluginSet()
+            detected = DataManager.detectPlugins()
+            preferenceScreen = createPreferenceScreen()
+        }
+        requireContext().toast(R.string.restarting_fcitx)
+        FcitxDaemon.restartFcitx()
+        viewModel.fcitx.launchOnReady { fcitx ->
+            fcitx.setAddonState(addonNames, BooleanArray(addonNames.size) { true })
+        }
     }
 
     private fun uninstallPlugin(name: String, packageName: String) {

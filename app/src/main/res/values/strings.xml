@@ -455,6 +455,9 @@
     <string name="llm_persona_delete_confirm" translatable="false">删除人设“%1$s”？</string>
     <string name="plugins">Plugins</string>
     <string name="manage_plugins">Manage Plugins</string>
+    <string name="manage_plugins_hint">Select one or more plugins, then choose a management action below.</string>
+    <string name="block_plugin">Block Selected</string>
+    <string name="reload_plugin">Reload Selected</string>
     <string name="uninstall_plugin">Uninstall Plugin</string>
     <string name="upgrade_plugin">Upgrade Plugins</string>
     <string name="uninstall_plugin_confirm">Uninstall %1$s?</string>
@@ -472,7 +475,7 @@
     <string name="no_plugin_updates_available">No newer plugin release is available</string>
     <string name="rime_schema_selector_title">Schema Selector</string>
     <string name="plugins_loaded">Loaded</string>
-    <string name="plugins_failed">Load failed</string>
+    <string name="plugins_failed">Pending load</string>
     <string name="missing_plugin_descriptor">Missing plugin descriptor</string>
     <string name="invalid_plugin_descriptor">Invalid plugin descriptor</string>
     <string name="missing_data_descriptor">Missing data descriptor</string>

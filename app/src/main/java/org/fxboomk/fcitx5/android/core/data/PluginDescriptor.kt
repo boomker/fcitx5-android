@@ -5,14 +5,14 @@
 package org.fxboomk.fcitx5.android.core.data
 
 import org.fxboomk.fcitx5.android.BuildConfig
-import org.fxboomk.fcitx5.android.core.data.PluginDescriptor.Companion.pluginPackagePrefix
+import org.fxboomk.fcitx5.android.core.data.PluginDescriptor.Companion.pluginPackagePrefixes
 
 /**
  * Metadata of a plugin, at `res/xml/plugin.xml`
  */
 data class PluginDescriptor(
     /**
-     * Must have [pluginPackagePrefix] prefix and end with `.debug` if it's debug variant
+     * Must have one of [pluginPackagePrefixes] and end with `.debug` if it's debug variant
      */
     val packageName: String,
     /**
@@ -34,14 +34,19 @@ data class PluginDescriptor(
     val versionName: String,
     val nativeLibraryDir: String
 ) {
-    val name = packageName
-        .removePrefix(pluginPackagePrefix)
-        .removeSuffix(pluginPackageSuffix)
-        .replace('_', '-')
+    val name = normalizePackageName(packageName)
 
     companion object {
         const val pluginPackagePrefix = "org.fxboomk.fcitx5.android.plugin."
+        const val officialPluginPackagePrefix = "org.fcitx.fcitx5.android.plugin."
+        val pluginPackagePrefixes = listOf(pluginPackagePrefix, officialPluginPackagePrefix)
         const val pluginPackageSuffix = ".${BuildConfig.BUILD_TYPE}"
         const val pluginAPI = "0.1"
+
+        fun normalizePackageName(packageName: String): String =
+            pluginPackagePrefixes
+                .fold(packageName) { name, prefix -> name.removePrefix(prefix) }
+                .removeSuffix(pluginPackageSuffix)
+                .replace('_', '-')
     }
 }

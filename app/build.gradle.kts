@@ -13,16 +13,17 @@ import java.net.URL
 
 val packageBase = "org.fxboomk.fcitx5.android"
 val appIdBase = "org.fxboomk.fcitx5.android"
+val originalPackageBase = "org.fcitx.fcitx5.android"
 val appIdFxSuffix = ".fx"
 val flavorFx = "fx"
 val flavorMainline = "mainline"
 val appLabelDefault = "@string/app_name"
 val appLabelMainlineRelease = "@string/app_name_mainline_release"
 val appLabelMainlineDebug = "@string/app_name_mainline_debug"
-val originalPluginManifestAction = "$packageBase.plugin.MANIFEST"
-val originalDebugPluginManifestAction = "$packageBase.debug.plugin.MANIFEST"
-val originalIpcAction = "$packageBase.IPC"
-val originalDebugIpcAction = "$packageBase.debug.IPC"
+val originalPluginManifestAction = "$originalPackageBase.plugin.MANIFEST"
+val originalDebugPluginManifestAction = "$originalPackageBase.debug.plugin.MANIFEST"
+val originalIpcAction = "$originalPackageBase.IPC"
+val originalDebugIpcAction = "$originalPackageBase.debug.IPC"
 val imeSettingsActivity = "$packageBase.ui.main.MainActivity"
 val includeMainlineFlavor =
     providers.gradleProperty("includeMainlineFlavor").map(String::toBoolean).orElse(true)
