@@ -716,11 +716,11 @@
     <string name="llm_auto_predict">啟用自動預測</string>
     <string name="llm_auto_predict_summary">候選字詞上屏後自動觸發預測；關閉後僅可透過工具列的 AI 候選按鈕手動觸發。</string>
     <string name="llm_provider">模型服務商</string>
-    <string name="llm_provider_local_ai">本地模型</string>
+    <string name="llm_provider_local_ai">本地</string>
     <string name="llm_provider_custom">自訂</string>
     <string name="llm_sample_count">採樣次數</string>
     <string name="llm_max_output_tokens">最大輸出詞元數</string>
-    <string name="llm_max_output_tokens_summary">%1$d。此參數僅會在向 LLM 發送請求時攜帶，不是最終輸出結果的字元數限制。</string>
+    <string name="llm_max_output_tokens_summary">%1$d。此參數會隨請求發送給 LLM，可理解為本次回答的大致長度：數值越大，通常能產生更長內容，但不是最終顯示字數的硬性上限。</string>
     <string name="llm_max_context_chars">最大上下文字數</string>
     <string name="llm_settings_title">智慧預測</string>
     <string name="llm_advanced">進階</string>

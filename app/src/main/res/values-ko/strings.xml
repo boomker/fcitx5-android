@@ -717,11 +717,11 @@
     <string name="llm_auto_predict">자동 예측 사용</string>
     <string name="llm_auto_predict_summary">후보를 확정한 뒤 자동으로 예측을 시작합니다. 끄면 도구 모음의 AI 후보 버튼으로만 수동 실행할 수 있습니다.</string>
     <string name="llm_provider">모델 제공자</string>
-    <string name="llm_provider_local_ai">로컬 모델</string>
+    <string name="llm_provider_local_ai">로컬</string>
     <string name="llm_provider_custom">사용자 지정</string>
     <string name="llm_sample_count">샘플링 횟수</string>
     <string name="llm_max_output_tokens">최대 출력 토큰 수</string>
-    <string name="llm_max_output_tokens_summary">%1$d. 이 값은 LLM 요청에만 포함되며, 최종 출력 글자 수 제한은 아닙니다.</string>
+    <string name="llm_max_output_tokens_summary">%1$d. 이 값은 LLM 요청과 함께 전송되며, 답변 길이의 대략적인 크기를 정합니다. 클수록 더 길어지기 쉽지만, 최종 표시 글자 수의 상한은 아닙니다.</string>
     <string name="llm_max_context_chars">최대 문맥 글자 수</string>
     <string name="llm_settings_title">스마트 예측</string>
     <string name="llm_advanced">고급</string>

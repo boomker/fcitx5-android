@@ -713,11 +713,11 @@
     <string name="llm_auto_predict">Automatische Vorhersage aktivieren</string>
     <string name="llm_auto_predict_summary">Nach dem Einfügen eines Kandidaten automatisch eine Vorhersage starten. Wenn ausgeschaltet, ist nur ein manueller Start über die KI-Kandidaten-Schaltfläche in der Werkzeugleiste möglich.</string>
     <string name="llm_provider">Modellanbieter</string>
-    <string name="llm_provider_local_ai">Lokales Modell</string>
+    <string name="llm_provider_local_ai">Lokal</string>
     <string name="llm_provider_custom">Benutzerdefiniert</string>
     <string name="llm_sample_count">Anzahl der Stichproben</string>
     <string name="llm_max_output_tokens">Maximale Ausgabetokens</string>
-    <string name="llm_max_output_tokens_summary">%1$d. Dieser Parameter wird nur mit der Anfrage an das LLM gesendet und begrenzt nicht die Zeichenzahl des Endergebnisses.</string>
+    <string name="llm_max_output_tokens_summary">%1$d. Dieser Wert wird mit der Anfrage an das LLM gesendet und legt grob die Antwortlänge fest. Ein größerer Wert führt oft zu längeren Antworten, ist aber keine feste Zeichenobergrenze.</string>
     <string name="llm_max_context_chars">Maximale Kontextzeichen</string>
     <string name="llm_settings_title">Intelligente Vorhersage</string>
     <string name="llm_advanced">Erweitert</string>

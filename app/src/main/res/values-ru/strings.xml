@@ -715,11 +715,11 @@
     <string name="llm_auto_predict">Включить автопредсказание</string>
     <string name="llm_auto_predict_summary">Автоматически запускать предсказание после выбора кандидата. Если выключено, запуск возможен только вручную кнопкой AI-кандидатов на панели.</string>
     <string name="llm_provider">Поставщик модели</string>
-    <string name="llm_provider_local_ai">Локальная модель</string>
+    <string name="llm_provider_local_ai">Локальный</string>
     <string name="llm_provider_custom">Пользовательский</string>
     <string name="llm_sample_count">Количество сэмплов</string>
     <string name="llm_max_output_tokens">Максимум выходных токенов</string>
-    <string name="llm_max_output_tokens_summary">%1$d. Этот параметр передаётся только в запросе к LLM и не ограничивает число символов в итоговом тексте.</string>
+    <string name="llm_max_output_tokens_summary">%1$d. Этот параметр отправляется вместе с запросом к LLM и примерно задаёт длину ответа. Чем больше значение, тем длиннее обычно ответ, но это не жёсткий лимит символов.</string>
     <string name="llm_max_context_chars">Максимум символов контекста</string>
     <string name="llm_settings_title">Умное предсказание</string>
     <string name="llm_advanced">Дополнительно</string>

@@ -717,11 +717,11 @@
     <string name="llm_auto_predict">Activar predicción automática</string>
     <string name="llm_auto_predict_summary">Inicia la predicción automáticamente después de insertar un candidato. Si está desactivado, solo se puede iniciar manualmente desde el botón de candidatos de IA en la barra de herramientas.</string>
     <string name="llm_provider">Proveedor del modelo</string>
-    <string name="llm_provider_local_ai">Modelo local</string>
+    <string name="llm_provider_local_ai">Local</string>
     <string name="llm_provider_custom">Personalizado</string>
     <string name="llm_sample_count">Número de muestreos</string>
     <string name="llm_max_output_tokens">Máximo de tokens de salida</string>
-    <string name="llm_max_output_tokens_summary">%1$d. Este parámetro solo se envía en la solicitud al LLM y no limita la cantidad de caracteres del resultado final.</string>
+    <string name="llm_max_output_tokens_summary">%1$d. Este valor se envía con la solicitud al LLM y marca, a grandes rasgos, lo larga que puede ser la respuesta. Cuanto mayor sea, más larga suele salir, pero no es un límite fijo de caracteres.</string>
     <string name="llm_max_context_chars">Máximo de caracteres de contexto</string>
     <string name="llm_settings_title">Predicción inteligente</string>
     <string name="llm_advanced">Avanzado</string>

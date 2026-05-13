@@ -715,11 +715,11 @@
     <string name="llm_auto_predict">自動予測を有効にする</string>
     <string name="llm_auto_predict_summary">候補を確定した後に自動で予測を開始します。オフにすると、ツールバーの AI 候補ボタンからのみ手動実行できます。</string>
     <string name="llm_provider">モデルプロバイダー</string>
-    <string name="llm_provider_local_ai">ローカルモデル</string>
+    <string name="llm_provider_local_ai">ローカル</string>
     <string name="llm_provider_custom">カスタム</string>
     <string name="llm_sample_count">サンプリング回数</string>
     <string name="llm_max_output_tokens">最大出力トークン数</string>
-    <string name="llm_max_output_tokens_summary">%1$d。この値は LLM へのリクエスト時にのみ送られ、最終出力文字数の上限ではありません。</string>
+    <string name="llm_max_output_tokens_summary">%1$d。この値は LLM へのリクエスト時に送られ、回答のだいたいの長さを決めます。大きいほど長めになりやすいですが、最終表示文字数の上限ではありません。</string>
     <string name="llm_max_context_chars">最大コンテキスト文字数</string>
     <string name="llm_settings_title">スマート予測</string>
     <string name="llm_advanced">詳細設定</string>
