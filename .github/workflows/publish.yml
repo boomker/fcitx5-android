@@ -42,6 +42,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
           GITHUB_ACTOR: fcitx5-android-bot
         run: |
-          ./gradlew :build-logic:convention:publish
-          ./gradlew :lib:common:publish
-          ./gradlew :lib:plugin-base:publish
+          ./gradlew :build-logic:convention:publish :lib:common:publish :lib:plugin-base:publish

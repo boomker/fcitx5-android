@@ -1,4 +1,5 @@
 {
   "scope": "user",
+  "mcpMode": "none",
   "installMode": "legacy"
 }
