@@ -92,9 +92,8 @@ val Project.signKey: File?
             if (signKeyTempFile?.exists() == true) {
                 return signKeyTempFile
             }
-            val buildDir = layout.buildDirectory.asFile.get()
-            buildDir.mkdirs()
-            val file = File.createTempFile("sign-", ".ks", buildDir)
+            val tempDir = rootProject.file(".gradle/signing").apply { mkdirs() }
+            val file = File.createTempFile("sign-", ".ks", tempDir)
             try {
                 file.writeBytes(Base64.decode(it))
                 file.deleteOnExit()
