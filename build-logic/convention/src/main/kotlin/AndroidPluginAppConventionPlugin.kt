@@ -6,6 +6,7 @@ import com.android.build.api.dsl.ApplicationExtension
 import com.android.build.api.variant.ApplicationAndroidComponentsExtension
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.tasks.TaskProvider
 import org.gradle.kotlin.dsl.configure
 
 /**
@@ -60,10 +61,12 @@ class AndroidPluginAppConventionPlugin : Plugin<Project> {
             onVariants { variant ->
                 val variantName = variant.name.capitalized()
                 target.afterEvaluate {
+                    val assembleTaskName = "assemble${variantName}"
+                    val assembleTask = target.tasks.findByName(assembleTaskName) ?: return@afterEvaluate
                     val pluginsTaskName = "assemble${variantName}Plugins"
                     val pluginsTask = target.rootProject.tasks.findByName(pluginsTaskName)
                         ?: target.rootProject.tasks.register(pluginsTaskName).get()
-                    pluginsTask?.dependsOn(target.tasks.getByName("assemble${variantName}"))
+                    pluginsTask.dependsOn(assembleTask)
                 }
             }
         }

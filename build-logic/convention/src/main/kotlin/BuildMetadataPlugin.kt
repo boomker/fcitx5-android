@@ -45,7 +45,6 @@ class BuildMetadataPlugin : Plugin<Project> {
                         // be cleared at some time before package
                         mustRunAfter(packageTask)
                         val fileName = target.path.let {
-                            // ":app" -> "" || ":plugin:anthy" -> ".plugin.anthy"
                             val suffix = if (it == ":app") "" else it.replace(':', '.')
                             "build-metadata${suffix}.json"
                         }
