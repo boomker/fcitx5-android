@@ -107,3 +107,4 @@ lint/tmp/
 .gitnexus
 .omx/
 .claude/
+.local-thirdparty-artifacts/

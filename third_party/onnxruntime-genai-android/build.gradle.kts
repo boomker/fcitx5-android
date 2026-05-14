@@ -14,6 +14,8 @@ version = "0.13.1"
 fun Project.githubPackagesRepositoryUrl(): String {
     val explicit = providers.gradleProperty("githubPackagesRepository").orNull?.trim().orEmpty()
     if (explicit.isNotEmpty()) return explicit
+    val localRepository = rootProject.rootDir.resolve(".local-thirdparty-artifacts")
+    if (localRepository.isDirectory) return localRepository.toURI().toString()
     val repositoryEnv = System.getenv("GITHUB_REPOSITORY")?.trim().orEmpty()
     if (repositoryEnv.isNotEmpty()) return "https://maven.pkg.github.com/$repositoryEnv"
     val owner = providers.gradleProperty("githubPackagesOwner").orNull?.trim().orEmpty().ifBlank { "boomker" }
