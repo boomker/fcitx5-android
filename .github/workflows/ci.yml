@@ -12,6 +12,7 @@ on:
 
 permissions:
   contents: write
+  packages: read
 
 jobs:
   build_commit:
@@ -29,6 +30,8 @@ jobs:
           #- x86_64
     env:
       BUILD_ABI: ${{ matrix.abi }}
+      GITHUB_ACTOR: ${{ github.actor }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Fetch source code
         uses: actions/checkout@v4
