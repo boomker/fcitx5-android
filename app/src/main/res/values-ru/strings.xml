@@ -687,8 +687,6 @@
     <string name="space_swipe_vertical_behavior_candidate_rows">Переключать строки кандидатов</string>
     <string name="manage_plugins">Управление плагинами</string>
     <string name="manage_plugins_hint">Выберите один или несколько плагинов, затем выберите действие управления ниже.</string>
-    <string name="block_plugin">Заблокировать выбранные</string>
-    <string name="reload_plugin">Перезагрузить выбранные</string>
     <string name="uninstall_plugin">Удалить плагин</string>
     <string name="upgrade_plugin">Обновить плагин</string>
     <string name="uninstall_plugin_confirm">Удалить %1$s?</string>

@@ -689,8 +689,6 @@
     <string name="space_swipe_vertical_behavior_candidate_rows">Cambiar filas de candidatos</string>
     <string name="manage_plugins">Administrar complementos</string>
     <string name="manage_plugins_hint">Seleccione uno o más complementos y elija abajo una acción de administración.</string>
-    <string name="block_plugin">Bloquear selección</string>
-    <string name="reload_plugin">Recargar selección</string>
     <string name="uninstall_plugin">Desinstalar complemento</string>
     <string name="upgrade_plugin">Actualizar complemento</string>
     <string name="uninstall_plugin_confirm">¿Desinstalar %1$s?</string>

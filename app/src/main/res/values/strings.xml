@@ -456,8 +456,6 @@
     <string name="plugins">Plugins</string>
     <string name="manage_plugins">Manage Plugins</string>
     <string name="manage_plugins_hint">Select one or more plugins, then choose a management action below.</string>
-    <string name="block_plugin">Block Selected</string>
-    <string name="reload_plugin">Reload Selected</string>
     <string name="uninstall_plugin">Uninstall Plugin</string>
     <string name="upgrade_plugin">Upgrade Plugins</string>
     <string name="uninstall_plugin_confirm">Uninstall %1$s?</string>

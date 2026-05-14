@@ -702,8 +702,6 @@
     <string name="navbar_border">導覽列邊框</string>
     <string name="manage_plugins">管理外掛</string>
     <string name="manage_plugins_hint">選取一或多個外掛，然後直接執行下方管理操作。</string>
-    <string name="block_plugin">阻載所選</string>
-    <string name="reload_plugin">重載所選</string>
     <string name="uninstall_plugin">卸載外掛</string>
     <string name="uninstall_plugin_confirm">確定要卸載 %1$s 嗎？</string>
     <string name="uninstall_selected_plugins">卸載所選</string>

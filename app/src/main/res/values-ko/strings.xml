@@ -689,8 +689,6 @@
     <string name="space_swipe_vertical_behavior_candidate_rows">후보 행 전환</string>
     <string name="manage_plugins">플러그인 관리</string>
     <string name="manage_plugins_hint">하나 이상의 플러그인을 선택한 다음 아래 관리 작업을 선택하세요.</string>
-    <string name="block_plugin">선택 항목 차단</string>
-    <string name="reload_plugin">선택 항목 다시 로드</string>
     <string name="uninstall_plugin">플러그인 제거</string>
     <string name="upgrade_plugin">플러그인 업그레이드</string>
     <string name="uninstall_plugin_confirm">%1$s을(를) 제거하시겠습니까?</string>

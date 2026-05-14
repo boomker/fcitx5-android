@@ -685,8 +685,6 @@
     <string name="space_swipe_vertical_behavior_candidate_rows">Kandidatenzeilen wechseln</string>
     <string name="manage_plugins">Plugins verwalten</string>
     <string name="manage_plugins_hint">Wählen Sie ein oder mehrere Plugins aus und wählen Sie unten eine Verwaltungsaktion.</string>
-    <string name="block_plugin">Auswahl blockieren</string>
-    <string name="reload_plugin">Auswahl neu laden</string>
     <string name="uninstall_plugin">Plugin deinstallieren</string>
     <string name="upgrade_plugin">Plugin aktualisieren</string>
     <string name="uninstall_plugin_confirm">%1$s deinstallieren?</string>

@@ -687,8 +687,6 @@
     <string name="space_swipe_vertical_behavior_candidate_rows">候補行を切り替え</string>
     <string name="manage_plugins">プラグインを管理</string>
     <string name="manage_plugins_hint">1つ以上のプラグインを選択し、下の管理操作を選んでください。</string>
-    <string name="block_plugin">選択項目をブロック</string>
-    <string name="reload_plugin">選択項目を再読み込み</string>
     <string name="uninstall_plugin">プラグインを削除</string>
     <string name="upgrade_plugin">プラグインを更新</string>
     <string name="uninstall_plugin_confirm">%1$s を削除しますか？</string>

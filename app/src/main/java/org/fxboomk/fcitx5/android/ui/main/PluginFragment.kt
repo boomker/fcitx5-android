@@ -26,7 +26,6 @@ import android.widget.ScrollView
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.core.view.setPadding
-import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceScreen
 import kotlinx.coroutines.CancellationException
@@ -41,7 +40,6 @@ import org.fxboomk.fcitx5.android.core.data.PluginDescriptor
 import org.fxboomk.fcitx5.android.core.data.PluginLoadFailed
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.daemon.FcitxDaemon
-import org.fxboomk.fcitx5.android.daemon.launchOnReady
 import org.fxboomk.fcitx5.android.ui.common.PaddingPreferenceFragment
 import org.fxboomk.fcitx5.android.ui.common.withLoadingDialog
 import org.fxboomk.fcitx5.android.utils.LongClickPreference
@@ -69,7 +67,6 @@ class PluginFragment : PaddingPreferenceFragment() {
     private val pendingPluginInstallFiles = ArrayDeque<File>()
     private var continueBatchUninstallOnResume = false
     private var continueBatchPluginInstallOnResume = false
-    private val viewModel: MainViewModel by activityViewModels()
 
     private lateinit var synced: DataManager.PluginSet
     private lateinit var detected: DataManager.PluginSet
@@ -368,20 +365,6 @@ class PluginFragment : PaddingPreferenceFragment() {
                 }
 
                 addActionRow(
-                    createActionButton(R.string.block_plugin) {
-                        val selected = selectedManageablePlugins(manageablePlugins, selections)
-                        if (selected.isEmpty()) return@createActionButton
-                        manageDialog.dismiss()
-                        blockPlugins(selected)
-                    },
-                    createActionButton(R.string.reload_plugin) {
-                        val selected = selectedManageablePlugins(manageablePlugins, selections)
-                        if (selected.isEmpty()) return@createActionButton
-                        manageDialog.dismiss()
-                        reloadPlugins(selected)
-                    }
-                )
-                addActionRow(
                     createActionButton(R.string.uninstall_selected_plugins) {
                         val selected = selectedManageablePlugins(manageablePlugins, selections)
                             .map { it.descriptor }
@@ -437,44 +420,6 @@ class PluginFragment : PaddingPreferenceFragment() {
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
-    }
-
-    private fun blockPlugins(selected: List<ManageablePlugin>) {
-        val blockedPackages = AppPrefs.getInstance().advanced.blockedPluginPackages.getValue().toMutableSet()
-        selected.forEach {
-            blockedPackages.add(it.descriptor.packageName)
-        }
-        AppPrefs.getInstance().advanced.blockedPluginPackages.setValue(blockedPackages)
-        detected = DataManager.detectPlugins()
-        preferenceScreen = createPreferenceScreen()
-        DataManager.addOnNextSyncedCallback {
-            synced = DataManager.getSyncedPluginSet()
-            detected = DataManager.detectPlugins()
-            preferenceScreen = createPreferenceScreen()
-        }
-        requireContext().toast(R.string.restarting_fcitx)
-        FcitxDaemon.restartFcitx()
-    }
-
-    private fun reloadPlugins(selected: List<ManageablePlugin>) {
-        val blockedPackages = AppPrefs.getInstance().advanced.blockedPluginPackages.getValue().toMutableSet()
-        val addonNames = selected.map { it.descriptor.name }.distinct().toTypedArray()
-        selected.forEach {
-            blockedPackages.remove(it.descriptor.packageName)
-        }
-        AppPrefs.getInstance().advanced.blockedPluginPackages.setValue(blockedPackages)
-        detected = DataManager.detectPlugins()
-        preferenceScreen = createPreferenceScreen()
-        DataManager.addOnNextSyncedCallback {
-            synced = DataManager.getSyncedPluginSet()
-            detected = DataManager.detectPlugins()
-            preferenceScreen = createPreferenceScreen()
-        }
-        requireContext().toast(R.string.restarting_fcitx)
-        FcitxDaemon.restartFcitx()
-        viewModel.fcitx.launchOnReady { fcitx ->
-            fcitx.setAddonState(addonNames, BooleanArray(addonNames.size) { true })
-        }
     }
 
     private fun uninstallPlugin(name: String, packageName: String) {

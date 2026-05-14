@@ -305,8 +305,6 @@
     <string name="plugins">插件</string>
     <string name="manage_plugins">管理插件</string>
     <string name="manage_plugins_hint">选择一个或多个插件，然后直接执行下方管理操作。</string>
-    <string name="block_plugin">阻载所选</string>
-    <string name="reload_plugin">重载所选</string>
     <string name="uninstall_plugin">卸载插件</string>
     <string name="upgrade_plugin">升级插件</string>
     <string name="uninstall_plugin_confirm">确定要卸载 %1$s 吗？</string>
