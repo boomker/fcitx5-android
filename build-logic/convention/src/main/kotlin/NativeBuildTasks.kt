@@ -94,12 +94,27 @@ abstract class CMakeBuildInstallTask : DefaultTask() {
         val properties = Properties().apply {
             metadataFile.inputStream().use(this::load)
         }
-        val cmakeExecutable = properties.getProperty("cmakeExecutable")
-            ?: error("cmakeExecutable missing in ${metadataFile.absolutePath}")
         val buildFolder = properties.getProperty("buildFolder")
             ?.let(::File)
             ?: error("buildFolder missing in ${metadataFile.absolutePath}")
+        val cmakeExecutable = properties.getProperty("cmakeExecutable")
+            ?.takeUnless { it.contains("{configuration-time-placeholder:") }
+            ?.takeIf { File(it).isFile }
+            ?: resolveCMakeExecutableFromBuildFolder(buildFolder)
         return cmakeExecutable to buildFolder
+    }
+
+    private fun resolveCMakeExecutableFromBuildFolder(buildFolder: File): String {
+        val cacheFile = buildFolder.resolve("CMakeCache.txt")
+        val cmakeExecutable = cacheFile.takeIf(File::isFile)
+            ?.useLines { lines ->
+                lines.firstNotNullOfOrNull { line ->
+                    line.removePrefix("CMAKE_COMMAND:INTERNAL=")
+                        .takeIf { it != line && File(it).isFile }
+                }
+            }
+        return cmakeExecutable
+            ?: error("Unable to resolve cmakeExecutable from ${cacheFile.absolutePath}")
     }
 
     @TaskAction

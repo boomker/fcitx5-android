@@ -44,6 +44,10 @@ out/
 # Gradle files
 .tmp/
 .gradle/
+/.tmp/
+/.gradle-local/
+/.android-local/
+/.home-local/
 build/
 
 # Local configuration file (sdk path, etc)
