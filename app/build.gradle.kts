@@ -9,8 +9,6 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
-import java.net.URL
-
 val packageBase = "org.fxboomk.fcitx5.android"
 val appIdBase = "org.fxboomk.fcitx5.android"
 val originalPackageBase = "org.fcitx.fcitx5.android"
@@ -29,50 +27,9 @@ val includeMainlineFlavor =
     providers.gradleProperty("includeMainlineFlavor").map(String::toBoolean).orElse(true)
 val includeFxFlavor =
     providers.gradleProperty("includeFxFlavor").map(String::toBoolean).orElse(false)
-val ortGenAiVersion = "0.13.1"
-val ortGenAiAarName = "onnxruntime-genai-android-$ortGenAiVersion.aar"
-val ortGenAiAarUrl =
-    "https://github.com/microsoft/onnxruntime-genai/releases/download/v$ortGenAiVersion/$ortGenAiAarName"
-val ortGenAiAar = layout.buildDirectory.file("external-libs/$ortGenAiAarName")
-val llmFixedAssetsDir = layout.buildDirectory.dir("generated/lan-llm-fixed-assets")
-val downloadOrtGenAiAar by tasks.registering {
-    outputs.file(ortGenAiAar)
-    doLast {
-        val target = ortGenAiAar.get().asFile
-        if (target.exists() && target.length() > 0L) return@doLast
-        target.parentFile.mkdirs()
-        URL(ortGenAiAarUrl).openStream().use { input ->
-            target.outputStream().use { output -> input.copyTo(output) }
-        }
-    }
-}
-val downloadLlmFixedAssets by tasks.registering {
-    outputs.dir(llmFixedAssetsDir)
-    doLast {
-        val baseUrl =
-            "https://huggingface.co/onnx-community/Qwen3-0.6B-ONNX/resolve/main/onnxruntime/cpu_and_mobile/cpu-int4-kld-block-128"
-        val targets = listOf(
-            "tokenizer.json",
-            "tokenizer_config.json",
-            "config.json",
-            "genai_config.json",
-        )
-        val outDir = llmFixedAssetsDir.get().asFile.resolve("local-ai/predict/qwen3-fixed")
-        outDir.mkdirs()
-        targets.forEach { name ->
-            val target = outDir.resolve(name)
-            if (target.exists() && target.length() > 0L) return@forEach
-            URL("$baseUrl/$name").openStream().use { input ->
-                target.outputStream().use { output -> input.copyTo(output) }
-            }
-        }
-    }
-}
 
 android {
     namespace = packageBase
-
-    sourceSets["main"].assets.srcDir(file("$buildDir/generated/lan-llm-fixed-assets"))
 
     defaultConfig {
         applicationId = appIdBase
@@ -147,10 +104,6 @@ android {
 }
 
 afterEvaluate {
-    tasks.matching { it.name == "preBuild" }.configureEach {
-        dependsOn(downloadOrtGenAiAar)
-        dependsOn(downloadLlmFixedAssets)
-    }
     val fxTasks = tasks.names
         .filter { it.contains("FxDebug") || it.contains("FxRelease") }
         .toList()
@@ -271,7 +224,7 @@ dependencies {
     implementation(project(":lib:libime"))
     implementation(project(":lib:fcitx5-chinese-addons"))
     implementation(project(":lib:common"))
-    implementation(files(ortGenAiAar).builtBy(downloadOrtGenAiAar))
+    implementation(libs.onnxruntime.genai.android)
     implementation(libs.kotlinx.coroutines)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.activity)

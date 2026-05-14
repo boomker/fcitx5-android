@@ -43,6 +43,7 @@ androidx-room-paging = { module = "androidx.room:room-paging", version.ref = "ro
 androidx-startup = { module = "androidx.startup:startup-runtime", version = "1.2.0" }
 androidx-viewpager2 = { module = "androidx.viewpager2:viewpager2", version = "1.1.0" }
 onnxruntime-android = { module = "com.microsoft.onnxruntime:onnxruntime-android", version = "1.24.3" }
+onnxruntime-genai-android = { module = "org.fxboomk.fcitx5.android.thirdparty:onnxruntime-genai-android", version = "0.13.1" }
 material = { module = "com.google.android.material:material", version = "1.13.0" }
 arrow-core = { module = "io.arrow-kt:arrow-core", version.ref = "arrow" }
 arrow-functions = { module = "io.arrow-kt:arrow-functions", version.ref = "arrow" }

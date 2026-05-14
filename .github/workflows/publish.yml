@@ -6,7 +6,23 @@ on:
     paths:
       - 'build-logic/**'
       - 'lib/**'
+      - 'third_party/**'
+      - 'gradle.properties'
       - '.github/workflows/publish.yml'
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Publish scope'
+        required: true
+        default: all
+        type: choice
+        options:
+          - third-party
+          - all
+
+permissions:
+  contents: read
+  packages: write
 
 jobs:
   publish:
@@ -39,7 +55,11 @@ jobs:
 
       - name: Publish build convention and libs
         env:
-          GITHUB_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
-          GITHUB_ACTOR: fcitx5-android-bot
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
         run: |
-          ./gradlew :build-logic:convention:publish :lib:common:publish :lib:plugin-base:publish
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.target }}" = "third-party" ]; then
+            ./gradlew :third_party:onnxruntime-genai-android:publish
+          else
+            ./gradlew :build-logic:convention:publish :lib:common:publish :lib:plugin-base:publish :third_party:onnxruntime-genai-android:publish
+          fi
