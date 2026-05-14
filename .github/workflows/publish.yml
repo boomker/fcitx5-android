@@ -60,6 +60,8 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.target }}" = "third-party" ]; then
             ./gradlew :third_party:onnxruntime-genai-android:publish
-          else
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.target }}" = "all" ]; then
             ./gradlew :build-logic:convention:publish :lib:common:publish :lib:plugin-base:publish :third_party:onnxruntime-genai-android:publish
+          else
+            ./gradlew :build-logic:convention:publish :lib:common:publish :lib:plugin-base:publish
           fi

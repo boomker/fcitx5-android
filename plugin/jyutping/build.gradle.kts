@@ -52,15 +52,10 @@ android {
 }
 
 fcitxComponent {
-    modifyFiles = mapOf(
-        "usr/share/fcitx5/addon/jyutping.conf" to {
-            it.writeText(
-                it.readText().replace(
-                    "Library=libjyutping",
-                    "Library=libIMEJyutping;libjyutping"
-                )
-            )
-        }
+    textReplacements = mapOf(
+        "usr/share/fcitx5/addon/jyutping.conf" to mapOf(
+            "Library=libjyutping" to "Library=libIMEJyutping;libjyutping"
+        )
     )
     installPrebuiltAssets = true
 }

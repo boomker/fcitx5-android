@@ -57,13 +57,14 @@ class FcitxHeadersPlugin : Plugin<Project> {
     }
 
     private fun registerInstallTask(project: Project, name: String, component: String, dest: File) {
-        val abiModel = project.getCxxAbiModelProperty()
         val task = project.tasks.register<CMakeBuildInstallTask>(name) {
-            cxxAbiModel.set(abiModel)
             installComponent.set(component)
             destDir.set(dest)
+            nativeBuildMetadataDir.set(project.layout.buildDirectory.dir("intermediates/native-build-metadata").map { it.asFile })
+            sourceProjectPath.set(project.path)
             mustRunAfter(project.tasks.withType<ExternalNativeBuildJsonTask>())
         }
+        project.enableNativeBuildMetadataCapture()
         // Make sure headers have been installed before configuring prefab package
         project.tasks.withType<PrefabPackageConfigurationTask>().all {
             dependsOn(task)

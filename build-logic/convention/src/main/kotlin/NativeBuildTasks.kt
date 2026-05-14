@@ -2,8 +2,6 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
  * SPDX-FileCopyrightText: Copyright 2024-2025 Fcitx5 for Android Contributors
  */
-import com.android.build.gradle.internal.cxx.configure.rewriteWithLocations
-import com.android.build.gradle.internal.cxx.logging.PassThroughRecordingLoggingEnvironment
 import com.android.build.gradle.internal.cxx.model.CxxAbiModel
 import com.android.build.gradle.tasks.ExternalNativeBuildJsonTask
 import com.android.build.gradle.tasks.ExternalNativeBuildTask
@@ -11,15 +9,16 @@ import org.gradle.api.Action
 import org.gradle.api.DefaultTask
 import org.gradle.api.Project
 import org.gradle.api.Task
+import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.TaskAction
-import org.gradle.kotlin.dsl.property
 import org.gradle.kotlin.dsl.withType
 import org.gradle.process.ExecOperations
 import org.gradle.process.ExecSpec
 import java.io.File
+import java.util.Properties
 import javax.inject.Inject
 
 fun ExternalNativeBuildJsonTask.abiModel(): CxxAbiModel {
@@ -28,25 +27,30 @@ fun ExternalNativeBuildJsonTask.abiModel(): CxxAbiModel {
     return abi.get(this) as CxxAbiModel
 }
 
-/**
- * This function contains `configureEach` call, to avoid "task warming-up failure",
- * **DO NOT** call this during other tasks' configuration
- */
-fun Project.getCxxAbiModelProperty(): Property<CxxAbiModel> {
-    val abiModel: Property<CxxAbiModel> = project.objects.property()
+fun ExternalNativeBuildJsonTask.abiModelOrNull(): CxxAbiModel? {
+    val abi = ExternalNativeBuildJsonTask::class.java.declaredFields.find { it.name == "abi" } ?: return null
+    abi.isAccessible = true
+    return abi.get(this) as? CxxAbiModel
+}
+
+fun Project.enableNativeBuildMetadataCapture() {
+    val metadataDir = layout.buildDirectory.dir("intermediates/native-build-metadata")
     tasks.withType<ExternalNativeBuildJsonTask>().configureEach {
         doFirst {
-            // `CxxAbiModel.rewriteWithLocations` requires a "Non-default logger"
-            // https://cs.android.com/android-studio/platform/tools/base/+/mirror-goog-studio-main:build-system/gradle-core/src/main/java/com/android/build/gradle/internal/cxx/configure/NativeLocationsBuildService.kt;drc=b5516899015633c99dc64b510d9729c4e001e89c;l=67
-            // just supply a random LoggingEnvironment or whatever this is
-            PassThroughRecordingLoggingEnvironment().use {
-                abiModel.set(
-                    abiModel().rewriteWithLocations(nativeLocationsBuildService.get())
-                )
+            val abi = abiModelOrNull() ?: return@doFirst
+            val cmakeExecutable = abi.variant.module.cmake?.cmakeExe?.absolutePath ?: return@doFirst
+            val buildFolder = abi.cxxBuildFolder.absolutePath
+            val outputDir = metadataDir.get().asFile.also(File::mkdirs)
+            val metadataFile = outputDir.resolve("${name}.properties")
+            val properties = Properties().apply {
+                setProperty("cmakeExecutable", cmakeExecutable)
+                setProperty("buildFolder", buildFolder)
+            }
+            metadataFile.outputStream().use { output ->
+                properties.store(output, null)
             }
         }
     }
-    return abiModel
 }
 
 abstract class CMakeBuildInstallTask : DefaultTask() {
@@ -55,7 +59,11 @@ abstract class CMakeBuildInstallTask : DefaultTask() {
 
     @get:Input
     @get:Optional
-    abstract val cxxAbiModel: Property<CxxAbiModel>
+    abstract val nativeBuildMetadataDir: Property<File>
+
+    @get:Input
+    @get:Optional
+    abstract val sourceProjectPath: Property<String>
 
     @get:Input
     @get:Optional
@@ -68,22 +76,43 @@ abstract class CMakeBuildInstallTask : DefaultTask() {
     @get:Input
     abstract val destDir: Property<File>
 
+    @get:Input
+    @get:Optional
+    abstract val textReplacements: MapProperty<String, Map<String, String>>
+
     private fun exec(action: Action<ExecSpec>) {
         execOperations.exec(action).rethrowFailure().assertNormalExitValue()
     }
 
+    private fun resolveNativeBuildMetadata(): Pair<String, File> {
+        val metadataDir = nativeBuildMetadataDir.orNull
+            ?: error("nativeBuildMetadataDir was not configured for ${path}")
+        val metadataFile = metadataDir.listFiles()
+            ?.filter { it.isFile && it.extension == "properties" }
+            ?.maxByOrNull(File::lastModified)
+            ?: error("No native build metadata found for ${path} (source project: ${sourceProjectPath.orNull ?: "unknown"})")
+        val properties = Properties().apply {
+            metadataFile.inputStream().use(this::load)
+        }
+        val cmakeExecutable = properties.getProperty("cmakeExecutable")
+            ?: error("cmakeExecutable missing in ${metadataFile.absolutePath}")
+        val buildFolder = properties.getProperty("buildFolder")
+            ?.let(::File)
+            ?: error("buildFolder missing in ${metadataFile.absolutePath}")
+        return cmakeExecutable to buildFolder
+    }
+
     @TaskAction
     fun execute() {
-        val cxxAbiModel = this.cxxAbiModel.get()
+        val (cmakeExecutable, buildFolder) = resolveNativeBuildMetadata()
         val buildTarget = this.buildTarget.getOrElse("")
         val installComponent = this.installComponent.getOrElse("")
         val destDir = this.destDir.get()
-        val cmake = cxxAbiModel.variant.module.cmake!!.cmakeExe!!
         if (buildTarget.isNotEmpty()) {
             exec {
                 commandLine(
-                    cmake,
-                    "--build", cxxAbiModel.cxxBuildFolder,
+                    cmakeExecutable,
+                    "--build", buildFolder,
                     "--target", buildTarget
                 )
             }
@@ -92,11 +121,20 @@ abstract class CMakeBuildInstallTask : DefaultTask() {
             exec {
                 environment("DESTDIR", destDir.absolutePath)
                 commandLine(
-                    cmake,
-                    "--install", cxxAbiModel.cxxBuildFolder,
+                    cmakeExecutable,
+                    "--install", buildFolder,
                     "--component", installComponent
                 )
             }
+        }
+        textReplacements.orNull.orEmpty().forEach { (relativePath, replacements) ->
+            val file = destDir.resolve(relativePath)
+            if (!file.exists()) return@forEach
+            var content = file.readText()
+            replacements.forEach { (oldValue, newValue) ->
+                content = content.replace(oldValue, newValue)
+            }
+            file.writeText(content)
         }
     }
 }

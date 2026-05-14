@@ -7,9 +7,11 @@ import com.android.build.api.variant.ApplicationAndroidComponentsExtension
 import com.android.build.gradle.internal.tasks.CompileArtProfileTask
 import com.android.build.gradle.internal.tasks.ExpandArtProfileWildcardsTask
 import com.android.build.gradle.internal.tasks.MergeArtProfileTask
+import com.android.build.gradle.tasks.PackageAndroidArtifact
 import com.android.build.gradle.tasks.PackageApplication
 import com.mikepenz.aboutlibraries.plugin.AboutLibrariesExtension
 import org.gradle.api.Project
+import org.gradle.api.Task
 import org.gradle.api.file.RegularFile
 import org.gradle.api.internal.provider.AbstractProperty
 import org.gradle.api.internal.provider.Providers
@@ -27,6 +29,11 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
  */
 @Suppress("unused")
 class AndroidAppConventionPlugin : AndroidBaseConventionPlugin() {
+
+    private fun disableArtProfileTask(task: Task) {
+        task.enabled = false
+        task.onlyIf { false }
+    }
 
     override fun apply(target: Project) {
         target.pluginManager.apply(target.libs.plugins.android.application.get().pluginId)
@@ -108,9 +115,16 @@ class AndroidAppConventionPlugin : AndroidBaseConventionPlugin() {
         }
 
         // remove assets/dexopt/baseline.prof{,m} (baseline profile)
-        target.tasks.withType<MergeArtProfileTask> { enabled = false }
-        target.tasks.withType<ExpandArtProfileWildcardsTask> { enabled = false }
-        target.tasks.withType<CompileArtProfileTask> { enabled = false }
+        target.tasks.withType<MergeArtProfileTask>().configureEach { disableArtProfileTask(this) }
+        target.tasks.withType<ExpandArtProfileWildcardsTask>().configureEach { disableArtProfileTask(this) }
+        target.tasks.withType<CompileArtProfileTask>().configureEach { disableArtProfileTask(this) }
+        target.tasks.withType<PackageAndroidArtifact>().configureEach {
+            dependsOn.removeAll { dependency ->
+                dependency is MergeArtProfileTask ||
+                    dependency is ExpandArtProfileWildcardsTask ||
+                    dependency is CompileArtProfileTask
+            }
+        }
 
         target.extensions.configure<ApplicationAndroidComponentsExtension> {
             // Add dependency relationships for data descriptor task

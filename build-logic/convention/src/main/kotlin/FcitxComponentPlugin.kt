@@ -7,6 +7,7 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.logging.LogLevel
 import org.gradle.api.tasks.Delete
+import org.gradle.api.tasks.TaskProvider
 import org.gradle.kotlin.dsl.create
 import org.gradle.kotlin.dsl.getByName
 import org.gradle.kotlin.dsl.register
@@ -19,7 +20,7 @@ class FcitxComponentPlugin : Plugin<Project> {
     abstract class FcitxComponentExtension {
         var includeLibs: List<String> = emptyList()
         var excludeFiles: List<String> = emptyList()
-        var modifyFiles: Map<String, (File) -> Unit> = emptyMap()
+        var textReplacements: Map<String, Map<String, String>> = emptyMap()
         var installPrebuiltAssets: Boolean = false
     }
 
@@ -35,16 +36,19 @@ class FcitxComponentPlugin : Plugin<Project> {
     override fun apply(target: Project) {
         val installTask = target.tasks.register(INSTALL_TASK)
         val deleteTask = target.tasks.register(DELETE_TASK)
-        registerCMakeTask(target, "generate-desktop-file", "config")
-        registerCMakeTask(target, "translation-file", "translation")
+        val projectConfigTask = registerCMakeTask(target, "generate-desktop-file", "config")
+        val projectTranslationTask = registerCMakeTask(target, "translation-file", "translation")
         registerCleanTask(target)
         target.extensions.create<FcitxComponentExtension>(EXTENSION)
         target.afterEvaluate {
             val ext = extensions.getByName<FcitxComponentExtension>(EXTENSION)
+            val replacements = ext.textReplacements.mapValues { it.value.toMap() }
+            projectConfigTask.configure { textReplacements.set(replacements) }
+            projectTranslationTask.configure { textReplacements.set(replacements) }
             ext.includeLibs.forEach {
                 val project = rootProject.project(":lib:$it")
-                registerCMakeTask(target, "generate-desktop-file", "config", project)
-                registerCMakeTask(target, "translation-file", "translation", project)
+                registerCMakeTask(target, "generate-desktop-file", "config", project, replacements)
+                registerCMakeTask(target, "translation-file", "translation", project, replacements)
             }
             if (ext.excludeFiles.isNotEmpty()) {
                 val assetsDir = target.assetsDir
@@ -59,7 +63,7 @@ class FcitxComponentPlugin : Plugin<Project> {
                 }
             }
             if (ext.installPrebuiltAssets) {
-                registerCMakeTask(target, "", "prebuilt-assets")
+                registerCMakeTask(target, "", "prebuilt-assets", textReplacements = replacements)
             }
         }
     }
@@ -71,32 +75,27 @@ class FcitxComponentPlugin : Plugin<Project> {
         project: Project,
         target: String,
         component: String,
-        sourceProject: Project = project
-    ) {
+        sourceProject: Project = project,
+        textReplacements: Map<String, Map<String, String>> = emptyMap()
+    ): TaskProvider<CMakeBuildInstallTask> {
         val componentName = component.split('-').joinToString("") { it.capitalized() }
         val taskName = if (project === sourceProject) {
             "installProject$componentName"
         } else {
             "installLibrary$componentName[${sourceProject.name}]"
         }
-        val abiModel = sourceProject.getCxxAbiModelProperty()
         val task = project.tasks.register<CMakeBuildInstallTask>(taskName) {
-            cxxAbiModel.set(abiModel)
             buildTarget.set(target)
             installComponent.set(component)
             destDir.set(project.assetsDir)
+            nativeBuildMetadataDir.set(sourceProject.layout.buildDirectory.dir("intermediates/native-build-metadata").map { it.asFile })
+            sourceProjectPath.set(sourceProject.path)
+            this.textReplacements.set(textReplacements)
             mustRunAfter(sourceProject.tasks.withType<ExternalNativeBuildJsonTask>())
-            doLast {
-                val ext = project.extensions.getByName<FcitxComponentExtension>(EXTENSION)
-                ext.modifyFiles.forEach { (path, function) ->
-                    val file = project.assetsDir.resolve(path)
-                    if (file.exists()) {
-                        function.invoke(file)
-                    }
-                }
-            }
         }
+        sourceProject.enableNativeBuildMetadataCapture()
         project.tasks.getByName(INSTALL_TASK).dependsOn(task)
+        return task
     }
 
     private fun registerCleanTask(project: Project) {
