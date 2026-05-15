@@ -355,6 +355,13 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
 
     inner class Candidates :
         ManagedPreferenceCategory(R.string.candidates_window, sharedPreferences) {
+        val physicalKeyboardHorizontalCandidateBar = switch(
+            R.string.physical_keyboard_horizontal_candidate_bar,
+            "physical_keyboard_horizontal_candidate_bar",
+            false,
+            R.string.physical_keyboard_horizontal_candidate_bar_summary
+        )
+
         val mode = enumList(
             R.string.show_candidates_window,
             "show_candidates_window",

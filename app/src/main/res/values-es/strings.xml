@@ -157,6 +157,7 @@
     <string name="popup_editor_add_candidate">Añadir candidato</string>
     <string name="popup_editor_add_candidate_button">Añadir</string>
     <string name="popup_editor_candidate_input_hint">Ingrese valor del candidato</string>
+    <string name="edit_text_playground">Área de pruebas de EditText</string>
     <string name="edit_text_keyboard_layout">Editar distribución del teclado de texto</string>
     <string name="text_keyboard_layout_preview">Vista previa</string>
     <string name="ok">Aceptar</string>
@@ -547,6 +548,8 @@
     <string name="keyboard_bottom_padding">Relleno inferior del teclado</string>
     <string name="keyboard_long_press_delay">Retardo de pulsacion larga</string>
     <string name="keyboard_side_padding">Relleno lateral del teclado</string>
+    <string name="physical_keyboard_horizontal_candidate_bar">Usar barra horizontal con teclado fisico</string>
+    <string name="physical_keyboard_horizontal_candidate_bar_summary">Mostrar la barra Kawaii y los candidatos horizontales abajo al escribir con un teclado fisico</string>
     <string name="lang_switch_behavior_next_ime_app">Cambiar a la siguiente app de metodo de entrada</string>
     <string name="lang_switch_key_behavior">Comportamiento de tecla de cambio de idioma</string>
     <string name="manage_table_im">Administrar metodos de entrada de tabla</string>
@@ -591,6 +594,7 @@
     <string name="select_ime_hint">Seleccione &lt;b>%1$s&lt;/b> como metodo de entrada predeterminado</string>
     <string name="setup_channel">Asistente de configuracion</string>
     <string name="setup_keyboard">Finalice la configuracion del teclado</string>
+    <string name="copy">Copiar</string>
     <string name="share">Compartir</string>
     <string name="show_candidates_window">Mostrar ventana de candidatos</string>
     <string name="show_lang_switch_key">Mostrar tecla de cambio de idioma</string>

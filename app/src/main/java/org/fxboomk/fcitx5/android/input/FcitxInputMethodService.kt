@@ -182,6 +182,11 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         }
     )
 
+    internal fun restoreVirtualKeyboardForKawaiiBarAction() {
+        if (!inputDeviceManager.isPhysicalCandidateBarMode) return
+        inputDeviceManager.forceVirtualKeyboardForKawaiiBarAction()
+    }
+
     /**
      * Listener for floating candidates mode changes
      * Reset state when switching away from "Always" mode
@@ -1135,7 +1140,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
 
     override fun onComputeInsets(outInsets: Insets) {
         val inputView = this.inputView
-        if (inputView?.isFloating == true) {
+        if (inputView?.isFloating == true && !inputView.isPhysicalCandidateBarMode) {
             // Floating mode: allow app to be full screen (insets.contentTopInsets = screen height)
             // But we need to handle touches.
              outInsets.contentTopInsets = inputView.height
@@ -1144,6 +1149,25 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
              outInsets.touchableInsets = Insets.TOUCHABLE_INSETS_REGION
              inputView.getFloatingKeyboardRegion(outInsets.touchableRegion)
              return
+        }
+
+        if (inputView?.isPhysicalCandidateBarMode == true) {
+            val location = IntArray(2)
+            inputView.keyboardView.getLocationInWindow(location)
+            val top = location[1]
+
+            outInsets.touchableInsets = Insets.TOUCHABLE_INSETS_REGION
+            inputView.getDockedKeyboardRegion(outInsets.touchableRegion)
+
+            if (top > 0) {
+                outInsets.contentTopInsets = top
+                outInsets.visibleTopInsets = top
+            } else {
+                val h = decorView.height
+                outInsets.contentTopInsets = h
+                outInsets.visibleTopInsets = h
+            }
+            return
         }
 
         if (inputDeviceManager.isVirtualKeyboard) {
@@ -1400,7 +1424,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         }
         onHardwareTypingModeEnter(event)
         // request to show floating CandidatesView when pressing physical keyboard
-        if (inputDeviceManager.evaluateOnKeyDown(event, this)) {
+        if (inputDeviceManager.evaluateOnKeyDown(event)) {
             postFcitxJob {
                 focus(true)
             }
@@ -1547,7 +1571,9 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
                 // Keep paged candidate mode enabled so candidate cursor/highlight is available.
                 applyCandidatePagingModeIfNeeded(1)
             }
-            if (inputDeviceManager.evaluateOnStartInputView(info, this)) {
+            if (inputDeviceManager.evaluateOnStartInputView(info, this) ||
+                inputDeviceManager.isPhysicalCandidateBarMode
+            ) {
                 inputView?.startInput(info, capabilityFlags, restarting)
             }
             if (!refreshCursorAnchorMonitoring()) {

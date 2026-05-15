@@ -177,6 +177,8 @@
     <string name="landscape">横向畫面</string>
     <string name="keyboard_bottom_padding">鍵盤底部邊距</string>
     <string name="keyboard_side_padding">鍵盤兩側邊距</string>
+    <string name="physical_keyboard_horizontal_candidate_bar">實體鍵盤使用水平候選欄</string>
+    <string name="physical_keyboard_horizontal_candidate_bar_summary">使用實體鍵盤輸入時，在底部顯示 Kawaii 欄和水平候選欄</string>
     <string name="clipboard_suggestion">顯示剪貼簿建議</string>
     <string name="disable_addon_warn_title">停用附加元件</string>
     <string name="disable_addon_warn_name">停用%1$s且同時：</string>
@@ -408,6 +410,7 @@
     <string name="emoji_skin_tone_type_5">🏾 中等深膚色 (Type-5)</string>
     <string name="emoji_skin_tone_type_6">🏿 深膚色 (Type-6)</string>
     <string name="hide_unsupported_emojis">隱藏不支援的表情</string>
+    <string name="edit_text_playground">EditText 試驗場</string>
     <string name="edit_text_keyboard_layout">編輯文字鍵盤佈局</string>
     <string name="text_keyboard_layout_preview">預覽</string>
     <string name="ok">確定</string>

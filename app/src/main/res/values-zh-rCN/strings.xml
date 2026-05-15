@@ -197,6 +197,8 @@
     <string name="landscape">横屏</string>
     <string name="keyboard_bottom_padding">键盘底部边距</string>
     <string name="keyboard_side_padding">键盘两侧边距</string>
+    <string name="physical_keyboard_horizontal_candidate_bar">物理键盘使用水平候选栏</string>
+    <string name="physical_keyboard_horizontal_candidate_bar_summary">使用物理键盘输入时，在底部显示 Kawaii 栏和水平候选栏</string>
     <string name="clipboard_suggestion">显示剪贴板提示</string>
 
     <!-- Split keyboard settings (refactored) -->
@@ -468,6 +470,7 @@
     <string name="open_input_method_settings">打开输入法设置</string>
     <string name="delete_all">全部删除</string>
     <string name="delete_entries_and_files">确定，同时删除文件</string>
+    <string name="copy">复制</string>
     <string name="share">分享</string>
     <string name="view_image">查看</string>
     <string name="open_link">打开</string>
@@ -497,6 +500,7 @@
     <string name="key_border_stroke">启用按键边框描边</string>
 
     <!-- Text Keyboard Layout Editor -->
+    <string name="edit_text_playground">EditText 试验场</string>
     <string name="edit_text_keyboard_layout">编辑文本键盘布局</string>
     <string name="edit_text_keyboard_layout_summary">编辑文本键盘布局（TextKeyboardLayout.json）</string>
     <string name="edit_text_keyboard_layout_summary_with_file">编辑文本键盘布局（%1$s）</string>

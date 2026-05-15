@@ -127,6 +127,7 @@
     <string name="popup_editor_add_candidate">후보 추가</string>
     <string name="popup_editor_add_candidate_button">추가</string>
     <string name="popup_editor_candidate_input_hint">후보 값 입력</string>
+    <string name="edit_text_playground">EditText 테스트 공간</string>
     <string name="edit_text_keyboard_layout">텍스트 키보드 레이아웃 편집</string>
     <string name="text_keyboard_layout_preview">미리보기</string>
     <string name="ok">확인</string>
@@ -527,6 +528,8 @@
     <string name="key_vertical_margin">키 세로 여백</string>
     <string name="keyboard_bottom_padding">키보드 하단 여백</string>
     <string name="keyboard_side_padding">키보드 좌우 여백</string>
+    <string name="physical_keyboard_horizontal_candidate_bar">물리 키보드에서 가로 후보 바 사용</string>
+    <string name="physical_keyboard_horizontal_candidate_bar_summary">물리 키보드로 입력할 때 Kawaii 바와 가로 후보 바를 하단에 표시</string>
     <string name="landscape">가로</string>
     <string name="lang_switch_behavior_next_ime_app">다음 입력기 앱으로 전환</string>
     <string name="lang_switch_key_behavior">언어 전환 키 동작</string>
@@ -577,6 +580,7 @@
     <string name="restarting_fcitx">Fcitx 재시작 중</string>
     <string name="rotate">회전</string>
     <string name="saving">저장 중</string>
+    <string name="copy">복사</string>
     <string name="share">공유</string>
     <string name="show_candidates_window">후보 창 표시</string>
     <string name="show_lang_switch_key">언어 전환 키 표시</string>

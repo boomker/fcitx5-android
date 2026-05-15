@@ -83,6 +83,7 @@ data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjust
     private var indicatorIndex: Int = -1
     private var lastKnownOrientation = Configuration.ORIENTATION_UNDEFINED
     private var lastTopScrollerWidth = -1
+    private var topBarAtBottom = false
     private val feedbackInterpolator = DecelerateInterpolator(1.6f)
     private val topScrollerLayoutListener =
         View.OnLayoutChangeListener { _, _, _, right, _, _, _, oldRight, _ ->
@@ -718,6 +719,25 @@ data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjust
         }
     }
 
+    private fun applyContentLayout() {
+        contentContainer.removeAllViews()
+        if (topBarAtBottom) {
+            contentContainer.addView(
+                centerScroll,
+                LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f)
+            )
+            contentContainer.addView(divider)
+            contentContainer.addView(topRow)
+        } else {
+            contentContainer.addView(topRow)
+            contentContainer.addView(divider)
+            contentContainer.addView(
+                centerScroll,
+                LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f)
+            )
+        }
+    }
+
     private val root by lazy {
         context.frameLayout {
             background = resolvedBackgroundDrawable(currentTheme)
@@ -808,7 +828,9 @@ data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjust
         moreButton.setPressHighlightColor(theme.keyPressHighlightColor)
     }
 
-    fun updateOverlayInsets(sidePadding: Int, bottomPadding: Int) {
+    fun updateOverlayInsets(sidePadding: Int, bottomPadding: Int, topBarAtBottom: Boolean) {
+        this.topBarAtBottom = topBarAtBottom
+        applyContentLayout()
         root.setPadding(sidePadding, 0, sidePadding, bottomPadding)
     }
 

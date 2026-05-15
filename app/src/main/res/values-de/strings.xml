@@ -205,6 +205,7 @@
     <string name="popup_editor_add_candidate">Kandidat hinzufügen</string>
     <string name="popup_editor_add_candidate_button">Hinzufügen</string>
     <string name="popup_editor_candidate_input_hint">Kandidatenwert eingeben</string>
+    <string name="edit_text_playground">EditText-Spielplatz</string>
     <string name="edit_text_keyboard_layout">Texttastatur-Layout bearbeiten</string>
     <string name="text_keyboard_layout_preview">Vorschau</string>
     <string name="ok">OK</string>
@@ -558,6 +559,8 @@
     <string name="key_ripple_effect">Wasserwelleneffekt für Tasten aktivieren</string>
     <string name="keyboard_bottom_padding">Unterer Tastaturabstand</string>
     <string name="keyboard_side_padding">Seitlicher Tastaturabstand</string>
+    <string name="physical_keyboard_horizontal_candidate_bar">Horizontale Kandidatenleiste bei Hardwaretastatur verwenden</string>
+    <string name="physical_keyboard_horizontal_candidate_bar_summary">Kawaii-Leiste und horizontale Kandidaten beim Tippen mit Hardwaretastatur unten anzeigen</string>
     <string name="lang_switch_behavior_next_ime_app">Zur nächsten Eingabemethoden-App wechseln</string>
     <string name="lang_switch_key_behavior">Verhalten der Sprachumschalttaste</string>
     <string name="macro_editor_key_event_unmatched">Tastenereignisse stimmen nicht überein: %1$s hat ungleiche Anzahl von Drücken und Loslassen</string>
@@ -595,6 +598,7 @@
     <string name="restart_notify_msg">App wurde neu gestartet, hier tippen zum Öffnen</string>
     <string name="restarting_fcitx">Fcitx wird neu gestartet</string>
     <string name="rotate">Drehen</string>
+    <string name="copy">Kopieren</string>
     <string name="share">Teilen</string>
     <string name="show_candidates_window">Kandidatenfenster anzeigen</string>
     <string name="space_behavior_enumerate">Eingabemethoden zyklisch wechseln</string>

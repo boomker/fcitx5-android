@@ -37,6 +37,8 @@ class InputWindowManager : UniqueViewComponent<InputWindowManager, FrameLayout>(
     private var currentWindow: InputWindow? = null
     private var currentView: View? = null
 
+    var onWindowChanged: ((InputWindow) -> Unit)? = null
+
     private val disableAnimation by AppPrefs.getInstance().advanced.disableAnimation
 
     private fun prepareAnimation(
@@ -154,6 +156,7 @@ class InputWindowManager : UniqueViewComponent<InputWindowManager, FrameLayout>(
         // notify the window it was attached
         window.onAttached()
         currentWindow = window
+        onWindowChanged?.invoke(window)
         // broadcast the new window was added to layout
         broadcaster.onWindowAttached(window)
     }

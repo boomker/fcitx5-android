@@ -21,18 +21,28 @@ class InputDeviceManager(
     private var inputView: InputView? = null
     private var candidatesView: CandidatesView? = null
 
+    private fun usePhysicalKeyboardHorizontalCandidateBar(isVirtual: Boolean): Boolean {
+        if (isVirtual) return false
+        return AppPrefs.getInstance().candidates.physicalKeyboardHorizontalCandidateBar.getValue()
+    }
+
+    val isPhysicalCandidateBarMode: Boolean
+        get() = usePhysicalKeyboardHorizontalCandidateBar(isVirtualKeyboard)
+
     private fun setupInputViewEvents(isVirtual: Boolean) {
         val iv = inputView ?: return
         val floatingMode = floatingModeProvider()
         val useFloatingAlways = floatingMode == FloatingCandidatesMode.Always
+        val useHorizontalCandidateBar = usePhysicalKeyboardHorizontalCandidateBar(isVirtual)
 
         // InputView should always handle Fcitx events to broadcast to components like HorizontalCandidateComponent
         // For "Always" floating mode, CandidatesView also handles events for floating candidate window
-        iv.handleEvents = isVirtual
-        iv.visibility = if (isVirtual) View.VISIBLE else View.GONE
+        iv.setPhysicalCandidateBarMode(useHorizontalCandidateBar)
+        iv.handleEvents = isVirtual || useHorizontalCandidateBar
+        iv.visibility = if (isVirtual || useHorizontalCandidateBar) View.VISIBLE else View.GONE
 
-        // Hide preedit in InputView when using floating candidates (preedit will be in CandidatesView)
-        // For "Always" mode, hide preedit when using virtual keyboard
+        // Hide preedit in InputView only when CandidatesView is responsible for floating preedit.
+        // Physical-keyboard horizontal candidate bar still uses InputView preedit.
         iv.setPreeditVisibility(!(useFloatingAlways && isVirtual))
 
         // In "Always" mode, manually update space label when InputView doesn't handle events
@@ -45,6 +55,11 @@ class InputDeviceManager(
         val cv = candidatesView ?: return
         val floatingMode = floatingModeProvider()
         val useFloatingAlways = floatingMode == FloatingCandidatesMode.Always
+        if (usePhysicalKeyboardHorizontalCandidateBar(isVirtual)) {
+            cv.handleEvents = false
+            cv.visibility = View.GONE
+            return
+        }
 
         // When using "Always" floating mode, CandidatesView should handle events for both virtual and physical keyboard
         cv.handleEvents = !isVirtual || useFloatingAlways
@@ -96,6 +111,15 @@ class InputDeviceManager(
         setupCandidatesViewEvents(isVirtualKeyboard)
     }
 
+    fun onPhysicalKeyboardHorizontalCandidateBarChanged() {
+        setupViewEvents(isVirtualKeyboard)
+    }
+
+    fun forceVirtualKeyboardForKawaiiBarAction() {
+        if (!startedInputView) return
+        isVirtualKeyboard = true
+    }
+
     fun setInputView(inputView: InputView) {
         this.inputView = inputView
         setupInputViewEvents(this.isVirtualKeyboard)
@@ -121,11 +145,16 @@ class InputDeviceManager(
     fun evaluateOnStartInputView(info: EditorInfo, service: FcitxInputMethodService): Boolean {
         startedInputView = true
         isNullInputType = info.isTypeNull()
+        val preferHorizontalCandidateBar =
+            AppPrefs.getInstance().candidates.physicalKeyboardHorizontalCandidateBar.getValue()
         isVirtualKeyboard = when (candidatesViewMode) {
             FloatingCandidatesMode.SystemDefault -> service.superEvaluateInputViewShown()
-            FloatingCandidatesMode.Always -> true
-            FloatingCandidatesMode.InputDevice -> isVirtualKeyboard
-            FloatingCandidatesMode.Disabled -> true
+            FloatingCandidatesMode.Always ->
+                if (preferHorizontalCandidateBar) service.superEvaluateInputViewShown() else true
+            FloatingCandidatesMode.InputDevice ->
+                if (preferHorizontalCandidateBar) service.superEvaluateInputViewShown() else isVirtualKeyboard
+            FloatingCandidatesMode.Disabled ->
+                if (preferHorizontalCandidateBar) service.superEvaluateInputViewShown() else true
         }
 
         // Force update paging mode and keyboard bounds for "Always" mode
@@ -139,12 +168,12 @@ class InputDeviceManager(
     /**
      * @return should force show input views on hardware key down
      */
-    fun evaluateOnKeyDown(e: KeyEvent, service: FcitxInputMethodService): Boolean {
+    fun evaluateOnKeyDown(e: KeyEvent): Boolean {
         if (startedInputView) {
             // filter out back/home/volume buttons and combination keys
             if (e.unicodeChar != 0) {
                 // evaluate virtual keyboard visibility when pressing physical keyboard while InputView visible
-                evaluateOnKeyDownInner(service)
+                evaluateOnKeyDownInner()
             }
             // no need to force show InputView since it's already visible
             return false
@@ -153,18 +182,20 @@ class InputDeviceManager(
             // and pressing any digit/letter/punctuation key on physical keyboard
             val showInputView = !isNullInputType && e.unicodeChar != 0
             if (showInputView) {
-                evaluateOnKeyDownInner(service)
+                evaluateOnKeyDownInner()
             }
             return showInputView
         }
     }
 
-    private fun evaluateOnKeyDownInner(service: FcitxInputMethodService) {
+    private fun evaluateOnKeyDownInner() {
+        val preferHorizontalCandidateBar =
+            AppPrefs.getInstance().candidates.physicalKeyboardHorizontalCandidateBar.getValue()
         isVirtualKeyboard = when (candidatesViewMode) {
             FloatingCandidatesMode.SystemDefault -> false
             FloatingCandidatesMode.Always -> false
             FloatingCandidatesMode.InputDevice -> false
-            FloatingCandidatesMode.Disabled -> true
+            FloatingCandidatesMode.Disabled -> !preferHorizontalCandidateBar
         }
     }
 

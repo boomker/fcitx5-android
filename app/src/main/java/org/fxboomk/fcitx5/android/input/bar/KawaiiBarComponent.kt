@@ -306,9 +306,17 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         voiceInputSubtype = InputMethodUtil.findVoiceSubtype(preferredVoiceInput)
         val shouldShowVoiceInput =
             showVoiceInputButton && voiceInputSubtype != null && !capFlags.has(CapabilityFlag.Password)
+        val hideKeyboardOrVoiceCallback = if (shouldShowVoiceInput) {
+            switchToVoiceInputCallback
+        } else {
+            hideKeyboardCallback
+        }
         ui.setHideKeyboardIsVoiceInput(
             shouldShowVoiceInput,
-            if (shouldShowVoiceInput) switchToVoiceInputCallback else hideKeyboardCallback
+            View.OnClickListener { view ->
+                service.restoreVirtualKeyboardForKawaiiBarAction()
+                hideKeyboardOrVoiceCallback.onClick(view)
+            }
         )
     }
 
@@ -338,11 +346,17 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         }
 
     private fun setupIdleUiCallbacks(ui: IdleUi) {
+        fun restoreVirtualKeyboardMode() {
+            service.restoreVirtualKeyboardForKawaiiBarAction()
+        }
+
         ui.menuButton.setOnClickListener {
+            restoreVirtualKeyboardMode()
             // menuButton now opens StatusAreaWindow (secondary menu) instead of toggling toolbar
             windowManager.attachWindow(StatusAreaWindow())
         }
         ui.menuButton.setOnLongClickListener {
+            restoreVirtualKeyboardMode()
             // Completely disable toggle when adjusting overlay is visible to prevent conflicts
             if (service.inputView?.isButtonsAdjustingOverlayVisible == true) {
                 return@setOnLongClickListener true
@@ -351,7 +365,10 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
             true
         }
         ui.hideKeyboardButton.apply {
-            setOnClickListener(hideKeyboardCallback)
+            setOnClickListener {
+                restoreVirtualKeyboardMode()
+                hideKeyboardCallback.onClick(it)
+            }
             swipeEnabled = true
             swipeThresholdY = dp(HEIGHT.toFloat())
             onGestureListener = swipeHideKeyboardCallback
@@ -360,6 +377,7 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
             // Setup click listeners using ButtonAction
             ButtonAction.allConfigurableActions.forEach { action ->
                 setOnClickListener(action.id) {
+                    restoreVirtualKeyboardMode()
                     action.execute(
                         context = context,
                         service = service,
@@ -382,10 +400,12 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
 
             // Special handling for 'more' button
             setOnClickListener("more") {
+                restoreVirtualKeyboardMode()
                 windowManager.attachWindow(StatusAreaWindow())
             }
 
             setOnClickListener("floating_toggle") {
+                restoreVirtualKeyboardMode()
                 val action = ButtonAction.fromId("floating_toggle")
                 if (onFloatingToggleListener != null) {
                     onFloatingToggleListener?.invoke()
@@ -404,6 +424,7 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
 
             // Special handling for floating_toggle long press
             setOnLongClickListener("floating_toggle") {
+                restoreVirtualKeyboardMode()
                 if (onFloatingLongPressListener != null) {
                     onFloatingLongPressListener?.invoke()
                 } else {
@@ -430,6 +451,7 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
 
             // Keep language switch long-press behavior aligned with keyboard globe key.
             setOnLongClickListener("language_switch") {
+                restoreVirtualKeyboardMode()
                 ButtonAction.fromId("language_switch")?.onLongPress(
                     context = context,
                     service = service,
@@ -535,6 +557,7 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
     // set expand candidate button to create expand candidate
     private fun setExpandButtonToAttach() {
         candidateUi.expandButton.setOnClickListener {
+            service.restoreVirtualKeyboardForKawaiiBarAction()
             windowManager.attachWindow(
                 when (expandedCandidateStyle) {
                     ExpandedCandidateStyle.Grid -> GridExpandedCandidateWindow()
@@ -549,6 +572,7 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
     // set expand candidate button to close expand candidate
     private fun setExpandButtonToDetach() {
         candidateUi.expandButton.setOnClickListener {
+            service.restoreVirtualKeyboardForKawaiiBarAction()
             windowManager.attachWindow(KeyboardWindow)
         }
         candidateUi.expandButton.setIcon(R.drawable.ic_baseline_expand_less_24)
@@ -638,9 +662,17 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         voiceInputSubtype = InputMethodUtil.findVoiceSubtype(preferredVoiceInput)
         val shouldShowVoiceInput =
             showVoiceInputButton && voiceInputSubtype != null && !capFlags.has(CapabilityFlag.Password)
+        val hideKeyboardOrVoiceCallback = if (shouldShowVoiceInput) {
+            switchToVoiceInputCallback
+        } else {
+            hideKeyboardCallback
+        }
         idleUi.setHideKeyboardIsVoiceInput(
             shouldShowVoiceInput,
-            if (shouldShowVoiceInput) switchToVoiceInputCallback else hideKeyboardCallback
+            View.OnClickListener { view ->
+                service.restoreVirtualKeyboardForKawaiiBarAction()
+                hideKeyboardOrVoiceCallback.onClick(view)
+            }
         )
         evalIdleUiState()
     }
@@ -652,7 +684,8 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
     override fun onCandidateUpdate(data: CandidateListEvent.Data) {
         // When using "Always" floating mode, don't show candidates in Kawaii Bar
         val floatingMode = AppPrefs.getInstance().candidates.mode.getValue()
-        val useFloatingAlways = floatingMode == FloatingCandidatesMode.Always
+        val useFloatingAlways =
+            floatingMode == FloatingCandidatesMode.Always && !service.inputDeviceManager.isPhysicalCandidateBarMode
 
         if (useFloatingAlways) {
             // Force stay in Idle state when using floating candidates
