@@ -546,6 +546,7 @@ open class TextKeyView(
     private val baseMainTextSizeSp: Float = when (def.viewId) {
         R.id.button_space -> def.textSize
         R.id.button_layout_switch -> def.textSize
+        R.id.button_symbol_layout_switch -> def.textSize
         else -> org.fxboomk.fcitx5.android.input.font.FontProviders.getFontSize(
             "key_main_font", def.textSize
         )

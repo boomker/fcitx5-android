@@ -4,4 +4,5 @@
     <item name="value_text" type="id" />
     <item name="recommendation_text" type="id" />
     <item name="button_layout_switch" type="id" />
+    <item name="button_symbol_layout_switch" type="id" />
 </resources>

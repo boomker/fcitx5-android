@@ -43,12 +43,11 @@ out/
 
 # Gradle files
 .tmp/
+build/
 .gradle/
-/.tmp/
 /.gradle-local/
 /.android-local/
 /.home-local/
-build/
 
 # Local configuration file (sdk path, etc)
 local.properties
@@ -108,7 +107,8 @@ lint/tmp/
 
 ### Kotlin ###
 .kotlin/
-.gitnexus
+
 .omx/
 .claude/
+.gitnexus
 .local-thirdparty-artifacts/
