@@ -920,8 +920,73 @@ abstract class BaseKeyboard(
             overrideDef.appearance
         } else {
             overrideDef.appearance.withColorsFrom(baseDef.appearance)
-        }
+        }.withTextMetricsFrom(baseDef.appearance)
         return overrideDef to appearance
+    }
+
+    private fun KeyDef.Appearance.withTextMetricsFrom(source: KeyDef.Appearance): KeyDef.Appearance {
+        val sourceText = source as? KeyDef.Appearance.Text ?: return this
+        return when (this) {
+            is KeyDef.Appearance.AltText -> KeyDef.Appearance.AltText(
+                displayText = displayText,
+                altText = altText,
+                character = character,
+                textSize = sourceText.textSize,
+                textStyle = sourceText.textStyle,
+                percentWidth = percentWidth,
+                variant = variant,
+                border = border,
+                margin = margin,
+                viewId = viewId,
+                textColor = textColor,
+                textColorMonet = textColorMonet,
+                altTextColor = altTextColor,
+                altTextColorMonet = altTextColorMonet,
+                backgroundColor = backgroundColor,
+                backgroundColorMonet = backgroundColorMonet,
+                shadowColor = shadowColor,
+                shadowColorMonet = shadowColorMonet
+            )
+            is KeyDef.Appearance.ImageText -> KeyDef.Appearance.ImageText(
+                displayText = displayText,
+                textSize = sourceText.textSize,
+                textStyle = sourceText.textStyle,
+                src = src,
+                percentWidth = percentWidth,
+                variant = variant,
+                border = border,
+                margin = margin,
+                viewId = viewId,
+                textColor = textColor,
+                textColorMonet = textColorMonet,
+                altTextColor = altTextColor,
+                altTextColorMonet = altTextColorMonet,
+                backgroundColor = backgroundColor,
+                backgroundColorMonet = backgroundColorMonet,
+                shadowColor = shadowColor,
+                shadowColorMonet = shadowColorMonet
+            )
+            is KeyDef.Appearance.Text -> KeyDef.Appearance.Text(
+                displayText = displayText,
+                textSize = sourceText.textSize,
+                textStyle = sourceText.textStyle,
+                percentWidth = percentWidth,
+                variant = variant,
+                border = border,
+                margin = margin,
+                viewId = viewId,
+                soundEffect = soundEffect,
+                textColor = textColor,
+                textColorMonet = textColorMonet,
+                altTextColor = altTextColor,
+                altTextColorMonet = altTextColorMonet,
+                backgroundColor = backgroundColor,
+                backgroundColorMonet = backgroundColorMonet,
+                shadowColor = shadowColor,
+                shadowColorMonet = shadowColorMonet
+            )
+            else -> this
+        }
     }
 
     private fun KeyDef.Appearance.withColorsFrom(source: KeyDef.Appearance): KeyDef.Appearance = when (this) {

@@ -228,6 +228,7 @@ class KeyEditorActivity : AppCompatActivity() {
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             val data = result.data ?: return@registerForActivityResult
             if (result.resultCode != RESULT_OK) return@registerForActivityResult
+            persistCurrentDraft()
             when (data.getStringExtra(EXTRA_RESULT_ACTION)) {
                 RESULT_ACTION_SAVE -> {
                     val returned = serializableExtraCompat<HashMap<String, Any?>>(data, EXTRA_RESULT_KEY_DATA)
@@ -754,6 +755,28 @@ class KeyEditorActivity : AppCompatActivity() {
                 LinearLayout.LayoutParams.WRAP_CONTENT
             )
         )
+
+        val statusView = TextView(this).apply {
+            text = buildComposeOverrideStatusPreview()
+            textSize = 12f
+            setTextColor(styledColor(android.R.attr.textColorSecondary))
+            setPadding(dp(8), dp(2), dp(8), dp(8))
+        }
+        fieldsContainer.addView(
+            statusView,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        )
+    }
+
+    private fun buildComposeOverrideStatusPreview(): String {
+        return if (composeOverrideData == null) {
+            getString(R.string.text_keyboard_layout_compose_override_not_configured)
+        } else {
+            getString(R.string.text_keyboard_layout_compose_override_configured)
+        }
     }
 
     private fun renderFollowBaseKeyColorsToggle() {
@@ -790,6 +813,7 @@ class KeyEditorActivity : AppCompatActivity() {
     }
 
     private fun openComposeOverrideEditor() {
+        persistCurrentDraft()
         val hasOverride = composeOverrideData != null
         val editorData = (composeOverrideData ?: mutableMapOf()).toMutableMap()
         if (editorData["type"] == null) {
@@ -807,6 +831,11 @@ class KeyEditorActivity : AppCompatActivity() {
             putExtra(EXTRA_TITLE_OVERRIDE, getString(R.string.text_keyboard_layout_compose_override_editor_title))
         }
         composeOverrideEditorLauncher.launch(intent)
+    }
+
+    private fun persistCurrentDraft() {
+        keyData.clear()
+        keyData.putAll(buildDraftKeyData())
     }
 
     private fun renderColorEditors() {

@@ -611,6 +611,8 @@ class TextKeyboard(
     override fun onCompositionStateChanged(composing: Boolean) {
         super.onCompositionStateChanged(composing)
         ensureSpecialKeyViewsInitialized()
+        // Compose-state switches may recreate key views; re-apply caps presentation immediately.
+        updateAlphabetKeys()
     }
 
     private fun transformPopupPreview(c: String): String {
@@ -686,10 +688,14 @@ class TextKeyboard(
             val appearance = keyView.def
             when (appearance) {
                 is KeyDef.Appearance.AltText -> {
-                    val displayText = appearance.displayText
+                    val renderedText = keyView.mainText.text.toString()
+                    val sourceFromAppearance = renderedText.isEmpty() || renderedText == appearance.displayText
+                    val displayText = if (sourceFromAppearance) appearance.displayText else renderedText
                     val character = appearance.character
                     val displayIsSingleLetter = displayText.length == 1 && displayText[0].isLetter()
-                    val characterIsSingleLetter = character.length == 1 && character[0].isLetter()
+                    val characterIsSingleLetter = sourceFromAppearance &&
+                        character.length == 1 &&
+                        character[0].isLetter()
 
                     keyView.mainText.text = when {
                         keepLettersUppercase && displayIsSingleLetter -> displayText.uppercase()
@@ -702,7 +708,12 @@ class TextKeyboard(
                     }
                 }
                 is KeyDef.Appearance.Text -> {
-                    val str = appearance.displayText
+                    val renderedText = keyView.mainText.text.toString()
+                    val str = if (renderedText.isEmpty() || renderedText == appearance.displayText) {
+                        appearance.displayText
+                    } else {
+                        renderedText
+                    }
                     if (str.length == 1 && str[0].isLetter()) {
                         keyView.mainText.text = if (keepLettersUppercase) {
                             str.uppercase()
