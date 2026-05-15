@@ -683,7 +683,7 @@
     <string name="gboard_light_main_key_tone">Непрозрачность основных клавиш</string>
     <string name="gboard_light_other_key_tone">Непрозрачность дополнительных клавиш</string>
     <string name="gboard_style_side_keys">Боковые клавиши в стиле Gboard</string>
-    <string name="gboard_style_color_keys">Цветные клавиши в стиле Gboard</string>
+    <string name="gboard_style_color_keys">Расцветка клавиш в стиле Gboard</string>
     <string name="wallpaper_blend_percent">Смешивание клавиатуры с обоями</string>
     <string name="navbar_border">Рамка панели навигации</string>
     <string name="space_swipe_vertical_behavior">Действие при свайпе вверх/вниз по пробелу</string>

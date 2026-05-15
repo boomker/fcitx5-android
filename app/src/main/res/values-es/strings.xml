@@ -685,7 +685,7 @@
     <string name="gboard_light_main_key_tone">Opacidad de las teclas principales</string>
     <string name="gboard_light_other_key_tone">Opacidad de las teclas secundarias</string>
     <string name="gboard_style_side_keys">Teclas laterales estilo Gboard</string>
-    <string name="gboard_style_color_keys">Teclas con color estilo Gboard</string>
+    <string name="gboard_style_color_keys">Colores de teclas estilo Gboard</string>
     <string name="wallpaper_blend_percent">Mezcla del teclado con el fondo de pantalla</string>
     <string name="navbar_border">Borde de la barra de navegación</string>
     <string name="space_swipe_vertical_behavior">Acción al deslizar arriba/abajo en la barra espaciadora</string>

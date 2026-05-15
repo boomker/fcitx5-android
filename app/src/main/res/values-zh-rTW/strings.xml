@@ -700,7 +700,7 @@
     <string name="gboard_light_main_key_tone">主鍵區不透明度</string>
     <string name="gboard_light_other_key_tone">非主鍵區不透明度</string>
     <string name="gboard_style_side_keys">Gboard 風格側邊按鍵</string>
-    <string name="gboard_style_color_keys">Gboard 風格配色按鍵</string>
+    <string name="gboard_style_color_keys">Gboard 風格按鍵配色</string>
     <string name="wallpaper_blend_percent">鍵盤與桌布混合比例</string>
     <string name="navbar_border">導覽列邊框</string>
     <string name="manage_plugins">管理外掛</string>

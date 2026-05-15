@@ -683,7 +683,7 @@
     <string name="gboard_light_main_key_tone">メインキーの不透明度</string>
     <string name="gboard_light_other_key_tone">サブキーの不透明度</string>
     <string name="gboard_style_side_keys">Gboard風のサイドキー</string>
-    <string name="gboard_style_color_keys">Gboard風の配色キー</string>
+    <string name="gboard_style_color_keys">Gboard風のキー配色</string>
     <string name="wallpaper_blend_percent">キーボードと壁紙のブレンド比率</string>
     <string name="navbar_border">ナビゲーションバーの枠線</string>
     <string name="space_swipe_vertical_behavior">スペースキー上下スワイプの動作</string>

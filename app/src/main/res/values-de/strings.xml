@@ -681,7 +681,7 @@
     <string name="gboard_light_main_key_tone">Deckkraft der Haupttasten</string>
     <string name="gboard_light_other_key_tone">Deckkraft der Nebentasten</string>
     <string name="gboard_style_side_keys">Seitliche Tasten im Gboard-Stil</string>
-    <string name="gboard_style_color_keys">Farbige Tasten im Gboard-Stil</string>
+    <string name="gboard_style_color_keys">Tastenfarbgebung im Gboard-Stil</string>
     <string name="wallpaper_blend_percent">Mischverhältnis zwischen Tastatur und Hintergrundbild</string>
     <string name="navbar_border">Rand der Navigationsleiste</string>
     <string name="space_swipe_vertical_behavior">Verhalten beim Hoch-/Runterwischen auf der Leertaste</string>

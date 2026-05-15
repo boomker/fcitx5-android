@@ -175,7 +175,7 @@
     <string name="gboard_light_main_key_tone">主键区不透明度</string>
     <string name="gboard_light_other_key_tone">非主键区不透明度</string>
     <string name="gboard_style_side_keys">Gboard 风格侧边按键</string>
-    <string name="gboard_style_color_keys">Gboard 风格配色按键</string>
+    <string name="gboard_style_color_keys">Gboard 风格按键配色</string>
     <string name="wallpaper_blend_percent">键盘与壁纸混合比例</string>
     <string name="navbar_border">导航栏边框</string>
     <string name="light_mode_theme">亮色模式主题</string>
