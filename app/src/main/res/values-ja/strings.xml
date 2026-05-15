@@ -797,4 +797,22 @@
     <string name="llm_persona_custom_name_description">%1$s。下でさらに詳しいペルソナ説明を追加できます。</string>
     <string name="llm_persona_current_label">現在の選択</string>
     <string name="llm_persona_delete_confirm">ペルソナ「%1$s」を削除しますか？</string>
+    <string name="share_receive_target_not_supported">共有内容は対応しているテーマ、Popup、レイアウトのデータではありません。</string>
+    <string name="share_receive_overwrite_title">インポートによりデータが上書きされます</string>
+    <string name="share_receive_popup_overwrite_message">この共有 Popup プリセットをインポートすると、現在の Popup プリセットが置き換えられます。続行しますか？</string>
+    <string name="share_receive_layout_overwrite_message">この共有レイアウトをインポートすると、レイアウトプロファイル「%1$s」が置き換えられます。続行しますか？</string>
+    <string name="share_receive_popup_imported">Popup プリセットをインポートしました。</string>
+    <string name="share_receive_layout_imported">レイアウトをプロファイル「%1$s」にインポートしました。</string>
+    <string name="share_receive_theme_imported_migrated">テーマをインポートし、現在のバージョンへ移行しました。</string>
+    <string name="share_receive_file_path_title">ファイルのインポート先</string>
+    <string name="share_receive_file_path_message">アプリのファイルディレクトリ内のフォルダーを選択してください。現在のフォルダー: %1$s</string>
+    <string name="share_receive_file_path_message_single">「%1$s」のインポート先フォルダーを選択してください。現在のフォルダー: %2$s</string>
+    <string name="share_receive_file_path_message_multiple">%1$d 個の共有ファイルのインポート先フォルダーを選択してください。現在のフォルダー: %2$s</string>
+    <string name="share_receive_file_exists_title">ファイルは既に存在します</string>
+    <string name="share_receive_file_exists_message">ファイル「%1$s」は既に存在します。上書きしますか？</string>
+    <string name="share_receive_file_exists_message_multiple">一部のインポート対象ファイルは既に存在します。上書きしますか？</string>
+    <string name="share_receive_overwrite">上書き</string>
+    <string name="share_receive_invalid_path">対象パスが無効です。</string>
+    <string name="share_receive_file_imported">ファイルをインポートしました: %1$s</string>
+    <string name="share_receive_files_imported">%1$d 個のファイルをインポートしました。</string>
 </resources>

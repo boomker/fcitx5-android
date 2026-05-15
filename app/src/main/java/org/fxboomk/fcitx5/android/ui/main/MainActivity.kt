@@ -24,6 +24,7 @@ import androidx.core.view.updateLayoutParams
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.fragment.NavHostFragment
+import com.google.android.material.snackbar.Snackbar
 import org.fxboomk.fcitx5.android.BuildConfig
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
@@ -44,6 +45,7 @@ class MainActivity : AppCompatActivity() {
     val viewModel: MainViewModel by viewModels()
 
     private lateinit var navController: NavController
+    private lateinit var shareReceiveManager: ShareReceiveManager
 
     private lateinit var binding: ActivityMainBinding
 
@@ -71,6 +73,13 @@ class MainActivity : AppCompatActivity() {
         setupToolbarMenu(binding.toolbar.menu)
         navController = binding.navHostFragment.getFragment<NavHostFragment>().navController
         navController.graph = SettingsRoute.createGraph(navController)
+        shareReceiveManager = ShareReceiveManager(this) { message, action ->
+            Snackbar.make(binding.root, message, Snackbar.LENGTH_LONG).apply {
+                action?.let { callback ->
+                    setAction(R.string.edit) { callback() }
+                }
+            }.show()
+        }
         binding.toolbar.setNavigationOnClickListener {
             // prevent navigate up when child fragment has enabled `OnBackPressedCallback`
             if (onBackPressedDispatcher.hasEnabledCallbacks()) {
@@ -94,16 +103,17 @@ class MainActivity : AppCompatActivity() {
                 viewModel.enableToolbarShadow()
             }
         }
-        processIntent(intent)
+        processIntent(intent, savedInstanceState)
         checkNotificationPermission()
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        processIntent(intent)
+        setIntent(intent)
+        processIntent(intent, null)
     }
 
-    private fun processIntent(intent: Intent?) {
+    private fun processIntent(intent: Intent?, savedInstanceState: Bundle? = null) {
         val action = intent?.action ?: return
         when (action) {
             Intent.ACTION_MAIN -> if (SetupActivity.shouldShowUp()) {
@@ -124,6 +134,9 @@ class MainActivity : AppCompatActivity() {
                 val route = intent.parcelable<SettingsRoute>(EXTRA_SETTINGS_ROUTE) ?: return
                 navController.popBackStack(SettingsRoute.Index, false)
                 navController.navigateWithAnim(route)
+            }
+            Intent.ACTION_SEND, Intent.ACTION_SEND_MULTIPLE -> {
+                shareReceiveManager.handle(intent, savedInstanceState)
             }
         }
     }

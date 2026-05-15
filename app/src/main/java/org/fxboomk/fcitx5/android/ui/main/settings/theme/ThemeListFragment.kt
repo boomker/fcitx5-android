@@ -30,6 +30,7 @@ import org.fxboomk.fcitx5.android.utils.parcelable
 import org.fxboomk.fcitx5.android.utils.queryFileName
 import org.fxboomk.fcitx5.android.utils.toast
 import splitties.resources.styledDrawable
+import java.io.ByteArrayInputStream
 import java.util.UUID
 
 class ThemeListFragment : Fragment() {
@@ -48,6 +49,14 @@ class ThemeListFragment : Fragment() {
     private val onThemeChangeListener = ThemeManager.OnThemeChangeListener {
         lifecycleScope.launch {
             updateSelectedThemes(it)
+        }
+    }
+
+    @Keep
+    private val onThemeListChangeListener = ThemeManager.OnThemeListChangeListener { themes ->
+        lifecycleScope.launch {
+            themeListAdapter.setThemes(themes)
+            updateSelectedThemes()
         }
     }
 
@@ -73,7 +82,6 @@ class ThemeListFragment : Fragment() {
             when (result) {
                 is CustomThemeActivity.BackgroundResult.Created -> {
                     val theme = result.theme
-                    themeListAdapter.prependTheme(theme)
                     ThemeManager.saveTheme(theme)
                     if (!followSystemDayNightTheme) {
                         ThemeManager.setNormalModeTheme(theme)
@@ -81,13 +89,11 @@ class ThemeListFragment : Fragment() {
                 }
                 is CustomThemeActivity.BackgroundResult.Deleted -> {
                     val name = result.name
-                    themeListAdapter.removeTheme(name)
                     ThemeManager.deleteTheme(name)
                 }
                 is CustomThemeActivity.BackgroundResult.Updated -> {
                     val oldName = result.oldName
                     val theme = result.theme
-                    themeListAdapter.replaceTheme(oldName, theme)
                     val followSystem = ThemeManager.prefs.followSystemDayNightTheme.getValue()
                     val wasNormalTheme = ThemeManager.prefs.normalModeTheme.getValue().name == oldName
                     val wasLightTheme = ThemeManager.prefs.lightModeTheme.getValue().name == oldName
@@ -126,16 +132,18 @@ class ThemeListFragment : Fragment() {
                         return@withLoadingDialog
                     }
                     try {
-                        val (newCreated, theme, migrated) = withContext(Dispatchers.IO) {
-                            val inputStream = cr.openInputStream(uri)!!
-                            ThemeFilesManager.importTheme(inputStream).getOrThrow()
+                        val (_, _, migrated) = withContext(Dispatchers.IO) {
+                            val zipBytes = cr.openInputStream(uri)!!.use { it.readBytes() }
+                            val decodedName = ThemeFilesManager.decodeTheme(ByteArrayInputStream(zipBytes))
+                                .getOrNull()
+                                ?.name
+                            val importedName = decodedName?.let { ThemeManager.nonActiveImportName(it) }
+                            ThemeFilesManager.importTheme(
+                                ByteArrayInputStream(zipBytes),
+                                importedName?.takeIf { it != decodedName }
+                            ).getOrThrow()
                         }
                         ThemeManager.refreshThemes()
-                        if (newCreated) {
-                            themeListAdapter.prependTheme(theme)
-                        } else {
-                            themeListAdapter.replaceTheme(theme)
-                        }
                         if (migrated) {
                             ctx.toast(R.string.theme_migrated)
                         }
@@ -178,11 +186,22 @@ class ThemeListFragment : Fragment() {
         ThemeManager.refreshThemes()
         themeListAdapter.setThemes(ThemeManager.getAllThemes())
         updateSelectedThemes()
-        ThemeManager.addOnChangedListener(onThemeChangeListener)
         return ResponsiveThemeListView(requireContext()).apply {
             adapter = themeListAdapter
             applyNavBarInsetsBottomPadding()
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        ThemeManager.addOnChangedListener(onThemeChangeListener)
+        ThemeManager.addOnThemeListChangedListener(onThemeListChangeListener)
+    }
+
+    override fun onStop() {
+        ThemeManager.removeOnChangedListener(onThemeChangeListener)
+        ThemeManager.removeOnThemeListChangedListener(onThemeListChangeListener)
+        super.onStop()
     }
 
     private fun updateSelectedThemes(activeTheme: Theme? = null) {
@@ -232,7 +251,6 @@ class ThemeListFragment : Fragment() {
                                         is Theme.Monet -> theme.toCustom().copy(name = UUID.randomUUID().toString())
                                         else -> return
                                     }
-                                themeListAdapter.prependTheme(newTheme)
                                 ThemeManager.saveTheme(newTheme)
                                 dialog.dismiss()
                             }
@@ -282,11 +300,6 @@ class ThemeListFragment : Fragment() {
 
     private fun onThemeImported(newCreated: Boolean, theme: Theme.Custom, migrated: Boolean) {
         ThemeManager.refreshThemes()
-        if (newCreated) {
-            themeListAdapter.prependTheme(theme)
-        } else {
-            themeListAdapter.replaceTheme(theme)
-        }
         if (migrated) {
             requireContext().toast(R.string.theme_migrated)
         }
@@ -299,8 +312,4 @@ class ThemeListFragment : Fragment() {
         const val BUNDLE_MIGRATED = "theme_list_bundle_migrated"
     }
 
-    override fun onDestroy() {
-        ThemeManager.removeOnChangedListener(onThemeChangeListener)
-        super.onDestroy()
-    }
 }

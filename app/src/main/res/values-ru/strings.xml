@@ -797,4 +797,22 @@
     <string name="llm_persona_custom_name_description">%1$s. Ниже можно добавить более подробное описание персоны.</string>
     <string name="llm_persona_current_label">Сейчас выбрано</string>
     <string name="llm_persona_delete_confirm">Удалить персону \"%1$s\"?</string>
+    <string name="share_receive_target_not_supported">Общий контент не является поддерживаемой темой, Popup или раскладкой.</string>
+    <string name="share_receive_overwrite_title">Импорт перезапишет данные</string>
+    <string name="share_receive_popup_overwrite_message">Импорт этой общей предустановки Popup заменит текущую предустановку Popup. Продолжить?</string>
+    <string name="share_receive_layout_overwrite_message">Импорт этой общей раскладки заменит профиль раскладки «%1$s». Продолжить?</string>
+    <string name="share_receive_popup_imported">Предустановка Popup импортирована.</string>
+    <string name="share_receive_layout_imported">Раскладка импортирована в профиль «%1$s».</string>
+    <string name="share_receive_theme_imported_migrated">Тема импортирована и перенесена на текущую версию.</string>
+    <string name="share_receive_file_path_title">Путь импорта файла</string>
+    <string name="share_receive_file_path_message">Выберите папку внутри каталога файлов приложения. Текущая папка: %1$s</string>
+    <string name="share_receive_file_path_message_single">Выберите папку импорта для «%1$s». Текущая папка: %2$s</string>
+    <string name="share_receive_file_path_message_multiple">Выберите папку импорта для %1$d общих файлов. Текущая папка: %2$s</string>
+    <string name="share_receive_file_exists_title">Файл уже существует</string>
+    <string name="share_receive_file_exists_message">Файл «%1$s» уже существует. Перезаписать?</string>
+    <string name="share_receive_file_exists_message_multiple">Некоторые импортируемые файлы уже существуют. Перезаписать их?</string>
+    <string name="share_receive_overwrite">Перезаписать</string>
+    <string name="share_receive_invalid_path">Недопустимый путь назначения.</string>
+    <string name="share_receive_file_imported">Файл импортирован: %1$s</string>
+    <string name="share_receive_files_imported">Импортировано файлов: %1$d.</string>
 </resources>

@@ -795,4 +795,22 @@
     <string name="llm_persona_custom_name_description">%1$s. Unten kannst du noch eine detailliertere Beschreibung der Persona ergänzen.</string>
     <string name="llm_persona_current_label">Aktuell ausgewählt</string>
     <string name="llm_persona_delete_confirm">Persona „%1$s“ löschen?</string>
+    <string name="share_receive_target_not_supported">Der geteilte Inhalt ist kein unterstütztes Theme-, Popup- oder Layout-Payload.</string>
+    <string name="share_receive_overwrite_title">Import überschreibt Daten</string>
+    <string name="share_receive_popup_overwrite_message">Das Importieren dieser geteilten Popup-Voreinstellung ersetzt die aktuelle Popup-Voreinstellung. Fortfahren?</string>
+    <string name="share_receive_layout_overwrite_message">Das Importieren dieses geteilten Layouts ersetzt das Layout-Profil „%1$s“. Fortfahren?</string>
+    <string name="share_receive_popup_imported">Popup-Voreinstellung importiert.</string>
+    <string name="share_receive_layout_imported">Layout in Profil „%1$s“ importiert.</string>
+    <string name="share_receive_theme_imported_migrated">Theme importiert und auf die aktuelle Version migriert.</string>
+    <string name="share_receive_file_path_title">Datei-Importpfad</string>
+    <string name="share_receive_file_path_message">Ordner im App-Dateiverzeichnis auswählen. Aktueller Ordner: %1$s</string>
+    <string name="share_receive_file_path_message_single">Importordner für „%1$s“ auswählen. Aktueller Ordner: %2$s</string>
+    <string name="share_receive_file_path_message_multiple">Importordner für %1$d geteilte Dateien auswählen. Aktueller Ordner: %2$s</string>
+    <string name="share_receive_file_exists_title">Datei existiert bereits</string>
+    <string name="share_receive_file_exists_message">Datei „%1$s“ existiert bereits. Überschreiben?</string>
+    <string name="share_receive_file_exists_message_multiple">Einige zu importierende Dateien existieren bereits. Überschreiben?</string>
+    <string name="share_receive_overwrite">Überschreiben</string>
+    <string name="share_receive_invalid_path">Ungültiger Zielpfad.</string>
+    <string name="share_receive_file_imported">Datei importiert: %1$s</string>
+    <string name="share_receive_files_imported">%1$d Dateien importiert.</string>
 </resources>

@@ -17,10 +17,15 @@ import java.io.FileOutputStream
 object JsonFileQrShareManager {
     fun encodeSavedJsonFileToChunks(
         file: File,
-        transferType: Char? = null
+        transferType: Char? = null,
+        transferProfile: String? = null
     ): LayoutQrTransferCodec.ChunkBundle {
         val rawJson = file.readText()
-        return LayoutQrTransferCodec.encodeJsonToChunks(rawJson, transferType = transferType)
+        return LayoutQrTransferCodec.encodeJsonToChunks(
+            rawJson,
+            transferType = transferType,
+            transferProfile = transferProfile
+        )
     }
 
     fun buildChunkLabels(
@@ -34,10 +39,15 @@ object JsonFileQrShareManager {
     fun encodeSavedJsonFileToLongImage(
         file: File,
         transferType: Char? = null,
+        transferProfile: String? = null,
         typeLabel: String? = null,
         nameLabel: String? = null
     ): Pair<Bitmap, LayoutQrTransferCodec.ChunkBundle> {
-        val bundle = encodeSavedJsonFileToChunks(file, transferType = transferType)
+        val bundle = encodeSavedJsonFileToChunks(
+            file,
+            transferType = transferType,
+            transferProfile = transferProfile
+        )
         val contents = bundle.chunks.map { it.encode() }
         val labels = if (typeLabel != null && !nameLabel.isNullOrBlank()) {
             buildChunkLabels(bundle, typeLabel, nameLabel)

@@ -5,6 +5,7 @@
 package org.fxboomk.fcitx5.android.ui.common
 
 import android.content.Context
+import android.os.Looper
 import androidx.appcompat.app.AlertDialog
 import androidx.preference.Preference
 import org.fxboomk.fcitx5.android.data.theme.Theme
@@ -32,7 +33,15 @@ class ThemeSelectPreference(context: Context, private val defaultTheme: Theme) :
             selected = allThemes.indexOfFirst { it.name == currentThemeName }
         }
         view.adapter = adapter
-        AlertDialog.Builder(context)
+        val themeListChangeListener = ThemeManager.OnThemeListChangeListener { themes ->
+            val selectedThemeName = adapter.selectedTheme?.name ?: currentThemeName
+            if (Looper.myLooper() == Looper.getMainLooper()) {
+                adapter.setThemes(themes, selectedThemeName)
+            } else {
+                view.post { adapter.setThemes(themes, selectedThemeName) }
+            }
+        }
+        val dialog = AlertDialog.Builder(context)
             .setTitle(title)
             .setPositiveButton(android.R.string.ok) { _, _ ->
                 adapter.selectedTheme?.let {
@@ -44,7 +53,14 @@ class ThemeSelectPreference(context: Context, private val defaultTheme: Theme) :
             }
             .setNegativeButton(android.R.string.cancel, null)
             .setView(view)
-            .show()
+            .create()
+        dialog.setOnShowListener {
+            ThemeManager.addOnThemeListChangedListener(themeListChangeListener)
+        }
+        dialog.setOnDismissListener {
+            ThemeManager.removeOnThemeListChangedListener(themeListChangeListener)
+        }
+        dialog.show()
     }
 
 }

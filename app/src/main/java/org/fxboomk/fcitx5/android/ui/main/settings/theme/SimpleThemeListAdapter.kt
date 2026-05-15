@@ -10,23 +10,44 @@ import androidx.recyclerview.widget.RecyclerView
 import org.fxboomk.fcitx5.android.data.theme.Theme
 import splitties.views.dsl.core.Ui
 
-open class SimpleThemeListAdapter<T : Theme>(private val entries: List<T>) :
+open class SimpleThemeListAdapter<T : Theme>(themes: List<T>) :
     RecyclerView.Adapter<SimpleThemeListAdapter.ViewHolder>() {
+
+    private val entries = themes.toMutableList()
 
     class ViewHolder(val ui: Ui) : RecyclerView.ViewHolder(ui.root)
 
-    var selected = -1
+    private var selectedIndex = -1
+
+    var selected: Int
+        get() = selectedIndex
         set(value) {
-            val last = field
-            field = value
-            if (last != -1)
-                notifyItemChanged(last)
-            if (field != -1)
-                notifyItemChanged(field)
+            updateSelection(value, notify = true)
         }
 
     val selectedTheme
-        get() = selected.takeIf { it != -1 }?.let { entries[it] }
+        get() = entries.getOrNull(selectedIndex)
+
+    fun setThemes(themes: List<T>, selectedThemeName: String? = null) {
+        entries.clear()
+        entries.addAll(themes)
+        updateSelection(selectedThemeName?.let { name ->
+            entries.indexOfFirst { it.name == name }
+        } ?: -1, notify = false)
+        notifyDataSetChanged()
+    }
+
+    private fun updateSelection(value: Int, notify: Boolean) {
+        val last = selectedIndex
+        selectedIndex = value
+        if (!notify) return
+        if (last in entries.indices) {
+            notifyItemChanged(last)
+        }
+        if (selectedIndex in entries.indices) {
+            notifyItemChanged(selectedIndex)
+        }
+    }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder =
         ViewHolder(ThemeThumbnailUi(parent.context))
@@ -43,10 +64,13 @@ open class SimpleThemeListAdapter<T : Theme>(private val entries: List<T>) :
             val theme = entries[position]
             setTheme(theme)
             editButton.visibility = View.GONE
-            setChecked(position == selected)
+            setChecked(position == selectedIndex)
             root.setOnClickListener {
-                onClick(theme)
-                selected = position
+                val currentPosition = holder.absoluteAdapterPosition
+                if (currentPosition == RecyclerView.NO_POSITION) return@setOnClickListener
+                val currentTheme = entries.getOrNull(currentPosition) ?: return@setOnClickListener
+                onClick(currentTheme)
+                selected = currentPosition
             }
         }
     }

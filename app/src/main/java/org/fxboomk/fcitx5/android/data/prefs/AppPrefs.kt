@@ -51,6 +51,8 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
         // Settings initialization flag
         val settingsInitialized = bool("settings_initialized", false)
         val splitKeyboardMigrated = bool("split_keyboard_migrated", false)
+        val lastShareReceiveDirectory = string("last_share_receive_directory", "")
+        val lastShareReceiveDirectoryRemembered = bool("last_share_receive_directory_remembered", false)
     }
 
     inner class Advanced : ManagedPreferenceCategory(R.string.advanced, sharedPreferences) {

@@ -34,9 +34,21 @@ abstract class ThemeListAdapter : RecyclerView.Adapter<ThemeListAdapter.ViewHold
     }
 
     fun setThemes(themes: List<Theme>) {
+        val activeName = entryAt(activeIndex)?.name
+        val lightName = entryAt(lightIndex)?.name
+        val darkName = entryAt(darkIndex)?.name
         entries.clear()
         entries.addAll(themes)
+        activeIndex = positionOf(activeName)
+        lightIndex = positionOf(lightName)
+        darkIndex = positionOf(darkName)
         notifyDataSetChanged()
+    }
+
+    private fun positionOf(themeName: String?): Int {
+        if (themeName == null) return -1
+        val index = entries.indexOfFirst { it.name == themeName }
+        return if (index < 0) -1 else index + OFFSET
     }
 
     fun setSelectedThemes(active: Theme, light: Theme? = null, dark: Theme? = null) {

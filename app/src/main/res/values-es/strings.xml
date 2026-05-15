@@ -799,4 +799,22 @@
     <string name="llm_persona_custom_name_description">%1$s. También puedes añadir abajo una descripción más detallada de la persona.</string>
     <string name="llm_persona_current_label">Seleccionado actualmente</string>
     <string name="llm_persona_delete_confirm">¿Eliminar la persona \"%1$s\"?</string>
+    <string name="share_receive_target_not_supported">El contenido compartido no es un tema, popup o diseño compatible.</string>
+    <string name="share_receive_overwrite_title">La importación sobrescribirá datos</string>
+    <string name="share_receive_popup_overwrite_message">Importar este preajuste de popup compartido reemplazará el preajuste de popup actual. ¿Continuar?</string>
+    <string name="share_receive_layout_overwrite_message">Importar este diseño compartido reemplazará el perfil de diseño \"%1$s\". ¿Continuar?</string>
+    <string name="share_receive_popup_imported">Preajuste de popup importado.</string>
+    <string name="share_receive_layout_imported">Diseño importado al perfil \"%1$s\".</string>
+    <string name="share_receive_theme_imported_migrated">Tema importado y migrado a la versión actual.</string>
+    <string name="share_receive_file_path_title">Ruta de importación de archivo</string>
+    <string name="share_receive_file_path_message">Seleccione una carpeta dentro del directorio de archivos de la app. Carpeta actual: %1$s</string>
+    <string name="share_receive_file_path_message_single">Seleccione una carpeta para \"%1$s\". Carpeta actual: %2$s</string>
+    <string name="share_receive_file_path_message_multiple">Seleccione una carpeta para %1$d archivos compartidos. Carpeta actual: %2$s</string>
+    <string name="share_receive_file_exists_title">El archivo ya existe</string>
+    <string name="share_receive_file_exists_message">El archivo \"%1$s\" ya existe. ¿Sobrescribirlo?</string>
+    <string name="share_receive_file_exists_message_multiple">Algunos archivos importados ya existen. ¿Sobrescribirlos?</string>
+    <string name="share_receive_overwrite">Sobrescribir</string>
+    <string name="share_receive_invalid_path">Ruta de destino no válida.</string>
+    <string name="share_receive_file_imported">Archivo importado: %1$s</string>
+    <string name="share_receive_files_imported">Se importaron %1$d archivos.</string>
 </resources>
