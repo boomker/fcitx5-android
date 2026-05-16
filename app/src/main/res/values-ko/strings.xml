@@ -128,7 +128,7 @@
     <string name="popup_editor_add_candidate_button">추가</string>
     <string name="popup_editor_candidate_input_hint">후보 값 입력</string>
     <string name="edit_text_playground">EditText 테스트 공간</string>
-    <string name="edit_text_keyboard_layout">텍스트 키보드 레이아웃 편집</string>
+    <string name="edit_text_keyboard_layout">범용 키보드 레이아웃 편집</string>
     <string name="text_keyboard_layout_preview">미리보기</string>
     <string name="ok">확인</string>
     <string name="cancel">취소</string>
@@ -185,8 +185,8 @@
     <string name="text_keyboard_layout_display_text_mode_invalid">새 모드를 추가하기 전에 %1$d 행을 입력하세요</string>
     <string name="text_keyboard_layout_display_text_mode_duplicate">모드 이름 "%1$s" 이 (가) 이미 사용 중입니다</string>
     <string name="cannot_resolve_text_keyboard_layout">텍스트 키보드 레이아웃 파일을 찾을 수 없습니다</string>
-    <string name="edit_text_keyboard_layout_summary_with_file">텍스트 키보드 레이아웃 편집 (%1$s)</string>
-    <string name="text_keyboard_layout_file_select_title">텍스트 키보드 레이아웃 파일</string>
+    <string name="edit_text_keyboard_layout_summary_with_file">범용 키보드 레이아웃 편집 (%1$s)</string>
+    <string name="text_keyboard_layout_file_select_title">범용 키보드 레이아웃 목록</string>
     <string name="text_keyboard_layout_file_select_summary">현재 파일: %1$s</string>
     <string name="text_keyboard_layout_file_switch">레이아웃 파일 전환</string>
     <string name="text_keyboard_layout_file_create">레이아웃 파일 만들기</string>
@@ -324,6 +324,9 @@
     <string name="macro_editor_all_modifiers_added">모든 수정 키가 추가되었습니다</string>
     <string name="macro_editor_app_picker_title">앱 동작 선택</string>
     <string name="macro_editor_app_action_more">고급 메뉴</string>
+    <string name="macro_editor_app_action_status_area_menu">상태 영역 메뉴</string>
+    <string name="macro_editor_app_action_clipboard_settings">클립보드 설정</string>
+    <string name="macro_editor_app_action_advanced_settings">고급 설정</string>
     <string name="custom_theme_confirm">확인</string>
     <string name="custom_theme_cancel">취소</string>
     <string name="custom_theme_preview_candidate">후보</string>
@@ -442,7 +445,7 @@
     <string name="edit_clipboard">클립보드 편집</string>
     <string name="edit_fontset">글꼴 세트 편집</string>
     <string name="edit_fontset_summary">fonts/fontset.json을 편집하고 글꼴 조합을 미리보기</string>
-    <string name="edit_text_keyboard_layout_summary">텍스트 키보드 레이아웃 편집 (TextKeyboardLayout.json)</string>
+    <string name="edit_text_keyboard_layout_summary">범용 키보드 레이아웃 편집 (GeneralKeyboardLayout.json)</string>
     <string name="edit_theme">테마 편집</string>
     <string name="editor_info_inspector">EditorInfo 검사기</string>
     <string name="emoji_and_symbols">이모지 및 기호</string>

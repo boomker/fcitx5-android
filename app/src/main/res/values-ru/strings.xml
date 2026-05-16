@@ -366,7 +366,7 @@
     <string name="popup_editor_add_candidate_button">Добавить</string>
     <string name="popup_editor_candidate_input_hint">Введите значение кандидата</string>
     <string name="edit_text_playground">Песочница EditText</string>
-    <string name="edit_text_keyboard_layout">Редактировать раскладку текстовой клавиатуры</string>
+    <string name="edit_text_keyboard_layout">Редактировать общую раскладку клавиатуры</string>
     <string name="text_keyboard_layout_preview">Предпросмотр</string>
     <string name="ok">ОК</string>
     <string name="cancel">Отмена</string>
@@ -423,8 +423,8 @@
     <string name="text_keyboard_layout_display_text_mode_invalid">Заполните строку %1$d перед добавлением нового режима</string>
     <string name="text_keyboard_layout_display_text_mode_duplicate">Имя режима "%1$s" уже используется</string>
     <string name="cannot_resolve_text_keyboard_layout">Не удалось определить файл раскладки текстовой клавиатуры</string>
-    <string name="edit_text_keyboard_layout_summary_with_file">Редактировать раскладку текстовой клавиатуры (%1$s)</string>
-    <string name="text_keyboard_layout_file_select_title">Файл раскладки текстовой клавиатуры</string>
+    <string name="edit_text_keyboard_layout_summary_with_file">Редактировать общую раскладку клавиатуры (%1$s)</string>
+    <string name="text_keyboard_layout_file_select_title">Список общих раскладок клавиатуры</string>
     <string name="text_keyboard_layout_file_select_summary">Текущий файл: %1$s</string>
     <string name="text_keyboard_layout_file_switch">Переключить файл раскладки</string>
     <string name="text_keyboard_layout_file_create">Создать файл раскладки</string>
@@ -539,6 +539,9 @@
     <string name="macro_editor_all_modifiers_added">Все модификаторы добавлены</string>
     <string name="macro_editor_app_picker_title">Выбрать действие приложения</string>
     <string name="macro_editor_app_action_more">Расширенное меню</string>
+    <string name="macro_editor_app_action_status_area_menu">Меню области состояния</string>
+    <string name="macro_editor_app_action_clipboard_settings">Настройки буфера обмена</string>
+    <string name="macro_editor_app_action_advanced_settings">Расширенные настройки</string>
     <string name="custom_theme_confirm">ОК</string>
     <string name="custom_theme_cancel">Отмена</string>
     <string name="custom_theme_preview_candidate">Кандидат</string>
@@ -607,7 +610,7 @@
     <string name="cannot_resolve_popup_preset">Не удалось найти файл предустановки всплывающих окон</string>
     <string name="edit_fontset">Редактировать набор шрифтов</string>
     <string name="edit_fontset_summary">Редактировать fonts/fontset.json и просмотреть комбинацию шрифтов</string>
-    <string name="edit_text_keyboard_layout_summary">Редактировать раскладку текстовой клавиатуры (TextKeyboardLayout.json)</string>
+    <string name="edit_text_keyboard_layout_summary">Редактировать общую раскладку клавиатуры (GeneralKeyboardLayout.json)</string>
     <string name="fontset_editor_hint">Нажмите на каждый элемент, чтобы выбрать один или несколько шрифтов из каталога fonts. Несколько шрифтов будут использоваться как резервные в указанном порядке.</string>
     <string name="fontset_entry_candidate">Шрифт кандидатов</string>
     <string name="fontset_entry_font">Базовый шрифт</string>

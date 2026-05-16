@@ -28,6 +28,7 @@ import androidx.core.view.updatePadding
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import org.fxboomk.fcitx5.android.R
+import org.fxboomk.fcitx5.android.input.action.ButtonAction
 import org.fxboomk.fcitx5.android.utils.serializable
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.FlowLayout
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.adapter.SimpleDividerItemDecoration
@@ -1249,101 +1250,40 @@ class MacroEditorActivity : AppCompatActivity() {
         }
 
         private fun showAppActionPicker(onSelect: (String) -> Unit) {
-            val actionIds = arrayOf(
-                "theme",
-                "virtual_keyboard",
-                "more",
-                "browse_user_data_dir",
-                "clipboard",
-                "cursor_move",
-                "floating_toggle",
-                "language_switch",
-                "reload_config",
-                "one_handed_keyboard",
-                "input_method_options",
-                "undo",
-                "redo",
-                "settings_global_options",
-                "settings_input_methods",
-                "settings_candidates_window",
-                "settings_clipboard",
-                "settings_symbol",
-                "settings_plugin",
-                "settings_advanced",
-                "settings_developer",
-                "settings_about",
-                "settings_license",
-                "edit_text_keyboard_layout",
-                "text_keyboard_layout_file_select",
-                "edit_fontset"
-            )
-            val actionLabels = arrayOf(
-                getString(R.string.theme),
-                getString(R.string.virtual_keyboard),
-                getString(R.string.macro_editor_app_action_more),
-                getString(R.string.browse_user_data_dir),
-                getString(R.string.clipboard),
-                getString(R.string.text_editing),
-                getString(R.string.floating_keyboard),
-                getString(R.string.language_switch),
-                getString(R.string.reload_config),
-                getString(R.string.one_handed_keyboard),
-                getString(R.string.input_method_options),
-                getString(R.string.undo),
-                getString(R.string.redo),
-                getString(R.string.global_options),
-                getString(R.string.input_methods),
-                getString(R.string.candidates_window),
-                getString(R.string.clipboard),
-                getString(R.string.emoji_and_symbols),
-                getString(R.string.plugins),
-                getString(R.string.advanced),
-                getString(R.string.developer),
-                getString(R.string.about),
-                getString(R.string.license),
-                getString(R.string.edit_text_keyboard_layout),
-                getString(R.string.text_keyboard_layout_file_select_title),
-                getString(R.string.edit_fontset)
-            )
+            val actions = ButtonAction.macroEditorActions
+            val actionLabels = actions.map {
+                if (it.id == "more") {
+                    getString(R.string.macro_editor_app_action_status_area_menu)
+                } else if (it.id == "settings_clipboard") {
+                    getString(R.string.macro_editor_app_action_clipboard_settings)
+                } else if (it.id == "settings_advanced") {
+                    getString(R.string.macro_editor_app_action_advanced_settings)
+                } else {
+                    getString(it.defaultLabelRes)
+                }
+            }.toTypedArray()
             AlertDialog.Builder(this@MacroEditorActivity)
                 .setTitle(R.string.macro_editor_app_picker_title)
                 .setItems(actionLabels) { _, which ->
-                    onSelect(actionIds[which])
+                    onSelect(actions[which].id)
                 }
                 .setNegativeButton(R.string.macro_editor_picker_cancel, null)
                 .show()
         }
 
         private fun getAppActionLabel(actionId: String): String {
-            return when (actionId) {
-                "theme" -> getString(R.string.theme)
-                "virtual_keyboard" -> getString(R.string.virtual_keyboard)
-                "more" -> getString(R.string.macro_editor_app_action_more)
-                "browse_user_data_dir" -> getString(R.string.browse_user_data_dir)
-                "clipboard" -> getString(R.string.clipboard)
-                "cursor_move" -> getString(R.string.text_editing)
-                "floating_toggle" -> getString(R.string.floating_keyboard)
-                "language_switch" -> getString(R.string.language_switch)
-                "reload_config" -> getString(R.string.reload_config)
-                "one_handed_keyboard" -> getString(R.string.one_handed_keyboard)
-                "input_method_options" -> getString(R.string.input_method_options)
-                "undo" -> getString(R.string.undo)
-                "redo" -> getString(R.string.redo)
-                "settings_global_options" -> getString(R.string.global_options)
-                "settings_input_methods" -> getString(R.string.input_methods)
-                "settings_candidates_window" -> getString(R.string.candidates_window)
-                "settings_clipboard" -> getString(R.string.clipboard)
-                "settings_symbol" -> getString(R.string.emoji_and_symbols)
-                "settings_plugin" -> getString(R.string.plugins)
-                "settings_advanced" -> getString(R.string.advanced)
-                "settings_developer" -> getString(R.string.developer)
-                "settings_about" -> getString(R.string.about)
-                "settings_license" -> getString(R.string.license)
-                "edit_text_keyboard_layout" -> getString(R.string.edit_text_keyboard_layout)
-                "text_keyboard_layout_file_select" -> getString(R.string.text_keyboard_layout_file_select_title)
-                "edit_fontset" -> getString(R.string.edit_fontset)
-                else -> actionId
+            if (actionId == "more") {
+                return getString(R.string.macro_editor_app_action_status_area_menu)
             }
+            if (actionId == "settings_clipboard") {
+                return getString(R.string.macro_editor_app_action_clipboard_settings)
+            }
+            if (actionId == "settings_advanced") {
+                return getString(R.string.macro_editor_app_action_advanced_settings)
+            }
+            return ButtonAction.fromId(actionId)
+                ?.let { getString(it.defaultLabelRes) }
+                ?: actionId
         }
 
         private fun showEditKeyDialog(step: MacroStepData, key: KeyData, onSuccess: () -> Unit, onCancel: () -> Unit) {

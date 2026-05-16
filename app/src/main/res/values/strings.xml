@@ -652,10 +652,10 @@
     <string name="key_border_stroke">Enable stroke for key border</string>
 
     <!-- Text Keyboard Layout Editor -->
-    <string name="edit_text_keyboard_layout">Edit Text Keyboard Layout</string>
-    <string name="edit_text_keyboard_layout_summary">Edit text keyboard layout (TextKeyboardLayout.json)</string>
-    <string name="edit_text_keyboard_layout_summary_with_file">Edit text keyboard layout (%1$s)</string>
-    <string name="text_keyboard_layout_file_select_title">Text keyboard layout file</string>
+    <string name="edit_text_keyboard_layout">Edit General Keyboard Layout</string>
+    <string name="edit_text_keyboard_layout_summary">Edit general keyboard layout (GeneralKeyboardLayout.json)</string>
+    <string name="edit_text_keyboard_layout_summary_with_file">Edit general keyboard layout (%1$s)</string>
+    <string name="text_keyboard_layout_file_select_title">General Keyboard Layout Profiles</string>
     <string name="text_keyboard_layout_file_select_summary">Current profile: %1$s</string>
     <string name="text_keyboard_layout_file_switch">Switch layout file</string>
     <string name="text_keyboard_layout_file_create">Create layout file</string>
@@ -778,6 +778,9 @@
     <string name="macro_editor_all_modifiers_added">All modifiers have been added</string>
     <string name="macro_editor_app_picker_title">Select App Action</string>
     <string name="macro_editor_app_action_more">Advanced Menu</string>
+    <string name="macro_editor_app_action_status_area_menu">Status Area Menu</string>
+    <string name="macro_editor_app_action_clipboard_settings">Clipboard Settings</string>
+    <string name="macro_editor_app_action_advanced_settings">Advanced Settings</string>
     <string name="custom_theme_confirm">OK</string>
     <string name="custom_theme_cancel">Cancel</string>
     <string name="custom_theme_preview_candidate">Candidate</string>

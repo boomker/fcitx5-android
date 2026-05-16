@@ -9,11 +9,13 @@ import java.io.File
 
 object UserConfigFiles {
     const val DEFAULT_TEXT_KEYBOARD_LAYOUT_PROFILE = "default"
-    private const val TEXT_KEYBOARD_LAYOUT_DEFAULT_FILE_NAME = "TextKeyboardLayout.json"
-    private const val TEXT_KEYBOARD_LAYOUT_PREFIX = "TextKeyboardLayout."
+    private const val TEXT_KEYBOARD_LAYOUT_DEFAULT_FILE_NAME = "GeneralKeyboardLayout.json"
+    private const val LEGACY_TEXT_KEYBOARD_LAYOUT_DEFAULT_FILE_NAME = "TextKeyboardLayout.json"
+    private const val TEXT_KEYBOARD_LAYOUT_PREFIX = "GeneralKeyboardLayout."
+    private const val LEGACY_TEXT_KEYBOARD_LAYOUT_PREFIX = "TextKeyboardLayout."
     private const val JSON_SUFFIX = ".json"
     private val TEXT_KEYBOARD_LAYOUT_BACKUP_FILE_NAME = Regex(
-        "^TextKeyboardLayout(?:\\..+)?_backup_\\d{8}_\\d{6}(?:_.*)?\\.json$"
+        "^(?:GeneralKeyboardLayout|TextKeyboardLayout)(?:\\..+)?_backup_\\d{8}_\\d{6}(?:_.*)?\\.json$"
     )
 
     private fun externalFilesRoot(): File? = appContext.getExternalFilesDir(null)
@@ -26,12 +28,9 @@ object UserConfigFiles {
 
     fun textKeyboardLayoutJson(profile: String): File? {
         val normalized = normalizeTextKeyboardLayoutProfile(profile) ?: return null
-        val fileName = if (normalized == DEFAULT_TEXT_KEYBOARD_LAYOUT_PROFILE) {
-            TEXT_KEYBOARD_LAYOUT_DEFAULT_FILE_NAME
-        } else {
-            "$TEXT_KEYBOARD_LAYOUT_PREFIX$normalized$JSON_SUFFIX"
-        }
-        return configDir()?.let { File(it, fileName) }
+        val dir = configDir() ?: return null
+        return resolveExistingTextKeyboardLayoutFile(dir, normalized)
+            ?: File(dir, preferredTextKeyboardLayoutFileName(normalized))
     }
 
     fun normalizeTextKeyboardLayoutProfile(raw: String): String? {
@@ -60,14 +59,30 @@ object UserConfigFiles {
             .orEmpty()
 
         val profiles = mutableSetOf<String>()
-        if (fileNames.any { it == TEXT_KEYBOARD_LAYOUT_DEFAULT_FILE_NAME }) {
+        if (
+            fileNames.any {
+                it == TEXT_KEYBOARD_LAYOUT_DEFAULT_FILE_NAME ||
+                    it == LEGACY_TEXT_KEYBOARD_LAYOUT_DEFAULT_FILE_NAME
+            }
+        ) {
             profiles += DEFAULT_TEXT_KEYBOARD_LAYOUT_PROFILE
         }
         fileNames.forEach { name ->
             if (TEXT_KEYBOARD_LAYOUT_BACKUP_FILE_NAME.matches(name)) return@forEach
-            if (name == TEXT_KEYBOARD_LAYOUT_DEFAULT_FILE_NAME) return@forEach
-            if (name.startsWith(TEXT_KEYBOARD_LAYOUT_PREFIX) && name.endsWith(JSON_SUFFIX)) {
-                val rawProfile = name.removePrefix(TEXT_KEYBOARD_LAYOUT_PREFIX).removeSuffix(JSON_SUFFIX)
+            if (
+                name == TEXT_KEYBOARD_LAYOUT_DEFAULT_FILE_NAME ||
+                    name == LEGACY_TEXT_KEYBOARD_LAYOUT_DEFAULT_FILE_NAME
+            ) {
+                return@forEach
+            }
+            val rawProfile = when {
+                name.startsWith(TEXT_KEYBOARD_LAYOUT_PREFIX) && name.endsWith(JSON_SUFFIX) ->
+                    name.removePrefix(TEXT_KEYBOARD_LAYOUT_PREFIX).removeSuffix(JSON_SUFFIX)
+                name.startsWith(LEGACY_TEXT_KEYBOARD_LAYOUT_PREFIX) && name.endsWith(JSON_SUFFIX) ->
+                    name.removePrefix(LEGACY_TEXT_KEYBOARD_LAYOUT_PREFIX).removeSuffix(JSON_SUFFIX)
+                else -> null
+            }
+            if (rawProfile != null) {
                 val profile = normalizeTextKeyboardLayoutProfile(rawProfile)
                 if (profile != null && profile != DEFAULT_TEXT_KEYBOARD_LAYOUT_PROFILE) {
                     profiles += profile
@@ -81,11 +96,7 @@ object UserConfigFiles {
 
     fun textKeyboardLayoutFileName(profile: String): String {
         val normalized = normalizeTextKeyboardLayoutProfile(profile) ?: DEFAULT_TEXT_KEYBOARD_LAYOUT_PROFILE
-        return if (normalized == DEFAULT_TEXT_KEYBOARD_LAYOUT_PROFILE) {
-            TEXT_KEYBOARD_LAYOUT_DEFAULT_FILE_NAME
-        } else {
-            "$TEXT_KEYBOARD_LAYOUT_PREFIX$normalized$JSON_SUFFIX"
-        }
+        return preferredTextKeyboardLayoutFileName(normalized)
     }
 
     fun popupPresetJson(): File? = configDir()?.let { File(it, "PopupPreset.json") }
@@ -101,4 +112,30 @@ object UserConfigFiles {
      * Replaces separate KawaiiBarButtonsLayout.json and StatusAreaButtonsLayout.json files.
      */
     fun buttonsLayoutConfig(): File? = configDir()?.let { File(it, "ButtonsLayout.json") }
+
+    private fun preferredTextKeyboardLayoutFileName(profile: String): String {
+        return if (profile == DEFAULT_TEXT_KEYBOARD_LAYOUT_PROFILE) {
+            TEXT_KEYBOARD_LAYOUT_DEFAULT_FILE_NAME
+        } else {
+            "$TEXT_KEYBOARD_LAYOUT_PREFIX$profile$JSON_SUFFIX"
+        }
+    }
+
+    private fun legacyTextKeyboardLayoutFileName(profile: String): String {
+        return if (profile == DEFAULT_TEXT_KEYBOARD_LAYOUT_PROFILE) {
+            LEGACY_TEXT_KEYBOARD_LAYOUT_DEFAULT_FILE_NAME
+        } else {
+            "$LEGACY_TEXT_KEYBOARD_LAYOUT_PREFIX$profile$JSON_SUFFIX"
+        }
+    }
+
+    private fun resolveExistingTextKeyboardLayoutFile(dir: File, profile: String): File? {
+        val preferred = File(dir, preferredTextKeyboardLayoutFileName(profile))
+        if (preferred.isFile) return preferred
+
+        val legacy = File(dir, legacyTextKeyboardLayoutFileName(profile))
+        if (legacy.isFile) return legacy
+
+        return null
+    }
 }

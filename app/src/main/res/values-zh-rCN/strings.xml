@@ -501,10 +501,10 @@
 
     <!-- Text Keyboard Layout Editor -->
     <string name="edit_text_playground">EditText 试验场</string>
-    <string name="edit_text_keyboard_layout">编辑文本键盘布局</string>
-    <string name="edit_text_keyboard_layout_summary">编辑文本键盘布局（TextKeyboardLayout.json）</string>
-    <string name="edit_text_keyboard_layout_summary_with_file">编辑文本键盘布局（%1$s）</string>
-    <string name="text_keyboard_layout_file_select_title">文本键盘布局文件</string>
+    <string name="edit_text_keyboard_layout">编辑通用键盘布局</string>
+    <string name="edit_text_keyboard_layout_summary">编辑通用键盘布局（GeneralKeyboardLayout.json）</string>
+    <string name="edit_text_keyboard_layout_summary_with_file">编辑通用键盘布局（%1$s）</string>
+    <string name="text_keyboard_layout_file_select_title">通用键盘布局清单</string>
     <string name="text_keyboard_layout_file_select_summary">当前配置：%1$s</string>
     <string name="text_keyboard_layout_file_switch">切换布局文件</string>
     <string name="text_keyboard_layout_file_create">新建布局文件</string>
@@ -635,6 +635,9 @@
     <string name="macro_editor_all_modifiers_added">已添加所有修饰键</string>
     <string name="macro_editor_app_picker_title">选择应用动作</string>
     <string name="macro_editor_app_action_more">高级菜单</string>
+    <string name="macro_editor_app_action_status_area_menu">状态区菜单</string>
+    <string name="macro_editor_app_action_clipboard_settings">剪贴板设置</string>
+    <string name="macro_editor_app_action_advanced_settings">高级设置</string>
     <string name="custom_theme_confirm">确定</string>
     <string name="custom_theme_cancel">取消</string>
     <string name="custom_theme_preview_candidate">候选</string>

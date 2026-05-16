@@ -119,6 +119,7 @@ sealed class ButtonAction {
             ThemeToggleAction,
             LanguageSwitchAction,
             ThemeAction,
+            MoreAction,
             InputMethodOptionsAction,
             ReloadConfigAction,
             VirtualKeyboardAction,
@@ -130,9 +131,47 @@ sealed class ButtonAction {
             SettingsClipboardSettingsAction,
             SettingsSymbolSettingsAction,
             SettingsPluginSettingsAction,
+            SettingsLlmAction,
             SettingsAdvancedAction,
             SettingsDeveloperAction,
             SettingsAboutAction,
+            SettingsLicenseAction,
+            EditTextKeyboardLayoutAction,
+            TextKeyboardLayoutFileSelectAction,
+            EditFontsetAction,
+        )
+
+        /**
+         * Actions exposed by macro editor as "app actions".
+         */
+        val macroEditorActions = listOf(
+            ThemeAction,
+            VirtualKeyboardAction,
+            MoreAction,
+            BrowseUserDataDirAction,
+            ClipboardAction,
+            CursorMoveAction,
+            FloatingToggleAction,
+            LanguageSwitchAction,
+            ReloadConfigAction,
+            OneHandedKeyboardAction,
+            InputMethodOptionsAction,
+            UndoAction,
+            RedoAction,
+            SettingsGlobalOptionsAction,
+            SettingsInputMethodsAction,
+            SettingsCandidatesWindowAction,
+            SettingsClipboardSettingsAction,
+            SettingsSymbolSettingsAction,
+            SettingsPluginSettingsAction,
+            SettingsLlmAction,
+            SettingsAdvancedAction,
+            SettingsDeveloperAction,
+            SettingsAboutAction,
+            SettingsLicenseAction,
+            EditTextKeyboardLayoutAction,
+            TextKeyboardLayoutFileSelectAction,
+            EditFontsetAction
         )
 
         /**
@@ -643,6 +682,23 @@ data object SettingsPluginSettingsAction : ButtonAction() {
         onActionComplete: (() -> Unit)?
     ) {
         AppUtil.launchMainToRoute(context, SettingsRoute.Plugin)
+    }
+}
+
+data object SettingsLlmAction : ButtonAction() {
+    override val id = "settings_llm"
+    override val defaultIcon = R.drawable.ic_baseline_auto_awesome_24
+    override val defaultLabelRes = R.string.llm_settings_title
+
+    override fun execute(
+        context: Context,
+        service: FcitxInputMethodService,
+        fcitx: FcitxConnection,
+        windowManager: InputWindowManager,
+        view: View?,
+        onActionComplete: (() -> Unit)?
+    ) {
+        AppUtil.launchMainToRoute(context, SettingsRoute.Llm)
     }
 }
 

@@ -411,7 +411,7 @@
     <string name="emoji_skin_tone_type_6">🏿 深膚色 (Type-6)</string>
     <string name="hide_unsupported_emojis">隱藏不支援的表情</string>
     <string name="edit_text_playground">EditText 試驗場</string>
-    <string name="edit_text_keyboard_layout">編輯文字鍵盤佈局</string>
+    <string name="edit_text_keyboard_layout">編輯通用鍵盤佈局</string>
     <string name="text_keyboard_layout_preview">預覽</string>
     <string name="ok">確定</string>
     <string name="cancel">取消</string>
@@ -519,9 +519,9 @@
     <string name="fontset_entry_popup_key">彈出按鍵字體</string>
     <string name="fontset_entry_preedit">預編輯字體</string>
     <string name="key_border_stroke">按鍵邊框描邊</string>
-    <string name="edit_text_keyboard_layout_summary">編輯文字鍵盤佈局並預覽按鍵配置</string>
-    <string name="edit_text_keyboard_layout_summary_with_file">編輯文字鍵盤佈局（%1$s）</string>
-    <string name="text_keyboard_layout_file_select_title">文字鍵盤佈局檔案</string>
+    <string name="edit_text_keyboard_layout_summary">編輯通用鍵盤佈局（GeneralKeyboardLayout.json）</string>
+    <string name="edit_text_keyboard_layout_summary_with_file">編輯通用鍵盤佈局（%1$s）</string>
+    <string name="text_keyboard_layout_file_select_title">通用鍵盤佈局清單</string>
     <string name="text_keyboard_layout_file_select_summary">目前檔案：%1$s</string>
     <string name="text_keyboard_layout_file_switch">切換佈局檔案</string>
     <string name="text_keyboard_layout_file_create">建立佈局檔案</string>
@@ -607,6 +607,9 @@
     <string name="macro_editor_all_modifiers_added">已新增所有修飾鍵</string>
     <string name="macro_editor_app_picker_title">選擇應用動作</string>
     <string name="macro_editor_app_action_more">進階選單</string>
+    <string name="macro_editor_app_action_status_area_menu">狀態區選單</string>
+    <string name="macro_editor_app_action_clipboard_settings">剪貼簿設定</string>
+    <string name="macro_editor_app_action_advanced_settings">進階設定</string>
     <string name="custom_theme_confirm">確定</string>
     <string name="custom_theme_cancel">取消</string>
     <string name="custom_theme_preview_candidate">候選</string>

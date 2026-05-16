@@ -295,7 +295,7 @@
     <string name="popup_editor_add_candidate_button">追加</string>
     <string name="popup_editor_candidate_input_hint">候補値を入力</string>
     <string name="edit_text_playground">EditText プレイグラウンド</string>
-    <string name="edit_text_keyboard_layout">テキストキーボードレイアウトを編集</string>
+    <string name="edit_text_keyboard_layout">汎用キーボードレイアウトを編集</string>
     <string name="font_size">フォントサイズ</string>
     <string name="font_size_value">%1$d sp</string>
     <string name="font_size_editor_title">%1$s - フォントサイズ</string>
@@ -367,8 +367,8 @@
     <string name="text_keyboard_layout_display_text_mode_invalid">新しいモードを追加する前に、行 %1$d を入力してください</string>
     <string name="text_keyboard_layout_display_text_mode_duplicate">モード名 "%1$s" は既に使用されています</string>
     <string name="cannot_resolve_text_keyboard_layout">テキストキーボードレイアウトファイルを解決できません</string>
-    <string name="edit_text_keyboard_layout_summary_with_file">テキストキーボードレイアウトを編集（%1$s）</string>
-    <string name="text_keyboard_layout_file_select_title">テキストキーボードレイアウトファイル</string>
+    <string name="edit_text_keyboard_layout_summary_with_file">汎用キーボードレイアウトを編集（%1$s）</string>
+    <string name="text_keyboard_layout_file_select_title">汎用キーボードレイアウト一覧</string>
     <string name="text_keyboard_layout_file_select_summary">現在のファイル：%1$s</string>
     <string name="text_keyboard_layout_file_switch">レイアウトファイルを切り替え</string>
     <string name="text_keyboard_layout_file_create">レイアウトファイルを作成</string>
@@ -491,6 +491,9 @@
     <string name="macro_editor_all_modifiers_added">すべての修飾キーが追加されました</string>
     <string name="macro_editor_app_picker_title">アプリ操作を選択</string>
     <string name="macro_editor_app_action_more">詳細メニュー</string>
+    <string name="macro_editor_app_action_status_area_menu">ステータスエリアメニュー</string>
+    <string name="macro_editor_app_action_clipboard_settings">クリップボード設定</string>
+    <string name="macro_editor_app_action_advanced_settings">詳細設定</string>
     <string name="custom_theme_confirm">OK</string>
     <string name="custom_theme_cancel">キャンセル</string>
     <string name="custom_theme_preview_candidate">候補</string>
@@ -571,7 +574,7 @@
     <string name="delete_all">すべて削除</string>
     <string name="edit_fontset">フォントセットを編集</string>
     <string name="edit_fontset_summary">fonts/fontset.json を編集してフォントの組み合わせをプレビュー</string>
-    <string name="edit_text_keyboard_layout_summary">テキストキーボードレイアウト（TextKeyboardLayout.json）を編集</string>
+    <string name="edit_text_keyboard_layout_summary">汎用キーボードレイアウトを編集（GeneralKeyboardLayout.json）</string>
     <string name="emoji_and_symbols">絵文字と記号</string>
     <string name="emoji_skin_tone_none">なし</string>
     <string name="emoji_skin_tone_type_1_2">🏻 明るい肌色（タイプ1-2）</string>

@@ -158,7 +158,7 @@
     <string name="popup_editor_add_candidate_button">Añadir</string>
     <string name="popup_editor_candidate_input_hint">Ingrese valor del candidato</string>
     <string name="edit_text_playground">Área de pruebas de EditText</string>
-    <string name="edit_text_keyboard_layout">Editar distribución del teclado de texto</string>
+    <string name="edit_text_keyboard_layout">Editar distribución general del teclado</string>
     <string name="text_keyboard_layout_preview">Vista previa</string>
     <string name="ok">Aceptar</string>
     <string name="cancel">Cancelar</string>
@@ -215,8 +215,8 @@
     <string name="text_keyboard_layout_display_text_mode_invalid">Complete la fila %1$d antes de agregar un nuevo modo</string>
     <string name="text_keyboard_layout_display_text_mode_duplicate">El nombre del modo "%1$s" ya está en uso</string>
     <string name="cannot_resolve_text_keyboard_layout">No se puede localizar el archivo de distribución del teclado de texto</string>
-    <string name="edit_text_keyboard_layout_summary_with_file">Editar diseño de teclado de texto (%1$s)</string>
-    <string name="text_keyboard_layout_file_select_title">Archivo de diseño de teclado de texto</string>
+    <string name="edit_text_keyboard_layout_summary_with_file">Editar distribución general del teclado (%1$s)</string>
+    <string name="text_keyboard_layout_file_select_title">Perfiles de distribución general del teclado</string>
     <string name="text_keyboard_layout_file_select_summary">Archivo actual: %1$s</string>
     <string name="text_keyboard_layout_file_switch">Cambiar archivo de diseño</string>
     <string name="text_keyboard_layout_file_create">Crear archivo de diseño</string>
@@ -355,6 +355,9 @@
     <string name="macro_editor_all_modifiers_added">Se han agregado todos los modificadores</string>
     <string name="macro_editor_app_picker_title">Seleccionar acción de app</string>
     <string name="macro_editor_app_action_more">Menú avanzado</string>
+    <string name="macro_editor_app_action_status_area_menu">Menú del área de estado</string>
+    <string name="macro_editor_app_action_clipboard_settings">Ajustes del portapapeles</string>
+    <string name="macro_editor_app_action_advanced_settings">Ajustes avanzados</string>
     <string name="custom_theme_confirm">OK</string>
     <string name="custom_theme_cancel">Cancelar</string>
     <string name="custom_theme_preview_candidate">Candidato</string>
@@ -460,7 +463,7 @@
     <string name="duplicate_builtin_theme">Duplicar tema integrado…</string>
     <string name="edit_fontset">Editar conjunto de fuentes</string>
     <string name="edit_fontset_summary">Editar fonts/fontset.json y previsualizar combinaciones de fuentes</string>
-    <string name="edit_text_keyboard_layout_summary">Editar diseno del teclado de texto (TextKeyboardLayout.json)</string>
+    <string name="edit_text_keyboard_layout_summary">Editar distribución general del teclado (GeneralKeyboardLayout.json)</string>
     <string name="edited_x">Se edito %1$s</string>
     <string name="editor_info_inspector">Inspector de EditorInfo</string>
     <string name="emoji_and_symbols">Emoji y simbolos</string>
