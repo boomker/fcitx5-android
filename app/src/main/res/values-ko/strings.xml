@@ -636,7 +636,7 @@
     <string name="toolbar_num_row_on_password">비밀번호 입력 시 툴바에 숫자 행 표시</string>
     <string name="update_table">테이블 업데이트</string>
     <string name="user_data_imported">%1$s의 사용자 데이터를 가져왔습니다. 재시작 중…</string>
-    <string name="vivo_keypress_workaround">vivo Origin OS 키 입력 우회 처리</string>
+    <string name="vivo_keypress_workaround">Vivo 키 입력 문제 수정</string>
     <string name="whether_reset_switch_preference">이 설정을 기본값으로 초기화하시겠습니까?</string>
     <string name="text_keyboard_layout_compose_override_title">조합 중 오버라이드</string>
     <string name="text_keyboard_layout_compose_override_not_configured">조합 중에는 기본 키 동작 사용</string>

@@ -635,7 +635,7 @@
     <string name="remove_from_favorites">Aus Favoriten entfernen</string>
     <string name="update_table">Tabelle aktualisieren</string>
     <string name="user_data_imported">Benutzerdaten aus %1$s wurden importiert, Neustart läuft…</string>
-    <string name="vivo_keypress_workaround">Problem bei der Tastenereigniserkennung auf vivo Origin OS beheben</string>
+    <string name="vivo_keypress_workaround">Vivo-Tastenproblem beheben</string>
     <string name="text_keyboard_layout_compose_override_title">Überschreibung während der Eingabe</string>
     <string name="text_keyboard_layout_compose_override_not_configured">Während der Eingabe Standard-Tastenverhalten verwenden</string>
     <string name="text_keyboard_layout_compose_override_configured">Benutzerdefiniertes Tastenverhalten für die Eingabe ist konfiguriert</string>

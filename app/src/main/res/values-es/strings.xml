@@ -639,7 +639,7 @@
     <string name="unimplemented_type">⛔ Tipo no implementado</string>
     <string name="update_table">Actualizar tabla</string>
     <string name="user_data_imported">Los datos de usuario de %1$s se importaron, reiniciando…</string>
-    <string name="vivo_keypress_workaround">Solucion alternativa para pulsaciones en vivo Origin OS</string>
+    <string name="vivo_keypress_workaround">Corregir problema de pulsaciones en Vivo</string>
     <string name="text_keyboard_layout_compose_override_title">Anulación durante composición</string>
     <string name="text_keyboard_layout_compose_override_not_configured">Usar comportamiento de tecla predeterminado durante la composición</string>
     <string name="text_keyboard_layout_compose_override_configured">Se configuró un comportamiento de tecla para la composición</string>

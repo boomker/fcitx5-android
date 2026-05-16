@@ -53,23 +53,23 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
     }
 
     inner class Advanced : ManagedPreferenceCategory(R.string.advanced, sharedPreferences) {
+        val ignoreSystemWindowInsets = switch(
+            R.string.ignore_system_window_insets, "ignore_system_window_insets", false
+        )
         val ignoreSystemCursor = switch(R.string.ignore_sys_cursor, "ignore_system_cursor", false)
-        val hideKeyConfig = switch(R.string.hide_key_config, "hide_key_config", true)
-        val disableAnimation = switch(R.string.disable_animation, "disable_animation", false)
         val vivoKeypressWorkaround = switch(
             R.string.vivo_keypress_workaround,
             "vivo_keypress_workaround",
             // there's some feedback that this workaround is no longer necessary on Origin OS 4, which based on Android 14
             Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE && DeviceUtil.isVivoOriginOS
         )
-        val ignoreSystemWindowInsets = switch(
-            R.string.ignore_system_window_insets, "ignore_system_window_insets", false
-        )
+        val disableAnimation = switch(R.string.disable_animation, "disable_animation", false)
         val allowOriginalPlugins = switch(
             R.string.allow_original_plugins,
             "allow_original_plugins",
             false
         )
+        val hideKeyConfig = switch(R.string.hide_key_config, "hide_key_config", true)
         val blockedPluginPackages = ManagedPreference.PStringSet(
             sharedPreferences,
             "blocked_plugin_packages",

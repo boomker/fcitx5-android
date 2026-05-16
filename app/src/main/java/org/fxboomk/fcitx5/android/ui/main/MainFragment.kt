@@ -49,14 +49,14 @@ class MainFragment : PaddingPreferenceFragment() {
                     SettingsRoute.GlobalConfig
                 )
                 addDestinationPreference(
-                    R.string.input_methods,
-                    R.drawable.ic_baseline_language_24,
-                    SettingsRoute.InputMethodList
-                )
-                addDestinationPreference(
                     R.string.addons,
                     R.drawable.ic_baseline_extension_24,
                     SettingsRoute.AddonList
+                )
+                addDestinationPreference(
+                    R.string.input_methods,
+                    R.drawable.ic_baseline_language_24,
+                    SettingsRoute.InputMethodList
                 )
             }
             addCategory("Android") {

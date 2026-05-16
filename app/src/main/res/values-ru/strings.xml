@@ -183,7 +183,7 @@
     <string name="default_">По умолчанию</string>
     <string name="saving">Сохранение</string>
     <string name="delete_all_pinned_items">Удалить все закрепленные элементы?</string>
-    <string name="vivo_keypress_workaround">Обходной путь для нажатия клавиши в vivo Origin OS</string>
+    <string name="vivo_keypress_workaround">Исправить проблему нажатия клавиш на Vivo</string>
     <string name="invalid_im">Неверный файл конфигурации метода ввода:\n%1$s</string>
     <string name="invalid_table_dict">Неверный словарь:\n%1$s</string>
     <string name="exception_table_im">Файл конфигурации метода ввода кодовой таблицы (.conf или .conf.in) не найден</string>

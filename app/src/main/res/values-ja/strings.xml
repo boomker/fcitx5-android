@@ -178,7 +178,7 @@
     <string name="default_">デフォルト</string>
     <string name="saving">保存する</string>
     <string name="delete_all_pinned_items">固定されたすべてのアイテムを削除しますか？</string>
-    <string name="vivo_keypress_workaround">vivo OriginOSにおけるキー押下時の回避策</string>
+    <string name="vivo_keypress_workaround">Vivo のキー入力問題を修正</string>
     <string name="invalid_im">無効なインプットメゾッド設定ファイル:\n%1$s</string>
     <string name="invalid_table_dict">無効な辞書:\n%1$s</string>
     <string name="exception_table_im">Tableインプットメソッドの設定ファイル（.confもしくは.conf.in）が見つかりません</string>

@@ -257,7 +257,7 @@
     <string name="default_">默认</string>
     <string name="saving">保存中</string>
     <string name="delete_all_pinned_items">要删除所有置顶条目吗？</string>
-    <string name="vivo_keypress_workaround">解决 vivo Origin OS 按键检测问题</string>
+    <string name="vivo_keypress_workaround">修复 Vivo 按键问题</string>
     <string name="invalid_im">无效的输入法配置文件：\n%1$s</string>
     <string name="invalid_table_dict">无效的词典：\n%1$s</string>
     <string name="exception_table_im">未找到码表输入法配置文件（ .conf 或 .conf.in ）</string>
