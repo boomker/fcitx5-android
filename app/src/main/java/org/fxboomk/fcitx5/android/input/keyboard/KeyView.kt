@@ -292,6 +292,27 @@ abstract class KeyView(
         )
     }
 
+    private fun applyRoundedSideKeyBackground(@ColorInt backgroundColor: Int) {
+        val hInset = dp(6)
+        val vInset = dp(4)
+        val borderOrShadowWidth = dp(1)
+        appearanceView.background = shadowedKeyBackgroundDrawable(
+            backgroundColor, resolveShadowColor(theme),
+            radius, borderOrShadowWidth, hMargin, vMargin
+        )
+        appearanceView.padding = 0
+        setupPressHighlight(
+            insetRadiusDrawable(
+                hInset, vInset, radius,
+                if (rippled) Color.WHITE else theme.keyPressHighlightColor
+            )
+        )
+    }
+
+    private fun shouldUseCircularGboardSideKeys(): Boolean {
+        return resources.configuration.orientation != Configuration.ORIENTATION_LANDSCAPE
+    }
+
     private fun maybeRefreshGboardSideKeyShape(viewWidth: Int, viewHeight: Int) {
         if (!ThemeManager.prefs.gboardStyleSideKeys.getValue()) return
         val viewId = resolvedViewId()
@@ -301,11 +322,16 @@ abstract class KeyView(
             Variant.Alternative -> theme.altKeyBackgroundColor
             Variant.Accent -> theme.accentKeyBackgroundColor
         }
-        applyCircularSideKeyBackground(
-            viewWidth = viewWidth,
-            viewHeight = viewHeight,
-            backgroundColor = resolveStyledBackgroundColor(theme, defaultBkgColor)
-        )
+        val backgroundColor = resolveStyledBackgroundColor(theme, defaultBkgColor)
+        if (shouldUseCircularGboardSideKeys()) {
+            applyCircularSideKeyBackground(
+                viewWidth = viewWidth,
+                viewHeight = viewHeight,
+                backgroundColor = backgroundColor
+            )
+        } else {
+            applyRoundedSideKeyBackground(backgroundColor)
+        }
     }
 
     private fun setupPressHighlight(mask: Drawable? = null) {
@@ -401,23 +427,13 @@ abstract class KeyView(
                 }
                 val bkgColor = resolveStyledBackgroundColor(theme, defaultBkgColor)
                 if (ThemeManager.prefs.gboardStyleSideKeys.getValue()) {
-                    applyCircularSideKeyBackground(w, h, bkgColor)
+                    if (shouldUseCircularGboardSideKeys()) {
+                        applyCircularSideKeyBackground(w, h, bkgColor)
+                    } else {
+                        applyRoundedSideKeyBackground(bkgColor)
+                    }
                 } else {
-                    val hInset = dp(6)
-                    val vInset = dp(4)
-                    // Uses user configured radius when switch is OFF
-                    val borderOrShadowWidth = dp(1)
-                    appearanceView.background = shadowedKeyBackgroundDrawable(
-                        bkgColor, resolveShadowColor(theme),
-                        radius, borderOrShadowWidth, hMargin, vMargin
-                    )
-                    appearanceView.padding = 0
-                    setupPressHighlight(
-                        insetRadiusDrawable(
-                            hInset, vInset, radius,
-                            if (rippled) Color.WHITE else theme.keyPressHighlightColor
-                        )
-                    )
+                    applyRoundedSideKeyBackground(bkgColor)
                 }
             }
 
@@ -450,23 +466,13 @@ abstract class KeyView(
                 }
                 val bkgColor = resolveStyledBackgroundColor(theme, defaultBkgColor)
                 if (ThemeManager.prefs.gboardStyleSideKeys.getValue()) {
-                    applyCircularSideKeyBackground(w, h, bkgColor)
+                    if (shouldUseCircularGboardSideKeys()) {
+                        applyCircularSideKeyBackground(w, h, bkgColor)
+                    } else {
+                        applyRoundedSideKeyBackground(bkgColor)
+                    }
                 } else {
-                    val hInset = dp(6)
-                    val vInset = dp(4)
-                    // Uses user configured radius when switch is OFF
-                    val borderOrShadowWidth = dp(1)
-                    appearanceView.background = shadowedKeyBackgroundDrawable(
-                        bkgColor, resolveShadowColor(theme),
-                        radius, borderOrShadowWidth, hMargin, vMargin
-                    )
-                    appearanceView.padding = 0
-                    setupPressHighlight(
-                        insetRadiusDrawable(
-                            hInset, vInset, radius,
-                            if (rippled) Color.WHITE else theme.keyPressHighlightColor
-                        )
-                    )
+                    applyRoundedSideKeyBackground(bkgColor)
                 }
             }
         }
@@ -490,17 +496,16 @@ abstract class KeyView(
             val bkgColor = resolveStyledBackgroundColor(newTheme, defaultBkgColor)
             val borderOrShadowWidth = dp(1)
             if (ThemeManager.prefs.gboardStyleSideKeys.getValue()) {
-                // Rounded rectangle (Gboard style) when switch is ON - uses configured radius
-                appearanceView.background = shadowedKeyBackgroundDrawable(
-                    bkgColor, resolveShadowColor(newTheme),
-                    radius, borderOrShadowWidth, hMargin, vMargin
-                )
+                if (shouldUseCircularGboardSideKeys()) {
+                    appearanceView.background = shadowedKeyBackgroundDrawable(
+                        bkgColor, resolveShadowColor(newTheme),
+                        radius, borderOrShadowWidth, hMargin, vMargin
+                    )
+                } else {
+                    applyRoundedSideKeyBackground(bkgColor)
+                }
             } else {
-                // Rectangle (no rounded corners) when switch is OFF (default)
-                appearanceView.background = borderedRectKeyBackgroundDrawable(
-                    bkgColor, resolveShadowColor(newTheme),
-                    borderOrShadowWidth, hMargin, vMargin
-                )
+                applyRoundedSideKeyBackground(bkgColor)
             }
         } else if ((bordered && def.border != Border.Off) || def.border == Border.On) {
             val defaultBkgColor = if (isMainKeyAreaById(viewId)) {
