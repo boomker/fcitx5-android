@@ -112,6 +112,8 @@ class KeyEditorActivity : AppCompatActivity() {
     private var hasInitialComposeOverride: Boolean = false
     private var independentColor: Boolean = false
     private var keyData: MutableMap<String, Any?> = mutableMapOf()
+    private var keyColorOverrides: LinkedHashMap<String, Any?> = LinkedHashMap()
+    private var inheritedBaseKeyColorData: MutableMap<String, Any?> = mutableMapOf()
     private var composeOverrideData: MutableMap<String, Any?>? = null
 
     private lateinit var typeSpinner: Spinner
@@ -218,8 +220,8 @@ class KeyEditorActivity : AppCompatActivity() {
         registerForActivityResult(ThemeColorEditorActivity.Contract()) { result ->
             result ?: return@registerForActivityResult
             val field = editableColorFields.firstOrNull { it.customKey == result.fieldName } ?: return@registerForActivityResult
-            keyData[field.customKey] = result.color
-            keyData.remove(field.monetKey)
+            persistCurrentDraft()
+            setColorOverride(field, result.color, null)
             rebuildFields()
             updateActionButtonState()
         }
@@ -228,7 +230,9 @@ class KeyEditorActivity : AppCompatActivity() {
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             val data = result.data ?: return@registerForActivityResult
             if (result.resultCode != RESULT_OK) return@registerForActivityResult
+            val colorOverrides = LinkedHashMap(keyColorOverrides)
             persistCurrentDraft()
+            restoreColorOverrides(colorOverrides)
             when (data.getStringExtra(EXTRA_RESULT_ACTION)) {
                 RESULT_ACTION_SAVE -> {
                     val returned = serializableExtraCompat<HashMap<String, Any?>>(data, EXTRA_RESULT_KEY_DATA)
@@ -310,6 +314,10 @@ class KeyEditorActivity : AppCompatActivity() {
 
         val received = serializableExtraCompat<HashMap<String, Any?>>(intent, EXTRA_KEY_DATA)
         keyData = received?.toMutableMap() ?: mutableMapOf()
+        keyColorOverrides = extractColorOverrides(keyData)
+        inheritedBaseKeyColorData = serializableExtraCompat<HashMap<String, Any?>>(intent, EXTRA_BASE_KEY_COLOR_DATA)
+            ?.toMutableMap()
+            ?: mutableMapOf()
         selectedType = intent.getStringExtra(EXTRA_FIXED_TYPE)
             ?: keyData["type"] as? String
             ?: "AlphabetKey"
@@ -796,6 +804,7 @@ class KeyEditorActivity : AppCompatActivity() {
         val switchView = SwitchCompat(this).apply {
             isChecked = independentColor
             setOnCheckedChangeListener { _, isChecked ->
+                persistCurrentDraft()
                 independentColor = isChecked
                 rebuildFields()
                 updateActionButtonState()
@@ -824,6 +833,7 @@ class KeyEditorActivity : AppCompatActivity() {
         }
         val intent = Intent(this, KeyEditorActivity::class.java).apply {
             putExtra(EXTRA_KEY_DATA, toSerializableMap(editorData))
+            putExtra(EXTRA_BASE_KEY_COLOR_DATA, toSerializableMap(keyColorOverrides))
             putExtra(EXTRA_ROW_INDEX, -1)
             putExtra(EXTRA_DISABLE_WEIGHT_EDITING, true)
             putExtra(EXTRA_COMPOSE_OVERRIDE_EDITOR_MODE, true)
@@ -843,8 +853,9 @@ class KeyEditorActivity : AppCompatActivity() {
         val colorEditorEnabled = !composeOverrideEditorMode || independentColor
         availableColorFields().forEach { field ->
             val title = getString(field.labelRes)
-            val customColor = parseColorInt(keyData[field.customKey])
-            val colorRef = keyData[field.monetKey] as? String
+            val colorSource = if (colorEditorEnabled) keyColorOverrides else inheritedBaseKeyColorData
+            val customColor = parseColorInt(colorSource[field.customKey])
+            val colorRef = colorSource[field.monetKey] as? String
             val modeText = when {
                 colorRef != null -> formatColorReferenceName(colorRef)
                 customColor != null -> formatAndroidColorCode(customColor)
@@ -936,8 +947,8 @@ class KeyEditorActivity : AppCompatActivity() {
 
         options += getString(R.string.text_keyboard_layout_key_color_mode_theme)
         actions += {
-            keyData.remove(field.customKey)
-            keyData.remove(field.monetKey)
+            persistCurrentDraft()
+            setColorOverride(field, null, null)
             rebuildFields()
             updateActionButtonState()
         }
@@ -965,7 +976,7 @@ class KeyEditorActivity : AppCompatActivity() {
         if (availableTokens.isEmpty()) return
 
         val theme = ThemeManager.activeTheme
-        val currentToken = (keyData[field.monetKey] as? String)
+        val currentToken = (keyColorOverrides[field.monetKey] as? String)
             ?.takeIf { it.startsWith(THEME_COLOR_REF_PREFIX) }
             ?.removePrefix(THEME_COLOR_REF_PREFIX)
         val checkedIndex = availableTokens.indexOfFirst { it.token == currentToken }
@@ -977,8 +988,8 @@ class KeyEditorActivity : AppCompatActivity() {
                 checkedIndex
             ) { dialog, which ->
                 val token = availableTokens.getOrNull(which)?.token ?: return@setSingleChoiceItems
-                keyData[field.monetKey] = "$THEME_COLOR_REF_PREFIX$token"
-                keyData.remove(field.customKey)
+                persistCurrentDraft()
+                setColorOverride(field, null, "$THEME_COLOR_REF_PREFIX$token")
                 dialog.dismiss()
                 rebuildFields()
                 updateActionButtonState()
@@ -988,8 +999,13 @@ class KeyEditorActivity : AppCompatActivity() {
     }
 
     private fun openCustomColorEditor(field: EditableColorField) {
+        persistCurrentDraft()
         val theme = ThemeManager.activeTheme
-        val current = parseColorInt(keyData[field.customKey]) ?: field.themeColorGetter(theme)
+        val current = parseColorInt(keyColorOverrides[field.customKey])
+            ?: resolveColorReference(theme, keyColorOverrides[field.monetKey] as? String)
+            ?: resolveColorReference(theme, inheritedBaseKeyColorData[field.monetKey] as? String)
+            ?: parseColorInt(inheritedBaseKeyColorData[field.customKey])
+            ?: field.themeColorGetter(theme)
         if (DeviceUtil.isHMOS) {
             colorEditorLauncher.launch(
                 ThemeColorEditorActivity.EditorInput(
@@ -1015,7 +1031,7 @@ class KeyEditorActivity : AppCompatActivity() {
             return
         }
         val available = SystemColorResourceId.getAvailableForSdk(Build.VERSION.SDK_INT)
-        val current = (keyData[field.monetKey] as? String)
+        val current = (keyColorOverrides[field.monetKey] as? String)
             ?.takeUnless { it.startsWith(THEME_COLOR_REF_PREFIX) }
             ?.let(SystemColorResourceId::fromResourceName)
             ?: available.firstOrNull()
@@ -1025,8 +1041,8 @@ class KeyEditorActivity : AppCompatActivity() {
             current,
             object : SystemColorResourcePickerDialog.OnColorResourceSelectedListener {
                 override fun onColorResourceSelected(resourceId: SystemColorResourceId) {
-                    keyData[field.monetKey] = resourceId.resourceId
-                    keyData.remove(field.customKey)
+                    persistCurrentDraft()
+                    setColorOverride(field, null, resourceId.resourceId)
                     rebuildFields()
                     updateActionButtonState()
                 }
@@ -1378,6 +1394,7 @@ class KeyEditorActivity : AppCompatActivity() {
         eventType: String,
         callback: (List<Any>) -> Unit
     ) {
+        persistCurrentDraft()
         val intent = Intent(this, MacroEditorActivity::class.java)
         if (initialSteps.isNotEmpty()) {
             val serializableSteps = ArrayList<Map<*, *>>()
@@ -1735,13 +1752,51 @@ class KeyEditorActivity : AppCompatActivity() {
     }
 
     private fun appendColorOverrides(target: MutableMap<String, Any?>) {
+        if (composeOverrideEditorMode && !independentColor) return
         availableColorFields().forEach { field ->
-            val monet = (keyData[field.monetKey] as? String)?.takeIf { it.isNotBlank() }
+            val monet = (keyColorOverrides[field.monetKey] as? String)?.takeIf { it.isNotBlank() }
             if (monet != null) {
                 target[field.monetKey] = monet
             } else {
-                parseColorInt(keyData[field.customKey])?.let { target[field.customKey] = it }
+                parseColorInt(keyColorOverrides[field.customKey])?.let { target[field.customKey] = it }
             }
+        }
+    }
+
+    private fun setColorOverride(field: EditableColorField, customColor: Int?, colorRef: String?) {
+        keyColorOverrides.remove(field.customKey)
+        keyColorOverrides.remove(field.monetKey)
+        keyData.remove(field.customKey)
+        keyData.remove(field.monetKey)
+        when {
+            colorRef != null -> {
+                keyColorOverrides[field.monetKey] = colorRef
+                keyData[field.monetKey] = colorRef
+            }
+            customColor != null -> {
+                keyColorOverrides[field.customKey] = customColor
+                keyData[field.customKey] = customColor
+            }
+        }
+    }
+
+    private fun extractColorOverrides(source: Map<String, Any?>): LinkedHashMap<String, Any?> {
+        val colors = LinkedHashMap<String, Any?>()
+        editableColorFields.forEach { field ->
+            source[field.customKey]?.let { colors[field.customKey] = it }
+            source[field.monetKey]?.let { colors[field.monetKey] = it }
+        }
+        return colors
+    }
+
+    private fun restoreColorOverrides(colors: Map<String, Any?>) {
+        editableColorFields.forEach { field ->
+            keyData.remove(field.customKey)
+            keyData.remove(field.monetKey)
+        }
+        keyColorOverrides = LinkedHashMap(colors)
+        colors.forEach { (key, value) ->
+            keyData[key] = value
         }
     }
 
@@ -1773,6 +1828,7 @@ class KeyEditorActivity : AppCompatActivity() {
         const val EXTRA_HAS_INITIAL_COMPOSE_OVERRIDE = "has_initial_compose_override"
         const val EXTRA_FIXED_TYPE = "fixed_type"
         const val EXTRA_TITLE_OVERRIDE = "title_override"
+        private const val EXTRA_BASE_KEY_COLOR_DATA = "base_key_color_data"
 
         const val EXTRA_RESULT_ACTION = "result_action"
         const val EXTRA_RESULT_KEY_DATA = "result_key_data"
