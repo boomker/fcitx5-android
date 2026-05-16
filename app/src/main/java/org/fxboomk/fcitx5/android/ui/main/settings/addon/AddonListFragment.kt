@@ -14,15 +14,31 @@ import org.fxboomk.fcitx5.android.daemon.launchOnReady
 import org.fxboomk.fcitx5.android.ui.common.BaseDynamicListUi
 import org.fxboomk.fcitx5.android.ui.common.CheckBoxListUi
 import org.fxboomk.fcitx5.android.ui.common.OnItemChangedListener
+import org.fxboomk.fcitx5.android.ui.main.settings.PreferenceScreenFactory
 import org.fxboomk.fcitx5.android.ui.main.settings.ProgressFragment
 import org.fxboomk.fcitx5.android.ui.main.settings.SettingsRoute
 import org.fxboomk.fcitx5.android.utils.navigateWithAnim
 
 class AddonListFragment : ProgressFragment(), OnItemChangedListener<AddonInfo> {
+    companion object {
+        private val hiddenAddons = setOf("pinyinhelper")
+        private val preferredOrder = listOf(
+            "pinyin",
+            "table",
+            "spell",
+            "punctuation",
+            "rime",
+            "clipboard",
+            "quickphrase",
+            "unicode"
+        ).withIndex().associate { it.value to it.index }
+    }
 
     private lateinit var ui: BaseDynamicListUi<AddonInfo>
 
     private val addonDisplayNames = mutableMapOf<String, String>()
+
+    private fun displayNameOf(addon: AddonInfo): String = addon.displayName
 
     private fun updateAddonState() {
         if (!isInitialized) return
@@ -93,11 +109,37 @@ class AddonListFragment : ProgressFragment(), OnItemChangedListener<AddonInfo> {
     }
 
     override suspend fun initialize(): View {
+        val visibleConfigAddons = fcitx.runOnReady {
+            buildSet {
+                addons()
+                    .filter { it.enabled && it.isConfigurable && it.uniqueName !in hiddenAddons }
+                    .forEach { addon ->
+                        if (PreferenceScreenFactory.hasVisibleOptions(getAddonConfig(addon.uniqueName))) {
+                            add(addon.uniqueName)
+                        }
+                    }
+            }
+        }
         ui = requireContext().CheckBoxListUi(
             initialEntries = fcitx.runOnReady {
                 addons()
-                    .sortedBy { it.uniqueName }
-                    .onEach { addonDisplayNames[it.uniqueName] = it.displayName }
+                    .filter { it.uniqueName !in hiddenAddons }
+                    .sortedWith(
+                        compareBy<AddonInfo> {
+                            when (it.uniqueName) {
+                                in preferredOrder -> 0
+                                "androidfrontend" -> 2
+                                "notifications" -> 3
+                                else -> 1
+                            }
+                        }.thenBy {
+                            when (it.uniqueName) {
+                                in preferredOrder -> preferredOrder.getValue(it.uniqueName)
+                                else -> 0
+                            }
+                        }.thenBy { it.uniqueName }
+                    )
+                    .onEach { addonDisplayNames[it.uniqueName] = displayNameOf(it) }
             },
             initCheckBox = { entry ->
                 // our addon shouldn't be disabled
@@ -112,7 +154,9 @@ class AddonListFragment : ProgressFragment(), OnItemChangedListener<AddonInfo> {
             },
             initSettingsButton = { entry ->
                 visibility =
-                    if (entry.isConfigurable && entry.enabled) View.VISIBLE else View.INVISIBLE
+                    if (entry.isConfigurable && entry.enabled &&
+                        entry.uniqueName in visibleConfigAddons
+                    ) View.VISIBLE else View.INVISIBLE
                 setOnClickListener {
                     // clipboard addon has its own settings page
                     if (entry.uniqueName == "clipboard") {
@@ -124,7 +168,7 @@ class AddonListFragment : ProgressFragment(), OnItemChangedListener<AddonInfo> {
                     }
                 }
             },
-            show = { it.displayName }
+            show = ::displayNameOf
         )
         ui.addOnItemChangedListener(this)
         return ui.root

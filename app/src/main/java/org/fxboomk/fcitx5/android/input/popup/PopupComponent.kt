@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 import org.fxboomk.fcitx5.android.data.theme.ThemeManager
 import org.fxboomk.fcitx5.android.input.broadcast.PunctuationComponent
 import org.fxboomk.fcitx5.android.input.dependency.context
+import org.fxboomk.fcitx5.android.input.dependency.fcitx
 import org.fxboomk.fcitx5.android.input.dependency.inputMethodService
 import org.fxboomk.fcitx5.android.input.dependency.theme
 import org.fxboomk.fcitx5.android.input.keyboard.KeyAction
@@ -40,6 +41,7 @@ class PopupComponent :
     }
 
     private val service by manager.inputMethodService()
+    private val fcitx by manager.fcitx()
     private val context by manager.context()
     private val theme by manager.theme()
     private val punctuation: PunctuationComponent by manager.must()
@@ -238,8 +240,26 @@ class PopupComponent :
         showPopupContainer(viewId, keyboardUi)
     }
 
+    private fun enabledAddonNames(): Set<String> = runCatching {
+        fcitx.runImmediately {
+            addons().asSequence()
+                .filter { it.enabled }
+                .map { it.uniqueName }
+                .toSet()
+        }
+    }.getOrDefault(emptySet())
+
+    private fun isMenuItemAvailable(item: KeyDef.Popup.Menu.Item, enabledAddons: Set<String>): Boolean =
+        when (item.action) {
+            KeyAction.QuickPhraseAction -> "quickphrase" in enabledAddons
+            KeyAction.UnicodeAction -> "unicode" in enabledAddons
+            else -> true
+        }
+
     private fun showMenu(viewId: Int, menu: KeyDef.Popup.Menu, bounds: Rect) {
-        if (menu.items.isEmpty()) {
+        val enabledAddons = enabledAddonNames()
+        val availableItems = menu.items.filter { isMenuItemAvailable(it, enabledAddons) }
+        if (availableItems.isEmpty()) {
             dismissPopup(viewId)
             return
         }
@@ -252,7 +272,7 @@ class PopupComponent :
             rootBounds,
             bounds,
             { dismissPopup(viewId) },
-            menu.items,
+            availableItems.toTypedArray(),
         )
         showPopupContainer(viewId, menuUi)
     }

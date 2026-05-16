@@ -14,7 +14,7 @@ msgstr ""
 msgid "Android Frontend" 
 msgstr ""
 
-msgid "Android Keyboard"
+msgid "English Keyboard"
 msgstr ""
 
 msgid "Word hint"

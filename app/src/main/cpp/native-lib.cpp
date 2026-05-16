@@ -139,12 +139,40 @@ public:
         p_instance->enumerate(forward);
     }
 
+    bool isAddonEnabled(const fcitx::AddonInfo *addonInfo,
+                        const std::unordered_set<std::string> &enabledSet,
+                        const std::unordered_set<std::string> &disabledSet) {
+        if (!addonInfo) {
+            return false;
+        }
+        bool enabled = addonInfo->isDefaultEnabled();
+        if (disabledSet.count(addonInfo->uniqueName())) {
+            enabled = false;
+        } else if (enabledSet.count(addonInfo->uniqueName())) {
+            enabled = true;
+        }
+        return enabled;
+    }
+
     std::vector<const fcitx::InputMethodEntry *> listInputMethods() {
         const auto &imMgr = p_instance->inputMethodManager();
         const auto &list = imMgr.currentGroup().inputMethodList();
         std::vector<const fcitx::InputMethodEntry *> entries;
+        auto &globalConfig = p_instance->globalConfig();
+        auto &addonManager = p_instance->addonManager();
+        const auto &enabledAddons = globalConfig.enabledAddons();
+        const std::unordered_set<std::string> enabledSet(enabledAddons.begin(), enabledAddons.end());
+        const auto &disabledAddons = globalConfig.disabledAddons();
+        const std::unordered_set<std::string> disabledSet(disabledAddons.begin(), disabledAddons.end());
         for (const auto &ime: list) {
             const auto *entry = imMgr.entry(ime.name());
+            if (!entry) {
+                continue;
+            }
+            const auto *addonInfo = addonManager.addonInfo(entry->addon());
+            if (!isAddonEnabled(addonInfo, enabledSet, disabledSet)) {
+                continue;
+            }
             entries.emplace_back(entry);
         }
         return entries;
@@ -168,7 +196,17 @@ public:
 
     std::vector<const fcitx::InputMethodEntry *> availableInputMethods() {
         std::vector<const fcitx::InputMethodEntry *> entries;
+        auto &globalConfig = p_instance->globalConfig();
+        auto &addonManager = p_instance->addonManager();
+        const auto &enabledAddons = globalConfig.enabledAddons();
+        const std::unordered_set<std::string> enabledSet(enabledAddons.begin(), enabledAddons.end());
+        const auto &disabledAddons = globalConfig.disabledAddons();
+        const std::unordered_set<std::string> disabledSet(disabledAddons.begin(), disabledAddons.end());
         p_instance->inputMethodManager().foreachEntries([&](const auto &entry) {
+            const auto *addonInfo = addonManager.addonInfo(entry.addon());
+            if (!isAddonEnabled(addonInfo, enabledSet, disabledSet)) {
+                return true;
+            }
             entries.emplace_back(&entry);
             return true;
         });
@@ -319,6 +357,7 @@ public:
     void setAddonState(const std::map<std::string, bool> &state) {
         auto &globalConfig = p_instance->globalConfig();
         auto &addonManager = p_instance->addonManager();
+        auto &imMgr = p_instance->inputMethodManager();
         const auto &enabledAddons = globalConfig.enabledAddons();
         std::set<std::string> enabledSet(enabledAddons.begin(), enabledAddons.end());
         const auto &disabledAddons = globalConfig.disabledAddons();
@@ -345,6 +384,33 @@ public:
         globalConfig.setDisabledAddons({disabledSet.begin(), disabledSet.end()});
         globalConfig.safeSave();
         p_instance->reloadConfig();
+
+        const std::unordered_set<std::string> enabledAddonSet(enabledSet.begin(), enabledSet.end());
+        const std::unordered_set<std::string> disabledAddonSet(disabledSet.begin(), disabledSet.end());
+        fcitx::InputMethodGroup newGroup(imMgr.currentGroup().name());
+        newGroup.setDefaultLayout(imMgr.currentGroup().defaultLayout());
+        const auto &currentList = imMgr.currentGroup().inputMethodList();
+        auto &newList = newGroup.inputMethodList();
+        for (const auto &item : currentList) {
+            const auto *entry = imMgr.entry(item.name());
+            if (!entry) {
+                continue;
+            }
+            const auto *addonInfo = addonManager.addonInfo(entry->addon());
+            if (!isAddonEnabled(addonInfo, enabledAddonSet, disabledAddonSet)) {
+                continue;
+            }
+            newList.emplace_back(item);
+        }
+        if (!newList.empty()) {
+            const auto &defaultIm = imMgr.currentGroup().defaultInputMethod();
+            auto iter = std::find_if(newList.begin(), newList.end(), [&](const auto &item) {
+                return item.name() == defaultIm;
+            });
+            newGroup.setDefaultInputMethod(iter != newList.end() ? defaultIm : newList.front().name());
+            imMgr.setGroup(std::move(newGroup));
+            imMgr.save();
+        }
     }
 
     void triggerQuickPhrase() {

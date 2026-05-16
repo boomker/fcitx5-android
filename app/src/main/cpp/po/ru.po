@@ -20,8 +20,8 @@ msgstr ""
 msgid "Android Frontend"
 msgstr "Интерфейс Android"
 
-msgid "Android Keyboard"
-msgstr "Клавиатура Android"
+msgid "English Keyboard"
+msgstr "Английская клавиатура"
 
 msgid "Word hint"
 msgstr "Подсказка слова"

@@ -49,6 +49,12 @@ object PreferenceScreenFactory {
 
     private val hideKeyConfig by AppPrefs.getInstance().advanced.hideKeyConfig
 
+    fun hasVisibleOptions(raw: RawConfig): Boolean {
+        val desc = raw.findByName("desc") ?: return false
+        val topLevelDesc = ConfigDescriptor.parseTopLevel(desc).getOrElse { return false }
+        return topLevelDesc.values.any(::isDescriptorVisible)
+    }
+
     fun create(
         preferenceManager: PreferenceManager,
         fragmentManager: FragmentManager,
@@ -310,6 +316,16 @@ object PreferenceScreenFactory {
                 true
             }
             screen.addPreference(this)
+        }
+    }
+
+    private fun isDescriptorVisible(descriptor: ConfigDescriptor<*, *>): Boolean {
+        if (hideKeyConfig && ConfigType.pretty(descriptor.ty).contains("Key")) {
+            return false
+        }
+        return when (descriptor) {
+            is ConfigCustom -> descriptor.customTypeDef?.values?.any(::isDescriptorVisible) == true
+            else -> true
         }
     }
 
