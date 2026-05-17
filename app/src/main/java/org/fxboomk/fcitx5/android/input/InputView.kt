@@ -2487,6 +2487,7 @@ class InputView(
                 broadcaster.onCandidateUpdate(it.data)
             }
             is FcitxEvent.PagedCandidateEvent -> {
+                preeditEmptyState.updatePreeditEmptyState()
                 val candidates = it.data.candidates.map { candidate ->
                     buildString {
                         append(candidate.text)

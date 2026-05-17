@@ -290,6 +290,9 @@
     <string name="space_key_label_mode_default">默认</string>
     <string name="space_key_label_mode_compact_when_submode">子模式激活时紧凑显示</string>
     <string name="space_key_label_mode_submode_only">仅显示子模式</string>
+    <string name="prediction_space_behavior">预测时空格键行为</string>
+    <string name="prediction_space_behavior_commit_space">上屏空格字符</string>
+    <string name="prediction_space_behavior_commit_prediction">提交首个预测项</string>
     <string name="space_swipe_vertical_behavior">空格键上/下滑行为</string>
     <string name="space_swipe_vertical_behavior_arrow_keys">逐词移动高亮</string>
     <string name="space_swipe_vertical_behavior_candidate_rows">切换候选词行</string>
