@@ -16,6 +16,7 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.DraggableFlowLayout
+import org.fxboomk.fcitx5.android.ui.main.settings.behavior.utils.KeyboardRowStyleUtils
 import splitties.dimensions.dp
 import splitties.resources.styledColor
 import splitties.views.backgroundColor
@@ -75,6 +76,9 @@ class KeyboardLayoutAdapter(
 
         /** Called when the delete row button is clicked */
         fun onDeleteRowClick(rowIndex: Int)
+
+        /** Called when the edit row button is clicked */
+        fun onEditRowClick(rowIndex: Int)
 
         /** Called when the add row button is clicked */
         fun onAddRowClick()
@@ -199,21 +203,41 @@ class KeyboardLayoutAdapter(
         keysFlowContainer.addView(keysFlow)
         rowContainer.addView(keysFlowContainer)
 
+        val actionColumn = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
+        }
+
+        val editRowButton = TextView(context).apply {
+            text = "⚙"
+            textSize = 18f
+            setPadding(context.dp(10), context.dp(8), context.dp(10), context.dp(8))
+            minWidth = context.dp(44)
+        }
+        actionColumn.addView(editRowButton, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        ))
+
         // Delete row button on the right
         val deleteRowButton = TextView(context).apply {
             text = "🗑"
             textSize = 14f
-            setPadding(context.dp(8), context.dp(8), context.dp(8), context.dp(8))
+            setPadding(context.dp(8), context.dp(6), context.dp(8), context.dp(6))
             minWidth = context.dp(36)
         }
-        rowContainer.addView(deleteRowButton, LinearLayout.LayoutParams(
+        actionColumn.addView(deleteRowButton, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        ))
+        rowContainer.addView(actionColumn, LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.WRAP_CONTENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
         ).apply {
             gravity = Gravity.CENTER_VERTICAL
         })
 
-        val viewHolder = RowViewHolder(rowContainer, dragHandle, keysFlow, deleteRowButton)
+        val viewHolder = RowViewHolder(rowContainer, dragHandle, keysFlow, editRowButton, deleteRowButton)
         // Setup listeners for fixed parts (called only once)
         setupRowViewHolder(viewHolder)
         return viewHolder
@@ -267,6 +291,13 @@ class KeyboardLayoutAdapter(
      * Called only once during creation, uses bindingAdapterPosition to get current position dynamically.
      */
     private fun setupRowViewHolder(holder: RowViewHolder) {
+        holder.editButton.setOnClickListener {
+            val adapterPosition = holder.bindingAdapterPosition
+            if (adapterPosition != RecyclerView.NO_POSITION) {
+                listener.onEditRowClick(adapterPosition)
+            }
+        }
+
         // Delete button click listener - uses bindingAdapterPosition to get current position dynamically
         holder.deleteButton.setOnClickListener {
             val adapterPosition = holder.bindingAdapterPosition
@@ -337,13 +368,16 @@ class KeyboardLayoutAdapter(
             holder.keysFlow.onDragListener = object : DraggableFlowLayout.OnDragListener {
                 override fun onDragStarted(view: View, position: Int) {
                     val adapterPosition = holder.bindingAdapterPosition
-                    if (adapterPosition in rows.indices && position in rows[adapterPosition].indices) {
+                    val actualPosition = rows.getOrNull(adapterPosition)
+                        ?.let { KeyboardRowStyleUtils.visibleToActualIndex(it, position) }
+                        ?: -1
+                    if (adapterPosition in rows.indices && actualPosition in rows[adapterPosition].indices) {
                         clearCrossRowPreview()
                         previewState.initialRow = adapterPosition
-                        previewState.initialIndex = position
+                        previewState.initialIndex = actualPosition
                         previewState.currentRow = adapterPosition
-                        previewState.currentIndex = position
-                        previewState.draggedKey = rows[adapterPosition][position]
+                        previewState.currentIndex = actualPosition
+                        previewState.draggedKey = rows[adapterPosition][actualPosition]
                     }
                 }
 
@@ -351,9 +385,12 @@ class KeyboardLayoutAdapter(
                     val adapterPosition = holder.bindingAdapterPosition
                     if (adapterPosition != RecyclerView.NO_POSITION) {
                         if (previewState.targetRow != -1 && previewState.targetRow != adapterPosition) return
-                        listener.onKeyPositionChanged(adapterPosition, from, to)
+                        val currentRow = rows.getOrNull(adapterPosition) ?: return
+                        val actualFrom = KeyboardRowStyleUtils.visibleToActualIndex(currentRow, from)
+                        val actualTo = KeyboardRowStyleUtils.visibleToActualIndex(currentRow, to)
+                        listener.onKeyPositionChanged(adapterPosition, actualFrom, actualTo)
                         if (previewState.currentRow == adapterPosition) {
-                            previewState.currentIndex = to
+                            previewState.currentIndex = actualTo
                         }
                     }
                 }
@@ -370,6 +407,9 @@ class KeyboardLayoutAdapter(
                 override fun onDragEnded(view: View, position: Int) {
                     val adapterPosition = holder.bindingAdapterPosition
                     if (adapterPosition != RecyclerView.NO_POSITION) {
+                        val actualPosition = rows.getOrNull(adapterPosition)
+                            ?.let { KeyboardRowStyleUtils.visibleToActualIndex(it, position) }
+                            ?: position
                         val movedByPreview = commitCrossRowPreviewIfNeeded()
                         if (!movedByPreview) {
                             val flow = holder.keysFlow
@@ -377,7 +417,7 @@ class KeyboardLayoutAdapter(
                                 holder = holder,
                                 dragView = view,
                                 currentRowIndex = adapterPosition,
-                                currentIndex = position,
+                                currentIndex = actualPosition,
                                 touchRawX = flow.lastTouchRawX,
                                 touchRawY = flow.lastTouchRawY
                             )
@@ -391,6 +431,7 @@ class KeyboardLayoutAdapter(
         }
 
         val displayRow = buildDisplayRowForPreview(position, row)
+        val rowStyle = KeyboardRowStyleUtils.rowStyle(row)
 
         // Add keys - short click to edit, with drag support (directly on the key)
         displayRow.forEachIndexed { keyIndex, key ->
@@ -398,13 +439,21 @@ class KeyboardLayoutAdapter(
             val type = key["type"] as? String ?: ""
             val isMacroKey = type == "MacroKey"
             val hasComposeOverride = key["composeOverride"] is Map<*, *>
+            val rowBackgroundColor = KeyboardRowStyleUtils.resolveRowBackgroundColor(
+                style = rowStyle,
+                visibleIndex = keyIndex,
+                visibleCount = displayRow.size
+            )
             val keyChip = TextView(context).apply {
                 text = buildKeyLabel(key)
                 textSize = 14f
                 setPadding(context.dp(10), context.dp(8), context.dp(10), context.dp(8))
                 gravity = Gravity.CENTER
                 background = android.graphics.drawable.GradientDrawable().apply {
-                    if (isMacroKey) {
+                    if (rowBackgroundColor != null) {
+                        setColor(rowBackgroundColor)
+                        setStroke(context.dp(1), context.styledColor(android.R.attr.colorControlNormal))
+                    } else if (isMacroKey) {
                         // MacroKey: 使用主题强调色区分
                         setColor(context.styledColor(android.R.attr.colorAccent))
                         setStroke(context.dp(2), context.styledColor(android.R.attr.colorControlHighlight))
@@ -472,28 +521,61 @@ class KeyboardLayoutAdapter(
         rowIndex: Int,
         baseRow: MutableList<MutableMap<String, Any?>>
     ): List<MutableMap<String, Any?>> {
-        if (previewState.draggedKey == null || previewState.targetRow == -1 || previewState.targetIndex == -1) return baseRow
-        if (previewState.targetRow == previewState.currentRow) return baseRow
+        val visibleBaseRow = KeyboardRowStyleUtils.visibleMutableKeys(baseRow).toMutableList()
+        if (previewState.draggedKey == null || previewState.targetRow == -1 || previewState.targetIndex == -1) return visibleBaseRow
+        if (previewState.targetRow == previewState.currentRow) return visibleBaseRow
 
-        val draggedKey = previewState.draggedKey ?: return baseRow
-        val display = baseRow.toMutableList()
-        if (rowIndex == previewState.currentRow && previewState.currentIndex in display.indices) {
-            display.removeAt(previewState.currentIndex)
+        val draggedKey = previewState.draggedKey ?: return visibleBaseRow
+        val display = visibleBaseRow.toMutableList()
+        if (rowIndex == previewState.currentRow) {
+            val removeIndex = KeyboardRowStyleUtils.actualToVisibleIndex(baseRow, previewState.currentIndex)
+            if (removeIndex in display.indices) {
+                display.removeAt(removeIndex)
+            }
         }
         if (rowIndex == previewState.targetRow) {
-            val insertAt = previewState.targetIndex.coerceIn(0, display.size)
+            val insertAt = KeyboardRowStyleUtils.actualInsertToVisibleIndex(baseRow, previewState.targetIndex)
+                .coerceIn(0, display.size)
             display.add(insertAt, draggedKey)
         }
         return display
     }
 
     private fun resolveActualKeyIndex(rowIndex: Int, displayedIndex: Int): Int {
-        if (previewState.draggedKey == null || previewState.targetRow == -1 || previewState.targetIndex == -1) return displayedIndex
-        if (previewState.targetRow == previewState.currentRow) return displayedIndex
-        if (rowIndex == previewState.targetRow && displayedIndex == previewState.targetIndex) {
-            return -1
+        val row = rows.getOrNull(rowIndex) ?: return displayedIndex
+        if (previewState.draggedKey == null || previewState.targetRow == -1 || previewState.targetIndex == -1) {
+            return KeyboardRowStyleUtils.visibleToActualIndex(row, displayedIndex)
         }
-        return displayedIndex
+        if (previewState.targetRow == previewState.currentRow) {
+            return KeyboardRowStyleUtils.visibleToActualIndex(row, displayedIndex)
+        }
+        if (rowIndex == previewState.targetRow) {
+            val placeholderVisibleIndex = KeyboardRowStyleUtils.actualInsertToVisibleIndex(row, previewState.targetIndex)
+            if (displayedIndex == placeholderVisibleIndex) {
+                return -1
+            }
+            val adjustedVisibleIndex = if (displayedIndex > placeholderVisibleIndex) displayedIndex - 1 else displayedIndex
+            return KeyboardRowStyleUtils.visibleToActualIndex(row, adjustedVisibleIndex)
+        }
+        if (rowIndex == previewState.currentRow) {
+            return KeyboardRowStyleUtils.visibleToActualIndex(row, displayedIndex)
+        }
+        return KeyboardRowStyleUtils.visibleToActualIndex(row, displayedIndex)
+    }
+
+    private fun minActualInsertIndex(row: List<Map<String, Any?>>): Int {
+        return if (row.firstOrNull()?.let(KeyboardRowStyleUtils::isRowMeta) == true) 1 else 0
+    }
+
+    private fun maxActualInsertIndex(row: List<Map<String, Any?>>): Int = row.size
+
+    private fun coerceActualInsertIndex(row: List<Map<String, Any?>>, index: Int): Int {
+        return index.coerceIn(minActualInsertIndex(row), maxActualInsertIndex(row))
+    }
+
+    private fun resolveActualInsertIndex(rowIndex: Int, visibleInsertIndex: Int): Int {
+        val row = rows.getOrNull(rowIndex) ?: return visibleInsertIndex
+        return coerceActualInsertIndex(row, KeyboardRowStyleUtils.visibleInsertToActualIndex(row, visibleInsertIndex))
     }
 
     private fun clearCrossRowPreviewAndRefresh() {
@@ -595,7 +677,7 @@ class KeyboardLayoutAdapter(
         if (sourceRowIndex == targetRowIndex) return false
 
         val moving = rows[sourceRowIndex].removeAt(sourceIndex)
-        val safeTargetIndex = targetIndex.coerceIn(0, rows[targetRowIndex].size)
+        val safeTargetIndex = coerceActualInsertIndex(rows[targetRowIndex], targetIndex)
         rows[targetRowIndex].add(safeTargetIndex, moving)
         notifyItemChanged(sourceRowIndex)
         notifyItemChanged(targetRowIndex)
@@ -653,8 +735,8 @@ class KeyboardLayoutAdapter(
 
     private fun computeInsertIndexForRow(targetRowIndex: Int, rawX: Float, rawY: Float, fallbackFlowWidth: Int): Int {
         val targetRow = rows.getOrNull(targetRowIndex) ?: return 0
-        val targetSize = targetRow.size
-        if (targetSize == 0) return 0
+        val targetVisibleSize = KeyboardRowStyleUtils.visibleKeyCount(targetRow)
+        if (targetVisibleSize == 0) return minActualInsertIndex(targetRow)
 
         val targetHolder = rowsRecyclerView
             ?.findViewHolderForAdapterPosition(targetRowIndex) as? RowViewHolder
@@ -669,11 +751,16 @@ class KeyboardLayoutAdapter(
                 val hasPreviewPlaceholder =
                     previewState.targetRow == targetRowIndex &&
                         previewState.targetRow != previewState.currentRow &&
-                        previewState.targetIndex in 0..targetSize
+                        previewState.targetIndex in minActualInsertIndex(targetRow)..maxActualInsertIndex(targetRow)
+                val previewVisibleIndex = if (hasPreviewPlaceholder) {
+                    KeyboardRowStyleUtils.actualInsertToVisibleIndex(targetRow, previewState.targetIndex)
+                } else {
+                    -1
+                }
                 var dataIndexCursor = 0
                 val keyChildren = mutableListOf<KeyChildInfo>()
                 for (i in 0 until keyChildCount) {
-                    if (hasPreviewPlaceholder && i == previewState.targetIndex) continue
+                    if (hasPreviewPlaceholder && i == previewVisibleIndex) continue
                     val child = targetFlow.getChildAt(i) ?: continue
                     keyChildren.add(
                         KeyChildInfo(
@@ -695,21 +782,25 @@ class KeyboardLayoutAdapter(
 
                 val line = if (lineChildren.isNotEmpty()) lineChildren else keyChildren.sortedBy { it.centerX }
                 for (childInfo in line) {
-                    if (localX < childInfo.centerX) return childInfo.dataIndex
+                    if (localX < childInfo.centerX) {
+                        return resolveActualInsertIndex(targetRowIndex, childInfo.dataIndex)
+                    }
                 }
-                return (line.last().dataIndex + 1).coerceIn(0, targetSize)
+                return resolveActualInsertIndex(targetRowIndex, line.last().dataIndex + 1)
             }
             val ratio = (localX / targetFlow.width).coerceIn(0f, 1f)
-            return (ratio * (targetSize + 1)).toInt().coerceIn(0, targetSize)
+            return resolveActualInsertIndex(targetRowIndex, (ratio * (targetVisibleSize + 1)).toInt().coerceIn(0, targetVisibleSize))
         }
 
-        return if (rawX < fallbackFlowWidth / 2f) 0 else targetSize
+        return if (rawX < fallbackFlowWidth / 2f) minActualInsertIndex(targetRow) else maxActualInsertIndex(targetRow)
     }
 
     private fun stepPreviewTargetIndex(targetRowIndex: Int, rawTargetIndex: Int): Int {
-        val targetSize = rows.getOrNull(targetRowIndex)?.size ?: return rawTargetIndex
-        val boundedRaw = rawTargetIndex.coerceIn(0, targetSize)
-        if (previewState.targetRow != targetRowIndex || previewState.targetIndex !in 0..targetSize) {
+        val targetRow = rows.getOrNull(targetRowIndex) ?: return rawTargetIndex
+        val minIndex = minActualInsertIndex(targetRow)
+        val maxIndex = maxActualInsertIndex(targetRow)
+        val boundedRaw = rawTargetIndex.coerceIn(minIndex, maxIndex)
+        if (previewState.targetRow != targetRowIndex || previewState.targetIndex !in minIndex..maxIndex) {
             previewState.lastStepAt = 0L
             return boundedRaw
         }
@@ -721,7 +812,7 @@ class KeyboardLayoutAdapter(
             boundedRaw > current -> (current + 1).coerceAtMost(boundedRaw)
             boundedRaw < current -> (current - 1).coerceAtLeast(boundedRaw)
             else -> current
-        }.coerceIn(0, targetSize)
+        }.coerceIn(minIndex, maxIndex)
     }
 
     override fun getItemCount(): Int = rows.size + 1  // +1 for add row button
@@ -784,6 +875,7 @@ class KeyboardLayoutAdapter(
         val container: LinearLayout,
         val dragHandle: TextView,
         val keysFlow: ViewGroup,
+        val editButton: TextView,
         val deleteButton: TextView
     ) : RecyclerView.ViewHolder(container)
 

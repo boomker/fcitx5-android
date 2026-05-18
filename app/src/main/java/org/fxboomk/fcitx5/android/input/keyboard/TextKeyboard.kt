@@ -169,8 +169,12 @@ class TextKeyboard(
                             val cacheKey = "$layoutKey:$subModeLabel:$showLangSwitch"
                             return cachedKeyDefLayouts.getOrPut(cacheKey) {
                                 subModeLayoutElement.map { rowElement ->
-                                    LayoutJsonUtils.parseKeyJsonArray(rowElement.jsonArray, showLangSwitch)
-                                        .map { LayoutJsonUtils.createKeyDef(it, subModeLabel, ime?.subMode?.name ?: "") }
+                                    LayoutJsonUtils.createKeyDefsForRowElement(
+                                        rowElement = rowElement,
+                                        showLangSwitch = showLangSwitch,
+                                        subModeLabel = subModeLabel,
+                                        subModeName = ime?.subMode?.name ?: ""
+                                    )
                                 }
                             }
                         }
@@ -181,8 +185,10 @@ class TextKeyboard(
                         if (layoutElement is JsonArray) {
                             return cachedKeyDefLayouts.getOrPut("default:$showLangSwitch") {
                                 layoutElement.map { rowElement ->
-                                    LayoutJsonUtils.parseKeyJsonArray(rowElement.jsonArray, showLangSwitch)
-                                        .map { LayoutJsonUtils.createKeyDef(it) }
+                                    LayoutJsonUtils.createKeyDefsForRowElement(
+                                        rowElement = rowElement,
+                                        showLangSwitch = showLangSwitch
+                                    )
                                 }
                             }
                         }

@@ -41,6 +41,12 @@ open class KeyDef(
         val shadowColor: Int? = null,
         val shadowColorMonet: String? = null
     ) {
+        enum class AltTextPosition {
+            Top,
+            TopRight,
+            Bottom
+        }
+
         enum class Variant {
             Normal, AltForeground, Alternative, Accent
         }
@@ -48,6 +54,9 @@ open class KeyDef(
         enum class Border {
             Default, On, Off, Special
         }
+
+        var rowHeightMultiplier: Float = 1f
+        var altTextPositionOverride: AltTextPosition? = null
 
         open class Text(
             val displayText: String,

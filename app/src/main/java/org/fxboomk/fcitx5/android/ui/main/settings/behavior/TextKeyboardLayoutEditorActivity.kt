@@ -62,12 +62,14 @@ import org.fxboomk.fcitx5.android.ui.main.settings.behavior.adapter.SimpleDivide
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.data.LayoutDataManager
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.dialog.KeyEditorActivity
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.dialog.LayoutFileProfileInputActivity
+import org.fxboomk.fcitx5.android.ui.main.settings.behavior.dialog.RowEditorActivity
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.manager.SubModeManager
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.preview.KeyboardPreviewManager
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.share.JsonFileQrShareManager
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.share.LayoutQrBitmapUtil
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.share.LayoutQrTransferCodec
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.share.QrChunkCollector
+import org.fxboomk.fcitx5.android.ui.main.settings.behavior.utils.KeyboardRowStyleUtils
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.utils.LayoutJsonUtils
 import org.fxboomk.fcitx5.android.utils.InputMethodUtil
 import org.fxboomk.fcitx5.android.utils.DeviceUtil
@@ -79,6 +81,7 @@ import splitties.views.dsl.core.add
 import splitties.views.dsl.core.matchParent
 import splitties.views.dsl.core.wrapContent
 import java.io.File
+import java.util.HashMap
 
 class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
 
@@ -273,6 +276,36 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                         }
                     }
                 }
+            }
+        }
+
+    private val rowEditorLauncher: ActivityResultLauncher<Intent> =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            val data = result.data ?: return@registerForActivityResult
+            if (result.resultCode != RESULT_OK) return@registerForActivityResult
+            val action = data.getStringExtra(RowEditorActivity.EXTRA_RESULT_ACTION) ?: return@registerForActivityResult
+            if (action != RowEditorActivity.RESULT_ACTION_SAVE) return@registerForActivityResult
+
+            val rowIndex = data.getIntExtra(RowEditorActivity.EXTRA_ROW_INDEX, -1)
+            val rowMeta = data.serializable<HashMap<String, Any?>>(RowEditorActivity.EXTRA_RESULT_ROW_META)
+                ?.toMutableMap()
+                ?: mutableMapOf()
+
+            val layoutName = currentLayout ?: return@registerForActivityResult
+            val subModeKey = previewSubModeLabel?.let { "$layoutName:$it" }
+            val rows = if (subModeKey != null && entries.containsKey(subModeKey)) {
+                entries[subModeKey]
+            } else {
+                entries[layoutName]
+            } ?: return@registerForActivityResult
+
+            if (rowIndex !in rows.indices) return@registerForActivityResult
+            val rowStyle = KeyboardRowStyleUtils.rowStyleFromMeta(rowMeta)
+            KeyboardRowStyleUtils.applyRowStyle(rows[rowIndex], rowStyle)
+            rowsAdapter?.notifyRowChanged(rowIndex)
+            currentLayout?.let { name ->
+                previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection)
+                updateSaveButtonState()
             }
         }
 
@@ -1180,6 +1213,10 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                     confirmDeleteRow(rowIndex)
                 }
 
+                override fun onEditRowClick(rowIndex: Int) {
+                    openRowEditor(rowIndex)
+                }
+
                 override fun onAddRowClick() {
                     addRow()
                 }
@@ -1359,6 +1396,24 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             putExtra(KeyEditorActivity.EXTRA_HAS_MULTI_SUBMODE_SUPPORT, hasMultiSubmodeSupport)
         }
         keyEditorLauncher.launch(launchIntent)
+    }
+
+    private fun openRowEditor(rowIndex: Int) {
+        val layoutName = currentLayout ?: return
+        val subModeKey = previewSubModeLabel?.let { "$layoutName:$it" }
+        val rows = if (subModeKey != null && entries.containsKey(subModeKey)) {
+            entries[subModeKey]
+        } else {
+            entries[layoutName]
+        } ?: return
+        if (rowIndex !in rows.indices) return
+
+        val rowStyle = KeyboardRowStyleUtils.rowStyle(rows[rowIndex])
+        val launchIntent = Intent(this, RowEditorActivity::class.java).apply {
+            putExtra(RowEditorActivity.EXTRA_ROW_INDEX, rowIndex)
+            putExtra(RowEditorActivity.EXTRA_ROW_META, HashMap(KeyboardRowStyleUtils.buildMeta(rowStyle)))
+        }
+        rowEditorLauncher.launch(launchIntent)
     }
 
     private fun confirmDeleteRow(rowIndex: Int) {

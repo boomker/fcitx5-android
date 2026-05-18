@@ -9,6 +9,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.*
 import org.fxboomk.fcitx5.android.input.keyboard.TextKeyboard
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.migration.DataMigrationManager
+import org.fxboomk.fcitx5.android.ui.main.settings.behavior.utils.KeyboardRowStyleUtils
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.utils.LayoutJsonUtils
 import java.io.File
 
@@ -513,7 +514,7 @@ class LayoutDataManager(private val context: Context) {
         // 从 displayText 收集
         val rows = entries[layoutName]
         rows?.forEach { row ->
-            row.forEach { key ->
+            KeyboardRowStyleUtils.visibleMutableKeys(row).forEach { key ->
                 when (val displayText = key["displayText"]) {
                     is JsonObject -> {
                         displayText.keys.forEach { mode ->
@@ -567,12 +568,18 @@ class LayoutDataManager(private val context: Context) {
             }
             
             rows.forEachIndexed { rowIndex, row ->
-                if (row.isEmpty()) {
+                val visibleKeys = KeyboardRowStyleUtils.visibleMutableKeys(row)
+                if (visibleKeys.isEmpty()) {
                     errors.add("布局 \"$layoutName\" 第 ${rowIndex + 1} 行为空")
                     return@forEachIndexed
                 }
-                
-                row.forEachIndexed { keyIndex, key ->
+
+                val rowStyle = KeyboardRowStyleUtils.rowStyle(row)
+                if (rowStyle.heightMultiplier <= 0f) {
+                    errors.add("布局 \"$layoutName\" 第 ${rowIndex + 1} 行的 heightMultiplier 必须大于 0")
+                }
+
+                visibleKeys.forEachIndexed { keyIndex, key ->
                     validateKey(layoutName, rowIndex, keyIndex, key, errors)
                 }
             }
@@ -665,33 +672,7 @@ class LayoutDataManager(private val context: Context) {
      * @return 解析后的布局行列表
      */
     fun parseLayoutRows(rowsArray: JsonArray): List<List<Map<String, Any?>>> {
-        val rows = mutableListOf<List<Map<String, Any?>>>()
-        for (i in rowsArray.indices) {
-            val rowArray = rowsArray[i].jsonArray
-            val row = mutableListOf<Map<String, Any?>>()
-            for (j in rowArray.indices) {
-                val rowElement = rowArray[j]
-                if (rowElement is JsonNull) continue
-                if (rowElement !is JsonObject) continue
-
-                val keyJson = rowElement
-                val keyMap = mutableMapOf<String, Any?>()
-                keyJson.entries.forEach { (key, value) ->
-                    keyMap[key] = normalizeKeyValue(key, when (value) {
-                        is JsonObject -> value.toMap().mapValues { it.value.let { e -> LayoutJsonUtils.toAny(e) } }
-                        is JsonArray -> value.map { LayoutJsonUtils.toAny(it) }
-                        is JsonPrimitive -> {
-                            if (value.isString) value.content
-                            else value.booleanOrNull ?: value.intOrNull ?: value.doubleOrNull ?: value.content
-                        }
-                        is JsonNull -> null
-                    })
-                }
-                row.add(keyMap)
-            }
-            rows.add(row)
-        }
-        return rows
+        return LayoutJsonUtils.parseLayoutRows(rowsArray)
     }
 
     private fun normalizeKeyValue(key: String, value: Any?): Any? {

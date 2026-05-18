@@ -12,6 +12,8 @@ import org.fxboomk.fcitx5.android.input.keyboard.*
 import org.fxboomk.fcitx5.android.input.keyboard.MacroAction
 import org.fxboomk.fcitx5.android.input.keyboard.MacroStep
 import org.fxboomk.fcitx5.android.input.keyboard.KeyRef
+import org.fxboomk.fcitx5.android.ui.main.settings.behavior.utils.KeyboardRowStyleUtils.BackgroundStyle
+import org.fxboomk.fcitx5.android.ui.main.settings.behavior.utils.KeyboardRowStyleUtils.RowStyle
 
 /**
  * JSON 转换工具类，用于键盘布局数据与 JSON 之间的双向转换。
@@ -303,6 +305,25 @@ object LayoutJsonUtils {
         }
     }
 
+    private fun keyArrayFromRowElement(rowElement: JsonElement): JsonArray? = when (rowElement) {
+        is JsonArray -> rowElement
+        is JsonObject -> rowElement[KeyboardRowStyleUtils.ROW_KEYS_FIELD]?.jsonArray
+        else -> null
+    }
+
+    private fun rowStyleFromJson(rowElement: JsonElement): RowStyle {
+        val rowObject = rowElement as? JsonObject ?: return RowStyle()
+        return KeyboardRowStyleUtils.rowStyleFromMeta(
+            mapOf(
+                KeyboardRowStyleUtils.ROW_META_MARKER to true,
+                KeyboardRowStyleUtils.ROW_HEIGHT_MULTIPLIER to parseOptionalFloat(rowObject[KeyboardRowStyleUtils.ROW_HEIGHT_MULTIPLIER]),
+                KeyboardRowStyleUtils.ROW_ALT_TEXT_POSITION to rowObject[KeyboardRowStyleUtils.ROW_ALT_TEXT_POSITION]?.jsonPrimitive?.contentOrNull,
+                KeyboardRowStyleUtils.ROW_BACKGROUND_STYLE to rowObject[KeyboardRowStyleUtils.ROW_BACKGROUND_STYLE]?.jsonPrimitive?.contentOrNull,
+                KeyboardRowStyleUtils.ROW_BACKGROUND_COLOR to parseOptionalInt(rowObject[KeyboardRowStyleUtils.ROW_BACKGROUND_COLOR])
+            )
+        )
+    }
+
     /**
      * 从 JsonArray 解析布局行数据为 Map 表示。
      *
@@ -312,17 +333,25 @@ object LayoutJsonUtils {
     fun parseLayoutRows(rowsArray: JsonArray): List<List<Map<String, Any?>>> {
         val rows = mutableListOf<List<Map<String, Any?>>>()
         for (i in rowsArray.indices) {
-            val rowArray = rowsArray[i].jsonArray
+            val rowElement = rowsArray[i]
+            val rowArray = keyArrayFromRowElement(rowElement) ?: run {
+                Log.w(TAG, "Skipping invalid row element at row $i: ${rowElement::class.simpleName}")
+                continue
+            }
             val row = mutableListOf<Map<String, Any?>>()
+            val rowStyle = rowStyleFromJson(rowElement)
+            if (!rowStyle.isDefault()) {
+                row.add(KeyboardRowStyleUtils.buildMeta(rowStyle))
+            }
             for (j in rowArray.indices) {
-                val rowElement = rowArray[j]
-                if (rowElement is JsonNull) continue
-                if (rowElement !is JsonObject) {
-                    Log.w(TAG, "Skipping invalid key element at row $i, col $j: ${rowElement::class.simpleName}")
+                val keyElement = rowArray[j]
+                if (keyElement is JsonNull) continue
+                if (keyElement !is JsonObject) {
+                    Log.w(TAG, "Skipping invalid key element at row $i, col $j: ${keyElement::class.simpleName}")
                     continue
                 }
 
-                val keyJson = rowElement
+                val keyJson = keyElement
                 val keyMap = mutableMapOf<String, Any?>()
                 keyJson.entries.forEach { (key, value) ->
                     keyMap[key] = normalizeKeyValue(key, toAny(value))
@@ -332,6 +361,27 @@ object LayoutJsonUtils {
             rows.add(row)
         }
         return rows
+    }
+
+    fun createKeyDefsForRowElement(
+        rowElement: JsonElement,
+        showLangSwitch: Boolean = true,
+        subModeLabel: String = "",
+        subModeName: String = ""
+    ): List<KeyDef> {
+        val rowArray = keyArrayFromRowElement(rowElement) ?: return emptyList()
+        val rowStyle = rowStyleFromJson(rowElement)
+        val keyJsons = parseKeyJsonArray(rowArray, showLangSwitch)
+        return keyJsons.mapIndexed { visibleIndex, keyJson ->
+            createKeyDef(
+                key = keyJson,
+                subModeLabel = subModeLabel,
+                subModeName = subModeName,
+                rowStyle = rowStyle,
+                visibleIndex = visibleIndex,
+                visibleCount = keyJsons.size
+            )
+        }
     }
 
     /**
@@ -616,7 +666,21 @@ object LayoutJsonUtils {
      * @param subModeName 当前子模式名称（用于解析 displayText）
      * @return 转换后的 KeyDef
      */
-    fun createKeyDef(key: KeyJson, subModeLabel: String = "", subModeName: String = ""): KeyDef {
+    fun createKeyDef(
+        key: KeyJson,
+        subModeLabel: String = "",
+        subModeName: String = "",
+        rowStyle: RowStyle = RowStyle(),
+        visibleIndex: Int = 0,
+        visibleCount: Int = 1
+    ): KeyDef {
+        val rowBackgroundColor = KeyboardRowStyleUtils.resolveRowBackgroundColor(
+            style = rowStyle,
+            visibleIndex = visibleIndex,
+            visibleCount = visibleCount
+        )
+        val effectiveBackgroundColor = rowBackgroundColor ?: key.backgroundColor
+        val effectiveBackgroundColorMonet = if (rowBackgroundColor != null) null else key.backgroundColorMonet
         val keyDef = when (key.type) {
             "AlphabetKey" -> AlphabetKey(
                 character = key.main ?: "",
@@ -632,8 +696,8 @@ object LayoutJsonUtils {
                 textColorMonet = key.textColorMonet,
                 altTextColor = key.altTextColor,
                 altTextColorMonet = key.altTextColorMonet,
-                backgroundColor = key.backgroundColor,
-                backgroundColorMonet = key.backgroundColorMonet,
+                backgroundColor = effectiveBackgroundColor,
+                backgroundColorMonet = effectiveBackgroundColorMonet,
                 shadowColor = key.shadowColor,
                 shadowColorMonet = key.shadowColorMonet
             )
@@ -643,8 +707,8 @@ object LayoutJsonUtils {
                 percentWidth = key.weight ?: 0.15f,
                 textColor = key.textColor,
                 textColorMonet = key.textColorMonet,
-                backgroundColor = key.backgroundColor,
-                backgroundColorMonet = key.backgroundColorMonet,
+                backgroundColor = effectiveBackgroundColor,
+                backgroundColorMonet = effectiveBackgroundColorMonet,
                 shadowColor = key.shadowColor,
                 shadowColorMonet = key.shadowColorMonet
             )
@@ -656,8 +720,8 @@ object LayoutJsonUtils {
                 percentWidth = key.weight ?: 0.15f,
                 textColor = key.textColor,
                 textColorMonet = key.textColorMonet,
-                backgroundColor = key.backgroundColor,
-                backgroundColorMonet = key.backgroundColorMonet,
+                backgroundColor = effectiveBackgroundColor,
+                backgroundColorMonet = effectiveBackgroundColorMonet,
                 shadowColor = key.shadowColor,
                 shadowColorMonet = key.shadowColorMonet
             )
@@ -666,8 +730,8 @@ object LayoutJsonUtils {
                 variant = KeyDef.Appearance.Variant.Alternative,
                 textColor = key.textColor,
                 textColorMonet = key.textColorMonet,
-                backgroundColor = key.backgroundColor,
-                backgroundColorMonet = key.backgroundColorMonet,
+                backgroundColor = effectiveBackgroundColor,
+                backgroundColorMonet = effectiveBackgroundColorMonet,
                 shadowColor = key.shadowColor,
                 shadowColorMonet = key.shadowColorMonet
             )
@@ -675,8 +739,8 @@ object LayoutJsonUtils {
                 percentWidth = key.weight ?: 0.1f,
                 textColor = key.textColor,
                 textColorMonet = key.textColorMonet,
-                backgroundColor = key.backgroundColor,
-                backgroundColorMonet = key.backgroundColorMonet,
+                backgroundColor = effectiveBackgroundColor,
+                backgroundColorMonet = effectiveBackgroundColorMonet,
                 shadowColor = key.shadowColor,
                 shadowColorMonet = key.shadowColorMonet
             )
@@ -684,8 +748,8 @@ object LayoutJsonUtils {
                 percentWidth = key.weight ?: 0f,
                 textColor = key.textColor,
                 textColorMonet = key.textColorMonet,
-                backgroundColor = key.backgroundColor,
-                backgroundColorMonet = key.backgroundColorMonet,
+                backgroundColor = effectiveBackgroundColor,
+                backgroundColorMonet = effectiveBackgroundColorMonet,
                 shadowColor = key.shadowColor,
                 shadowColorMonet = key.shadowColorMonet
             )
@@ -697,8 +761,8 @@ object LayoutJsonUtils {
                 variant = KeyDef.Appearance.Variant.Alternative,
                 textColor = key.textColor,
                 textColorMonet = key.textColorMonet,
-                backgroundColor = key.backgroundColor,
-                backgroundColorMonet = key.backgroundColorMonet,
+                backgroundColor = effectiveBackgroundColor,
+                backgroundColorMonet = effectiveBackgroundColorMonet,
                 shadowColor = key.shadowColor,
                 shadowColorMonet = key.shadowColorMonet
             )
@@ -708,8 +772,8 @@ object LayoutJsonUtils {
                 percentWidth = key.weight ?: 0.15f,
                 textColor = key.textColor,
                 textColorMonet = key.textColorMonet,
-                backgroundColor = key.backgroundColor,
-                backgroundColorMonet = key.backgroundColorMonet,
+                backgroundColor = effectiveBackgroundColor,
+                backgroundColorMonet = effectiveBackgroundColorMonet,
                 shadowColor = key.shadowColor,
                 shadowColorMonet = key.shadowColorMonet
             )
@@ -719,8 +783,8 @@ object LayoutJsonUtils {
                 percentWidth = key.weight ?: 0.15f,
                 textColor = key.textColor,
                 textColorMonet = key.textColorMonet,
-                backgroundColor = key.backgroundColor,
-                backgroundColorMonet = key.backgroundColorMonet,
+                backgroundColor = effectiveBackgroundColor,
+                backgroundColorMonet = effectiveBackgroundColorMonet,
                 shadowColor = key.shadowColor,
                 shadowColorMonet = key.shadowColorMonet
             )
@@ -750,19 +814,29 @@ object LayoutJsonUtils {
                     textColorMonet = key.textColorMonet,
                     altTextColor = key.altTextColor,
                     altTextColorMonet = key.altTextColorMonet,
-                    backgroundColor = key.backgroundColor,
-                    backgroundColorMonet = key.backgroundColorMonet,
+                    backgroundColor = effectiveBackgroundColor,
+                    backgroundColorMonet = effectiveBackgroundColorMonet,
                     shadowColor = key.shadowColor,
                     shadowColorMonet = key.shadowColorMonet
                 )
             }
             else -> SpaceKey() // Fallback
         }
+        keyDef.appearance.rowHeightMultiplier = rowStyle.heightMultiplier
+        keyDef.appearance.altTextPositionOverride = when (rowStyle.altTextPosition) {
+            KeyboardRowStyleUtils.AltTextPosition.Top -> KeyDef.Appearance.AltTextPosition.Top
+            KeyboardRowStyleUtils.AltTextPosition.TopRight -> KeyDef.Appearance.AltTextPosition.TopRight
+            KeyboardRowStyleUtils.AltTextPosition.Bottom -> KeyDef.Appearance.AltTextPosition.Bottom
+            null -> null
+        }
         key.composeOverride?.let { override ->
             val overrideDef = createKeyDef(
-                override.copy(composeOverride = null, weight = null),
-                subModeLabel,
-                subModeName
+                key = override.copy(composeOverride = null, weight = null),
+                subModeLabel = subModeLabel,
+                subModeName = subModeName,
+                rowStyle = rowStyle,
+                visibleIndex = visibleIndex,
+                visibleCount = visibleCount
             )
             overrideDef.independentColor = override.independentColor ?: false
             keyDef.composeOverride = overrideDef
@@ -816,16 +890,7 @@ object LayoutJsonUtils {
                     }
 
                     val rows = entries[key]!!
-                    val jsonArray = JsonArray(rows.map { row ->
-                        JsonArray(row.map { keyMap ->
-                            val ordered = orderKeyFieldsForSave(keyMap)
-                            JsonObject(
-                                ordered
-                                    .filterValues { it != null }
-                                    .mapValues { (_, v) -> convertToJsonProperty(v) }
-                            )
-                        })
-                    })
+                    val jsonArray = JsonArray(rows.map(::rowToJsonElement))
 
                     subModeMap[subModeLabel] = jsonArray
                 }
@@ -834,21 +899,41 @@ object LayoutJsonUtils {
             } else {
                 val key = subModeKeys.firstOrNull() ?: baseName
                 val rows = entries[key] ?: continue
-                val jsonArray = JsonArray(rows.map { row ->
-                    JsonArray(row.map { keyMap ->
-                        val ordered = orderKeyFieldsForSave(keyMap)
-                        JsonObject(
-                            ordered
-                                .filterValues { it != null }
-                                .mapValues { (_, v) -> convertToJsonProperty(v) }
-                        )
-                    })
-                })
+                val jsonArray = JsonArray(rows.map(::rowToJsonElement))
                 layoutMap[baseName] = jsonArray
             }
         }
 
         return JsonObject(layoutMap.toSortedMap())
+    }
+
+    fun rowToJsonElement(row: List<Map<String, Any?>>): JsonElement {
+        val rowStyle = KeyboardRowStyleUtils.rowStyle(row)
+        val keyArray = JsonArray(KeyboardRowStyleUtils.visibleKeys(row).map { keyMap ->
+            val ordered = orderKeyFieldsForSave(keyMap)
+            JsonObject(
+                ordered
+                    .filterValues { it != null }
+                    .mapValues { (_, v) -> convertToJsonProperty(v) }
+            )
+        })
+        if (rowStyle.isDefault()) return keyArray
+
+        val rowObject = linkedMapOf<String, JsonElement>()
+        if (rowStyle.heightMultiplier != 1f) {
+            rowObject[KeyboardRowStyleUtils.ROW_HEIGHT_MULTIPLIER] = JsonPrimitive(rowStyle.heightMultiplier)
+        }
+        rowStyle.altTextPosition?.let {
+            rowObject[KeyboardRowStyleUtils.ROW_ALT_TEXT_POSITION] = JsonPrimitive(it.wireValue)
+        }
+        rowStyle.backgroundStyle?.let {
+            rowObject[KeyboardRowStyleUtils.ROW_BACKGROUND_STYLE] = JsonPrimitive(it.wireValue)
+        }
+        rowStyle.backgroundColor?.let {
+            rowObject[KeyboardRowStyleUtils.ROW_BACKGROUND_COLOR] = JsonPrimitive(it)
+        }
+        rowObject[KeyboardRowStyleUtils.ROW_KEYS_FIELD] = keyArray
+        return JsonObject(rowObject)
     }
 
     /**

@@ -68,6 +68,7 @@ import splitties.views.dsl.constraintlayout.rightToLeftOf
 import splitties.views.dsl.constraintlayout.topOfParent
 import splitties.views.dsl.core.add
 import splitties.views.imageResource
+import splitties.views.dsl.core.matchParent
 import timber.log.Timber
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
@@ -177,6 +178,7 @@ abstract class BaseKeyboard(
 
         val splitKeyboard = splitKeyboardManager.shouldUseSplitKeyboard(width)
         lastSplitLandscapeState = splitKeyboard
+        val rowHeightFractions = resolveRowHeightFractions(keyLayout)
         keyRows = keyLayout.map { row ->
             val keyViews = row.map(::createKeyView).apply {
                 applyGboardModifierEdgeColors(row, this)
@@ -200,14 +202,24 @@ abstract class BaseKeyboard(
             }
         }
         keyRows.forEachIndexed { index, row ->
-            add(row, lParams {
+            add(row, lParams(matchParent, 0) {
                 if (index == 0) topOfParent()
                 else below(keyRows[index - 1])
                 if (index == keyRows.size - 1) bottomOfParent()
                 else above(keyRows[index + 1])
                 centerHorizontally()
+                matchConstraintPercentHeight = rowHeightFractions.getOrElse(index) { 1f / keyRows.size.coerceAtLeast(1) }
             })
         }
+    }
+
+    private fun resolveRowHeightFractions(layout: List<List<KeyDef>>): List<Float> {
+        if (layout.isEmpty()) return emptyList()
+        val multipliers = layout.map { row ->
+            row.maxOfOrNull { it.appearance.rowHeightMultiplier.coerceAtLeast(0.1f) } ?: 1f
+        }
+        val total = multipliers.sum().takeIf { it > 0f } ?: return List(layout.size) { 1f / layout.size }
+        return multipliers.map { it / total }
     }
 
     private fun splitGapPercent(): Float {

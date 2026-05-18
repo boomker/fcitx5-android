@@ -124,13 +124,7 @@ class KeyboardPreviewManager(
     ): MutableMap<String, JsonElement> {
         val subModeMap = mutableMapOf<String, JsonElement>()
 
-        val currentRowsArray = JsonArray(currentRows.map { row ->
-            JsonArray(row.map { key ->
-                JsonObject(key.entries.associate { (k, v) ->
-                    k to LayoutJsonUtils.convertToJsonProperty(v)
-                })
-            })
-        })
+        val currentRowsArray = JsonArray(currentRows.map(LayoutJsonUtils::rowToJsonElement))
 
         if (subModeKey != null && entries.containsKey(subModeKey)) {
             // Editing a submode layout - add it with its label
@@ -138,13 +132,7 @@ class KeyboardPreviewManager(
             // Also add default layout if it exists (for fallback)
             val defaultRows = entries[layoutName]
             if (defaultRows != null) {
-                val defaultRowsArray = JsonArray(defaultRows.map { row ->
-                    JsonArray(row.map { key ->
-                        JsonObject(key.entries.associate { (k, v) ->
-                            k to LayoutJsonUtils.convertToJsonProperty(v)
-                        })
-                    })
-                })
+                val defaultRowsArray = JsonArray(defaultRows.map(LayoutJsonUtils::rowToJsonElement))
                 subModeMap["default"] = defaultRowsArray
             }
         } else {

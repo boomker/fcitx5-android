@@ -239,8 +239,12 @@ abstract class KeyView(
     }
 
     protected fun resolveStyledBackgroundColor(theme: Theme, defaultColor: Int): Int {
+        val explicitColor = resolveBackgroundColor(theme, defaultColor)
+        if (explicitColor != defaultColor) {
+            return explicitColor
+        }
         if (!ThemeManager.prefs.gboardStyleColorKeys.getValue()) {
-            return resolveBackgroundColor(theme, defaultColor)
+            return defaultColor
         }
         return if (
             useModifierBackgroundInGboardColorMode ||
@@ -627,6 +631,7 @@ class AltTextKeyView(
 ) :
     TextKeyView(ctx, theme, def, horizontalGapScale), SwipeHintAwareKeyView {
     private enum class AltTextLayoutMode {
+        Top,
         TopRight,
         Bottom,
         Hidden
@@ -708,6 +713,29 @@ class AltTextKeyView(
         altText.gravity = Gravity.END or Gravity.CENTER_VERTICAL
     }
 
+    private fun applyTopAltTextPosition() {
+        mainText.updateLayoutParams<ConstraintLayout.LayoutParams> {
+            topMargin = 0
+            bottomToTop = unset
+            topToTop = parentId
+            bottomToBottom = parentId
+        }
+        altText.visibility = View.VISIBLE
+        altText.updateLayoutParams<ConstraintLayout.LayoutParams> {
+            width = 0
+            bottomToBottom = unset
+            bottomMargin = 0
+            topToTop = parentId
+            topMargin = vMargin + cornerLabelTopSafeInset
+            leftToLeft = parentId
+            leftMargin = hMargin
+            rightToRight = parentId
+            rightMargin = hMargin
+        }
+        applyBottomAltTextPadding()
+        altText.gravity = Gravity.CENTER
+    }
+
     private fun applyBottomAltTextPosition() {
         mainText.updateLayoutParams<ConstraintLayout.LayoutParams> {
             // reset
@@ -748,13 +776,19 @@ class AltTextKeyView(
 
     private fun resolveLayoutMode(keyHeight: Int): AltTextLayoutMode {
         if (altText.text.isNullOrBlank()) return AltTextLayoutMode.Hidden
-        val pref = ThemeManager.prefs.punctuationPosition.getValue()
-        if (pref == PunctuationPosition.None) return AltTextLayoutMode.Hidden
-
-        val preferred = when (pref) {
-            PunctuationPosition.TopRight -> AltTextLayoutMode.TopRight
-            PunctuationPosition.Bottom -> AltTextLayoutMode.Bottom
-            PunctuationPosition.None -> AltTextLayoutMode.Hidden
+        val preferred = when (def.altTextPositionOverride) {
+            KeyDef.Appearance.AltTextPosition.Top -> AltTextLayoutMode.Top
+            KeyDef.Appearance.AltTextPosition.TopRight -> AltTextLayoutMode.TopRight
+            KeyDef.Appearance.AltTextPosition.Bottom -> AltTextLayoutMode.Bottom
+            null -> {
+                val pref = ThemeManager.prefs.punctuationPosition.getValue()
+                if (pref == PunctuationPosition.None) return AltTextLayoutMode.Hidden
+                when (pref) {
+                    PunctuationPosition.TopRight -> AltTextLayoutMode.TopRight
+                    PunctuationPosition.Bottom -> AltTextLayoutMode.Bottom
+                    PunctuationPosition.None -> AltTextLayoutMode.Hidden
+                }
+            }
         }
         if (keyHeight <= 0) return preferred
 
@@ -768,6 +802,10 @@ class AltTextKeyView(
             AltTextLayoutMode.Bottom -> when {
                 contentHeight >= stackedMinHeight -> AltTextLayoutMode.Bottom
                 contentHeight >= compactMinHeight -> AltTextLayoutMode.TopRight
+                else -> AltTextLayoutMode.Hidden
+            }
+            AltTextLayoutMode.Top -> when {
+                contentHeight >= compactMinHeight -> AltTextLayoutMode.Top
                 else -> AltTextLayoutMode.Hidden
             }
             AltTextLayoutMode.TopRight -> when {
@@ -784,6 +822,7 @@ class AltTextKeyView(
         lastLayoutMode = mode
         when (mode) {
             AltTextLayoutMode.Bottom -> applyBottomAltTextPosition()
+            AltTextLayoutMode.Top -> applyTopAltTextPosition()
             AltTextLayoutMode.TopRight -> applyTopRightAltTextPosition()
             AltTextLayoutMode.Hidden -> applyNoAltTextPosition()
         }
@@ -793,6 +832,7 @@ class AltTextKeyView(
         if (totalY == 0) return false
         return when (lastLayoutMode ?: resolveLayoutMode(appearanceView.height)) {
             AltTextLayoutMode.Bottom -> totalY > 0
+            AltTextLayoutMode.Top -> totalY < 0
             AltTextLayoutMode.TopRight -> totalY < 0
             AltTextLayoutMode.Hidden -> fallback.checkY(totalY)
         }
@@ -847,6 +887,7 @@ class ImageAltTextKeyView(
     horizontalGapScale: Float = 1f
 ) : KeyView(ctx, theme, def, horizontalGapScale), SwipeHintAwareKeyView {
     private enum class AltTextLayoutMode {
+        Top,
         TopRight,
         Bottom,
         Hidden
@@ -935,6 +976,32 @@ class ImageAltTextKeyView(
         altText.gravity = Gravity.END or Gravity.CENTER_VERTICAL
     }
 
+    private fun applyTopAltTextPosition() {
+        img.updateLayoutParams<ConstraintLayout.LayoutParams> {
+            topToTop = parentId
+            bottomToBottom = parentId
+            startToStart = parentId
+            endToEnd = parentId
+            topMargin = 0
+            bottomMargin = 0
+            bottomToTop = unset
+        }
+        altText.visibility = View.VISIBLE
+        altText.updateLayoutParams<ConstraintLayout.LayoutParams> {
+            width = 0
+            topToTop = parentId
+            topMargin = vMargin + cornerLabelTopSafeInset
+            bottomToBottom = unset
+            bottomMargin = 0
+            leftToLeft = parentId
+            leftMargin = hMargin
+            rightToRight = parentId
+            rightMargin = hMargin
+        }
+        applyBottomAltTextPadding()
+        altText.gravity = Gravity.CENTER
+    }
+
     private fun applyBottomAltTextPosition() {
         img.updateLayoutParams<ConstraintLayout.LayoutParams> {
             topToTop = parentId; topMargin = vMargin
@@ -972,13 +1039,19 @@ class ImageAltTextKeyView(
 
     private fun resolveLayoutMode(keyHeight: Int): AltTextLayoutMode {
         if (altText.text.isNullOrBlank()) return AltTextLayoutMode.Hidden
-        val pref = ThemeManager.prefs.punctuationPosition.getValue()
-        if (pref == PunctuationPosition.None) return AltTextLayoutMode.Hidden
-
-        val preferred = when (pref) {
-            PunctuationPosition.TopRight -> AltTextLayoutMode.TopRight
-            PunctuationPosition.Bottom -> AltTextLayoutMode.Bottom
-            PunctuationPosition.None -> AltTextLayoutMode.Hidden
+        val preferred = when (def.altTextPositionOverride) {
+            KeyDef.Appearance.AltTextPosition.Top -> AltTextLayoutMode.Top
+            KeyDef.Appearance.AltTextPosition.TopRight -> AltTextLayoutMode.TopRight
+            KeyDef.Appearance.AltTextPosition.Bottom -> AltTextLayoutMode.Bottom
+            null -> {
+                val pref = ThemeManager.prefs.punctuationPosition.getValue()
+                if (pref == PunctuationPosition.None) return AltTextLayoutMode.Hidden
+                when (pref) {
+                    PunctuationPosition.TopRight -> AltTextLayoutMode.TopRight
+                    PunctuationPosition.Bottom -> AltTextLayoutMode.Bottom
+                    PunctuationPosition.None -> AltTextLayoutMode.Hidden
+                }
+            }
         }
         if (keyHeight <= 0) return preferred
 
@@ -992,6 +1065,10 @@ class ImageAltTextKeyView(
             AltTextLayoutMode.Bottom -> when {
                 contentHeight >= stackedMinHeight -> AltTextLayoutMode.Bottom
                 contentHeight >= compactMinHeight -> AltTextLayoutMode.TopRight
+                else -> AltTextLayoutMode.Hidden
+            }
+            AltTextLayoutMode.Top -> when {
+                contentHeight >= compactMinHeight -> AltTextLayoutMode.Top
                 else -> AltTextLayoutMode.Hidden
             }
             AltTextLayoutMode.TopRight -> when {
@@ -1008,6 +1085,7 @@ class ImageAltTextKeyView(
         lastLayoutMode = mode
         when (mode) {
             AltTextLayoutMode.Bottom -> applyBottomAltTextPosition()
+            AltTextLayoutMode.Top -> applyTopAltTextPosition()
             AltTextLayoutMode.TopRight -> applyTopRightAltTextPosition()
             AltTextLayoutMode.Hidden -> applyNoAltTextPosition()
         }
@@ -1017,6 +1095,7 @@ class ImageAltTextKeyView(
         if (totalY == 0) return false
         return when (lastLayoutMode ?: resolveLayoutMode(appearanceView.height)) {
             AltTextLayoutMode.Bottom -> totalY > 0
+            AltTextLayoutMode.Top -> totalY < 0
             AltTextLayoutMode.TopRight -> totalY < 0
             AltTextLayoutMode.Hidden -> fallback.checkY(totalY)
         }
