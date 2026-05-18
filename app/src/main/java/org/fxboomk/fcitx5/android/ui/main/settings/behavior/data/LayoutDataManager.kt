@@ -23,6 +23,11 @@ import java.io.File
  * - 数据验证
  */
 class LayoutDataManager(private val context: Context) {
+    private companion object {
+        private const val LAYOUT_META_KEY = "__meta__"
+        private const val LAYOUT_META_HEIGHT_PERCENT_KEY = "keyboard_height_percent"
+    }
+
     
     /**
      * 所有布局条目
@@ -31,11 +36,14 @@ class LayoutDataManager(private val context: Context) {
      * - "layoutName:subModeLabel" - 子模式布局
      */
     val entries = mutableMapOf<String, MutableList<MutableList<MutableMap<String, Any?>>>>()
+    val layoutHeightPercentOverrides = mutableMapOf<String, Int>()
     
     /**
      * 原始数据快照，用于检测是否有更改
      */
     private var originalEntries: Map<String, List<List<Map<String, Any?>>>> = emptyMap()
+    private var originalLayoutHeightPercentOverrides: Map<String, Int> = emptyMap()
+    private var lastParsedLayoutHeightPercentOverrides: Map<String, Int> = emptyMap()
     
     /**
      * 迁移管理器
@@ -52,6 +60,7 @@ class LayoutDataManager(private val context: Context) {
      */
     fun loadFromFile(file: File?): Boolean {
         entries.clear()
+        layoutHeightPercentOverrides.clear()
         
         val parsed = if (file?.exists() == true && file.length() > 0) {
             parseJsonText(file.readText(), file.name)
@@ -65,6 +74,8 @@ class LayoutDataManager(private val context: Context) {
                 row.map { key -> key.toMutableMap() }.toMutableList()
             }.toMutableList()
         }
+        layoutHeightPercentOverrides.putAll(lastParsedLayoutHeightPercentOverrides)
+        pruneLayoutHeightOverrides()
         
         // 确保至少有一个布局
         if (entries.isEmpty()) {
@@ -91,6 +102,9 @@ class LayoutDataManager(private val context: Context) {
                         row.map { key -> key.toMutableMap() }.toMutableList()
                     }.toMutableList()
                 }
+                layoutHeightPercentOverrides.clear()
+                layoutHeightPercentOverrides.putAll(lastParsedLayoutHeightPercentOverrides)
+                pruneLayoutHeightOverrides()
                 // 确保至少有一个布局
                 if (entries.isEmpty()) {
                     val defaultLayout = loadDefaultPreset()
@@ -105,6 +119,7 @@ class LayoutDataManager(private val context: Context) {
 
         // 保存原始数据快照
         originalEntries = normalizedEntries()
+        originalLayoutHeightPercentOverrides = layoutHeightPercentOverrides.toSortedMap()
 
         return true
     }
@@ -121,6 +136,7 @@ class LayoutDataManager(private val context: Context) {
         sourceName: String = "<memory>",
         fallbackToDefault: Boolean = true
     ): Map<String, List<List<Map<String, Any?>>>> {
+        lastParsedLayoutHeightPercentOverrides = emptyMap()
         val lenientJson = Json {
             ignoreUnknownKeys = true
             isLenient = true
@@ -134,19 +150,33 @@ class LayoutDataManager(private val context: Context) {
             val jsonElement = lenientJson.parseToJsonElement(jsonStr)
             val jsonObject = jsonElement.jsonObject
             val result = mutableMapOf<String, List<List<Map<String, Any?>>>>()
+            val parsedLayoutHeightOverrides = mutableMapOf<String, Int>()
 
             // 处理每个布局条目
             jsonObject.entries.forEach { (layoutName, layoutValue) ->
                 try {
                     when (layoutValue) {
                         is JsonArray -> {
-                            val rows = LayoutJsonUtils.parseLayoutRows(layoutValue)
+                            val rows = normalizeRowsForParsedData(LayoutJsonUtils.parseLayoutRows(layoutValue))
                             result[layoutName] = rows
                         }
                         is JsonObject -> {
+                            parseLayoutHeightPercent(layoutValue)?.let { parsedLayoutHeightOverrides[layoutName] = it }
                             layoutValue.jsonObject.entries.forEach { (subModeLabel, subModeValue) ->
-                                if (subModeValue is JsonArray) {
-                                    val rows = LayoutJsonUtils.parseLayoutRows(subModeValue)
+                                if (subModeLabel == LAYOUT_META_KEY) return@forEach
+                                val rowsElement = when (subModeValue) {
+                                    is JsonArray -> subModeValue
+                                    is JsonObject -> {
+                                        parseLayoutHeightPercent(subModeValue)?.let { subPercent ->
+                                            val subKey = if (subModeLabel == "default") layoutName else "$layoutName:$subModeLabel"
+                                            parsedLayoutHeightOverrides[subKey] = subPercent
+                                        }
+                                        (subModeValue["default"] as? JsonArray) ?: (subModeValue[""] as? JsonArray)
+                                    }
+                                    else -> null
+                                }
+                                if (rowsElement != null) {
+                                    val rows = normalizeRowsForParsedData(LayoutJsonUtils.parseLayoutRows(rowsElement))
                                     val key = if (subModeLabel == "default") {
                                         layoutName
                                     } else {
@@ -164,6 +194,7 @@ class LayoutDataManager(private val context: Context) {
                     android.util.Log.e("LayoutDataManager", "Failed to parse layout: $layoutName", e)
                 }
             }
+            lastParsedLayoutHeightPercentOverrides = parsedLayoutHeightOverrides.toSortedMap()
             
             if (result.isEmpty()) {
                 android.util.Log.w("LayoutDataManager", "No valid layouts found in JSON file")
@@ -176,7 +207,7 @@ class LayoutDataManager(private val context: Context) {
     }
 
     fun exportCurrentJsonString(): String {
-        val jsonElement = LayoutJsonUtils.convertToSaveJson(entries)
+        val jsonElement = LayoutJsonUtils.convertToSaveJson(entries, layoutHeightPercentOverrides)
         val prettyJson = Json { prettyPrint = true }
         return prettyJson.encodeToString(jsonElement) + "\n"
     }
@@ -202,6 +233,8 @@ class LayoutDataManager(private val context: Context) {
      */
     fun saveToFile(file: File): Boolean {
         return runCatching {
+            pruneLayoutHeightOverrides()
+            normalizeAllRowsForSave()
             // 验证数据
             val errors = validateEntries()
             if (errors.isNotEmpty()) {
@@ -230,7 +263,7 @@ class LayoutDataManager(private val context: Context) {
             file.parentFile?.mkdirs()
 
             // Convert to JSON and save, using compact format (each key object on one line)
-            val jsonElement = LayoutJsonUtils.convertToSaveJson(entries)
+            val jsonElement = LayoutJsonUtils.convertToSaveJson(entries, layoutHeightPercentOverrides)
             val compactJson = LayoutJsonUtils.formatJsonCompact(jsonElement)
             file.writeText(compactJson + "\n")
             
@@ -239,6 +272,7 @@ class LayoutDataManager(private val context: Context) {
             
             // 更新原始数据快照
             originalEntries = normalizedEntries()
+            originalLayoutHeightPercentOverrides = layoutHeightPercentOverrides.toSortedMap()
             
             true
         }.getOrElse { e ->
@@ -544,7 +578,11 @@ class LayoutDataManager(private val context: Context) {
     /**
      * 检查是否有更改
      */
-    fun hasChanges(): Boolean = normalizedEntries() != originalEntries
+    fun hasChanges(): Boolean {
+        pruneLayoutHeightOverrides()
+        return normalizedEntries() != originalEntries ||
+            layoutHeightPercentOverrides.toSortedMap() != originalLayoutHeightPercentOverrides
+    }
     
     /**
      * 验证数据完整性
@@ -553,6 +591,12 @@ class LayoutDataManager(private val context: Context) {
      */
     fun validateEntries(): List<String> {
         val errors = mutableListOf<String>()
+
+        layoutHeightPercentOverrides.forEach { (layoutName, percent) ->
+            if (percent !in 10..90) {
+                errors.add("布局 \"$layoutName\" 的 keyboard_height_percent 必须在 10 到 90 之间")
+            }
+        }
         
         // 检查重复的布局名称
         val layoutNames = entries.keys.toList()
@@ -653,6 +697,30 @@ class LayoutDataManager(private val context: Context) {
             }
         }
 
+        key["rowHeightPercent"]?.let { rowHeightPercent ->
+            when (rowHeightPercent) {
+                is Number -> {
+                    val floatValue = rowHeightPercent.toFloat()
+                    if (floatValue < 1.0f || floatValue > 100.0f) {
+                        errors.add("布局 \"$layoutName\" 第 ${rowIndex + 1} 行第 ${keyIndex + 1} 个键 ($type) 的 rowHeightPercent 必须在 1 到 100 之间")
+                    }
+                }
+                is String -> {
+                    val parsedValue = rowHeightPercent.trim()
+                        .takeUnless { it.isEmpty() || it.equals("null", ignoreCase = true) }
+                        ?.toFloatOrNull()
+                    if (parsedValue == null) {
+                        errors.add("布局 \"$layoutName\" 第 ${rowIndex + 1} 行第 ${keyIndex + 1} 个键 ($type) 的 rowHeightPercent 字段必须是数字，但得到：\"$rowHeightPercent\"")
+                    } else if (parsedValue < 1.0f || parsedValue > 100.0f) {
+                        errors.add("布局 \"$layoutName\" 第 ${rowIndex + 1} 行第 ${keyIndex + 1} 个键 ($type) 的 rowHeightPercent 必须在 1 到 100 之间")
+                    }
+                }
+                else -> {
+                    errors.add("布局 \"$layoutName\" 第 ${rowIndex + 1} 行第 ${keyIndex + 1} 个键 ($type) 的 rowHeightPercent 字段必须是数字，但得到：${rowHeightPercent::class.simpleName}")
+                }
+            }
+        }
+
         // 验证 displayText 中的重复模式名称
         (key["displayText"] as? Map<*, *>)?.let { displayText ->
             val modeNames = displayText.keys.filterIsInstance<String>().toList()
@@ -677,6 +745,7 @@ class LayoutDataManager(private val context: Context) {
 
     private fun normalizeKeyValue(key: String, value: Any?): Any? {
         if (key != "weight" &&
+            key != "rowHeightPercent" &&
             key != "textColor" &&
             key != "altTextColor" &&
             key != "backgroundColor" &&
@@ -684,12 +753,12 @@ class LayoutDataManager(private val context: Context) {
         ) return value
         return when (value) {
             null -> null
-            is Number -> if (key == "weight") value.toFloat() else value.toInt()
+            is Number -> if (key == "weight" || key == "rowHeightPercent") value.toFloat() else value.toInt()
             is String -> {
                 value.trim()
                     .takeUnless { it.isEmpty() || it.equals("null", ignoreCase = true) }
                     ?.let {
-                        if (key == "weight") {
+                        if (key == "weight" || key == "rowHeightPercent") {
                             it.toFloatOrNull()
                         } else {
                             when {
@@ -743,6 +812,62 @@ class LayoutDataManager(private val context: Context) {
                 row.map { key -> key.toMap() }
             }
         }
+
+    fun getLayoutHeightPercentOverride(layoutName: String): Int? {
+        return layoutHeightPercentOverrides[layoutName]
+    }
+
+    fun setLayoutHeightPercentOverride(layoutName: String, value: Int?) {
+        if (value == null) {
+            layoutHeightPercentOverrides.remove(layoutName)
+        } else {
+            layoutHeightPercentOverrides[layoutName] = value.coerceIn(10, 90)
+        }
+    }
+
+    fun latestParsedLayoutHeightPercentOverrides(): Map<String, Int> {
+        return lastParsedLayoutHeightPercentOverrides
+    }
+
+    private fun parseLayoutHeightPercent(layoutObject: JsonObject): Int? {
+        val meta = layoutObject[LAYOUT_META_KEY] as? JsonObject ?: return null
+        val raw = (meta[LAYOUT_META_HEIGHT_PERCENT_KEY] as? JsonPrimitive)?.intOrNull
+            ?: (meta[LAYOUT_META_HEIGHT_PERCENT_KEY] as? JsonPrimitive)?.content?.toIntOrNull()
+        return raw?.takeIf { it in 10..90 }
+    }
+
+    private fun normalizeRowsForParsedData(rows: List<List<Map<String, Any?>>>): List<List<Map<String, Any?>>> {
+        return copyLayout(rows).also { normalizeRowHeightPercents(it) }
+    }
+
+    private fun normalizeAllRowsForSave() {
+        entries.values.forEach { rows ->
+            normalizeRowHeightPercents(rows)
+        }
+    }
+
+    private fun pruneLayoutHeightOverrides() {
+        val validLayoutKeys = entries.keys.toSet()
+        layoutHeightPercentOverrides.keys.retainAll(validLayoutKeys)
+    }
+
+    private fun normalizeRowHeightPercents(rows: MutableList<MutableList<MutableMap<String, Any?>>>) {
+        rows.forEach { row ->
+            KeyboardRowStyleUtils.visibleMutableKeys(row).forEach { key ->
+                val parsed = when (val raw = key["rowHeightPercent"]) {
+                    is Number -> raw.toFloat()
+                    is String -> raw.trim().toFloatOrNull()
+                    else -> null
+                }?.takeIf { it in 1f..100f }
+
+                if (parsed == null) {
+                    key.remove("rowHeightPercent")
+                } else {
+                    key["rowHeightPercent"] = parsed
+                }
+            }
+        }
+    }
 
     /**
      * 验证异常类

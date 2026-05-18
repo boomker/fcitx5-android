@@ -6,6 +6,7 @@ package org.fxboomk.fcitx5.android.ui.main
 
 import android.content.ClipData
 import android.content.Intent
+import android.database.Cursor
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -18,7 +19,6 @@ import android.widget.LinearLayout
 import android.widget.ListView
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
-import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.Dispatchers
@@ -106,6 +106,12 @@ class ShareReceiveManager(
     private data class RawImportTarget(
         val item: RawImportItem,
         val target: File
+    )
+
+    private data class SharedDocumentNode(
+        val uri: Uri,
+        val name: String,
+        val isDirectory: Boolean
     )
 
     fun handle(intent: Intent, savedInstanceState: Bundle?) {
@@ -656,7 +662,7 @@ class ShareReceiveManager(
     }
 
     private suspend fun rawImportItem(uri: Uri): RawImportItem = withContext(Dispatchers.IO) {
-        val document = documentFile(uri)
+        val document = querySharedDocumentNode(uri)
         val queriedName = document?.name ?: activity.contentResolver.queryFileName(uri)
         val name = safeImportFileName(queriedName)
         val isDirectory = document?.isDirectory == true ||
@@ -666,12 +672,25 @@ class ShareReceiveManager(
         RawImportItem(uri, name, isDirectory, relativePath)
     }
 
-    private fun documentFile(uri: Uri): DocumentFile? {
+    private fun querySharedDocumentNode(uri: Uri): SharedDocumentNode? {
         return runCatching {
-            when {
-                Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && DocumentsContract.isTreeUri(uri) ->
-                    DocumentFile.fromTreeUri(activity, uri)
-                else -> DocumentFile.fromSingleUri(activity, uri)
+            activity.contentResolver.query(
+                uri,
+                arrayOf(
+                    DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+                    DocumentsContract.Document.COLUMN_MIME_TYPE
+                ),
+                null,
+                null,
+                null
+            )?.use { cursor ->
+                if (!cursor.moveToFirst()) return@use null
+                SharedDocumentNode(
+                    uri = uri,
+                    name = safeImportFileName(cursor.stringAt(DocumentsContract.Document.COLUMN_DISPLAY_NAME)),
+                    isDirectory = cursor.stringAt(DocumentsContract.Document.COLUMN_MIME_TYPE) ==
+                        DocumentsContract.Document.MIME_TYPE_DIR
+                )
             }
         }.getOrNull()
     }
@@ -679,7 +698,7 @@ class ShareReceiveManager(
     private suspend fun copyRawImportItem(item: RawImportItem, target: File): Int {
         return if (item.isDirectory) {
             withContext(Dispatchers.IO) {
-                val document = documentFile(item.uri)?.takeIf { it.isDirectory }
+                val document = querySharedDocumentNode(item.uri)?.takeIf { it.isDirectory }
                     ?: error("Cannot open shared directory")
                 copySharedDirectoryBlocking(document, target, MAX_DIRECTORY_TRAVERSAL_DEPTH, MAX_DIRECTORY_ENTRY_COUNT)
             }
@@ -690,12 +709,12 @@ class ShareReceiveManager(
     }
 
     private fun copySharedDirectoryBlocking(
-        source: DocumentFile,
+        source: SharedDocumentNode,
         target: File,
         maxDepth: Int,
         maxEntries: Int
     ): Int {
-        data class PendingDirectory(val source: DocumentFile, val target: File, val depth: Int)
+        data class PendingDirectory(val source: SharedDocumentNode, val target: File, val depth: Int)
         val stack = ArrayDeque<PendingDirectory>()
         val visited = mutableSetOf<String>()
         stack.addLast(PendingDirectory(source, target, 0))
@@ -710,11 +729,10 @@ class ShareReceiveManager(
             }
             current.target.mkdirs()
             val currentCanonical = current.target.canonicalFile
-            current.source.listFiles().forEach { child ->
+            for (child in listChildSharedDocuments(current.source)) {
                 entryCount += 1
                 check(entryCount <= maxEntries) { "Too many files in shared directory." }
-                val childName = safeImportFileName(child.name)
-                val childTarget = File(currentCanonical, childName).canonicalFile
+                val childTarget = File(currentCanonical, child.name).canonicalFile
                 require(
                     childTarget.path.startsWith(currentCanonical.path + File.separator) ||
                         childTarget == currentCanonical
@@ -822,17 +840,17 @@ class ShareReceiveManager(
 
     private fun rawImportTargetConflicts(item: RawImportItem, target: File): Boolean {
         if (!item.isDirectory) return target.exists()
-        val document = documentFile(item.uri)?.takeIf { it.isDirectory } ?: return target.exists()
+        val document = querySharedDocumentNode(item.uri)?.takeIf { it.isDirectory } ?: return target.exists()
         return sharedDirectoryConflicts(document, target, MAX_DIRECTORY_TRAVERSAL_DEPTH, MAX_DIRECTORY_ENTRY_COUNT)
     }
 
     private fun sharedDirectoryConflicts(
-        source: DocumentFile,
+        source: SharedDocumentNode,
         target: File,
         maxDepth: Int,
         maxEntries: Int
     ): Boolean {
-        data class PendingDirectory(val source: DocumentFile, val target: File, val depth: Int)
+        data class PendingDirectory(val source: SharedDocumentNode, val target: File, val depth: Int)
         val stack = ArrayDeque<PendingDirectory>()
         val visited = mutableSetOf<String>()
         stack.addLast(PendingDirectory(source, target, 0))
@@ -844,10 +862,10 @@ class ShareReceiveManager(
             if (!visited.add(uriKey)) {
                 continue
             }
-            current.source.listFiles().forEach { child ->
+            for (child in listChildSharedDocuments(current.source)) {
                 entryCount += 1
                 check(entryCount <= maxEntries) { "Too many files in shared directory." }
-                val childTarget = File(current.target, safeImportFileName(child.name))
+                val childTarget = File(current.target, child.name)
                 if (child.isDirectory) {
                     stack.addLast(PendingDirectory(child, childTarget, current.depth + 1))
                 } else if (childTarget.exists()) {
@@ -856,6 +874,56 @@ class ShareReceiveManager(
             }
         }
         return false
+    }
+
+    private fun listChildSharedDocuments(source: SharedDocumentNode): List<SharedDocumentNode> {
+        val authority = source.uri.authority ?: return emptyList()
+        val documentId = runCatching {
+            if (DocumentsContract.isDocumentUri(activity, source.uri)) {
+                DocumentsContract.getDocumentId(source.uri)
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && DocumentsContract.isTreeUri(source.uri)) {
+                DocumentsContract.getTreeDocumentId(source.uri)
+            } else {
+                return emptyList()
+            }
+        }.getOrElse { return emptyList() }
+        val childrenUri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && DocumentsContract.isTreeUri(source.uri)) {
+            DocumentsContract.buildChildDocumentsUriUsingTree(source.uri, documentId)
+        } else {
+            DocumentsContract.buildChildDocumentsUri(authority, documentId)
+        }
+        return runCatching {
+            activity.contentResolver.query(
+                childrenUri,
+                arrayOf(
+                    DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+                    DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+                    DocumentsContract.Document.COLUMN_MIME_TYPE
+                ),
+                null,
+                null,
+                null
+            )?.use { cursor ->
+                buildList {
+                    while (cursor.moveToNext()) {
+                        val childId = cursor.stringAt(DocumentsContract.Document.COLUMN_DOCUMENT_ID) ?: continue
+                        val childUri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && DocumentsContract.isTreeUri(source.uri)) {
+                            DocumentsContract.buildDocumentUriUsingTree(source.uri, childId)
+                        } else {
+                            DocumentsContract.buildDocumentUri(authority, childId)
+                        }
+                        add(
+                            SharedDocumentNode(
+                                uri = childUri,
+                                name = safeImportFileName(cursor.stringAt(DocumentsContract.Document.COLUMN_DISPLAY_NAME)),
+                                isDirectory = cursor.stringAt(DocumentsContract.Document.COLUMN_MIME_TYPE) ==
+                                    DocumentsContract.Document.MIME_TYPE_DIR
+                            )
+                        )
+                    }
+                }
+            } ?: emptyList()
+        }.getOrElse { emptyList() }
     }
 
     private fun decodeThemeFromZipFile(zipFile: File): Theme.Custom {
@@ -1274,6 +1342,12 @@ class ShareReceiveManager(
         private const val MAX_DIRECTORY_TRAVERSAL_DEPTH = 64
         private const val MAX_DIRECTORY_ENTRY_COUNT = 20000
     }
+}
+
+private fun Cursor.stringAt(columnName: String): String? {
+    val index = getColumnIndex(columnName)
+    if (index < 0 || isNull(index)) return null
+    return getString(index)
 }
 
 private suspend inline fun <T> suspendCancellableDialog(

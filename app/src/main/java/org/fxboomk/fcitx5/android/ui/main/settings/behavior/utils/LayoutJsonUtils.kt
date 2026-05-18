@@ -26,6 +26,7 @@ import org.fxboomk.fcitx5.android.ui.main.settings.behavior.utils.KeyboardRowSty
 object LayoutJsonUtils {
 
     private const val TAG = "LayoutJsonUtils"
+    const val LAYER_SUBMODE_PREFIX = "__layer__:"
     private val KEY_FIELD_ORDER = listOf(
         "type",
         "main",
@@ -35,6 +36,7 @@ object LayoutJsonUtils {
         "altLabel",
         "subLabel",
         "weight",
+        "rowHeightPercent",
         "tap",
         "swipe",
         "longPress",
@@ -49,6 +51,29 @@ object LayoutJsonUtils {
         "shadowColor",
         "shadowColorMonet"
     )
+
+    fun toLayerSubModeLabel(childName: String): String = "$LAYER_SUBMODE_PREFIX$childName"
+
+    fun isLayerSubModeLabel(label: String): Boolean = label.startsWith(LAYER_SUBMODE_PREFIX)
+
+    fun childNameFromLayerLabel(label: String): String =
+        label.removePrefix(LAYER_SUBMODE_PREFIX)
+
+    fun baseLayoutNameFromEntryKey(key: String): String {
+        return when {
+            key.contains(":$LAYER_SUBMODE_PREFIX") -> key.substringBefore(":$LAYER_SUBMODE_PREFIX")
+            key.contains(':') -> key.substringBeforeLast(':')
+            else -> key
+        }
+    }
+
+    fun subModeLabelFromEntryKey(key: String, baseName: String): String {
+        return if (key == baseName) {
+            "default"
+        } else {
+            key.removePrefix("$baseName:")
+        }
+    }
 
     // ==================== 解析功能 ====================
 
@@ -862,12 +887,13 @@ object LayoutJsonUtils {
      * @return JSON 对象
      */
     fun convertToSaveJson(
-        entries: Map<String, List<List<Map<String, Any?>>>>
+        entries: Map<String, List<List<Map<String, Any?>>>>,
+        layoutHeightPercentOverrides: Map<String, Int> = emptyMap()
     ): JsonObject {
         val layoutMap = mutableMapOf<String, JsonElement>()
 
         val baseLayoutNames = entries.keys.map { key ->
-            if (key.contains(':')) key.substringBeforeLast(':') else key
+            baseLayoutNameFromEntryKey(key)
         }.distinct()
 
         for (baseName in baseLayoutNames) {
@@ -881,18 +907,38 @@ object LayoutJsonUtils {
 
             if (hasSubModeKeys) {
                 val subModeMap = mutableMapOf<String, JsonElement>()
+                layoutHeightPercentOverrides[baseName]
+                    ?.takeIf { it in 10..90 }
+                    ?.let { percent ->
+                        subModeMap["__meta__"] = JsonObject(
+                            mapOf("keyboard_height_percent" to JsonPrimitive(percent))
+                        )
+                    }
 
                 for (key in subModeKeys) {
-                    val subModeLabel = if (key.contains(':')) {
-                        key.substringAfterLast(':').ifEmpty { "default" }
-                    } else {
-                        "default"
-                    }
+                    val subModeLabel = subModeLabelFromEntryKey(key, baseName)
 
                     val rows = entries[key]!!
                     val jsonArray = JsonArray(rows.map(::rowToJsonElement))
-
-                    subModeMap[subModeLabel] = jsonArray
+                    val overrideKey = if (subModeLabel == "default") {
+                        baseName
+                    } else {
+                        "$baseName:$subModeLabel"
+                    }
+                    val subModeOverridePercent =
+                        layoutHeightPercentOverrides[overrideKey]?.takeIf { it in 10..90 }
+                    subModeMap[subModeLabel] = if (subModeLabel != "default" && subModeOverridePercent != null) {
+                        JsonObject(
+                            mapOf(
+                                "__meta__" to JsonObject(
+                                    mapOf("keyboard_height_percent" to JsonPrimitive(subModeOverridePercent))
+                                ),
+                                "default" to jsonArray
+                            )
+                        )
+                    } else {
+                        jsonArray
+                    }
                 }
 
                 layoutMap[baseName] = JsonObject(subModeMap.toSortedMap())
@@ -900,7 +946,19 @@ object LayoutJsonUtils {
                 val key = subModeKeys.firstOrNull() ?: baseName
                 val rows = entries[key] ?: continue
                 val jsonArray = JsonArray(rows.map(::rowToJsonElement))
-                layoutMap[baseName] = jsonArray
+                val overridePercent = layoutHeightPercentOverrides[baseName]?.takeIf { it in 10..90 }
+                layoutMap[baseName] = if (overridePercent == null) {
+                    jsonArray
+                } else {
+                    JsonObject(
+                        mapOf(
+                            "__meta__" to JsonObject(
+                                mapOf("keyboard_height_percent" to JsonPrimitive(overridePercent))
+                            ),
+                            "default" to jsonArray
+                        )
+                    )
+                }
             }
         }
 
