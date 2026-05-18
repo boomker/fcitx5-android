@@ -28,7 +28,14 @@ import org.fxboomk.fcitx5.android.ui.main.settings.addon.AddonListFragment
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.AdvancedSettingsFragment
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.CandidatesSettingsFragment
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.ClipboardSettingsFragment
-import org.fxboomk.fcitx5.android.ui.main.settings.behavior.KeyboardSettingsFragment
+import org.fxboomk.fcitx5.android.ui.main.settings.behavior.KeyboardAdvancedCustomizationFragment
+import org.fxboomk.fcitx5.android.ui.main.settings.behavior.KeyboardBasicSettingsFragment
+import org.fxboomk.fcitx5.android.ui.main.settings.behavior.KeyboardCandidatesSettingsFragment
+import org.fxboomk.fcitx5.android.ui.main.settings.behavior.KeyboardKeyAndGestureSettingsFragment
+import org.fxboomk.fcitx5.android.ui.main.settings.behavior.KeyboardLayoutAndSplitSettingsFragment
+import org.fxboomk.fcitx5.android.ui.main.settings.behavior.KeyboardSettingsHomeFragment
+import org.fxboomk.fcitx5.android.ui.main.settings.behavior.KeyboardToolbarAndInputSettingsFragment
+import org.fxboomk.fcitx5.android.ui.main.settings.behavior.KeyboardTouchAndSoundSettingsFragment
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.LlmAdvancedSettingsFragment
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.LlmSettingsFragment
 import org.fxboomk.fcitx5.android.ui.main.settings.global.GlobalConfigFragment
@@ -72,6 +79,27 @@ sealed class SettingsRoute : Parcelable {
 
     @Serializable
     data object VirtualKeyboard : SettingsRoute()
+
+    @Serializable
+    data object VirtualKeyboardBasic : SettingsRoute()
+
+    @Serializable
+    data object VirtualKeyboardTouchAndSound : SettingsRoute()
+
+    @Serializable
+    data object VirtualKeyboardToolbarAndInput : SettingsRoute()
+
+    @Serializable
+    data object VirtualKeyboardKeyAndGesture : SettingsRoute()
+
+    @Serializable
+    data object VirtualKeyboardLayoutAndSplit : SettingsRoute()
+
+    @Serializable
+    data object VirtualKeyboardCandidates : SettingsRoute()
+
+    @Serializable
+    data object VirtualKeyboardAdvancedCustomization : SettingsRoute()
 
     @Serializable
     data object CandidatesWindow : SettingsRoute()
@@ -222,8 +250,29 @@ sealed class SettingsRoute : Parcelable {
             fragment<ThemeFragment, Theme> {
                 label = ctx.getString(R.string.theme_appearance)
             }
-            fragment<KeyboardSettingsFragment, VirtualKeyboard> {
+            fragment<KeyboardSettingsHomeFragment, VirtualKeyboard> {
                 label = ctx.getString(R.string.virtual_keyboard)
+            }
+            fragment<KeyboardBasicSettingsFragment, VirtualKeyboardBasic> {
+                label = ctx.getString(R.string.keyboard_settings_basic_behavior)
+            }
+            fragment<KeyboardTouchAndSoundSettingsFragment, VirtualKeyboardTouchAndSound> {
+                label = ctx.getString(R.string.keyboard_settings_touch_and_sound)
+            }
+            fragment<KeyboardToolbarAndInputSettingsFragment, VirtualKeyboardToolbarAndInput> {
+                label = ctx.getString(R.string.keyboard_settings_toolbar_and_voice)
+            }
+            fragment<KeyboardKeyAndGestureSettingsFragment, VirtualKeyboardKeyAndGesture> {
+                label = ctx.getString(R.string.keyboard_settings_key_and_gesture)
+            }
+            fragment<KeyboardLayoutAndSplitSettingsFragment, VirtualKeyboardLayoutAndSplit> {
+                label = ctx.getString(R.string.keyboard_settings_layout_and_split)
+            }
+            fragment<KeyboardCandidatesSettingsFragment, VirtualKeyboardCandidates> {
+                label = ctx.getString(R.string.keyboard_settings_candidates)
+            }
+            fragment<KeyboardAdvancedCustomizationFragment, VirtualKeyboardAdvancedCustomization> {
+                label = ctx.getString(R.string.keyboard_settings_advanced_customization)
             }
             fragment<CandidatesSettingsFragment, CandidatesWindow> {
                 label = ctx.getString(R.string.candidates_window)

@@ -225,8 +225,6 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
             "prediction_space_behavior",
             PredictionSpaceBehavior.CommitSpace
         )
-        val spaceSwipeMoveCursor =
-            switch(R.string.space_swipe_move_cursor, "space_swipe_move_cursor", true)
         val spaceSwipeVerticalBehavior = enumList(
             R.string.space_swipe_vertical_behavior,
             "space_swipe_vertical_behavior",
@@ -243,7 +241,7 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
             R.string.lang_switch_key_behavior,
             "lang_switch_key_behavior",
             LangSwitchBehavior.Enumerate
-        ) { showLangSwitchKey.getValue() }
+        )
 
         val keyboardHeightPercent: ManagedPreference.PInt
         val keyboardHeightPercentLandscape: ManagedPreference.PInt

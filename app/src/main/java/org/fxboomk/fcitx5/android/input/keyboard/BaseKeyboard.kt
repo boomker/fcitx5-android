@@ -92,13 +92,7 @@ abstract class BaseKeyboard(
     private val expandKeypressArea by prefs.keyboard.expandKeypressArea
     private val swipeSymbolDirection by prefs.keyboard.swipeSymbolDirection
 
-    private val spaceSwipeMoveCursor = prefs.keyboard.spaceSwipeMoveCursor
     private val spaceKeys = mutableListOf<KeyView>()
-    private val spaceSwipeChangeListener = ManagedPreference.OnChangeListener<Boolean> { _, v ->
-        spaceKeys.forEach {
-            it.swipeEnabled = v
-        }
-    }
 
     private val vivoKeypressWorkaround by prefs.advanced.vivoKeypressWorkaround
 
@@ -166,7 +160,6 @@ abstract class BaseKeyboard(
     init {
         isMotionEventSplittingEnabled = true
         reloadLayout()
-        spaceSwipeMoveCursor.registerOnChangeListener(spaceSwipeChangeListener)
         splitKeyboardManager.registerListener(splitStateChangeListener)
     }
 
@@ -656,7 +649,7 @@ abstract class BaseKeyboard(
             }
             if (def is SpaceKey) {
                 spaceKeys.add(this)
-                swipeEnabled = spaceSwipeMoveCursor.getValue()
+                swipeEnabled = true
                 swipeRepeatEnabled = true
                 swipeThresholdX = selectionSwipeThreshold
                 // Use a larger threshold for Y axis to avoid accidental up/down triggers

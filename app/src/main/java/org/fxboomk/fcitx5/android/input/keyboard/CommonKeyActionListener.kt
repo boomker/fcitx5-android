@@ -271,7 +271,7 @@ class CommonKeyActionListener :
                 }
                 is SpaceSwipeVerticalAction -> when (spaceSwipeVerticalBehavior) {
                     SpaceSwipeVerticalBehavior.ArrowKeys -> {
-                        if (service.hasVisibleCandidates()) {
+                        if (!preeditState.isEmpty || service.hasVisibleCandidates()) {
                             moveVisibleCandidateHighlight(action.delta)
                         } else {
                             service.postFcitxJob {
@@ -285,13 +285,24 @@ class CommonKeyActionListener :
                         }
                     }
                     SpaceSwipeVerticalBehavior.CandidateRows -> {
-                        if (floatingCandidatesMode == FloatingCandidatesMode.Always &&
-                            service.hasVisibleCandidates()
-                        ) {
-                            offsetVisibleCandidatePage(action.delta)
-                        } else if (horizontalCandidate.hasRowSwipeCandidates()) {
+                        if (!preeditState.isEmpty || service.hasVisibleCandidates()) {
+                            if (floatingCandidatesMode == FloatingCandidatesMode.Always &&
+                                service.hasVisibleCandidates()
+                            ) {
+                                offsetVisibleCandidatePage(action.delta)
+                            } else if (horizontalCandidate.hasRowSwipeCandidates()) {
+                                service.postFcitxJob {
+                                    horizontalCandidate.shiftDisplayedCandidateRow(action.delta)
+                                }
+                            }
+                        } else {
                             service.postFcitxJob {
-                                horizontalCandidate.shiftDisplayedCandidateRow(action.delta)
+                                val sym = if (action.delta > 0) {
+                                    FcitxKeyMapping.FcitxKey_Down
+                                } else {
+                                    FcitxKeyMapping.FcitxKey_Up
+                                }
+                                sendKey(KeySym(sym), KeyStates.Virtual)
                             }
                         }
                     }
