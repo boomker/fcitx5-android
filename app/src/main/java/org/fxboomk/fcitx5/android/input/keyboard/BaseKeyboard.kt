@@ -898,6 +898,13 @@ abstract class BaseKeyboard(
             else -> oldLayoutParams
         }
         val newView = createKeyView(def, registerComposeAware = false, appearanceOverride = appearance)
+        when (newView) {
+            is AltTextKeyView -> {
+                newView.mainText.setFontTypeFace("key_main_font")
+                newView.altText.setFontTypeFace("key_alt_font")
+            }
+            is TextKeyView -> newView.mainText.setFontTypeFace("key_main_font")
+        }
         // Keep the same identity so sibling constraints (leftToRight/rightToLeft) remain valid.
         newView.id = oldView.id
         newView.tag = oldView.tag

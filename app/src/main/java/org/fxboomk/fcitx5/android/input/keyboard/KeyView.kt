@@ -287,7 +287,8 @@ abstract class KeyView(
     ) {
         val (hInset, vInset) = resolveSideKeyCircleInsets(viewWidth, viewHeight)
         appearanceView.background = insetOvalDrawable(hInset, vInset, backgroundColor)
-        appearanceView.padding = 0
+        // Keep content inside the visible circular background when the side key becomes short.
+        appearanceView.setPadding(hInset, vInset, hInset, vInset)
         setupPressHighlight(
             insetOvalDrawable(
                 hInset, vInset,
