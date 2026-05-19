@@ -15,8 +15,8 @@ import splitties.dimensions.dp
 import splitties.views.dsl.core.Ui
 import splitties.views.dsl.core.add
 import splitties.views.dsl.core.lParams
-import splitties.views.dsl.core.matchParent
 import splitties.views.dsl.core.textView
+import splitties.views.dsl.core.wrapContent
 import splitties.views.gravityCenter
 import splitties.views.setPaddingDp
 
@@ -24,6 +24,9 @@ class TokenizedClipboardTokenUi(
     override val ctx: Context,
     private val theme: Theme
 ) : Ui {
+    private val tokenBackground = GradientDrawable().apply {
+        cornerRadius = ctx.dp(18).toFloat()
+    }
 
     val textView = textView {
         gravity = gravityCenter
@@ -36,13 +39,8 @@ class TokenizedClipboardTokenUi(
     override val root = CustomGestureView(ctx).apply {
         isClickable = true
         minimumHeight = ctx.dp(44)
-        add(textView, lParams(matchParent, matchParent))
-    }
-
-    fun setToken(text: String, selected: Boolean) {
-        textView.text = text
-        textView.setTextColor(if (selected) theme.accentKeyTextColor else theme.keyTextColor)
-        root.foreground = RippleDrawable(
+        background = tokenBackground
+        foreground = RippleDrawable(
             ColorStateList.valueOf(theme.keyPressHighlightColor),
             null,
             GradientDrawable().apply {
@@ -50,9 +48,15 @@ class TokenizedClipboardTokenUi(
                 setColor(Color.WHITE)
             }
         )
-        root.background = GradientDrawable().apply {
-            cornerRadius = ctx.dp(18).toFloat()
-            setColor(if (selected) theme.accentKeyBackgroundColor else theme.keyBackgroundColor)
-        }
+        add(textView, lParams(wrapContent, wrapContent))
+    }
+
+    fun setText(text: String) {
+        textView.text = text
+    }
+
+    fun setSelected(selected: Boolean) {
+        textView.setTextColor(if (selected) theme.accentKeyTextColor else theme.keyTextColor)
+        tokenBackground.setColor(if (selected) theme.accentKeyBackgroundColor else theme.keyBackgroundColor)
     }
 }

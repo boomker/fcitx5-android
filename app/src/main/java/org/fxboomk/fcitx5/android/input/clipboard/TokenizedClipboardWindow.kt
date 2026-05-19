@@ -46,6 +46,19 @@ class TokenizedClipboardWindow(
             justifyContent = JustifyContent.FLEX_START
         }
         recyclerView.adapter = adapter
+        recyclerView.addOnItemTouchListener(object : androidx.recyclerview.widget.RecyclerView.SimpleOnItemTouchListener() {
+            override fun onInterceptTouchEvent(
+                rv: androidx.recyclerview.widget.RecyclerView,
+                e: android.view.MotionEvent
+            ): Boolean = adapter.handleRecyclerTouch(e, rv)
+
+            override fun onTouchEvent(
+                rv: androidx.recyclerview.widget.RecyclerView,
+                e: android.view.MotionEvent
+            ) {
+                adapter.handleRecyclerTouch(e, rv)
+            }
+        })
         backButton.setOnClickListener {
             windowManager.attachWindow(ClipboardWindow())
         }
