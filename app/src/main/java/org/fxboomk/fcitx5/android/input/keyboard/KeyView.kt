@@ -29,6 +29,7 @@ import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.data.theme.Theme
 import org.fxboomk.fcitx5.android.data.theme.ThemeManager
 import org.fxboomk.fcitx5.android.data.theme.ThemePrefs.PunctuationPosition
+import org.fxboomk.fcitx5.android.data.theme.resolveThemeColorReference
 import org.fxboomk.fcitx5.android.input.AutoScaleTextView
 import org.fxboomk.fcitx5.android.input.keyboard.KeyDef.Appearance.Border
 import org.fxboomk.fcitx5.android.input.keyboard.KeyDef.Appearance.Variant
@@ -230,12 +231,14 @@ abstract class KeyView(
         return runCatching { context.getColor(colorResId) }.getOrNull()
     }
 
-    private fun resolveColorOverride(staticColor: Int?, monetResourceName: String?): Int? {
-        return resolveMonetColor(monetResourceName) ?: staticColor
+    private fun resolveColorOverride(theme: Theme, staticColor: Int?, colorRef: String?): Int? {
+        return resolveThemeColorReference(context, theme, colorRef)
+            ?: resolveMonetColor(colorRef)
+            ?: staticColor
     }
 
     protected fun resolveBackgroundColor(theme: Theme, defaultColor: Int): Int {
-        return resolveColorOverride(def.backgroundColor, def.backgroundColorMonet) ?: defaultColor
+        return resolveColorOverride(theme, def.backgroundColor, def.backgroundColorMonet) ?: defaultColor
     }
 
     protected fun resolveStyledBackgroundColor(theme: Theme, defaultColor: Int): Int {
@@ -259,15 +262,15 @@ abstract class KeyView(
     }
 
     protected fun resolveShadowColor(theme: Theme): Int {
-        return resolveColorOverride(def.shadowColor, def.shadowColorMonet) ?: theme.keyShadowColor
+        return resolveColorOverride(theme, def.shadowColor, def.shadowColorMonet) ?: theme.keyShadowColor
     }
 
     protected fun resolveTextColor(defaultColor: Int): Int {
-        return resolveColorOverride(def.textColor, def.textColorMonet) ?: defaultColor
+        return resolveColorOverride(theme, def.textColor, def.textColorMonet) ?: defaultColor
     }
 
     protected fun resolveAltTextColor(defaultColor: Int): Int {
-        return resolveColorOverride(def.altTextColor, def.altTextColorMonet) ?: defaultColor
+        return resolveColorOverride(theme, def.altTextColor, def.altTextColorMonet) ?: defaultColor
     }
 
     private fun resolveSideKeyCircleInsets(viewWidth: Int, viewHeight: Int): Pair<Int, Int> {

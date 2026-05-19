@@ -212,11 +212,27 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
             "ms",
             10
         )
-        val spaceKeyLongPressBehavior = enumList(
-            R.string.space_long_press_behavior,
-            "space_long_press_behavior",
-            SpaceLongPressBehavior.None
-        )
+        val spaceKeyLongPressBehavior = run {
+            val entryValues = listOf(
+                SpaceLongPressBehavior.None,
+                SpaceLongPressBehavior.Enumerate,
+                SpaceLongPressBehavior.VoiceInput,
+                SpaceLongPressBehavior.ShowPicker
+            )
+            list(
+                R.string.space_long_press_behavior,
+                "space_long_press_behavior",
+                SpaceLongPressBehavior.None,
+                object : ManagedPreference.StringLikeCodec<SpaceLongPressBehavior> {
+                    override fun decode(raw: String): SpaceLongPressBehavior = when (raw) {
+                        SpaceLongPressBehavior.ToggleActivate.name -> SpaceLongPressBehavior.Enumerate
+                        else -> enumValueOf(raw)
+                    }
+                },
+                entryValues,
+                entryValues.map { it.stringRes }
+            )
+        }
         val spaceKeyLabelMode = enumList(
             R.string.space_key_label_mode,
             "space_key_label_mode",
@@ -239,11 +255,25 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
             "text_keyboard_layout_profile",
             "default"
         ).apply { register() }
-        val langSwitchKeyBehavior = enumList(
-            R.string.lang_switch_key_behavior,
-            "lang_switch_key_behavior",
-            LangSwitchBehavior.Enumerate
-        )
+        val langSwitchKeyBehavior = run {
+            val entryValues = listOf(
+                LangSwitchBehavior.Enumerate,
+                LangSwitchBehavior.NextInputMethodApp
+            )
+            list(
+                R.string.lang_switch_key_behavior,
+                "lang_switch_key_behavior",
+                LangSwitchBehavior.Enumerate,
+                object : ManagedPreference.StringLikeCodec<LangSwitchBehavior> {
+                    override fun decode(raw: String): LangSwitchBehavior = when (raw) {
+                        LangSwitchBehavior.ToggleActivate.name -> LangSwitchBehavior.Enumerate
+                        else -> enumValueOf(raw)
+                    }
+                },
+                entryValues,
+                entryValues.map { it.stringRes }
+            )
+        }
 
         val keyboardHeightPercent: ManagedPreference.PInt
         val keyboardHeightPercentLandscape: ManagedPreference.PInt

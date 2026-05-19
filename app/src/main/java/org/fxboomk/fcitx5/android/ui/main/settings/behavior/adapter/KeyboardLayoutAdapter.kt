@@ -15,6 +15,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
 import org.fxboomk.fcitx5.android.R
+import org.fxboomk.fcitx5.android.data.theme.ThemeManager
+import org.fxboomk.fcitx5.android.data.theme.resolveThemeColorReference
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.DraggableFlowLayout
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.utils.KeyboardRowStyleUtils
 import splitties.dimensions.dp
@@ -463,13 +465,7 @@ class KeyboardLayoutAdapter(
                     }
                     cornerRadius = context.dp(4).toFloat()
                 }
-                setTextColor(
-                    when {
-                        isMacroKey -> context.styledColor(android.R.attr.textColorPrimaryInverse)
-                        hasComposeOverride -> context.styledColor(android.R.attr.colorAccent)
-                        else -> context.styledColor(android.R.attr.textColorPrimary)
-                    }
-                )
+                setTextColor(resolvePreviewKeyTextColor(key, isMacroKey, hasComposeOverride))
                 setOnClickListener {
                     val adapterPosition = holder.bindingAdapterPosition
                     if (adapterPosition != RecyclerView.NO_POSITION && actualKeyIndex >= 0) {
@@ -851,6 +847,38 @@ class KeyboardLayoutAdapter(
                 }
             }
             else -> type
+        }
+    }
+
+    private fun resolvePreviewKeyTextColor(
+        key: Map<String, Any?>,
+        isMacroKey: Boolean,
+        hasComposeOverride: Boolean
+    ): Int {
+        val defaultColor = when {
+            isMacroKey -> context.styledColor(android.R.attr.textColorPrimaryInverse)
+            hasComposeOverride -> context.styledColor(android.R.attr.colorAccent)
+            else -> context.styledColor(android.R.attr.textColorPrimary)
+        }
+        val theme = ThemeManager.activeTheme
+        return resolveThemeColorReference(context, theme, key["textColorMonet"] as? String)
+            ?: parseColorInt(key["textColor"])
+            ?: defaultColor
+    }
+
+    private fun parseColorInt(value: Any?): Int? {
+        return when (value) {
+            is Int -> value
+            is Number -> value.toInt()
+            is String -> {
+                val raw = value.trim()
+                when {
+                    raw.startsWith("#") -> raw.removePrefix("#").toLongOrNull(16)?.toInt()
+                    raw.startsWith("0x", ignoreCase = true) -> raw.removePrefix("0x").toLongOrNull(16)?.toInt()
+                    else -> raw.toLongOrNull()?.toInt()
+                }
+            }
+            else -> null
         }
     }
 
