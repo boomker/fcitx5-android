@@ -194,6 +194,9 @@ class ThemeListFragment : Fragment() {
 
     override fun onStart() {
         super.onStart()
+        ThemeManager.refreshThemes()
+        themeListAdapter.setThemes(ThemeManager.getAllThemes())
+        updateSelectedThemes()
         ThemeManager.addOnChangedListener(onThemeChangeListener)
         ThemeManager.addOnThemeListChangedListener(onThemeListChangeListener)
     }

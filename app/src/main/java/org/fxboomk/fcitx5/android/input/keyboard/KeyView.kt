@@ -1143,14 +1143,10 @@ class ImageKeyView(
 ) :
     KeyView(ctx, theme, def, horizontalGapScale) {
     val img = imageView { configure(theme, def.src, def.variant, def.viewId) }.apply {
-        val defaultColor = if (def.viewId == R.id.button_return || def.viewId == R.id.button_lang) {
-            theme.keyTextColor
-        } else {
-            when (def.variant) {
-                Variant.Normal -> theme.keyTextColor
-                Variant.AltForeground, Variant.Alternative -> theme.altKeyTextColor
-                Variant.Accent -> theme.accentKeyTextColor
-            }
+        val defaultColor = when (def.variant) {
+            Variant.Normal -> theme.keyTextColor
+            Variant.AltForeground, Variant.Alternative -> theme.altKeyTextColor
+            Variant.Accent -> theme.accentKeyTextColor
         }
         imageTintList = ColorStateList.valueOf(resolveTextColor(defaultColor))
     }
@@ -1165,23 +1161,16 @@ class ImageKeyView(
 
     override fun updateTheme(newTheme: Theme) {
         super.updateTheme(newTheme)
-        val defaultColor = if (def.viewId == R.id.button_return || def.viewId == R.id.button_lang) {
-            newTheme.keyTextColor
-        } else {
-            when (def.variant) {
-                Variant.Normal -> newTheme.keyTextColor
-                Variant.AltForeground, Variant.Alternative -> newTheme.altKeyTextColor
-                Variant.Accent -> newTheme.accentKeyTextColor
-            }
+        val defaultColor = when (def.variant) {
+            Variant.Normal -> newTheme.keyTextColor
+            Variant.AltForeground, Variant.Alternative -> newTheme.altKeyTextColor
+            Variant.Accent -> newTheme.accentKeyTextColor
         }
         img.imageTintList = ColorStateList.valueOf(resolveTextColor(defaultColor))
     }
 }
 
 private fun resolveForegroundColor(theme: Theme, variant: Variant, viewId: Int): Int {
-    if (viewId == R.id.button_return || viewId == R.id.button_lang) {
-        return theme.keyTextColor
-    }
     return when (variant) {
         Variant.Normal -> theme.keyTextColor
         Variant.AltForeground, Variant.Alternative -> theme.altKeyTextColor
@@ -1211,14 +1200,10 @@ class ImageTextKeyView(
     TextKeyView(ctx, theme, def, horizontalGapScale) {
     val img = imageView {
         configure(theme, def.src, def.variant, def.viewId)
-        val defaultColor = if (def.viewId == R.id.button_return || def.viewId == R.id.button_lang) {
-            theme.keyTextColor
-        } else {
-            when (def.variant) {
-                Variant.Normal -> theme.keyTextColor
-                Variant.AltForeground, Variant.Alternative -> theme.altKeyTextColor
-                Variant.Accent -> theme.accentKeyTextColor
-            }
+        val defaultColor = when (def.variant) {
+            Variant.Normal -> theme.keyTextColor
+            Variant.AltForeground, Variant.Alternative -> theme.altKeyTextColor
+            Variant.Accent -> theme.accentKeyTextColor
         }
         imageTintList = ColorStateList.valueOf(resolveTextColor(defaultColor))
     }
@@ -1268,14 +1253,10 @@ class ImageTextKeyView(
 
     override fun updateTheme(newTheme: Theme) {
         super.updateTheme(newTheme)
-        val defaultColor = if (def.viewId == R.id.button_return || def.viewId == R.id.button_lang) {
-            newTheme.keyTextColor
-        } else {
-            when (def.variant) {
-                Variant.Normal -> newTheme.keyTextColor
-                Variant.AltForeground, Variant.Alternative -> newTheme.altKeyTextColor
-                Variant.Accent -> newTheme.accentKeyTextColor
-            }
+        val defaultColor = when (def.variant) {
+            Variant.Normal -> newTheme.keyTextColor
+            Variant.AltForeground, Variant.Alternative -> newTheme.altKeyTextColor
+            Variant.Accent -> newTheme.accentKeyTextColor
         }
         img.imageTintList = ColorStateList.valueOf(resolveTextColor(defaultColor))
     }

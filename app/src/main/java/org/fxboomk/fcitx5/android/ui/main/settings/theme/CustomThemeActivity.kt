@@ -214,19 +214,43 @@ class CustomThemeActivity : AppCompatActivity() {
                     toast(R.string.exception_theme_name_clash)
                     return@setOnClickListener
                 }
+                val previousName = theme.name
                 theme = theme.copy(name = newName)
                 supportActionBar?.title = toThemeLabel(newName)
                 applyThemePreview(theme)
-                // Save theme name change immediately
-                ThemeManager.saveTheme(theme)
-                // Update originalThemeName so the result will have the correct name
-                originalThemeName = newName
+                if (!newCreated) {
+                    persistRenamedExistingTheme(previousName, theme)
+                }
                 savedThemeSnapshot = currentEditableThemeSnapshot()
                 updateSaveButtonState()
                 dialog.dismiss()
             }
         }
         dialog.show()
+    }
+
+    private fun persistRenamedExistingTheme(oldName: String, renamedTheme: Theme.Custom) {
+        if (oldName == renamedTheme.name) return
+        ThemeManager.saveTheme(renamedTheme)
+        syncThemeSelectionsAfterRename(oldName, renamedTheme)
+        ThemeManager.deleteTheme(oldName)
+    }
+
+    private fun syncThemeSelectionsAfterRename(oldName: String, renamedTheme: Theme.Custom) {
+        val followSystem = ThemeManager.prefs.followSystemDayNightTheme.getValue()
+        if (ThemeManager.prefs.lightModeTheme.getValue().name == oldName) {
+            ThemeManager.prefs.lightModeTheme.setValue(renamedTheme)
+        }
+        if (ThemeManager.prefs.darkModeTheme.getValue().name == oldName) {
+            ThemeManager.prefs.darkModeTheme.setValue(renamedTheme)
+        }
+        if (ThemeManager.prefs.normalModeTheme.getValue().name == oldName) {
+            if (followSystem) {
+                ThemeManager.prefs.normalModeTheme.setValue(renamedTheme)
+            } else {
+                ThemeManager.setNormalModeTheme(renamedTheme)
+            }
+        }
     }
 
     private fun toThemeLabel(name: String): String {
@@ -556,6 +580,7 @@ class CustomThemeActivity : AppCompatActivity() {
                     layoutParams = LinearLayout.LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f)
                     setOnClickListener {
                         onConfirm(editingColor)
+                        updateSaveButtonState()
                         removeEditorView()
                     }
                 })
