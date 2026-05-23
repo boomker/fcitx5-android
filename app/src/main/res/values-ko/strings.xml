@@ -100,7 +100,7 @@
     <string name="redo">다시 실행</string>
     <string name="edit_popup_preset">팝업 프리셋 편집</string>
     <string name="edit_popup_preset_summary">팝업 키 매핑 편집 (키 -&gt; 팝업 후보)</string>
-    <string name="edit_buttons">버튼 편집</string>
+    <string name="edit_buttons">도구 모음 버튼 편집</string>
     <string name="edit_buttons_summary">Kawaii Bar 및 Status Area 의 버튼 사용자 정의</string>
     <string name="buttons_customizer_hint">버튼을 드래그하여 순서를 변경하거나 Kawaii Bar (상단 행) 와 Status Area (메뉴) 간에 이동하세요. 길게 눌러 드래그를 시작합니다.</string>
     <string name="kawaii_bar_section">Kawaii Bar (상단 행)</string>
@@ -638,6 +638,7 @@
     <string name="space_behavior_none">없음</string>
     <string name="space_behavior_picker">입력기 선택 대화상자 표시</string>
     <string name="space_behavior_voice_input">음성 입력으로 전환</string>
+    <string name="space_behavior_switch_to_english">중국어와 영어 입력 방식 간 전환</string>
     <string name="space_long_press_behavior">스페이스 키 길게 누르기 동작</string>
     <string name="space_swipe_move_cursor">스페이스 키를 밀어서 커서 이동</string>
     <string name="split_keyboard_calibration_summary">실시간 미리보기와 자동 추천으로 분할 키보드 설정을 시각적으로 조정</string>

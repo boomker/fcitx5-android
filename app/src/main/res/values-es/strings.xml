@@ -130,7 +130,7 @@
     <string name="disable_it">Desactivarlo</string>
     <string name="edit_popup_preset">Editar preajuste de popup</string>
     <string name="edit_popup_preset_summary">Editar asignación de teclas de popup (tecla -&gt; candidatos de popup)</string>
-    <string name="edit_buttons">Editar botones</string>
+    <string name="edit_buttons">Editar botones de la barra de herramientas</string>
     <string name="edit_buttons_summary">Personalizar botones en Kawaii Bar y area de estado</string>
     <string name="buttons_customizer_hint">Arrastre los botones para reordenar o mover entre Kawaii Bar (fila superior) y area de estado (menu). Mantenga presionado para comenzar a arrastrar.</string>
     <string name="kawaii_bar_section">Kawaii Bar (fila superior)</string>
@@ -648,6 +648,7 @@
     <string name="space_behavior_activate">Alternar estado de activacion del metodo de entrada</string>
     <string name="space_behavior_picker">Mostrar dialogo selector de metodo de entrada</string>
     <string name="space_behavior_voice_input">Cambiar a entrada de voz</string>
+    <string name="space_behavior_switch_to_english">Cambiar entre metodos de entrada chino e ingles</string>
     <string name="space_long_press_behavior">Comportamiento de pulsacion larga de la barra espaciadora</string>
     <string name="space_swipe_move_cursor">Deslizar en la barra espaciadora para mover el cursor</string>
     <string name="split_keyboard_calibration_summary">Visualizar y ajustar configuracion de teclado dividido con vista previa en tiempo real y recomendacion automatica</string>

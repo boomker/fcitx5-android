@@ -237,6 +237,11 @@ class CommonKeyActionListener :
                         LangSwitchBehavior.NextInputMethodApp -> {
                             service.switchToNextIME()
                         }
+                        LangSwitchBehavior.SwitchToEnglish -> {
+                            service.postFcitxJob {
+                                switchToEnglishInputMode()
+                            }
+                        }
                     }
                 }
                 is ShowInputMethodPickerAction -> showInputMethodPicker()
@@ -327,6 +332,9 @@ class CommonKeyActionListener :
                         }
                         SpaceLongPressBehavior.ShowPicker -> showInputMethodPicker()
                         SpaceLongPressBehavior.VoiceInput -> switchToVoiceInput()
+                        SpaceLongPressBehavior.SwitchToEnglish -> service.postFcitxJob {
+                            switchToEnglishInputMode()
+                        }
                     }
                 }
                 else -> {}

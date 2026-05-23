@@ -35,6 +35,8 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
         val firstRun = bool("first_run", true)
         val lastSymbolLayout = string("last_symbol_layout", PickerWindow.Key.Symbol.name)
         val lastPickerType = string("last_picker_type", PickerWindow.Key.Emoji.name)
+        val lastNonEnglishIme = string("last_non_english_ime", "")
+        val lastNonEnglishSubMode = string("last_non_english_submode", "")
         val verboseLog = bool("verbose_log", false)
         val pid = int("pid", 0)
         val editorInfoInspector = bool("editor_info_inspector", false)
@@ -217,6 +219,7 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
                 SpaceLongPressBehavior.None,
                 SpaceLongPressBehavior.Enumerate,
                 SpaceLongPressBehavior.VoiceInput,
+                SpaceLongPressBehavior.SwitchToEnglish,
                 SpaceLongPressBehavior.ShowPicker
             )
             list(
@@ -258,6 +261,7 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
         val langSwitchKeyBehavior = run {
             val entryValues = listOf(
                 LangSwitchBehavior.Enumerate,
+                LangSwitchBehavior.SwitchToEnglish,
                 LangSwitchBehavior.NextInputMethodApp
             )
             list(

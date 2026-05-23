@@ -206,7 +206,7 @@
     <string name="button_sound_volume">Ton Tastendruck Lautstärke</string>
     <string name="edit_popup_preset">Popup-Voreinstellung bearbeiten</string>
     <string name="edit_popup_preset_summary">Popup-Tastenzuordnung bearbeiten (Taste -&gt; Popup-Kandidaten)</string>
-    <string name="edit_buttons">Schaltflächen bearbeiten</string>
+    <string name="edit_buttons">Schaltflächen der Werkzeugleiste bearbeiten</string>
     <string name="edit_buttons_summary">Schaltflächen in Kawaii Bar und Status Area anpassen</string>
     <string name="buttons_customizer_hint">Schaltflächen ziehen zum Umordnen oder Verschieben zwischen Kawaii Bar (obere Zeile) und Status Area (Menü). Lange drücken zum Starten des Ziehens.</string>
     <string name="kawaii_bar_section">Kawaii Bar (obere Zeile)</string>
@@ -651,6 +651,7 @@
     <string name="space_behavior_enumerate">Eingabemethoden zyklisch wechseln</string>
     <string name="space_behavior_picker">Dialog zur Eingabemethodenauswahl anzeigen</string>
     <string name="space_behavior_voice_input">Zur Spracheingabe wechseln</string>
+    <string name="space_behavior_switch_to_english">Zwischen chinesischer und englischer Eingabemethode wechseln</string>
     <string name="space_swipe_move_cursor">Über die Leertaste wischen, um den Cursor zu bewegen</string>
     <string name="split_keyboard_calibration_summary">Geteilte-Tastatur-Einstellungen mit visueller Vorschau anpassen, inklusive automatischer Empfehlung und Foldable-Anpassung</string>
     <string name="split_keyboard_calibration_title">Kalibrierung der geteilten Tastatur</string>

@@ -223,6 +223,7 @@
     <string name="space_behavior_activate">在目前輸入法與第一個輸入法之間切換</string>
     <string name="space_behavior_picker">顯示選擇輸入法對話框</string>
     <string name="space_behavior_voice_input">切換到語音輸入</string>
+    <string name="space_behavior_switch_to_english">在中英輸入法間切換</string>
     <string name="space_key_label_mode">空格鍵標籤樣式</string>
     <string name="space_key_label_mode_default">預設</string>
     <string name="space_key_label_mode_compact_when_submode">子模式啟用時緊湊顯示</string>
@@ -288,7 +289,7 @@
     <string name="edit_fontset_summary">編輯 fonts/fontset.json 並預覽字型組合</string>
     <string name="edit_popup_preset">編輯彈出預設</string>
     <string name="edit_popup_preset_summary">編輯按鍵彈出對應（key -&gt; 候選清單）</string>
-    <string name="edit_buttons">編輯按鈕</string>
+    <string name="edit_buttons">編輯工具列按鈕</string>
     <string name="edit_buttons_summary">自定義 Kawaii Bar 和 Status Area 中的按鈕</string>
     <string name="buttons_customizer_hint">拖動按鈕重新排序或在 Kawaii Bar（頂行）和 Status Area（選單）之間移動。長按開始拖動。</string>
     <string name="kawaii_bar_section">Kawaii Bar（頂行）</string>

@@ -24,6 +24,7 @@ import org.fxboomk.fcitx5.android.input.dialog.AddMoreInputMethodsPrompt
 import org.fxboomk.fcitx5.android.input.dialog.InputMethodPickerDialog
 import org.fxboomk.fcitx5.android.input.editing.TextEditingWindow
 import org.fxboomk.fcitx5.android.input.keyboard.LangSwitchBehavior
+import org.fxboomk.fcitx5.android.input.keyboard.switchToEnglishInputMode
 import org.fxboomk.fcitx5.android.input.status.StatusAreaWindow
 import org.fxboomk.fcitx5.android.input.wm.InputWindowManager
 import org.fxboomk.fcitx5.android.ui.main.settings.SettingsRoute
@@ -443,6 +444,9 @@ data object LanguageSwitchAction : ButtonAction() {
             }
             LangSwitchBehavior.NextInputMethodApp -> {
                 service.switchToNextIME()
+            }
+            LangSwitchBehavior.SwitchToEnglish -> {
+                fcitx.launchOnReady { it.switchToEnglishInputMode() }
             }
         }
     }

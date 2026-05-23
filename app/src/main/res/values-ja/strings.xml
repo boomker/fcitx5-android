@@ -207,6 +207,7 @@
     <string name="space_behavior_activate">インプットメゾッドのアクティブな状態を切り替える</string>
     <string name="space_behavior_picker">インプットメゾッド選択ダイアログを表示する</string>
     <string name="space_behavior_voice_input">音声入力に切り替える</string>
+    <string name="space_behavior_switch_to_english">中国語入力と英語入力を切り替える</string>
     <string name="show_lang_switch_key">言語切り替えキーを表示する</string>
     <string name="keyboard_settings_sections">セクション</string>
     <string name="keyboard_settings_basic_section">基本</string>
@@ -292,7 +293,7 @@
     <string name="crop">切り取り</string>
     <string name="edit_popup_preset">ポップアッププリセットを編集</string>
     <string name="edit_popup_preset_summary">ポップアップキーマッピングを編集 (キー -&gt; ポップアップ候補)</string>
-    <string name="edit_buttons">ボタンを編集</string>
+    <string name="edit_buttons">ツールバーボタンを編集</string>
     <string name="edit_buttons_summary">Kawaii Bar と Status Area のボタンをカスタマイズ</string>
     <string name="buttons_customizer_hint">ボタンをドラッグして並べ替えたり、Kawaii Bar（上段）と Status Area（メニュー）間を移動できます。長押しでドラッグ開始。</string>
     <string name="kawaii_bar_section">Kawaii Bar（上段）</string>
