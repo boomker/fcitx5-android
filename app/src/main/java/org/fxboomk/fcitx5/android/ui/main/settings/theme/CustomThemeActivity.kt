@@ -789,6 +789,7 @@ class CustomThemeActivity : AppCompatActivity() {
                                 theme = item.setter(originalTheme, c)
                                 preview.setColor(c)
                                 applyThemePreview(theme)
+                                updateSaveButtonState()
                             }
                             inlinePreviewDirty = false
                         },
@@ -907,6 +908,7 @@ class CustomThemeActivity : AppCompatActivity() {
     private var originalThemeName: String? = null
     private lateinit var savedThemeSnapshot: Theme.Custom
     private var backgroundControlsBound = false
+    private var suppressVariantSwitchCallback = false
     private var saveMenuItem: MenuItem? = null
 
     private class BackgroundStates {
@@ -1088,6 +1090,7 @@ class CustomThemeActivity : AppCompatActivity() {
             variantSwitch.isChecked = !variantSwitch.isChecked
         }
         variantSwitch.setOnCheckedChangeListener { _, isChecked ->
+            if (suppressVariantSwitchCallback) return@setOnCheckedChangeListener
             whenHasBackground { background ->
                 setKeyVariant(background, darkKeys = isChecked)
             }
@@ -1182,14 +1185,13 @@ class CustomThemeActivity : AppCompatActivity() {
         whenHasBackground { background ->
             brightnessSeekBar.progress = background.brightness
             blurRadiusSeekBar.progress = background.blurRadius.toInt()
-            savedThemeSnapshot = currentEditableThemeSnapshot()
+            suppressVariantSwitchCallback = true
             variantSwitch.isChecked = !theme.isDark
+            suppressVariantSwitchCallback = false
             updateBlurRadiusLabel(blurRadiusSeekBar.progress)
         }
         updateBackgroundEditorVisibility()
-        if (!this::savedThemeSnapshot.isInitialized) {
-            savedThemeSnapshot = currentEditableThemeSnapshot()
-        }
+        savedThemeSnapshot = currentEditableThemeSnapshot()
 
         if (newCreated) {
             cropLabel.visibility = View.GONE
@@ -1275,6 +1277,10 @@ class CustomThemeActivity : AppCompatActivity() {
     }
 
     private fun done() {
+        if (!hasPendingChanges()) {
+            cancel()
+            return
+        }
         lifecycleScope.withLoadingDialog(this) {
             try {
                 var outputTheme = theme
