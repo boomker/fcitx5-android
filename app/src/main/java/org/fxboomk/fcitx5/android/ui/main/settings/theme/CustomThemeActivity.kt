@@ -283,6 +283,8 @@ class CustomThemeActivity : AppCompatActivity() {
         }
     }
 
+    private fun GradientDrawable.previewColorOrNull(): Int? = color?.defaultColor
+
     private fun currentBackgroundDrawable(themeForBackground: Theme.Custom): BitmapDrawable? {
         return if (themeForBackground.backgroundImage != null)
             runCatching { backgroundStates.filteredDrawable }.getOrNull()
@@ -736,12 +738,13 @@ class CustomThemeActivity : AppCompatActivity() {
                 label.setCompoundDrawablesWithIntrinsicBounds(null, null, preview, null)
                 label.compoundDrawablePadding = dp(12)
                 label.setOnClickListener {
+                    val displayedColor = preview.previewColorOrNull() ?: item.getter(theme)
                     if (DeviceUtil.isHMOS) {
                         colorEditorLauncher.launch(
                             ThemeColorEditorActivity.EditorInput(
                                 fieldName = item.name,
                                 titleRes = R.string.edit_color,
-                                initialColor = item.getter(theme)
+                                initialColor = displayedColor
                             )
                         )
                         return@setOnClickListener
@@ -767,7 +770,7 @@ class CustomThemeActivity : AppCompatActivity() {
                     }
 
                     val originalTheme = theme
-                    val originalColor = item.getter(originalTheme)
+                    val originalColor = displayedColor
                     val editor = createInlineColorEditor(
                         initialColor = originalColor,
                         onPreview = { c ->
