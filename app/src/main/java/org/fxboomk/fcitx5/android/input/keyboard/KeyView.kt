@@ -301,8 +301,6 @@ abstract class KeyView(
     }
 
     private fun applyRoundedSideKeyBackground(@ColorInt backgroundColor: Int) {
-        val hInset = dp(6)
-        val vInset = dp(4)
         val borderOrShadowWidth = dp(1)
         appearanceView.background = shadowedKeyBackgroundDrawable(
             backgroundColor, resolveShadowColor(theme),
@@ -311,7 +309,7 @@ abstract class KeyView(
         appearanceView.padding = 0
         setupPressHighlight(
             insetRadiusDrawable(
-                hInset, vInset, radius,
+                hMargin, vMargin, radius,
                 if (rippled) Color.WHITE else theme.keyPressHighlightColor
             )
         )
