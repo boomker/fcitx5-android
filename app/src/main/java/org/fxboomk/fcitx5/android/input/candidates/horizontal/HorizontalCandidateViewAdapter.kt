@@ -11,6 +11,7 @@ import android.view.ViewGroup
 import androidx.annotation.CallSuper
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.flexbox.FlexboxLayoutManager
+import org.fxboomk.fcitx5.android.core.CandidateWord
 import org.fxboomk.fcitx5.android.data.theme.Theme
 import org.fxboomk.fcitx5.android.input.candidates.CandidateItemUi
 import org.fxboomk.fcitx5.android.input.candidates.CandidateViewHolder
@@ -38,7 +39,7 @@ open class HorizontalCandidateViewAdapter(val theme: Theme) :
         setHasStableIds(true)
     }
 
-    var candidates: Array<String> = arrayOf()
+    var candidates: Array<CandidateWord> = arrayOf()
         private set
 
     var total = -1
@@ -52,7 +53,7 @@ open class HorizontalCandidateViewAdapter(val theme: Theme) :
 
     @SuppressLint("NotifyDataSetChanged")
     fun updateCandidates(
-        data: Array<String>,
+        data: Array<CandidateWord>,
         total: Int,
         activeIndex: Int = this.activeIndex,
         indexOffset: Int = this.indexOffset,
@@ -104,12 +105,14 @@ open class HorizontalCandidateViewAdapter(val theme: Theme) :
     @CallSuper
     override fun onBindViewHolder(holder: CandidateViewHolder, position: Int) {
         refreshCandidateFontIfNeeded()
-        val text = candidates[position]
         holder.ui.applyConfiguredTypeface(candFont)
-        holder.ui.text.text = text
+        holder.update(position + indexOffset, candidates[position])
         holder.ui.setActive(position == activeIndex)
-        holder.text = text
-        holder.idx = position + indexOffset
+    }
+
+    @CallSuper
+    override fun onViewRecycled(holder: CandidateViewHolder) {
+        holder.clear()
     }
 
 }

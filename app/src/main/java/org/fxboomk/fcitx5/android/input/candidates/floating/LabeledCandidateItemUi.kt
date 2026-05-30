@@ -6,12 +6,11 @@
 package org.fxboomk.fcitx5.android.input.candidates.floating
 
 import android.content.Context
-import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.widget.TextView
 import androidx.core.text.buildSpannedString
 import androidx.core.text.color
-import org.fxboomk.fcitx5.android.core.FcitxEvent
+import org.fxboomk.fcitx5.android.core.CandidateWord
 import org.fxboomk.fcitx5.android.data.theme.Theme
 import splitties.views.dsl.core.Ui
 import splitties.views.dsl.core.textView
@@ -32,16 +31,24 @@ class LabeledCandidateItemUi(
         cornerRadius = highlightRadius
     }
 
-    fun update(candidate: FcitxEvent.Candidate, active: Boolean) {
+    fun update(candidate: CandidateWord, active: Boolean) {
         val labelFg = if (active) theme.genericActiveForegroundColor else theme.candidateLabelColor
         val fg = if (active) theme.genericActiveForegroundColor else theme.candidateTextColor
         val altFg = if (active) theme.genericActiveForegroundColor else theme.candidateCommentColor
         root.text = buildSpannedString {
-            color(labelFg) { append(candidate.label) }
-            color(fg) { append(candidate.text) }
+            color(labelFg) {
+                append(candidate.label)
+            }
+            color(fg) {
+                append(candidate.text)
+            }
             if (candidate.comment.isNotBlank()) {
-                append(" ")
-                color(altFg) { append(candidate.comment) }
+                if (candidate.spaceBetweenComment) {
+                    append(" ")
+                }
+                color(altFg) {
+                    append(candidate.comment)
+                }
             }
         }
         root.background = if (active) highlightDrawable else null

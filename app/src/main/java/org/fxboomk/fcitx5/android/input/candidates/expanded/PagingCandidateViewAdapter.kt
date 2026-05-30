@@ -9,13 +9,14 @@ import android.graphics.Typeface
 import android.view.ViewGroup
 import androidx.paging.PagingDataAdapter
 import androidx.recyclerview.widget.DiffUtil
+import org.fxboomk.fcitx5.android.core.CandidateWord
 import org.fxboomk.fcitx5.android.data.theme.Theme
 import org.fxboomk.fcitx5.android.input.candidates.CandidateItemUi
 import org.fxboomk.fcitx5.android.input.candidates.CandidateViewHolder
 import org.fxboomk.fcitx5.android.input.font.FontProviders
 
 open class PagingCandidateViewAdapter(val theme: Theme) :
-    PagingDataAdapter<String, CandidateViewHolder>(diffCallback) {
+    PagingDataAdapter<CandidateWord, CandidateViewHolder>(diffCallback) {
 
     // Cache candidate font and refresh only when font configuration changes.
     private var candFont: Typeface? = FontProviders.resolveTypeface("cand_font", null)
@@ -27,13 +28,15 @@ open class PagingCandidateViewAdapter(val theme: Theme) :
     }
 
     companion object {
-        private val diffCallback = object : DiffUtil.ItemCallback<String>() {
-            override fun areItemsTheSame(oldItem: String, newItem: String): Boolean {
-                return oldItem === newItem
+        private val diffCallback = object : DiffUtil.ItemCallback<CandidateWord>() {
+            override fun areItemsTheSame(oldItem: CandidateWord, newItem: CandidateWord): Boolean {
+                return oldItem.label == newItem.label &&
+                    oldItem.text == newItem.text &&
+                    oldItem.comment == newItem.comment
             }
 
-            override fun areContentsTheSame(oldItem: String, newItem: String): Boolean {
-                return oldItem.contentEquals(newItem)
+            override fun areContentsTheSame(oldItem: CandidateWord, newItem: CandidateWord): Boolean {
+                return oldItem == newItem
             }
         }
     }
@@ -54,10 +57,8 @@ open class PagingCandidateViewAdapter(val theme: Theme) :
 
     override fun onBindViewHolder(holder: CandidateViewHolder, position: Int) {
         refreshCandidateFontIfNeeded()
-        val text = getItem(position)!!
+        val candidate = getItem(position) ?: CandidateWord.Empty
         holder.ui.applyConfiguredTypeface(candFont)
-        holder.ui.text.text = text
-        holder.text = text
-        holder.idx = position + offset
+        holder.update(position + offset, candidate)
     }
 }

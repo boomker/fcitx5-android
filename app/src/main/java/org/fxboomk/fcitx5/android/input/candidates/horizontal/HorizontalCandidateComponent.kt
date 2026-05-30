@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.withContext
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.core.CapabilityFlags
+import org.fxboomk.fcitx5.android.core.CandidateWord
 import org.fxboomk.fcitx5.android.core.FcitxEvent
 import org.fxboomk.fcitx5.android.core.FcitxEvent.PagedCandidateEvent
 import org.fxboomk.fcitx5.android.daemon.launchOnReady
@@ -160,7 +161,7 @@ class HorizontalCandidateComponent :
     private val rowWindowHistory = ArrayDeque<RowWindow>()
 
     private data class NativeCandidateSnapshot(
-        val candidates: Array<String> = emptyArray(),
+        val candidates: Array<CandidateWord> = emptyArray(),
         val total: Int = 0,
         val indexOffset: Int = 0,
         val activeIndex: Int = -1,
@@ -170,14 +171,19 @@ class HorizontalCandidateComponent :
 
     private data class RowWindow(
         val start: Int,
-        val candidates: Array<String>,
+        val candidates: Array<CandidateWord>,
     )
 
     private data class ForwardRowShiftSnapshot(
         val currentStart: Int,
-        val currentCandidates: Array<String>,
+        val currentCandidates: Array<CandidateWord>,
         val nextStart: Int,
         val nextLimit: Int,
+    )
+
+    private data class CandidateWordRowPlacement(
+        val candidates: Array<CandidateWord>,
+        val visibleAiCount: Int,
     )
 
     private val _expandedCandidateOffset = MutableSharedFlow<Int>(
@@ -240,7 +246,7 @@ class HorizontalCandidateComponent :
         val idx = adapter.activeIndex
         if (idx !in adapter.candidates.indices) return false
         if (isAiCandidatePosition(idx)) {
-            inputView.commitAiSuggestionFromUi(adapter.candidates[idx])
+            inputView.commitAiSuggestionFromUi(adapter.candidates[idx].text)
             return true
         }
         fcitx.launchOnReady { it.select(idx + adapter.indexOffset) }
@@ -252,10 +258,10 @@ class HorizontalCandidateComponent :
 
     private fun candidateFetchBatchSize(): Int = max(maxSpanCountPref.getValue() * 3, 24)
 
-    private fun measuredCandidateWidth(candidate: String, layoutMinWidth: Int): Int {
+    private fun measuredCandidateTextWidth(candidate: String, layoutMinWidth: Int): Int {
         measurementCandidateUi.apply {
             root.minimumWidth = max(context.dp(40), layoutMinWidth)
-            text.text = candidate
+            updateCandidate(CandidateWord("", candidate, "", false))
             applyConfiguredTypeface()
             root.measure(
                 MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED),
@@ -265,7 +271,11 @@ class HorizontalCandidateComponent :
         return measurementCandidateUi.root.measuredWidth
     }
 
-    private fun singleRowCount(candidates: Array<String>): Int {
+    private fun measuredCandidateWidth(candidate: CandidateWord, layoutMinWidth: Int): Int {
+        return measuredCandidateTextWidth(candidate.textWithComment(), layoutMinWidth)
+    }
+
+    private fun singleRowCount(candidates: Array<CandidateWord>): Int {
         if (candidates.isEmpty()) return 0
         val availableWidth = (view.width - view.paddingLeft - view.paddingRight).coerceAtLeast(1)
         val dividerWidth = dividerDrawable.intrinsicWidth
@@ -295,12 +305,14 @@ class HorizontalCandidateComponent :
         return max(count, 1)
     }
 
-    private fun normalizedSingleRowCandidates(candidates: Array<String>): Array<String> {
+    private fun normalizedSingleRowCandidates(candidates: Array<CandidateWord>): Array<CandidateWord> {
         val count = singleRowCount(candidates).coerceAtMost(candidates.size)
         return if (count == candidates.size) candidates else candidates.copyOfRange(0, count)
     }
 
-    private fun placeAiSuggestionsAfterNative(nativeCandidates: Array<String>): AiCandidateRowPlacement {
+    private fun aiSuggestionCandidate(text: String) = CandidateWord("", text, "", false)
+
+    private fun placeAiSuggestionsAfterNative(nativeCandidates: Array<CandidateWord>): CandidateWordRowPlacement {
         val availableWidth = (view.width - view.paddingLeft - view.paddingRight).coerceAtLeast(1)
         val maxSpanCount = maxSpanCountPref.getValue()
         val layoutMinWidth = when (fillStyle) {
@@ -312,15 +324,21 @@ class HorizontalCandidateComponent :
             NeverFillWidth -> Int.MAX_VALUE
             AutoFillWidth, AlwaysFillWidth -> maxSpanCount
         }
-        return placeAiCandidatesInRow(
-            nativeCandidates = nativeCandidates,
+        val placement = placeAiCandidatesInRow(
+            nativeCandidates = nativeCandidates.map { it.textWithComment() }.toTypedArray(),
             aiSuggestions = aiSuggestions,
             availableWidth = availableWidth,
             dividerWidth = dividerDrawable.intrinsicWidth,
             maxCandidateCount = maxCandidateCount,
         ) {
-            measuredCandidateWidth(it, layoutMinWidth)
+            measuredCandidateTextWidth(it, layoutMinWidth)
         }
+        return CandidateWordRowPlacement(
+            candidates = nativeCandidates + aiSuggestions.take(placement.visibleAiCount)
+                .map(::aiSuggestionCandidate)
+                .toTypedArray(),
+            visibleAiCount = placement.visibleAiCount,
+        )
     }
 
     private suspend fun captureForwardRowShiftSnapshot(): ForwardRowShiftSnapshot? =
@@ -502,15 +520,7 @@ class HorizontalCandidateComponent :
             return
         }
         lastPagedData = data
-        val candidates = data.candidates.map { candidate ->
-            buildString {
-                append(candidate.text)
-                if (candidate.comment.isNotBlank()) {
-                    append(' ')
-                    append(candidate.comment)
-                }
-            }
-        }.toTypedArray()
+        val candidates = data.candidates
         resetRowWindowState()
         renderCandidateWindow(
             candidates,
@@ -521,7 +531,7 @@ class HorizontalCandidateComponent :
     }
 
     private fun updateCandidates(
-        candidates: Array<String>,
+        candidates: Array<CandidateWord>,
         total: Int,
         activeIndex: Int,
         indexOffset: Int,
@@ -565,7 +575,7 @@ class HorizontalCandidateComponent :
     }
 
     private fun renderCandidateWindow(
-        candidates: Array<String>,
+        candidates: Array<CandidateWord>,
         total: Int,
         indexOffset: Int,
         activeIndex: Int,
@@ -575,7 +585,7 @@ class HorizontalCandidateComponent :
     }
 
     private fun updateNativeCandidateSnapshot(
-        candidates: Array<String>,
+        candidates: Array<CandidateWord>,
         total: Int,
         indexOffset: Int,
         activeIndex: Int,
@@ -639,7 +649,9 @@ class HorizontalCandidateComponent :
         displayedAiStartIndex = 0
         hasExpandedNativeCandidates = false
         hasExpandableCandidates = false
-        val singleRowCandidates = normalizedSingleRowCandidates(candidates)
+        val singleRowCandidates = normalizedSingleRowCandidates(
+            candidates.map(::aiSuggestionCandidate).toTypedArray()
+        )
         updateCandidates(
             singleRowCandidates,
             candidates.size,

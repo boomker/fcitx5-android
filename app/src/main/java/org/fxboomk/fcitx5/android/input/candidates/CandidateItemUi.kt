@@ -9,6 +9,9 @@ import android.content.Context
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import androidx.annotation.ColorInt
+import androidx.core.text.buildSpannedString
+import androidx.core.text.color
+import org.fxboomk.fcitx5.android.core.CandidateWord
 import org.fxboomk.fcitx5.android.data.theme.Theme
 import org.fxboomk.fcitx5.android.input.AutoScaleTextView
 import org.fxboomk.fcitx5.android.input.font.FontProviders
@@ -26,7 +29,7 @@ import splitties.dimensions.dp
 
 class CandidateItemUi(
     override val ctx: Context,
-    private val theme: Theme,
+    val theme: Theme,
     private val font: Typeface? = null
 ) : Ui {
 
@@ -51,6 +54,9 @@ class CandidateItemUi(
         setColor(theme.genericActiveBackgroundColor)
         cornerRadius = 8f
     }
+
+    private var currentCandidate = CandidateWord.Empty
+    private var isActive = false
 
     fun applyConfiguredTypeface(fontOverride: Typeface? = font) {
         val resolved = fontOverride ?: FontProviders.resolveTypeface("cand_font", text.typeface)
@@ -80,9 +86,33 @@ class CandidateItemUi(
     }
 
     fun setActive(active: Boolean) {
-        text.setTextColor(if (active) theme.genericActiveForegroundColor else theme.candidateTextColor)
+        isActive = active
+        renderCandidate()
         text.background = null
         root.background = if (active) activeBackground else normalBackground
+    }
+
+    fun updateCandidate(candidate: CandidateWord) {
+        currentCandidate = candidate
+        renderCandidate()
+    }
+
+    private fun renderCandidate() {
+        val fg = if (isActive) theme.genericActiveForegroundColor else theme.candidateTextColor
+        val altFg = if (isActive) theme.genericActiveForegroundColor else theme.candidateCommentColor
+        text.text = buildSpannedString {
+            color(fg) {
+                append(currentCandidate.text)
+            }
+            if (currentCandidate.comment.isNotBlank()) {
+                if (currentCandidate.spaceBetweenComment) {
+                    append(" ")
+                }
+                color(altFg) {
+                    append(currentCandidate.comment)
+                }
+            }
+        }
     }
 
     override val root = view(::CustomGestureView) {
