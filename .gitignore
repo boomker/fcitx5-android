@@ -112,3 +112,4 @@ lint/tmp/
 .claude/
 .gitnexus
 .local-thirdparty-artifacts/
+.clauge-worktrees/

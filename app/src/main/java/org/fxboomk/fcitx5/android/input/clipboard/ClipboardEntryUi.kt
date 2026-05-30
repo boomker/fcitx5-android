@@ -11,11 +11,15 @@ import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.RippleDrawable
 import android.text.TextUtils
+import android.view.Gravity
 import android.view.View
 import android.widget.ImageView
+import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.view.updateLayoutParams
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.data.theme.Theme
 import org.fxboomk.fcitx5.android.input.keyboard.CustomGestureView
+import org.fxboomk.fcitx5.android.utils.unset
 import splitties.dimensions.dp
 import splitties.resources.drawable
 import splitties.views.dsl.constraintlayout.bottomOfParent
@@ -65,6 +69,8 @@ class ClipboardEntryUi(override val ctx: Context, private val theme: Theme, radi
         textSize = 14f
         setPaddingDp(8, 4, 8, 4)
         ellipsize = TextUtils.TruncateAt.END
+        gravity = Gravity.CENTER
+        textAlignment = View.TEXT_ALIGNMENT_CENTER
         setTextColor(theme.keyTextColor)
     }
 
@@ -84,6 +90,7 @@ class ClipboardEntryUi(override val ctx: Context, private val theme: Theme, radi
         })
         add(textView, lParams(matchParent, wrapContent) {
             topOfParent(dp(8))
+            bottomOfParent(dp(8))
         })
         add(pin, lParams(dp(12), dp(12)) {
             bottomOfParent(dp(2))
@@ -122,6 +129,10 @@ class ClipboardEntryUi(override val ctx: Context, private val theme: Theme, radi
             } else {
                 // Image with text
                 textView.visibility = View.VISIBLE
+                textView.updateLayoutParams<ConstraintLayout.LayoutParams> {
+                    topToTop = ConstraintLayout.LayoutParams.PARENT_ID
+                    bottomToBottom = unset
+                }
                 textView.maxLines = 2
                 textView.setPaddingDp(8, 82, 8, 6)
                 root.minimumHeight = ctx.dp(122)
@@ -136,6 +147,10 @@ class ClipboardEntryUi(override val ctx: Context, private val theme: Theme, radi
             } else {
                 imagePlaceholder.visibility = View.GONE
                 textView.visibility = View.VISIBLE
+                textView.updateLayoutParams<ConstraintLayout.LayoutParams> {
+                    topToTop = ConstraintLayout.LayoutParams.PARENT_ID
+                    bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID
+                }
                 textView.maxLines = 4
                 textView.setPaddingDp(8, 4, 8, 4)
                 root.minimumHeight = ctx.dp(30)
