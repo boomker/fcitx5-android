@@ -6,6 +6,8 @@ package org.fxboomk.fcitx5.android.input.candidates.expanded
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.res.Configuration
+import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
@@ -20,8 +22,14 @@ import org.fxboomk.fcitx5.android.input.keyboard.ImageLayoutSwitchKey
 import org.fxboomk.fcitx5.android.input.keyboard.KeyDef
 import org.fxboomk.fcitx5.android.input.keyboard.ReturnKey
 import org.fxboomk.fcitx5.android.input.predict.AiSuggestionExpandedUi
+import org.fxboomk.fcitx5.android.utils.setVerticalScrollbarThumbColor
+import org.fxboomk.fcitx5.android.utils.singleSideBorderDrawable
+import splitties.dimensions.dp
 import splitties.views.backgroundColor
+import splitties.views.dsl.constraintlayout.above
 import splitties.views.dsl.constraintlayout.bottomOfParent
+import splitties.views.dsl.constraintlayout.centerHorizontally
+import splitties.views.dsl.constraintlayout.constraintLayout
 import splitties.views.dsl.constraintlayout.lParams
 import splitties.views.dsl.constraintlayout.leftOfParent
 import splitties.views.dsl.constraintlayout.leftToRightOf
@@ -29,6 +37,7 @@ import splitties.views.dsl.constraintlayout.rightOfParent
 import splitties.views.dsl.constraintlayout.rightToLeftOf
 import splitties.views.dsl.constraintlayout.topOfParent
 import splitties.views.dsl.core.add
+import splitties.views.dsl.core.wrapContent
 import splitties.views.dsl.recyclerview.recyclerView
 import splitties.views.imageResource
 
@@ -86,8 +95,34 @@ class ExpandedCandidateLayout(
     }
 
     private val keyBorder by ThemeManager.prefs.keyBorder
+    private val keyVerticalMargin by ThemeManager.prefs.keyVerticalMargin
+    private val keyVerticalMarginLandscape by ThemeManager.prefs.keyVerticalMarginLandscape
 
     val recyclerView = recyclerView {
+        // disable item cross-fade animation
+        itemAnimator = null
+        isVerticalScrollBarEnabled = false
+    }
+
+    val tabsContainer = constraintLayout {
+        id = View.generateViewId()
+    }
+
+    val scrollableTabs = recyclerView {
+        id = View.generateViewId()
+        itemAnimator = null
+        // always show scrollbar
+        isScrollbarFadingEnabled = false
+        scrollBarSize = dp(1)
+        setVerticalScrollbarThumbColor(theme.candidateTextColor)
+    }
+
+    val pinnedTabs = recyclerView {
+        id = View.generateViewId()
+        itemAnimator = null
+        // prevent scrolling in pinned tabs at bottom
+        overScrollMode = OVER_SCROLL_NEVER
+        isNestedScrollingEnabled = false
         isVerticalScrollBarEnabled = false
     }
 
@@ -131,13 +166,37 @@ class ExpandedCandidateLayout(
 
     init {
         id = R.id.expanded_candidate_view
+
+        val landscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+        val inset = dp(if (landscape) keyVerticalMarginLandscape else keyVerticalMargin)
+        tabsContainer.background =
+            singleSideBorderDrawable(dp(1), theme.dividerColor, Gravity.RIGHT, inset)
         if (!keyBorder) {
             backgroundColor = theme.barColor
+            embeddedKeyboard.background =
+                singleSideBorderDrawable(dp(1), theme.dividerColor, Gravity.LEFT, inset)
         }
 
-        add(contentColumn, lParams {
+        add(tabsContainer, lParams {
+            matchConstraintPercentWidth = 0.15f
             topOfParent()
             leftOfParent()
+            bottomOfParent()
+        })
+        tabsContainer.apply {
+            add(scrollableTabs, lParams {
+                topOfParent()
+                centerHorizontally()
+                above(pinnedTabs)
+            })
+            add(pinnedTabs, lParams(height = wrapContent) {
+                bottomOfParent()
+                centerHorizontally()
+            })
+        }
+        add(contentColumn, lParams {
+            topOfParent()
+            leftToRightOf(tabsContainer)
             rightToLeftOf(embeddedKeyboard)
             bottomOfParent()
         })
