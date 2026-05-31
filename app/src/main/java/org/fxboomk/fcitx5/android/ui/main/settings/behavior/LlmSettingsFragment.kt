@@ -167,9 +167,7 @@ class LlmSettingsFragment : PaddingPreferenceFragment() {
                         raw
                     } else {
                         val sharedPrefs = pref.preferenceManager.sharedPreferences
-                        val provider = LlmPrefs.Provider.from(
-                            sharedPrefs?.getString(LlmPrefs.KEY_PROVIDER, null)
-                        )
+                        val provider = sharedPrefs?.let(LlmPrefs::currentProvider) ?: LlmPrefs.Provider.Custom
                         context.getString(
                             R.string.llm_api_url_default_summary,
                             LlmPrefs.providerDefaultBaseUrl(provider, sharedPrefs),
@@ -365,12 +363,12 @@ class LlmSettingsFragment : PaddingPreferenceFragment() {
     private fun syncSamplingPreferenceState(provider: LlmPrefs.Provider) {
         val samplePreference = findPreference<DialogSeekBarPreference>(LlmPrefs.KEY_SAMPLE_COUNT) ?: return
         samplePreference.isEnabled = preferenceManager.sharedPreferences
-            ?.getBoolean(LlmPrefs.KEY_ENABLED, false) == true
+            ?.let(LlmPrefs::isEnabled) == true
     }
 
     private fun syncEditablePreferenceState() {
         val prefs = preferenceManager.sharedPreferences ?: return
-        val masterEnabled = prefs.getBoolean(LlmPrefs.KEY_ENABLED, false)
+        val masterEnabled = LlmPrefs.isEnabled(prefs)
         listOf(
             LlmPrefs.KEY_AUTO_PREDICT_ENABLED,
             LlmPrefs.KEY_PROVIDER,
@@ -391,7 +389,7 @@ class LlmSettingsFragment : PaddingPreferenceFragment() {
 
     private fun syncRuntimePreferenceState(
         runtime: LlmPrefs.Runtime,
-        masterEnabled: Boolean = preferenceManager.sharedPreferences?.getBoolean(LlmPrefs.KEY_ENABLED, false) == true,
+        masterEnabled: Boolean = preferenceManager.sharedPreferences?.let(LlmPrefs::isEnabled) == true,
     ) {
         val remoteEnabled = masterEnabled && runtime == LlmPrefs.Runtime.Remote
         findPreference<Preference>(LlmPrefs.KEY_PROVIDER)?.isEnabled = masterEnabled
@@ -412,7 +410,7 @@ class LlmSettingsFragment : PaddingPreferenceFragment() {
         val runtime = runtimeOverride ?: preferenceManager.sharedPreferences?.let(LlmPrefs::currentRuntime)
             ?: LlmPrefs.Runtime.Remote
         val modelPreference = findPreference<EditTextPreference>(LlmPrefs.KEY_MODEL) ?: return
-        val masterEnabled = preferenceManager.sharedPreferences?.getBoolean(LlmPrefs.KEY_ENABLED, false) == true
+        val masterEnabled = preferenceManager.sharedPreferences?.let(LlmPrefs::isEnabled) == true
         modelPreference.isEnabled =
             masterEnabled &&
                 (runtime != LlmPrefs.Runtime.LocalOnDevice || LlmLocalModelManager.currentModel(ctx) != null)

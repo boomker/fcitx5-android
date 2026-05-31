@@ -822,4 +822,6 @@
     <string name="share_receive_invalid_path">대상 경로가 올바르지 않습니다.</string>
     <string name="share_receive_file_imported">파일을 가져왔습니다: %1$s</string>
     <string name="share_receive_files_imported">파일 %1$d개를 가져왔습니다.</string>
+    <string name="llm_model_status_remote_ready" translatable="false">상태: 원격 모델 사용 가능</string>
+    <string name="llm_model_status_remote_unavailable" translatable="false">상태: 원격 모델 사용 불가</string>
 </resources>

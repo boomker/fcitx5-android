@@ -133,7 +133,7 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         val prefs = PreferenceManager.getDefaultSharedPreferences(context)
         val predictionDisplayMode = LlmPrefs.currentPredictionDisplayMode(prefs)
         val nextAvailable =
-            prefs.getBoolean(LlmPrefs.KEY_ENABLED, false) &&
+            LlmPrefs.isEnabled(prefs) &&
                 predictionDisplayMode != LlmPrefs.PredictionDisplayMode.FloatingWindow &&
                 hasInteractiveAiContent(state)
         aiSuggestionExpandAvailable = nextAvailable

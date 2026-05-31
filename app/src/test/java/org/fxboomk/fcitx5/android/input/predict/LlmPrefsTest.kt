@@ -5,6 +5,8 @@
 package org.fxboomk.fcitx5.android.input.predict
 
 import android.content.SharedPreferences
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -47,6 +49,63 @@ class LlmPrefsTest {
         assertEquals(LlmPrefs.Provider.LocalAI, config.provider)
         assertTrue(config.isLocalOnDevice)
         assertEquals("qwen3-0.6b-onnx-local", config.model)
+    }
+
+    @Test
+    fun readMigratesLegacyLanKeysToLlmprefKeys() {
+        val prefs = FakeSharedPreferences(
+            mutableMapOf(
+                "lan_llm_enabled" to true,
+                "lan_llm_provider" to LlmPrefs.Provider.OpenAI.value,
+                "lan_llm_runtime" to LlmPrefs.Runtime.Remote.value,
+                "lan_llm_base_url" to "https://api.openai.com/v1",
+                "lan_llm_model" to "gpt-4o-mini",
+                "lan_llm_api_key" to "sk-openai",
+            )
+        )
+
+        val config = LlmPrefs.read(prefs)
+
+        assertTrue(config.enabled)
+        assertEquals(LlmPrefs.Provider.OpenAI, config.provider)
+        assertEquals("gpt-4o-mini", config.model)
+        assertEquals("sk-openai", config.apiKey)
+        assertEquals("https://api.openai.com/v1", prefs.getString(LlmPrefs.KEY_BASE_URL, null))
+    }
+
+    @Test
+    fun readPersonaDetailMigratesLegacyLanPrefixedEntry() {
+        val prefs = FakeSharedPreferences(
+            mutableMapOf(
+                "lan_llm_persona_detail_custom" to "旧详情",
+            )
+        )
+
+        assertEquals("旧详情", LlmPrefs.readPersonaDetail(prefs, LlmPrefs.PersonaPreset.Custom.value))
+        assertEquals("旧详情", prefs.getString("llm_persona_detail_custom", null))
+    }
+
+    @Test
+    fun getScopedModelMigratesLegacyLanScopedModelEntry() {
+        val scope = URLEncoder.encode(
+            "custom|http://192.168.10.45:11444",
+            StandardCharsets.UTF_8.name(),
+        )
+        val prefs = FakeSharedPreferences(
+            mutableMapOf(
+                "lan_llm_model_scope_$scope" to "qwen3-8b",
+            )
+        )
+
+        assertEquals(
+            "qwen3-8b",
+            LlmPrefs.getScopedModel(
+                prefs,
+                LlmPrefs.Provider.Custom,
+                "http://192.168.10.45:11444",
+            ),
+        )
+        assertEquals("qwen3-8b", prefs.getString("llm_model_scope_$scope", null))
     }
 
     @Test

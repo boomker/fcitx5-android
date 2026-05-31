@@ -820,4 +820,6 @@
     <string name="share_receive_invalid_path">対象パスが無効です。</string>
     <string name="share_receive_file_imported">ファイルをインポートしました: %1$s</string>
     <string name="share_receive_files_imported">%1$d 個のファイルをインポートしました。</string>
+    <string name="llm_model_status_remote_ready" translatable="false">状態: リモートモデル利用可能</string>
+    <string name="llm_model_status_remote_unavailable" translatable="false">状態: リモートモデル利用不可</string>
 </resources>

@@ -436,8 +436,8 @@
     <string name="llm_model" translatable="false">模型名称</string>
     <string name="llm_model_status" translatable="false">模型名称与状态</string>
     <string name="llm_model_summary_hint" translatable="false">可手动填写，也可远程拉取后选择</string>
-    <string name="llm_model_status_remote_ready" translatable="false">状态：远端配置可用</string>
-    <string name="llm_model_status_remote_unavailable" translatable="false">状态：远端配置未完成</string>
+    <string name="llm_model_status_remote_ready" translatable="false">状态：远端模型可用</string>
+    <string name="llm_model_status_remote_unavailable" translatable="false">状态：远端模型不可用</string>
     <string name="llm_model_status_remote_summary" translatable="false">%1$s\n%2$s</string>
     <string name="llm_model_select" translatable="false">选择模型</string>
     <string name="llm_model_fetching" translatable="false">正在远程拉取模型列表…</string>

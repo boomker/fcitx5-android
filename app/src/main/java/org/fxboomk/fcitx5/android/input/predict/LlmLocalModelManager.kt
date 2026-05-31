@@ -114,6 +114,7 @@ internal object LlmLocalModelManager : LocalLlmModelStore {
 
     fun localModelUrl(context: Context): String =
         PreferenceManager.getDefaultSharedPreferences(context)
+            .also(LlmPrefs::migrateLegacyPreferenceKeys)
             .getString(LlmPrefs.KEY_LOCAL_MODEL_URL, "")
             .orEmpty()
             .trim()

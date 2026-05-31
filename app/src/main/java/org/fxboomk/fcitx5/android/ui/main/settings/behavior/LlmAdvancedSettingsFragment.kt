@@ -175,7 +175,7 @@ class LlmAdvancedSettingsFragment : PaddingPreferenceFragment() {
     private fun syncPersonaPreferenceState(preset: LlmPrefs.PersonaPreset? = null) {
         val ctx = requireContext()
         val prefs = preferenceManager.sharedPreferences ?: return
-        val selectedValue = prefs.getString(LlmPrefs.KEY_PERSONA_PRESET, LlmPrefs.PersonaPreset.Custom.value).orEmpty()
+        val selectedValue = LlmPrefs.currentPersonaValue(prefs)
         val resolvedPreset = preset ?: LlmPrefs.PersonaPreset.entries.firstOrNull { it.value == selectedValue }
         val preference = findPreference<EditTextPreference>(LlmPrefs.KEY_CUSTOM_PERSONA) ?: return
         val title = when (resolvedPreset) {
@@ -197,7 +197,7 @@ class LlmAdvancedSettingsFragment : PaddingPreferenceFragment() {
     }
 
     private fun syncEditablePreferenceState() {
-        val enabled = preferenceManager.sharedPreferences?.getBoolean(LlmPrefs.KEY_ENABLED, false) == true
+        val enabled = preferenceManager.sharedPreferences?.let(LlmPrefs::isEnabled) == true
         for (index in 0 until preferenceScreen.preferenceCount) {
             preferenceScreen.getPreference(index).isEnabled = enabled
         }
@@ -231,7 +231,7 @@ class LlmAdvancedSettingsFragment : PaddingPreferenceFragment() {
         preference.entries = options.map { it.title }.toTypedArray()
         preference.entryValues = options.map { it.value }.toTypedArray()
         val prefs = preferenceManager.sharedPreferences ?: return
-        val selected = prefs.getString(LlmPrefs.KEY_PERSONA_PRESET, LlmPrefs.PersonaPreset.Custom.value)
+        val selected = LlmPrefs.currentPersonaValue(prefs)
         preference.setDefaultValue(LlmPrefs.PersonaPreset.Custom.value)
         preference.value = selected
     }
@@ -245,7 +245,7 @@ class LlmAdvancedSettingsFragment : PaddingPreferenceFragment() {
         val ctx = requireContext()
         val prefs = preferenceManager.sharedPreferences ?: return
         val options = personaOptions()
-        val selectedValue = prefs.getString(LlmPrefs.KEY_PERSONA_PRESET, LlmPrefs.PersonaPreset.Custom.value).orEmpty()
+        val selectedValue = LlmPrefs.currentPersonaValue(prefs)
         var pendingIndex = options.indexOfFirst { it.value == selectedValue }.coerceAtLeast(0)
         val sidePad = (20 * resources.displayMetrics.density).toInt()
         val verticalPad = (16 * resources.displayMetrics.density).toInt()
@@ -390,7 +390,7 @@ class LlmAdvancedSettingsFragment : PaddingPreferenceFragment() {
                 LlmPrefs.writeCustomPersonaNames(prefs, names.distinct())
                 val detail = LlmPrefs.readPersonaDetail(prefs, currentName)
                 LlmPrefs.writePersonaDetail(prefs, nextName, detail)
-                if (prefs.getString(LlmPrefs.KEY_PERSONA_PRESET, "") == currentName) {
+                if (LlmPrefs.currentPersonaValue(prefs) == currentName) {
                     persistSelectedPersona(nextName)
                 }
                 refreshPersonaOptions()
@@ -409,7 +409,7 @@ class LlmAdvancedSettingsFragment : PaddingPreferenceFragment() {
                 val prefs = preferenceManager.sharedPreferences ?: return@setPositiveButton
                 val names = LlmPrefs.readCustomPersonaNames(prefs).filterNot { it == name }
                 LlmPrefs.writeCustomPersonaNames(prefs, names)
-                if (prefs.getString(LlmPrefs.KEY_PERSONA_PRESET, "") == name) {
+                if (LlmPrefs.currentPersonaValue(prefs) == name) {
                     persistSelectedPersona(LlmPrefs.PersonaPreset.Custom.value)
                 }
                 refreshPersonaOptions()

@@ -38,13 +38,13 @@ class LlmApiUrlPreferenceDialogFragment : DialogFragment() {
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val context = requireContext()
         val prefs = apiUrlPreference.preferenceManager.sharedPreferences
-        val provider = LlmPrefs.Provider.from(prefs?.getString(LlmPrefs.KEY_PROVIDER, null))
+        val provider = prefs?.let(LlmPrefs::currentProvider) ?: LlmPrefs.Provider.Custom
         val currentText = savedInstanceState?.getString(STATE_TEXT)
             ?: apiUrlPreference.text.orEmpty().ifBlank {
                 LlmPrefs.providerDefaultBaseUrl(provider, prefs)
             }
         val currentChatApiEnabled = savedInstanceState?.getBoolean(STATE_CHAT_API_ENABLED)
-            ?: (prefs?.getBoolean(LlmPrefs.KEY_CHAT_API_ENABLED, false) == true)
+            ?: (prefs?.let(LlmPrefs::isChatApiEnabled) == true)
 
         val contentView = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL

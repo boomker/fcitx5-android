@@ -820,4 +820,6 @@
     <string name="share_receive_invalid_path">Недопустимый путь назначения.</string>
     <string name="share_receive_file_imported">Файл импортирован: %1$s</string>
     <string name="share_receive_files_imported">Импортировано файлов: %1$d.</string>
+    <string name="llm_model_status_remote_ready" translatable="false">Статус: удаленная модель доступна</string>
+    <string name="llm_model_status_remote_unavailable" translatable="false">Статус: удаленная модель недоступна</string>
 </resources>

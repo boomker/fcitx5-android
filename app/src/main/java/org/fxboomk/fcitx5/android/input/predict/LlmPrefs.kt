@@ -10,33 +10,69 @@ import java.nio.charset.StandardCharsets
 import org.fxboomk.fcitx5.android.R
 
 object LlmPrefs {
-    const val KEY_RUNTIME = "lan_llm_runtime"
-    const val KEY_LOCAL_MODEL_URL = "lan_llm_local_model_url"
-    const val KEY_BACKEND = "lan_llm_backend"
-    const val KEY_CHAT_API_ENABLED = "lan_llm_chat_api_enabled"
-    const val KEY_ENABLED = "lan_llm_enabled"
-    const val KEY_AUTO_PREDICT_ENABLED = "lan_llm_auto_predict_enabled"
-    const val KEY_PROVIDER = "lan_llm_provider"
-    const val KEY_BASE_URL = "lan_llm_base_url"
-    const val KEY_MODEL = "lan_llm_model"
-    const val KEY_API_KEY = "lan_llm_api_key"
-    private const val KEY_CUSTOM_DEFAULT_BASE_URL = "lan_llm_custom_default_base_url"
-    private const val KEY_CUSTOM_DEFAULT_API_KEY = "lan_llm_custom_default_api_key"
-    private const val KEY_MODEL_SCOPE_PREFIX = "lan_llm_model_scope_"
-    private const val KEY_API_KEY_SCOPE_PREFIX = "lan_llm_api_key_scope_"
-    const val KEY_SAMPLE_COUNT = "lan_llm_sample_count"
-    const val KEY_MAX_OUTPUT_TOKENS = "lan_llm_max_output_tokens"
-    const val KEY_MAX_PREDICTION_CANDIDATES = "lan_llm_max_prediction_candidates"
-    const val KEY_MAX_CONTEXT_CHARS = "lan_llm_max_context_chars"
-    const val KEY_SPACE_COMMIT_PREDICTION = "lan_llm_space_commit_prediction"
-    const val KEY_PREDICTION_DISPLAY_MODE = "lan_llm_prediction_display_mode"
-    const val KEY_PERSONA_PRESET = "lan_llm_persona_preset"
-    const val KEY_CUSTOM_PERSONA = "lan_llm_custom_persona"
-    const val KEY_CUSTOM_PERSONA_NAMES = "lan_llm_custom_persona_names"
-    private const val KEY_REMEMBERED_TASK_MODE = "lan_llm_remembered_task_mode"
-    private const val KEY_REMEMBERED_LONG_FORM_ENABLED = "lan_llm_remembered_long_form_enabled"
-    private const val KEY_REMEMBERED_THINKING_ENABLED = "lan_llm_remembered_thinking_enabled"
-    private const val KEY_PERSONA_DETAIL_PREFIX = "lan_llm_persona_detail_"
+    private const val KEY_PREFIX = "llm_"
+    private const val LEGACY_KEY_PREFIX = "lan_llm_"
+
+    const val KEY_RUNTIME = KEY_PREFIX + "runtime"
+    const val KEY_LOCAL_MODEL_URL = KEY_PREFIX + "local_model_url"
+    const val KEY_BACKEND = KEY_PREFIX + "backend"
+    const val KEY_CHAT_API_ENABLED = KEY_PREFIX + "chat_api_enabled"
+    const val KEY_ENABLED = KEY_PREFIX + "enabled"
+    const val KEY_AUTO_PREDICT_ENABLED = KEY_PREFIX + "auto_predict_enabled"
+    const val KEY_PROVIDER = KEY_PREFIX + "provider"
+    const val KEY_BASE_URL = KEY_PREFIX + "base_url"
+    const val KEY_MODEL = KEY_PREFIX + "model"
+    const val KEY_API_KEY = KEY_PREFIX + "api_key"
+    private const val KEY_CUSTOM_DEFAULT_BASE_URL = KEY_PREFIX + "custom_default_base_url"
+    private const val KEY_CUSTOM_DEFAULT_API_KEY = KEY_PREFIX + "custom_default_api_key"
+    private const val KEY_MODEL_SCOPE_PREFIX = KEY_PREFIX + "model_scope_"
+    private const val KEY_API_KEY_SCOPE_PREFIX = KEY_PREFIX + "api_key_scope_"
+    const val KEY_SAMPLE_COUNT = KEY_PREFIX + "sample_count"
+    const val KEY_MAX_OUTPUT_TOKENS = KEY_PREFIX + "max_output_tokens"
+    const val KEY_MAX_PREDICTION_CANDIDATES = KEY_PREFIX + "max_prediction_candidates"
+    const val KEY_MAX_CONTEXT_CHARS = KEY_PREFIX + "max_context_chars"
+    const val KEY_SPACE_COMMIT_PREDICTION = KEY_PREFIX + "space_commit_prediction"
+    const val KEY_PREDICTION_DISPLAY_MODE = KEY_PREFIX + "prediction_display_mode"
+    const val KEY_PERSONA_PRESET = KEY_PREFIX + "persona_preset"
+    const val KEY_CUSTOM_PERSONA = KEY_PREFIX + "custom_persona"
+    const val KEY_CUSTOM_PERSONA_NAMES = KEY_PREFIX + "custom_persona_names"
+    private const val KEY_REMEMBERED_TASK_MODE = KEY_PREFIX + "remembered_task_mode"
+    private const val KEY_REMEMBERED_LONG_FORM_ENABLED = KEY_PREFIX + "remembered_long_form_enabled"
+    private const val KEY_REMEMBERED_THINKING_ENABLED = KEY_PREFIX + "remembered_thinking_enabled"
+    private const val KEY_PERSONA_DETAIL_PREFIX = KEY_PREFIX + "persona_detail_"
+
+    private val exactPreferenceKeys = listOf(
+        KEY_RUNTIME,
+        KEY_LOCAL_MODEL_URL,
+        KEY_BACKEND,
+        KEY_CHAT_API_ENABLED,
+        KEY_ENABLED,
+        KEY_AUTO_PREDICT_ENABLED,
+        KEY_PROVIDER,
+        KEY_BASE_URL,
+        KEY_MODEL,
+        KEY_API_KEY,
+        KEY_CUSTOM_DEFAULT_BASE_URL,
+        KEY_CUSTOM_DEFAULT_API_KEY,
+        KEY_SAMPLE_COUNT,
+        KEY_MAX_OUTPUT_TOKENS,
+        KEY_MAX_PREDICTION_CANDIDATES,
+        KEY_MAX_CONTEXT_CHARS,
+        KEY_SPACE_COMMIT_PREDICTION,
+        KEY_PREDICTION_DISPLAY_MODE,
+        KEY_PERSONA_PRESET,
+        KEY_CUSTOM_PERSONA,
+        KEY_CUSTOM_PERSONA_NAMES,
+        KEY_REMEMBERED_TASK_MODE,
+        KEY_REMEMBERED_LONG_FORM_ENABLED,
+        KEY_REMEMBERED_THINKING_ENABLED,
+    )
+
+    private val prefixedPreferenceKeys = listOf(
+        KEY_MODEL_SCOPE_PREFIX,
+        KEY_API_KEY_SCOPE_PREFIX,
+        KEY_PERSONA_DETAIL_PREFIX,
+    )
 
     enum class Runtime(
         val value: String,
@@ -250,17 +286,14 @@ object LlmPrefs {
         read(PreferenceManager.getDefaultSharedPreferences(context), overrides)
 
     fun read(prefs: SharedPreferences, overrides: Overrides = Overrides()): Config {
+        migrateLegacyPreferenceKeys(prefs)
         val debounceMs = DEFAULT_DEBOUNCE_MS.toLong()
-        val provider = overrides.provider ?: Provider.from(prefs.getString(KEY_PROVIDER, Provider.Custom.value))
+        val provider = overrides.provider ?: currentProvider(prefs)
         val runtime = overrides.runtime ?: runtimeForProvider(
             provider = provider,
             storedRuntime = prefs.getString(KEY_RUNTIME, Runtime.Remote.value),
         )
-        val chatApiEnabled = if (prefs.contains(KEY_CHAT_API_ENABLED)) {
-            prefs.getBoolean(KEY_CHAT_API_ENABLED, false)
-        } else {
-            prefs.getString(KEY_BACKEND, Backend.Completion.value) == Backend.ChatCompletions.value
-        }
+        val chatApiEnabled = isChatApiEnabled(prefs)
         val sampleCount = readBoundedIntPreference(prefs, KEY_SAMPLE_COUNT, DEFAULT_SAMPLE_COUNT, 1..6)
         val maxOutputTokens = readBoundedIntPreference(
             prefs,
@@ -284,6 +317,7 @@ object LlmPrefs {
             KEY_BASE_URL,
             providerDefaultBaseUrl(provider, prefs),
         ).orEmpty()
+        val personaValue = currentPersonaValue(prefs)
         return Config(
             enabled = prefs.getBoolean(KEY_ENABLED, false),
             autoPredictEnabled = prefs.getBoolean(KEY_AUTO_PREDICT_ENABLED, false),
@@ -307,11 +341,11 @@ object LlmPrefs {
             predictionDisplayMode = PredictionDisplayMode.from(
                 prefs.getString(KEY_PREDICTION_DISPLAY_MODE, PredictionDisplayMode.FloatingWindow.value)
             ),
-            personaPreset = PersonaPreset.from(prefs.getString(KEY_PERSONA_PRESET, PersonaPreset.Custom.value)),
+            personaPreset = PersonaPreset.from(personaValue),
             personaName = currentPersonaName(prefs),
             customPersona = readPersonaDetail(
                 prefs = prefs,
-                personaValue = prefs.getString(KEY_PERSONA_PRESET, PersonaPreset.Custom.value).orEmpty(),
+                personaValue = personaValue,
             ),
         )
     }
@@ -326,7 +360,7 @@ object LlmPrefs {
     }
 
     fun currentPersonaName(prefs: SharedPreferences): String {
-        val value = prefs.getString(KEY_PERSONA_PRESET, PersonaPreset.Custom.value).orEmpty()
+        val value = currentPersonaValue(prefs)
         return PersonaPreset.entries.firstOrNull { it.value == value }?.let {
             ""
         } ?: value
@@ -336,7 +370,7 @@ object LlmPrefs {
         context: Context,
         prefs: SharedPreferences,
     ): String {
-        val value = prefs.getString(KEY_PERSONA_PRESET, PersonaPreset.Custom.value).orEmpty()
+        val value = currentPersonaValue(prefs)
         val preset = PersonaPreset.entries.firstOrNull { it.value == value }
         return if (preset != null) {
             context.getString(preset.titleRes)
@@ -346,6 +380,7 @@ object LlmPrefs {
     }
 
     fun readCustomPersonaNames(prefs: SharedPreferences): List<String> {
+        migrateLegacyPreferenceKeys(prefs)
         return prefs.getStringSet(KEY_CUSTOM_PERSONA_NAMES, emptySet())
             ?.map(String::trim)
             ?.filter { it.isNotBlank() }
@@ -357,6 +392,7 @@ object LlmPrefs {
         prefs: SharedPreferences,
         names: List<String>,
     ) {
+        migrateLegacyPreferenceKeys(prefs)
         prefs.edit().putStringSet(
             KEY_CUSTOM_PERSONA_NAMES,
             names.map(String::trim).filter { it.isNotBlank() }.toSet(),
@@ -367,6 +403,7 @@ object LlmPrefs {
         prefs: SharedPreferences,
         personaValue: String,
     ): String {
+        migrateLegacyPreferenceKeys(prefs)
         val scoped = prefs.getString(personaDetailKey(personaValue), null)
             ?.trim()
             .orEmpty()
@@ -383,6 +420,7 @@ object LlmPrefs {
         personaValue: String,
         detail: String,
     ) {
+        migrateLegacyPreferenceKeys(prefs)
         prefs.edit().putString(personaDetailKey(personaValue), detail.trim()).apply()
     }
 
@@ -392,6 +430,7 @@ object LlmPrefs {
     }
 
     fun migrateSeekBarBackedPreferences(prefs: SharedPreferences) {
+        migrateLegacyPreferenceKeys(prefs)
         migrateIntPreference(prefs, KEY_SAMPLE_COUNT, DEFAULT_SAMPLE_COUNT, 1..6)
         migrateIntPreference(
             prefs,
@@ -416,6 +455,7 @@ object LlmPrefs {
     }
 
     fun customDefaultBaseUrl(prefs: SharedPreferences? = null): String {
+        prefs?.let(::migrateLegacyPreferenceKeys)
         val persisted = prefs?.getString(KEY_CUSTOM_DEFAULT_BASE_URL, null)
             ?.orEmpty()
             ?.trim()
@@ -431,11 +471,31 @@ object LlmPrefs {
     fun providerDefaultModel(provider: Provider): String =
         provider.defaultModel.orEmpty()
 
+    fun isEnabled(prefs: SharedPreferences): Boolean {
+        migrateLegacyPreferenceKeys(prefs)
+        return prefs.getBoolean(KEY_ENABLED, false)
+    }
+
+    fun isChatApiEnabled(prefs: SharedPreferences): Boolean {
+        migrateLegacyPreferenceKeys(prefs)
+        return if (prefs.contains(KEY_CHAT_API_ENABLED)) {
+            prefs.getBoolean(KEY_CHAT_API_ENABLED, false)
+        } else {
+            prefs.getString(KEY_BACKEND, Backend.Completion.value) == Backend.ChatCompletions.value
+        }
+    }
+
+    fun currentPersonaValue(prefs: SharedPreferences): String {
+        migrateLegacyPreferenceKeys(prefs)
+        return prefs.getString(KEY_PERSONA_PRESET, PersonaPreset.Custom.value).orEmpty()
+    }
+
     fun getScopedApiKey(
         prefs: SharedPreferences,
         provider: Provider,
         baseUrl: String,
     ): String {
+        migrateLegacyPreferenceKeys(prefs)
         return prefs.getString(scopedApiKeyKey(prefs, provider, baseUrl), "").orEmpty().ifBlank {
             if (provider == Provider.Custom) {
                 prefs.getString(KEY_CUSTOM_DEFAULT_API_KEY, "").orEmpty().trim()
@@ -452,6 +512,7 @@ object LlmPrefs {
         provider: Provider,
         baseUrl: String,
     ): String {
+        migrateLegacyPreferenceKeys(prefs)
         return prefs.getString(scopedModelKey(prefs, provider, baseUrl), "").orEmpty().trim()
     }
 
@@ -461,6 +522,7 @@ object LlmPrefs {
         baseUrl: String,
         apiKey: String,
     ) {
+        migrateLegacyPreferenceKeys(prefs)
         val normalizedApiKey = apiKey.trim()
         val editor = prefs.edit()
         if (normalizedApiKey.isBlank()) {
@@ -480,6 +542,7 @@ object LlmPrefs {
         baseUrl: String,
         model: String,
     ) {
+        migrateLegacyPreferenceKeys(prefs)
         val normalizedModel = model.trim()
         val editor = prefs.edit()
         if (normalizedModel.isBlank()) {
@@ -494,6 +557,7 @@ object LlmPrefs {
         prefs: SharedPreferences,
         baseUrl: String,
     ) {
+        migrateLegacyPreferenceKeys(prefs)
         prefs.edit()
             .putString(KEY_CUSTOM_DEFAULT_BASE_URL, normalizeBaseUrl(baseUrl))
             .apply()
@@ -504,6 +568,7 @@ object LlmPrefs {
         provider: Provider,
         baseUrl: String,
     ): String {
+        migrateLegacyPreferenceKeys(prefs)
         val apiKey = getScopedApiKey(prefs, provider, baseUrl)
         prefs.edit().putString(KEY_API_KEY, apiKey).apply()
         return apiKey
@@ -515,6 +580,7 @@ object LlmPrefs {
         baseUrl: String,
         legacyFallback: String = "",
     ): String {
+        migrateLegacyPreferenceKeys(prefs)
         val restoredModel = getScopedModel(prefs, provider, baseUrl)
             .ifBlank { legacyFallback.trim() }
             .ifBlank { providerDefaultModel(provider) }
@@ -528,24 +594,31 @@ object LlmPrefs {
         return restoredModel
     }
 
-    fun currentProvider(prefs: SharedPreferences): Provider =
-        Provider.from(prefs.getString(KEY_PROVIDER, Provider.Custom.value))
+    fun currentProvider(prefs: SharedPreferences): Provider {
+        migrateLegacyPreferenceKeys(prefs)
+        return Provider.from(prefs.getString(KEY_PROVIDER, Provider.Custom.value))
+    }
 
-    fun currentRuntime(prefs: SharedPreferences): Runtime =
-        runtimeForProvider(
+    fun currentRuntime(prefs: SharedPreferences): Runtime {
+        migrateLegacyPreferenceKeys(prefs)
+        return runtimeForProvider(
             provider = currentProvider(prefs),
             storedRuntime = prefs.getString(KEY_RUNTIME, Runtime.Remote.value),
         )
+    }
 
-    fun currentPredictionDisplayMode(prefs: SharedPreferences): PredictionDisplayMode =
-        PredictionDisplayMode.from(
+    fun currentPredictionDisplayMode(prefs: SharedPreferences): PredictionDisplayMode {
+        migrateLegacyPreferenceKeys(prefs)
+        return PredictionDisplayMode.from(
             prefs.getString(KEY_PREDICTION_DISPLAY_MODE, PredictionDisplayMode.FloatingWindow.value)
         )
+    }
 
     internal fun readRememberedUiMode(
         prefs: SharedPreferences,
         defaultThinkingEnabled: Boolean = false,
     ): RememberedUiMode {
+        migrateLegacyPreferenceKeys(prefs)
         val taskMode = when (prefs.getString(KEY_REMEMBERED_TASK_MODE, LlmTaskMode.Completion.name)) {
             LlmTaskMode.QuestionAnswer.name -> LlmTaskMode.QuestionAnswer
             LlmTaskMode.Translate.name -> LlmTaskMode.Translate
@@ -571,6 +644,7 @@ object LlmPrefs {
         longFormEnabled: Boolean,
         thinkingEnabled: Boolean,
     ) {
+        migrateLegacyPreferenceKeys(prefs)
         prefs.edit()
             .putString(KEY_REMEMBERED_TASK_MODE, taskMode.name)
             .putBoolean(
@@ -589,11 +663,13 @@ object LlmPrefs {
         else -> Runtime.from(storedRuntime).takeIf { it != Runtime.LocalOnDevice } ?: Runtime.Remote
     }
 
-    fun currentBaseUrl(prefs: SharedPreferences, provider: Provider = currentProvider(prefs)): String =
-        normalizeBaseUrl(
+    fun currentBaseUrl(prefs: SharedPreferences, provider: Provider = currentProvider(prefs)): String {
+        migrateLegacyPreferenceKeys(prefs)
+        return normalizeBaseUrl(
             prefs.getString(KEY_BASE_URL, providerDefaultBaseUrl(provider, prefs)).orEmpty()
                 .ifBlank { providerDefaultBaseUrl(provider, prefs) }
         )
+    }
 
     private fun apiKeyScope(
         prefs: SharedPreferences,
@@ -676,6 +752,59 @@ object LlmPrefs {
             else -> null
         } ?: defaultValue
         return parsed.coerceIn(validRange.first, validRange.last)
+    }
+
+    fun migrateLegacyPreferenceKeys(prefs: SharedPreferences) {
+        val snapshot = prefs.all
+        if (snapshot.isEmpty()) return
+        val editor = prefs.edit()
+        var changed = false
+
+        exactPreferenceKeys.forEach { key ->
+            val legacyKey = legacyKeyFor(key) ?: return@forEach
+            if (!snapshot.containsKey(key) && snapshot.containsKey(legacyKey)) {
+                putPreferenceValue(editor, key, snapshot[legacyKey])
+                changed = true
+            }
+        }
+
+        prefixedPreferenceKeys.forEach { prefix ->
+            val legacyPrefix = legacyKeyFor(prefix) ?: return@forEach
+            snapshot.forEach { (legacyKey, value) ->
+                if (legacyKey.startsWith(legacyPrefix)) {
+                    val migratedKey = prefix + legacyKey.removePrefix(legacyPrefix)
+                    if (!snapshot.containsKey(migratedKey)) {
+                        putPreferenceValue(editor, migratedKey, value)
+                        changed = true
+                    }
+                }
+            }
+        }
+
+        if (changed) {
+            editor.apply()
+        }
+    }
+
+    private fun legacyKeyFor(currentKey: String): String? =
+        currentKey.takeIf { it.startsWith(KEY_PREFIX) }
+            ?.removePrefix(KEY_PREFIX)
+            ?.let { LEGACY_KEY_PREFIX + it }
+
+    private fun putPreferenceValue(
+        editor: SharedPreferences.Editor,
+        key: String,
+        value: Any?,
+    ) {
+        when (value) {
+            null -> editor.remove(key)
+            is String -> editor.putString(key, value)
+            is Int -> editor.putInt(key, value)
+            is Long -> editor.putLong(key, value)
+            is Float -> editor.putFloat(key, value)
+            is Boolean -> editor.putBoolean(key, value)
+            is Set<*> -> editor.putStringSet(key, value.filterIsInstance<String>().toSet())
+        }
     }
 
 }

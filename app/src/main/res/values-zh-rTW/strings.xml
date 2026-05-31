@@ -820,4 +820,6 @@
     <string name="llm_persona_custom_name_description">%1$s。下方還可以補充更詳細的人設描述。</string>
     <string name="llm_persona_current_label">目前已選</string>
     <string name="llm_persona_delete_confirm">刪除人設「%1$s」？</string>
+    <string name="llm_model_status_remote_ready" translatable="false">狀態：遠端模型可用</string>
+    <string name="llm_model_status_remote_unavailable" translatable="false">狀態：遠端模型不可用</string>
 </resources>
