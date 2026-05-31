@@ -822,4 +822,6 @@
     <string name="llm_persona_delete_confirm">刪除人設「%1$s」？</string>
     <string name="llm_model_status_remote_ready" translatable="false">狀態：遠端模型可用</string>
     <string name="llm_model_status_remote_unavailable" translatable="false">狀態：遠端模型不可用</string>
+    <string name="llm_model_status_remote_missing_name" translatable="false">狀態：未填寫模型名稱</string>
+    <string name="llm_api_key_set" translatable="false">已配置，%1$s</string>
 </resources>

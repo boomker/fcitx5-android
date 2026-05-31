@@ -824,4 +824,6 @@
     <string name="share_receive_files_imported">파일 %1$d개를 가져왔습니다.</string>
     <string name="llm_model_status_remote_ready" translatable="false">상태: 원격 모델 사용 가능</string>
     <string name="llm_model_status_remote_unavailable" translatable="false">상태: 원격 모델 사용 불가</string>
+    <string name="llm_model_status_remote_missing_name" translatable="false">상태: 모델 이름 미입력</string>
+    <string name="llm_api_key_set" translatable="false">구성됨, %1$s</string>
 </resources>

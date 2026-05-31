@@ -822,4 +822,6 @@
     <string name="share_receive_files_imported">Импортировано файлов: %1$d.</string>
     <string name="llm_model_status_remote_ready" translatable="false">Статус: удаленная модель доступна</string>
     <string name="llm_model_status_remote_unavailable" translatable="false">Статус: удаленная модель недоступна</string>
+    <string name="llm_model_status_remote_missing_name" translatable="false">Статус: имя модели не указано</string>
+    <string name="llm_api_key_set" translatable="false">Настроено, %1$s</string>
 </resources>

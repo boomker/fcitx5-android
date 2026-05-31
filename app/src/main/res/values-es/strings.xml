@@ -824,4 +824,6 @@
     <string name="share_receive_files_imported">Se importaron %1$d archivos.</string>
     <string name="llm_model_status_remote_ready" translatable="false">Estado: modelo remoto disponible</string>
     <string name="llm_model_status_remote_unavailable" translatable="false">Estado: modelo remoto no disponible</string>
+    <string name="llm_model_status_remote_missing_name" translatable="false">Estado: nombre del modelo sin completar</string>
+    <string name="llm_api_key_set" translatable="false">Configurado, %1$s</string>
 </resources>

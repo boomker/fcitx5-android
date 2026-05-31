@@ -181,10 +181,11 @@ class LlmSettingsFragment : PaddingPreferenceFragment() {
                 titleRes = R.string.llm_api_key,
                 defaultValue = "",
                 summaryProvider = Preference.SummaryProvider<EditTextPreference> { pref ->
-                    if (pref.text.isNullOrBlank()) {
+                    val apiKey = pref.text.orEmpty().trim()
+                    if (apiKey.isBlank()) {
                         context.getString(R.string._not_available_)
                     } else {
-                        context.getString(R.string.llm_api_key_set)
+                        context.getString(R.string.llm_api_key_set, summarizeSecret(apiKey))
                     }
                 },
                 inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD,
@@ -199,17 +200,17 @@ class LlmSettingsFragment : PaddingPreferenceFragment() {
                     if (runtime == LlmPrefs.Runtime.LocalOnDevice) {
                         LlmLocalModelManager.statusSummary(context)
                     } else {
-                        val modelName = pref.text.orEmpty().ifBlank {
-                            context.getString(R.string.llm_model_summary_hint)
-                        }
-                        val status = if (LlmPrefs.read(context).isUsable) {
+                        val modelName = pref.text.orEmpty().trim()
+                        val status = if (modelName.isBlank()) {
+                            context.getString(R.string.llm_model_status_remote_missing_name)
+                        } else if (LlmPrefs.read(context).isUsable) {
                             context.getString(R.string.llm_model_status_remote_ready)
                         } else {
                             context.getString(R.string.llm_model_status_remote_unavailable)
                         }
                         context.getString(
                             R.string.llm_model_status_remote_summary,
-                            modelName,
+                            modelName.ifBlank { context.getString(R.string.llm_model_summary_hint) },
                             status,
                         )
                     }
@@ -899,5 +900,11 @@ class LlmSettingsFragment : PaddingPreferenceFragment() {
                 onChange(newValue?.toString().orEmpty())
             }
         }
+    }
+
+    private fun summarizeSecret(raw: String): String {
+        val value = raw.trim()
+        if (value.length <= 8) return value
+        return value.take(6) + "..." + value.takeLast(3)
     }
 }

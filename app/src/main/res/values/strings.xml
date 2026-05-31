@@ -438,6 +438,7 @@
     <string name="llm_model_summary_hint" translatable="false">可手动填写，也可远程拉取后选择</string>
     <string name="llm_model_status_remote_ready" translatable="false">状态：远端模型可用</string>
     <string name="llm_model_status_remote_unavailable" translatable="false">状态：远端模型不可用</string>
+    <string name="llm_model_status_remote_missing_name" translatable="false">状态：未填写模型名称</string>
     <string name="llm_model_status_remote_summary" translatable="false">%1$s\n%2$s</string>
     <string name="llm_model_select" translatable="false">选择模型</string>
     <string name="llm_model_fetching" translatable="false">正在远程拉取模型列表…</string>
@@ -449,7 +450,7 @@
     <string name="llm_model_group_empty" translatable="false">空</string>
     <string name="llm_fetch_models" translatable="false">拉取模型列表</string>
     <string name="llm_api_key" translatable="false">API 密钥</string>
-    <string name="llm_api_key_set" translatable="false">已配置</string>
+    <string name="llm_api_key_set" translatable="false">已配置，%1$s</string>
     <string name="llm_test_connectivity" translatable="false">连通性检测</string>
     <string name="llm_connectivity_checking" translatable="false">正在检测服务连通性…</string>
     <string name="llm_connectivity_success" translatable="false">连接成功，发现 %1$d 个模型。\n%2$s</string>

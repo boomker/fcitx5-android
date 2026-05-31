@@ -822,4 +822,6 @@
     <string name="share_receive_files_imported">%1$d 個のファイルをインポートしました。</string>
     <string name="llm_model_status_remote_ready" translatable="false">状態: リモートモデル利用可能</string>
     <string name="llm_model_status_remote_unavailable" translatable="false">状態: リモートモデル利用不可</string>
+    <string name="llm_model_status_remote_missing_name" translatable="false">状態: モデル名未入力</string>
+    <string name="llm_api_key_set" translatable="false">設定済み、%1$s</string>
 </resources>
