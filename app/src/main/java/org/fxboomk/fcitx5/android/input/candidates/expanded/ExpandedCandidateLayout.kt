@@ -6,6 +6,9 @@ package org.fxboomk.fcitx5.android.input.candidates.expanded
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.view.View
+import android.view.ViewGroup
+import android.widget.LinearLayout
 import androidx.constraintlayout.widget.ConstraintLayout
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.data.theme.Theme
@@ -16,6 +19,7 @@ import org.fxboomk.fcitx5.android.input.keyboard.ImageKeyView
 import org.fxboomk.fcitx5.android.input.keyboard.ImageLayoutSwitchKey
 import org.fxboomk.fcitx5.android.input.keyboard.KeyDef
 import org.fxboomk.fcitx5.android.input.keyboard.ReturnKey
+import org.fxboomk.fcitx5.android.input.predict.AiSuggestionExpandedUi
 import splitties.views.backgroundColor
 import splitties.views.dsl.constraintlayout.bottomOfParent
 import splitties.views.dsl.constraintlayout.lParams
@@ -29,7 +33,15 @@ import splitties.views.dsl.recyclerview.recyclerView
 import splitties.views.imageResource
 
 @SuppressLint("ViewConstructor")
-class ExpandedCandidateLayout(context: Context, theme: Theme) : ConstraintLayout(context) {
+class ExpandedCandidateLayout(
+    context: Context,
+    theme: Theme,
+    onSuggestionClick: (String) -> Unit,
+    onQuestionAnswerClick: () -> Unit,
+    onThinkingClick: () -> Unit,
+    onTranslateClick: () -> Unit,
+    onLongFormClick: () -> Unit,
+) : ConstraintLayout(context) {
 
     class Keyboard(context: Context, theme: Theme) : BaseKeyboard(context, theme, ::Layout) {
         companion object {
@@ -79,8 +91,38 @@ class ExpandedCandidateLayout(context: Context, theme: Theme) : ConstraintLayout
         isVerticalScrollBarEnabled = false
     }
 
+    val aiSuggestionUi = AiSuggestionExpandedUi(
+        context = context,
+        theme = theme,
+        onSuggestionClick = onSuggestionClick,
+        onQuestionAnswerClick = onQuestionAnswerClick,
+        onThinkingClick = onThinkingClick,
+        onTranslateClick = onTranslateClick,
+        onLongFormClick = onLongFormClick,
+    )
+
     var pageUpBtn: ImageKeyView? = null
     var pageDnBtn: ImageKeyView? = null
+
+    private val contentColumn = LinearLayout(context).apply {
+        id = View.generateViewId()
+        orientation = LinearLayout.VERTICAL
+        addView(
+            recyclerView,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                0,
+                1f,
+            )
+        )
+        addView(
+            aiSuggestionUi,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            )
+        )
+    }
 
     val embeddedKeyboard = Keyboard(context, theme).also {
         pageUpBtn = it.pageUpBtn
@@ -93,7 +135,7 @@ class ExpandedCandidateLayout(context: Context, theme: Theme) : ConstraintLayout
             backgroundColor = theme.barColor
         }
 
-        add(recyclerView, lParams {
+        add(contentColumn, lParams {
             topOfParent()
             leftOfParent()
             rightToLeftOf(embeddedKeyboard)
@@ -102,10 +144,17 @@ class ExpandedCandidateLayout(context: Context, theme: Theme) : ConstraintLayout
         add(embeddedKeyboard, lParams {
             matchConstraintPercentWidth = 0.15f
             topOfParent()
-            leftToRightOf(recyclerView)
+            leftToRightOf(contentColumn)
             rightOfParent()
             bottomOfParent()
         })
+    }
+
+    fun setAiSuggestionExpandedStyle(fillAvailableHeight: Boolean) {
+        aiSuggestionUi.layoutParams = (aiSuggestionUi.layoutParams as LinearLayout.LayoutParams).apply {
+            height = if (fillAvailableHeight) 0 else ViewGroup.LayoutParams.WRAP_CONTENT
+            weight = if (fillAvailableHeight) 1f else 0f
+        }
     }
 
     fun resetPosition() {

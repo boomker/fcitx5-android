@@ -10,6 +10,7 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import android.content.SharedPreferences
 import androidx.annotation.StringRes
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
@@ -80,6 +81,16 @@ class LlmSettingsFragment : PaddingPreferenceFragment() {
     }
 
     private lateinit var importModelLauncher: ActivityResultLauncher<String>
+    private val prefsChangeListener =
+        SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
+            when (key) {
+                LlmPrefs.KEY_ENABLED -> syncEditablePreferenceState()
+                LlmPrefs.KEY_PROVIDER, LlmPrefs.KEY_RUNTIME -> {
+                    syncEditablePreferenceState()
+                    syncRuntimePreferenceState(LlmPrefs.currentRuntime(prefs))
+                }
+            }
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -207,6 +218,7 @@ class LlmSettingsFragment : PaddingPreferenceFragment() {
                 },
             ))
             addPreference(maxPredictionCandidatesPreference())
+            addPreference(predictionDisplayModePreference())
             addPreference(Preference(context).apply {
                 key = "llm_advanced_entry"
                 setTitle(R.string.llm_advanced)
@@ -221,6 +233,18 @@ class LlmSettingsFragment : PaddingPreferenceFragment() {
             addLocalModelPreferences(this)
         }
         ensureProviderDefaultsAndScopedApiKey()
+        syncEditablePreferenceState()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        preferenceManager.sharedPreferences?.registerOnSharedPreferenceChangeListener(prefsChangeListener)
+        syncEditablePreferenceState()
+    }
+
+    override fun onPause() {
+        preferenceManager.sharedPreferences?.unregisterOnSharedPreferenceChangeListener(prefsChangeListener)
+        super.onPause()
     }
 
     private fun addLocalModelPreferences(screen: PreferenceScreen) {
@@ -259,6 +283,22 @@ class LlmSettingsFragment : PaddingPreferenceFragment() {
         isIconSpaceReserved = false
         isSingleLineTitle = false
         summaryProvider = DialogSeekBarPreference.SimpleSummaryProvider
+    }
+
+    private fun predictionDisplayModePreference() = ListPreference(requireContext()).apply {
+        key = LlmPrefs.KEY_PREDICTION_DISPLAY_MODE
+        setTitle(R.string.llm_prediction_display_mode)
+        setDialogTitle(R.string.llm_prediction_display_mode)
+        entries = LlmPrefs.PredictionDisplayMode.entries
+            .map { context.getString(it.titleRes) }
+            .toTypedArray()
+        entryValues = LlmPrefs.PredictionDisplayMode.entries
+            .map { it.value }
+            .toTypedArray()
+        setDefaultValue(LlmPrefs.PredictionDisplayMode.FloatingWindow.value)
+        isIconSpaceReserved = false
+        isSingleLineTitle = false
+        summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
     }
 
     private fun providerPreference() = ListPreference(requireContext()).apply {
@@ -324,20 +364,46 @@ class LlmSettingsFragment : PaddingPreferenceFragment() {
 
     private fun syncSamplingPreferenceState(provider: LlmPrefs.Provider) {
         val samplePreference = findPreference<DialogSeekBarPreference>(LlmPrefs.KEY_SAMPLE_COUNT) ?: return
-        samplePreference.isEnabled = true
+        samplePreference.isEnabled = preferenceManager.sharedPreferences
+            ?.getBoolean(LlmPrefs.KEY_ENABLED, false) == true
     }
 
-    private fun syncRuntimePreferenceState(runtime: LlmPrefs.Runtime) {
-        val remoteEnabled = runtime == LlmPrefs.Runtime.Remote
-        findPreference<Preference>(LlmPrefs.KEY_PROVIDER)?.isEnabled = true
+    private fun syncEditablePreferenceState() {
+        val prefs = preferenceManager.sharedPreferences ?: return
+        val masterEnabled = prefs.getBoolean(LlmPrefs.KEY_ENABLED, false)
+        listOf(
+            LlmPrefs.KEY_AUTO_PREDICT_ENABLED,
+            LlmPrefs.KEY_PROVIDER,
+            LlmPrefs.KEY_BASE_URL,
+            LlmPrefs.KEY_API_KEY,
+            LlmPrefs.KEY_MODEL,
+            LlmPrefs.KEY_MAX_PREDICTION_CANDIDATES,
+            LlmPrefs.KEY_PREDICTION_DISPLAY_MODE,
+            "llm_advanced_entry",
+            PREF_LOCAL_MODEL_IMPORT,
+            PREF_MODEL_TEST,
+        ).forEach { key ->
+            findPreference<Preference>(key)?.isEnabled = masterEnabled
+        }
+        syncRuntimePreferenceState(LlmPrefs.currentRuntime(prefs), masterEnabled)
+        syncSamplingPreferenceState(LlmPrefs.currentProvider(prefs))
+    }
+
+    private fun syncRuntimePreferenceState(
+        runtime: LlmPrefs.Runtime,
+        masterEnabled: Boolean = preferenceManager.sharedPreferences?.getBoolean(LlmPrefs.KEY_ENABLED, false) == true,
+    ) {
+        val remoteEnabled = masterEnabled && runtime == LlmPrefs.Runtime.Remote
+        findPreference<Preference>(LlmPrefs.KEY_PROVIDER)?.isEnabled = masterEnabled
         listOf(
             LlmPrefs.KEY_BASE_URL,
             LlmPrefs.KEY_API_KEY,
         ).forEach { key ->
             findPreference<Preference>(key)?.isEnabled = remoteEnabled
         }
-        findPreference<Preference>(PREF_LOCAL_MODEL_IMPORT)?.isEnabled = !remoteEnabled
-        findPreference<Preference>(PREF_MODEL_TEST)?.isEnabled = true
+        findPreference<Preference>(PREF_LOCAL_MODEL_IMPORT)?.isEnabled =
+            masterEnabled && runtime == LlmPrefs.Runtime.LocalOnDevice
+        findPreference<Preference>(PREF_MODEL_TEST)?.isEnabled = masterEnabled
         refreshModelStatusPreference(runtime)
     }
 
@@ -346,8 +412,10 @@ class LlmSettingsFragment : PaddingPreferenceFragment() {
         val runtime = runtimeOverride ?: preferenceManager.sharedPreferences?.let(LlmPrefs::currentRuntime)
             ?: LlmPrefs.Runtime.Remote
         val modelPreference = findPreference<EditTextPreference>(LlmPrefs.KEY_MODEL) ?: return
+        val masterEnabled = preferenceManager.sharedPreferences?.getBoolean(LlmPrefs.KEY_ENABLED, false) == true
         modelPreference.isEnabled =
-            runtime != LlmPrefs.Runtime.LocalOnDevice || LlmLocalModelManager.currentModel(ctx) != null
+            masterEnabled &&
+                (runtime != LlmPrefs.Runtime.LocalOnDevice || LlmLocalModelManager.currentModel(ctx) != null)
         modelPreference.setTitle(R.string.llm_model_status)
         modelPreference.text = modelPreference.text
     }

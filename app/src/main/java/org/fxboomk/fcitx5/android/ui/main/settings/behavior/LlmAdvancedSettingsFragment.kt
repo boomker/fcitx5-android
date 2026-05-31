@@ -3,6 +3,7 @@
  */
 package org.fxboomk.fcitx5.android.ui.main.settings.behavior
 
+import android.content.SharedPreferences
 import android.os.Bundle
 import android.text.InputType
 import android.view.ContextThemeWrapper
@@ -27,6 +28,12 @@ import org.fxboomk.fcitx5.android.utils.toast
 
 class LlmAdvancedSettingsFragment : PaddingPreferenceFragment() {
     private val personaListKey = "llm_persona_list"
+    private val prefsChangeListener =
+        SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == LlmPrefs.KEY_ENABLED) {
+                syncEditablePreferenceState()
+            }
+        }
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         preferenceManager.sharedPreferences?.let(LlmPrefs::migrateSeekBarBackedPreferences)
@@ -47,6 +54,18 @@ class LlmAdvancedSettingsFragment : PaddingPreferenceFragment() {
         }
         refreshPersonaOptions()
         syncPersonaPreferenceState()
+        syncEditablePreferenceState()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        preferenceManager.sharedPreferences?.registerOnSharedPreferenceChangeListener(prefsChangeListener)
+        syncEditablePreferenceState()
+    }
+
+    override fun onPause() {
+        preferenceManager.sharedPreferences?.unregisterOnSharedPreferenceChangeListener(prefsChangeListener)
+        super.onPause()
     }
 
     private fun personaPresetPreference() = ListPreference(requireContext()).apply {
@@ -167,7 +186,6 @@ class LlmAdvancedSettingsFragment : PaddingPreferenceFragment() {
         }
         preference.title = title
         preference.dialogTitle = title
-        preference.isEnabled = true
         val detail = LlmPrefs.readPersonaDetail(prefs, selectedValue)
         if (preference.text != detail) {
             preference.text = detail
@@ -175,6 +193,13 @@ class LlmAdvancedSettingsFragment : PaddingPreferenceFragment() {
         preference.summaryProvider = Preference.SummaryProvider<EditTextPreference> { pref ->
             pref.text?.trim().takeUnless { it.isNullOrEmpty() }
                 ?: ctx.getString(R.string.llm_custom_persona_summary)
+        }
+    }
+
+    private fun syncEditablePreferenceState() {
+        val enabled = preferenceManager.sharedPreferences?.getBoolean(LlmPrefs.KEY_ENABLED, false) == true
+        for (index in 0 until preferenceScreen.preferenceCount) {
+            preferenceScreen.getPreference(index).isEnabled = enabled
         }
     }
 

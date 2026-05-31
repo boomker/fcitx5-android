@@ -29,9 +29,13 @@ object LlmPrefs {
     const val KEY_MAX_PREDICTION_CANDIDATES = "lan_llm_max_prediction_candidates"
     const val KEY_MAX_CONTEXT_CHARS = "lan_llm_max_context_chars"
     const val KEY_SPACE_COMMIT_PREDICTION = "lan_llm_space_commit_prediction"
+    const val KEY_PREDICTION_DISPLAY_MODE = "lan_llm_prediction_display_mode"
     const val KEY_PERSONA_PRESET = "lan_llm_persona_preset"
     const val KEY_CUSTOM_PERSONA = "lan_llm_custom_persona"
     const val KEY_CUSTOM_PERSONA_NAMES = "lan_llm_custom_persona_names"
+    private const val KEY_REMEMBERED_TASK_MODE = "lan_llm_remembered_task_mode"
+    private const val KEY_REMEMBERED_LONG_FORM_ENABLED = "lan_llm_remembered_long_form_enabled"
+    private const val KEY_REMEMBERED_THINKING_ENABLED = "lan_llm_remembered_thinking_enabled"
     private const val KEY_PERSONA_DETAIL_PREFIX = "lan_llm_persona_detail_"
 
     enum class Runtime(
@@ -59,6 +63,20 @@ object LlmPrefs {
     enum class CompatApi {
         OpenAI,
         Anthropic,
+    }
+
+    enum class PredictionDisplayMode(
+        val value: String,
+        val titleRes: Int,
+    ) {
+        FloatingWindow("floating_window", R.string.llm_prediction_display_mode_floating_window),
+        CandidateBar("candidate_bar", R.string.llm_prediction_display_mode_candidate_bar_overlay),
+        CandidateExpanded("candidate_expanded", R.string.llm_prediction_display_mode_candidate_expanded);
+
+        companion object {
+            fun from(value: String?): PredictionDisplayMode =
+                entries.firstOrNull { it.value == value } ?: FloatingWindow
+        }
     }
 
     enum class Provider(
@@ -145,6 +163,12 @@ object LlmPrefs {
         val backend: Backend? = null,
     )
 
+    internal data class RememberedUiMode(
+        val taskMode: LlmTaskMode = LlmTaskMode.Completion,
+        val longFormEnabled: Boolean = false,
+        val thinkingEnabled: Boolean = false,
+    )
+
     private const val DEFAULT_BASE_URL = "http://192.168.1.1:8000"
     private const val DEFAULT_CUSTOM_PORT = 8000
     private const val DEFAULT_MODEL = "qwen"
@@ -171,6 +195,7 @@ object LlmPrefs {
         val maxContextChars: Int,
         val preferLastCommit: Boolean,
         val spaceCommitPrediction: Boolean = false,
+        val predictionDisplayMode: PredictionDisplayMode = PredictionDisplayMode.FloatingWindow,
         val personaPreset: PersonaPreset = PersonaPreset.Custom,
         val personaName: String = "",
         val customPersona: String = "",
@@ -279,6 +304,9 @@ object LlmPrefs {
             maxContextChars = maxContextChars,
             preferLastCommit = true,
             spaceCommitPrediction = prefs.getBoolean(KEY_SPACE_COMMIT_PREDICTION, false),
+            predictionDisplayMode = PredictionDisplayMode.from(
+                prefs.getString(KEY_PREDICTION_DISPLAY_MODE, PredictionDisplayMode.FloatingWindow.value)
+            ),
             personaPreset = PersonaPreset.from(prefs.getString(KEY_PERSONA_PRESET, PersonaPreset.Custom.value)),
             personaName = currentPersonaName(prefs),
             customPersona = readPersonaDetail(
@@ -508,6 +536,50 @@ object LlmPrefs {
             provider = currentProvider(prefs),
             storedRuntime = prefs.getString(KEY_RUNTIME, Runtime.Remote.value),
         )
+
+    fun currentPredictionDisplayMode(prefs: SharedPreferences): PredictionDisplayMode =
+        PredictionDisplayMode.from(
+            prefs.getString(KEY_PREDICTION_DISPLAY_MODE, PredictionDisplayMode.FloatingWindow.value)
+        )
+
+    internal fun readRememberedUiMode(
+        prefs: SharedPreferences,
+        defaultThinkingEnabled: Boolean = false,
+    ): RememberedUiMode {
+        val taskMode = when (prefs.getString(KEY_REMEMBERED_TASK_MODE, LlmTaskMode.Completion.name)) {
+            LlmTaskMode.QuestionAnswer.name -> LlmTaskMode.QuestionAnswer
+            LlmTaskMode.Translate.name -> LlmTaskMode.Translate
+            else -> LlmTaskMode.Completion
+        }
+        val longFormEnabled = prefs.getBoolean(KEY_REMEMBERED_LONG_FORM_ENABLED, false) &&
+            taskMode != LlmTaskMode.Translate
+        val thinkingEnabled = if (prefs.contains(KEY_REMEMBERED_THINKING_ENABLED)) {
+            prefs.getBoolean(KEY_REMEMBERED_THINKING_ENABLED, defaultThinkingEnabled)
+        } else {
+            defaultThinkingEnabled
+        }
+        return RememberedUiMode(
+            taskMode = taskMode,
+            longFormEnabled = longFormEnabled,
+            thinkingEnabled = thinkingEnabled,
+        )
+    }
+
+    internal fun persistRememberedUiMode(
+        prefs: SharedPreferences,
+        taskMode: LlmTaskMode,
+        longFormEnabled: Boolean,
+        thinkingEnabled: Boolean,
+    ) {
+        prefs.edit()
+            .putString(KEY_REMEMBERED_TASK_MODE, taskMode.name)
+            .putBoolean(
+                KEY_REMEMBERED_LONG_FORM_ENABLED,
+                longFormEnabled && taskMode != LlmTaskMode.Translate,
+            )
+            .putBoolean(KEY_REMEMBERED_THINKING_ENABLED, thinkingEnabled)
+            .apply()
+    }
 
     fun runtimeForProvider(
         provider: Provider,

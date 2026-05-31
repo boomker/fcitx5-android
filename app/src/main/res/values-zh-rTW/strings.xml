@@ -789,6 +789,10 @@
     <string name="llm_provider_local_ai">本地</string>
     <string name="llm_provider_custom">自訂</string>
     <string name="llm_sample_count">採樣次數</string>
+    <string name="llm_prediction_display_mode">預測項顯示方式</string>
+    <string name="llm_prediction_display_mode_floating_window">懸浮視窗</string>
+    <string name="llm_prediction_display_mode_candidate_bar_overlay">候選欄（覆蓋）</string>
+    <string name="llm_prediction_display_mode_candidate_expanded">候選展開區</string>
     <string name="llm_max_output_tokens">最大輸出詞元數</string>
     <string name="llm_max_output_tokens_summary">%1$d。此參數會隨請求發送給 LLM，可理解為本次回答的大致長度：數值越大，通常能產生更長內容，但不是最終顯示字數的硬性上限。</string>
     <string name="llm_max_context_chars">最大上下文字數</string>

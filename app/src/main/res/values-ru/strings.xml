@@ -771,6 +771,10 @@
     <string name="llm_provider_local_ai">Локальный</string>
     <string name="llm_provider_custom">Пользовательский</string>
     <string name="llm_sample_count">Количество сэмплов</string>
+    <string name="llm_prediction_display_mode">Способ показа предсказаний</string>
+    <string name="llm_prediction_display_mode_floating_window">Плавающее окно</string>
+    <string name="llm_prediction_display_mode_candidate_bar_overlay">Панель кандидатов (замена)</string>
+    <string name="llm_prediction_display_mode_candidate_expanded">Расширенный список кандидатов</string>
     <string name="llm_max_output_tokens">Максимум выходных токенов</string>
     <string name="llm_max_output_tokens_summary">%1$d. Этот параметр отправляется вместе с запросом к LLM и примерно задаёт длину ответа. Чем больше значение, тем длиннее обычно ответ, но это не жёсткий лимит символов.</string>
     <string name="llm_max_context_chars">Максимум символов контекста</string>

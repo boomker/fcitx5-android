@@ -50,7 +50,15 @@ class GridExpandedCandidateWindow :
     }
 
     override fun onCreateCandidateLayout(): ExpandedCandidateLayout =
-        ExpandedCandidateLayout(context, theme).apply {
+        ExpandedCandidateLayout(
+            context = context,
+            theme = theme,
+            onSuggestionClick = { suggestion -> inputView.commitAiSuggestionFromUi(suggestion) },
+            onQuestionAnswerClick = { inputView.toggleAiQuestionAnswerMode() },
+            onThinkingClick = { inputView.toggleAiThinkingMode() },
+            onTranslateClick = { inputView.toggleAiTranslateMode() },
+            onLongFormClick = { inputView.toggleAiLongFormMode() },
+        ).apply {
             recyclerView.apply {
                 adapter = this@GridExpandedCandidateWindow.adapter
                 layoutManager = this@GridExpandedCandidateWindow.layoutManager
@@ -68,6 +76,7 @@ class GridExpandedCandidateWindow :
         }
 
     override fun prevPage() {
+        if (layoutManager.itemCount <= 0) return
         layoutManager.apply {
             var prev = findFirstCompletelyVisibleItemPosition() - 1
             if (prev < 0) prev = 0
@@ -80,6 +89,7 @@ class GridExpandedCandidateWindow :
     }
 
     override fun nextPage() {
+        if (layoutManager.itemCount <= 0) return
         layoutManager.apply {
             var next = findLastCompletelyVisibleItemPosition() + 1
             if (next >= itemCount) next = itemCount - 1

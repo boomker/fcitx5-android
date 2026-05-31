@@ -45,4 +45,87 @@ class HorizontalCandidateComponentTest {
         assertEquals(0, moveActiveCandidateIndex(currentIndex = 0, delta = -1, candidateCount = 4))
         assertEquals(3, moveActiveCandidateIndex(currentIndex = 3, delta = 1, candidateCount = 4))
     }
+
+    @Test
+    fun `keeps whole ai suggestion in expanded area when it does not fit remaining row`() {
+        val placement = placeAiCandidatesInRow(
+            nativeCandidates = arrayOf("native"),
+            aiSuggestions = listOf("long ai"),
+            availableWidth = 100,
+            dividerWidth = 0,
+            maxCandidateCount = Int.MAX_VALUE,
+        ) { candidate ->
+            when (candidate) {
+                "native" -> 70
+                "long ai" -> 40
+                else -> 0
+            }
+        }
+
+        assertEquals(listOf("native"), placement.candidates.toList())
+        assertEquals(0, placement.visibleAiCount)
+    }
+
+    @Test
+    fun `appends ai suggestions until the next whole suggestion would overflow`() {
+        val placement = placeAiCandidatesInRow(
+            nativeCandidates = arrayOf("native"),
+            aiSuggestions = listOf("ai1", "ai2"),
+            availableWidth = 100,
+            dividerWidth = 0,
+            maxCandidateCount = Int.MAX_VALUE,
+        ) { candidate ->
+            when (candidate) {
+                "native" -> 40
+                "ai1" -> 30
+                "ai2" -> 40
+                else -> 0
+            }
+        }
+
+        assertEquals(listOf("native", "ai1"), placement.candidates.toList())
+        assertEquals(1, placement.visibleAiCount)
+    }
+
+    @Test
+    fun `does not force an oversized ai suggestion into an empty candidate row`() {
+        val placement = placeAiCandidatesInRow(
+            nativeCandidates = emptyArray(),
+            aiSuggestions = listOf("oversized ai"),
+            availableWidth = 100,
+            dividerWidth = 0,
+            maxCandidateCount = Int.MAX_VALUE,
+        ) { 140 }
+
+        assertEquals(emptyList<String>(), placement.candidates.toList())
+        assertEquals(0, placement.visibleAiCount)
+    }
+
+    @Test
+    fun `places ai suggestion in empty row when it fits completely`() {
+        val placement = placeAiCandidatesInRow(
+            nativeCandidates = emptyArray(),
+            aiSuggestions = listOf("ai"),
+            availableWidth = 100,
+            dividerWidth = 0,
+            maxCandidateCount = Int.MAX_VALUE,
+        ) { 80 }
+
+        assertEquals(listOf("ai"), placement.candidates.toList())
+        assertEquals(1, placement.visibleAiCount)
+    }
+
+    @Test
+    fun `candidate expanded placement keeps native candidates before ai suggestions`() {
+        val placement = placeAiCandidatesInRow(
+            nativeCandidates = arrayOf("native1", "native2"),
+            aiSuggestions = listOf("ai1"),
+            availableWidth = 120,
+            dividerWidth = 0,
+            maxCandidateCount = Int.MAX_VALUE,
+        ) { 30 }
+
+        assertEquals(listOf("native1", "native2", "ai1"), placement.candidates.toList())
+        assertEquals(1, placement.visibleAiCount)
+    }
 }

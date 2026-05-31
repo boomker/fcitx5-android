@@ -767,6 +767,10 @@
     <string name="preferred_voice_input">首选语音输入</string>
     <string name="background_blur_radius">背景模糊半径</string>
     <string name="no_blur">无模糊</string>
+    <string name="llm_prediction_display_mode">预测项显示方式</string>
+    <string name="llm_prediction_display_mode_floating_window">悬浮窗</string>
+    <string name="llm_prediction_display_mode_candidate_bar_overlay">候选栏（覆盖）</string>
+    <string name="llm_prediction_display_mode_candidate_expanded">候选展开区</string>
 
     <!-- Monet Theme Editor -->
     <string name="monet_editor_select_color_resource">选择颜色资源</string>

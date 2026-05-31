@@ -22,6 +22,7 @@ import android.widget.inline.InlineContentView
 import androidx.annotation.Keep
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.lifecycleScope
+import androidx.preference.PreferenceManager
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -41,6 +42,7 @@ import org.fxboomk.fcitx5.android.input.bar.ExpandButtonStateMachine.State.Click
 import org.fxboomk.fcitx5.android.input.bar.ExpandButtonStateMachine.State.Hidden
 import org.fxboomk.fcitx5.android.input.bar.KawaiiBarStateMachine.BooleanKey.CandidateEmpty
 import org.fxboomk.fcitx5.android.input.bar.KawaiiBarStateMachine.BooleanKey.PreeditEmpty
+import org.fxboomk.fcitx5.android.input.bar.KawaiiBarStateMachine.State.Idle
 import org.fxboomk.fcitx5.android.input.bar.KawaiiBarStateMachine.TransitionEvent.CandidatesUpdated
 import org.fxboomk.fcitx5.android.input.bar.KawaiiBarStateMachine.TransitionEvent.ExtendedWindowAttached
 import org.fxboomk.fcitx5.android.input.bar.KawaiiBarStateMachine.TransitionEvent.PreeditUpdated
@@ -55,6 +57,7 @@ import org.fxboomk.fcitx5.android.input.config.ConfigProviders
 import org.fxboomk.fcitx5.android.input.config.ConfigurableButton
 import org.fxboomk.fcitx5.android.input.broadcast.InputBroadcastReceiver
 import org.fxboomk.fcitx5.android.input.candidates.expanded.ExpandedCandidateStyle
+import org.fxboomk.fcitx5.android.input.candidates.expanded.window.BaseExpandedCandidateWindow
 import org.fxboomk.fcitx5.android.input.candidates.expanded.window.FlexboxExpandedCandidateWindow
 import org.fxboomk.fcitx5.android.input.candidates.expanded.window.GridExpandedCandidateWindow
 import org.fxboomk.fcitx5.android.input.candidates.floating.FloatingCandidatesMode
@@ -69,6 +72,10 @@ import org.fxboomk.fcitx5.android.input.editing.TextEditingWindow
 import org.fxboomk.fcitx5.android.input.keyboard.CommonKeyActionListener
 import org.fxboomk.fcitx5.android.input.keyboard.CustomGestureView
 import org.fxboomk.fcitx5.android.input.keyboard.KeyboardWindow
+import org.fxboomk.fcitx5.android.input.predict.AiSuggestionStripComponent
+import org.fxboomk.fcitx5.android.input.predict.LlmPrefs
+import org.fxboomk.fcitx5.android.input.predict.hasCompletedAiResult
+import org.fxboomk.fcitx5.android.input.predict.hasInteractiveAiContent
 import org.fxboomk.fcitx5.android.input.popup.PopupComponent
 import org.fxboomk.fcitx5.android.input.status.StatusAreaWindow
 import org.fxboomk.fcitx5.android.input.wm.InputWindow
@@ -122,6 +129,22 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         idleUi.buttonsUi.setOneHandKeyboardState(isOneHanded)
     }
 
+    fun updateAiSuggestionAvailability(state: AiSuggestionStripComponent.PresentationState) {
+        val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+        val predictionDisplayMode = LlmPrefs.currentPredictionDisplayMode(prefs)
+        val nextAvailable =
+            prefs.getBoolean(LlmPrefs.KEY_ENABLED, false) &&
+                predictionDisplayMode != LlmPrefs.PredictionDisplayMode.FloatingWindow &&
+                hasInteractiveAiContent(state)
+        aiSuggestionExpandAvailable = nextAvailable
+        candidateUi.expandButton.setActive(
+            nextAvailable &&
+                predictionDisplayMode != LlmPrefs.PredictionDisplayMode.FloatingWindow &&
+                hasCompletedAiResult(state)
+        )
+        syncCandidateBarWithAiAvailability()
+    }
+
     private val prefs = AppPrefs.getInstance()
 
     private val clipboardSuggestion = prefs.clipboard.clipboardSuggestion
@@ -139,6 +162,7 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
     private var isInlineSuggestionPresent: Boolean = false
     private var isCapabilityFlagsPassword: Boolean = false
     private var isKeyboardLayoutNumber: Boolean = false
+    private var aiSuggestionExpandAvailable: Boolean = false
 
     private enum class NumberRowState { Auto, ForceShow, ForceHide }
 
@@ -219,6 +243,40 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         }
         if (newState == idleUi.currentState) return
         idleUi.updateState(newState, fromUser)
+    }
+
+    private fun syncCandidateBarWithAiAvailability() {
+        syncCandidateBarState(horizontalCandidate.adapter.candidates.isEmpty())
+        syncExpandedCandidateState(
+            hasExpandableCandidates = horizontalCandidate.adapter.candidates.isNotEmpty() &&
+                (
+                    horizontalCandidate.adapter.total == -1 ||
+                        horizontalCandidate.adapter.total >
+                        horizontalCandidate.adapter.indexOffset + horizontalCandidate.adapter.candidates.size
+                    )
+        )
+    }
+
+    fun syncCandidateBarState(candidateEmpty: Boolean) {
+        barStateMachine.push(
+            CandidatesUpdated,
+            CandidateEmpty to (candidateEmpty && !aiSuggestionExpandAvailable)
+        )
+    }
+
+    fun syncExpandedCandidateState(hasExpandableCandidates: Boolean) {
+        val expandedCandidatesEmpty = !aiSuggestionExpandAvailable && !hasExpandableCandidates
+        expandButtonStateMachine.push(
+            ExpandButtonStateMachine.TransitionEvent.ExpandedCandidatesUpdated,
+            ExpandButtonStateMachine.BooleanKey.ExpandedCandidatesEmpty to expandedCandidatesEmpty
+        )
+    }
+
+    fun restoreToolbarAfterPredictionCancelled() {
+        numberRowState = NumberRowState.Auto
+        barStateMachine.setBooleanState(CandidateEmpty, true)
+        barStateMachine.unsafeJump(Idle)
+        idleUi.updateState(IdleUi.State.Toolbar, fromUser = true)
     }
 
     private val hideKeyboardCallback = View.OnClickListener {
@@ -573,7 +631,12 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
     private fun setExpandButtonToDetach() {
         candidateUi.expandButton.setOnClickListener {
             service.restoreVirtualKeyboardForKawaiiBarAction()
-            windowManager.attachWindow(KeyboardWindow)
+            val currentWindow = windowManager.currentWindowOrNull()
+            if (currentWindow is BaseExpandedCandidateWindow<*>) {
+                currentWindow.dismissExpandedCandidateToToolbar()
+            } else {
+                windowManager.attachWindow(KeyboardWindow)
+            }
         }
         candidateUi.expandButton.setIcon(R.drawable.ic_baseline_expand_less_24)
         candidateUi.expandButton.contentDescription = context.getString(R.string.hide_candidates_list)
@@ -582,6 +645,9 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
     // should be used with setExpandButtonToAttach or setExpandButtonToDetach
     private fun setExpandButtonEnabled(enabled: Boolean) {
         candidateUi.expandButton.visibility = if (enabled) View.VISIBLE else View.INVISIBLE
+        if (!enabled) {
+            candidateUi.expandButton.setActive(false)
+        }
     }
 
     private fun switchUiByState(state: KawaiiBarStateMachine.State) {
@@ -689,9 +755,9 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
 
         if (useFloatingAlways) {
             // Force stay in Idle state when using floating candidates
-            barStateMachine.push(CandidatesUpdated, CandidateEmpty to true)
+            syncCandidateBarState(candidateEmpty = true)
         } else {
-            barStateMachine.push(CandidatesUpdated, CandidateEmpty to data.candidates.isEmpty())
+            syncCandidateBarState(candidateEmpty = data.candidates.isEmpty())
         }
     }
 

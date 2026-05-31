@@ -169,9 +169,11 @@ class CommonKeyActionListener :
                             service.lifecycleScope.launch { aiSuggestionStrip.commitPrimarySuggestion() }
                         }
                         action.sym.sym == FcitxKeyMapping.FcitxKey_BackSpace && aiSuggestionStrip.hasVisibleSuggestions() -> {
+                            service.inputView?.handleAiBackspaceUiExit()
                             service.lifecycleScope.launch { aiSuggestionStrip.dismissVisibleSuggestions() }
                         }
                         action.sym.sym == FcitxKeyMapping.FcitxKey_BackSpace -> {
+                            service.inputView?.handleAiBackspaceUiExit()
                             service.lifecycleScope.launch { aiSuggestionStrip.suppressAfterBackspace() }
                             sendKey(action.sym, action.states)
                         }

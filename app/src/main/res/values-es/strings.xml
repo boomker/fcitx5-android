@@ -773,6 +773,10 @@
     <string name="llm_provider_local_ai">Local</string>
     <string name="llm_provider_custom">Personalizado</string>
     <string name="llm_sample_count">Número de muestreos</string>
+    <string name="llm_prediction_display_mode">Modo de visualización de predicciones</string>
+    <string name="llm_prediction_display_mode_floating_window">Ventana flotante</string>
+    <string name="llm_prediction_display_mode_candidate_bar_overlay">Barra de candidatos (reemplazar)</string>
+    <string name="llm_prediction_display_mode_candidate_expanded">Lista de candidatos expandida</string>
     <string name="llm_max_output_tokens">Máximo de tokens de salida</string>
     <string name="llm_max_output_tokens_summary">%1$d. Este valor se envía con la solicitud al LLM y marca, a grandes rasgos, lo larga que puede ser la respuesta. Cuanto mayor sea, más larga suele salir, pero no es un límite fijo de caracteres.</string>
     <string name="llm_max_context_chars">Máximo de caracteres de contexto</string>

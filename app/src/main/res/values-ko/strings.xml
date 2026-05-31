@@ -773,6 +773,10 @@
     <string name="llm_provider_local_ai">로컬</string>
     <string name="llm_provider_custom">사용자 지정</string>
     <string name="llm_sample_count">샘플링 횟수</string>
+    <string name="llm_prediction_display_mode">예측 항목 표시 방식</string>
+    <string name="llm_prediction_display_mode_floating_window">플로팅 창</string>
+    <string name="llm_prediction_display_mode_candidate_bar_overlay">후보 바(대체)</string>
+    <string name="llm_prediction_display_mode_candidate_expanded">확장 후보 목록</string>
     <string name="llm_max_output_tokens">최대 출력 토큰 수</string>
     <string name="llm_max_output_tokens_summary">%1$d. 이 값은 LLM 요청과 함께 전송되며, 답변 길이의 대략적인 크기를 정합니다. 클수록 더 길어지기 쉽지만, 최종 표시 글자 수의 상한은 아닙니다.</string>
     <string name="llm_max_context_chars">최대 문맥 글자 수</string>

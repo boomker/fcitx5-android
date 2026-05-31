@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import org.fxboomk.fcitx5.android.daemon.launchOnReady
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
+import org.fxboomk.fcitx5.android.core.FcitxKeyMapping
 import org.fxboomk.fcitx5.android.input.bar.ExpandButtonStateMachine.BooleanKey.ExpandedCandidatesEmpty
 import org.fxboomk.fcitx5.android.input.bar.ExpandButtonStateMachine.TransitionEvent.ExpandedCandidatesAttached
 import org.fxboomk.fcitx5.android.input.bar.ExpandButtonStateMachine.TransitionEvent.ExpandedCandidatesDetached
@@ -37,6 +38,9 @@ import org.fxboomk.fcitx5.android.input.keyboard.CommonKeyActionListener
 import org.fxboomk.fcitx5.android.input.keyboard.KeyAction
 import org.fxboomk.fcitx5.android.input.keyboard.KeyActionListener
 import org.fxboomk.fcitx5.android.input.keyboard.KeyboardWindow
+import org.fxboomk.fcitx5.android.input.predict.AiSuggestionStripComponent
+import org.fxboomk.fcitx5.android.input.predict.LlmPrefs
+import org.fxboomk.fcitx5.android.input.predict.hasInteractiveAiContent
 import org.fxboomk.fcitx5.android.input.wm.InputWindow
 import org.fxboomk.fcitx5.android.input.wm.InputWindowManager
 import org.mechdancer.dependency.manager.must
@@ -45,6 +49,12 @@ import kotlin.math.max
 
 abstract class BaseExpandedCandidateWindow<T : BaseExpandedCandidateWindow<T>> :
     InputWindow.SimpleInputWindow<T>(), InputBroadcastReceiver {
+
+    private data class AiExpandedPresentation(
+        val visible: Boolean,
+        val occupyFullHeight: Boolean,
+        val values: List<String>,
+    )
 
     protected val service by manager.inputMethodService()
     protected val theme by manager.theme()
@@ -84,9 +94,23 @@ abstract class BaseExpandedCandidateWindow<T : BaseExpandedCandidateWindow<T>> :
     private val keyActionListener = KeyActionListener { it, source ->
         if (it is KeyAction.LayoutSwitchAction) {
             when (it.act) {
-                ExpandedCandidateLayout.Keyboard.UpBtnLabel -> prevPage()
-                ExpandedCandidateLayout.Keyboard.DownBtnLabel -> nextPage()
+                ExpandedCandidateLayout.Keyboard.UpBtnLabel -> {
+                    if (shouldKeepExpandedForAiSuggestion()) {
+                        candidateLayout.aiSuggestionUi.scrollByPage(-1)
+                    } else {
+                        prevPage()
+                    }
+                }
+                ExpandedCandidateLayout.Keyboard.DownBtnLabel -> {
+                    if (shouldKeepExpandedForAiSuggestion()) {
+                        candidateLayout.aiSuggestionUi.scrollByPage(1)
+                    } else {
+                        nextPage()
+                    }
+                }
             }
+        } else if (it is KeyAction.SymAction && it.sym.sym == FcitxKeyMapping.FcitxKey_BackSpace) {
+            dismissExpandedCandidateToToolbar()
         } else {
             commonKeyActionListener.listener.onKeyAction(it, source)
         }
@@ -127,7 +151,7 @@ abstract class BaseExpandedCandidateWindow<T : BaseExpandedCandidateWindow<T>> :
         }
         offsetJob = service.lifecycleScope.launch {
             horizontalCandidate.expandedCandidateOffset.collect {
-                if (it <= 0) {
+                if (it <= 0 && !shouldKeepExpandedForAiSuggestion()) {
                     windowManager.attachWindow(KeyboardWindow)
                 } else {
                     candidateLayout.resetPosition()
@@ -140,6 +164,10 @@ abstract class BaseExpandedCandidateWindow<T : BaseExpandedCandidateWindow<T>> :
                 adapter.submitData(it)
             }
         }
+        inputView.setAiSuggestionPresentationListener { state ->
+            renderAiSuggestionState(state)
+        }
+        renderAiSuggestionState(inputView.currentAiSuggestionPresentationState())
     }
 
     fun bindCandidateUiViewHolder(holder: CandidateViewHolder) {
@@ -165,12 +193,105 @@ abstract class BaseExpandedCandidateWindow<T : BaseExpandedCandidateWindow<T>> :
         candidatesSubmitJob?.cancel()
         offsetJob?.cancel()
         candidateLayout.embeddedKeyboard.keyActionListener = null
+        inputView.setAiSuggestionPresentationListener(null)
+        bar.updateAiSuggestionAvailability(inputView.currentAiSuggestionPresentationState())
     }
 
     override fun onPreeditEmptyStateUpdate(empty: Boolean) {
-        if (empty) {
-            windowManager.attachWindow(KeyboardWindow)
+        if (empty && !shouldKeepExpandedForAiSuggestion()) {
+            dismissExpandedCandidateToToolbar()
         }
+    }
+
+    fun dismissExpandedCandidateToToolbar() {
+        windowManager.attachWindow(KeyboardWindow)
+    }
+
+    private fun renderAiSuggestionState(state: AiSuggestionStripComponent.PresentationState) {
+        val config = LlmPrefs.read(context)
+        val presentation = resolveAiExpandedPresentation(config, state)
+        candidateLayout.recyclerView.visibility = when {
+            !presentation.visible -> View.VISIBLE
+            presentation.occupyFullHeight -> View.GONE
+            else -> View.VISIBLE
+        }
+        candidateLayout.setAiSuggestionExpandedStyle(
+            fillAvailableHeight = presentation.occupyFullHeight
+        )
+        candidateLayout.aiSuggestionUi.updateContent(
+            visible = presentation.visible,
+            values = presentation.values,
+            isLongFormEnabled = state.isLongFormEnabled,
+            isSingleTextMode = state.isSingleTextMode,
+            isLoading = state.isLoading,
+            loadingLabel = state.loadingLabel,
+            isQuestionAnswerEnabled = state.isQuestionAnswerEnabled,
+            isThinkingEnabled = state.isThinkingEnabled,
+            isTranslateEnabled = state.isTranslateEnabled,
+        )
+    }
+
+    private fun resolveAiExpandedPresentation(
+        config: LlmPrefs.Config,
+        state: AiSuggestionStripComponent.PresentationState,
+    ): AiExpandedPresentation {
+        if (!config.enabled || config.predictionDisplayMode == LlmPrefs.PredictionDisplayMode.FloatingWindow) {
+            return AiExpandedPresentation(
+                visible = false,
+                occupyFullHeight = false,
+                values = emptyList(),
+            )
+        }
+
+        val overlayValues =
+            if (state.panelSuggestions.isNotEmpty()) state.panelSuggestions else state.suggestions
+        val hasAiState = hasInteractiveAiContent(state)
+        return when (config.predictionDisplayMode) {
+            LlmPrefs.PredictionDisplayMode.FloatingWindow -> AiExpandedPresentation(
+                visible = false,
+                occupyFullHeight = false,
+                values = emptyList(),
+            )
+            LlmPrefs.PredictionDisplayMode.CandidateBar -> AiExpandedPresentation(
+                visible = hasAiState,
+                occupyFullHeight = hasAiState,
+                values = overlayValues,
+            )
+            LlmPrefs.PredictionDisplayMode.CandidateExpanded -> {
+                val appendedAiValues = horizontalCandidate.currentExpandedAiSuggestions()
+                when {
+                    state.isPanelOpen && (
+                        state.isSingleTextMode ||
+                            state.isLoading ||
+                            overlayValues.isNotEmpty()
+                        ) -> AiExpandedPresentation(
+                        visible = hasAiState,
+                        occupyFullHeight = true,
+                        values = overlayValues,
+                    )
+                    appendedAiValues.isNotEmpty() -> AiExpandedPresentation(
+                        visible = true,
+                        occupyFullHeight = !horizontalCandidate.hasExpandedNativeCandidates(),
+                        values = appendedAiValues,
+                    )
+                    hasAiState -> AiExpandedPresentation(
+                        visible = true,
+                        occupyFullHeight = !horizontalCandidate.hasExpandedNativeCandidates(),
+                        values = emptyList(),
+                    )
+                    else -> AiExpandedPresentation(
+                        visible = false,
+                        occupyFullHeight = false,
+                        values = emptyList(),
+                    )
+                }
+            }
+        }
+    }
+
+    private fun shouldKeepExpandedForAiSuggestion(): Boolean {
+        val state = inputView.currentAiSuggestionPresentationState()
+        return resolveAiExpandedPresentation(LlmPrefs.read(context), state).visible
     }
 
 }

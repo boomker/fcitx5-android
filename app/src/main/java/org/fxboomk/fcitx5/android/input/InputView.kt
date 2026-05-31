@@ -34,6 +34,7 @@ import android.view.inputmethod.InlineSuggestionsResponse
 import android.widget.ImageView
 import androidx.annotation.Keep
 import androidx.annotation.RequiresApi
+import androidx.preference.PreferenceManager
 import androidx.core.graphics.ColorUtils
 import androidx.core.view.updateLayoutParams
 import org.fxboomk.fcitx5.android.R
@@ -58,8 +59,10 @@ import org.fxboomk.fcitx5.android.input.broadcast.PreeditEmptyStateComponent
 import org.fxboomk.fcitx5.android.input.broadcast.PunctuationComponent
 import org.fxboomk.fcitx5.android.input.broadcast.ReturnKeyDrawableComponent
 import org.fxboomk.fcitx5.android.input.candidates.horizontal.HorizontalCandidateComponent
+import org.fxboomk.fcitx5.android.input.candidates.expanded.window.BaseExpandedCandidateWindow
 import org.fxboomk.fcitx5.android.input.predict.AiSuggestionOverlay
 import org.fxboomk.fcitx5.android.input.predict.AiSuggestionStripComponent
+import org.fxboomk.fcitx5.android.input.predict.LlmPrefs
 import org.fxboomk.fcitx5.android.input.keyboard.CommonKeyActionListener
 import org.fxboomk.fcitx5.android.input.action.ButtonAction
 import org.fxboomk.fcitx5.android.input.keyboard.BaseKeyboard
@@ -1126,6 +1129,9 @@ class InputView(
         onLongFormClick = { aiSuggestionStrip.toggleLongFormMode() }
         onSuggestionClick = { suggestion -> aiSuggestionStrip.commitSuggestionFromUi(suggestion) }
     }
+    private var latestAiSuggestionPresentationState = aiSuggestionStrip.currentPresentationState()
+    private var aiSuggestionPresentationListener:
+        ((AiSuggestionStripComponent.PresentationState) -> Unit)? = null
     private val horizontalCandidate = HorizontalCandidateComponent()
     private val keyboardWindow = KeyboardWindow()
     private val symbolPicker = symbolPicker()
@@ -2146,7 +2152,11 @@ class InputView(
             updateAiSuggestionOverlayFallbackTop()
         }
         aiSuggestionStrip.onPresentationChanged = { state ->
+            latestAiSuggestionPresentationState = state
             aiSuggestionOverlay.render(state)
+            syncAiSuggestionsToCandidateBar(state)
+            aiSuggestionPresentationListener?.invoke(state)
+            kawaiiBar.updateAiSuggestionAvailability(state)
             service.updateFullscreenMode()
         }
         keyboardView.post {
@@ -2536,6 +2546,69 @@ class InputView(
     internal fun openAiSuggestionPanel(): Boolean = aiSuggestionStrip.openSuggestionTable()
 
     internal fun isAiSuggestionPanelVisible(): Boolean = aiSuggestionStrip.isPanelVisible()
+
+    internal fun currentAiSuggestionPresentationState(): AiSuggestionStripComponent.PresentationState =
+        latestAiSuggestionPresentationState
+
+    internal fun setAiSuggestionPresentationListener(
+        listener: ((AiSuggestionStripComponent.PresentationState) -> Unit)?,
+    ) {
+        aiSuggestionPresentationListener = listener
+        listener?.invoke(latestAiSuggestionPresentationState)
+    }
+
+    internal fun commitAiSuggestionFromUi(suggestion: String) {
+        aiSuggestionStrip.commitSuggestionFromUi(suggestion)
+        post {
+            aiSuggestionStrip.collapsePanel()
+            (windowManager.currentWindowOrNull() as? BaseExpandedCandidateWindow<*>)
+                ?.dismissExpandedCandidateToToolbar()
+            kawaiiBar.restoreToolbarAfterPredictionCancelled()
+        }
+    }
+
+    internal fun toggleAiThinkingMode(): Boolean = aiSuggestionStrip.toggleThinkingMode()
+
+    internal fun toggleAiQuestionAnswerMode(): Boolean = aiSuggestionStrip.toggleQuestionAnswerMode()
+
+    internal fun toggleAiTranslateMode(): Boolean = aiSuggestionStrip.toggleTranslateMode()
+
+    internal fun toggleAiLongFormMode(): Boolean = aiSuggestionStrip.toggleLongFormMode()
+
+    internal fun handleAiBackspaceUiExit() {
+        val hasAiExpandedContent =
+            horizontalCandidate.currentExpandedAiSuggestions().isNotEmpty() ||
+                aiSuggestionStrip.hasVisibleSuggestions() ||
+                aiSuggestionStrip.isPanelVisible()
+        if (!hasAiExpandedContent) return
+
+        post {
+            aiSuggestionStrip.collapsePanel()
+            restoreToolbarAfterPredictionCancelled()
+        }
+    }
+
+    internal fun restoreToolbarAfterPredictionCancelled() {
+        (windowManager.currentWindowOrNull() as? BaseExpandedCandidateWindow<*>)
+            ?.dismissExpandedCandidateToToolbar()
+        kawaiiBar.restoreToolbarAfterPredictionCancelled()
+    }
+
+    private fun syncAiSuggestionsToCandidateBar(state: AiSuggestionStripComponent.PresentationState) {
+        val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+        val displayMode = LlmPrefs.currentPredictionDisplayMode(prefs)
+        if (displayMode == LlmPrefs.PredictionDisplayMode.FloatingWindow) {
+            horizontalCandidate.updateAiSuggestions(displayMode, emptyList())
+            return
+        }
+
+        val suggestions = when {
+            state.panelSuggestions.isNotEmpty() -> state.panelSuggestions
+            state.suggestions.isNotEmpty() -> state.suggestions
+            else -> emptyList()
+        }
+        horizontalCandidate.updateAiSuggestions(displayMode, suggestions)
+    }
 
     /**
      * Control whether the preedit component should display preedit text.

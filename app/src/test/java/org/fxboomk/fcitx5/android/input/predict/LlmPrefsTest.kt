@@ -594,6 +594,7 @@ class LlmPrefsTest {
                 LlmPrefs.KEY_SAMPLE_COUNT to 6,
                 LlmPrefs.KEY_MAX_OUTPUT_TOKENS to 256,
                 LlmPrefs.KEY_MAX_PREDICTION_CANDIDATES to 7,
+                LlmPrefs.KEY_PREDICTION_DISPLAY_MODE to LlmPrefs.PredictionDisplayMode.CandidateBar.value,
             )
         )
 
@@ -603,6 +604,72 @@ class LlmPrefsTest {
         assertEquals(256, config.maxOutputTokens)
         assertEquals(7, config.maxPredictionCandidates)
         assertEquals(true, config.autoPredictEnabled)
+        assertEquals(LlmPrefs.PredictionDisplayMode.CandidateBar, config.predictionDisplayMode)
+    }
+
+    @Test
+    fun readDefaultsPredictionDisplayModeToFloatingWindow() {
+        val config = LlmPrefs.read(FakeSharedPreferences())
+
+        assertEquals(LlmPrefs.PredictionDisplayMode.FloatingWindow, config.predictionDisplayMode)
+    }
+
+    @Test
+    fun readSupportsExpandedCandidatePredictionDisplayMode() {
+        val prefs = FakeSharedPreferences(
+            mutableMapOf(
+                LlmPrefs.KEY_PREDICTION_DISPLAY_MODE to LlmPrefs.PredictionDisplayMode.CandidateExpanded.value,
+            )
+        )
+
+        val config = LlmPrefs.read(prefs)
+
+        assertEquals(LlmPrefs.PredictionDisplayMode.CandidateExpanded, config.predictionDisplayMode)
+    }
+
+    @Test
+    fun rememberedUiModePersistsQuestionAnswerLongFormAndThinkingFlags() {
+        val prefs = FakeSharedPreferences()
+
+        LlmPrefs.persistRememberedUiMode(
+            prefs = prefs,
+            taskMode = LlmTaskMode.QuestionAnswer,
+            longFormEnabled = true,
+            thinkingEnabled = true,
+        )
+
+        val remembered = LlmPrefs.readRememberedUiMode(prefs)
+
+        assertEquals(LlmTaskMode.QuestionAnswer, remembered.taskMode)
+        assertTrue(remembered.longFormEnabled)
+        assertTrue(remembered.thinkingEnabled)
+    }
+
+    @Test
+    fun rememberedUiModeDropsLongFormWhenTranslateModeIsStored() {
+        val prefs = FakeSharedPreferences()
+
+        LlmPrefs.persistRememberedUiMode(
+            prefs = prefs,
+            taskMode = LlmTaskMode.Translate,
+            longFormEnabled = true,
+            thinkingEnabled = false,
+        )
+
+        val remembered = LlmPrefs.readRememberedUiMode(prefs)
+
+        assertEquals(LlmTaskMode.Translate, remembered.taskMode)
+        assertEquals(false, remembered.longFormEnabled)
+    }
+
+    @Test
+    fun rememberedUiModeUsesRuntimeAwareThinkingDefaultWhenUnset() {
+        val remembered = LlmPrefs.readRememberedUiMode(
+            prefs = FakeSharedPreferences(),
+            defaultThinkingEnabled = true,
+        )
+
+        assertTrue(remembered.thinkingEnabled)
     }
 
     @Test

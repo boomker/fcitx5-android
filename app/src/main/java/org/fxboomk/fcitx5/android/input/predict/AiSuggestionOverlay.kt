@@ -46,6 +46,7 @@ class AiSuggestionOverlay(
         suggestions = emptyList(),
         anchor = null,
         panelSuggestions = emptyList(),
+        isPanelOpen = false,
         isLongFormEnabled = false,
         isSingleTextMode = false,
         isLoading = false,

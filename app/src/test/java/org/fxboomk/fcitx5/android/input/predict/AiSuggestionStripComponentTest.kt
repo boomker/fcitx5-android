@@ -85,4 +85,106 @@ class AiSuggestionStripComponentTest {
             ),
         )
     }
+
+    @Test
+    fun rememberedTranslateModeDoesNotExposeEmptyAiContentWhenPanelIsClosed() {
+        val state = AiSuggestionStripComponent.PresentationState(
+            mode = AiSuggestionStripComponent.PresentationMode.Hidden,
+            suggestions = emptyList(),
+            anchor = null,
+            panelSuggestions = emptyList(),
+            isPanelOpen = false,
+            isLongFormEnabled = false,
+            isSingleTextMode = true,
+            isLoading = false,
+            loadingLabel = null,
+            isQuestionAnswerEnabled = false,
+            isThinkingEnabled = false,
+            isTranslateEnabled = true,
+        )
+
+        assertFalse(hasInteractiveAiContent(state))
+    }
+
+    @Test
+    fun openTranslatePanelKeepsAiContentVisibleBeforeResultArrives() {
+        val state = AiSuggestionStripComponent.PresentationState(
+            mode = AiSuggestionStripComponent.PresentationMode.PanelVisible,
+            suggestions = emptyList(),
+            anchor = null,
+            panelSuggestions = emptyList(),
+            isPanelOpen = true,
+            isLongFormEnabled = false,
+            isSingleTextMode = true,
+            isLoading = false,
+            loadingLabel = null,
+            isQuestionAnswerEnabled = false,
+            isThinkingEnabled = false,
+            isTranslateEnabled = true,
+        )
+
+        assertTrue(hasInteractiveAiContent(state))
+    }
+
+    @Test
+    fun autoRequestRememberedTranslateForNonFloatingDisplayWithoutOpenPanel() {
+        assertTrue(
+            shouldAutoRequestRememberedTranslate(
+                displayMode = LlmPrefs.PredictionDisplayMode.CandidateExpanded,
+                taskMode = LlmTaskMode.Translate,
+                panelVisible = false,
+            )
+        )
+    }
+
+    @Test
+    fun doNotAutoRequestRememberedTranslateForFloatingDisplayWithoutOpenPanel() {
+        assertFalse(
+            shouldAutoRequestRememberedTranslate(
+                displayMode = LlmPrefs.PredictionDisplayMode.FloatingWindow,
+                taskMode = LlmTaskMode.Translate,
+                panelVisible = false,
+            )
+        )
+    }
+
+    @Test
+    fun completedAiResultRequiresNonLoadingCandidateContent() {
+        val state = AiSuggestionStripComponent.PresentationState(
+            mode = AiSuggestionStripComponent.PresentationMode.PanelVisible,
+            suggestions = emptyList(),
+            anchor = null,
+            panelSuggestions = listOf("translated result"),
+            isPanelOpen = true,
+            isLongFormEnabled = false,
+            isSingleTextMode = true,
+            isLoading = false,
+            loadingLabel = null,
+            isQuestionAnswerEnabled = false,
+            isThinkingEnabled = false,
+            isTranslateEnabled = true,
+        )
+
+        assertTrue(hasCompletedAiResult(state))
+    }
+
+    @Test
+    fun loadingAiResultDoesNotCountAsCompleted() {
+        val state = AiSuggestionStripComponent.PresentationState(
+            mode = AiSuggestionStripComponent.PresentationMode.PanelVisible,
+            suggestions = emptyList(),
+            anchor = null,
+            panelSuggestions = listOf("partial translated result"),
+            isPanelOpen = true,
+            isLongFormEnabled = false,
+            isSingleTextMode = true,
+            isLoading = true,
+            loadingLabel = null,
+            isQuestionAnswerEnabled = false,
+            isThinkingEnabled = false,
+            isTranslateEnabled = true,
+        )
+
+        assertFalse(hasCompletedAiResult(state))
+    }
 }

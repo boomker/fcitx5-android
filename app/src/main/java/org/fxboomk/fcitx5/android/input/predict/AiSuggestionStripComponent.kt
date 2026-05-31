@@ -8,6 +8,7 @@ import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.ExtractedTextRequest
 import android.widget.FrameLayout
+import androidx.preference.PreferenceManager
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.core.CapabilityFlag
 import org.fxboomk.fcitx5.android.core.CapabilityFlags
@@ -39,6 +40,25 @@ internal fun mergeSingleTextPanelResult(
     return if (final.length >= streamed.length) final else streamed
 }
 
+internal fun hasInteractiveAiContent(
+    state: AiSuggestionStripComponent.PresentationState,
+): Boolean = state.isPanelOpen ||
+    state.isLoading ||
+    state.suggestions.isNotEmpty() ||
+    state.panelSuggestions.isNotEmpty()
+
+internal fun hasCompletedAiResult(
+    state: AiSuggestionStripComponent.PresentationState,
+): Boolean = !state.isLoading &&
+    (state.suggestions.isNotEmpty() || state.panelSuggestions.isNotEmpty())
+
+internal fun shouldAutoRequestRememberedTranslate(
+    displayMode: LlmPrefs.PredictionDisplayMode,
+    taskMode: LlmTaskMode,
+    panelVisible: Boolean,
+): Boolean = taskMode == LlmTaskMode.Translate &&
+    (panelVisible || displayMode != LlmPrefs.PredictionDisplayMode.FloatingWindow)
+
 class AiSuggestionStripComponent(
     private val service: FcitxInputMethodService,
     private val themedContext: Context,
@@ -64,6 +84,7 @@ class AiSuggestionStripComponent(
         val suggestions: List<String>,
         val anchor: CursorAnchorState?,
         val panelSuggestions: List<String>,
+        val isPanelOpen: Boolean,
         val isLongFormEnabled: Boolean,
         val isSingleTextMode: Boolean,
         val isLoading: Boolean,
@@ -121,10 +142,25 @@ class AiSuggestionStripComponent(
     private var taskMode = LlmTaskMode.Completion
     private var longFormEnabled = false
     private var thinkingEnabled = false
+    private var rememberedThinkingEnabled = false
     private var thinkingModeRuntime: LlmPrefs.Runtime? = null
     private var pseudoStreamToken = 0L
     private var pseudoStreamRunnable: Runnable? = null
     private val mainHandler = Handler(Looper.getMainLooper())
+    private var latestPresentationState = PresentationState(
+        mode = PresentationMode.Hidden,
+        suggestions = emptyList(),
+        anchor = null,
+        panelSuggestions = emptyList(),
+        isPanelOpen = false,
+        isLongFormEnabled = false,
+        isSingleTextMode = false,
+        isLoading = false,
+        loadingLabel = null,
+        isQuestionAnswerEnabled = false,
+        isThinkingEnabled = false,
+        isTranslateEnabled = false,
+    )
 
     var onPresentationChanged: ((PresentationState) -> Unit)? = null
 
@@ -134,7 +170,12 @@ class AiSuggestionStripComponent(
         layoutParams = FrameLayout.LayoutParams(0, 0)
     }
 
+    init {
+        restoreRememberedMode(LlmPrefs.read(service.applicationContext))
+    }
+
     override fun onStartInput(info: EditorInfo, capFlags: CapabilityFlags) {
+        val config = LlmPrefs.read(service.applicationContext)
         allowPrediction = !capFlags.has(CapabilityFlag.PasswordOrSensitive)
         hasClientPreedit = false
         hasInputPanelPreedit = false
@@ -147,8 +188,9 @@ class AiSuggestionStripComponent(
         suppressionUntilCommitRevision = -1
         recentCommittedSegments.clear()
         anchorState = null
-        longFormEnabled = false
         thinkingModeRuntime = null
+        restoreRememberedMode(config)
+        syncThinkingModeForRuntime(config)
         resetPanelContentState()
         clearSuggestions(resetRequestState = true)
         requestPredictionIfNeeded()
@@ -222,6 +264,7 @@ class AiSuggestionStripComponent(
 
     fun toggleThinkingMode(): Boolean {
         thinkingEnabled = !thinkingEnabled
+        persistRememberedUiMode()
         refreshPredictionsForModeToggle()
         return thinkingEnabled
     }
@@ -233,6 +276,7 @@ class AiSuggestionStripComponent(
             exitTranslateMode()
             LlmTaskMode.QuestionAnswer
         }
+        persistRememberedUiMode()
         refreshPredictionsForModeToggle()
         return taskMode == LlmTaskMode.QuestionAnswer
     }
@@ -244,6 +288,7 @@ class AiSuggestionStripComponent(
             longFormEnabled = false
             LlmTaskMode.Translate
         }
+        persistRememberedUiMode()
         refreshPredictionsForModeToggle()
         return taskMode == LlmTaskMode.Translate
     }
@@ -253,6 +298,7 @@ class AiSuggestionStripComponent(
         if (longFormEnabled) {
             exitTranslateMode()
         }
+        persistRememberedUiMode()
         refreshPredictionsForModeToggle()
         return longFormEnabled
     }
@@ -272,6 +318,8 @@ class AiSuggestionStripComponent(
     }
 
     fun isPanelVisible(): Boolean = panelVisible
+
+    fun currentPresentationState(): PresentationState = latestPresentationState
 
     private fun requestLongForm(
         beforeCursor: String,
@@ -421,7 +469,12 @@ class AiSuggestionStripComponent(
             return
         }
         if (taskMode == LlmTaskMode.Translate) {
-            if (shouldKeepSingleTextPanelVisible()) {
+            if (shouldAutoRequestRememberedTranslate(
+                    displayMode = config.predictionDisplayMode,
+                    taskMode = taskMode,
+                    panelVisible = panelVisible,
+                )
+            ) {
                 requestPanelTextContent(configOverride = config, trigger = trigger)
             } else {
                 clearSuggestions(resetRequestState = false)
@@ -677,13 +730,19 @@ class AiSuggestionStripComponent(
     }
 
     private fun dispatchPresentationChanged() {
+        val config = LlmPrefs.read(service.applicationContext)
         val visibleSuggestions = activeSuggestions.take(currentSuggestionLimit())
-        val mode = when {
+        val baseMode = when {
             panelVisible && panelContentMode != PanelContentMode.Suggestions -> PresentationMode.PanelVisible
             visibleSuggestions.isEmpty() -> PresentationMode.Hidden
             panelVisible -> PresentationMode.PanelVisible
             anchorState != null -> PresentationMode.BubbleAnchored
             else -> PresentationMode.BubbleFallback
+        }
+        val mode = if (config.predictionDisplayMode != LlmPrefs.PredictionDisplayMode.FloatingWindow) {
+            PresentationMode.Hidden
+        } else {
+            baseMode
         }
         val panelSuggestions = when (panelContentMode) {
             PanelContentMode.Suggestions -> visibleSuggestions
@@ -703,33 +762,61 @@ class AiSuggestionStripComponent(
             PanelContentMode.LongFormReady -> listOf(panelDisplayedText).filter(String::isNotBlank)
         }
         view.visibility = if (mode == PresentationMode.Hidden) View.GONE else View.INVISIBLE
+        latestPresentationState = PresentationState(
+            mode = mode,
+            suggestions = visibleSuggestions,
+            anchor = anchorState,
+            panelSuggestions = panelSuggestions,
+            isPanelOpen = panelVisible,
+            isLongFormEnabled = longFormEnabled,
+            isSingleTextMode = isSingleTextPanelMode(),
+            isLoading = isLoadingPanelMode(),
+            loadingLabel = loadingLabel(),
+            isQuestionAnswerEnabled = taskMode == LlmTaskMode.QuestionAnswer,
+            isThinkingEnabled = thinkingEnabled,
+            isTranslateEnabled = taskMode == LlmTaskMode.Translate,
+        )
         onPresentationChanged?.invoke(
-            PresentationState(
-                mode = mode,
-                suggestions = visibleSuggestions,
-                anchor = anchorState,
-                panelSuggestions = panelSuggestions,
-                isLongFormEnabled = longFormEnabled,
-                isSingleTextMode = isSingleTextPanelMode(),
-                isLoading = isLoadingPanelMode(),
-                loadingLabel = loadingLabel(),
-                isQuestionAnswerEnabled = taskMode == LlmTaskMode.QuestionAnswer,
-                isThinkingEnabled = thinkingEnabled,
-                isTranslateEnabled = taskMode == LlmTaskMode.Translate,
-            )
+            latestPresentationState
         )
     }
 
     private fun syncThinkingModeForRuntime(config: LlmPrefs.Config) {
         if (thinkingModeRuntime == config.runtime) return
-        thinkingEnabled = config.isLocalOnDevice
+        rememberedThinkingEnabled = LlmPrefs.readRememberedUiMode(
+            prefs = PreferenceManager.getDefaultSharedPreferences(service.applicationContext),
+            defaultThinkingEnabled = config.isLocalOnDevice,
+        ).thinkingEnabled
+        thinkingEnabled = rememberedThinkingEnabled
         thinkingModeRuntime = config.runtime
+    }
+
+    private fun restoreRememberedMode(config: LlmPrefs.Config) {
+        val remembered = LlmPrefs.readRememberedUiMode(
+            prefs = PreferenceManager.getDefaultSharedPreferences(service.applicationContext),
+            defaultThinkingEnabled = config.isLocalOnDevice,
+        )
+        taskMode = remembered.taskMode
+        longFormEnabled = remembered.longFormEnabled
+        rememberedThinkingEnabled = remembered.thinkingEnabled
+        thinkingEnabled = rememberedThinkingEnabled
+    }
+
+    private fun persistRememberedUiMode() {
+        rememberedThinkingEnabled = thinkingEnabled
+        LlmPrefs.persistRememberedUiMode(
+            prefs = PreferenceManager.getDefaultSharedPreferences(service.applicationContext),
+            taskMode = taskMode,
+            longFormEnabled = longFormEnabled,
+            thinkingEnabled = rememberedThinkingEnabled,
+        )
     }
 
     private fun refreshPredictionsForModeToggle() {
         lastRequestedBeforeCursor = ""
         activeSuggestions = activeSuggestions.take(currentSuggestionLimit())
-        if (panelVisible && shouldUseSingleTextPanel()) {
+        if (shouldUseSingleTextPanel()) {
+            panelVisible = true
             requestPredictionIfNeeded(PredictionTrigger.Explicit)
         } else {
             resetPanelContentState()

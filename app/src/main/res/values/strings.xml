@@ -457,6 +457,10 @@
     <string name="llm_debounce_ms" translatable="false">请求防抖 (ms)</string>
     <string name="llm_sample_count" translatable="false">采样次数</string>
     <string name="llm_max_prediction_candidates" translatable="false">最多预测候选数</string>
+    <string name="llm_prediction_display_mode">预测项显示方式</string>
+    <string name="llm_prediction_display_mode_floating_window">悬浮窗</string>
+    <string name="llm_prediction_display_mode_candidate_bar_overlay">候选栏(覆盖)</string>
+    <string name="llm_prediction_display_mode_candidate_expanded">候选展开区</string>
     <string name="llm_max_output_tokens" translatable="false">最大输出词元数</string>
     <string name="llm_max_output_tokens_summary" translatable="false">%1$d。该参数会随请求发送给 LLM，可理解为本次回答的大致长度：数值越大，通常能生成更长内容，但不是最终显示字数的硬性上限。</string>
     <string name="llm_max_context_chars" translatable="false">最大上下文字数</string>

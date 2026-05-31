@@ -771,6 +771,10 @@
     <string name="llm_provider_local_ai">ローカル</string>
     <string name="llm_provider_custom">カスタム</string>
     <string name="llm_sample_count">サンプリング回数</string>
+    <string name="llm_prediction_display_mode">予測項目の表示方式</string>
+    <string name="llm_prediction_display_mode_floating_window">フローティングウィンドウ</string>
+    <string name="llm_prediction_display_mode_candidate_bar_overlay">候補バー（置き換え）</string>
+    <string name="llm_prediction_display_mode_candidate_expanded">拡張候補一覧</string>
     <string name="llm_max_output_tokens">最大出力トークン数</string>
     <string name="llm_max_output_tokens_summary">%1$d。この値は LLM へのリクエスト時に送られ、回答のだいたいの長さを決めます。大きいほど長めになりやすいですが、最終表示文字数の上限ではありません。</string>
     <string name="llm_max_context_chars">最大コンテキスト文字数</string>

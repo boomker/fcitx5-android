@@ -56,7 +56,15 @@ class FlexboxExpandedCandidateWindow :
     }
 
     override fun onCreateCandidateLayout(): ExpandedCandidateLayout =
-        ExpandedCandidateLayout(context, theme).apply {
+        ExpandedCandidateLayout(
+            context = context,
+            theme = theme,
+            onSuggestionClick = { suggestion -> inputView.commitAiSuggestionFromUi(suggestion) },
+            onQuestionAnswerClick = { inputView.toggleAiQuestionAnswerMode() },
+            onThinkingClick = { inputView.toggleAiThinkingMode() },
+            onTranslateClick = { inputView.toggleAiTranslateMode() },
+            onLongFormClick = { inputView.toggleAiLongFormMode() },
+        ).apply {
             recyclerView.apply {
                 adapter = this@FlexboxExpandedCandidateWindow.adapter
                 layoutManager = this@FlexboxExpandedCandidateWindow.layoutManager
@@ -74,6 +82,7 @@ class FlexboxExpandedCandidateWindow :
         }
 
     override fun prevPage() {
+        if (layoutManager.itemCount <= 0) return
         layoutManager.apply {
             var prev = findFirstCompletelyVisibleItemPosition() - 1
             if (prev < 0) prev = 0
@@ -86,6 +95,7 @@ class FlexboxExpandedCandidateWindow :
     }
 
     override fun nextPage() {
+        if (layoutManager.itemCount <= 0) return
         layoutManager.apply {
             var next = findLastCompletelyVisibleItemPosition() + 1
             if (next >= itemCount) next = itemCount - 1
