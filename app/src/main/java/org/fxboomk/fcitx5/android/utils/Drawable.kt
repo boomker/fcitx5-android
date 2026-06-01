@@ -9,6 +9,7 @@ import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.InsetDrawable
 import android.graphics.drawable.LayerDrawable
 import android.graphics.drawable.RippleDrawable
 import android.graphics.drawable.ShapeDrawable
@@ -61,7 +62,8 @@ fun firstCandidateDrawable(
     @ColorInt strokeColor: Int,
     cornerRadius: Float,
     strokeWidth: Int,
-    @ColorInt pressColor: Int
+    @ColorInt pressColor: Int,
+    inset: Int = 0
 ): Drawable {
     val fill = GradientDrawable().apply {
         setColor(bgColor)
@@ -73,8 +75,12 @@ fun firstCandidateDrawable(
         this.cornerRadius = cornerRadius
     }
     val pressOverlay = ColorDrawable(Color.argb((Color.alpha(pressColor) * 0.6f).toInt(), Color.red(pressColor), Color.green(pressColor), Color.blue(pressColor)))
+    fun Drawable.withInset(): Drawable = if (inset > 0) InsetDrawable(this, inset) else this
     return StateListDrawable().apply {
-        addState(intArrayOf(), LayerDrawable(arrayOf(fill, stroke)))
-        addState(intArrayOf(android.R.attr.state_pressed), LayerDrawable(arrayOf(fill, stroke, pressOverlay)))
+        addState(
+            intArrayOf(android.R.attr.state_pressed),
+            LayerDrawable(arrayOf(fill, stroke, pressOverlay)).withInset()
+        )
+        addState(intArrayOf(), LayerDrawable(arrayOf(fill, stroke)).withInset())
     }
 }

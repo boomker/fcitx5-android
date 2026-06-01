@@ -22,8 +22,10 @@ import splitties.dimensions.dp
 import splitties.views.dsl.core.Ui
 import splitties.views.dsl.core.add
 import splitties.views.dsl.core.lParams
+import splitties.views.dsl.core.matchParent
 import splitties.views.dsl.core.textView
 import splitties.views.dsl.core.verticalLayout
+import splitties.views.dsl.core.wrapContent
 
 open class PreeditUi(
     override val ctx: Context,
@@ -65,8 +67,8 @@ open class PreeditUi(
         private set
 
     override val root: View = verticalLayout {
-        add(upView, lParams())
-        add(downView, lParams())
+        add(upView, lParams(matchParent, wrapContent))
+        add(downView, lParams(matchParent, wrapContent))
     }
 
     private fun updateTextView(view: TextView, str: CharSequence, visible: Boolean) {

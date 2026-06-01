@@ -1205,6 +1205,8 @@ class InputView(
 
     fun hasHorizontalCandidates(): Boolean = horizontalCandidate.hasCandidates()
 
+    fun hasHorizontalNativeCandidates(): Boolean = horizontalCandidate.hasNativeCandidates()
+
     fun moveHorizontalCandidateHighlight(delta: Int): Boolean =
         horizontalCandidate.moveActiveCandidate(delta)
 
@@ -2427,7 +2429,7 @@ class InputView(
                 endToStartOf(rightPaddingSpace)
             }
         }
-        preedit.ui.root.setPadding(sidePadding, 0, sidePadding, 0)
+        preedit.ui.root.setPadding(0, 0, 0, 0)
         kawaiiBar.view.setPadding(sidePadding, 0, sidePadding, 0)
         if (isFloating) {
             keyboardView.post {
@@ -2591,6 +2593,7 @@ class InputView(
     internal fun restoreToolbarAfterPredictionCancelled() {
         (windowManager.currentWindowOrNull() as? BaseExpandedCandidateWindow<*>)
             ?.dismissExpandedCandidateToToolbar()
+        horizontalCandidate.clearPredictionCandidates()
         kawaiiBar.restoreToolbarAfterPredictionCancelled()
     }
 

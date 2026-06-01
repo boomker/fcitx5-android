@@ -18,6 +18,7 @@ import org.fxboomk.fcitx5.android.input.candidates.floating.FloatingCandidatesOr
 import org.fxboomk.fcitx5.android.input.candidates.floating.FloatingCandidatesVirtualKeyboardPosition
 import org.fxboomk.fcitx5.android.input.candidates.horizontal.HorizontalCandidateMode
 import org.fxboomk.fcitx5.android.input.keyboard.LangSwitchBehavior
+import org.fxboomk.fcitx5.android.input.keyboard.PredictionBackspaceBehavior
 import org.fxboomk.fcitx5.android.input.keyboard.PredictionSpaceBehavior
 import org.fxboomk.fcitx5.android.input.keyboard.SpaceKeyLabelMode
 import org.fxboomk.fcitx5.android.input.keyboard.SpaceLongPressBehavior
@@ -245,6 +246,11 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
             R.string.prediction_space_behavior,
             "prediction_space_behavior",
             PredictionSpaceBehavior.CommitSpace
+        )
+        val predictionBackspaceBehavior = enumList(
+            R.string.prediction_backspace_behavior,
+            "prediction_backspace_behavior",
+            PredictionBackspaceBehavior.DeleteText
         )
         val spaceSwipeVerticalBehavior = enumList(
             R.string.space_swipe_vertical_behavior,

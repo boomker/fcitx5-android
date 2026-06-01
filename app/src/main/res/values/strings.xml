@@ -326,6 +326,9 @@
     <string name="prediction_space_behavior" translatable="false">预测时空格键行为</string>
     <string name="prediction_space_behavior_commit_space" translatable="false">上屏空格字符</string>
     <string name="prediction_space_behavior_commit_prediction" translatable="false">提交首个预测项</string>
+    <string name="prediction_backspace_behavior">Backspace behavior during prediction</string>
+    <string name="prediction_backspace_behavior_delete_text">Delete text before cursor</string>
+    <string name="prediction_backspace_behavior_dismiss_candidates">Dismiss candidates and show toolbar</string>
     <string name="space_swipe_vertical_behavior">Space key swipe up/down behavior</string>
     <string name="space_swipe_vertical_behavior_arrow_keys">Move highlight word by word</string>
     <string name="space_swipe_vertical_behavior_candidate_rows">Switch candidate rows</string>

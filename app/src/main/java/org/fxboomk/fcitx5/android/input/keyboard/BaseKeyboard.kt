@@ -1685,7 +1685,6 @@ abstract class BaseKeyboard(
         ic.performContextMenuAction(android.R.id.selectAll)
         ic.commitText("", 1)
         ic.endBatchEdit()
-        service.inputView?.restoreToolbarAfterPredictionCancelled()
     }
 
     /**

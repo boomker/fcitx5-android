@@ -210,11 +210,24 @@ class HorizontalCandidateComponent :
 
     fun hasCandidates(): Boolean = adapter.candidates.isNotEmpty()
 
+    fun hasNativeCandidates(): Boolean = nativeCandidateSnapshot.candidates.isNotEmpty()
+
     fun isShowingAiSuggestions(): Boolean = showingAiSuggestions
 
     fun currentExpandedAiSuggestions(): List<String> = expandedAiSuggestions
 
     fun hasExpandedNativeCandidates(): Boolean = hasExpandedNativeCandidates
+
+    fun clearPredictionCandidates() {
+        pendingLegacyCandidateUpdate?.let(view::removeCallbacks)
+        pendingLegacyCandidateUpdate = null
+        lastPagedData = null
+        pagedCandidateFlowActive = false
+        resetRowWindowState()
+        updateNativeCandidateSnapshot(emptyArray(), 0, 0, -1)
+        aiSuggestions = emptyList()
+        renderCurrentCandidates()
+    }
 
     fun moveActiveCandidate(delta: Int): Boolean {
         if (delta == 0 || adapter.candidates.isEmpty()) return false

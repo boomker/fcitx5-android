@@ -392,6 +392,9 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     fun hasVisibleCandidates(): Boolean =
         hasFloatingCandidates() || inputView?.hasHorizontalCandidates() == true
 
+    fun hasVisibleNativeCandidates(): Boolean =
+        hasFloatingCandidates() || inputView?.hasHorizontalNativeCandidates() == true
+
     fun moveVisibleCandidateHighlight(delta: Int): Boolean =
         when {
             hasFloatingCandidates() -> candidatesView?.moveActiveCandidate(delta) == true

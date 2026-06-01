@@ -319,6 +319,9 @@
     <string name="prediction_space_behavior">预测时空格键行为</string>
     <string name="prediction_space_behavior_commit_space">上屏空格字符</string>
     <string name="prediction_space_behavior_commit_prediction">提交首个预测项</string>
+    <string name="prediction_backspace_behavior">预测时退格键行为</string>
+    <string name="prediction_backspace_behavior_delete_text">删除光标前文本</string>
+    <string name="prediction_backspace_behavior_dismiss_candidates">取消候选并显示工具栏</string>
     <string name="space_swipe_vertical_behavior">空格键上/下滑行为</string>
     <string name="space_swipe_vertical_behavior_arrow_keys">逐词移动高亮</string>
     <string name="space_swipe_vertical_behavior_candidate_rows">切换候选词行</string>

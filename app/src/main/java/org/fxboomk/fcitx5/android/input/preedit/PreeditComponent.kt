@@ -11,12 +11,12 @@ import org.fxboomk.fcitx5.android.data.theme.ThemeManager
 import org.fxboomk.fcitx5.android.input.broadcast.InputBroadcastReceiver
 import org.fxboomk.fcitx5.android.input.dependency.context
 import org.fxboomk.fcitx5.android.input.dependency.theme
+import org.fxboomk.fcitx5.android.utils.borderDrawable
 import org.mechdancer.dependency.Dependent
 import org.mechdancer.dependency.UniqueComponent
 import org.mechdancer.dependency.manager.ManagedHandler
 import org.mechdancer.dependency.manager.managedHandler
 import splitties.dimensions.dp
-import splitties.views.backgroundColor
 import splitties.views.horizontalPadding
 
 class PreeditComponent : UniqueComponent<PreeditComponent>(), Dependent, InputBroadcastReceiver,
@@ -36,9 +36,14 @@ class PreeditComponent : UniqueComponent<PreeditComponent>(), Dependent, InputBr
         val bkgColor =
             if (!keyBorder && theme is Theme.Builtin) theme.barColor else theme.backgroundColor
         PreeditUi(context, theme, setupTextView = {
-            backgroundColor = bkgColor
             horizontalPadding = dp(8)
         }).apply {
+            root.background = borderDrawable(
+                width = 1,
+                stroke = theme.dividerColor,
+                background = bkgColor,
+                cornerRadius = context.dp(6).toFloat()
+            )
             // TODO make it customizable
             root.alpha = 0.8f
             root.visibility = View.INVISIBLE

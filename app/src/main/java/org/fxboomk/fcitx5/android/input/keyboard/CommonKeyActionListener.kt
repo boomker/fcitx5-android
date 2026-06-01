@@ -74,6 +74,7 @@ class CommonKeyActionListener :
 
     private val spaceKeyLongPressBehavior by kbdPrefs.spaceKeyLongPressBehavior
     private val predictionSpaceBehavior by kbdPrefs.predictionSpaceBehavior
+    private val predictionBackspaceBehavior by kbdPrefs.predictionBackspaceBehavior
     private val langSwitchKeyBehavior by kbdPrefs.langSwitchKeyBehavior
     private val preferredVoiceInput by kbdPrefs.preferredVoiceInput
     private val floatingCandidatesMode by AppPrefs.getInstance().candidates.mode
@@ -100,14 +101,32 @@ class CommonKeyActionListener :
         }
     }
 
-    private fun hasNativePredictionCandidatesVisible(): Boolean =
-        service.hasVisibleCandidates() &&
-            fcitx.runImmediately { clientPreeditCached.isEmpty() && inputPanelCached.preedit.isEmpty() }
+    private fun FcitxAPI.hasNativePredictionCandidatesVisible(): Boolean =
+        service.hasVisibleNativeCandidates() &&
+            clientPreeditCached.isEmpty() &&
+            inputPanelCached.preedit.isEmpty()
 
-    private fun isRimeInputMethod(): Boolean =
-        fcitx.runImmediately {
-            inputMethodEntryCached.addon == "rime" || inputMethodEntryCached.icon == "fcitx-rime"
+    private fun FcitxAPI.hasPreedit(): Boolean =
+        clientPreeditCached.isNotEmpty() || inputPanelCached.preedit.isNotEmpty()
+
+    private fun FcitxAPI.isRimeInputMethod(): Boolean =
+        inputMethodEntryCached.addon == "rime" || inputMethodEntryCached.icon == "fcitx-rime"
+
+    private suspend fun FcitxAPI.dismissPredictionCandidatesToToolbar(resetNativeCandidates: Boolean) {
+        if (resetNativeCandidates) {
+            reset()
         }
+        service.lifecycleScope.launch(Dispatchers.Main.immediate) {
+            service.inputView?.restoreToolbarAfterPredictionCancelled()
+            aiSuggestionStrip.suppressAfterBackspace()
+        }
+    }
+
+    private fun deleteTextAfterPredictionBackspace() {
+        service.lifecycleScope.launch(Dispatchers.Main.immediate) {
+            service.handleBackspaceDirectly()
+        }
+    }
 
     // there should be a new fcitx API for this
     private suspend fun FcitxAPI.commitAndReset() {
@@ -168,14 +187,35 @@ class CommonKeyActionListener :
                             aiSuggestionStrip.hasVisibleSuggestions() -> {
                             service.lifecycleScope.launch { aiSuggestionStrip.commitPrimarySuggestion() }
                         }
-                        action.sym.sym == FcitxKeyMapping.FcitxKey_BackSpace && aiSuggestionStrip.hasVisibleSuggestions() -> {
-                            service.inputView?.handleAiBackspaceUiExit()
-                            service.lifecycleScope.launch { aiSuggestionStrip.dismissVisibleSuggestions() }
-                        }
                         action.sym.sym == FcitxKeyMapping.FcitxKey_BackSpace -> {
-                            service.inputView?.handleAiBackspaceUiExit()
-                            service.lifecycleScope.launch { aiSuggestionStrip.suppressAfterBackspace() }
-                            sendKey(action.sym, action.states)
+                            val preeditVisible = hasPreedit()
+                            val nativePredictionCandidatesVisible = hasNativePredictionCandidatesVisible()
+                            when (
+                                predictionBackspaceAction(
+                                    hasPreedit = preeditVisible,
+                                    hasNativePredictionCandidatesVisible = nativePredictionCandidatesVisible,
+                                    hasAiPredictionCandidatesVisible = aiSuggestionStrip.hasVisibleSuggestions(),
+                                    isRimeInputMethod = isRimeInputMethod(),
+                                    predictionBackspaceBehavior = predictionBackspaceBehavior,
+                                )
+                            ) {
+                                PredictionBackspaceAction.SendToFcitx -> {
+                                    if (!preeditVisible) {
+                                        service.inputView?.handleAiBackspaceUiExit()
+                                        service.lifecycleScope.launch { aiSuggestionStrip.suppressAfterBackspace() }
+                                    }
+                                    sendKey(action.sym, action.states)
+                                    if (preeditVisible && isEmpty()) {
+                                        service.lifecycleScope.launch(Dispatchers.Main.immediate) {
+                                            service.inputView?.restoreToolbarAfterPredictionCancelled()
+                                        }
+                                    }
+                                }
+                                PredictionBackspaceAction.DeleteText ->
+                                    deleteTextAfterPredictionBackspace()
+                                PredictionBackspaceAction.DismissCandidates ->
+                                    dismissPredictionCandidatesToToolbar(nativePredictionCandidatesVisible)
+                            }
                         }
                         action.sym.sym == FcitxKeyMapping.FcitxKey_space &&
                             predictionSpaceBehavior == PredictionSpaceBehavior.CommitSpace &&

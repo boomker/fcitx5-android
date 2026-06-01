@@ -59,6 +59,7 @@ internal object KeyboardSettingsSupport {
         "space_long_press_behavior",
         "space_key_label_mode",
         "prediction_space_behavior",
+        "prediction_backspace_behavior",
         "space_swipe_vertical_behavior"
     )
 

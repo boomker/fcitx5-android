@@ -231,6 +231,9 @@
     <string name="prediction_space_behavior">預測時空格鍵行為</string>
     <string name="prediction_space_behavior_commit_space">輸入空白字元</string>
     <string name="prediction_space_behavior_commit_prediction">提交第一個預測項</string>
+    <string name="prediction_backspace_behavior">預測時退格鍵行為</string>
+    <string name="prediction_backspace_behavior_delete_text">刪除游標前文字</string>
+    <string name="prediction_backspace_behavior_dismiss_candidates">取消候選並顯示工具列</string>
     <string name="space_swipe_vertical_behavior">空格鍵上/下滑行為</string>
     <string name="space_swipe_vertical_behavior_arrow_keys">逐詞移動高亮</string>
     <string name="space_swipe_vertical_behavior_candidate_rows">切換候選詞行</string>

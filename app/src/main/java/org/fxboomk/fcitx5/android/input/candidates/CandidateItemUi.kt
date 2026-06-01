@@ -70,7 +70,8 @@ class CandidateItemUi(
             strokeColor = strokeColor,
             cornerRadius = cornerRadius,
             strokeWidth = 1,
-            pressColor = pressColor
+            pressColor = pressColor,
+            inset = ctx.dp(2)
         )
     }
 
