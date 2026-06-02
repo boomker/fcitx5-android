@@ -127,12 +127,25 @@ class AiSuggestionStripComponentTest {
     }
 
     @Test
-    fun autoRequestRememberedTranslateForNonFloatingDisplayWithoutOpenPanel() {
+    fun doNotAutoRequestRememberedTranslateForNonFloatingDisplayWithoutOpenPanel() {
+        assertFalse(
+            shouldAutoRequestRememberedTranslate(
+                displayMode = LlmPrefs.PredictionDisplayMode.CandidateExpanded,
+                taskMode = LlmTaskMode.Translate,
+                panelVisible = false,
+                isAutomatic = true,
+            )
+        )
+    }
+
+    @Test
+    fun explicitRememberedTranslateCanRequestForNonFloatingDisplayWithoutOpenPanel() {
         assertTrue(
             shouldAutoRequestRememberedTranslate(
                 displayMode = LlmPrefs.PredictionDisplayMode.CandidateExpanded,
                 taskMode = LlmTaskMode.Translate,
                 panelVisible = false,
+                isAutomatic = false,
             )
         )
     }
@@ -144,6 +157,7 @@ class AiSuggestionStripComponentTest {
                 displayMode = LlmPrefs.PredictionDisplayMode.FloatingWindow,
                 taskMode = LlmTaskMode.Translate,
                 panelVisible = false,
+                isAutomatic = true,
             )
         )
     }

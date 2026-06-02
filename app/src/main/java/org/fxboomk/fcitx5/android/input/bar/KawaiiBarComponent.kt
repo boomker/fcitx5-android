@@ -274,9 +274,14 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
 
     fun restoreToolbarAfterPredictionCancelled() {
         numberRowState = NumberRowState.Auto
+        showToolbarImmediately()
+    }
+
+    private fun showToolbarImmediately() {
+        barStateMachine.setBooleanState(PreeditEmpty, true)
         barStateMachine.setBooleanState(CandidateEmpty, true)
         barStateMachine.unsafeJump(Idle)
-        idleUi.updateState(IdleUi.State.Toolbar, fromUser = true)
+        idleUi.updateState(IdleUi.State.Toolbar, fromUser = false)
     }
 
     private val hideKeyboardCallback = View.OnClickListener {

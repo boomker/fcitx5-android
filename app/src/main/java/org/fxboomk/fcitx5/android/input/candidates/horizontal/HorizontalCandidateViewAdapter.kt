@@ -95,7 +95,7 @@ open class HorizontalCandidateViewAdapter(val theme: Theme) :
         val ui = CandidateItemUi(parent.context, theme, candFont)
         ui.root.apply {
             minimumWidth = dp(40)
-            setPaddingDp(10, 0, 10, 0)
+            setPaddingDp(8, 0, 8, 0)
             layoutParams = FlexboxLayoutManager.LayoutParams(wrapContent, matchParent)
         }
         return CandidateViewHolder(ui)

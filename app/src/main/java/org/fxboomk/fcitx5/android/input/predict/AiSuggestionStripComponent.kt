@@ -56,8 +56,9 @@ internal fun shouldAutoRequestRememberedTranslate(
     displayMode: LlmPrefs.PredictionDisplayMode,
     taskMode: LlmTaskMode,
     panelVisible: Boolean,
+    isAutomatic: Boolean,
 ): Boolean = taskMode == LlmTaskMode.Translate &&
-    (panelVisible || displayMode != LlmPrefs.PredictionDisplayMode.FloatingWindow)
+    (panelVisible || (!isAutomatic && displayMode != LlmPrefs.PredictionDisplayMode.FloatingWindow))
 
 class AiSuggestionStripComponent(
     private val service: FcitxInputMethodService,
@@ -119,7 +120,11 @@ class AiSuggestionStripComponent(
         Explicit,
     }
 
-    private val predictor by lazy { LlmPredictor(service.applicationContext) }
+    private var predictorCreated = false
+    private val predictor by lazy {
+        predictorCreated = true
+        LlmPredictor(service.applicationContext)
+    }
     private val recentCommittedSegments = ArrayDeque<String>()
     private val anchorUpdateThresholdPx = themedContext.dp(6).toFloat()
 
@@ -146,6 +151,7 @@ class AiSuggestionStripComponent(
     private var thinkingModeRuntime: LlmPrefs.Runtime? = null
     private var pseudoStreamToken = 0L
     private var pseudoStreamRunnable: Runnable? = null
+    private var startInputPredictionGeneration = 0
     private val mainHandler = Handler(Looper.getMainLooper())
     private var latestPresentationState = PresentationState(
         mode = PresentationMode.Hidden,
@@ -176,7 +182,7 @@ class AiSuggestionStripComponent(
 
     override fun onStartInput(info: EditorInfo, capFlags: CapabilityFlags) {
         val config = LlmPrefs.read(service.applicationContext)
-        allowPrediction = !capFlags.has(CapabilityFlag.PasswordOrSensitive)
+        allowPrediction = config.enabled && !capFlags.has(CapabilityFlag.PasswordOrSensitive)
         hasClientPreedit = false
         hasInputPanelPreedit = false
         selectionCollapsed = true
@@ -189,11 +195,21 @@ class AiSuggestionStripComponent(
         recentCommittedSegments.clear()
         anchorState = null
         thinkingModeRuntime = null
+        if (!config.enabled) {
+            resetPanelContentState()
+            clearSuggestions(resetRequestState = true)
+            return
+        }
         restoreRememberedMode(config)
         syncThinkingModeForRuntime(config)
         resetPanelContentState()
         clearSuggestions(resetRequestState = true)
-        requestPredictionIfNeeded()
+        val generation = ++startInputPredictionGeneration
+        mainHandler.post {
+            if (generation == startInputPredictionGeneration) {
+                requestPredictionIfNeeded()
+            }
+        }
     }
 
     override fun onClientPreeditUpdate(data: FormattedText) {
@@ -437,7 +453,10 @@ class AiSuggestionStripComponent(
     }
 
     fun close() {
-        predictor.close()
+        startInputPredictionGeneration += 1
+        if (predictorCreated) {
+            predictor.close()
+        }
         cancelPseudoStreaming()
         resetPanelContentState()
         activeSuggestions = emptyList()
@@ -462,6 +481,10 @@ class AiSuggestionStripComponent(
         }
 
         val config = LlmPrefs.read(service.applicationContext)
+        if (!config.enabled) {
+            clearSuggestions(resetRequestState = true)
+            return
+        }
         syncThinkingModeForRuntime(config)
         if (isAutomatic && !config.autoPredictEnabled) {
             Log.d(TAG, "skip request auto prediction disabled")
@@ -473,6 +496,7 @@ class AiSuggestionStripComponent(
                     displayMode = config.predictionDisplayMode,
                     taskMode = taskMode,
                     panelVisible = panelVisible,
+                    isAutomatic = isAutomatic,
                 )
             ) {
                 requestPanelTextContent(configOverride = config, trigger = trigger)
@@ -718,7 +742,9 @@ class AiSuggestionStripComponent(
     }
 
     private fun clearSuggestions(resetRequestState: Boolean) {
-        predictor.cancel()
+        if (predictorCreated) {
+            predictor.cancel()
+        }
         cancelPseudoStreaming()
         resetPanelContentState()
         activeSuggestions = emptyList()

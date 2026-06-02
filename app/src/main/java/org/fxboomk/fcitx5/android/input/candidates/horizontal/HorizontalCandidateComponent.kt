@@ -6,10 +6,11 @@
 package org.fxboomk.fcitx5.android.input.candidates.horizontal
 
 import android.content.res.Configuration
-import android.view.ViewGroup
-import android.view.View.MeasureSpec
 import android.graphics.drawable.ShapeDrawable
 import android.graphics.drawable.shapes.RectShape
+import android.view.View.MeasureSpec
+import android.view.ViewGroup
+import android.view.inputmethod.EditorInfo
 import androidx.core.text.bold
 import androidx.core.text.buildSpannedString
 import androidx.core.text.color
@@ -22,6 +23,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.withContext
 import org.fxboomk.fcitx5.android.R
+import org.fxboomk.fcitx5.android.core.CapabilityFlags
 import org.fxboomk.fcitx5.android.core.FcitxEvent
 import org.fxboomk.fcitx5.android.core.FcitxEvent.PagedCandidateEvent
 import org.fxboomk.fcitx5.android.daemon.launchOnReady
@@ -186,7 +188,7 @@ class HorizontalCandidateComponent :
     private val measurementCandidateUi by lazy {
         CandidateItemUi(context, theme).also { ui ->
             ui.root.minimumWidth = context.dp(40)
-            ui.root.setPadding(context.dp(10), 0, context.dp(10), 0)
+            ui.root.setPadding(context.dp(8), 0, context.dp(8), 0)
             ui.root.layoutParams = ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
@@ -219,10 +221,7 @@ class HorizontalCandidateComponent :
     fun hasExpandedNativeCandidates(): Boolean = hasExpandedNativeCandidates
 
     fun clearPredictionCandidates() {
-        pendingLegacyCandidateUpdate?.let(view::removeCallbacks)
-        pendingLegacyCandidateUpdate = null
-        lastPagedData = null
-        pagedCandidateFlowActive = false
+        clearNativeCandidateFlow()
         resetRowWindowState()
         updateNativeCandidateSnapshot(emptyArray(), 0, 0, -1)
         aiSuggestions = emptyList()
@@ -589,6 +588,13 @@ class HorizontalCandidateComponent :
         )
     }
 
+    private fun clearNativeCandidateFlow() {
+        pendingLegacyCandidateUpdate?.let(view::removeCallbacks)
+        pendingLegacyCandidateUpdate = null
+        pagedCandidateFlowActive = false
+        lastPagedData = null
+    }
+
     private fun renderCurrentCandidates() {
         expandedAiSuggestions = emptyList()
         displayedAiStartIndex = -1
@@ -646,5 +652,13 @@ class HorizontalCandidateComponent :
         if (nativeCandidateSnapshot.candidates.isEmpty()) return false
         val consumedCount = nativeCandidateSnapshot.indexOffset + visibleNativeCount
         return nativeCandidateSnapshot.total == -1 || nativeCandidateSnapshot.total > consumedCount
+    }
+
+    override fun onStartInput(info: EditorInfo, capFlags: CapabilityFlags) {
+        clearNativeCandidateFlow()
+        resetRowWindowState()
+        updateNativeCandidateSnapshot(emptyArray(), 0, 0, -1)
+        aiSuggestions = emptyList()
+        renderCurrentCandidates()
     }
 }

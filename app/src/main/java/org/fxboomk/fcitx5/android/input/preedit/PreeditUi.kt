@@ -5,12 +5,14 @@
 package org.fxboomk.fcitx5.android.input.preedit
 
 import android.content.Context
+import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.drawable.ShapeDrawable
 import android.graphics.drawable.shapes.RectShape
 import android.text.Spanned
 import android.text.SpannedString
 import android.text.style.DynamicDrawableSpan
+import android.text.style.ReplacementSpan
 import android.view.View
 import android.widget.TextView
 import androidx.annotation.ColorInt
@@ -22,10 +24,8 @@ import splitties.dimensions.dp
 import splitties.views.dsl.core.Ui
 import splitties.views.dsl.core.add
 import splitties.views.dsl.core.lParams
-import splitties.views.dsl.core.matchParent
 import splitties.views.dsl.core.textView
 import splitties.views.dsl.core.verticalLayout
-import splitties.views.dsl.core.wrapContent
 
 open class PreeditUi(
     override val ctx: Context,
@@ -43,8 +43,35 @@ open class PreeditUi(
         override fun getDrawable() = drawable
     }
 
+    class FixedWidthSpaceSpan(private val width: Int) : ReplacementSpan() {
+
+        override fun getSize(
+            paint: Paint,
+            text: CharSequence?,
+            start: Int,
+            end: Int,
+            fm: Paint.FontMetricsInt?
+        ): Int = width
+
+        override fun draw(
+            canvas: Canvas,
+            text: CharSequence?,
+            start: Int,
+            end: Int,
+            x: Float,
+            top: Int,
+            y: Int,
+            bottom: Int,
+            paint: Paint
+        ) = Unit
+    }
+
     private val cursorSpan by lazy {
         CursorSpan(ctx, theme.keyTextColor, upView.paint.fontMetricsInt)
+    }
+
+    private val syllableGapWidth by lazy {
+        (upView.paint.measureText("a") / 2f).toInt().coerceAtLeast(1)
     }
 
     private fun createTextView() = textView {
@@ -67,8 +94,8 @@ open class PreeditUi(
         private set
 
     override val root: View = verticalLayout {
-        add(upView, lParams(matchParent, wrapContent))
-        add(downView, lParams(matchParent, wrapContent))
+        add(upView, lParams())
+        add(downView, lParams())
     }
 
     private fun updateTextView(view: TextView, str: CharSequence, visible: Boolean) {
@@ -82,18 +109,20 @@ open class PreeditUi(
         val upCursor: Int
         if (inputPanel.auxUp.isEmpty()) {
             upString = inputPanel.preedit.toSpannedString(activeBkg)
+                .withCompactSyllableGaps()
             upCursor = inputPanel.preedit.cursor
         } else {
             upString = buildSpannedString {
                 append(inputPanel.auxUp.toSpannedString(activeBkg))
                 append(inputPanel.preedit.toSpannedString(activeBkg))
-            }
+            }.withCompactSyllableGaps()
             upCursor = inputPanel.preedit.cursor.let {
                 if (it < 0) it
                 else inputPanel.auxUp.length + it
             }
         }
         val downString = inputPanel.auxDown.toSpannedString(activeBkg)
+            .withCompactSyllableGaps()
         val hasUp = upString.isNotEmpty()
         val hasDown = downString.isNotEmpty()
         visible = hasUp || hasDown
@@ -112,5 +141,29 @@ open class PreeditUi(
         }
         updateTextView(upView, upStringWithCursor, hasUp)
         updateTextView(downView, downString, hasDown)
+    }
+
+    private fun SpannedString.withCompactSyllableGaps(): SpannedString {
+        if (isEmpty()) return this
+        return buildSpannedString {
+            append(this@withCompactSyllableGaps)
+            var i = 0
+            while (i < length) {
+                if (this@withCompactSyllableGaps[i].isWhitespace()) {
+                    val start = i
+                    while (i < length && this@withCompactSyllableGaps[i].isWhitespace()) {
+                        i++
+                    }
+                    setSpan(
+                        FixedWidthSpaceSpan(syllableGapWidth),
+                        start,
+                        i,
+                        Spanned.SPAN_INCLUSIVE_EXCLUSIVE
+                    )
+                } else {
+                    i++
+                }
+            }
+        }
     }
 }

@@ -128,6 +128,13 @@ class CommonKeyActionListener :
         }
     }
 
+    private fun restoreToolbarAfterCompositionCleared() {
+        service.lifecycleScope.launch(Dispatchers.Main.immediate) {
+            aiSuggestionStrip.suppressAfterBackspace()
+            service.inputView?.restoreToolbarAfterPredictionCancelled()
+        }
+    }
+
     // there should be a new fcitx API for this
     private suspend fun FcitxAPI.commitAndReset() {
         if (inputMethodEntryCached.languageCode.startsWith("zh")) {
@@ -187,6 +194,9 @@ class CommonKeyActionListener :
                             aiSuggestionStrip.hasVisibleSuggestions() -> {
                             service.lifecycleScope.launch { aiSuggestionStrip.commitPrimarySuggestion() }
                         }
+                        action.sym.keyCode == KeyEvent.KEYCODE_ESCAPE -> {
+                            sendKey(action.sym, action.states)
+                        }
                         action.sym.sym == FcitxKeyMapping.FcitxKey_BackSpace -> {
                             val preeditVisible = hasPreedit()
                             val nativePredictionCandidatesVisible = hasNativePredictionCandidatesVisible()
@@ -206,9 +216,7 @@ class CommonKeyActionListener :
                                     }
                                     sendKey(action.sym, action.states)
                                     if (preeditVisible && isEmpty()) {
-                                        service.lifecycleScope.launch(Dispatchers.Main.immediate) {
-                                            service.inputView?.restoreToolbarAfterPredictionCancelled()
-                                        }
+                                        restoreToolbarAfterCompositionCleared()
                                     }
                                 }
                                 PredictionBackspaceAction.DeleteText ->
@@ -311,7 +319,10 @@ class CommonKeyActionListener :
                         Stopped -> {}
                         Selection -> service.deleteSelection()
                         Reset -> if (action.totalCnt < 0) { // swipe left
-                            service.postFcitxJob { reset() }
+                            service.postFcitxJob {
+                                reset()
+                                restoreToolbarAfterCompositionCleared()
+                            }
                         }
                     }
                     backspaceSwipeState = Stopped
