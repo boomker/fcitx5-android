@@ -2500,17 +2500,11 @@ class InputView(
             }
             is FcitxEvent.PagedCandidateEvent -> {
                 preeditEmptyState.updatePreeditEmptyState()
-                val candidates = it.data.candidates.map { candidate ->
-                    buildString {
-                        append(candidate.text)
-                        if (candidate.comment.isNotBlank()) {
-                            append(' ')
-                            append(candidate.comment)
-                        }
-                    }
-                }.toTypedArray()
                 broadcaster.onCandidateUpdate(
-                    FcitxEvent.CandidateListEvent.Data(total = -1, candidates = candidates)
+                    FcitxEvent.CandidateListEvent.Data(
+                        total = -1,
+                        candidates = it.data.candidates
+                    )
                 )
                 broadcaster.onPagedCandidateUpdate(it.data)
             }
