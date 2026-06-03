@@ -416,6 +416,13 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
 
         ui.menuButton.setOnClickListener {
             restoreVirtualKeyboardMode()
+            if (idleUi.currentState == IdleUi.State.Clipboard) {
+                clipboardTimeoutJob?.cancel()
+                clipboardTimeoutJob = null
+                isClipboardFresh = false
+                showToolbarImmediately()
+                return@setOnClickListener
+            }
             // menuButton now opens StatusAreaWindow (secondary menu) instead of toggling toolbar
             windowManager.attachWindow(StatusAreaWindow())
         }
