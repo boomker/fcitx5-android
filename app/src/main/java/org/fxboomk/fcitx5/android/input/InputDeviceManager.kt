@@ -23,6 +23,7 @@ class InputDeviceManager(
 
     private fun usePhysicalKeyboardHorizontalCandidateBar(isVirtual: Boolean): Boolean {
         if (isVirtual) return false
+        if (floatingModeProvider() != FloatingCandidatesMode.Disabled) return false
         return AppPrefs.getInstance().candidates.physicalKeyboardHorizontalCandidateBar.getValue()
     }
 
@@ -145,8 +146,7 @@ class InputDeviceManager(
     fun evaluateOnStartInputView(info: EditorInfo, service: FcitxInputMethodService): Boolean {
         startedInputView = true
         isNullInputType = info.isTypeNull()
-        val preferHorizontalCandidateBar =
-            AppPrefs.getInstance().candidates.physicalKeyboardHorizontalCandidateBar.getValue()
+        val preferHorizontalCandidateBar = usePhysicalKeyboardHorizontalCandidateBar(isVirtual = false)
         isVirtualKeyboard = when (candidatesViewMode) {
             FloatingCandidatesMode.SystemDefault -> service.superEvaluateInputViewShown()
             FloatingCandidatesMode.Always ->
@@ -189,8 +189,7 @@ class InputDeviceManager(
     }
 
     private fun evaluateOnKeyDownInner() {
-        val preferHorizontalCandidateBar =
-            AppPrefs.getInstance().candidates.physicalKeyboardHorizontalCandidateBar.getValue()
+        val preferHorizontalCandidateBar = usePhysicalKeyboardHorizontalCandidateBar(isVirtual = false)
         isVirtualKeyboard = when (candidatesViewMode) {
             FloatingCandidatesMode.SystemDefault -> false
             FloatingCandidatesMode.Always -> false

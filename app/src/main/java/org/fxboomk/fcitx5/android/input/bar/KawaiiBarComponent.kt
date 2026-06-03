@@ -258,10 +258,11 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
     }
 
     fun syncCandidateBarState(candidateEmpty: Boolean) {
-        barStateMachine.push(
-            CandidatesUpdated,
-            CandidateEmpty to (candidateEmpty && !aiSuggestionExpandAvailable)
-        )
+        // When floating candidates window is active, always treat as empty
+        // to prevent KawaiiBar from entering Candidate state
+        val effectiveEmpty = if (isFloatingCandidatesActive()) true
+            else (candidateEmpty && !aiSuggestionExpandAvailable)
+        barStateMachine.push(CandidatesUpdated, CandidateEmpty to effectiveEmpty)
     }
 
     fun syncExpandedCandidateState(hasExpandableCandidates: Boolean) {
@@ -748,22 +749,24 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         evalIdleUiState()
     }
 
+    /**
+     * Whether the floating candidates window is responsible for displaying candidates,
+     * meaning KawaiiBar should NOT show its own candidate bar.
+     */
+    private fun isFloatingCandidatesActive(): Boolean {
+        val floatingMode = AppPrefs.getInstance().candidates.mode.getValue()
+        return floatingMode == FloatingCandidatesMode.Always &&
+            !service.inputDeviceManager.isPhysicalCandidateBarMode
+    }
+
     override fun onPreeditEmptyStateUpdate(empty: Boolean) {
-        barStateMachine.push(PreeditUpdated, PreeditEmpty to empty)
+        // When floating candidates window handles display, force preedit empty
+        // in the bar state machine so it never enters Candidate state
+        barStateMachine.push(PreeditUpdated, PreeditEmpty to (empty || isFloatingCandidatesActive()))
     }
 
     override fun onCandidateUpdate(data: CandidateListEvent.Data) {
-        // When using "Always" floating mode, don't show candidates in Kawaii Bar
-        val floatingMode = AppPrefs.getInstance().candidates.mode.getValue()
-        val useFloatingAlways =
-            floatingMode == FloatingCandidatesMode.Always && !service.inputDeviceManager.isPhysicalCandidateBarMode
-
-        if (useFloatingAlways) {
-            // Force stay in Idle state when using floating candidates
-            syncCandidateBarState(candidateEmpty = true)
-        } else {
-            syncCandidateBarState(candidateEmpty = data.candidates.isEmpty())
-        }
+        syncCandidateBarState(candidateEmpty = data.candidates.isEmpty())
     }
 
     override fun onWindowAttached(window: InputWindow) {
