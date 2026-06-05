@@ -100,9 +100,10 @@ private:
     InputContextCache icCache_;
     std::vector<std::unique_ptr<HandlerTableEntry<EventHandler>>> eventHandlers_;
     int pagingMode_;
+    bool selectingCandidate_;
 
     CandidateListCallback candidateListCallback = [](const std::vector<CandidateEntity> &, const int) {};
-    CommitStringCallback commitStringCallback = [](const std::string &, const int) {};
+    CommitStringCallback commitStringCallback = [](const std::string &, const int, bool) {};
     ClientPreeditCallback preeditCallback = [](const Text &) {};
     InputPanelCallback inputPanelCallback = [](const fcitx::Text &, const fcitx::Text &, const Text &, const std::vector<CandidateActionEntity> &) {};
     KeyEventCallback keyEventCallback = [](const int, const uint32_t, const uint32_t, const bool, const int) {};

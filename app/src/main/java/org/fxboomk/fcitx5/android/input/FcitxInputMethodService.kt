@@ -615,7 +615,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
                 resetCandidatePagingModeCache()
             }
             is FcitxEvent.CommitStringEvent -> {
-                commitText(event.data.text, event.data.cursor)
+                commitCandidateText(event.data.text, event.data.cursor, event.data.fromCandidate)
             }
             is FcitxEvent.KeyEvent -> event.data.let event@{
                 if (it.states.virtual) {
@@ -867,6 +867,77 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             }
         }
     }
+
+    private fun commitCandidateText(text: String, cursor: Int, fromCandidate: Boolean) {
+        val commit = if (fromCandidate) {
+            maybeInsertSpaceBetweenChineseAndEnglish(text, cursor)
+        } else {
+            CandidateCommitText(text, cursor)
+        }
+        commitText(commit.text, commit.cursor)
+    }
+
+    private fun maybeInsertSpaceBetweenChineseAndEnglish(text: String, cursor: Int): CandidateCommitText {
+        if (text.isEmpty()) {
+            return CandidateCommitText(text, cursor)
+        }
+        val ic = currentInputConnection ?: return CandidateCommitText(text, cursor)
+        val previousCodePoint = ic.getTextBeforeCursor(2, 0)
+            ?.toString()
+            ?.codePointBeforeOrNull()
+        val firstCodePoint = text.codePointAt(0)
+        val prependSpace = previousCodePoint?.let {
+            isChineseCodePoint(it) && isAsciiLetter(firstCodePoint)
+        } ?: false
+        val appendSpace = isAsciiWord(text) && !text.endsWith(' ')
+        if (!prependSpace && !appendSpace) {
+            return CandidateCommitText(text, cursor)
+        }
+        val adjustedText = buildString(text.length + 2) {
+            if (prependSpace) {
+                append(' ')
+            }
+            append(text)
+            if (appendSpace) {
+                append(' ')
+            }
+        }
+        val cursorOffset = (if (prependSpace) 1 else 0) +
+            (if (appendSpace && cursor == text.length) 1 else 0)
+        val adjustedCursor = if (cursor == -1) {
+            -1
+        } else {
+            cursor + cursorOffset
+        }
+        return CandidateCommitText(adjustedText, adjustedCursor)
+    }
+
+    private data class CandidateCommitText(val text: String, val cursor: Int)
+
+    private fun isAsciiWord(text: String): Boolean {
+        if (text.isEmpty()) {
+            return false
+        }
+        var offset = 0
+        while (offset < text.length) {
+            val codePoint = text.codePointAt(offset)
+            if (!isAsciiLetter(codePoint)) {
+                return false
+            }
+            offset += Character.charCount(codePoint)
+        }
+        return true
+    }
+
+    private fun isAsciiLetter(codePoint: Int): Boolean =
+        codePoint in 'A'.code..'Z'.code ||
+            codePoint in 'a'.code..'z'.code
+
+    private fun isChineseCodePoint(codePoint: Int): Boolean =
+        Character.UnicodeScript.of(codePoint) == Character.UnicodeScript.HAN
+
+    private fun String.codePointBeforeOrNull(): Int? =
+        if (isEmpty()) null else codePointBefore(length)
 
     fun commitClipboardEntry(text: String): Boolean {
         return commitUriContent(text) || run {

@@ -43,7 +43,7 @@ sealed class FcitxEvent<T>(open val data: T) {
 
         override val eventType = EventType.Commit
 
-        data class Data(val text: String, val cursor: Int)
+        data class Data(val text: String, val cursor: Int, val fromCandidate: Boolean = false)
     }
 
     data class ClientPreeditEvent(override val data: FormattedText) :
@@ -281,7 +281,8 @@ sealed class FcitxEvent<T>(open val data: T) {
                 EventType.Commit -> CommitStringEvent(
                     CommitStringEvent.Data(
                         params[0] as String,
-                        params[1] as Int
+                        params[1] as Int,
+                        params.getOrNull(2) as? Boolean ?: false
                     )
                 )
                 EventType.ClientPreedit -> ClientPreeditEvent(params[0] as FormattedText)

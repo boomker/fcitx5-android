@@ -17,6 +17,23 @@
 
 namespace fcitx {
 
+namespace {
+class CandidateSelectionGuard {
+public:
+    explicit CandidateSelectionGuard(bool &selectingCandidate)
+            : selectingCandidate_(selectingCandidate) {
+        selectingCandidate_ = true;
+    }
+
+    ~CandidateSelectionGuard() {
+        selectingCandidate_ = false;
+    }
+
+private:
+    bool &selectingCandidate_;
+};
+} // namespace
+
 class AndroidInputContext : public InputContextV2 {
 public:
     AndroidInputContext(AndroidFrontend *frontend,
@@ -321,7 +338,8 @@ AndroidFrontend::AndroidFrontend(Instance *instance)
           activeIC_(nullptr),
           icCache_(),
           eventHandlers_(),
-          pagingMode_(0) {
+          pagingMode_(0),
+          selectingCandidate_(false) {
     eventHandlers_.emplace_back(instance_->watchEvent(
             EventType::InputContextInputMethodActivated,
             EventWatcherPhase::Default,
@@ -383,7 +401,10 @@ void AndroidFrontend::forwardKey(const Key &key, bool isRelease) {
 }
 
 void AndroidFrontend::commitString(const std::string &str, const int cursor) {
-    commitStringCallback(str, cursor);
+    commitStringCallback(
+        str, cursor,
+        selectingCandidate_ &&
+            instance_->globalConfig().insertSpaceBetweenChineseAndEnglish());
 }
 
 void AndroidFrontend::updateCandidateList(const std::vector<CandidateEntity> &candidates, const int size) {
@@ -411,6 +432,7 @@ void AndroidFrontend::notifyDeletingInputContext(AndroidInputContext *ic) {
 
 bool AndroidFrontend::selectCandidate(int idx) {
     if (!activeIC_) return false;
+    CandidateSelectionGuard guard(selectingCandidate_);
     if (pagingMode_) {
         return activeIC_->selectCandidatePaged(idx);
     } else {

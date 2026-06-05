@@ -13,7 +13,7 @@
 #include "../helper-types.h"
 
 typedef std::function<void(const std::vector<CandidateEntity> &, const int)> CandidateListCallback;
-typedef std::function<void(const std::string &, const int)> CommitStringCallback;
+typedef std::function<void(const std::string &, const int, bool)> CommitStringCallback;
 typedef std::function<void(const fcitx::Text &)> ClientPreeditCallback;
 typedef std::function<void(const fcitx::Text &, const fcitx::Text &, const fcitx::Text &, const std::vector<CandidateActionEntity> &)> InputPanelCallback;
 typedef std::function<void(const int, const uint32_t, const uint32_t, const bool, const int)> KeyEventCallback;

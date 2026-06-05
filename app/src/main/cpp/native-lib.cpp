@@ -670,12 +670,14 @@ Java_org_fxboomk_fcitx5_android_core_Fcitx_startupFcitx(
         env->SetObjectArrayElement(vararg, 1, *candidatesArray);
         env->CallStaticVoidMethod(GlobalRef->Fcitx, GlobalRef->HandleFcitxEvent, 0, *vararg);
     };
-    auto commitStringCallback = [](const std::string &str, const int cursor) {
+    auto commitStringCallback = [](const std::string &str, const int cursor, const bool fromCandidate) {
         auto env = GlobalRef->AttachEnv();
         auto stringCursor = JRef(env, env->NewObject(GlobalRef->Integer, GlobalRef->IntegerInit, cursor));
-        auto vararg = JRef<jobjectArray>(env, env->NewObjectArray(2, GlobalRef->Object, nullptr));
+        auto fromCandidateObj = JRef(env, env->NewObject(GlobalRef->Boolean, GlobalRef->BooleanInit, fromCandidate));
+        auto vararg = JRef<jobjectArray>(env, env->NewObjectArray(3, GlobalRef->Object, nullptr));
         env->SetObjectArrayElement(vararg, 0, JString(env, str));
         env->SetObjectArrayElement(vararg, 1, stringCursor);
+        env->SetObjectArrayElement(vararg, 2, fromCandidateObj);
         env->CallStaticVoidMethod(GlobalRef->Fcitx, GlobalRef->HandleFcitxEvent, 1, *vararg);
     };
     auto preeditCallback = [](const fcitx::Text &clientPreedit) {
