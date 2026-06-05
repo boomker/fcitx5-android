@@ -20,6 +20,7 @@ RIME_SCHEMA_NAME_PATCH="${PROJECT_ROOT}/plugin/rime/fcitx5-rime-full-schema-name
 RIME_PREEDIT_LABEL_PATCH="${PROJECT_ROOT}/plugin/rime/fcitx5-rime-preedit-cursor-label.patch"
 RIME_SCHEMA_SELECTOR_PATCH="${PROJECT_ROOT}/plugin/rime/fcitx5-rime-schema-selector.patch"
 FCITX5_ALT_TRIGGER_PATCH="${RIME_DIR}/fcitx5-alt-trigger-v4point1.patch"
+FCITX5_INSERT_SPACE_ZH_EN_PATCH="${PROJECT_ROOT}/lib/fcitx5/fcitx5-insert-space-zh-en.patch"
 
 # update fcitx5-rime
 echo "updating fcitx5-rime from ${FCITX5_RIME_REPO}"
@@ -45,11 +46,19 @@ else
     echo "✗ schema selector patch failed or already applied"
 fi
 
-# apply fcitx5 patch from fcitx5-rime
-echo "applying fcitx5 patch"
+# apply fcitx5 patches
+echo "applying fcitx5 patches"
 git -C "${FCITX5_DIR}" checkout -- .
-git -C "${FCITX5_DIR}" apply "${FCITX5_ALT_TRIGGER_PATCH}" || \
-    echo "fcitx5 patch already applied or failed"
+if git -C "${FCITX5_DIR}" apply "${FCITX5_ALT_TRIGGER_PATCH}"; then
+    echo "✓ alt-trigger patch applied successfully"
+else
+    echo "✗ alt-trigger patch failed or already applied"
+fi
+if git -C "${FCITX5_DIR}" apply --ignore-whitespace "${FCITX5_INSERT_SPACE_ZH_EN_PATCH}"; then
+    echo "✓ insert-space-zh-en patch applied successfully"
+else
+    echo "✗ insert-space-zh-en patch failed or already applied"
+fi
 
 # update prebuilt
 echo "updating prebuilt from ${PREBUILT_REPO}"
