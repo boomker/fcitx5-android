@@ -1,0 +1,355 @@
+diff --git a/po/ca.po b/po/ca.po
+index 141fea72..524d6121 100644
+--- a/po/ca.po
++++ b/po/ca.po
+@@ -801,8 +801,8 @@ msgid "Show first input method information"
+ msgstr ""
+ 
+ #: src/lib/fcitx/globalconfig.cpp:208
+-msgid "Default Candidates per page"
+-msgstr ""
++msgid "Default maximum candidates per page"
++msgstr "Nombre màxim per defecte de candidats per pàgina"
+ 
+ #: src/lib/fcitx/globalconfig.cpp:215
+ msgid "Override XKB Option"
+diff --git a/po/da.po b/po/da.po
+index 393ec5d1..15a469af 100644
+--- a/po/da.po
++++ b/po/da.po
+@@ -803,8 +803,8 @@ msgid "Show first input method information"
+ msgstr "Vis første information om inputmetode"
+ 
+ #: src/lib/fcitx/globalconfig.cpp:208
+-msgid "Default Candidates per page"
+-msgstr ""
++msgid "Default maximum candidates per page"
++msgstr "Standardmaksimum for kandidater pr. side"
+ 
+ #: src/lib/fcitx/globalconfig.cpp:215
+ msgid "Override XKB Option"
+diff --git a/po/de.po b/po/de.po
+index 0cc17ba3..f633ba72 100644
+--- a/po/de.po
++++ b/po/de.po
+@@ -804,8 +804,8 @@ msgid "Show first input method information"
+ msgstr ""
+ 
+ #: src/lib/fcitx/globalconfig.cpp:208
+-msgid "Default Candidates per page"
+-msgstr ""
++msgid "Default maximum candidates per page"
++msgstr "Standardmäßige maximale Kandidatenanzahl pro Seite"
+ 
+ #: src/lib/fcitx/globalconfig.cpp:215
+ msgid "Override XKB Option"
+diff --git a/po/es.po b/po/es.po
+index 93a01126..28964e05 100644
+--- a/po/es.po
++++ b/po/es.po
+@@ -799,8 +799,8 @@ msgid "Show first input method information"
+ msgstr ""
+ 
+ #: src/lib/fcitx/globalconfig.cpp:208
+-msgid "Default Candidates per page"
+-msgstr ""
++msgid "Default maximum candidates per page"
++msgstr "Número máximo predeterminado de candidatos por página"
+ 
+ #: src/lib/fcitx/globalconfig.cpp:215
+ msgid "Override XKB Option"
+diff --git a/po/fcitx5.pot b/po/fcitx5.pot
+index ce2ffe63..856bc4f0 100644
+--- a/po/fcitx5.pot
++++ b/po/fcitx5.pot
+@@ -796,7 +796,7 @@ msgid "Show first input method information"
+ msgstr ""
+ 
+ #: src/lib/fcitx/globalconfig.cpp:208
+-msgid "Default Candidates per page"
++msgid "Default maximum candidates per page"
+ msgstr ""
+ 
+ #: src/lib/fcitx/globalconfig.cpp:215
+diff --git a/po/fr.po b/po/fr.po
+index 23f6beea..fd8d3b6e 100644
+--- a/po/fr.po
++++ b/po/fr.po
+@@ -848,8 +848,8 @@ msgid "Show first input method information"
+ msgstr "Afficher les informations de la première méthode de saisie"
+ 
+ #: src/lib/fcitx/globalconfig.cpp:208
+-msgid "Default Candidates per page"
+-msgstr ""
++msgid "Default maximum candidates per page"
++msgstr "Nombre maximal de candidats par page par défaut"
+ 
+ #: src/lib/fcitx/globalconfig.cpp:215
+ msgid "Override XKB Option"
+diff --git a/po/he.po b/po/he.po
+index d7f93112..96ee8aab 100644
+--- a/po/he.po
++++ b/po/he.po
+@@ -802,8 +802,8 @@ msgid "Show first input method information"
+ msgstr ""
+ 
+ #: src/lib/fcitx/globalconfig.cpp:208
+-msgid "Default Candidates per page"
+-msgstr ""
++msgid "Default maximum candidates per page"
++msgstr "מספר מועמדים מרבי כברירת מחדל לעמוד"
+ 
+ #: src/lib/fcitx/globalconfig.cpp:215
+ msgid "Override XKB Option"
+diff --git a/po/ja.po b/po/ja.po
+index adff81af..bd313802 100644
+--- a/po/ja.po
++++ b/po/ja.po
+@@ -831,8 +831,8 @@ msgid "Show first input method information"
+ msgstr "第1入力メソッドの情報を表示する"
+ 
+ #: src/lib/fcitx/globalconfig.cpp:208
+-msgid "Default Candidates per page"
+-msgstr "ページあたりのデフォルトの候補数"
++msgid "Default maximum candidates per page"
++msgstr "1ページあたりのデフォルト最大候補数"
+ 
+ #: src/lib/fcitx/globalconfig.cpp:215
+ msgid "Override XKB Option"
+diff --git a/po/ka.po b/po/ka.po
+index 04abcb15..d07faf6b 100644
+--- a/po/ka.po
++++ b/po/ka.po
+@@ -800,8 +800,8 @@ msgid "Show first input method information"
+ msgstr ""
+ 
+ #: src/lib/fcitx/globalconfig.cpp:208
+-msgid "Default Candidates per page"
+-msgstr ""
++msgid "Default maximum candidates per page"
++msgstr "ნაგულისხმევი კანდიდატების მაქსიმალური რაოდენობა გვერდზე"
+ 
+ #: src/lib/fcitx/globalconfig.cpp:215
+ msgid "Override XKB Option"
+diff --git a/po/ko.po b/po/ko.po
+index 469b689d..a66b4673 100644
+--- a/po/ko.po
++++ b/po/ko.po
+@@ -828,8 +828,8 @@ msgid "Show first input method information"
+ msgstr "첫 번째 입력기 정보 표시"
+ 
+ #: src/lib/fcitx/globalconfig.cpp:208
+-msgid "Default Candidates per page"
+-msgstr ""
++msgid "Default maximum candidates per page"
++msgstr "페이지당 기본 최대 후보 수"
+ 
+ #: src/lib/fcitx/globalconfig.cpp:215
+ msgid "Override XKB Option"
+diff --git a/po/ru.po b/po/ru.po
+index 8477c542..f316b455 100644
+--- a/po/ru.po
++++ b/po/ru.po
+@@ -843,8 +843,8 @@ msgid "Show first input method information"
+ msgstr "Показать информацию о первом методе ввода"
+ 
+ #: src/lib/fcitx/globalconfig.cpp:208
+-msgid "Default Candidates per page"
+-msgstr "Количество слов-кандидатов на странице по умолчанию"
++msgid "Default maximum candidates per page"
++msgstr "Максимальное количество слов-кандидатов на странице по умолчанию"
+ 
+ #: src/lib/fcitx/globalconfig.cpp:215
+ msgid "Override XKB Option"
+diff --git a/po/vi.po b/po/vi.po
+index b04eec41..a7cdddff 100644
+--- a/po/vi.po
++++ b/po/vi.po
+@@ -825,8 +825,8 @@ msgid "Show first input method information"
+ msgstr "Hiển thị thông tin kiểu gõ đầu tiên"
+ 
+ #: src/lib/fcitx/globalconfig.cpp:208
+-msgid "Default Candidates per page"
+-msgstr ""
++msgid "Default maximum candidates per page"
++msgstr "Số ứng viên tối đa mặc định trên mỗi trang"
+ 
+ #: src/lib/fcitx/globalconfig.cpp:215
+ msgid "Override XKB Option"
+diff --git a/po/zh_CN.po b/po/zh_CN.po
+index 1fa20bed..da4d33ae 100644
+--- a/po/zh_CN.po
++++ b/po/zh_CN.po
+@@ -822,8 +822,8 @@ msgid "Show first input method information"
+ msgstr "显示第一个输入法的信息"
+ 
+ #: src/lib/fcitx/globalconfig.cpp:208
+-msgid "Default Candidates per page"
+-msgstr "缺省每页候选词"
++msgid "Default maximum candidates per page"
++msgstr "默认单页最多候选词数"
+ 
+ #: src/lib/fcitx/globalconfig.cpp:215
+ msgid "Override XKB Option"
+diff --git a/po/zh_TW.po b/po/zh_TW.po
+index 780f45eb..5c7c30d6 100644
+--- a/po/zh_TW.po
++++ b/po/zh_TW.po
+@@ -827,8 +827,8 @@ msgid "Show first input method information"
+ msgstr "顯示第一個輸入法資訊"
+ 
+ #: src/lib/fcitx/globalconfig.cpp:208
+-msgid "Default Candidates per page"
+-msgstr ""
++msgid "Default maximum candidates per page"
++msgstr "預設單頁最多候選詞數"
+ 
+ #: src/lib/fcitx/globalconfig.cpp:215
+ msgid "Override XKB Option"
+diff --git a/src/lib/fcitx/globalconfig.cpp b/src/lib/fcitx/globalconfig.cpp
+index 23b97626..20457f08 100644
+--- a/src/lib/fcitx/globalconfig.cpp
++++ b/src/lib/fcitx/globalconfig.cpp
+@@ -46,16 +46,19 @@ FCITX_CONFIGURATION(
+          Key("Zenkaku_Hankaku"), Key("Hangul")},
+         KeyListConstrain({KeyConstrainFlag::AllowModifierLess,
+                           KeyConstrainFlag::AllowModifierOnly})};
+-    OptionWithAnnotation<bool, ToolTipAnnotation> enumerateWithTriggerKeys{{
+-        .parent = this,
+-        .path{"EnumerateWithTriggerKeys"},
+-        .description{_("Enumerate when holding modifier of Toggle key")},
+-        .defaultValue = true,
+-        .annotation{
+-            _("For example, if Control+Space is the toggle key, after pressing "
+-              "Control+Space for the first time, if Control is held, following "
+-              "key press of Space will enumerate the input method.")},
+-    }};
++    HiddenOption<bool, NoConstrain<bool>, DefaultMarshaller<bool>,
++                 ToolTipAnnotation>
++        enumerateWithTriggerKeys{{
++            .parent = this,
++            .path{"EnumerateWithTriggerKeys"},
++            .description{_("Enumerate when holding modifier of Toggle key")},
++            .defaultValue = true,
++            .annotation{
++                _("For example, if Control+Space is the toggle key, after "
++                  "pressing Control+Space for the first time, if Control is "
++                  "held, following key press of Space will enumerate the input "
++                  "method.")},
++        }};
+     KeyListOption activateKeys{
+         this,
+         "ActivateKeys",
+@@ -103,9 +106,6 @@ FCITX_CONFIGURATION(
+         {},
+         KeyListConstrain({KeyConstrainFlag::AllowModifierLess,
+                           KeyConstrainFlag::AllowModifierOnly})};
+-    Option<bool> enumerateSkipFirst{
+-        this, "EnumerateSkipFirst",
+-        _("Skip first input method while enumerating"), false};
+     KeyListOption enumerateGroupForwardKeys{
+         this,
+         "EnumerateGroupForwardKeys",
+@@ -161,7 +161,7 @@ FCITX_CONFIGURATION(
+                                 _("Toggle embedded preedit"),
+                                 {Key("Control+Alt+P")},
+                                 KeyListConstrain()};
+-    Option<int, IntConstrain, DefaultMarshaller<int>, ToolTipAnnotation>
++    HiddenOption<int, IntConstrain, DefaultMarshaller<int>, ToolTipAnnotation>
+         modifierOnlyKeyTimeout{
+             this,
+             "ModifierOnlyKeyTimeout",
+@@ -177,8 +177,6 @@ FCITX_CONFIGURATION(
+ 
+ FCITX_CONFIGURATION(
+     BehaviorConfig,
+-    Option<bool> activeByDefault{this, "ActiveByDefault",
+-                                 _("Activate input method by default")};
+     OptionWithAnnotation<PropertyPropagatePolicy,
+                          PropertyPropagatePolicyI18NAnnotation>
+         resetStateWhenFocusIn{this, "resetStateWhenFocusIn",
+@@ -189,6 +187,23 @@ FCITX_CONFIGURATION(
+         shareState{this, "ShareInputState", _("Share Input State"),
+                    isAndroid() ? PropertyPropagatePolicy::All
+                                : PropertyPropagatePolicy::No};
++    Option<int, IntConstrain> defaultPageSize{
++        this, "DefaultPageSize", _("Default maximum candidates per page"), 5,
++        IntConstrain(1, 10)};
++    ConditionalHidden<!hasKeyboard, Option<std::string>> customXkbOption{
++        this, "CustomXkbOption", _("Custom XKB Option"), ""};
++    Option<int, IntConstrain, DefaultMarshaller<int>, ToolTipAnnotation>
++        autoSavePeriod{this,
++                       "AutoSavePeriod",
++                       _("Interval of saving user data in minutes"),
++                       30,
++                       IntConstrain(0, 1440),
++                       {},
++                       {_("If value is 0, the user data may only be saved when "
++                          "fcitx quits (e.g. logout).")}};
++
++    Option<bool> activeByDefault{this, "ActiveByDefault",
++                                 _("Activate input method by default")};
+     Option<bool> preeditEnabledByDefault{this, "PreeditEnabledByDefault",
+                                          _("Show preedit in application"),
+                                          true};
+@@ -204,9 +219,9 @@ FCITX_CONFIGURATION(
+     Option<bool> showFirstInputMethodInformation{
+         this, "ShowFirstInputMethodInformation",
+         _("Show first input method information"), true};
+-    Option<int, IntConstrain> defaultPageSize{this, "DefaultPageSize",
+-                                              _("Default Candidates per page"),
+-                                              5, IntConstrain(1, 10)};
++    Option<bool> enumerateSkipFirst{
++        this, "EnumerateSkipFirst",
++        _("Skip first input method while enumerating"), false};
+     ConditionalHidden<!hasKeyboard,
+                       OptionWithAnnotation<bool, ToolTipAnnotation>>
+         overrideXkbOption{
+@@ -221,30 +236,20 @@ FCITX_CONFIGURATION(
+                "XKB options for custom XKB layout. This is a workaround when "
+                "there is no way to get the current XKB option from Wayland "
+                "Compositor.")}};
+-    ConditionalHidden<!hasKeyboard, Option<std::string>> customXkbOption{
+-        this, "CustomXkbOption", _("Custom XKB Option"), ""};
+-    HiddenOption<std::vector<std::string>> enabledAddons{
+-        this, "EnabledAddons", "Force Enabled Addons"};
+-    HiddenOption<std::vector<std::string>> disabledAddons{
+-        this, "DisabledAddons", "Force Disabled Addons"};
+-    HiddenOption<bool> preloadInputMethod{
+-        this, "PreloadInputMethod",
+-        "Preload input method to be used by default", true};
+     Option<bool> allowInputMethodForPassword{
+         this, "AllowInputMethodForPassword",
+         _("Allow input method in the password field"), false};
+     Option<bool> showPreeditForPassword{
+         this, "ShowPreeditForPassword",
+         _("Show preedit text when typing password"), false};
+-    Option<int, IntConstrain, DefaultMarshaller<int>, ToolTipAnnotation>
+-        autoSavePeriod{this,
+-                       "AutoSavePeriod",
+-                       _("Interval of saving user data in minutes"),
+-                       30,
+-                       IntConstrain(0, 1440),
+-                       {},
+-                       {_("If value is 0, the user data may only be saved when "
+-                          "fcitx quits (e.g. logout).")}};);
++
++    HiddenOption<std::vector<std::string>> enabledAddons{
++        this, "EnabledAddons", "Force Enabled Addons"};
++    HiddenOption<std::vector<std::string>> disabledAddons{
++        this, "DisabledAddons", "Force Disabled Addons"};
++    HiddenOption<bool> preloadInputMethod{
++        this, "PreloadInputMethod",
++        "Preload input method to be used by default", true};);
+ 
+ FCITX_CONFIGURATION(GlobalConfig,
+                     Option<HotkeyConfig> hotkey{this, "Hotkey", _("Hotkey")};
+@@ -310,7 +315,7 @@ const KeyList &GlobalConfig::enumerateBackwardKeys() const {
+ 
+ bool GlobalConfig::enumerateSkipFirst() const {
+     FCITX_D();
+-    return *d->hotkey->enumerateSkipFirst;
++    return *d->behavior->enumerateSkipFirst;
+ }
+ 
+ const KeyList &GlobalConfig::enumerateGroupForwardKeys() const {

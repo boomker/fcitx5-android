@@ -19,7 +19,8 @@ PREBUILT_DIR="${PROJECT_ROOT}/lib/fcitx5/src/main/cpp/prebuilt"
 RIME_SCHEMA_NAME_PATCH="${PROJECT_ROOT}/plugin/rime/fcitx5-rime-full-schema-name.patch"
 RIME_PREEDIT_LABEL_PATCH="${PROJECT_ROOT}/plugin/rime/fcitx5-rime-preedit-cursor-label.patch"
 RIME_SCHEMA_SELECTOR_PATCH="${PROJECT_ROOT}/plugin/rime/fcitx5-rime-schema-selector.patch"
-FCITX5_ALT_TRIGGER_PATCH="${RIME_DIR}/fcitx5-alt-trigger-v4point1.patch"
+# FCITX5_ALT_TRIGGER_PATCH="${RIME_DIR}/fcitx5-alt-trigger-v4point1.patch"
+FCITX5_GLOBAL_OPTIONS_UI_PATCH="${PROJECT_ROOT}/lib/fcitx5/fcitx5-global-options-ui.patch"
 FCITX5_INSERT_SPACE_ZH_EN_PATCH="${PROJECT_ROOT}/lib/fcitx5/fcitx5-insert-space-zh-en.patch"
 
 # update fcitx5-rime
@@ -49,10 +50,15 @@ fi
 # apply fcitx5 patches
 echo "applying fcitx5 patches"
 git -C "${FCITX5_DIR}" checkout -- .
-if git -C "${FCITX5_DIR}" apply "${FCITX5_ALT_TRIGGER_PATCH}"; then
-    echo "✓ alt-trigger patch applied successfully"
+# if git -C "${FCITX5_DIR}" apply "${FCITX5_ALT_TRIGGER_PATCH}"; then
+#     echo "✓ alt-trigger patch applied successfully"
+# else
+#     echo "✗ alt-trigger patch failed or already applied"
+# fi
+if git -C "${FCITX5_DIR}" apply --ignore-whitespace "${FCITX5_GLOBAL_OPTIONS_UI_PATCH}"; then
+    echo "✓ global-options-ui patch applied successfully"
 else
-    echo "✗ alt-trigger patch failed or already applied"
+    echo "✗ global-options-ui patch failed or already applied"
 fi
 if git -C "${FCITX5_DIR}" apply --ignore-whitespace "${FCITX5_INSERT_SPACE_ZH_EN_PATCH}"; then
     echo "✓ insert-space-zh-en patch applied successfully"
