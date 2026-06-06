@@ -207,7 +207,7 @@ index 780f45eb..5c7c30d6 100644
  #: src/lib/fcitx/globalconfig.cpp:215
  msgid "Override XKB Option"
 diff --git a/src/lib/fcitx/globalconfig.cpp b/src/lib/fcitx/globalconfig.cpp
-index 23b97626..20457f08 100644
+index 23b97626..796bce2b 100644
 --- a/src/lib/fcitx/globalconfig.cpp
 +++ b/src/lib/fcitx/globalconfig.cpp
 @@ -46,16 +46,19 @@ FCITX_CONFIGURATION(
@@ -250,16 +250,34 @@ index 23b97626..20457f08 100644
      KeyListOption enumerateGroupForwardKeys{
          this,
          "EnumerateGroupForwardKeys",
-@@ -161,7 +161,7 @@ FCITX_CONFIGURATION(
+@@ -161,24 +161,22 @@ FCITX_CONFIGURATION(
                                  _("Toggle embedded preedit"),
                                  {Key("Control+Alt+P")},
                                  KeyListConstrain()};
 -    Option<int, IntConstrain, DefaultMarshaller<int>, ToolTipAnnotation>
+-        modifierOnlyKeyTimeout{
+-            this,
+-            "ModifierOnlyKeyTimeout",
+-            _("Time limit in milliseconds for triggering modifier key "
+-              "shortcuts"),
+-            250,
+-            IntConstrain{-1, 5000},
+-            {},
+-            ToolTipAnnotation{
 +    HiddenOption<int, IntConstrain, DefaultMarshaller<int>, ToolTipAnnotation>
-         modifierOnlyKeyTimeout{
-             this,
-             "ModifierOnlyKeyTimeout",
-@@ -177,8 +177,6 @@ FCITX_CONFIGURATION(
++        modifierOnlyKeyTimeout{{
++            .parent = this,
++            .path{"ModifierOnlyKeyTimeout"},
++            .description{_("Time limit in milliseconds for triggering "
++                            "modifier key shortcuts")},
++            .defaultValue = 250,
++            .constrain{IntConstrain{-1, 5000}},
++            .annotation{
+                 _("When using modifier only hotkey, the action may "
+                   "only be triggered if the modifier key is released within "
+-                  "the timeout. -1 means there is no limit.")}};);
++                  "the timeout. -1 means there is no limit.")},
++        }};);
  
  FCITX_CONFIGURATION(
      BehaviorConfig,
