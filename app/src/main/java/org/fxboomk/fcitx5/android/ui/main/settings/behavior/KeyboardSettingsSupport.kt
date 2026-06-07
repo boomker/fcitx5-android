@@ -56,11 +56,11 @@ internal object KeyboardSettingsSupport {
         "swipe_symbol_behavior",
         "keyboard_long_press_delay",
         "lang_switch_key_behavior",
-        "space_long_press_behavior",
         "space_key_label_mode",
+        "space_long_press_behavior",
+        "space_swipe_vertical_behavior",
         "prediction_space_behavior",
-        "prediction_backspace_behavior",
-        "space_swipe_vertical_behavior"
+        "prediction_backspace_behavior"
     )
 
     val layoutKeys = listOf(

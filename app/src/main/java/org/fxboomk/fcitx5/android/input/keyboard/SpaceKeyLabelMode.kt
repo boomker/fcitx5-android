@@ -9,6 +9,6 @@ import org.fxboomk.fcitx5.android.data.prefs.ManagedPreferenceEnum
 
 enum class SpaceKeyLabelMode(override val stringRes: Int) : ManagedPreferenceEnum {
     Default(R.string.space_key_label_mode_default),
-    CompactWhenSubMode(R.string.space_key_label_mode_compact_when_submode),
-    SubModeOnly(R.string.space_key_label_mode_submode_only);
+    SubModeOnly(R.string.space_key_label_mode_submode_only),
+    CompactWhenSubMode(R.string.space_key_label_mode_compact_when_submode);
 }

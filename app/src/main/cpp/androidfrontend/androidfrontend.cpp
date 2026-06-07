@@ -32,6 +32,14 @@ public:
 private:
     bool &selectingCandidate_;
 };
+
+template<typename Config>
+bool insertSpaceBetweenChineseAndEnglish(const Config &globalConfig) {
+    if constexpr (requires { globalConfig.insertSpaceBetweenChineseAndEnglish(); }) {
+        return globalConfig.insertSpaceBetweenChineseAndEnglish();
+    }
+    return false;
+}
 } // namespace
 
 class AndroidInputContext : public InputContextV2 {
@@ -404,7 +412,7 @@ void AndroidFrontend::commitString(const std::string &str, const int cursor) {
     commitStringCallback(
         str, cursor,
         selectingCandidate_ &&
-            instance_->globalConfig().insertSpaceBetweenChineseAndEnglish());
+            insertSpaceBetweenChineseAndEnglish(instance_->globalConfig()));
 }
 
 void AndroidFrontend::updateCandidateList(const std::vector<CandidateEntity> &candidates, const int size) {
