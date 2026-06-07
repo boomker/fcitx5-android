@@ -13,7 +13,6 @@ import androidx.core.content.ContextCompat
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.fxboomk.fcitx5.android.FcitxApplication
@@ -489,7 +488,7 @@ class Fcitx(private val context: Context) : FcitxAPI, FcitxLifecycleOwner {
 
     @Keep
     private val onClipboardUpdate = ClipboardManager.OnClipboardUpdateListener { entry ->
-        lifecycle.lifecycleScope.launch { setClipboard(entry.text, entry.sensitive) }
+        lifecycle.launchWhenReady { setClipboard(entry.text, entry.sensitive) }
         if (entry.source == ClipboardEntry.SOURCE_LOCAL && entry.text.isNotBlank()) {
             FcitxPluginServices.sendMessage(
                 Message.obtain().apply {
@@ -520,7 +519,7 @@ class Fcitx(private val context: Context) : FcitxAPI, FcitxLifecycleOwner {
             // this method runs in same thread with `startupFcitx`
             // block it will also block fcitx
             onFirstRun()
-            unregisterFcitxEventHandler(::handleFcitxEvent)
+            unregisterFcitxEventHandler(::handleFirstRunReadyEvent)
         }
     }
 
