@@ -1762,7 +1762,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         // do reset if composing is empty && input panel is not empty
         if (composing.isEmpty()) {
             postFcitxJob {
-                if (!isEmpty()) {
+                if (!isEmpty() && (clientPreeditCached.isNotEmpty() || inputPanelCached.preedit.isNotEmpty())) {
                     Timber.d("handleCursorUpdate: reset")
                     reset()
                 }

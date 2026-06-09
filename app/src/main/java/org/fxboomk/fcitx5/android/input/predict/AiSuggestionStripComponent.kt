@@ -140,6 +140,7 @@ class AiSuggestionStripComponent(
     private var predictionSuppressed = false
     private var suppressionUntilCommitRevision = -1
     private var activeSuggestions: List<String> = emptyList()
+    private var suggestionsPreservedOnCursorMove = false
     private var panelVisible = false
     private var anchorState: CursorAnchorState? = null
     private var panelContentMode = PanelContentMode.Suggestions
@@ -186,6 +187,7 @@ class AiSuggestionStripComponent(
         hasClientPreedit = false
         hasInputPanelPreedit = false
         selectionCollapsed = true
+        suggestionsPreservedOnCursorMove = false
         lastObservedBeforeCursor = ""
         lastCommittedText = ""
         lastPureLongDigitRequestAtMs = 0L
@@ -214,6 +216,7 @@ class AiSuggestionStripComponent(
 
     override fun onClientPreeditUpdate(data: FormattedText) {
         hasClientPreedit = data.isNotEmpty()
+        suggestionsPreservedOnCursorMove = false
         if (!shouldKeepSingleTextPanelVisible()) {
             collapsePanel()
         }
@@ -222,6 +225,7 @@ class AiSuggestionStripComponent(
 
     override fun onInputPanelUpdate(data: FcitxEvent.InputPanelEvent.Data) {
         hasInputPanelPreedit = data.preedit.isNotEmpty()
+        suggestionsPreservedOnCursorMove = false
         if (!shouldKeepSingleTextPanelVisible()) {
             collapsePanel()
         }
@@ -232,6 +236,9 @@ class AiSuggestionStripComponent(
         if (!shouldKeepSingleTextPanelVisible()) {
             collapsePanel()
         }
+        if (suggestionsPreservedOnCursorMove) {
+            return
+        }
         requestPredictionIfNeeded()
     }
 
@@ -240,6 +247,11 @@ class AiSuggestionStripComponent(
         if (!selectionCollapsed || !shouldKeepSingleTextPanelVisible()) {
             collapsePanel()
         }
+        if (selectionCollapsed && activeSuggestions.isNotEmpty()) {
+            suggestionsPreservedOnCursorMove = true
+            return
+        }
+        suggestionsPreservedOnCursorMove = false
         requestPredictionIfNeeded()
     }
 
