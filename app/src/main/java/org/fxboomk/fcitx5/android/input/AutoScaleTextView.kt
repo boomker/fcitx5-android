@@ -51,8 +51,8 @@ class AutoScaleTextView @JvmOverloads constructor(
     private val textBounds = Rect()
 
     private var needsCalculateTransform = true
-    private var translateY = 0.0f
-    private var translateX = 0.0f
+    private var baselineX = 0.0f
+    private var baselineY = 0.0f
     private var textScaleX = 1.0f
     private var textScaleY = 1.0f
 
@@ -161,24 +161,26 @@ class AutoScaleTextView @JvmOverloads constructor(
     }
 
     private fun calculateTransform(viewWidth: Int, viewHeight: Int) {
-        val contentWidth = viewWidth - paddingLeft - paddingRight
-        val contentHeight = viewHeight - paddingTop - paddingBottom
+        val contentWidth: Int = viewWidth - paddingLeft - paddingRight
+        val contentHeight: Int = viewHeight - paddingTop - paddingBottom
         measureTextBounds()
-        val textWidth = textBounds.width()
-        val rawFontHeight = fontMetrics.bottom - fontMetrics.top
+        val textLeft: Float = textBounds.left.toFloat()
+        val textWidth: Float = textBounds.width().toFloat()
+        val textTop: Float = fontMetrics.top
+        val textHeight: Float = fontMetrics.bottom - fontMetrics.top
 
-        val widthScaleLimit = if (textWidth > 0 && contentWidth > 0) {
-            contentWidth.toFloat() / textWidth.toFloat()
+        val widthScaleLimit = if (textWidth > 0f && contentWidth > 0) {
+            contentWidth.toFloat() / textWidth
         } else {
             1.0f
         }
-        val heightScaleLimit = if (rawFontHeight > 0f && contentHeight > 0) {
-            contentHeight.toFloat() / rawFontHeight
+        val heightScaleLimit = if (textHeight > 0f && contentHeight > 0) {
+            contentHeight.toFloat() / textHeight
         } else {
             1.0f
         }
         val shouldScaleByWidth = textWidth > contentWidth
-        val shouldScaleByHeight = rawFontHeight > contentHeight
+        val shouldScaleByHeight = textHeight > contentHeight
 
         if (shouldScaleByWidth || (scaleMode == Mode.Proportional && shouldScaleByHeight)) {
             when (scaleMode) {
@@ -200,20 +202,45 @@ class AutoScaleTextView @JvmOverloads constructor(
             textScaleX = 1.0f
             textScaleY = 1.0f
         }
-        val scaledTextWidth = textWidth.toFloat() * textScaleX
-        val absoluteGravity = Gravity.getAbsoluteGravity(gravity, layoutDirection)
-        val desiredLeft = when (absoluteGravity and Gravity.HORIZONTAL_GRAVITY_MASK) {
-            Gravity.RIGHT ->
-                paddingLeft.toFloat() + contentWidth.toFloat() - scaledTextWidth
-            Gravity.CENTER_HORIZONTAL ->
-                paddingLeft.toFloat() + (contentWidth.toFloat() - scaledTextWidth) / 2.0f
-            else -> paddingLeft.toFloat()
+        baselineX = calculateBaselineX(paddingLeft, contentWidth, textLeft, textWidth, textScaleX)
+        baselineY = calculateBaselineY(paddingTop, contentHeight, textTop, textHeight, textScaleY)
+    }
+
+    private fun calculateBaselineX(
+        contentLeft: Int,
+        contentWidth: Int,
+        textLeft: Float,
+        textWidth: Float,
+        scaleX: Float
+    ): Float {
+        val scaledTextLeft = textLeft * scaleX
+        val scaledTextWidth = textWidth * scaleX
+        val horizontalGravity =
+            Gravity.getAbsoluteGravity(gravity, layoutDirection) and Gravity.HORIZONTAL_GRAVITY_MASK
+        val targetLeft: Float = @SuppressLint("RtlHardcoded") when (horizontalGravity) {
+            Gravity.LEFT -> contentLeft.toFloat()
+            Gravity.RIGHT -> contentLeft + contentWidth - scaledTextWidth
+            else -> contentLeft + (contentWidth - scaledTextWidth) / 2.0f
         }
-        val safeScaleX = if (textScaleX == 0.0f) 1.0f else textScaleX
-        translateX = desiredLeft / safeScaleX - textBounds.left.toFloat()
-        val fontHeight = (fontMetrics.bottom - fontMetrics.top) * textScaleY
-        val fontOffsetY = fontMetrics.top * textScaleY
-        translateY = (contentHeight.toFloat() - fontHeight) / 2.0f - fontOffsetY + paddingTop
+        return targetLeft - scaledTextLeft
+    }
+
+    private fun calculateBaselineY(
+        contentTop: Int,
+        contentHeight: Int,
+        textTop: Float,
+        textHeight: Float,
+        scaleY: Float
+    ): Float {
+        val scaledTextTop = textTop * scaleY
+        val scaledTextHeight = textHeight * scaleY
+        val verticalGravity = gravity and Gravity.VERTICAL_GRAVITY_MASK
+        val targetTop: Float = when (verticalGravity) {
+            Gravity.TOP -> contentTop.toFloat()
+            Gravity.BOTTOM -> contentTop + contentHeight - scaledTextHeight
+            else -> contentTop + (contentHeight - scaledTextHeight) / 2.0f
+        }
+        return targetTop - scaledTextTop
     }
 
     override fun onDraw(canvas: Canvas) {
@@ -225,8 +252,8 @@ class AutoScaleTextView @JvmOverloads constructor(
         paint.color = currentTextColor
         canvas.withSave {
             translate(scrollX.toFloat(), scrollY.toFloat())
-            scale(textScaleX, textScaleY, 0f, translateY)
-            translate(translateX, translateY)
+            translate(baselineX, baselineY)
+            scale(textScaleX, textScaleY)
             drawText(text, 0f, 0f, paint)
         }
     }
@@ -236,6 +263,6 @@ class AutoScaleTextView @JvmOverloads constructor(
     }
 
     override fun getBaseline(): Int {
-        return (-fontMetrics.top * textScaleY).roundToInt()
+        return paddingTop + baselineY.roundToInt()
     }
 }
