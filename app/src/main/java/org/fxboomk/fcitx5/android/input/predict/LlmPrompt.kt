@@ -74,7 +74,7 @@ internal object LlmPrompt {
                     outputMode == LlmOutputMode.LongForm && taskMode == LlmTaskMode.QuestionAnswer ->
                         "Treat the text below as the user's latest question or request and answer with one natural, fuller reply. Do not continue the prefix itself, and do not cut the answer short if more detail is needed:\n"
                     taskMode == LlmTaskMode.Translate ->
-                        "Translate the full text below into natural Chinese. If the input is a single English word or a very short phrase, format the result as plain text in a fixed line order: first `释义：...`; then `音标：...` on its own separate line when available; then parts of speech in this fixed order `n.` -> `v.` -> `adj.` -> `adv.` -> `prep.` -> `phr.`, each on its own separate line, one part of speech per line. Skip unavailable lines but do not reorder. For longer text, output only the natural Chinese translation itself:\n"
+                        "Translate the full text below into natural Chinese. If the input is a single English word or a very short phrase, output one plain-text line using the literal separator `[[BR]]` in this fixed order: `释义：...[[BR]]音标：...[[BR]]n. ...[[BR]]v. ...[[BR]]adj. ...[[BR]]adv. ...[[BR]]prep. ...[[BR]]phr. ...`. Skip unavailable items but do not reorder. Do not use real line breaks inside that glossary-style result. For longer text, output only the natural Chinese translation itself:\n"
                     outputMode == LlmOutputMode.LongForm ->
                         "Continue my input with one natural, complete continuation. Output only the continuation after the current prefix without repeating the prefix, and do not shorten it if the context clearly needs more detail:\n"
                     taskMode == LlmTaskMode.QuestionAnswer ->
@@ -266,7 +266,7 @@ internal object LlmPrompt {
 
             LlmLanguage.English -> when {
                 taskMode == LlmTaskMode.Translate ->
-                    "You are an IME translator. Translate the input into natural Chinese. If the input is a single English word or a very short phrase, output plain text in a fixed line order: `释义：...` on the first line, `音标：...` on its own separate line when available, then parts of speech in this fixed order `n.` -> `v.` -> `adj.` -> `adv.` -> `prep.` -> `phr.`, each on its own separate line, one part of speech per line. Skip unavailable lines but do not reorder. For longer text, output only the translation itself."
+                    "You are an IME translator. Translate the input into natural Chinese. If the input is a single English word or a very short phrase, output one plain-text line using the literal separator `[[BR]]` in this fixed order: `释义：...[[BR]]音标：...[[BR]]n. ...[[BR]]v. ...[[BR]]adj. ...[[BR]]adv. ...[[BR]]prep. ...[[BR]]phr. ...`. Skip unavailable items but do not reorder. Do not use real line breaks inside that glossary-style result. For longer text, output only the translation itself."
 
                 taskMode == LlmTaskMode.QuestionAnswer && outputMode == LlmOutputMode.LongForm ->
                     "You are an IME reply assistant. Treat the input as a request and output one natural, fuller reply without cutting important detail short."
@@ -454,19 +454,11 @@ If the question needs more detail, do not cut the answer short.
 
             taskMode == LlmTaskMode.Translate -> """
 Treat INSTRUCTION as the complete source text to translate, not as a prefix to continue.
-If INSTRUCTION is a single English word or a very short phrase, output plain text in this shape:
-释义：<最常用中文释义>
-音标：<音标，没有就省略这一行>
-n. <名词释义，没有就省略>
-v. <动词释义，没有就省略>
-adj. <形容词释义，没有就省略>
-adv. <副词释义，没有就省略>
-prep. <介词释义，没有就省略>
-phr. <短语释义，没有就省略>
-The 音标 line must be on its own line.
-Each part of speech must be on its own separate line, with exactly one part of speech per line.
-Keep the line order fixed as: 释义 -> 音标 -> n. -> v. -> adj. -> adv. -> prep. -> phr.
-If some lines are unavailable, omit them, but never reorder the remaining lines.
+If INSTRUCTION is a single English word or a very short phrase, output one plain-text line using the literal separator [[BR]] in this exact order:
+释义：<最常用中文释义>[[BR]]音标：<音标，没有就省略这一项>[[BR]]n. <名词释义，没有就省略>[[BR]]v. <动词释义，没有就省略>[[BR]]adj. <形容词释义，没有就省略>[[BR]]adv. <副词释义，没有就省略>[[BR]]prep. <介词释义，没有就省略>[[BR]]phr. <短语释义，没有就省略>
+Use [[BR]] instead of actual line breaks.
+Keep the item order fixed as: 释义 -> 音标 -> n. -> v. -> adj. -> adv. -> prep. -> phr.
+If some items are unavailable, omit them, but never reorder the remaining items.
 Do not output JSON, markdown, or extra labels beyond those lines.
 If INSTRUCTION is a longer sentence or paragraph, output only the final translation text itself.
 """.trim()
@@ -551,7 +543,7 @@ If the assistant prefix already includes the typed prefix, each line should cont
             taskMode == LlmTaskMode.Translate -> """
 Preserve the original meaning and keep names, numbers, URLs, emails, and code snippets when needed.
 Make the Chinese translation natural, concise, and ready to send directly without adding new information.
-For a single English word or a very short phrase, prefer a compact dictionary-style result in a fixed order: `释义：...`; optional `音标：...`; then `n.` -> `v.` -> `adj.` -> `adv.` -> `prep.` -> `phr.`. Keep each item on its own separate line, with one part of speech per line, skip unavailable lines, and do not reorder.
+For a single English word or a very short phrase, prefer a compact dictionary-style result encoded in plain text with the literal separator `[[BR]]`. Keep the fixed order `释义` -> `音标` -> `n.` -> `v.` -> `adj.` -> `adv.` -> `prep.` -> `phr.`, skip unavailable items, and do not reorder.
 Do not explain, annotate, quote, or output markdown symbols.
 """.trim()
 

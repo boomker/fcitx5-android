@@ -1268,10 +1268,7 @@ class AiSuggestionStripComponent(
         taskMode: LlmTaskMode,
     ): String {
         val compact = if (taskMode == LlmTaskMode.Translate) {
-            candidate
-                .replace("<|im_end|>", "")
-                .replace("<|endoftext|>", "")
-                .trim()
+            LlmSuggestionParser.normalizeSingleTextDisplay(candidate)
         } else {
             candidate.lineSequence()
                 .map(String::trim)

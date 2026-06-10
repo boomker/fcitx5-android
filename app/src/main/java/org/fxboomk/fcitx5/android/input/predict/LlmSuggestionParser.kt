@@ -8,6 +8,7 @@ object LlmSuggestionParser {
 
     private const val THINK_START = "<think>"
     private const val THINK_END = "</think>"
+    private const val TEXT_MODE_LINE_BREAK_TOKEN = "[[BR]]"
     private const val MAX_OVER_LIMIT_SUGGESTIONS = 1
     private val dialogueRoleRegex = Regex("""(?:\[\s*(?:对方|我)\s*])""")
     private val hanRegex = Regex("\\p{IsHan}")
@@ -68,6 +69,21 @@ object LlmSuggestionParser {
         return emptyList()
     }
 
+    internal fun normalizeSingleTextDisplay(raw: String): String {
+        var text = raw
+            .replace("<|im_end|>", "")
+            .replace("<|endoftext|>", "")
+            .trim()
+        text = normalizeGeneratedThinkArtifacts(text)
+        text = stripThinkTagsOrNull(text).orEmpty()
+        text = replaceTextModeLineBreaks(text)
+        text = stripLeadingSingleTextLabels(text)
+        if (text.startsWith("\"") && text.endsWith("\"") && text.length > 1 && !text.contains('\n')) {
+            text = text.substring(1, text.lastIndex)
+        }
+        return text.trim()
+    }
+
     private fun extractPlainSuggestions(raw: String, typedPrefix: String): List<String> =
         raw.lineSequence()
             .map { sanitizeSuggestion(it, typedPrefix) }
@@ -82,15 +98,7 @@ object LlmSuggestionParser {
             }
 
     private fun sanitizeSingleTextPayload(raw: String): String {
-        var text = raw
-            .replace("<|im_end|>", "")
-            .replace("<|endoftext|>", "")
-            .trim()
-        text = normalizeGeneratedThinkArtifacts(text)
-        text = stripLeadingSingleTextLabels(text)
-        if (text.startsWith("\"") && text.endsWith("\"") && text.length > 1 && !text.contains('\n')) {
-            text = text.substring(1, text.lastIndex)
-        }
+        val text = normalizeSingleTextDisplay(raw)
         if (looksLikeSuggestionsPayload(text) || looksLikeProtocolOrControl(text)) return ""
         return text.trim()
     }
@@ -564,14 +572,21 @@ object LlmSuggestionParser {
             val startIdx = out.indexOf(THINK_START)
             if (startIdx == -1) break
             val endIdx = out.indexOf(THINK_END, startIdx + THINK_START.length)
-            if (endIdx == -1) return null
-            out = out.removeRange(startIdx, endIdx + THINK_END.length)
+            out = if (endIdx == -1) {
+                out.substring(0, startIdx)
+            } else {
+                out.removeRange(startIdx, endIdx + THINK_END.length)
+            }
         }
         if (out.contains(THINK_END)) {
             out = out.replace(THINK_END, "")
         }
         return out
     }
+
+    private fun replaceTextModeLineBreaks(text: String): String = text
+        .replace(Regex("""\s*\Q$TEXT_MODE_LINE_BREAK_TOKEN\E\s*"""), "\n")
+        .trim()
 
     private fun stripInvisibleAndControl(input: String): String {
         if (input.isEmpty()) return input

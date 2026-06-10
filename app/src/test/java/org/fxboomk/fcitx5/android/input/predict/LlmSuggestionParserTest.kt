@@ -138,6 +138,42 @@ class LlmSuggestionParserTest {
     }
 
     @Test
+    fun parseSingleTextRemovesThinkContentAndReplacesTextModeBreaks() {
+        val raw = """
+            释义：测试[[BR]]<think>先分析词性</think>音标：/test/[[BR]]n. 测试[[BR]]v. 检验
+        """.trimIndent()
+
+        assertEquals(
+            listOf(
+                """
+                释义：测试
+                音标：/test/
+                n. 测试
+                v. 检验
+                """.trimIndent()
+            ),
+            LlmSuggestionParser.parseSingleText(raw),
+        )
+    }
+
+    @Test
+    fun parseSingleTextDropsTrailingUnclosedThinkBlock() {
+        val raw = """
+            释义：测试[[BR]]音标：/test/[[BR]]<think>这里是不该展示的思考
+        """.trimIndent()
+
+        assertEquals(
+            listOf(
+                """
+                释义：测试
+                音标：/test/
+                """.trimIndent()
+            ),
+            LlmSuggestionParser.parseSingleText(raw),
+        )
+    }
+
+    @Test
     fun ignoresStructuredGarbageFallbackWhenJsonArrayIsEmpty() {
         val raw = """
             {"id":"chatcmpl","choices":[{"message":{"content":"```json\n{\n  \"suggestions\": []\n}\n```￾stats:15;75.6597","role":"assistant"}}]}
