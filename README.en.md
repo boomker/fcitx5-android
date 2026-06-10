@@ -12,21 +12,24 @@ This fork mainly strengthens two areas:
 
 ## Recent Updates
 
-Recent commits have mainly focused on the following areas:
+After consolidating the latest 20 commits, this round of updates mainly falls into the following areas:
 
-- Keyboard layout editing keeps getting stronger:
-  - Text keyboard layout JSON now supports direct key color definitions, making fine-grained theme and color customization easier.
-  - Toolbar buttons now support icon fonts, so buttons can use glyph-based icons in addition to drawable resources.
-- Keyboard UI and interaction details received another round of focused fixes:
-  - `ButtonsAdjustingWindow` now uses touch-based dragging, which makes the overlay adjustment experience more stable.
-  - Keyboard layouts are reapplied after theme changes, and size updates are also refreshed when floating keyboard state changes.
-  - Voice input preference conditions and punctuation position enum mapping were fixed so settings better match actual behavior.
-- Toolbar and popup visuals/stability were polished further:
-  - The input bar now uses a dedicated hide-keyboard icon for clearer semantics.
-  - A popup crash when candidate lists are empty has been fixed, reducing edge-case crashes.
-  - Dialog colors such as the input method picker were refined for a more consistent visual style.
-- Project infrastructure continues tracking upstream:
-  - The latest upstream `master` changes were merged, and `.gitmodules` was updated to keep the main app and submodule build chain aligned.
+- Candidate bar and suggestion interactions were strengthened further:
+  - The expanded candidate window now includes tab actions UI, and the candidate tab action pipeline is wired into input panel updates.
+  - Bulk and paged candidate data structures were unified, and fallback paging events now preserve candidate metadata for future extensions.
+  - Interaction issues such as `KawaiiBar` showing up in floating candidate mode and the menu button dismissing clipboard suggestions first were fixed.
+- The prediction pipeline is now more controllable and better aligned with Chinese input habits:
+  - A configurable backspace behavior for predictions was added.
+  - Candidate visuals, preedit spacing, and prediction lifecycle handling were polished to avoid spurious resets and re-requests when preedit and suggestions are both active during cursor movement.
+  - Optional automatic spacing between Chinese and English on candidate commit was added, and the related patching and option initialization path was split and stabilized.
+- UI components and base widgets received small but useful improvements:
+  - `AutoScaleTextView` now supports more gravity options for different layout needs.
+  - `EmojiModifier` now relies less on hardcoded special cases, making the input-layer logic cleaner.
+- Lifecycle and state handling continue to be cleaned up:
+  - `FcitxLifecycle` has been refactored around `StateFlow`, which makes state propagation and observation more consistent.
+- Upstream sync and build-chain maintenance continue in parallel:
+  - `fcitx5` submodules and prebuilts were updated multiple times.
+  - Fixes also landed for hidden `fcitx` option patch initialization, CI handling of custom commit patches, and the `opencc` dependency declaration in F-Droid metadata.
 
 ## Highlights
 
