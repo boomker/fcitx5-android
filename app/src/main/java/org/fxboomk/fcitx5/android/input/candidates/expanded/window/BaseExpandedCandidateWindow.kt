@@ -259,6 +259,7 @@ abstract class BaseExpandedCandidateWindow<T : BaseExpandedCandidateWindow<T>> :
         candidateLayout.aiSuggestionUi.updateContent(
             visible = presentation.visible,
             values = presentation.values,
+            singleTextCommitValue = state.singleTextCommitText,
             isLongFormEnabled = state.isLongFormEnabled,
             isSingleTextMode = state.isSingleTextMode,
             isLoading = state.isLoading,

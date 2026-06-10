@@ -25,6 +25,11 @@ private const val TAG = "LlmChip"
 private const val QA_PSEUDO_STREAM_CHUNK_CHARS = 2
 private const val QA_PSEUDO_STREAM_DELAY_MS = 24L
 private const val FULL_TEXT_FETCH_CHARS = 20_000
+private val translationMeaningPrefixes = listOf("释义：", "释义:", "含义：", "含义:")
+private val translationPartOfSpeechRegex = Regex(
+    """^(?:(?:n|v|vt|vi|adj|adv|prep|pron|conj|int|num|art|aux|phr)\.)\s*(.+)$""",
+    RegexOption.IGNORE_CASE,
+)
 
 internal fun mergeSingleTextPanelResult(
     streamedText: String,
@@ -39,6 +44,39 @@ internal fun mergeSingleTextPanelResult(
     if (streamed.startsWith(final)) return streamed
     return if (final.length >= streamed.length) final else streamed
 }
+
+internal fun extractCommittedTranslation(displayText: String): String {
+    val lines = displayText.lineSequence()
+        .map(String::trim)
+        .filter(String::isNotBlank)
+        .toList()
+    if (lines.isEmpty()) return ""
+
+    translationMeaningPrefixes.forEach { prefix ->
+        lines.firstNotNullOfOrNull { line ->
+            line.takeIf { it.startsWith(prefix) }
+                ?.removePrefix(prefix)
+                ?.trim()
+                ?.takeIf(String::isNotBlank)
+        }?.let(::extractPrimaryMeaning)?.takeIf(String::isNotBlank)?.let { return it }
+    }
+
+    lines.firstNotNullOfOrNull { line ->
+        translationPartOfSpeechRegex.matchEntire(line)
+            ?.groupValues
+            ?.getOrNull(1)
+            ?.trim()
+            ?.takeIf(String::isNotBlank)
+    }?.let(::extractPrimaryMeaning)?.takeIf(String::isNotBlank)?.let { return it }
+
+    return displayText.trim()
+}
+
+private fun extractPrimaryMeaning(gloss: String): String = gloss
+    .split('；', ';', '/', '／', '、')
+    .firstOrNull()
+    .orEmpty()
+    .trim()
 
 internal fun hasInteractiveAiContent(
     state: AiSuggestionStripComponent.PresentationState,
@@ -85,6 +123,7 @@ class AiSuggestionStripComponent(
         val suggestions: List<String>,
         val anchor: CursorAnchorState?,
         val panelSuggestions: List<String>,
+        val singleTextCommitText: String?,
         val isPanelOpen: Boolean,
         val isLongFormEnabled: Boolean,
         val isSingleTextMode: Boolean,
@@ -159,6 +198,7 @@ class AiSuggestionStripComponent(
         suggestions = emptyList(),
         anchor = null,
         panelSuggestions = emptyList(),
+        singleTextCommitText = null,
         isPanelOpen = false,
         isLongFormEnabled = false,
         isSingleTextMode = false,
@@ -799,12 +839,22 @@ class AiSuggestionStripComponent(
             PanelContentMode.LongFormStreaming,
             PanelContentMode.LongFormReady -> listOf(panelDisplayedText).filter(String::isNotBlank)
         }
+        val singleTextCommitText = when {
+            panelSuggestions.isEmpty() -> null
+            panelContentMode == PanelContentMode.TranslateLoading ||
+                panelContentMode == PanelContentMode.TranslateStreaming ||
+                panelContentMode == PanelContentMode.TranslateReady ->
+                extractCommittedTranslation(panelSuggestions.first())
+                    .ifBlank { null }
+            else -> panelSuggestions.first()
+        }
         view.visibility = if (mode == PresentationMode.Hidden) View.GONE else View.INVISIBLE
         latestPresentationState = PresentationState(
             mode = mode,
             suggestions = visibleSuggestions,
             anchor = anchorState,
             panelSuggestions = panelSuggestions,
+            singleTextCommitText = singleTextCommitText,
             isPanelOpen = panelVisible,
             isLongFormEnabled = longFormEnabled,
             isSingleTextMode = isSingleTextPanelMode(),
@@ -1004,7 +1054,7 @@ class AiSuggestionStripComponent(
                 if (streamed.isBlank()) return@request
                 receivedStreamingPartial = true
                 streamedTranslation = streamed
-                activeSuggestions = listOf(streamed)
+                activeSuggestions = listOf(extractCommittedTranslation(streamed).ifBlank { streamed })
                 panelVisible = true
                 panelDisplayedText = streamed
                 panelContentMode = PanelContentMode.TranslateStreaming
@@ -1033,7 +1083,9 @@ class AiSuggestionStripComponent(
                     dispatchPresentationChanged()
                     return@request
                 }
-                activeSuggestions = listOf(mergedTranslation)
+                activeSuggestions = listOf(
+                    extractCommittedTranslation(mergedTranslation).ifBlank { mergedTranslation }
+                )
                 panelVisible = true
                 panelDisplayedText = mergedTranslation
                 panelContentMode = PanelContentMode.TranslateReady
@@ -1042,7 +1094,9 @@ class AiSuggestionStripComponent(
             onError = { error ->
                 Log.e(TAG, "translate predict failed: ${error.message}", error)
                 if (receivedStreamingPartial && streamedTranslation.isNotBlank()) {
-                    activeSuggestions = listOf(streamedTranslation)
+                    activeSuggestions = listOf(
+                        extractCommittedTranslation(streamedTranslation).ifBlank { streamedTranslation }
+                    )
                     panelVisible = true
                     panelDisplayedText = streamedTranslation
                     panelContentMode = PanelContentMode.TranslateReady

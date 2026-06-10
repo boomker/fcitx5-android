@@ -127,6 +127,7 @@ class AiSuggestionExpandedUi(
     fun updateContent(
         visible: Boolean,
         values: List<String>,
+        singleTextCommitValue: String?,
         isLongFormEnabled: Boolean,
         isSingleTextMode: Boolean,
         isLoading: Boolean,
@@ -154,8 +155,11 @@ class AiSuggestionExpandedUi(
             recyclerView.visibility = View.GONE
             singleTextScrollView.visibility = View.VISIBLE
             singleTextView.text = singleItem?.text.orEmpty()
-            val clickListener = if (singleItem?.enabled == true) {
-                View.OnClickListener { onSuggestionClick(singleItem.text) }
+            val clickValue = singleTextCommitValue
+                ?.takeIf(String::isNotBlank)
+                ?: singleItem?.text
+            val clickListener = if (singleItem?.enabled == true && !clickValue.isNullOrBlank()) {
+                View.OnClickListener { onSuggestionClick(clickValue) }
             } else {
                 null
             }

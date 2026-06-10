@@ -2600,6 +2600,7 @@ class InputView(
         }
 
         val suggestions = when {
+            state.isSingleTextMode -> state.suggestions
             state.panelSuggestions.isNotEmpty() -> state.panelSuggestions
             state.suggestions.isNotEmpty() -> state.suggestions
             else -> emptyList()

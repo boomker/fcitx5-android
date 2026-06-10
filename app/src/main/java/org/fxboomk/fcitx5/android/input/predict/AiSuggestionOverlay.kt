@@ -46,6 +46,7 @@ class AiSuggestionOverlay(
         suggestions = emptyList(),
         anchor = null,
         panelSuggestions = emptyList(),
+        singleTextCommitText = null,
         isPanelOpen = false,
         isLongFormEnabled = false,
         isSingleTextMode = false,
@@ -110,6 +111,7 @@ class AiSuggestionOverlay(
         bubbleUi.updateCount(state.suggestions.size)
         panelUi.updateContent(
             values = state.panelSuggestions,
+            singleTextCommitValue = state.singleTextCommitText,
             isLongFormEnabled = state.isLongFormEnabled,
             isSingleTextMode = state.isSingleTextMode,
             isLoading = state.isLoading,

@@ -256,6 +256,7 @@ class AiSuggestionPanelUi(
 
     fun updateContent(
         values: List<String>,
+        singleTextCommitValue: String?,
         isLongFormEnabled: Boolean,
         isSingleTextMode: Boolean,
         isLoading: Boolean,
@@ -283,8 +284,11 @@ class AiSuggestionPanelUi(
             recyclerView.visibility = View.GONE
             singleTextScrollView.visibility = View.VISIBLE
             singleTextView.text = singleItem?.text.orEmpty()
-            val singleTextClickListener = if (singleItem?.enabled == true) {
-                View.OnClickListener { onSuggestionClick(singleItem.text) }
+            val singleTextClickValue = singleTextCommitValue
+                ?.takeIf(String::isNotBlank)
+                ?: singleItem?.text
+            val singleTextClickListener = if (singleItem?.enabled == true && !singleTextClickValue.isNullOrBlank()) {
+                View.OnClickListener { onSuggestionClick(singleTextClickValue) }
             } else {
                 null
             }

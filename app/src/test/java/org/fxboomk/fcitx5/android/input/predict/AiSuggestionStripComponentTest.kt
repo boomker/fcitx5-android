@@ -93,6 +93,7 @@ class AiSuggestionStripComponentTest {
             suggestions = emptyList(),
             anchor = null,
             panelSuggestions = emptyList(),
+            singleTextCommitText = null,
             isPanelOpen = false,
             isLongFormEnabled = false,
             isSingleTextMode = true,
@@ -113,6 +114,7 @@ class AiSuggestionStripComponentTest {
             suggestions = emptyList(),
             anchor = null,
             panelSuggestions = emptyList(),
+            singleTextCommitText = null,
             isPanelOpen = true,
             isLongFormEnabled = false,
             isSingleTextMode = true,
@@ -169,6 +171,7 @@ class AiSuggestionStripComponentTest {
             suggestions = emptyList(),
             anchor = null,
             panelSuggestions = listOf("translated result"),
+            singleTextCommitText = "translated result",
             isPanelOpen = true,
             isLongFormEnabled = false,
             isSingleTextMode = true,
@@ -189,6 +192,7 @@ class AiSuggestionStripComponentTest {
             suggestions = emptyList(),
             anchor = null,
             panelSuggestions = listOf("partial translated result"),
+            singleTextCommitText = "partial translated result",
             isPanelOpen = true,
             isLongFormEnabled = false,
             isSingleTextMode = true,
@@ -200,5 +204,29 @@ class AiSuggestionStripComponentTest {
         )
 
         assertFalse(hasCompletedAiResult(state))
+    }
+
+    @Test
+    fun extractCommittedTranslationPrefersMeaningHeader() {
+        val display = """
+            释义：测试；试验
+            音标：/test/
+            n. 测试；试验
+            v. 检验；考查
+        """.trimIndent()
+
+        assertEquals("测试", extractCommittedTranslation(display))
+    }
+
+    @Test
+    fun extractCommittedTranslationFallsBackToFirstPartOfSpeechMeaning() {
+        val display = """
+            test
+            音标：/test/
+            n. 测试；试验
+            v. 检验；考查
+        """.trimIndent()
+
+        assertEquals("测试", extractCommittedTranslation(display))
     }
 }
