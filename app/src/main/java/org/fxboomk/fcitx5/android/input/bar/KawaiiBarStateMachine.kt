@@ -13,6 +13,15 @@ import org.fxboomk.fcitx5.android.utils.BuildTransitionEvent
 import org.fxboomk.fcitx5.android.utils.EventStateMachine
 import org.fxboomk.fcitx5.android.utils.TransitionBuildBlock
 
+internal fun nextKawaiiBarStateOnCandidatesUpdated(
+    currentState: KawaiiBarStateMachine.State,
+    candidateEmpty: Boolean,
+): KawaiiBarStateMachine.State = when (currentState) {
+    Idle -> if (candidateEmpty) Idle else Candidate
+    Candidate -> if (candidateEmpty) Idle else Candidate
+    Title -> Title
+}
+
 object KawaiiBarStateMachine {
     enum class State {
         Idle, Candidate, Title
@@ -31,9 +40,11 @@ object KawaiiBarStateMachine {
             }
         }),
         CandidatesUpdated({
-            from(Idle) transitTo Candidate on (CandidateEmpty to false)
-            from(Candidate) transitTo Idle onF {
-                it(PreeditEmpty) == true && it(CandidateEmpty) == true
+            accept { _, currentState, useBoolean ->
+                nextKawaiiBarStateOnCandidatesUpdated(
+                    currentState = currentState,
+                    candidateEmpty = useBoolean(CandidateEmpty) ?: true,
+                )
             }
         }),
         ExtendedWindowAttached({
@@ -59,4 +70,3 @@ object KawaiiBarStateMachine {
         }
 
 }
-

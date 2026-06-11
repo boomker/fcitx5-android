@@ -30,6 +30,7 @@ import org.fxboomk.fcitx5.android.core.FcitxEvent.PagedCandidateEvent
 import org.fxboomk.fcitx5.android.daemon.launchOnReady
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.input.bar.KawaiiBarComponent
+import org.fxboomk.fcitx5.android.input.bar.hasVisibleCandidateContent
 import org.fxboomk.fcitx5.android.input.broadcast.InputBroadcastReceiver
 import org.fxboomk.fcitx5.android.input.candidates.CandidateItemUi
 import org.fxboomk.fcitx5.android.input.candidates.CandidateViewHolder
@@ -491,6 +492,10 @@ class HorizontalCandidateComponent :
         if (pagedCandidateFlowActive && data.total == -1) {
             pendingLegacyCandidateUpdate?.let(view::removeCallbacks)
             pendingLegacyCandidateUpdate = null
+            if (data.candidates.isEmpty()) {
+                updateNativeCandidateSnapshot(emptyArray(), 0, 0, -1)
+                renderCurrentCandidates()
+            }
             return
         }
         pagedCandidateFlowActive = false
@@ -556,6 +561,7 @@ class HorizontalCandidateComponent :
             }
         }
         adapter.updateCandidates(candidates, total, activeIndex, indexOffset)
+        bar.syncCandidateBarState(candidateEmpty = !hasVisibleCandidateContent(candidates))
         if (candidates.isEmpty()) {
             refreshExpanded()
         }

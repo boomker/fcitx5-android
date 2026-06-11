@@ -31,6 +31,7 @@ import kotlinx.coroutines.launch
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.core.CapabilityFlag
 import org.fxboomk.fcitx5.android.core.CapabilityFlags
+import org.fxboomk.fcitx5.android.core.CandidateWord
 import org.fxboomk.fcitx5.android.core.FcitxEvent.CandidateListEvent
 import org.fxboomk.fcitx5.android.data.clipboard.ClipboardManager
 import org.fxboomk.fcitx5.android.data.clipboard.db.ClipboardEntry
@@ -105,6 +106,9 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.PI
 import kotlin.math.sin
+
+internal fun hasVisibleCandidateContent(candidates: Array<CandidateWord>): Boolean =
+    candidates.any { it.textWithComment().isNotBlank() }
 
 class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(),
     InputBroadcastReceiver {
@@ -246,9 +250,9 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
     }
 
     private fun syncCandidateBarWithAiAvailability() {
-        syncCandidateBarState(horizontalCandidate.adapter.candidates.isEmpty())
+        syncCandidateBarState(!hasVisibleCandidateContent(horizontalCandidate.adapter.candidates))
         syncExpandedCandidateState(
-            hasExpandableCandidates = horizontalCandidate.adapter.candidates.isNotEmpty() &&
+            hasExpandableCandidates = hasVisibleCandidateContent(horizontalCandidate.adapter.candidates) &&
                 (
                     horizontalCandidate.adapter.total == -1 ||
                         horizontalCandidate.adapter.total >
@@ -260,8 +264,7 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
     fun syncCandidateBarState(candidateEmpty: Boolean) {
         // When floating candidates window is active, always treat as empty
         // to prevent KawaiiBar from entering Candidate state
-        val effectiveEmpty = if (isFloatingCandidatesActive()) true
-            else (candidateEmpty && !aiSuggestionExpandAvailable)
+        val effectiveEmpty = if (isFloatingCandidatesActive()) true else candidateEmpty
         barStateMachine.push(CandidatesUpdated, CandidateEmpty to effectiveEmpty)
     }
 
@@ -773,7 +776,7 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
     }
 
     override fun onCandidateUpdate(data: CandidateListEvent.Data) {
-        syncCandidateBarState(candidateEmpty = data.candidates.isEmpty())
+        syncCandidateBarState(candidateEmpty = !hasVisibleCandidateContent(data.candidates))
     }
 
     override fun onWindowAttached(window: InputWindow) {
