@@ -17,9 +17,8 @@ internal fun nextKawaiiBarStateOnCandidatesUpdated(
     currentState: KawaiiBarStateMachine.State,
     candidateEmpty: Boolean,
 ): KawaiiBarStateMachine.State = when (currentState) {
-    Idle -> if (candidateEmpty) Idle else Candidate
-    Candidate -> if (candidateEmpty) Idle else Candidate
     Title -> Title
+    else -> if (candidateEmpty) Idle else Candidate
 }
 
 object KawaiiBarStateMachine {

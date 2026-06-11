@@ -250,9 +250,10 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
     }
 
     private fun syncCandidateBarWithAiAvailability() {
-        syncCandidateBarState(!hasVisibleCandidateContent(horizontalCandidate.adapter.candidates))
+        val hasVisible = hasVisibleCandidateContent(horizontalCandidate.adapter.candidates)
+        syncCandidateBarState(!hasVisible)
         syncExpandedCandidateState(
-            hasExpandableCandidates = hasVisibleCandidateContent(horizontalCandidate.adapter.candidates) &&
+            hasExpandableCandidates = hasVisible &&
                 (
                     horizontalCandidate.adapter.total == -1 ||
                         horizontalCandidate.adapter.total >
