@@ -16,6 +16,7 @@ import org.fxboomk.fcitx5.android.core.CapabilityFlags
 import org.fxboomk.fcitx5.android.core.FcitxEvent
 import org.fxboomk.fcitx5.android.core.InputMethodEntry
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
+import org.fxboomk.fcitx5.android.input.bar.hasVisibleCandidateContent
 import org.fxboomk.fcitx5.android.input.bar.KawaiiBarComponent
 import org.fxboomk.fcitx5.android.input.broadcast.InputBroadcastReceiver
 import org.fxboomk.fcitx5.android.input.broadcast.ReturnKeyDrawableComponent
@@ -33,6 +34,18 @@ import splitties.views.dsl.core.add
 import splitties.views.dsl.core.frameLayout
 import splitties.views.dsl.core.lParams
 import splitties.views.dsl.core.matchParent
+
+internal fun shouldComposeForKeyboardOverride(
+    preeditEmpty: Boolean,
+    hasVisibleCandidates: Boolean,
+    inputMethod: InputMethodEntry?,
+): Boolean {
+    if (!preeditEmpty) return true
+    return hasVisibleCandidates && inputMethod?.isRimeInputMethod() != true
+}
+
+private fun InputMethodEntry.isRimeInputMethod(): Boolean =
+    addon == "rime" || icon == "fcitx-rime"
 
 class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), EssentialWindow,
     InputBroadcastReceiver {
@@ -76,13 +89,18 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
     private var currentKeyboardName = ""
     private var lastSymbolType: String by AppPrefs.getInstance().internal.lastSymbolLayout
     private var preeditEmpty = true
-    private var candidateEmpty = true
+    private var hasVisibleCandidates = false
+    private var currentInputMethod: InputMethodEntry? = null
     private var composingState = false
 
     private val currentKeyboard: BaseKeyboard? get() = keyboards[currentKeyboardName]
 
     private fun updateCompositionState() {
-        val composing = !preeditEmpty || !candidateEmpty
+        val composing = shouldComposeForKeyboardOverride(
+            preeditEmpty = preeditEmpty,
+            hasVisibleCandidates = hasVisibleCandidates,
+            inputMethod = currentInputMethod,
+        )
         if (composingState == composing) return
         composingState = composing
         currentKeyboard?.onCompositionStateChanged(composing)
@@ -153,7 +171,9 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
             it.setTextScale(currentTextScale)
             it.onAttach()
             it.onReturnDrawableUpdate(returnKeyDrawable.resourceId)
-            it.onInputMethodUpdate(fcitx.runImmediately { inputMethodEntryCached })
+            val inputMethod = fcitx.runImmediately { inputMethodEntryCached }
+            currentInputMethod = inputMethod
+            it.onInputMethodUpdate(inputMethod)
             updateCompositionState()
         }
     }
@@ -182,7 +202,8 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
 
     override fun onStartInput(info: EditorInfo, capFlags: CapabilityFlags) {
         preeditEmpty = true
-        candidateEmpty = true
+        hasVisibleCandidates = false
+        currentInputMethod = fcitx.runImmediately { inputMethodEntryCached }
         composingState = false
         val targetLayout = when (info.inputType and InputType.TYPE_MASK_CLASS) {
             InputType.TYPE_CLASS_NUMBER -> NumberKeyboard.Name
@@ -194,7 +215,9 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
     }
 
     override fun onImeUpdate(ime: InputMethodEntry) {
+        currentInputMethod = ime
         currentKeyboard?.onInputMethodUpdate(ime)
+        updateCompositionState()
     }
 
     override fun onPunctuationUpdate(mapping: Map<String, String>) {
@@ -211,7 +234,7 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
     }
 
     override fun onCandidateUpdate(data: FcitxEvent.CandidateListEvent.Data) {
-        candidateEmpty = data.candidates.isEmpty()
+        hasVisibleCandidates = hasVisibleCandidateContent(data.candidates)
         updateCompositionState()
     }
 
