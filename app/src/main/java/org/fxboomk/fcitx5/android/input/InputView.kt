@@ -110,7 +110,6 @@ import splitties.views.dsl.core.add
 import splitties.views.dsl.core.imageView
 import splitties.views.dsl.core.matchParent
 import splitties.views.dsl.core.view
-import splitties.views.dsl.core.withTheme
 import splitties.views.dsl.core.wrapContent
 import splitties.views.backgroundColor
 import splitties.views.imageDrawable
@@ -1108,7 +1107,6 @@ class InputView(
     }
 
     private val scope = DynamicScope()
-    private val themedContext = context.withTheme(R.style.Theme_InputViewTheme)
     private val broadcaster = InputBroadcaster()
     private val popup = PopupComponent()
     private val punctuation = PunctuationComponent()

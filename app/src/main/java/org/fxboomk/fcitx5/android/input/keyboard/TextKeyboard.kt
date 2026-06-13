@@ -632,10 +632,17 @@ class TextKeyboard(
             is PopupAction.PreviewAction -> action.copy(content = transformPopupPreview(action.content))
             is PopupAction.PreviewUpdateAction -> action.copy(content = transformPopupPreview(action.content))
             is PopupAction.ShowKeyboardAction -> {
-                val label = action.keyboard.label
-                if (label.length == 1 && label[0].isLetter())
-                    action.copy(keyboard = KeyDef.Popup.Keyboard(transformAlphabet(label)))
-                else action
+                when (action.keyboard) {
+                    is KeyDef.Popup.Keyboard.Preset -> {
+                        val label = action.keyboard.label
+                        if (label.length == 1 && label[0].isLetter()) {
+                            action.copy(
+                                keyboard = action.keyboard.copy(label = transformAlphabet(label))
+                            )
+                        } else action
+                    }
+                    is KeyDef.Popup.Keyboard.Explicit -> action
+                }
             }
             else -> action
         }

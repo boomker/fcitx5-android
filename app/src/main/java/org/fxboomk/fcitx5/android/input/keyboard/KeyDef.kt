@@ -280,7 +280,12 @@ open class KeyDef(
 
         class AltPreview(content: String, val alternative: String) : Preview(content)
 
-        class Keyboard(val label: String) : Popup()
+        sealed class Keyboard : Popup() {
+            data class Preset(val label: String, val transformPunctuation: Boolean = true) :
+                Keyboard()
+
+            class Explicit(val items: Array<String>) : Keyboard()
+        }
 
         class Menu(val items: Array<Item>) : Popup() {
             class Item(val label: String, @DrawableRes val icon: Int, val action: KeyAction)
