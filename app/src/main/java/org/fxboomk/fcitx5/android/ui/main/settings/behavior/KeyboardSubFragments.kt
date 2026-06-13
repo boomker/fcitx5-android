@@ -5,7 +5,6 @@
 package org.fxboomk.fcitx5.android.ui.main.settings.behavior
 
 import android.content.Intent
-import android.os.Bundle
 import androidx.preference.Preference
 import androidx.preference.PreferenceScreen
 import org.fxboomk.fcitx5.android.R
@@ -16,8 +15,9 @@ import org.fxboomk.fcitx5.android.utils.addCategory
 import org.fxboomk.fcitx5.android.utils.addPreference
 
 abstract class KeyboardSectionFragment : ManagedPreferenceFragment(AppPrefs.getInstance().keyboard) {
-    final override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
-        preferenceScreen = preferenceManager.createPreferenceScreen(requireContext()).also(::onBuildPreferenceScreen)
+    final override fun onPreferenceUiCreated(screen: PreferenceScreen) {
+        screen.removeAll()
+        onBuildPreferenceScreen(screen)
     }
 
     protected abstract fun onBuildPreferenceScreen(screen: PreferenceScreen)

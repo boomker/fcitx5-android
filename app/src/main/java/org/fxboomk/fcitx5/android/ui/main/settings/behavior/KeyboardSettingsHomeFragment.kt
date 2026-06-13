@@ -4,7 +4,6 @@
  */
 package org.fxboomk.fcitx5.android.ui.main.settings.behavior
 
-import android.os.Bundle
 import androidx.preference.PreferenceScreen
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
@@ -16,8 +15,9 @@ import org.fxboomk.fcitx5.android.utils.navigateWithAnim
 
 class KeyboardSettingsHomeFragment : ManagedPreferenceFragment(AppPrefs.getInstance().keyboard) {
 
-    override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
-        preferenceScreen = preferenceManager.createPreferenceScreen(requireContext()).also(::buildScreen)
+    override fun onPreferenceUiCreated(screen: PreferenceScreen) {
+        screen.removeAll()
+        buildScreen(screen)
     }
 
     private fun buildScreen(screen: PreferenceScreen) {

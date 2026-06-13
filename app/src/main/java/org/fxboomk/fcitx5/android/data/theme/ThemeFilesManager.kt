@@ -358,8 +358,16 @@ object ThemeFilesManager {
             errorRuntime(R.string.exception_theme_json)
         }
 
+    private fun zipInputStream(src: InputStream, encoding: String): ZipInputStream {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            ZipInputStream(src, Charset.forName(encoding))
+        } else {
+            ZipInputStream(src)
+        }
+    }
+
     private fun decodeThemeWithEncoding(src: InputStream, encoding: String): Theme.Custom {
-        return ZipInputStream(src, Charset.forName(encoding)).use { zipStream ->
+        return zipInputStream(src, encoding).use { zipStream ->
             var entry = zipStream.nextEntry
             while (entry != null) {
                 if (!entry.isDirectory && entry.name.endsWith(".json")) {

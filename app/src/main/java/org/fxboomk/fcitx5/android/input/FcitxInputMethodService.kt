@@ -934,7 +934,16 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             codePoint in 'a'.code..'z'.code
 
     private fun isChineseCodePoint(codePoint: Int): Boolean =
-        Character.UnicodeScript.of(codePoint) == Character.UnicodeScript.HAN
+        codePoint in 0x3400..0x4DBF ||
+            codePoint in 0x4E00..0x9FFF ||
+            codePoint in 0xF900..0xFAFF ||
+            codePoint in 0x20000..0x2A6DF ||
+            codePoint in 0x2A700..0x2B73F ||
+            codePoint in 0x2B740..0x2B81F ||
+            codePoint in 0x2B820..0x2CEAF ||
+            codePoint in 0x2CEB0..0x2EBEF ||
+            codePoint in 0x30000..0x3134F ||
+            codePoint in 0x31350..0x323AF
 
     private fun String.codePointBeforeOrNull(): Int? =
         if (isEmpty()) null else codePointBefore(length)
