@@ -93,49 +93,30 @@ object DataManager {
     fun addOnNextSyncedCallback(block: () -> Unit) =
         callbacks.add(block)
 
+    private fun PackageManager.queryPluginPackages(action: String): Set<String> {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            queryIntentActivities(
+                Intent(action),
+                PackageManager.ResolveInfoFlags.of(PackageManager.MATCH_ALL.toLong())
+            )
+        } else {
+            queryIntentActivities(Intent(action), PackageManager.MATCH_ALL)
+        }.mapTo(mutableSetOf()) { it.activityInfo.packageName }
+    }
+
     private fun queryCompatiblePluginPackages(): Set<String> {
         val pm = appContext.packageManager
-
-        // Query both current app's plugins and original Fcitx5 Android plugins
-        val pluginPackages = mutableSetOf<String>()
-
-        // Query for current app's plugins
-        val currentPluginIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            pm.queryIntentActivities(
-                Intent(PLUGIN_INTENT),
-                PackageManager.ResolveInfoFlags.of(PackageManager.MATCH_ALL.toLong())
-            )
-        } else {
-            pm.queryIntentActivities(Intent(PLUGIN_INTENT), PackageManager.MATCH_ALL)
-        }.map { it.activityInfo.packageName }
-
-        // Query for original Fcitx5 Android plugins
-        val originalPluginIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            pm.queryIntentActivities(
-                Intent(BuildConfig.ORIGINAL_PLUGIN_MANIFEST_ACTION),
-                PackageManager.ResolveInfoFlags.of(PackageManager.MATCH_ALL.toLong())
-            )
-        } else {
-            pm.queryIntentActivities(Intent(BuildConfig.ORIGINAL_PLUGIN_MANIFEST_ACTION), PackageManager.MATCH_ALL)
-        }.map { it.activityInfo.packageName }
-
-        // Query for original Fcitx5 Android debug plugins
-        val originalDebugPluginIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            pm.queryIntentActivities(
-                Intent(BuildConfig.ORIGINAL_DEBUG_PLUGIN_MANIFEST_ACTION),
-                PackageManager.ResolveInfoFlags.of(PackageManager.MATCH_ALL.toLong())
-            )
-        } else {
-            pm.queryIntentActivities(Intent(BuildConfig.ORIGINAL_DEBUG_PLUGIN_MANIFEST_ACTION), PackageManager.MATCH_ALL)
-        }.map { it.activityInfo.packageName }
-
-        pluginPackages.addAll(currentPluginIntent)
-        pluginPackages.addAll(originalPluginIntent)
-        pluginPackages.addAll(originalDebugPluginIntent)
-
         val allowOfficial = AppPrefs.getInstance().advanced.allowOriginalPlugins.getValue()
+
+        val pluginPackages = mutableSetOf<String>()
+        pluginPackages.addAll(pm.queryPluginPackages(PLUGIN_INTENT))
+        if (allowOfficial) {
+            pluginPackages.addAll(pm.queryPluginPackages(BuildConfig.ORIGINAL_PLUGIN_MANIFEST_ACTION))
+            pluginPackages.addAll(pm.queryPluginPackages(BuildConfig.ORIGINAL_DEBUG_PLUGIN_MANIFEST_ACTION))
+        }
+        val mainSig = pm.packageSigners(appContext.packageName)
         val filteredPluginPackages = pluginPackages.filter { packageName ->
-            if (hasSameSignature(packageName)) {
+            if (hasSameSignature(packageName, mainSig)) {
                 true
             } else if (allowOfficial) {
                 packageMatchesPrefix(packageName, OFFICIAL_PLUGIN_PREFIX)
@@ -255,10 +236,9 @@ object DataManager {
         return packageName == normalized || packageName.startsWith("$normalized.")
     }
 
-    private fun hasSameSignature(packageName: String): Boolean {
+    private fun hasSameSignature(packageName: String, mainSig: Array<Signature>): Boolean {
         val pm = appContext.packageManager
         return try {
-            val mainSig = pm.packageSigners(appContext.packageName)
             val callerSig = pm.packageSigners(packageName)
             if (mainSig.isEmpty() || callerSig.isEmpty()) return false
             mainSig.contentEquals(callerSig)
