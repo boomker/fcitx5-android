@@ -357,7 +357,6 @@ public:
     void setAddonState(const std::map<std::string, bool> &state) {
         auto &globalConfig = p_instance->globalConfig();
         auto &addonManager = p_instance->addonManager();
-        auto &imMgr = p_instance->inputMethodManager();
         const auto &enabledAddons = globalConfig.enabledAddons();
         std::set<std::string> enabledSet(enabledAddons.begin(), enabledAddons.end());
         const auto &disabledAddons = globalConfig.disabledAddons();
@@ -383,34 +382,7 @@ public:
         globalConfig.setEnabledAddons({enabledSet.begin(), enabledSet.end()});
         globalConfig.setDisabledAddons({disabledSet.begin(), disabledSet.end()});
         globalConfig.safeSave();
-        p_instance->reloadConfig();
-
-        const std::unordered_set<std::string> enabledAddonSet(enabledSet.begin(), enabledSet.end());
-        const std::unordered_set<std::string> disabledAddonSet(disabledSet.begin(), disabledSet.end());
-        fcitx::InputMethodGroup newGroup(imMgr.currentGroup().name());
-        newGroup.setDefaultLayout(imMgr.currentGroup().defaultLayout());
-        const auto &currentList = imMgr.currentGroup().inputMethodList();
-        auto &newList = newGroup.inputMethodList();
-        for (const auto &item : currentList) {
-            const auto *entry = imMgr.entry(item.name());
-            if (!entry) {
-                continue;
-            }
-            const auto *addonInfo = addonManager.addonInfo(entry->addon());
-            if (!isAddonEnabled(addonInfo, enabledAddonSet, disabledAddonSet)) {
-                continue;
-            }
-            newList.emplace_back(item);
-        }
-        if (!newList.empty()) {
-            const auto &defaultIm = imMgr.currentGroup().defaultInputMethod();
-            auto iter = std::find_if(newList.begin(), newList.end(), [&](const auto &item) {
-                return item.name() == defaultIm;
-            });
-            newGroup.setDefaultInputMethod(iter != newList.end() ? defaultIm : newList.front().name());
-            imMgr.setGroup(std::move(newGroup));
-            imMgr.save();
-        }
+        reloadConfig();
     }
 
     void triggerQuickPhrase() {

@@ -4,16 +4,22 @@
  */
 package org.fxboomk.fcitx5.android.ui.main.settings.addon
 
+import android.os.Bundle
 import android.view.View
+import androidx.activity.OnBackPressedCallback
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AlertDialog
+import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
+import kotlinx.coroutines.launch
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.core.AddonInfo
 import org.fxboomk.fcitx5.android.core.FcitxAPI
-import org.fxboomk.fcitx5.android.daemon.launchOnReady
+import org.fxboomk.fcitx5.android.daemon.FcitxDaemon
 import org.fxboomk.fcitx5.android.ui.common.BaseDynamicListUi
 import org.fxboomk.fcitx5.android.ui.common.CheckBoxListUi
 import org.fxboomk.fcitx5.android.ui.common.OnItemChangedListener
+import org.fxboomk.fcitx5.android.ui.common.withLoadingDialog
 import org.fxboomk.fcitx5.android.ui.main.settings.PreferenceScreenFactory
 import org.fxboomk.fcitx5.android.ui.main.settings.ProgressFragment
 import org.fxboomk.fcitx5.android.ui.main.settings.SettingsRoute
@@ -38,14 +44,38 @@ class AddonListFragment : ProgressFragment(), OnItemChangedListener<AddonInfo> {
 
     private val addonDisplayNames = mutableMapOf<String, String>()
 
+    private val visibleConfigAddons = mutableSetOf<String>()
+
+    private var restartPending = false
+
     private fun displayNameOf(addon: AddonInfo): String = addon.displayName
 
-    private fun updateAddonState() {
+    private suspend fun FcitxAPI.hasVisibleConfigOptions(addon: String): Boolean =
+        PreferenceScreenFactory.hasVisibleOptions(getAddonConfig(addon))
+
+    private suspend fun restartFcitxIfNeeded() {
+        if (!restartPending) return
+        restartPending = false
+        FcitxDaemon.restartFcitx()
+        fcitx.runOnReady {}
+    }
+
+    private fun updateAddonState(changed: AddonInfo) {
         if (!isInitialized) return
         val ids = ui.entries.map { it.uniqueName }.toTypedArray()
         val state = ui.entries.map { it.enabled }.toBooleanArray()
-        fcitx.launchOnReady {
-            it.setAddonState(ids, state)
+        lifecycleScope.launch {
+            fcitx.runOnReady {
+                setAddonState(ids, state)
+            }
+            restartPending = true
+            if (!changed.enabled) {
+                visibleConfigAddons -= changed.uniqueName
+            }
+            val idx = ui.indexItem(changed)
+            if (idx >= 0) {
+                ui.notifyItemChanged(idx)
+            }
         }
     }
 
@@ -108,13 +138,31 @@ class AddonListFragment : ProgressFragment(), OnItemChangedListener<AddonInfo> {
         }
     }
 
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        requireActivity().onBackPressedDispatcher.addCallback(
+            this,
+            object : OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    lifecycleScope.withLoadingDialog(
+                        requireContext(),
+                        R.string.restarting_fcitx
+                    ) {
+                        restartFcitxIfNeeded()
+                        findNavController().popBackStack()
+                    }
+                }
+            }
+        )
+    }
+
     override suspend fun initialize(): View {
-        val visibleConfigAddons = fcitx.runOnReady {
+        visibleConfigAddons += fcitx.runOnReady {
             buildSet {
                 addons()
                     .filter { it.enabled && it.isConfigurable && it.uniqueName !in hiddenAddons }
                     .forEach { addon ->
-                        if (PreferenceScreenFactory.hasVisibleOptions(getAddonConfig(addon.uniqueName))) {
+                        if (hasVisibleConfigOptions(addon.uniqueName)) {
                             add(addon.uniqueName)
                         }
                     }
@@ -175,7 +223,7 @@ class AddonListFragment : ProgressFragment(), OnItemChangedListener<AddonInfo> {
     }
 
     override fun onItemUpdated(idx: Int, old: AddonInfo, new: AddonInfo) {
-        updateAddonState()
+        updateAddonState(new)
     }
 
     override fun onDestroy() {
