@@ -6,6 +6,7 @@
 package org.fxboomk.fcitx5.android.input.candidates.floating
 
 import android.content.Context
+import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.widget.TextView
 import androidx.core.text.buildSpannedString
@@ -32,9 +33,10 @@ class LabeledCandidateItemUi(
     }
 
     fun update(candidate: CandidateWord, active: Boolean) {
-        val labelFg = if (active) theme.genericActiveForegroundColor else theme.candidateLabelColor
-        val fg = if (active) theme.genericActiveForegroundColor else theme.candidateTextColor
-        val altFg = if (active) theme.genericActiveForegroundColor else theme.candidateCommentColor
+        val activeFg = if (theme.isDark) Color.BLACK else Color.WHITE
+        val labelFg = if (active) activeFg else theme.candidateLabelColor
+        val fg = if (active) activeFg else theme.candidateTextColor
+        val altFg = if (active) activeFg else theme.candidateCommentColor
         root.text = buildSpannedString {
             color(labelFg) {
                 append(candidate.label)

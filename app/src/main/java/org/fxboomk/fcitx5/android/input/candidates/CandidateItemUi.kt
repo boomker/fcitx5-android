@@ -6,6 +6,7 @@
 package org.fxboomk.fcitx5.android.input.candidates
 
 import android.content.Context
+import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import androidx.annotation.ColorInt
@@ -57,6 +58,10 @@ class CandidateItemUi(
 
     private var currentCandidate = CandidateWord.Empty
     private var isActive = false
+    private var hasFirstCandidateStyle = false
+
+    private val activeForegroundColor: Int
+        get() = if (theme.isDark) Color.BLACK else Color.WHITE
 
     fun applyConfiguredTypeface(fontOverride: Typeface? = font) {
         val resolved = fontOverride ?: FontProviders.resolveTypeface("cand_font", text.typeface)
@@ -79,10 +84,14 @@ class CandidateItemUi(
             pressColor = pressColor,
             inset = ctx.dp(4)
         )
+        hasFirstCandidateStyle = true
+        renderCandidate()
     }
 
     fun resetToDefaultBackground(@ColorInt pressColor: Int) {
         root.background = pressHighlightDrawable(pressColor)
+        hasFirstCandidateStyle = false
+        renderCandidate()
     }
 
     fun setActive(active: Boolean) {
@@ -98,8 +107,10 @@ class CandidateItemUi(
     }
 
     private fun renderCandidate() {
-        val fg = if (isActive) theme.genericActiveForegroundColor else theme.candidateTextColor
-        val altFg = if (isActive) theme.genericActiveForegroundColor else theme.candidateCommentColor
+        val highlighted = isActive || hasFirstCandidateStyle
+        val fg = if (highlighted) activeForegroundColor else theme.candidateTextColor
+        val altFg = if (highlighted) activeForegroundColor else theme.candidateCommentColor
+        text.setTextColor(fg)
         text.text = buildSpannedString {
             color(fg) {
                 append(currentCandidate.text)
