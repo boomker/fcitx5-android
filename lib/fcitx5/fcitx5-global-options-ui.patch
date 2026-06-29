@@ -177,11 +177,44 @@ index b04eec41..a7cdddff 100644
  #: src/lib/fcitx/globalconfig.cpp:215
  msgid "Override XKB Option"
 diff --git a/po/zh_CN.po b/po/zh_CN.po
-index 1fa20bed..da4d33ae 100644
+index 1fa20bed..1a5887a3 100644
 --- a/po/zh_CN.po
 +++ b/po/zh_CN.po
-@@ -822,8 +822,8 @@ msgid "Show first input method information"
- msgstr "显示第一个输入法的信息"
+@@ -739,7 +739,7 @@ msgstr "向后切换输入法"
+ 
+ #: src/lib/fcitx/globalconfig.cpp:108
+ msgid "Skip first input method while enumerating"
+-msgstr "轮换输入法时跳过第一个输入法"
++msgstr "轮换输入法时跳过第一个"
+ 
+ #: src/lib/fcitx/globalconfig.cpp:112
+ msgid "Enumerate Input Method Group Forward"
+@@ -806,24 +806,24 @@ msgid "Show preedit in application"
+ msgstr "在程序中显示预编辑文本"
+ 
+ #: src/lib/fcitx/globalconfig.cpp:197
+-msgid "Show Input Method Information when switch input method"
+-msgstr "切换输入法时显示输入法信息"
++msgid "Show compact input method information"
++msgstr "显示紧凑的输入法信息"
+ 
+ #: src/lib/fcitx/globalconfig.cpp:200
+-msgid "Show Input Method Information when changing focus"
+-msgstr "在焦点更改时显示输入法信息"
++msgid "Show first input method information"
++msgstr "显示第一个输入法的信息"
+ 
+ #: src/lib/fcitx/globalconfig.cpp:203
+-msgid "Show compact input method information"
+-msgstr "显示紧凑的输入法信息"
++msgid "Show Input Method Information when switch input method"
++msgstr "切换输入法时显示输入法信息"
+ 
+ #: src/lib/fcitx/globalconfig.cpp:206
+-msgid "Show first input method information"
+-msgstr "显示第一个输入法的信息"
++msgid "Show Input Method Information when changing focus"
++msgstr "在焦点更改时显示输入法信息"
  
  #: src/lib/fcitx/globalconfig.cpp:208
 -msgid "Default Candidates per page"
@@ -207,7 +240,7 @@ index 780f45eb..5c7c30d6 100644
  #: src/lib/fcitx/globalconfig.cpp:215
  msgid "Override XKB Option"
 diff --git a/src/lib/fcitx/globalconfig.cpp b/src/lib/fcitx/globalconfig.cpp
-index 23b97626..796bce2b 100644
+index 23b97626..941c25d8 100644
 --- a/src/lib/fcitx/globalconfig.cpp
 +++ b/src/lib/fcitx/globalconfig.cpp
 @@ -46,16 +46,19 @@ FCITX_CONFIGURATION(
@@ -286,7 +319,7 @@ index 23b97626..796bce2b 100644
      OptionWithAnnotation<PropertyPropagatePolicy,
                           PropertyPropagatePolicyI18NAnnotation>
          resetStateWhenFocusIn{this, "resetStateWhenFocusIn",
-@@ -189,6 +187,23 @@ FCITX_CONFIGURATION(
+@@ -189,24 +187,41 @@ FCITX_CONFIGURATION(
          shareState{this, "ShareInputState", _("Share Input State"),
                     isAndroid() ? PropertyPropagatePolicy::All
                                 : PropertyPropagatePolicy::No};
@@ -310,13 +343,27 @@ index 23b97626..796bce2b 100644
      Option<bool> preeditEnabledByDefault{this, "PreeditEnabledByDefault",
                                           _("Show preedit in application"),
                                           true};
-@@ -204,9 +219,9 @@ FCITX_CONFIGURATION(
+-    Option<bool> showInputMethodInformation{
+-        this, "ShowInputMethodInformation",
+-        _("Show Input Method Information when switch input method"), true};
+-    Option<bool> showInputMethodInformationWhenFocusIn{
+-        this, "showInputMethodInformationWhenFocusIn",
+-        _("Show Input Method Information when changing focus"), false};
+     Option<bool> compactInputMethodInformation{
+         this, "CompactInputMethodInformation",
+         _("Show compact input method information"), true};
      Option<bool> showFirstInputMethodInformation{
          this, "ShowFirstInputMethodInformation",
          _("Show first input method information"), true};
 -    Option<int, IntConstrain> defaultPageSize{this, "DefaultPageSize",
 -                                              _("Default Candidates per page"),
 -                                              5, IntConstrain(1, 10)};
++    Option<bool> showInputMethodInformation{
++        this, "ShowInputMethodInformation",
++        _("Show Input Method Information when switch input method"), true};
++    Option<bool> showInputMethodInformationWhenFocusIn{
++        this, "showInputMethodInformationWhenFocusIn",
++        _("Show Input Method Information when changing focus"), false};
 +    Option<bool> enumerateSkipFirst{
 +        this, "EnumerateSkipFirst",
 +        _("Skip first input method while enumerating"), false};

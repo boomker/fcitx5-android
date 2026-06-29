@@ -118,7 +118,11 @@
       "Bash(rtk grep *)",
       "Bash(rtk proxy *)",
       "Bash(./gradlew :app:compileMainlineDebugKotlin --stacktrace)",
-      "Bash(grep *)"
+      "Bash(grep *)",
+      "Bash(xargs ls -la)",
+      "Bash(git stash *)",
+      "Bash(./gradlew :app:testMainlineDebugUnitTest --tests \"org.fxboomk.fcitx5.android.input.bar.*\")",
+      "Bash(git show *)"
     ]
   }
 }
