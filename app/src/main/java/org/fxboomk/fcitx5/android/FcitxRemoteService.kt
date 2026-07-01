@@ -34,7 +34,7 @@ import org.fxboomk.fcitx5.android.utils.desc
 import org.fxboomk.fcitx5.android.utils.descEquals
 import org.fxboomk.fcitx5.android.utils.packageSigners
 import timber.log.Timber
-import java.util.PriorityQueue
+import java.util.concurrent.CopyOnWriteArrayList
 
 class FcitxRemoteService : Service() {
 
@@ -46,12 +46,9 @@ class FcitxRemoteService : Service() {
 
     private val scope = MainScope() + CoroutineName("FcitxRemoteService")
 
-    private val clipboardTransformers =
-        PriorityQueue<IClipboardEntryTransformer>(3, compareByDescending { it.priority })
+    private val clipboardTransformers = CopyOnWriteArrayList<IClipboardEntryTransformer>()
 
-    private fun orderedClipboardTransformers() =
-        clipboardTransformers.toList()
-            .sortedWith(compareByDescending<IClipboardEntryTransformer> { it.priority }.thenBy { it.desc })
+    private fun orderedClipboardTransformers() = clipboardTransformers.toList()
 
     private fun transformClipboard(source: String): String {
         var result = HostClipboardFilter.transform(source)
@@ -138,6 +135,7 @@ class FcitxRemoteService : Service() {
             Timber.d("registerClipboardEntryTransformer: ${transformer.desc} from $callingPackage")
             if (transformer.description.isNullOrBlank()) {
                 Timber.w("Cannot register ClipboardEntryTransformer of null or empty description")
+                return
             }
             if (clipboardTransformers.any { it.descEquals(transformer) }) {
                 Timber.w("ClipboardEntryTransformer ${transformer.desc} has already been registered")
@@ -148,6 +146,9 @@ class FcitxRemoteService : Service() {
                     unregisterClipboardEntryTransformer(transformer)
                 }, 0)
                 clipboardTransformers.add(transformer)
+                clipboardTransformers.sortWith(
+                    compareByDescending<IClipboardEntryTransformer> { it.priority }.thenBy { it.desc }
+                )
                 updateClipboardManager()
             }
         }

@@ -751,7 +751,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         } else if (lastSelection.start > 0) {
             selection.predictOffset(-1)
         }
-        // In practice nobody (apart form ourselves) would set `privateImeOptions` to our
+        // In practice nobody (apart from ourselves) would set `privateImeOptions` to our
         // `DeleteSurroundingFlag`, leading to a behavior of simulating backspace key pressing
         // in almost every EditText.
         if (editorInfo.privateImeOptions != DeleteSurroundingFlag || isTypeNull) {
@@ -1689,8 +1689,14 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     ) {
         // onUpdateSelection can left behind when user types quickly enough, eg. long press backspace
         cursorUpdateIndex += 1
-        Timber.d("onUpdateSelection: old=[$oldSelStart,$oldSelEnd] new=[$newSelStart,$newSelEnd]")
-        handleCursorUpdate(newSelStart, newSelEnd, cursorUpdateIndex)
+        Timber.d("onUpdateSelection: old=[$oldSelStart,$oldSelEnd] new=[$newSelStart,$newSelEnd] cand=[$candidatesStart,$candidatesEnd]")
+        handleCursorUpdate(
+            newSelStart,
+            newSelEnd,
+            candidatesStart,
+            candidatesEnd,
+            cursorUpdateIndex
+        )
         inputView?.updateSelection(newSelStart, newSelEnd)
     }
 
@@ -1759,8 +1765,22 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         }
     }
 
-    private fun handleCursorUpdate(newSelStart: Int, newSelEnd: Int, updateIndex: Int) {
+    private fun handleCursorUpdate(
+        newSelStart: Int,
+        newSelEnd: Int,
+        newComposingStart: Int,
+        newComposingEnd: Int,
+        updateIndex: Int
+    ) {
         if (selection.consume(newSelStart, newSelEnd)) {
+            // try restore composing range in case it was dropped by InputFilter
+            // but only when prediction matches, since InputFilter can also change editor content
+            // ref:
+            // https://android.googlesource.com/platform/frameworks/base/+/refs/tags/android-15.0.0_r36/core/java/android/widget/Editor.java#2083
+            // https://android.googlesource.com/platform/frameworks/base/+/refs/tags/android-15.0.0_r36/core/java/android/widget/TextView.java#7351
+            if (newComposingStart == -1 && newComposingEnd == -1 && composing.isNotEmpty()) {
+                currentInputConnection?.setComposingRegion(composing.start, composing.end)
+            }
             return // do nothing if prediction matches
         } else {
             // cursor update can't match any prediction: it's treated as a user input

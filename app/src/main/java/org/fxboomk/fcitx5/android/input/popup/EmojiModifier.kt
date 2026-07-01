@@ -96,7 +96,7 @@ object EmojiModifier {
         UnicodeSet("[:RGI_Emoji:]").freeze()
     }
 
-    private fun isValidEmoji(emoji: String): Boolean {
+    fun isValidEmoji(emoji: String): Boolean {
         // UProperty.RGI_EMOJI is available on 34+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             if (!RGIEmojiSet.contains(emoji)) return false

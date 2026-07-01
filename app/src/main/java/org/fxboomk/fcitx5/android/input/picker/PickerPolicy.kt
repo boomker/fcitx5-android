@@ -5,7 +5,6 @@
 
 package org.fxboomk.fcitx5.android.input.picker
 
-import android.text.TextPaint
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.input.keyboard.KeyDef
 import org.fxboomk.fcitx5.android.input.popup.EmojiModifier
@@ -60,7 +59,7 @@ class EmojiPickerPolicy : PickerPolicy {
     private val prefs get() = Prefs(hideUnsupportedEmojis, defaultSkinTone)
 
     override fun filter(raw: String): Boolean {
-        return if (hideUnsupportedEmojis) TextPaint().hasGlyph(raw) else true
+        return if (hideUnsupportedEmojis) EmojiModifier.isValidEmoji(raw) else true
     }
 
     override fun transform(raw: String): String {
