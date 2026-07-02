@@ -353,6 +353,49 @@ class LlmPrefsTest {
     }
 
     @Test
+    fun builtInMoonshotProviderUsesOpenAiCompatibleDefaultBaseUrl() {
+        val config = LlmPrefs.Config(
+            enabled = true,
+            backend = LlmPrefs.Backend.ChatCompletions,
+            provider = LlmPrefs.Provider.Moonshot,
+            baseUrl = "",
+            model = "kimi-k2",
+            apiKey = "sk-moonshot",
+            debounceMs = 450,
+            sampleCount = 4,
+            maxContextChars = 64,
+            preferLastCommit = true,
+        )
+
+        assertEquals(
+            "https://api.moonshot.cn/v1/chat/completions",
+            config.chatEndpoint,
+        )
+        assertEquals(
+            "https://api.moonshot.cn/v1/models",
+            config.modelsEndpoint,
+        )
+    }
+
+    @Test
+    fun builtInProviderOrderKeepsBigModelLast() {
+        assertEquals(
+            listOf(
+                LlmPrefs.Provider.LocalAI,
+                LlmPrefs.Provider.Custom,
+                LlmPrefs.Provider.OpenAI,
+                LlmPrefs.Provider.Anthropic,
+                LlmPrefs.Provider.Gemini,
+                LlmPrefs.Provider.DeepSeek,
+                LlmPrefs.Provider.MiniMax,
+                LlmPrefs.Provider.Moonshot,
+                LlmPrefs.Provider.Zhipu,
+            ),
+            LlmPrefs.Provider.entries.toList(),
+        )
+    }
+
+    @Test
     fun builtInDeepSeekProviderUsesVendorDefaultBaseUrl() {
         val config = LlmPrefs.Config(
             enabled = true,

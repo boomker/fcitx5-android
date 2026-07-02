@@ -427,10 +427,11 @@
     <string name="llm_provider_custom" translatable="false">自定义</string>
     <string name="llm_provider_openai" translatable="false">OpenAI</string>
     <string name="llm_provider_anthropic" translatable="false">Anthropic</string>
-    <string name="llm_provider_gemini" translatable="false">Gemini</string>
+    <string name="llm_provider_gemini" translatable="false">Google</string>
     <string name="llm_provider_deepseek" translatable="false">DeepSeek</string>
     <string name="llm_provider_zhipu" translatable="false">BigModel(智谱)</string>
     <string name="llm_provider_minimax" translatable="false">MiniMax CN</string>
+    <string name="llm_provider_moonshot" translatable="false">Moonshot</string>
     <string name="llm_api_url" translatable="false">API 地址</string>
     <string name="llm_api_url_default_hint" translatable="false">留空时将使用服务商默认地址：%1$s</string>
     <string name="llm_api_url_custom_hint" translatable="false">当前为自定义服务商，请填写完整 API 地址。</string>
