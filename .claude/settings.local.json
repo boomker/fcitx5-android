@@ -122,7 +122,9 @@
       "Bash(xargs ls -la)",
       "Bash(git stash *)",
       "Bash(./gradlew :app:testMainlineDebugUnitTest --tests \"org.fxboomk.fcitx5.android.input.bar.*\")",
-      "Bash(git show *)"
+      "Bash(git show *)",
+      "Bash(git commit *)",
+      "Bash(git push *)"
     ]
   }
 }

@@ -112,6 +112,7 @@ abstract class BaseKeyboard(
     private lateinit var keyRows: List<ConstraintLayout>
     private var horizontalGapScale = 1f
     private var composing = false
+    private var useFloatingGboardSideKeyStyle = false
 
     private var backspaceClearPopup: PopupWindow? = null
     private var backspaceClearTriggered = false
@@ -594,6 +595,17 @@ abstract class BaseKeyboard(
         refreshStyle()
     }
 
+    fun setFloatingGboardSideKeyStyle(enabled: Boolean) {
+        if (useFloatingGboardSideKeyStyle == enabled) return
+        useFloatingGboardSideKeyStyle = enabled
+        if (!::keyRows.isInitialized) return
+        keyRows.forEach { row ->
+            row.children.forEach { child ->
+                (child as? KeyView)?.useFloatingGboardSideKeyStyle = enabled
+            }
+        }
+    }
+
     protected open fun onStyleRefreshFinished() {
         // do nothing by default
     }
@@ -651,6 +663,7 @@ abstract class BaseKeyboard(
             is KeyDef.Appearance.Text -> TextKeyView(context, theme, activeAppearance, horizontalGapScale)
             is KeyDef.Appearance.Image -> ImageKeyView(context, theme, activeAppearance, horizontalGapScale)
         }.apply {
+            useFloatingGboardSideKeyStyle = this@BaseKeyboard.useFloatingGboardSideKeyStyle
             setTextScale(currentTextScale)
             soundEffect = when (def) {
                 is SpaceKey -> InputFeedbacks.SoundEffect.SpaceBar

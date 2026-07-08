@@ -42,6 +42,7 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
         val pid = int("pid", 0)
         val editorInfoInspector = bool("editor_info_inspector", false)
         val needNotifications = bool("need_notifications", true)
+        val floatingKeyboardEnabled = bool("floating_keyboard_enabled", false)
         val floatingKeyboardWidth = int("floating_keyboard_width", 0)
         val floatingKeyboardHeight = int("floating_keyboard_height", 0)
         val floatingKeyboardXPortrait = int("floating_keyboard_x_portrait", -1)

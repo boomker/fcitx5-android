@@ -92,6 +92,7 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
     private var hasVisibleCandidates = false
     private var currentInputMethod: InputMethodEntry? = null
     private var composingState = false
+    private var floatingGboardSideKeyStyle = false
 
     private val currentKeyboard: BaseKeyboard? get() = keyboards[currentKeyboardName]
 
@@ -166,6 +167,7 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
         currentKeyboard?.let {
             it.keyActionListener = keyActionListener
             it.popupActionListener = popupActionListener
+            it.setFloatingGboardSideKeyStyle(floatingGboardSideKeyStyle)
             keyboardView.apply { add(it, lParams(matchParent, matchParent)) }
             it.refreshStyle()
             it.setTextScale(currentTextScale)
@@ -280,5 +282,11 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
     fun setHorizontalGapScale(scale: Float) {
         val target = scale.coerceIn(0.5f, 1f)
         currentKeyboard?.setHorizontalGapScale(target)
+    }
+
+    fun setFloatingGboardSideKeyStyle(enabled: Boolean) {
+        if (floatingGboardSideKeyStyle == enabled) return
+        floatingGboardSideKeyStyle = enabled
+        keyboards.values.forEach { it.setFloatingGboardSideKeyStyle(enabled) }
     }
 }

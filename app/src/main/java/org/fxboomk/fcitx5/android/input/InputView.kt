@@ -489,6 +489,13 @@ class InputView(
 
     private fun updateHandlePosition() {
         if (!isFloating) return
+        if (
+            floatingRightHandle.layoutParams == null ||
+            floatingBottomHandle.layoutParams == null ||
+            adjustableHandle.layoutParams == null
+        ) {
+            return
+        }
 
         val kX = keyboardView.translationX
         val kY = keyboardView.translationY
@@ -542,7 +549,10 @@ class InputView(
         // Move handle (centered horizontally above keyboard)
         val moveHandleSize = dp(24)
         adjustableHandle.translationX = kX + (kWidth - moveHandleSize) / 2
-        adjustableHandle.translationY = kY - moveHandleSize - dp(8)
+        val moveHandleMargin = dp(8).toFloat()
+        val preferredMoveHandleY = kY - moveHandleSize - moveHandleMargin
+        adjustableHandle.translationY =
+            if (preferredMoveHandleY >= 0f) preferredMoveHandleY else kY + moveHandleMargin
 
         val moveBgDrawable = createHandleDrawable(moveHandleSize / 2f)
         val moveIconDrawable = ContextCompat.getDrawable(context, R.drawable.ic_move_handle_cross)?.mutate()
@@ -1017,6 +1027,11 @@ class InputView(
         requestBlurRefresh(retryFrames = 2)
     }
 
+    private fun syncFloatingGboardSideKeyStyle() {
+        (windowManager.getEssentialWindow(KeyboardWindow) as? KeyboardWindow)
+            ?.setFloatingGboardSideKeyStyle(isEffectiveFloating)
+    }
+
     private fun switchOneHandSide() {
         oneHandOnRight = !oneHandOnRight
         saveOneHandSide(oneHandOnRight)
@@ -1241,6 +1256,7 @@ class InputView(
 
     private var floatingWidthPx by internalPrefs.floatingKeyboardWidth
     private var floatingHeightPx by internalPrefs.floatingKeyboardHeight
+    private var floatingKeyboardEnabled by internalPrefs.floatingKeyboardEnabled
     private var floatingXPortrait by internalPrefs.floatingKeyboardXPortrait
     private var floatingYPortrait by internalPrefs.floatingKeyboardYPortrait
     private var floatingXLandscape by internalPrefs.floatingKeyboardXLandscape
@@ -1607,8 +1623,9 @@ class InputView(
 
     internal fun toggleFloatingMode() {
         popup.dismissAll()
-        if (!isFloating && isPhysicalCandidateBarMode) {
-            setPhysicalCandidateBarMode(false)
+        val enableFloating = !isFloating
+        if (enableFloating && isPhysicalCandidateBarMode) {
+            isPhysicalCandidateBarMode = false
         }
         if (isFloating) {
             saveFloatingPosition(
@@ -1616,10 +1633,11 @@ class InputView(
                 keyboardView.translationY.toInt()
             )
         }
-        if (!isFloating && isOneHanded) {
+        if (enableFloating && isOneHanded) {
             isOneHanded = false
         }
-        isFloating = !isFloating
+        isFloating = enableFloating
+        floatingKeyboardEnabled = enableFloating
         kawaiiBar.setFloatingState(isEffectiveFloating)
         updateFloatingState()
         updateFloatingHandlesVisibility()
@@ -1653,6 +1671,7 @@ class InputView(
                 keyboardView.translationY.toInt()
             )
             isFloating = false
+            floatingKeyboardEnabled = false
             kawaiiBar.setFloatingState(false)
         }
         isOneHanded = !isOneHanded
@@ -1684,6 +1703,10 @@ class InputView(
             )
             isFloating = false
             kawaiiBar.setFloatingState(false)
+            updateFloatingState()
+        } else if (!isAdjustingMode && floatingKeyboardEnabled && !isPhysicalCandidateBarMode && !isOneHanded) {
+            isFloating = true
+            kawaiiBar.setFloatingState(isEffectiveFloating)
             updateFloatingState()
         }
         updateAdjustingModeUi()
@@ -1971,6 +1994,7 @@ class InputView(
             // Reset text scale
             (windowManager.getEssentialWindow(KeyboardWindow) as? KeyboardWindow)?.setTextScale(1.0f)
         }
+        syncFloatingGboardSideKeyStyle()
         // Always update handle position to ensure appearance is set correctly
         updateHandlePosition()
         updateAiSuggestionOverlayFallbackTop()
@@ -2235,6 +2259,7 @@ class InputView(
         })
         keyboardPrefs.registerOnChangeListener(onKeyboardSizeChangeListener)
         candidatesPrefs.registerOnChangeListener(onCandidatePreferenceChangeListener)
+        isFloating = floatingKeyboardEnabled
         updateFloatingState()
         updateFloatingHandlesVisibility()
         updateOneHandHandleVisibility()
@@ -2672,9 +2697,16 @@ class InputView(
     internal fun setPhysicalCandidateBarMode(enabled: Boolean) {
         if (isPhysicalCandidateBarMode == enabled) return
         if (enabled && isFloating) {
+            saveFloatingPosition(
+                keyboardView.translationX.toInt(),
+                keyboardView.translationY.toInt()
+            )
             isFloating = false
         }
         isPhysicalCandidateBarMode = enabled
+        if (!enabled && floatingKeyboardEnabled && !isOneHanded) {
+            isFloating = true
+        }
         syncPhysicalCandidateBarLayout()
     }
 

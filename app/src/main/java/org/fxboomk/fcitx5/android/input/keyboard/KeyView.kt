@@ -73,6 +73,13 @@ abstract class KeyView(
             updateTheme(theme)
         }
 
+    internal var useFloatingGboardSideKeyStyle: Boolean = false
+        set(value) {
+            if (field == value) return
+            field = value
+            refreshGboardSideKeyShape()
+        }
+
     private fun isMainKeyAreaById(viewId: Int): Boolean {
         return viewId == R.id.button_space ||
                 viewId == R.id.button_lang
@@ -316,7 +323,15 @@ abstract class KeyView(
     }
 
     private fun shouldUseCircularGboardSideKeys(): Boolean {
-        return resources.configuration.orientation != Configuration.ORIENTATION_LANDSCAPE
+        return resources.configuration.orientation != Configuration.ORIENTATION_LANDSCAPE ||
+            useFloatingGboardSideKeyStyle
+    }
+
+    private fun refreshGboardSideKeyShape() {
+        val viewWidth = appearanceView.width.takeIf { it > 0 } ?: width
+        val viewHeight = appearanceView.height.takeIf { it > 0 } ?: height
+        if (viewWidth <= 0 || viewHeight <= 0) return
+        maybeRefreshGboardSideKeyShape(viewWidth, viewHeight)
     }
 
     private fun maybeRefreshGboardSideKeyShape(viewWidth: Int, viewHeight: Int) {
