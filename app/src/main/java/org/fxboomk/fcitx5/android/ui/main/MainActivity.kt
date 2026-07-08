@@ -222,10 +222,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onStop() {
-        viewModel.fcitx.runIfReady {
-            save()
+        try {
+            viewModel.fcitx.runIfReady {
+                save()
+            }
+        } catch (error: IllegalStateException) {
+            if (error.message?.contains("is disconnected") != true) throw error
+        } finally {
+            super.onStop()
         }
-        super.onStop()
     }
 
     companion object {
