@@ -32,6 +32,8 @@ class MainViewModel : ViewModel() {
     val pluginMenuVisible = MutableLiveData(false)
     val pluginMenuTrigger = MutableLiveData<Unit?>()
 
+    private var pendingPreferenceScrollKey: String? = null
+
     val fcitx: FcitxConnection = FcitxDaemon.connect(javaClass.name)
 
     fun setToolbarTitle(title: String) {
@@ -102,6 +104,18 @@ class MainViewModel : ViewModel() {
 
     fun clearPluginMenuTrigger() {
         pluginMenuTrigger.value = null
+    }
+
+    fun requestPreferenceScroll(key: String) {
+        pendingPreferenceScrollKey = key
+    }
+
+    fun peekPendingPreferenceScrollKey(): String? = pendingPreferenceScrollKey
+
+    fun consumePendingPreferenceScrollKey(key: String) {
+        if (pendingPreferenceScrollKey == key) {
+            pendingPreferenceScrollKey = null
+        }
     }
 
     override fun onCleared() {

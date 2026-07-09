@@ -507,6 +507,10 @@
     <string name="view_image">查看</string>
     <string name="open_link">打开</string>
     <string name="search">搜索</string>
+    <string name="settings_search_hint">搜索设置项</string>
+    <string name="settings_search_results">搜索结果</string>
+    <string name="settings_search_no_results">没有匹配的设置项</string>
+    <string name="settings_search_loading_fcitx">正在加载 Fcitx 设置项…</string>
     <string name="dial">拨号</string>
     <string name="emoji_and_symbols">表情和符号</string>
     <string name="upload">上传</string>

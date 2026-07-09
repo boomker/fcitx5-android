@@ -664,6 +664,10 @@
     <string name="view_image">View</string>
     <string name="open_link">Open</string>
     <string name="search">Search</string>
+    <string name="settings_search_hint">Search settings</string>
+    <string name="settings_search_results">Search results</string>
+    <string name="settings_search_no_results">No matching settings</string>
+    <string name="settings_search_loading_fcitx">Loading Fcitx settings…</string>
     <string name="dial">Dial</string>
     <string name="emoji_and_symbols">Emoji &amp; Symbols</string>
     <string name="copy">Copy</string>

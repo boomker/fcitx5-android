@@ -5,6 +5,7 @@ package org.fxboomk.fcitx5.android.ui.main.settings.behavior
 
 import android.os.Bundle
 import android.text.InputType
+import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -15,6 +16,7 @@ import androidx.annotation.StringRes
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
+import androidx.fragment.app.activityViewModels
 import androidx.preference.EditTextPreference
 import androidx.preference.ListPreference
 import androidx.preference.Preference
@@ -33,14 +35,18 @@ import org.fxboomk.fcitx5.android.input.predict.LlmPrefs
 import org.fxboomk.fcitx5.android.input.predict.LlmTaskMode
 import org.fxboomk.fcitx5.android.ui.common.PaddingPreferenceFragment
 import org.fxboomk.fcitx5.android.ui.common.withLoadingDialog
-import org.fxboomk.fcitx5.android.ui.main.settings.SettingsRoute
+import org.fxboomk.fcitx5.android.ui.main.MainViewModel
 import org.fxboomk.fcitx5.android.ui.main.settings.DialogSeekBarPreference
+import org.fxboomk.fcitx5.android.ui.main.settings.PreferenceScrollHelper
+import org.fxboomk.fcitx5.android.ui.main.settings.SettingsRoute
 import org.fxboomk.fcitx5.android.ui.main.modified.MySwitchPreference
 import org.fxboomk.fcitx5.android.utils.addPreference
 import org.fxboomk.fcitx5.android.utils.navigateWithAnim
 import org.fxboomk.fcitx5.android.utils.toast
 
 class LlmSettingsFragment : PaddingPreferenceFragment() {
+    private val viewModel: MainViewModel by activityViewModels()
+
     private data class RecommendedLocalModel(
         val displayName: String,
         val description: String,
@@ -233,6 +239,11 @@ class LlmSettingsFragment : PaddingPreferenceFragment() {
         }
         ensureProviderDefaultsAndScopedApiKey()
         syncEditablePreferenceState()
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        PreferenceScrollHelper.scrollToPendingPreference(this, viewModel)
     }
 
     override fun onResume() {

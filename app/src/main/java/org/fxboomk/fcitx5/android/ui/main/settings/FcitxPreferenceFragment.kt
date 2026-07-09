@@ -108,6 +108,10 @@ abstract class FcitxPreferenceFragment : PaddingPreferenceFragment() {
                     addPreference(R.string.config_addon_not_loaded)
                 }
             }
+            PreferenceScrollHelper.scrollToPendingPreference(
+                this@FcitxPreferenceFragment,
+                viewModel
+            )
             viewModel.disableAboutButton()
         }
     }

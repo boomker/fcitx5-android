@@ -6,16 +6,22 @@ package org.fxboomk.fcitx5.android.data.prefs
 
 import android.os.Build
 import android.os.Bundle
+import android.view.View
 import androidx.annotation.CallSuper
+import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.Preference
 import androidx.preference.PreferenceScreen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.fxboomk.fcitx5.android.ui.common.PaddingPreferenceFragment
+import org.fxboomk.fcitx5.android.ui.main.MainViewModel
+import org.fxboomk.fcitx5.android.ui.main.settings.PreferenceScrollHelper
 
 abstract class ManagedPreferenceFragment(private val preferenceProvider: ManagedPreferenceProvider) :
     PaddingPreferenceFragment() {
+
+    private val viewModel: MainViewModel by activityViewModels()
 
     private val evaluator = ManagedPreferenceVisibilityEvaluator(preferenceProvider) {
         lifecycleScope.launch {
@@ -35,6 +41,11 @@ abstract class ManagedPreferenceFragment(private val preferenceProvider: Managed
                 preferenceProvider.createUi(screen)
                 onPreferenceUiCreated(screen)
             }
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        PreferenceScrollHelper.scrollToPendingPreference(this, viewModel)
     }
 
     override fun onStop() {

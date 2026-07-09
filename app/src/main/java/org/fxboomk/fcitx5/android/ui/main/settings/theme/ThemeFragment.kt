@@ -12,6 +12,7 @@ import android.view.ViewGroup
 import android.view.ViewOutlineProvider
 import androidx.annotation.Keep
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
@@ -20,6 +21,7 @@ import com.google.android.material.tabs.TabLayoutMediator
 import kotlinx.coroutines.launch
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.data.theme.ThemeManager
+import org.fxboomk.fcitx5.android.ui.main.MainViewModel
 import splitties.dimensions.dp
 import splitties.resources.styledColor
 import splitties.views.backgroundColor
@@ -36,6 +38,8 @@ import splitties.views.dsl.core.matchParent
 import splitties.views.dsl.core.wrapContent
 
 class ThemeFragment : Fragment() {
+    private val viewModel: MainViewModel by activityViewModels()
+
     private lateinit var previewUi: KeyboardPreviewUi
 
     private lateinit var tabLayout: TabLayout
@@ -84,6 +88,12 @@ class ThemeFragment : Fragment() {
                 }
             )
         }.attach()
+
+        val pendingPreferenceKey = viewModel.peekPendingPreferenceScrollKey()
+        val themePreferenceKeys = ThemeManager.prefs.managedPreferencesUi.map { it.key }
+        if (pendingPreferenceKey in themePreferenceKeys) {
+            viewPager.setCurrentItem(1, false)
+        }
 
         val previewWrapper = constraintLayout {
             add(preview, lParams(wrapContent, wrapContent) {

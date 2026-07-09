@@ -19,14 +19,19 @@ import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.appcompat.app.AlertDialog
 import android.widget.ArrayAdapter
+import androidx.fragment.app.activityViewModels
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.input.predict.LlmPrefs
 import org.fxboomk.fcitx5.android.ui.common.PaddingPreferenceFragment
+import org.fxboomk.fcitx5.android.ui.main.MainViewModel
 import org.fxboomk.fcitx5.android.ui.main.settings.DialogSeekBarPreference
+import org.fxboomk.fcitx5.android.ui.main.settings.PreferenceScrollHelper
 import org.fxboomk.fcitx5.android.ui.main.modified.MySwitchPreference
 import org.fxboomk.fcitx5.android.utils.toast
 
 class LlmAdvancedSettingsFragment : PaddingPreferenceFragment() {
+    private val viewModel: MainViewModel by activityViewModels()
+
     private val personaListKey = "llm_persona_list"
     private val prefsChangeListener =
         SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
@@ -55,6 +60,11 @@ class LlmAdvancedSettingsFragment : PaddingPreferenceFragment() {
         refreshPersonaOptions()
         syncPersonaPreferenceState()
         syncEditablePreferenceState()
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        PreferenceScrollHelper.scrollToPendingPreference(this, viewModel)
     }
 
     override fun onResume() {
