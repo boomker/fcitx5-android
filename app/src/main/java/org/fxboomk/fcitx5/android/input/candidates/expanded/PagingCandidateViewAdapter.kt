@@ -1,6 +1,6 @@
 /*
  * SPDX-License-Identifier: LGPL-2.1-or-later
- * SPDX-FileCopyrightText: Copyright 2021-2024 Fcitx5 for Android Contributors
+ * SPDX-FileCopyrightText: Copyright 2021-2026 Fcitx5 for Android Contributors
  */
 
 package org.fxboomk.fcitx5.android.input.candidates.expanded
@@ -28,16 +28,13 @@ open class PagingCandidateViewAdapter(val theme: Theme) :
     }
 
     companion object {
+        /**
+         * Always re-bind all [CandidateViewHolder]s every time to make sure `idx` is up-to-date.
+         * [CandidateViewHolder.update] would skip unnecessary UI updates.
+         */
         private val diffCallback = object : DiffUtil.ItemCallback<CandidateWord>() {
-            override fun areItemsTheSame(oldItem: CandidateWord, newItem: CandidateWord): Boolean {
-                return oldItem.label == newItem.label &&
-                    oldItem.text == newItem.text &&
-                    oldItem.comment == newItem.comment
-            }
-
-            override fun areContentsTheSame(oldItem: CandidateWord, newItem: CandidateWord): Boolean {
-                return oldItem == newItem
-            }
+            override fun areItemsTheSame(oldItem: CandidateWord, newItem: CandidateWord) = false
+            override fun areContentsTheSame(oldItem: CandidateWord, newItem: CandidateWord) = false
         }
     }
 
