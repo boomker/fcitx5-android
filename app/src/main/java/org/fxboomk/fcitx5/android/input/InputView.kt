@@ -1187,9 +1187,8 @@ class InputView(
     private val keyboardSidePaddingLandscape = keyboardPrefs.keyboardSidePaddingLandscape
     private val keyboardBottomPadding = keyboardPrefs.keyboardBottomPadding
     private val keyboardBottomPaddingLandscape = keyboardPrefs.keyboardBottomPaddingLandscape
-    private val candidatesPrefs = AppPrefs.getInstance().candidates
     private val physicalKeyboardHorizontalCandidateBar =
-        candidatesPrefs.physicalKeyboardHorizontalCandidateBar
+        keyboardPrefs.physicalKeyboardHorizontalCandidateBar
     private val splitKeyboardUseLandscapeLayout = keyboardPrefs.splitKeyboardUseLandscapeLayout
     private val textKeyboardLayoutProfile = keyboardPrefs.textKeyboardLayoutProfile
 
@@ -2258,7 +2257,7 @@ class InputView(
             endToEnd = ConstraintLayout.LayoutParams.PARENT_ID
         })
         keyboardPrefs.registerOnChangeListener(onKeyboardSizeChangeListener)
-        candidatesPrefs.registerOnChangeListener(onCandidatePreferenceChangeListener)
+        keyboardPrefs.registerOnChangeListener(onCandidatePreferenceChangeListener)
         isFloating = floatingKeyboardEnabled
         updateFloatingState()
         updateFloatingHandlesVisibility()
@@ -2795,7 +2794,7 @@ class InputView(
     override fun onDetachedFromWindow() {
         windowManager.onWindowChanged = null
         keyboardPrefs.unregisterOnChangeListener(onKeyboardSizeChangeListener)
-        candidatesPrefs.unregisterOnChangeListener(onCandidatePreferenceChangeListener)
+        keyboardPrefs.unregisterOnChangeListener(onCandidatePreferenceChangeListener)
         ConfigProviders.removeButtonsLayoutListener(onButtonsLayoutChangeListener)
         blurUpdateJob?.cancel()
         blurUpdateScope.cancel()

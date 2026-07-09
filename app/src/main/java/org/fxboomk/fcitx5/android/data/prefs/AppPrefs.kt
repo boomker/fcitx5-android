@@ -184,6 +184,12 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
         val inlineSuggestions = switch(R.string.inline_suggestions, "inline_suggestions", true)
         val toolbarNumRowOnPassword =
             switch(R.string.toolbar_num_row_on_password, "toolbar_num_row_on_password", true)
+        val physicalKeyboardHorizontalCandidateBar = switch(
+            R.string.physical_keyboard_horizontal_candidate_bar,
+            "physical_keyboard_horizontal_candidate_bar",
+            false,
+            R.string.physical_keyboard_horizontal_candidate_bar_summary
+        )
         val popupOnKeyPress = switch(R.string.popup_on_key_press, "popup_on_key_press", true)
         val keepLettersUppercase = switch(
             R.string.keep_keyboard_letters_uppercase,
@@ -402,13 +408,6 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
 
     inner class Candidates :
         ManagedPreferenceCategory(R.string.candidates_window, sharedPreferences) {
-        val physicalKeyboardHorizontalCandidateBar = switch(
-            R.string.physical_keyboard_horizontal_candidate_bar,
-            "physical_keyboard_horizontal_candidate_bar",
-            false,
-            R.string.physical_keyboard_horizontal_candidate_bar_summary
-        )
-
         val mode = enumList(
             R.string.show_candidates_window,
             "show_candidates_window",
@@ -425,9 +424,7 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
             R.string.candidates_position,
             "virtual_keyboard_candidates_position",
             FloatingCandidatesVirtualKeyboardPosition.TopLeft
-        ) {
-            mode.getValue() == FloatingCandidatesMode.Always
-        }
+        )
 
         val windowMinWidth = int(
             R.string.candidates_window_min_width,

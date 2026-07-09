@@ -13,6 +13,11 @@ import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.input.candidates.floating.FloatingCandidatesMode
 import org.fxboomk.fcitx5.android.utils.isTypeNull
 
+internal fun shouldUsePhysicalKeyboardHorizontalCandidateBar(
+    isVirtualKeyboard: Boolean,
+    enabled: Boolean
+): Boolean = !isVirtualKeyboard && enabled
+
 class InputDeviceManager(
     private val onChange: (Boolean) -> Unit,
     private val floatingModeProvider: () -> FloatingCandidatesMode
@@ -22,9 +27,13 @@ class InputDeviceManager(
     private var candidatesView: CandidatesView? = null
 
     private fun usePhysicalKeyboardHorizontalCandidateBar(isVirtual: Boolean): Boolean {
-        if (isVirtual) return false
-        if (floatingModeProvider() != FloatingCandidatesMode.Disabled) return false
-        return AppPrefs.getInstance().candidates.physicalKeyboardHorizontalCandidateBar.getValue()
+        return shouldUsePhysicalKeyboardHorizontalCandidateBar(
+            isVirtualKeyboard = isVirtual,
+            enabled = AppPrefs.getInstance()
+                .keyboard
+                .physicalKeyboardHorizontalCandidateBar
+                .getValue()
+        )
     }
 
     val isPhysicalCandidateBarMode: Boolean

@@ -162,8 +162,8 @@
     <string name="landscape">横画面時</string>
     <string name="keyboard_bottom_padding">キーボードの下部余白</string>
     <string name="keyboard_side_padding">キーボードの側面余白</string>
-    <string name="physical_keyboard_horizontal_candidate_bar">物理キーボードで横候補バーを使用</string>
-    <string name="physical_keyboard_horizontal_candidate_bar_summary">物理キーボード入力時に Kawaii バーと横候補バーを下部に表示</string>
+    <string name="physical_keyboard_horizontal_candidate_bar">物理キーボード使用時にツール/候補バーを保持</string>
+    <string name="physical_keyboard_horizontal_candidate_bar_summary">物理キーボード入力時にツールバーと横候補バーを下部に保持</string>
     <string name="disable_addon_warn_title">アドオンを無効にする</string>
     <string name="disable_addon_warn_name">%1$s を無効にする場合 :</string>
     <string name="disable_addon_warn_dep">%1$s を無効にする</string>

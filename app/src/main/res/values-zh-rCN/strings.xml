@@ -197,8 +197,8 @@
     <string name="landscape">横屏</string>
     <string name="keyboard_bottom_padding">键盘底部边距</string>
     <string name="keyboard_side_padding">键盘两侧边距</string>
-    <string name="physical_keyboard_horizontal_candidate_bar">物理键盘使用水平候选栏</string>
-    <string name="physical_keyboard_horizontal_candidate_bar_summary">使用物理键盘输入时，在底部显示 Kawaii 栏和水平候选栏</string>
+    <string name="physical_keyboard_horizontal_candidate_bar">使用物理键盘时保留工具/候选栏</string>
+    <string name="physical_keyboard_horizontal_candidate_bar_summary">使用物理键盘输入时，在底部保留工具栏和水平候选栏</string>
     <string name="clipboard_suggestion">显示剪贴板提示</string>
 
     <!-- Split keyboard settings (refactored) -->

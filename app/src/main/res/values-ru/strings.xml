@@ -166,8 +166,8 @@
     <string name="landscape">Горизонтальный режим экрана</string>
     <string name="keyboard_bottom_padding">Нижнее поле клавиатуры</string>
     <string name="keyboard_side_padding">Боковое поле клавиатуры</string>
-    <string name="physical_keyboard_horizontal_candidate_bar">Использовать горизонтальную панель кандидатов с физической клавиатурой</string>
-    <string name="physical_keyboard_horizontal_candidate_bar_summary">Показывать панель Kawaii и горизонтальные кандидаты внизу при вводе с физической клавиатуры</string>
+    <string name="physical_keyboard_horizontal_candidate_bar">Сохранять панель инструментов/кандидатов при физической клавиатуре</string>
+    <string name="physical_keyboard_horizontal_candidate_bar_summary">Сохранять панель инструментов и горизонтальную панель кандидатов внизу при вводе с физической клавиатуры</string>
     <string name="clipboard_suggestion">Показать предложения буфера обмена</string>
     <string name="disable_addon_warn_title">Отключить дополнение</string>
     <string name="disable_addon_warn_name">Отключение %1$s также приведет к:</string>

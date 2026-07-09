@@ -45,6 +45,7 @@ internal object KeyboardSettingsSupport {
         "expand_toolbar_by_default",
         "toolbar_manually_toggled",
         "toolbar_num_row_on_password",
+        "physical_keyboard_horizontal_candidate_bar",
         "show_voice_input_button",
         "preferred_voice_input"
     )

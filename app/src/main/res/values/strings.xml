@@ -204,8 +204,8 @@
     <string name="landscape">Landscape</string>
     <string name="keyboard_bottom_padding">Keyboard bottom padding</string>
     <string name="keyboard_side_padding">Keyboard side padding</string>
-    <string name="physical_keyboard_horizontal_candidate_bar">Use horizontal candidate bar with physical keyboard</string>
-    <string name="physical_keyboard_horizontal_candidate_bar_summary">Show the Kawaii bar and horizontal candidates at the bottom when typing with a physical keyboard</string>
+    <string name="physical_keyboard_horizontal_candidate_bar">Keep toolbar/candidate bar when using a physical keyboard</string>
+    <string name="physical_keyboard_horizontal_candidate_bar_summary">Keep the toolbar and horizontal candidate bar at the bottom when typing with a physical keyboard</string>
     <string name="clipboard_suggestion">Show clipboard suggestions</string>
 
     <!-- Split keyboard settings (refactored) -->

@@ -573,8 +573,8 @@
     <string name="keyboard_bottom_padding">Relleno inferior del teclado</string>
     <string name="keyboard_long_press_delay">Retardo de pulsacion larga</string>
     <string name="keyboard_side_padding">Relleno lateral del teclado</string>
-    <string name="physical_keyboard_horizontal_candidate_bar">Usar barra horizontal con teclado fisico</string>
-    <string name="physical_keyboard_horizontal_candidate_bar_summary">Mostrar la barra Kawaii y los candidatos horizontales abajo al escribir con un teclado fisico</string>
+    <string name="physical_keyboard_horizontal_candidate_bar">Mantener barra de herramientas/candidatos con teclado fisico</string>
+    <string name="physical_keyboard_horizontal_candidate_bar_summary">Mantener la barra de herramientas y la barra horizontal de candidatos abajo al escribir con un teclado fisico</string>
     <string name="lang_switch_behavior_next_ime_app">Cambiar a la siguiente app de metodo de entrada</string>
     <string name="lang_switch_key_behavior">Comportamiento de tecla de cambio de idioma</string>
     <string name="manage_table_im">Administrar metodos de entrada de tabla</string>
