@@ -5,6 +5,7 @@
 package org.fxboomk.fcitx5.android.ui.main.settings.behavior.dialog
 
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -119,7 +120,8 @@ class RowEditorActivity : AppCompatActivity() {
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         saveMenuItem = menu.add(Menu.NONE, MENU_SAVE_ID, 1, getString(R.string.save)).apply {
-            setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS or MenuItem.SHOW_AS_ACTION_WITH_TEXT)
+            setIcon(R.drawable.ic_baseline_save_24)
+            setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
         }
         updateSaveButtonState()
         return true
@@ -296,7 +298,7 @@ class RowEditorActivity : AppCompatActivity() {
         val candidate = currentEditedStyle()
         val enabled = candidate != null && candidate != initialStyle
         saveMenuItem?.isEnabled = enabled
-        saveMenuItem?.icon?.alpha = if (enabled) 255 else 96
+        saveMenuItem?.icon?.mutate()?.setTint(if (enabled) Color.BLACK else Color.GRAY)
     }
 
     private fun saveAndFinish() {

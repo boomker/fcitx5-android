@@ -4,6 +4,7 @@
  */
 package org.fxboomk.fcitx5.android.ui.main.settings.behavior
 
+import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.ShapeDrawable
 import android.graphics.drawable.shapes.OvalShape
@@ -197,7 +198,8 @@ class ButtonsCustomizerActivity : AppCompatActivity() {
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         saveMenuItem = menu.add(Menu.NONE, MENU_SAVE_ID, Menu.NONE, "${getString(R.string.save)}")
-        saveMenuItem?.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS or MenuItem.SHOW_AS_ACTION_WITH_TEXT)
+        saveMenuItem?.setIcon(R.drawable.ic_baseline_save_24)
+        saveMenuItem?.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
         updateSaveButtonState()
         return true
     }
@@ -695,7 +697,9 @@ class ButtonsCustomizerActivity : AppCompatActivity() {
     }
 
     private fun updateSaveButtonState() {
-        saveMenuItem?.isEnabled = items != originalItems
+        val changed = items != originalItems
+        saveMenuItem?.isEnabled = changed
+        saveMenuItem?.icon?.mutate()?.setTint(if (changed) Color.BLACK else Color.GRAY)
     }
 
     private val VIEW_TYPE_BUTTON_ITEM = 1

@@ -6,6 +6,7 @@ package org.fxboomk.fcitx5.android.ui.main.settings.behavior
 
 import android.Manifest
 import android.content.Intent
+import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.view.Menu
@@ -164,7 +165,8 @@ class PopupEditorActivity : AppCompatActivity() {
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         saveMenuItem = menu.add(Menu.NONE, MENU_SAVE_ID, Menu.NONE, "${getString(R.string.save)}")
-        saveMenuItem?.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS or MenuItem.SHOW_AS_ACTION_WITH_TEXT)
+        saveMenuItem?.setIcon(R.drawable.ic_baseline_save_24)
+        saveMenuItem?.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
         menu.add(Menu.NONE, MENU_QR_EXPORT_ID, Menu.NONE, getString(R.string.text_keyboard_layout_qr_export))
             .setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER)
         menu.add(Menu.NONE, MENU_QR_IMPORT_SCAN_ID, Menu.NONE, getString(R.string.text_keyboard_layout_qr_import_scan))
@@ -738,8 +740,10 @@ class PopupEditorActivity : AppCompatActivity() {
 
     private fun updateSaveButtonState() {
         saveMenuItem?.let { menuItem ->
-            menuItem.isEnabled = hasChanges()
+            val changed = hasChanges()
+            menuItem.isEnabled = changed
             menuItem.title = getString(R.string.save)
+            menuItem.icon?.mutate()?.setTint(if (changed) Color.BLACK else Color.GRAY)
         }
     }
 

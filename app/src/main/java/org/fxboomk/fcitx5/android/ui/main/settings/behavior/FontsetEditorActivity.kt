@@ -5,6 +5,7 @@
 package org.fxboomk.fcitx5.android.ui.main.settings.behavior
 
 import android.app.AlertDialog
+import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.fonts.Font
 import android.graphics.fonts.FontFamily
@@ -150,7 +151,8 @@ class FontsetEditorActivity : AppCompatActivity() {
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         val item = menu.add(Menu.NONE, MENU_SAVE_ID, Menu.NONE, "${getString(R.string.save)}")
-        item.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS or MenuItem.SHOW_AS_ACTION_WITH_TEXT)
+        item.setIcon(R.drawable.ic_baseline_save_24)
+        item.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
         saveMenuItem = item
         updateSaveButtonState()
         return true
@@ -211,7 +213,9 @@ class FontsetEditorActivity : AppCompatActivity() {
     }
 
     private fun updateSaveButtonState() {
-        saveMenuItem?.isEnabled = hasChanges()
+        val changed = hasChanges()
+        saveMenuItem?.isEnabled = changed
+        saveMenuItem?.icon?.mutate()?.setTint(if (changed) Color.BLACK else Color.GRAY)
     }
 
     private fun buildRows() {

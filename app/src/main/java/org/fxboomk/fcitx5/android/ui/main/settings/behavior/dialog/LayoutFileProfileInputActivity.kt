@@ -5,7 +5,10 @@
 package org.fxboomk.fcitx5.android.ui.main.settings.behavior.dialog
 
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.LinearLayout
@@ -58,7 +61,10 @@ class LayoutFileProfileInputActivity : AppCompatActivity() {
 
     private lateinit var profileInput: AppCompatEditText
     private var copySwitch: SwitchCompat? = null
+    private var saveMenuItem: MenuItem? = null
     private lateinit var action: String
+    private var initialProfile: String = ""
+    private var initialCopyCurrent: Boolean = true
 
     private val content by lazy {
         LinearLayout(this).apply {
@@ -107,16 +113,25 @@ class LayoutFileProfileInputActivity : AppCompatActivity() {
         }
         ViewCompat.requestApplyInsets(toolbar)
 
-        val initial = intent.getStringExtra(EXTRA_INITIAL_PROFILE).orEmpty()
-        if (initial.isNotBlank()) {
-            profileInput.setText(initial)
-            profileInput.setSelection(initial.length)
+        initialProfile = intent.getStringExtra(EXTRA_INITIAL_PROFILE).orEmpty()
+        if (initialProfile.isNotBlank()) {
+            profileInput.setText(initialProfile)
+            profileInput.setSelection(initialProfile.length)
         }
+        profileInput.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                updateSaveButtonState()
+            }
+            override fun afterTextChanged(s: Editable?) = Unit
+        })
 
         if (intent.getBooleanExtra(EXTRA_SHOW_COPY_SWITCH, false)) {
+            initialCopyCurrent = intent.getBooleanExtra(EXTRA_COPY_CURRENT_DEFAULT, true)
             copySwitch = SwitchCompat(this).apply {
                 text = getString(R.string.text_keyboard_layout_file_copy_current)
-                isChecked = intent.getBooleanExtra(EXTRA_COPY_CURRENT_DEFAULT, true)
+                isChecked = initialCopyCurrent
+                setOnCheckedChangeListener { _, _ -> updateSaveButtonState() }
             }
             content.addView(
                 copySwitch,
@@ -129,9 +144,22 @@ class LayoutFileProfileInputActivity : AppCompatActivity() {
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menu.add(Menu.NONE, MENU_SAVE_ID, Menu.NONE, getString(R.string.save))
-            .setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS or MenuItem.SHOW_AS_ACTION_WITH_TEXT)
+        saveMenuItem = menu.add(Menu.NONE, MENU_SAVE_ID, Menu.NONE, getString(R.string.save))
+            .apply {
+                setIcon(R.drawable.ic_baseline_save_24)
+                setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
+            }
+        updateSaveButtonState()
         return true
+    }
+
+    private fun updateSaveButtonState() {
+        val normalized = UserConfigFiles.normalizeTextKeyboardLayoutProfile(profileInput.text?.toString().orEmpty())
+        val changed = normalized != null && (
+            normalized != initialProfile || (copySwitch?.isChecked ?: true) != initialCopyCurrent
+        )
+        saveMenuItem?.isEnabled = changed
+        saveMenuItem?.icon?.mutate()?.setTint(if (changed) Color.BLACK else Color.GRAY)
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {

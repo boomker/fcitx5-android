@@ -430,7 +430,8 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         saveMenuItem = menu.add(Menu.NONE, MENU_SAVE_ID, Menu.NONE, "${getString(R.string.save)}")
-        saveMenuItem?.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS or MenuItem.SHOW_AS_ACTION_WITH_TEXT)
+        saveMenuItem?.setIcon(R.drawable.ic_baseline_save_24)
+        saveMenuItem?.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
         menu.add(Menu.NONE, MENU_LAYOUT_FILE_SWITCH_ID, 1, getString(R.string.text_keyboard_layout_file_switch))
             .setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER)
         menu.add(Menu.NONE, MENU_LAYOUT_FILE_CREATE_ID, 2, getString(R.string.text_keyboard_layout_file_create))
@@ -2259,13 +2260,10 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
 
     private fun updateSaveButtonState() {
         saveMenuItem?.let { menuItem ->
-            if (hasChanges()) {
-                menuItem.isEnabled = true
-                menuItem.title = getString(R.string.save)
-            } else {
-                menuItem.isEnabled = false
-                menuItem.title = getString(R.string.save)
-            }
+            val changed = hasChanges()
+            menuItem.isEnabled = changed
+            menuItem.title = getString(R.string.save)
+            menuItem.icon?.mutate()?.setTint(if (changed) Color.BLACK else Color.GRAY)
         }
     }
 

@@ -5,6 +5,7 @@
 package org.fxboomk.fcitx5.android.ui.main.settings.behavior.dialog
 
 import android.content.Intent
+import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.view.Gravity
@@ -278,7 +279,8 @@ class KeyEditorActivity : AppCompatActivity() {
         }
 
         saveMenuItem = menu.add(Menu.NONE, MENU_SAVE_ID, 2, getString(R.string.save)).apply {
-            setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS or MenuItem.SHOW_AS_ACTION_WITH_TEXT)
+            setIcon(R.drawable.ic_baseline_save_24)
+            setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
         }
 
         updateActionButtonState()
@@ -1183,7 +1185,7 @@ class KeyEditorActivity : AppCompatActivity() {
         val changed = hasChanges()
         saveMenuItem?.isEnabled = changed
         saveMenuItem?.title = getString(R.string.save)
-        saveMenuItem?.icon?.alpha = if (changed) 255 else 120
+        saveMenuItem?.icon?.mutate()?.setTint(if (changed) Color.BLACK else Color.GRAY)
     }
 
     private fun hasChanges(): Boolean {
