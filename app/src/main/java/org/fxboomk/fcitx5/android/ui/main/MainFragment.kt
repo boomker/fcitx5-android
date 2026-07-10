@@ -172,6 +172,8 @@ class MainFragment : PaddingPreferenceFragment() {
     private fun PreferenceScreen.addSearchResults() {
         val results = searchItems
             .filter { it.matches(searchQuery) }
+            .groupBy { it.title to it.path }
+            .map { (_, results) -> results.preferredSearchResult() }
             .sortedWith(compareBy({ it.path.joinToString("/") }, { it.title }))
         addCategory(R.string.settings_search_results) {
             results.forEach { result ->
@@ -196,4 +198,7 @@ class MainFragment : PaddingPreferenceFragment() {
             }
         }
     }
+
+    private fun List<SettingsSearchResult>.preferredSearchResult(): SettingsSearchResult =
+        firstOrNull { it.preferenceKey != null } ?: first()
 }
