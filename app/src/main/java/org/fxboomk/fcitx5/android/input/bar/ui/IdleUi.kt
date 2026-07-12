@@ -67,7 +67,9 @@ class IdleUi(
         if (ctx.resources.configuration.layoutDirection == View.LAYOUT_DIRECTION_LTR) 1f else -1f
     }
 
-    val menuButton = ToolButton(ctx, R.drawable.ic_baseline_apps_24, theme)
+    val menuButton = ToolButton(ctx, R.drawable.ic_baseline_apps_24, theme).apply {
+        iconRotation = menuButtonRotation
+    }
 
     val hideKeyboardButton = ToolButton(ctx, R.drawable.ic_keyboard_hide_24, theme)
 
@@ -129,6 +131,13 @@ class IdleUi(
         add(numberRow, lParams(matchParent, matchParent))
     }
 
+    private val menuButtonRotation
+        get() = when {
+            inPrivate -> 0f
+            currentState == State.Toolbar -> 90f * translateDirection
+            else -> -90f * translateDirection
+        }
+
     fun privateMode(activate: Boolean = true) {
         if (activate == inPrivate) return
         inPrivate = activate
@@ -137,11 +146,13 @@ class IdleUi(
     }
 
     private fun updateMenuButtonIcon() {
-        menuButton.image.imageResource = when {
-            inPrivate -> R.drawable.ic_view_private
-            currentState == State.Clipboard || currentState == State.InlineSuggestion -> R.drawable.ic_baseline_arrow_back_24
-            else -> R.drawable.ic_baseline_apps_24
-        }
+        menuButton.setIcon(
+            when {
+                inPrivate -> R.drawable.ic_view_private
+                currentState == State.Clipboard || currentState == State.InlineSuggestion -> R.drawable.ic_baseline_arrow_back_24
+                else -> R.drawable.ic_baseline_apps_24
+            }
+        )
     }
 
     private fun updateMenuButtonContentDescription() {
@@ -149,6 +160,19 @@ class IdleUi(
             inPrivate -> ctx.getString(R.string.private_mode)
             currentState == State.Toolbar -> ctx.getString(R.string.hide_toolbar)
             else -> ctx.getString(R.string.expand_toolbar)
+        }
+    }
+
+    private fun updateMenuButtonRotation(instant: Boolean = false) {
+        val targetRotation = menuButtonRotation
+        menuButton.apply {
+            if (targetRotation == iconRotation) return
+            iconAnimate().cancel()
+            if (!instant && !disableAnimation) {
+                iconAnimate().setDuration(200L).rotation(targetRotation)
+            } else {
+                iconRotation = targetRotation
+            }
         }
     }
 

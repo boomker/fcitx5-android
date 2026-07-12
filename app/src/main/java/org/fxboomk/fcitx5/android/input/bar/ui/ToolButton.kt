@@ -7,6 +7,7 @@ package org.fxboomk.fcitx5.android.input.bar.ui
 import android.content.Context
 import android.content.res.ColorStateList
 import android.view.Gravity
+import android.view.ViewPropertyAnimator
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.annotation.ColorInt
@@ -49,6 +50,12 @@ class ToolButton(context: Context) : CustomGestureView(context) {
         visibility = GONE
     }
 
+    var iconRotation: Float
+        get() = image.rotation
+        set(value) {
+            image.rotation = value
+        }
+
     private var theme: Theme? = null
     private var isActive: Boolean = false
 
@@ -61,6 +68,8 @@ class ToolButton(context: Context) : CustomGestureView(context) {
         add(image, lParams(wrapContent, wrapContent, gravityCenter))
         add(text, lParams(wrapContent, wrapContent, gravityCenter))
     }
+
+    fun iconAnimate(): ViewPropertyAnimator = image.animate()
 
     fun setIcon(@DrawableRes icon: Int) {
         image.visibility = VISIBLE
