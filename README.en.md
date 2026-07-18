@@ -12,24 +12,23 @@ This fork mainly strengthens two areas:
 
 ## Recent Updates
 
-After consolidating the latest 20 commits, this round of updates mainly falls into the following areas:
+After consolidating the latest 10 commits, this round of updates mainly falls into the following areas:
 
-- Candidate bar and suggestion interactions were strengthened further:
-  - The expanded candidate window now includes tab actions UI, and the candidate tab action pipeline is wired into input panel updates.
-  - Bulk and paged candidate data structures were unified, and fallback paging events now preserve candidate metadata for future extensions.
-  - Interaction issues such as `KawaiiBar` showing up in floating candidate mode and the menu button dismissing clipboard suggestions first were fixed.
-- The prediction pipeline is now more controllable and better aligned with Chinese input habits:
-  - A configurable backspace behavior for predictions was added.
-  - Candidate visuals, preedit spacing, and prediction lifecycle handling were polished to avoid spurious resets and re-requests when preedit and suggestions are both active during cursor movement.
-  - Optional automatic spacing between Chinese and English on candidate commit was added, and the related patching and option initialization path was split and stabilized.
-- UI components and base widgets received small but useful improvements:
-  - `AutoScaleTextView` now supports more gravity options for different layout needs.
-  - `EmojiModifier` now relies less on hardcoded special cases, making the input-layer logic cleaner.
-- Lifecycle and state handling continue to be cleaned up:
-  - `FcitxLifecycle` has been refactored around `StateFlow`, which makes state propagation and observation more consistent.
-- Upstream sync and build-chain maintenance continue in parallel:
-  - `fcitx5` submodules and prebuilts were updated multiple times.
-  - Fixes also landed for hidden `fcitx` option patch initialization, CI handling of custom commit patches, and the `opencc` dependency declaration in F-Droid metadata.
+- Settings search is now more complete:
+  - The main settings page now has a search entry with cross-page navigation and automatic scrolling to the matched preference.
+  - Search results are deduplicated by title and path to avoid repeated entries for the same setting.
+  - Toolbar menu items are now included in the settings search index, making common actions easier to find directly.
+- Keyboard and candidate-bar behavior keeps getting refined:
+  - The physical-keyboard candidate bar preference was moved into the keyboard settings section, with input-device tests added around the behavior.
+  - Floating keyboard state is now persisted, and handle/key styling details were fixed.
+  - Paged candidate lists now always re-bind candidate views, reducing stale display issues caused by view reuse.
+  - The blur clipping shape for circular Gboard side keys was corrected.
+- Toolbar and editor UI feedback is clearer:
+  - Save actions in layout, key, font, and popup editors now use icon buttons.
+  - Save icons are tinted by enabled state, making it easier to see when changes can be saved.
+- AI provider and stability maintenance:
+  - Moonshot was added as an AI provider, and Zhipu was moved to the end of the provider list.
+  - A crash in `onStop` when the plugin service had already disconnected was fixed.
 
 ## Highlights
 
@@ -79,6 +78,7 @@ If your workflow is “copy on desktop, input on phone” or “copy on phone, r
 - RIME plugin support remains available for custom schemas, dictionaries, and advanced configuration.
 - [`librime` (the Rime plugin)](https://github.com/boomker/librime) prediction capability has been enhanced so it can learn from user input history and supports backup of prediction data.
 - Prediction, suggestion, and language-model related capabilities from libime and the Chinese plugin stack are preserved.
+- The AI provider list now includes options such as Moonshot.
 - The keyboard layer also keeps gaining configurable features such as MacroKey support, Shift behavior switches, and popup gesture highlight improvements.
 
 ### 4. Keyboard layout and popup preset sharing
@@ -91,8 +91,10 @@ If your workflow is “copy on desktop, input on phone” or “copy on phone, r
 ### 5. Toolbar and UI customization
 
 - Toolbar buttons support both icon-font and drawable-based icon sources, making style unification easier.
+- The main settings page supports search, including cross-page navigation and automatic positioning of matched settings.
+- Layout, key, font, and popup editors use state-aware save icons.
 - The input bar includes a more semantic hide-keyboard icon for better visual clarity.
-- UI details such as the input method picker and keyboard adjustment overlay continue to be refined, and layout refresh is more stable when themes change.
+- UI details such as the input method picker, keyboard adjustment overlay, and floating-keyboard state persistence continue to be refined, and layout refresh is more stable when themes change.
 
 ### 6. Multi-theme switching
 
