@@ -4,6 +4,8 @@
  */
 package org.fxboomk.fcitx5.android.ui.main
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
@@ -182,7 +184,10 @@ class MainFragment : PaddingPreferenceFragment() {
                     summary = result.path.joinToString(" / ")
                 ) {
                     result.preferenceKey?.let(viewModel::requestPreferenceScroll)
-                    navigateWithAnim(result.route)
+                    result.route?.let(::navigateWithAnim)
+                        ?: result.externalUri?.let { uri ->
+                            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(uri)))
+                        }
                 }
             }
             if (results.isEmpty()) {

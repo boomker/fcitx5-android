@@ -9,6 +9,7 @@ import android.net.Uri
 import androidx.annotation.StringRes
 import androidx.preference.Preference
 import arrow.core.getOrElse
+import org.fxboomk.fcitx5.android.BuildConfig
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.core.FcitxAPI
 import org.fxboomk.fcitx5.android.core.RawConfig
@@ -18,6 +19,7 @@ import org.fxboomk.fcitx5.android.data.theme.ThemeManager
 import org.fxboomk.fcitx5.android.input.predict.LlmPrefs
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.KeyboardSettingsSupport
 import org.fxboomk.fcitx5.android.utils.AppUtil
+import org.fxboomk.fcitx5.android.utils.Const
 import org.fxboomk.fcitx5.android.utils.config.ConfigDescriptor
 import org.fxboomk.fcitx5.android.utils.config.ConfigDescriptor.ConfigCustom
 import org.fxboomk.fcitx5.android.utils.config.ConfigDescriptor.ConfigExternal
@@ -27,10 +29,11 @@ import java.util.Locale
 data class SettingsSearchResult(
     val title: String,
     val path: List<String>,
-    val route: SettingsRoute,
+    val route: SettingsRoute? = null,
     val preferenceKey: String? = null,
     val summary: String? = null,
-    val keywords: List<String> = emptyList()
+    val keywords: List<String> = emptyList(),
+    val externalUri: String? = null
 ) {
     private val searchableText: String by lazy {
         (listOf(title, preferenceKey.orEmpty(), summary.orEmpty()) + path + keywords)
@@ -47,7 +50,109 @@ data class SettingsSearchResult(
     }
 }
 
+data class ToolbarMenuSearchSpec(
+    @StringRes val title: Int,
+    val route: SettingsRoute? = null,
+    @StringRes val parent: Int? = null,
+    @StringRes val section: Int? = null,
+    @StringRes val summary: Int? = null,
+    val externalUri: String? = null,
+    val keywords: List<String> = emptyList()
+)
+
 object SettingsSearchIndex {
+    val toolbarMenuSearchSpecs = listOf(
+        ToolbarMenuSearchSpec(R.string.faq, externalUri = Const.faqUrl),
+        ToolbarMenuSearchSpec(R.string.developer, SettingsRoute.Developer),
+        ToolbarMenuSearchSpec(R.string.about, SettingsRoute.About),
+        ToolbarMenuSearchSpec(R.string.real_time_logs, SettingsRoute.Developer, R.string.developer),
+        ToolbarMenuSearchSpec(R.string.verbose_log, SettingsRoute.Developer, R.string.developer),
+        ToolbarMenuSearchSpec(
+            R.string.editor_info_inspector,
+            SettingsRoute.Developer,
+            R.string.developer
+        ),
+        ToolbarMenuSearchSpec(
+            R.string.restart_fcitx_instance,
+            SettingsRoute.Developer,
+            R.string.developer,
+            summary = R.string.restart_fcitx_instance_confirm
+        ),
+        ToolbarMenuSearchSpec(
+            R.string.delete_and_sync_data,
+            SettingsRoute.Developer,
+            R.string.developer,
+            summary = R.string.delete_and_sync_data_message
+        ),
+        ToolbarMenuSearchSpec(R.string.clear_clb_db, SettingsRoute.Developer, R.string.developer),
+        ToolbarMenuSearchSpec(R.string.capture_heap_dump, SettingsRoute.Developer, R.string.developer),
+        ToolbarMenuSearchSpec(R.string.privacy_policy, SettingsRoute.About, R.string.about),
+        ToolbarMenuSearchSpec(
+            R.string.open_source_licenses,
+            SettingsRoute.License,
+            R.string.about,
+            summary = R.string.licenses_of_third_party_libraries
+        ),
+        ToolbarMenuSearchSpec(R.string.source_code, SettingsRoute.About, R.string.about),
+        ToolbarMenuSearchSpec(
+            R.string.license,
+            SettingsRoute.About,
+            R.string.about,
+            keywords = listOf(Const.licenseSpdxId)
+        ),
+        ToolbarMenuSearchSpec(
+            R.string.current_version,
+            SettingsRoute.About,
+            R.string.about,
+            R.string.version,
+            keywords = listOf(Const.versionName)
+        ),
+        ToolbarMenuSearchSpec(
+            R.string.check_for_updates,
+            SettingsRoute.About,
+            R.string.about,
+            R.string.version
+        ),
+        ToolbarMenuSearchSpec(
+            R.string.install_update,
+            SettingsRoute.About,
+            R.string.about,
+            R.string.version
+        ),
+        ToolbarMenuSearchSpec(
+            R.string.build_git_hash,
+            SettingsRoute.About,
+            R.string.about,
+            R.string.version,
+            keywords = listOf(BuildConfig.BUILD_GIT_HASH)
+        ),
+        ToolbarMenuSearchSpec(
+            R.string.build_time,
+            SettingsRoute.About,
+            R.string.about,
+            R.string.version
+        ),
+        ToolbarMenuSearchSpec(
+            R.string.manage_plugins,
+            SettingsRoute.Plugin,
+            R.string.plugins,
+            summary = R.string.manage_plugins_hint
+        ),
+        ToolbarMenuSearchSpec(
+            R.string.uninstall_selected_plugins,
+            SettingsRoute.Plugin,
+            R.string.plugins,
+            R.string.manage_plugins,
+            R.string.uninstall_plugins_confirm
+        ),
+        ToolbarMenuSearchSpec(
+            R.string.upgrade_selected_plugins,
+            SettingsRoute.Plugin,
+            R.string.plugins,
+            R.string.manage_plugins
+        )
+    )
+
     private val hideKeyConfig: Boolean
         get() = AppPrefs.getInstance().advanced.hideKeyConfig.getValue()
 
@@ -72,6 +177,7 @@ object SettingsSearchIndex {
             addAll(managedItems(context, prefs.advanced, SettingsRoute.Advanced, R.string.advanced))
             addAll(advancedExtraItems(context))
             addAll(llmItems(context))
+            addAll(toolbarMenuItems(context))
         }.distinctBy { listOf(it.route.toString(), it.preferenceKey.orEmpty(), it.title).joinToString("|") }
     }
 
@@ -266,6 +372,24 @@ object SettingsSearchIndex {
                 SettingsRoute.Advanced
             )
         )
+
+    private fun toolbarMenuItems(context: Context): List<SettingsSearchResult> {
+        val appLabel = AppUtil.appLabel(context)
+        return toolbarMenuSearchSpecs.map { spec ->
+            SettingsSearchResult(
+                title = context.getString(spec.title),
+                path = buildList {
+                    add(appLabel)
+                    spec.parent?.let { add(context.getString(it)) }
+                    spec.section?.let { add(context.getString(it)) }
+                },
+                route = spec.route,
+                summary = spec.summary?.let(context::getString),
+                keywords = spec.keywords,
+                externalUri = spec.externalUri
+            )
+        }
+    }
 
     private fun llmItems(context: Context): List<SettingsSearchResult> {
         val llm = context.getString(R.string.llm_settings_title)
