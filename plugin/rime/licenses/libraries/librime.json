@@ -1,6 +1,6 @@
 {
     "uniqueId": "boomker/librime",
-    "artifactVersion": "1.16.1-3a0bafa",
+    "artifactVersion": "1.17.0-ada4940",
     "description": "Rime Input Method Engine",
     "name": "boomker/librime",
     "website": "https://github.com/boomker/librime",
