@@ -173,6 +173,7 @@ class InputView(
         private val blurTargetViews = ArrayList<View>(128)
         private val keyClipRects = ArrayList<Rect>(96)
         private val keyClipRadii = ArrayList<Float>(96)
+        private val keyClipOval = ArrayList<Boolean>(96)
         private var blurBitmap: Bitmap? = null
         private var redrawRetryCount = 0
         private var keyRegionsDirty = true
@@ -242,8 +243,14 @@ class InputView(
             var drewKeyRegion = false
             keyClipRects.forEachIndexed { index, rect ->
                 val saveId = canvas.save()
+                val isOval = keyClipOval.getOrElse(index) { false }
                 val radius = keyClipRadii.getOrElse(index) { 0f }
-                if (radius > 0f) {
+                if (isOval) {
+                    clipRectF.set(rect)
+                    clipPath.reset()
+                    clipPath.addOval(clipRectF, Path.Direction.CW)
+                    canvas.clipPath(clipPath)
+                } else if (radius > 0f) {
                     clipRectF.set(rect)
                     clipPath.reset()
                     clipPath.addRoundRect(clipRectF, radius, radius, Path.Direction.CW)
@@ -305,6 +312,7 @@ class InputView(
             hasVisibleKey = false
             keyClipRects.clear()
             keyClipRadii.clear()
+            keyClipOval.clear()
             if (keyHierarchyDirty) {
                 blurTargetViews.clear()
                 collectBlurTargets(windowManager.view, blurTargetViews)
@@ -317,6 +325,7 @@ class InputView(
                 hasVisibleKey = false
                 keyClipRects.clear()
                 keyClipRadii.clear()
+                keyClipOval.clear()
                 blurTargetViews.forEach { target ->
                     if (!target.isShown) return@forEach
                     hasVisibleKey = true
@@ -325,14 +334,25 @@ class InputView(
                     val hMargin: Int
                     val vMargin: Int
                     val radius: Float
+                    val isOval: Boolean
                     if (target is KeyView) {
-                        hMargin = target.hMargin
-                        vMargin = target.vMargin
-                        radius = target.radius
+                        if (target.isCircularSideKey) {
+                            val (circleH, circleV) = target.resolveBlurClipInsets(target.width, target.height)
+                            hMargin = circleH
+                            vMargin = circleV
+                            radius = 0f
+                            isOval = true
+                        } else {
+                            hMargin = target.hMargin
+                            vMargin = target.vMargin
+                            radius = target.radius
+                            isOval = false
+                        }
                     } else {
                         hMargin = 0
                         vMargin = 0
                         radius = (target.getTag(R.id.blur_mask_clip_radius) as? Number)?.toFloat() ?: 0f
+                        isOval = false
                     }
                     val relativeLeft = keyLoc[0] - containerLoc[0]
                     val relativeTop = keyLoc[1] - containerLoc[1]
@@ -347,6 +367,7 @@ class InputView(
                     val maxRadius = minOf(clipRect.width(), clipRect.height()) * 0.5f
                     keyClipRects.add(Rect(clipRect))
                     keyClipRadii.add(radius.coerceIn(0f, maxRadius))
+                    keyClipOval.add(isOval)
                 }
             }
             buildClipRects()

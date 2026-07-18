@@ -106,6 +106,8 @@ abstract class KeyView(
     val radius: Float
     val hMargin: Int
     val vMargin: Int
+    var isCircularSideKey: Boolean = false
+        private set
     protected val cornerLabelHorizontalSafeInset: Int
     protected val cornerLabelTopSafeInset: Int
 
@@ -184,19 +186,11 @@ abstract class KeyView(
                 Variant.Accent -> theme.accentKeyBackgroundColor
             }
             val bkgColor = resolveStyledBackgroundColor(theme, defaultBkgColor)
-            val borderOrShadowWidth = dp(1)
-            if (ThemeManager.prefs.gboardStyleSideKeys.getValue()) {
-                // Gboard style - ellipse/oval shape
-                appearanceView.background = shadowedKeyBackgroundDrawable(
-                    bkgColor, resolveShadowColor(theme),
-                    radius, borderOrShadowWidth, hMargin, vMargin
-                )
+            if (ThemeManager.prefs.gboardStyleSideKeys.getValue() && shouldUseCircularGboardSideKeys()) {
+                // Circular shape will be applied in onSizeChanged/onLayout when dimensions are available
+                isCircularSideKey = true
             } else {
-                // Uses user configured radius when switch is OFF
-                appearanceView.background = shadowedKeyBackgroundDrawable(
-                    bkgColor, resolveShadowColor(theme),
-                    radius, borderOrShadowWidth, hMargin, vMargin
-                )
+                applyRoundedSideKeyBackground(bkgColor)
             }
             setupPressHighlight()
         } else if ((bordered && def.border != Border.Off) || def.border == Border.On) {
@@ -280,6 +274,11 @@ abstract class KeyView(
         return resolveColorOverride(theme, def.altTextColor, def.altTextColorMonet) ?: defaultColor
     }
 
+    fun resolveBlurClipInsets(viewWidth: Int, viewHeight: Int): Pair<Int, Int> {
+        if (!isCircularSideKey) return hMargin to vMargin
+        return resolveSideKeyCircleInsets(viewWidth, viewHeight)
+    }
+
     private fun resolveSideKeyCircleInsets(viewWidth: Int, viewHeight: Int): Pair<Int, Int> {
         val minInset = dp(4)
         val usableWidth = (viewWidth - minInset * 2).coerceAtLeast(0)
@@ -296,6 +295,7 @@ abstract class KeyView(
         @ColorInt backgroundColor: Int
     ) {
         val (hInset, vInset) = resolveSideKeyCircleInsets(viewWidth, viewHeight)
+        isCircularSideKey = true
         appearanceView.background = insetOvalDrawable(hInset, vInset, backgroundColor)
         // Keep content inside the visible circular background when the side key becomes short.
         appearanceView.setPadding(hInset, vInset, hInset, vInset)
@@ -309,6 +309,7 @@ abstract class KeyView(
 
     private fun applyRoundedSideKeyBackground(@ColorInt backgroundColor: Int) {
         val borderOrShadowWidth = dp(1)
+        isCircularSideKey = false
         appearanceView.background = shadowedKeyBackgroundDrawable(
             backgroundColor, resolveShadowColor(theme),
             radius, borderOrShadowWidth, hMargin, vMargin
@@ -515,13 +516,13 @@ abstract class KeyView(
                 Variant.Accent -> newTheme.accentKeyBackgroundColor
             }
             val bkgColor = resolveStyledBackgroundColor(newTheme, defaultBkgColor)
-            val borderOrShadowWidth = dp(1)
             if (ThemeManager.prefs.gboardStyleSideKeys.getValue()) {
                 if (shouldUseCircularGboardSideKeys()) {
-                    appearanceView.background = shadowedKeyBackgroundDrawable(
-                        bkgColor, resolveShadowColor(newTheme),
-                        radius, borderOrShadowWidth, hMargin, vMargin
-                    )
+                    val w = appearanceView.width
+                    val h = appearanceView.height
+                    if (w > 0 && h > 0) {
+                        applyCircularSideKeyBackground(w, h, bkgColor)
+                    }
                 } else {
                     applyRoundedSideKeyBackground(bkgColor)
                 }
