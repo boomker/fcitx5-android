@@ -240,6 +240,64 @@ class LlmClientTest {
         assertEquals("完整长文", result)
     }
 
+    @Test
+    fun moonshotKimiCompatOverridesInvalidSamplingDefaults() {
+        val client = LlmClient()
+        val method = LlmClient::class.java.getDeclaredMethod(
+            "resolveMoonshotSamplingSettings",
+            LlmClient.PredictionRequest::class.java,
+        )
+        method.isAccessible = true
+
+        val request = LlmClient.PredictionRequest(
+            config = config(
+                provider = LlmPrefs.Provider.Moonshot,
+                baseUrl = "https://api.moonshot.cn/v1",
+                model = "kimi-k2.6",
+            ),
+            beforeCursor = "hello",
+            enableThinking = false,
+        )
+
+        val result = method.invoke(client, request)
+        val resultClass = result!!::class.java
+
+        assertEquals(0.6, resultClass.getMethod("getTemperature").invoke(result) as Double, 0.0001)
+        assertEquals(0.95, resultClass.getMethod("getTopP").invoke(result) as Double, 0.0001)
+        assertEquals("disabled", resultClass.getMethod("getThinkingType").invoke(result) as String)
+        assertNull(resultClass.getMethod("getReasoningEffort").invoke(result))
+        assertFalse(resultClass.getMethod("getStripFixedSamplingFields").invoke(result) as Boolean)
+    }
+
+    @Test
+    fun moonshotK3CompatUsesReasoningEffortAndDropsK2SamplingFields() {
+        val client = LlmClient()
+        val method = LlmClient::class.java.getDeclaredMethod(
+            "resolveMoonshotSamplingSettings",
+            LlmClient.PredictionRequest::class.java,
+        )
+        method.isAccessible = true
+
+        val request = LlmClient.PredictionRequest(
+            config = config(
+                provider = LlmPrefs.Provider.Moonshot,
+                baseUrl = "https://api.moonshot.cn/v1",
+                model = "kimi-k3",
+            ),
+            beforeCursor = "hello",
+            enableThinking = false,
+        )
+
+        val result = method.invoke(client, request)
+        val resultClass = result!!::class.java
+
+        assertNull(resultClass.getMethod("getTemperature").invoke(result))
+        assertNull(resultClass.getMethod("getTopP").invoke(result))
+        assertNull(resultClass.getMethod("getThinkingType").invoke(result))
+        assertEquals("max", resultClass.getMethod("getReasoningEffort").invoke(result) as String)
+        assertTrue(resultClass.getMethod("getStripFixedSamplingFields").invoke(result) as Boolean)
+    }
+
     private fun config(
         provider: LlmPrefs.Provider,
         baseUrl: String = if (provider == LlmPrefs.Provider.OpenAI) {

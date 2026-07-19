@@ -205,6 +205,7 @@ internal class LlmClient(
         if (!shouldReturnPlainText(request)) {
             openAiPayload.put("response_format", JSONObject().put("type", "json_object"))
         }
+        applyMoonshotKimiCompat(openAiPayload, request)
         val anthropicPayload = JSONObject()
             .put("model", request.config.model)
             .put("system", systemPrompt)
@@ -233,6 +234,7 @@ internal class LlmClient(
                     else -> 0.1
                 }
             )
+        applyMoonshotKimiCompat(anthropicPayload, request)
 
         val plans = request.config.chatCompatEndpoints.flatMap { endpoint ->
             buildRequestPlans(
@@ -395,6 +397,7 @@ internal class LlmClient(
                             .put("content", assistantPrefill)
                     )
             )
+        applyMoonshotKimiCompat(openAiPayload, request)
         request.seed?.let { openAiPayload.put("seed", it) }
 
         val anthropicPayload = JSONObject()
@@ -426,6 +429,7 @@ internal class LlmClient(
             .put("temperature", temperature)
             .put("top_p", topP)
             .put("stop_sequences", JSONArray(stops.toString()))
+        applyMoonshotKimiCompat(anthropicPayload, request)
 
         return request.config.completionCompatEndpoints.flatMap { endpoint ->
             buildRequestPlans(
@@ -505,6 +509,64 @@ internal class LlmClient(
         return request.outputMode == LlmOutputMode.LongForm ||
             request.taskMode == LlmTaskMode.QuestionAnswer ||
             request.taskMode == LlmTaskMode.Translate
+    }
+
+    private data class MoonshotSamplingSettings(
+        val temperature: Double? = null,
+        val topP: Double? = null,
+        val thinkingType: String? = null,
+        val reasoningEffort: String? = null,
+        val stripFixedSamplingFields: Boolean = false,
+    )
+
+    private fun applyMoonshotKimiCompat(payload: JSONObject, request: PredictionRequest) {
+        val settings = resolveMoonshotSamplingSettings(request) ?: return
+        if (settings.stripFixedSamplingFields) {
+            payload.remove("temperature")
+            payload.remove("top_p")
+            payload.remove("n")
+            payload.remove("presence_penalty")
+            payload.remove("frequency_penalty")
+            payload.remove("thinking")
+        }
+        settings.thinkingType?.let { thinkingType ->
+            payload.put("thinking", JSONObject().put("type", thinkingType))
+        }
+        settings.reasoningEffort?.let { reasoningEffort ->
+            payload.put("reasoning_effort", reasoningEffort)
+        }
+        settings.temperature?.let { payload.put("temperature", it) }
+        settings.topP?.let { payload.put("top_p", it) }
+        if (!settings.stripFixedSamplingFields) {
+            payload.put("n", 1)
+            payload.put("presence_penalty", 0.0)
+            payload.put("frequency_penalty", 0.0)
+        }
+    }
+
+    private fun isMoonshotK2Model(config: LlmPrefs.Config): Boolean {
+        return config.provider == LlmPrefs.Provider.Moonshot &&
+            config.model.startsWith("kimi-k2", ignoreCase = true)
+    }
+
+    private fun isMoonshotK3Model(config: LlmPrefs.Config): Boolean {
+        return config.provider == LlmPrefs.Provider.Moonshot &&
+            config.model.startsWith("kimi-k3", ignoreCase = true)
+    }
+
+    private fun resolveMoonshotSamplingSettings(request: PredictionRequest): MoonshotSamplingSettings? {
+        return when {
+            isMoonshotK2Model(request.config) -> MoonshotSamplingSettings(
+                temperature = if (request.enableThinking) 1.0 else 0.6,
+                topP = 0.95,
+                thinkingType = if (request.enableThinking) "enabled" else "disabled",
+            )
+            isMoonshotK3Model(request.config) -> MoonshotSamplingSettings(
+                reasoningEffort = "max",
+                stripFixedSamplingFields = true,
+            )
+            else -> null
+        }
     }
 
     private fun resolveThinkingBudgetTokens(request: PredictionRequest): Int {

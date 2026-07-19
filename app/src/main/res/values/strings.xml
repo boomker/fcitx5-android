@@ -426,8 +426,8 @@
     <string name="llm_provider_local_ai" translatable="false">本地</string>
     <string name="llm_provider_custom" translatable="false">自定义</string>
     <string name="llm_provider_openai" translatable="false">OpenAI</string>
-    <string name="llm_provider_anthropic" translatable="false">Anthropic</string>
     <string name="llm_provider_gemini" translatable="false">Google</string>
+    <string name="llm_provider_anthropic" translatable="false">Anthropic</string>
     <string name="llm_provider_deepseek" translatable="false">DeepSeek</string>
     <string name="llm_provider_zhipu" translatable="false">BigModel(智谱)</string>
     <string name="llm_provider_minimax" translatable="false">MiniMax CN</string>

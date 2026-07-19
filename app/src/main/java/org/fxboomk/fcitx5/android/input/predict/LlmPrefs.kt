@@ -125,16 +125,22 @@ object LlmPrefs {
         LocalAI("local_ai", R.string.llm_provider_local_ai, null, null, DEFAULT_LOCAL_MODEL),
         Custom("custom", R.string.llm_provider_custom, null, null),
         OpenAI("openai", R.string.llm_provider_openai, "https://api.openai.com/v1", CompatApi.OpenAI),
-        Anthropic("anthropic", R.string.llm_provider_anthropic, "https://api.anthropic.com/v1", CompatApi.Anthropic),
         Gemini("gemini", R.string.llm_provider_gemini, "https://generativelanguage.googleapis.com/v1beta/openai", CompatApi.OpenAI),
+        Anthropic("anthropic", R.string.llm_provider_anthropic, "https://api.anthropic.com/v1", CompatApi.Anthropic),
         DeepSeek("deepseek", R.string.llm_provider_deepseek, "https://api.deepseek.com", CompatApi.OpenAI),
-        Moonshot("moonshot", R.string.llm_provider_moonshot, "https://api.moonshot.cn/v1", CompatApi.OpenAI),
         MiniMax(
             "minimax",
             R.string.llm_provider_minimax,
             "https://api.minimaxi.com/anthropic",
             CompatApi.Anthropic,
             "MiniMax-M2.7",
+        ),
+        Moonshot(
+            "moonshot",
+            R.string.llm_provider_moonshot,
+            "https://api.moonshot.cn/v1",
+            CompatApi.OpenAI,
+            "kimi-k2.6",
         ),
         Zhipu("zhipu", R.string.llm_provider_zhipu, "https://open.bigmodel.cn/api/paas/v4", CompatApi.OpenAI);
 

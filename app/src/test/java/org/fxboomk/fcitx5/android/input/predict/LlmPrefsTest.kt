@@ -74,6 +74,23 @@ class LlmPrefsTest {
     }
 
     @Test
+    fun readUsesMoonshotProviderDefaultModelWhenModelBlank() {
+        val prefs = FakeSharedPreferences(
+            mutableMapOf(
+                LlmPrefs.KEY_ENABLED to true,
+                LlmPrefs.KEY_PROVIDER to LlmPrefs.Provider.Moonshot.value,
+                LlmPrefs.KEY_MODEL to "",
+            )
+        )
+
+        val config = LlmPrefs.read(prefs)
+
+        assertEquals(LlmPrefs.Provider.Moonshot, config.provider)
+        assertEquals("kimi-k2.6", config.model)
+        assertEquals("kimi-k2.6", LlmPrefs.providerDefaultModel(LlmPrefs.Provider.Moonshot))
+    }
+
+    @Test
     fun readPersonaDetailMigratesLegacyLanPrefixedEntry() {
         val prefs = FakeSharedPreferences(
             mutableMapOf(
@@ -384,8 +401,8 @@ class LlmPrefsTest {
                 LlmPrefs.Provider.LocalAI,
                 LlmPrefs.Provider.Custom,
                 LlmPrefs.Provider.OpenAI,
-                LlmPrefs.Provider.Anthropic,
                 LlmPrefs.Provider.Gemini,
+                LlmPrefs.Provider.Anthropic,
                 LlmPrefs.Provider.DeepSeek,
                 LlmPrefs.Provider.MiniMax,
                 LlmPrefs.Provider.Moonshot,
