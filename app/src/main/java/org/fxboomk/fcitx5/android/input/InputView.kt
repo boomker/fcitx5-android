@@ -1290,6 +1290,8 @@ class InputView(
     // Whether layout-related preferences should be treated as landscape.
     // Enabled when device is landscape OR when "use landscape layout when split" is enabled and split keyboard is active.
     // Prefer using the actual keyboard view width when available to decide if split is active.
+    private var layoutLandscapeReevaluationPosted = false
+
     private val isLayoutLandscape: Boolean
         get() {
             if (isLandscapeOrientation) return true
@@ -1316,14 +1318,20 @@ class InputView(
                 manager.shouldUseSplitKeyboard()
             }
 
-            // If we couldn't get real width, schedule a re-evaluation after layout so that
-            // once keyboardView has a width we refresh dependent UI.
-            if (realWidthPx <= 0) {
+            if (realWidthPx <= 0 && !layoutLandscapeReevaluationPosted) {
+                layoutLandscapeReevaluationPosted = true
+                val fallbackShouldSplit = shouldSplit
                 keyboardView.post {
-                    // Refresh keyboard layouts if split state might differ
-                    (windowManager.getEssentialWindow(KeyboardWindow) as? KeyboardWindow)?.refreshAllKeyboards()
-                    updateKeyboardSize()
-                    requestLayout()
+                    layoutLandscapeReevaluationPosted = false
+                    val measuredWidth = keyboardView.width.takeIf { it > 0 }
+                        ?: windowManager.view.width.takeIf { it > 0 }
+                    if (measuredWidth != null &&
+                        manager.shouldUseSplitKeyboard(measuredWidth) != fallbackShouldSplit
+                    ) {
+                        (windowManager.getEssentialWindow(KeyboardWindow) as? KeyboardWindow)?.refreshAllKeyboards()
+                        updateKeyboardSize()
+                        requestLayout()
+                    }
                 }
             }
 

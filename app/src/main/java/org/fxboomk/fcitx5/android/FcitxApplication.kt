@@ -24,6 +24,7 @@ import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.data.prefs.SmartDefaultInitializer
 import org.fxboomk.fcitx5.android.data.prefs.SplitKeyboardStateManager
 import org.fxboomk.fcitx5.android.data.theme.ThemeManager
+import org.fxboomk.fcitx5.android.input.font.FontProviders
 import org.fxboomk.fcitx5.android.ui.main.LogActivity
 import org.fxboomk.fcitx5.android.utils.AppUtil
 import org.fxboomk.fcitx5.android.utils.Locales
@@ -140,6 +141,7 @@ class FcitxApplication : Application() {
         }
         ClipboardManager.init(ctx)
         ThemeManager.init(resources.configuration)
+        FontProviders.preloadFontsAsync()
         Locales.onLocaleChange(resources.configuration)
         registerReceiver(shutdownReceiver, IntentFilter(Intent.ACTION_SHUTDOWN))
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && !isDirectBootMode) {

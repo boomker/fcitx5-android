@@ -65,6 +65,7 @@ class TextKeyboard(
         @Synchronized
         private fun onTextLayoutFileChanged() {
             cachedRawLayoutJson = null
+            lastRawLayoutFile = null
             lastRawModified = 0L
             val living = attachedKeyboards.mapNotNull { it.get() }
             attachedKeyboards.removeAll { it.get() == null }
@@ -94,6 +95,7 @@ class TextKeyboard(
 
         // Cache for raw JSON layout (preserves submode structure)
         internal var cachedRawLayoutJson: JsonObject? = null
+        private var lastRawLayoutFile: String? = null
         private var lastRawModified = 0L
 
         // Compatibility alias for cachedRawLayoutJson (used by SplitKeyboardCalibrationActivity)
@@ -119,12 +121,43 @@ class TextKeyboard(
         val textLayoutJson: JsonObject?
             @Synchronized
             get() {
-                val snapshot = org.fxboomk.fcitx5.android.input.config.ConfigProviders
-                    .readTextKeyboardLayout<JsonObject>() ?: run {
+                val providers = org.fxboomk.fcitx5.android.input.config.ConfigProviders
+                val provider = providers.provider
+                val memoryJson = provider.textKeyboardLayoutJson()
+                if (memoryJson != null) {
+                    providers.ensureWatching()
+                    if (cachedRawLayoutJson !== memoryJson || lastRawLayoutFile != null) {
+                        cachedRawLayoutJson = memoryJson
+                        lastRawLayoutFile = null
+                        lastRawModified = Long.MIN_VALUE
+                        lastLayoutCacheInvalidated = 0L
+                        cachedKeyDefLayouts.clear()
+                    }
+                    return cachedRawLayoutJson
+                }
+
+                val file = provider.textKeyboardLayoutFile()
+                val currentFile = file?.absolutePath
+                val currentModified = file?.takeIf { it.exists() }?.lastModified() ?: 0L
+                if (cachedRawLayoutJson != null &&
+                    currentFile == lastRawLayoutFile &&
+                    currentModified == lastRawModified
+                ) {
+                    providers.ensureWatching()
+                    return cachedRawLayoutJson
+                }
+
+                val snapshot = providers.readTextKeyboardLayout<JsonObject>() ?: run {
                     cachedRawLayoutJson = null
+                    lastRawLayoutFile = null
+                    lastRawModified = 0L
                     return null
                 }
-                if (cachedRawLayoutJson == null || snapshot.lastModified != lastRawModified) {
+                if (cachedRawLayoutJson == null ||
+                    currentFile != lastRawLayoutFile ||
+                    snapshot.lastModified != lastRawModified
+                ) {
+                    lastRawLayoutFile = currentFile
                     lastRawModified = snapshot.lastModified
                     cachedRawLayoutJson = snapshot.value
                     // Invalidate KeyDef cache when JSON changes
@@ -318,6 +351,7 @@ class TextKeyboard(
     private val keepLettersUppercase by AppPrefs.getInstance().keyboard.keepLettersUppercase
 
     init {
+        ime?.let { lastLayoutSignature = layoutSignature(it) }
     }
 
     private val textKeys: List<TextKeyView>

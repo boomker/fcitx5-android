@@ -41,7 +41,6 @@ import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.data.prefs.ManagedPreference
 import org.fxboomk.fcitx5.android.data.prefs.SplitKeyboardStateManager
 import org.fxboomk.fcitx5.android.data.theme.Theme
-import org.fxboomk.fcitx5.android.input.font.FontProviders
 import org.fxboomk.fcitx5.android.input.keyboard.CustomGestureView.GestureType
 import org.fxboomk.fcitx5.android.input.keyboard.CustomGestureView.OnGestureListener
 import org.fxboomk.fcitx5.android.input.keyboard.CustomGestureView.SwipeAxis
@@ -171,11 +170,6 @@ abstract class BaseKeyboard(
         spaceKeys.clear()
         touchTarget.clear()
         composeAwareKeys.clear()
-
-        // Get all fonts once for batch setting - improves performance by reducing FontProviders access
-        val fontMap = org.fxboomk.fcitx5.android.input.font.FontProviders.fontTypefaceMap
-        val mainFont = fontMap["key_main_font"]
-        val altFont = fontMap["key_alt_font"]
 
         val splitKeyboard = splitKeyboardManager.shouldUseSplitKeyboard(width)
         lastSplitLandscapeState = splitKeyboard
