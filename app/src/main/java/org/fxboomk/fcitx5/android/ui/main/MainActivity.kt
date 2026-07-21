@@ -16,7 +16,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.graphics.drawable.DrawerArrowDrawable
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.forEach
@@ -64,12 +63,9 @@ class MainActivity : AppCompatActivity() {
             windowInsets
         }
         setContentView(binding.root)
+        setSupportActionBar(binding.toolbar)
         // always show toolbar back arrow icon
-        // https://android.googlesource.com/platform/frameworks/support/+/32e643112d0217619237a0d7101b50919c6caf51/navigation/navigation-ui/src/main/java/androidx/navigation/ui/AbstractAppBarOnDestinationChangedListener.kt#80
-        binding.toolbar.navigationIcon = DrawerArrowDrawable(this).apply { progress = 1f }
-        // show menu icon and other action icons on toolbar
-        // don't use `setSupportActionBar(binding.toolbar)` here,
-        // because navController would change toolbar title, we need to control it by ourselves
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
         setupToolbarMenu(binding.toolbar.menu)
         navController = binding.navHostFragment.getFragment<NavHostFragment>().navController
         navController.graph = SettingsRoute.createGraph(navController)
@@ -79,15 +75,6 @@ class MainActivity : AppCompatActivity() {
                     setAction(R.string.edit) { callback() }
                 }
             }.show()
-        }
-        binding.toolbar.setNavigationOnClickListener {
-            // prevent navigate up when child fragment has enabled `OnBackPressedCallback`
-            if (onBackPressedDispatcher.hasEnabledCallbacks()) {
-                onBackPressedDispatcher.onBackPressed()
-                return@setNavigationOnClickListener
-            }
-            // "minimize" the activity if we can't go back
-            navController.navigateUp() || onSupportNavigateUp() || moveTaskToBack(false)
         }
         viewModel.toolbarTitle.observe(this) {
             binding.toolbar.title = it
@@ -111,6 +98,16 @@ class MainActivity : AppCompatActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         processIntent(intent, null)
+    }
+
+    override fun onSupportNavigateUp(): Boolean {
+        // prevent navigate up when child fragment has enabled `OnBackPressedCallback`
+        if (onBackPressedDispatcher.hasEnabledCallbacks()) {
+            onBackPressedDispatcher.onBackPressed()
+            return true
+        }
+        // "minimize" the activity if we can't go back
+        return navController.navigateUp() || super.onSupportNavigateUp() || moveTaskToBack(false)
     }
 
     private fun processIntent(intent: Intent?, savedInstanceState: Bundle? = null) {
