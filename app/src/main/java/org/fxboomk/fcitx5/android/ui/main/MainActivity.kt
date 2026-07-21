@@ -76,7 +76,7 @@ class MainActivity : AppCompatActivity() {
             }.show()
         }
         viewModel.toolbarTitle.observe(this) {
-            binding.toolbar.title = it
+            supportActionBar!!.title = it
         }
         viewModel.toolbarShadow.observe(this) {
             binding.toolbar.elevation = dp(if (it) 4f else 0f)
