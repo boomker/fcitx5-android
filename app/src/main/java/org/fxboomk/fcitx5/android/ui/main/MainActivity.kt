@@ -66,7 +66,6 @@ class MainActivity : AppCompatActivity() {
         setSupportActionBar(binding.toolbar)
         // always show toolbar back arrow icon
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        setupToolbarMenu(binding.toolbar.menu)
         navController = binding.navHostFragment.getFragment<NavHostFragment>().navController
         navController.graph = SettingsRoute.createGraph(navController)
         shareReceiveManager = ShareReceiveManager(this) { message, action ->
@@ -136,6 +135,12 @@ class MainActivity : AppCompatActivity() {
                 shareReceiveManager.handle(intent, savedInstanceState)
             }
         }
+    }
+    
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        setupToolbarMenu(menu)
+        viewModel.enableAboutButton()
+        return true
     }
 
     private fun setupToolbarMenu(menu: Menu) {
