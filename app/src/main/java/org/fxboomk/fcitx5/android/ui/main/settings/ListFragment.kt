@@ -15,6 +15,7 @@ import org.fxboomk.fcitx5.android.core.Key
 import org.fxboomk.fcitx5.android.core.RawConfig
 import org.fxboomk.fcitx5.android.ui.common.BaseDynamicListUi
 import org.fxboomk.fcitx5.android.ui.common.DynamicListUi
+import org.fxboomk.fcitx5.android.ui.main.EditDeleteMenuProvider
 import org.fxboomk.fcitx5.android.ui.main.MainViewModel
 import org.fxboomk.fcitx5.android.utils.config.ConfigDescriptor
 import org.fxboomk.fcitx5.android.utils.config.ConfigType
@@ -134,6 +135,14 @@ class ListFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View = ui.root
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        requireActivity().addMenuProvider(
+            EditDeleteMenuProvider(viewModel, requireActivity(), viewLifecycleOwner),
+            viewLifecycleOwner
+        )
+    }
 
     override fun onStart() {
         super.onStart()

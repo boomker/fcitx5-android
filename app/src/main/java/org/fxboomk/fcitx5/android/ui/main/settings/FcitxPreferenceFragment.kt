@@ -112,7 +112,6 @@ abstract class FcitxPreferenceFragment : PaddingPreferenceFragment() {
                 this@FcitxPreferenceFragment,
                 viewModel
             )
-            viewModel.disableAboutButton()
         }
     }
 

@@ -14,6 +14,7 @@ import org.fxboomk.fcitx5.android.data.punctuation.PunctuationManager
 import org.fxboomk.fcitx5.android.data.punctuation.PunctuationMapEntry
 import org.fxboomk.fcitx5.android.ui.common.BaseDynamicListUi
 import org.fxboomk.fcitx5.android.ui.common.OnItemChangedListener
+import org.fxboomk.fcitx5.android.ui.main.EditDeleteMenuProvider
 import org.fxboomk.fcitx5.android.utils.NaiveDustman
 import org.fxboomk.fcitx5.android.utils.lazyRoute
 import org.fxboomk.fcitx5.android.utils.materialTextInput
@@ -138,6 +139,10 @@ class PunctuationEditorFragment : ProgressFragment(), OnItemChangedListener<Punc
             }
         }
         resetDustman()
+        requireActivity().addMenuProvider(
+            EditDeleteMenuProvider(viewModel, requireActivity(), viewLifecycleOwner),
+            viewLifecycleOwner
+        )
         viewModel.enableToolbarEditButton(initialEntries.isNotEmpty()) {
             ui.enterMultiSelect(requireActivity().onBackPressedDispatcher)
         }

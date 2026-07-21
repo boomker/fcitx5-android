@@ -27,8 +27,6 @@ class MainViewModel : ViewModel() {
 
     val toolbarDeleteButtonOnClickListener = MutableLiveData<(() -> Unit)?>()
 
-    val aboutButton = MutableLiveData(false)
-
     val pluginMenuVisible = MutableLiveData(false)
     val pluginMenuTrigger = MutableLiveData<Unit?>()
 
@@ -82,13 +80,6 @@ class MainViewModel : ViewModel() {
         toolbarDeleteButtonOnClickListener.value = null
     }
 
-    fun enableAboutButton() {
-        aboutButton.value = true
-    }
-
-    fun disableAboutButton() {
-        aboutButton.value = false
-    }
 
     fun enablePluginMenu() {
         pluginMenuVisible.value = true

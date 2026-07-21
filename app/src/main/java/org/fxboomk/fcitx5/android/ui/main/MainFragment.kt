@@ -7,9 +7,15 @@ package org.fxboomk.fcitx5.android.ui.main
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.view.Menu
+import android.view.MenuInflater
+import android.view.MenuItem
+import android.view.View
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
+import androidx.core.view.MenuProvider
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceScreen
@@ -21,8 +27,10 @@ import org.fxboomk.fcitx5.android.ui.main.settings.SettingsSearchPreference
 import org.fxboomk.fcitx5.android.ui.main.settings.SettingsSearchResult
 import org.fxboomk.fcitx5.android.ui.main.settings.SettingsRoute
 import org.fxboomk.fcitx5.android.ui.main.settings.sortedForSettingsSearch
+import org.fxboomk.fcitx5.android.utils.Const
 import org.fxboomk.fcitx5.android.utils.addCategory
 import org.fxboomk.fcitx5.android.utils.addPreference
+import org.fxboomk.fcitx5.android.utils.item
 import org.fxboomk.fcitx5.android.utils.navigateWithAnim
 
 class MainFragment : PaddingPreferenceFragment() {
@@ -34,14 +42,27 @@ class MainFragment : PaddingPreferenceFragment() {
     private var searchItems: List<SettingsSearchResult> = emptyList()
     private var loadingFcitxSearchItems = false
 
-    override fun onStart() {
-        super.onStart()
-        viewModel.enableAboutButton()
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        requireActivity().addMenuProvider(
+            AboutMenuProvider(), viewLifecycleOwner, Lifecycle.State.RESUMED
+        )
     }
 
-    override fun onStop() {
-        viewModel.disableAboutButton()
-        super.onStop()
+    private inner class AboutMenuProvider : MenuProvider {
+        override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
+            menu.item(R.string.faq) {
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(Const.faqUrl)))
+            }
+            menu.item(R.string.developer) {
+                navigateWithAnim(SettingsRoute.Developer)
+            }
+            menu.item(R.string.about) {
+                navigateWithAnim(SettingsRoute.About)
+            }
+        }
+
+        override fun onMenuItemSelected(menuItem: MenuItem): Boolean = false
     }
 
     private fun PreferenceCategory.addDestinationPreference(

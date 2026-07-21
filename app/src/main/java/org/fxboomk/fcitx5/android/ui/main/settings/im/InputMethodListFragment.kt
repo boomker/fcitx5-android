@@ -12,6 +12,7 @@ import org.fxboomk.fcitx5.android.daemon.launchOnReady
 import org.fxboomk.fcitx5.android.ui.common.BaseDynamicListUi
 import org.fxboomk.fcitx5.android.ui.common.DynamicListUi
 import org.fxboomk.fcitx5.android.ui.common.OnItemChangedListener
+import org.fxboomk.fcitx5.android.ui.main.EditDeleteMenuProvider
 import org.fxboomk.fcitx5.android.ui.main.settings.ProgressFragment
 import org.fxboomk.fcitx5.android.ui.main.settings.SettingsRoute
 import org.fxboomk.fcitx5.android.utils.navigateWithAnim
@@ -51,6 +52,10 @@ class InputMethodListFragment : ProgressFragment(), OnItemChangedListener<InputM
         )
         ui.addOnItemChangedListener(this@InputMethodListFragment)
         ui.setViewModel(viewModel)
+        requireActivity().addMenuProvider(
+            EditDeleteMenuProvider(viewModel, requireActivity(), viewLifecycleOwner),
+            viewLifecycleOwner
+        )
         viewModel.enableToolbarEditButton(initialEnabled.isNotEmpty()) {
             ui.enterMultiSelect(requireActivity().onBackPressedDispatcher)
         }

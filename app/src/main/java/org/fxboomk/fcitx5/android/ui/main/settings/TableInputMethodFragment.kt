@@ -29,6 +29,7 @@ import org.fxboomk.fcitx5.android.data.table.TableManager
 import org.fxboomk.fcitx5.android.data.table.dict.Dictionary
 import org.fxboomk.fcitx5.android.ui.common.BaseDynamicListUi
 import org.fxboomk.fcitx5.android.ui.common.OnItemChangedListener
+import org.fxboomk.fcitx5.android.ui.main.EditDeleteMenuProvider
 import org.fxboomk.fcitx5.android.ui.main.MainViewModel
 import org.fxboomk.fcitx5.android.utils.NaiveDustman
 import org.fxboomk.fcitx5.android.utils.importErrorDialog
@@ -37,6 +38,7 @@ import org.fxboomk.fcitx5.android.utils.onPositiveButtonClick
 import org.fxboomk.fcitx5.android.utils.positiveButton
 import org.fxboomk.fcitx5.android.utils.queryFileName
 import splitties.resources.drawable
+import splitties.resources.styledColor
 import splitties.resources.styledDrawable
 import splitties.views.imageDrawable
 
@@ -125,6 +127,14 @@ class TableInputMethodFragment : Fragment(), OnItemChangedListener<TableBasedInp
         resetDustman()
         ui.addOnItemChangedListener(this)
         return ui.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        requireActivity().addMenuProvider(
+            EditDeleteMenuProvider(viewModel, requireActivity(), viewLifecycleOwner),
+            viewLifecycleOwner
+        )
     }
 
     private fun createNotificationChannel() {

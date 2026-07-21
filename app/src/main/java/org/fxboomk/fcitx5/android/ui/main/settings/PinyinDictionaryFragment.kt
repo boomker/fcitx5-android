@@ -29,6 +29,7 @@ import org.fxboomk.fcitx5.android.data.pinyin.dict.LibIMEDictionary
 import org.fxboomk.fcitx5.android.data.pinyin.dict.PinyinDictionary
 import org.fxboomk.fcitx5.android.ui.common.BaseDynamicListUi
 import org.fxboomk.fcitx5.android.ui.common.OnItemChangedListener
+import org.fxboomk.fcitx5.android.ui.main.EditDeleteMenuProvider
 import org.fxboomk.fcitx5.android.ui.main.MainViewModel
 import org.fxboomk.fcitx5.android.utils.NaiveDustman
 import org.fxboomk.fcitx5.android.utils.importErrorDialog
@@ -107,6 +108,10 @@ class PinyinDictionaryFragment : Fragment(), OnItemChangedListener<PinyinDiction
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         args.uri?.let { importFromUri(Uri.parse(it)) }
         super.onViewCreated(view, savedInstanceState)
+        requireActivity().addMenuProvider(
+            EditDeleteMenuProvider(viewModel, requireActivity(), viewLifecycleOwner),
+            viewLifecycleOwner
+        )
     }
 
     private fun createNotificationChannel() {

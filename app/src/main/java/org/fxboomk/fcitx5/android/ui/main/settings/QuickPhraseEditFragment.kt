@@ -18,6 +18,7 @@ import org.fxboomk.fcitx5.android.data.quickphrase.QuickPhraseData
 import org.fxboomk.fcitx5.android.data.quickphrase.QuickPhraseEntry
 import org.fxboomk.fcitx5.android.ui.common.BaseDynamicListUi
 import org.fxboomk.fcitx5.android.ui.common.OnItemChangedListener
+import org.fxboomk.fcitx5.android.ui.main.EditDeleteMenuProvider
 import org.fxboomk.fcitx5.android.utils.NaiveDustman
 import org.fxboomk.fcitx5.android.utils.lazyRoute
 import org.fxboomk.fcitx5.android.utils.materialTextInput
@@ -116,6 +117,10 @@ class QuickPhraseEditFragment : ProgressFragment(), OnItemChangedListener<QuickP
         ui.addTouchCallback()
         resetDustman()
         ui.setViewModel(viewModel)
+        requireActivity().addMenuProvider(
+            EditDeleteMenuProvider(viewModel, requireActivity(), viewLifecycleOwner),
+            viewLifecycleOwner
+        )
         viewModel.enableToolbarEditButton(initialEntries.isNotEmpty()) {
             ui.enterMultiSelect(requireActivity().onBackPressedDispatcher)
         }
