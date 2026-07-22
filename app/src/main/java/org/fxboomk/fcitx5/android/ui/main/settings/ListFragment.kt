@@ -11,12 +11,14 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.Lifecycle
 import org.fxboomk.fcitx5.android.core.Key
 import org.fxboomk.fcitx5.android.core.RawConfig
 import org.fxboomk.fcitx5.android.ui.common.BaseDynamicListUi
 import org.fxboomk.fcitx5.android.ui.common.DynamicListUi
 import org.fxboomk.fcitx5.android.ui.main.EditDeleteMenuProvider
 import org.fxboomk.fcitx5.android.ui.main.MainViewModel
+import org.fxboomk.fcitx5.android.ui.main.MainViewModel.ButtonMode
 import org.fxboomk.fcitx5.android.utils.config.ConfigDescriptor
 import org.fxboomk.fcitx5.android.utils.config.ConfigType
 import org.fxboomk.fcitx5.android.utils.lazyRoute
@@ -138,24 +140,27 @@ class ListFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        viewModel.toolbarButton.value =
+            if (ui.entries.isNotEmpty()) ButtonMode.EDIT else ButtonMode.NONE
         requireActivity().addMenuProvider(
-            EditDeleteMenuProvider(viewModel, requireActivity(), viewLifecycleOwner),
-            viewLifecycleOwner
+            EditDeleteMenuProvider(
+                buttonMode = viewModel.toolbarButton,
+                editButtonAction = { ui.enterMultiSelect(requireActivity().onBackPressedDispatcher) },
+                deleteButtonAction = { ui.deleteSelected(); ui.exitMultiSelect() },
+                menuHost = requireActivity(),
+                lifecycleOwner = viewLifecycleOwner,
+            ),
+            viewLifecycleOwner,
+            Lifecycle.State.STARTED
         )
     }
 
     override fun onStart() {
         super.onStart()
         viewModel.setToolbarTitle(descriptor.description ?: descriptor.name)
-        if (uiInitialized) {
-            viewModel.enableToolbarEditButton(ui.entries.isNotEmpty()) {
-                ui.enterMultiSelect(requireActivity().onBackPressedDispatcher)
-            }
-        }
     }
 
     override fun onStop() {
-        viewModel.disableToolbarEditButton()
         if (uiInitialized) {
             ui.exitMultiSelect()
         }

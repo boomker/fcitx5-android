@@ -14,6 +14,7 @@ import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -26,6 +27,7 @@ import org.fxboomk.fcitx5.android.ui.common.BaseDynamicListUi
 import org.fxboomk.fcitx5.android.ui.common.OnItemChangedListener
 import org.fxboomk.fcitx5.android.ui.main.EditDeleteMenuProvider
 import org.fxboomk.fcitx5.android.ui.main.MainViewModel
+import org.fxboomk.fcitx5.android.ui.main.MainViewModel.ButtonMode
 import org.fxboomk.fcitx5.android.utils.NaiveDustman
 import org.fxboomk.fcitx5.android.utils.materialTextInput
 import org.fxboomk.fcitx5.android.utils.onPositiveButtonClick
@@ -166,17 +168,23 @@ class PinyinCustomPhraseFragment : Fragment(), OnItemChangedListener<PinyinCusto
         ui.addTouchCallback()
         resetDustman()
         ui.setViewModel(viewModel)
-        viewModel.enableToolbarEditButton(initialEntries.isNotEmpty()) {
-            ui.enterMultiSelect(requireActivity().onBackPressedDispatcher)
-        }
         return ui.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        viewModel.toolbarButton.value =
+            if (ui.entries.isNotEmpty()) ButtonMode.EDIT else ButtonMode.NONE
         requireActivity().addMenuProvider(
-            EditDeleteMenuProvider(viewModel, requireActivity(), viewLifecycleOwner),
-            viewLifecycleOwner
+            EditDeleteMenuProvider(
+                buttonMode = viewModel.toolbarButton,
+                editButtonAction = { ui.enterMultiSelect(requireActivity().onBackPressedDispatcher) },
+                deleteButtonAction = { ui.deleteSelected(); ui.exitMultiSelect() },
+                menuHost = requireActivity(),
+                lifecycleOwner = viewLifecycleOwner,
+            ),
+            viewLifecycleOwner,
+            Lifecycle.State.STARTED
         )
     }
 
@@ -222,15 +230,11 @@ class PinyinCustomPhraseFragment : Fragment(), OnItemChangedListener<PinyinCusto
             }
             viewModel.setToolbarTitle(title)
         }
-        viewModel.enableToolbarEditButton(ui.entries.isNotEmpty()) {
-            ui.enterMultiSelect(requireActivity().onBackPressedDispatcher)
-        }
     }
 
     override fun onStop() {
         saveConfig()
         ui.exitMultiSelect()
-        viewModel.disableToolbarEditButton()
         super.onStop()
     }
 

@@ -23,6 +23,7 @@ import org.fxboomk.fcitx5.android.core.RawConfig
 import org.fxboomk.fcitx5.android.ui.common.BaseDynamicListUi
 import org.fxboomk.fcitx5.android.ui.common.DynamicListTouchCallback
 import org.fxboomk.fcitx5.android.ui.main.MainViewModel
+import org.fxboomk.fcitx5.android.ui.main.MainViewModel.ButtonMode
 import org.fxboomk.fcitx5.android.utils.lazyRoute
 import org.fxboomk.fcitx5.android.utils.toast
 import timber.log.Timber
@@ -106,7 +107,7 @@ class GenericMultiSelectFragment : Fragment() {
             }
             uiRef = listUi
             ui = listUi
-            viewModel.disableToolbarEditButton()
+            viewModel.toolbarButton.value = ButtonMode.NONE
             viewModel.setToolbarTitle(args.title)
             withContext(Dispatchers.Main) {
                 containerView?.removeAllViews()

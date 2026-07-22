@@ -45,7 +45,7 @@ class MainFragment : PaddingPreferenceFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         requireActivity().addMenuProvider(
-            AboutMenuProvider(), viewLifecycleOwner, Lifecycle.State.RESUMED
+            AboutMenuProvider(), viewLifecycleOwner, Lifecycle.State.STARTED
         )
     }
 

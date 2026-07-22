@@ -11,12 +11,16 @@ import android.view.MenuItem
 import androidx.core.view.MenuHost
 import androidx.core.view.MenuProvider
 import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LiveData
 import org.fxboomk.fcitx5.android.R
+import org.fxboomk.fcitx5.android.ui.main.MainViewModel.ButtonMode
 import org.fxboomk.fcitx5.android.utils.item
 import splitties.resources.styledColor
 
 class EditDeleteMenuProvider<T>(
-    private val viewModel: MainViewModel,
+    private val buttonMode: LiveData<ButtonMode>,
+    private val editButtonAction: (() -> Unit)?,
+    private val deleteButtonAction: (() -> Unit)?,
     menuHost: T,
     lifecycleOwner: LifecycleOwner,
 ) : MenuProvider where T : MenuHost, T : Context {
@@ -24,25 +28,26 @@ class EditDeleteMenuProvider<T>(
     private val tint = menuHost.styledColor(android.R.attr.colorControlNormal)
 
     init {
-        // Automatically rebuild the menu whenever the edit/delete button state changes
-        viewModel.toolbarEditButtonVisible.observe(lifecycleOwner) { menuHost.invalidateMenu() }
-        viewModel.toolbarEditButtonOnClickListener.observe(lifecycleOwner) { menuHost.invalidateMenu() }
-        viewModel.toolbarDeleteButtonOnClickListener.observe(lifecycleOwner) { menuHost.invalidateMenu() }
+        buttonMode.observe(lifecycleOwner) { menuHost.invalidateMenu() }
     }
 
     override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
-        val editListener = viewModel.toolbarEditButtonOnClickListener.value
-        val editVisible = viewModel.toolbarEditButtonVisible.value == true
-        if (editListener != null && editVisible) {
-            menu.item(R.string.edit, R.drawable.ic_baseline_edit_24, tint, true) {
-                editListener()
+        when (buttonMode.value) {
+            ButtonMode.EDIT -> {
+                if (editButtonAction != null) {
+                    menu.item(R.string.edit, R.drawable.ic_baseline_edit_24, tint, true) {
+                        editButtonAction()
+                    }
+                }
             }
-        }
-        val deleteListener = viewModel.toolbarDeleteButtonOnClickListener.value
-        if (deleteListener != null) {
-            menu.item(R.string.delete, R.drawable.ic_baseline_delete_24, tint, true) {
-                deleteListener()
+            ButtonMode.DELETE -> {
+                if (deleteButtonAction != null) {
+                    menu.item(R.string.delete, R.drawable.ic_baseline_delete_24, tint, true) {
+                        deleteButtonAction()
+                    }
+                }
             }
+            ButtonMode.NONE, null -> { /* no buttons */ }
         }
     }
 

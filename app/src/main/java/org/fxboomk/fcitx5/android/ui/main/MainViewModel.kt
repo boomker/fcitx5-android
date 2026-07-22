@@ -13,6 +13,8 @@ import org.fxboomk.fcitx5.android.utils.AppUtil
 import org.fxboomk.fcitx5.android.utils.appContext
 
 class MainViewModel : ViewModel() {
+    enum class ButtonMode { NONE, EDIT, DELETE }
+
     private val appLabel = AppUtil.appLabel(appContext)
 
     val toolbarTitle = MutableLiveData(appLabel)
@@ -21,11 +23,7 @@ class MainViewModel : ViewModel() {
 
     val toolbarSaveButtonOnClickListener = MutableLiveData<(() -> Unit)?>()
 
-    val toolbarEditButtonVisible = MutableLiveData(false)
-
-    val toolbarEditButtonOnClickListener = MutableLiveData<(() -> Unit)?>()
-
-    val toolbarDeleteButtonOnClickListener = MutableLiveData<(() -> Unit)?>()
+    val toolbarButton = MutableLiveData(ButtonMode.NONE)
 
     val pluginMenuVisible = MutableLiveData(false)
     val pluginMenuTrigger = MutableLiveData<Unit?>()
@@ -53,33 +51,6 @@ class MainViewModel : ViewModel() {
     fun disableToolbarSaveButton() {
         toolbarSaveButtonOnClickListener.value = null
     }
-
-    fun enableToolbarEditButton(visible: Boolean = true, onClick: () -> Unit) {
-        toolbarEditButtonOnClickListener.value = onClick
-        toolbarEditButtonVisible.value = visible
-    }
-
-    fun disableToolbarEditButton() {
-        toolbarEditButtonOnClickListener.value = null
-        hideToolbarEditButton()
-    }
-
-    fun hideToolbarEditButton() {
-        toolbarEditButtonVisible.value = false
-    }
-
-    fun showToolbarEditButton() {
-        toolbarEditButtonVisible.value = true
-    }
-
-    fun enableToolbarDeleteButton(onClick: () -> Unit) {
-        toolbarDeleteButtonOnClickListener.value = onClick
-    }
-
-    fun disableToolbarDeleteButton() {
-        toolbarDeleteButtonOnClickListener.value = null
-    }
-
 
     fun enablePluginMenu() {
         pluginMenuVisible.value = true

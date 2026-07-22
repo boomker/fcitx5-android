@@ -8,6 +8,7 @@ import android.app.AlertDialog
 import android.os.Bundle
 import android.view.View
 import android.view.inputmethod.EditorInfo
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -19,6 +20,7 @@ import org.fxboomk.fcitx5.android.data.quickphrase.QuickPhraseEntry
 import org.fxboomk.fcitx5.android.ui.common.BaseDynamicListUi
 import org.fxboomk.fcitx5.android.ui.common.OnItemChangedListener
 import org.fxboomk.fcitx5.android.ui.main.EditDeleteMenuProvider
+import org.fxboomk.fcitx5.android.ui.main.MainViewModel.ButtonMode
 import org.fxboomk.fcitx5.android.utils.NaiveDustman
 import org.fxboomk.fcitx5.android.utils.lazyRoute
 import org.fxboomk.fcitx5.android.utils.materialTextInput
@@ -117,13 +119,19 @@ class QuickPhraseEditFragment : ProgressFragment(), OnItemChangedListener<QuickP
         ui.addTouchCallback()
         resetDustman()
         ui.setViewModel(viewModel)
+        viewModel.toolbarButton.value =
+            if (ui.entries.isNotEmpty()) ButtonMode.EDIT else ButtonMode.NONE
         requireActivity().addMenuProvider(
-            EditDeleteMenuProvider(viewModel, requireActivity(), viewLifecycleOwner),
-            viewLifecycleOwner
+            EditDeleteMenuProvider(
+                buttonMode = viewModel.toolbarButton,
+                editButtonAction = { ui.enterMultiSelect(requireActivity().onBackPressedDispatcher) },
+                deleteButtonAction = { ui.deleteSelected(); ui.exitMultiSelect() },
+                menuHost = requireActivity(),
+                lifecycleOwner = viewLifecycleOwner,
+            ),
+            viewLifecycleOwner,
+            Lifecycle.State.STARTED
         )
-        viewModel.enableToolbarEditButton(initialEntries.isNotEmpty()) {
-            ui.enterMultiSelect(requireActivity().onBackPressedDispatcher)
-        }
         return ui.root
     }
 
@@ -165,11 +173,6 @@ class QuickPhraseEditFragment : ProgressFragment(), OnItemChangedListener<QuickP
     override fun onStart() {
         super.onStart()
         viewModel.setToolbarTitle(quickPhrase.name)
-        if (isInitialized) {
-            viewModel.enableToolbarEditButton(ui.entries.isNotEmpty()) {
-                ui.enterMultiSelect(requireActivity().onBackPressedDispatcher)
-            }
-        }
     }
 
     override fun onStop() {
@@ -177,7 +180,6 @@ class QuickPhraseEditFragment : ProgressFragment(), OnItemChangedListener<QuickP
         if (isInitialized) {
             ui.exitMultiSelect()
         }
-        viewModel.disableToolbarEditButton()
         super.onStop()
     }
 
