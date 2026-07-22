@@ -64,6 +64,9 @@
     <string name="check_for_updates">Check for updates</string>
     <string name="checking_for_updates">Checking for updates</string>
     <string name="install_update">Install update</string>
+    <string name="upgrade_latest">Upgrade latest</string>
+    <string name="update_download_background">Background</string>
+    <string name="update_mirror_accelerate">Mirror acceleration</string>
     <string name="already_latest_version">You are already on the latest release</string>
     <string name="update_canceled">Update canceled</string>
     <string name="enable_unknown_apps_install">Allow this app to install unknown apps, then try again</string>

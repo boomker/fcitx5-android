@@ -30,7 +30,7 @@ object AppUpdateManager {
     private const val READ_TIMEOUT_MS = 30000
     private const val SHARE_FILE_PROVIDER_SUFFIX = ".share.fileprovider"
     private const val UPDATE_CACHE_DIR = "shared/updates"
-    private const val DOWNLOAD_PROXY_PREFIX = "https://ghproxy.net/"
+    private const val DOWNLOAD_MIRROR_PREFIX = "https://github.boki.moe/"
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -120,9 +120,6 @@ object AppUpdateManager {
         context: Context,
         cancellationSignal: CancellationSignal? = null
     ): CheckResult {
-        if (!ensureInstallPermission(context)) {
-            return CheckResult.InstallPermissionRequired
-        }
         val release = fetchLatestRelease(cancellationSignal)
         val asset = selectMatchingAsset(context.packageName, Build.SUPPORTED_ABIS, release.assets)
             ?: return CheckResult.NoCompatiblePackage
@@ -176,21 +173,23 @@ object AppUpdateManager {
     fun downloadUpdate(
         context: Context,
         asset: RemoteAsset,
-        cancellationSignal: CancellationSignal? = null
+        cancellationSignal: CancellationSignal? = null,
+        useMirror: Boolean = false
     ): File {
-        return downloadReleaseAsset(context, asset, cancellationSignal)
+        return downloadReleaseAsset(context, asset, cancellationSignal, useMirror)
     }
 
     @Throws(IOException::class)
     fun downloadReleaseAsset(
         context: Context,
         asset: RemoteAsset,
-        cancellationSignal: CancellationSignal? = null
+        cancellationSignal: CancellationSignal? = null,
+        useMirror: Boolean = false
     ): File {
         val cacheDir = File(context.cacheDir, UPDATE_CACHE_DIR).apply { mkdirs() }
         val target = File(cacheDir, asset.name)
         val temp = File(cacheDir, "${asset.name}.download")
-        val connection = openConnection(asset.downloadUrl, cancellationSignal)
+        val connection = openConnection(downloadUrl(asset.downloadUrl, useMirror), cancellationSignal)
         try {
             connection.inputStream.use { input ->
                 temp.outputStream().use { output ->
@@ -326,13 +325,9 @@ object AppUpdateManager {
         }
     }
 
-    private fun proxiedUrl(url: String): String {
-        if (url.startsWith(DOWNLOAD_PROXY_PREFIX)) return url
-        return if (url.startsWith("https://github.com/")) {
-            DOWNLOAD_PROXY_PREFIX + url
-        } else {
-            url
-        }
+    private fun downloadUrl(url: String, useMirror: Boolean): String {
+        if (!useMirror || url.startsWith(DOWNLOAD_MIRROR_PREFIX)) return url
+        return DOWNLOAD_MIRROR_PREFIX + url
     }
 
     private fun openConnection(
@@ -340,8 +335,7 @@ object AppUpdateManager {
         cancellationSignal: CancellationSignal? = null
     ): HttpURLConnection {
         cancellationSignal?.throwIfCanceled()
-        val resolvedUrl = if (url.contains("/releases/download/")) proxiedUrl(url) else url
-        return (URL(resolvedUrl).openConnection() as HttpURLConnection).apply {
+        return (URL(url).openConnection() as HttpURLConnection).apply {
             cancellationSignal?.setActiveConnection(this)
             try {
                 instanceFollowRedirects = true

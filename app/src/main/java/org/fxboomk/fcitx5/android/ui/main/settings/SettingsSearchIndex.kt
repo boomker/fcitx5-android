@@ -108,16 +108,11 @@ object SettingsSearchIndex {
             keywords = listOf(Const.versionName)
         ),
         ToolbarMenuSearchSpec(
-            R.string.check_for_updates,
+            R.string.upgrade_latest,
             SettingsRoute.About,
             R.string.about,
-            R.string.version
-        ),
-        ToolbarMenuSearchSpec(
-            R.string.install_update,
-            SettingsRoute.About,
-            R.string.about,
-            R.string.version
+            R.string.version,
+            keywords = listOf("check update", "检查更新")
         ),
         ToolbarMenuSearchSpec(
             R.string.build_git_hash,

@@ -756,6 +756,9 @@
     <string name="check_for_updates">檢查更新</string>
     <string name="checking_for_updates">檢查更新中</string>
     <string name="install_update">安裝更新</string>
+    <string name="upgrade_latest">升級最新</string>
+    <string name="update_download_background">背景執行</string>
+    <string name="update_mirror_accelerate">鏡像加速</string>
     <string name="already_latest_version">目前已是最新正式版本</string>
     <string name="enable_unknown_apps_install">請先允許本應用安裝未知來源應用，再重試</string>
     <string name="no_compatible_update_package">找不到適用於目前裝置或應用變體的正式安裝包</string>

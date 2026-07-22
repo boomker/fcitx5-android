@@ -6,6 +6,7 @@ package org.fxboomk.fcitx5.android.ui.main
 
 import android.content.Context
 import android.util.AttributeSet
+import android.view.View
 import android.widget.Button
 import androidx.preference.Preference
 import androidx.preference.PreferenceViewHolder
@@ -28,6 +29,18 @@ class ActionButtonPreference @JvmOverloads constructor(
             notifyChanged()
         }
 
+    var actionVisible: Boolean = true
+        set(value) {
+            field = value
+            notifyChanged()
+        }
+
+    var actionBadgeVisible: Boolean = false
+        set(value) {
+            field = value
+            notifyChanged()
+        }
+
     var onActionClick: (() -> Unit)? = null
 
     init {
@@ -39,8 +52,12 @@ class ActionButtonPreference @JvmOverloads constructor(
     override fun onBindViewHolder(holder: PreferenceViewHolder) {
         super.onBindViewHolder(holder)
         val button = holder.findViewById(R.id.preference_action_button) as? Button ?: return
+        val badge = holder.findViewById(R.id.preference_action_badge_dot)
+        val visibility = if (actionVisible) View.VISIBLE else View.GONE
+        button.visibility = visibility
         button.text = actionText
-        button.isEnabled = actionEnabled
+        button.isEnabled = actionEnabled && actionVisible
         button.setOnClickListener { onActionClick?.invoke() }
+        badge?.visibility = if (actionVisible && actionBadgeVisible) View.VISIBLE else View.GONE
     }
 }
