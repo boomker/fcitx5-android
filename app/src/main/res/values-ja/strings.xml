@@ -712,6 +712,10 @@
     <string name="check_for_updates">更新を確認</string>
     <string name="checking_for_updates">更新を確認中</string>
     <string name="install_update">更新をインストール</string>
+    <string name="upgrade_latest">最新版へ更新</string>
+    <string name="update_download_background">バックグラウンド</string>
+    <string name="update_download_background_running">バックグラウンドで更新中...</string>
+    <string name="update_mirror_accelerate">ミラーで高速化</string>
     <string name="already_latest_version">現在、最新の安定版です</string>
     <string name="update_canceled">更新をキャンセルしました</string>
     <string name="enable_unknown_apps_install">まずこのアプリに不明な提供元のアプリのインストールを許可してから、もう一度お試しください</string>

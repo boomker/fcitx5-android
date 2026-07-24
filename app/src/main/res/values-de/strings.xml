@@ -710,6 +710,10 @@
     <string name="check_for_updates">Nach Updates suchen</string>
     <string name="checking_for_updates">Suche nach Updates</string>
     <string name="install_update">Update installieren</string>
+    <string name="upgrade_latest">Auf neueste Version aktualisieren</string>
+    <string name="update_download_background">Hintergrund</string>
+    <string name="update_download_background_running">Update läuft im Hintergrund...</string>
+    <string name="update_mirror_accelerate">Spiegelserver nutzen</string>
     <string name="already_latest_version">Sie verwenden bereits die neueste stabile Version</string>
     <string name="update_canceled">Update abgebrochen</string>
     <string name="enable_unknown_apps_install">Erlauben Sie zuerst die Installation aus unbekannten Quellen für diese App und versuchen Sie es dann erneut</string>

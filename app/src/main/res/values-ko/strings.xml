@@ -712,6 +712,10 @@
     <string name="check_for_updates">업데이트 확인</string>
     <string name="checking_for_updates">업데이트 확인 중</string>
     <string name="install_update">업데이트 설치</string>
+    <string name="upgrade_latest">최신 버전으로 업그레이드</string>
+    <string name="update_download_background">백그라운드</string>
+    <string name="update_download_background_running">백그라운드에서 업데이트 중...</string>
+    <string name="update_mirror_accelerate">미러 가속</string>
     <string name="already_latest_version">현재 최신 안정 버전입니다</string>
     <string name="update_canceled">업데이트가 취소되었습니다</string>
     <string name="enable_unknown_apps_install">먼저 이 앱이 출처를 알 수 없는 앱을 설치하도록 허용한 뒤 다시 시도하세요</string>

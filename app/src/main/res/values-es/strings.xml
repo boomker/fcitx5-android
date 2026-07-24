@@ -714,6 +714,10 @@
     <string name="check_for_updates">Buscar actualizaciones</string>
     <string name="checking_for_updates">Buscando actualizaciones</string>
     <string name="install_update">Instalar actualización</string>
+    <string name="upgrade_latest">Actualizar a la última</string>
+    <string name="update_download_background">Segundo plano</string>
+    <string name="update_download_background_running">Actualizando en segundo plano...</string>
+    <string name="update_mirror_accelerate">Acelerar con espejo</string>
     <string name="already_latest_version">Ya tiene la última versión estable</string>
     <string name="update_canceled">Actualización cancelada</string>
     <string name="enable_unknown_apps_install">Primero permita que esta aplicación instale apps de orígenes desconocidos y luego vuelva a intentarlo</string>

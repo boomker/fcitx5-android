@@ -64,6 +64,7 @@
     <string name="install_update">安装更新</string>
     <string name="upgrade_latest">升级最新</string>
     <string name="update_download_background">后台</string>
+    <string name="update_download_background_running">后台更新中……</string>
     <string name="update_mirror_accelerate">镜像加速</string>
     <string name="already_latest_version">当前已是最新正式版本</string>
     <string name="update_canceled">已取消更新</string>

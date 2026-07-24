@@ -148,6 +148,7 @@ class AboutFragment : PaddingPreferenceFragment() {
             if (updateDownloadDialog === dialog) {
                 updateDownloadDialog = null
             }
+            applyBackgroundUpdateState()
             dialog.dismiss()
         }
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
@@ -252,5 +253,13 @@ class AboutFragment : PaddingPreferenceFragment() {
         updatePreference.actionBadgeVisible = false
         updatePreference.actionText = getString(R.string.install_update)
         updatePreference.onActionClick = { installDownloadedUpdate() }
+    }
+
+    private fun applyBackgroundUpdateState() {
+        updatePreference.actionVisible = true
+        updatePreference.actionBadgeVisible = false
+        updatePreference.actionText = getString(R.string.update_download_background_running)
+        updatePreference.actionEnabled = false
+        updatePreference.onActionClick = null
     }
 }
