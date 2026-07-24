@@ -304,7 +304,7 @@ class MainService : FcitxPluginService() {
         ensureScope()
         if (serviceRunning) {
             updateForegroundState()
-            refreshSyncRuntime()
+            ensureSyncRuntime()
             ensureRemoteBinding()
             return
         }
@@ -431,6 +431,19 @@ class MainService : FcitxPluginService() {
         }
         ensureSelfStarted()
         startPeriodicSync()
+        startHealthMonitor()
+    }
+
+    private fun ensureSyncRuntime() {
+        if (!prefs.getBoolean(PREF_QUICK_SYNC, DEFAULT_QUICK_SYNC_ENABLED)) {
+            stopPeriodicSync()
+            stopHealthMonitor()
+            return
+        }
+        ensureSelfStarted()
+        if (syncJob?.isActive != true) {
+            startPeriodicSync()
+        }
         startHealthMonitor()
     }
 
@@ -585,7 +598,7 @@ class MainService : FcitxPluginService() {
                         handleClipCascadeMessage(data)
                     }
                     markBackendActivity()
-                    resetFailureState()
+                    markSyncLinkEstablished("clipcascade-connected")
                     flushPendingUploads("clipcascade-connected")
                     val closeCause = client.awaitClose()
                     if (!isActive) {
@@ -649,7 +662,7 @@ class MainService : FcitxPluginService() {
 
                     checkRemoteClipboard()
                     markBackendActivity()
-                    resetFailureState()
+                    markSyncLinkEstablished("oneclip-connected")
                     flushPendingUploads("oneclip-connected")
 
                     val closeCause = client.awaitClose()
@@ -1387,6 +1400,18 @@ class MainService : FcitxPluginService() {
 
     private fun markBackendActivity() {
         lastBackendActivityAt = SystemClock.elapsedRealtime()
+    }
+
+    private fun markSyncLinkEstablished(reason: String) {
+        val quickSyncEnabled = prefs.getBoolean(PREF_QUICK_SYNC, DEFAULT_QUICK_SYNC_ENABLED)
+        val markedUnreachable = prefs.getBoolean(PREF_QUICK_SYNC_UNREACHABLE, false)
+        if (!quickSyncEnabled || !markedUnreachable) {
+            return
+        }
+
+        prefs.edit().putBoolean(PREF_QUICK_SYNC_UNREACHABLE, false).apply()
+        Log.d(TAG, "[SyncState] Quick sync reachable after active link: $reason")
+        QuickSyncTileService.requestTileRefresh(this)
     }
 
     private fun rememberAcceptedRemotePayload(payloadFingerprint: String) {
