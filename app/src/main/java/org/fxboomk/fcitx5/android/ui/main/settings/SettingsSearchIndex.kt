@@ -35,6 +35,10 @@ data class SettingsSearchResult(
     val keywords: List<String> = emptyList(),
     val externalUri: String? = null
 ) {
+    private val searchableTitle: String by lazy {
+        title.lowercase(Locale.getDefault())
+    }
+
     private val searchableText: String by lazy {
         (listOf(title, preferenceKey.orEmpty(), summary.orEmpty()) + path + keywords)
             .joinToString(" ")
@@ -42,13 +46,27 @@ data class SettingsSearchResult(
     }
 
     fun matches(query: String): Boolean {
-        val terms = query.trim()
-            .lowercase(Locale.getDefault())
-            .split(Regex("\\s+"))
-            .filter { it.isNotBlank() }
+        val terms = query.searchTerms()
         return terms.isNotEmpty() && terms.all(searchableText::contains)
     }
+
+    fun titleContainsSearchTerm(query: String): Boolean {
+        val terms = query.searchTerms()
+        return terms.any(searchableTitle::contains)
+    }
 }
+
+fun List<SettingsSearchResult>.sortedForSettingsSearch(query: String): List<SettingsSearchResult> =
+    sortedWith(
+        compareBy<SettingsSearchResult> { if (it.titleContainsSearchTerm(query)) 0 else 1 }
+            .thenBy { it.path.joinToString("/") }
+            .thenBy { it.title }
+    )
+
+private fun String.searchTerms(): List<String> = trim()
+    .lowercase(Locale.getDefault())
+    .split(Regex("\\s+"))
+    .filter { it.isNotBlank() }
 
 data class ToolbarMenuSearchSpec(
     @StringRes val title: Int,

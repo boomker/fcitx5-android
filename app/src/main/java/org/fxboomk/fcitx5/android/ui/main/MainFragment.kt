@@ -20,6 +20,7 @@ import org.fxboomk.fcitx5.android.ui.main.settings.SettingsSearchIndex
 import org.fxboomk.fcitx5.android.ui.main.settings.SettingsSearchPreference
 import org.fxboomk.fcitx5.android.ui.main.settings.SettingsSearchResult
 import org.fxboomk.fcitx5.android.ui.main.settings.SettingsRoute
+import org.fxboomk.fcitx5.android.ui.main.settings.sortedForSettingsSearch
 import org.fxboomk.fcitx5.android.utils.addCategory
 import org.fxboomk.fcitx5.android.utils.addPreference
 import org.fxboomk.fcitx5.android.utils.navigateWithAnim
@@ -176,7 +177,7 @@ class MainFragment : PaddingPreferenceFragment() {
             .filter { it.matches(searchQuery) }
             .groupBy { it.title to it.path }
             .map { (_, results) -> results.preferredSearchResult() }
-            .sortedWith(compareBy({ it.path.joinToString("/") }, { it.title }))
+            .sortedForSettingsSearch(searchQuery)
         addCategory(R.string.settings_search_results) {
             results.forEach { result ->
                 addPreference(
