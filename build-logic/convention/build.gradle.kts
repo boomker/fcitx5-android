@@ -34,7 +34,7 @@ plugins {
 
 group = "org.fxboomk.fcitx5.android.build_logic"
 
-val gitVersion: groovy.lang.Closure<String> by extra
+val gitVersion = extra["gitVersion"] as groovy.lang.Closure<*>
 version = gitVersion()
 
 java {
