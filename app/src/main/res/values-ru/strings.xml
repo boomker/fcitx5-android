@@ -391,7 +391,7 @@
     <string name="popup_editor_add_candidate">Добавить кандидата</string>
     <string name="popup_editor_add_candidate_button">Добавить</string>
     <string name="popup_editor_candidate_input_hint">Введите значение кандидата</string>
-    <string name="edit_text_playground">Песочница EditText</string>
+    <string name="edit_text_playground">Тестовое поле EditText</string>
     <string name="edit_text_keyboard_layout">Редактировать общую раскладку клавиатуры</string>
     <string name="text_keyboard_layout_preview">Предпросмотр</string>
     <string name="text_keyboard_layout_row_editor_title">Редактировать свойства строки</string>
