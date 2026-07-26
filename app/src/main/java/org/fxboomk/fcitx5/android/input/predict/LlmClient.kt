@@ -812,7 +812,7 @@ internal class LlmClient(
     }
 
     private fun extractFirstStringField(raw: String, fieldName: String): String? {
-        val fieldRegex = Regex(""""$fieldName"\s*:\s*"""")
+        val fieldRegex = Regex(""""$fieldName"\s*:\s*""")
         var searchIndex = 0
         while (true) {
             val match = fieldRegex.find(raw, searchIndex) ?: return null

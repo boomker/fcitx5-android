@@ -192,6 +192,17 @@ class LlmClientTest {
     }
 
     @Test
+    fun extractDeltaTextReturnsStringContent() {
+        val client = LlmClient()
+        val method = LlmClient::class.java.getDeclaredMethod("extractDeltaText", String::class.java)
+        method.isAccessible = true
+
+        val result = method.invoke(client, """{"content":"释义"}""")
+
+        assertEquals("释义", result)
+    }
+
+    @Test
     fun extractMessageContentFallsBackToNonNullArrayText() {
         val client = LlmClient()
         val method = LlmClient::class.java.getDeclaredMethod("extractMessageContent", String::class.java)
