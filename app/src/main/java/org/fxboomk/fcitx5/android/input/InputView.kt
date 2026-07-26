@@ -11,6 +11,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Path
+import android.graphics.Point
 import android.graphics.RectF
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.LayerDrawable
@@ -67,6 +68,8 @@ import org.fxboomk.fcitx5.android.input.keyboard.CommonKeyActionListener
 import org.fxboomk.fcitx5.android.input.action.ButtonAction
 import org.fxboomk.fcitx5.android.input.keyboard.BaseKeyboard
 import org.fxboomk.fcitx5.android.input.keyboard.KeyView
+import org.fxboomk.fcitx5.android.input.keyboard.KeyboardHeightPercentBase.DisplayMetrics
+import org.fxboomk.fcitx5.android.input.keyboard.KeyboardHeightPercentBase.RealSize
 import org.fxboomk.fcitx5.android.input.keyboard.KeyboardWindow
 import org.fxboomk.fcitx5.android.input.picker.PickerWindow
 import org.fxboomk.fcitx5.android.input.picker.emojiPicker
@@ -82,6 +85,7 @@ import android.view.MotionEvent
 import androidx.constraintlayout.widget.ConstraintLayout
 import org.fxboomk.fcitx5.android.input.wm.InputWindowManager
 import org.fxboomk.fcitx5.android.utils.unset
+import org.fxboomk.fcitx5.android.utils.windowManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -1213,6 +1217,9 @@ class InputView(
     private val splitKeyboardUseLandscapeLayout = keyboardPrefs.splitKeyboardUseLandscapeLayout
     private val textKeyboardLayoutProfile = keyboardPrefs.textKeyboardLayoutProfile
 
+    private val advancedPrefs = AppPrefs.getInstance().advanced
+    private val keyboardHeightPercentBase = advancedPrefs.keyboardHeightPercentBase
+
     private val keyboardSizePrefs = listOf(
         keyboardHeightPercent,
         keyboardHeightPercentLandscape,
@@ -1225,6 +1232,7 @@ class InputView(
         keyboardPrefs.splitKeyboardThreshold,
         keyboardPrefs.splitKeyboardGapPercent,
         splitKeyboardUseLandscapeLayout,
+        keyboardHeightPercentBase,
     )
 
     var isFloating = false
@@ -2036,8 +2044,21 @@ class InputView(
 
     private val keyboardHeightPx: Int
         get() {
+            val baseType = keyboardHeightPercentBase.getValue()
+            val base = when (baseType) {
+                DisplayMetrics -> resources.displayMetrics.heightPixels
+                RealSize -> Point().also {
+                    @Suppress("DEPRECATION")
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        context.display
+                    } else {
+                        context.windowManager.defaultDisplay
+                    }.getRealSize(it)
+                }.y
+            }
             val percent = (if (isLayoutLandscape) keyboardHeightPercentLandscape else keyboardHeightPercent).getValue()
-            val baseHeight = resources.displayMetrics.heightPixels * percent / 100
+            Timber.d("keyboardHeightPx get(): baseType=$baseType, base=$base, percent=$percent")
+            val baseHeight = base * percent / 100
             if (isFloating) {
                 return (baseHeight * 0.8).toInt()
             }
@@ -2285,6 +2306,7 @@ class InputView(
             startToStart = ConstraintLayout.LayoutParams.PARENT_ID
             endToEnd = ConstraintLayout.LayoutParams.PARENT_ID
         })
+        advancedPrefs.registerOnChangeListener(onKeyboardSizeChangeListener)
         keyboardPrefs.registerOnChangeListener(onKeyboardSizeChangeListener)
         keyboardPrefs.registerOnChangeListener(onCandidatePreferenceChangeListener)
         isFloating = floatingKeyboardEnabled
@@ -2822,6 +2844,7 @@ class InputView(
 
     override fun onDetachedFromWindow() {
         windowManager.onWindowChanged = null
+        advancedPrefs.unregisterOnChangeListener(onKeyboardSizeChangeListener)
         keyboardPrefs.unregisterOnChangeListener(onKeyboardSizeChangeListener)
         keyboardPrefs.unregisterOnChangeListener(onCandidatePreferenceChangeListener)
         ConfigProviders.removeButtonsLayoutListener(onButtonsLayoutChangeListener)

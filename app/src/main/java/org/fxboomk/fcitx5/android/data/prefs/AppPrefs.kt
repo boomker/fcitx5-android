@@ -17,6 +17,7 @@ import org.fxboomk.fcitx5.android.input.candidates.floating.FloatingCandidatesMo
 import org.fxboomk.fcitx5.android.input.candidates.floating.FloatingCandidatesOrientation
 import org.fxboomk.fcitx5.android.input.candidates.floating.FloatingCandidatesVirtualKeyboardPosition
 import org.fxboomk.fcitx5.android.input.candidates.horizontal.HorizontalCandidateMode
+import org.fxboomk.fcitx5.android.input.keyboard.KeyboardHeightPercentBase
 import org.fxboomk.fcitx5.android.input.keyboard.LangSwitchBehavior
 import org.fxboomk.fcitx5.android.input.keyboard.PredictionBackspaceBehavior
 import org.fxboomk.fcitx5.android.input.keyboard.PredictionSpaceBehavior
@@ -93,6 +94,11 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
             R.string.default_emoji_skin_tone,
             "default_emoji_skin_tone",
             EmojiModifier.SkinTone.Default,
+        )
+        val keyboardHeightPercentBase = enumList(
+            R.string.keyboard_height_percent_base,
+            "keyboard_height_percent_base",
+            KeyboardHeightPercentBase.DisplayMetrics
         )
     }
 
