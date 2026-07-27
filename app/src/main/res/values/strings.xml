@@ -941,9 +941,6 @@
     <string name="background_blur_radius">Background Blur Radius</string>
     <string name="no_blur">No Blur</string>
     <string name="edit_text_playground">EditText Playground</string>
-    <string name="keyboard_height_percent_base">Keyboard height percent base</string>
-    <string name="display_metrics">Display metrics (Resources.getDisplayMetrics)</string>
-    <string name="real_size">Real size (Display.getRealSize)</string>
     <string name="voice_status_connecting">Connecting...</string>
     <string name="voice_status_loading">Loading...</string>
     <string name="voice_error_no_permission">RECORD_AUDIO permission not granted</string>
