@@ -66,6 +66,7 @@ import org.fxboomk.fcitx5.android.core.KeyStates
 import org.fxboomk.fcitx5.android.core.KeySym
 import org.fxboomk.fcitx5.android.core.ScancodeMapping
 import org.fxboomk.fcitx5.android.core.SubtypeManager
+import org.fxboomk.fcitx5.android.core.TextFormatFlag
 import org.fxboomk.fcitx5.android.daemon.FcitxConnection
 import org.fxboomk.fcitx5.android.daemon.FcitxDaemon
 import org.fxboomk.fcitx5.android.data.InputFeedbacks
@@ -1881,6 +1882,43 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         }
         composingText = text
         ic.endBatchEdit()
+    }
+
+    fun updateVoiceComposingText(text: String) {
+        if (text.isBlank()) {
+            clearVoiceComposingText()
+            return
+        }
+        updateComposingText(
+            FormattedText(
+                arrayOf(text),
+                intArrayOf(TextFormatFlag.Underline.flag),
+                -1,
+            ),
+        )
+    }
+
+    fun clearVoiceComposingText() {
+        val ic = currentInputConnection ?: return
+        if (composing.isEmpty()) return
+        resetComposingState()
+        ic.setComposingText("", 1)
+    }
+
+    fun commitVoiceText(text: String) {
+        if (text.isBlank()) {
+            clearVoiceComposingText()
+            return
+        }
+        if (composing.isNotEmpty() && composingText.toString() == text) {
+            val ic = currentInputConnection ?: return
+            selection.predict(composing.start + text.length)
+            resetComposingState()
+            ic.finishComposingText()
+        } else {
+            clearVoiceComposingText()
+            commitText(text)
+        }
     }
 
     /**

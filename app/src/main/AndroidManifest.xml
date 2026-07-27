@@ -15,6 +15,7 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
@@ -41,6 +42,15 @@
         </intent>
         <intent>
             <action android:name="android.view.InputMethod" />
+        </intent>
+        <intent>
+            <action android:name="${applicationId}.plugin.VOICE_INPUT" />
+        </intent>
+        <intent>
+            <action android:name="org.fcitx.fcitx5.android.plugin.VOICE_INPUT" />
+        </intent>
+        <intent>
+            <action android:name="org.fcitx.fcitx5.android.debug.plugin.VOICE_INPUT" />
         </intent>
     </queries>
 
@@ -127,6 +137,14 @@
             android:exported="false"
             android:launchMode="singleInstance"
             android:taskAffinity=".ui.main.settings.behavior.dialog.TextKeyboardLayoutProfilePickerActivity"
+            android:theme="@style/Theme.TransparentOverlayActivity" />
+        <activity
+            android:name=".input.voice.VoiceInputPermissionActivity"
+            android:autoRemoveFromRecents="true"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:launchMode="singleInstance"
+            android:taskAffinity=".input.voice.VoiceInputPermissionActivity"
             android:theme="@style/Theme.TransparentOverlayActivity" />
         <activity
             android:name=".ui.main.settings.behavior.ButtonsCustomizerActivity"

@@ -944,4 +944,20 @@
     <string name="keyboard_height_percent_base">Keyboard height percent base</string>
     <string name="display_metrics">Display metrics (Resources.getDisplayMetrics)</string>
     <string name="real_size">Real size (Display.getRealSize)</string>
+    <string name="voice_status_connecting">Connecting...</string>
+    <string name="voice_status_loading">Loading...</string>
+    <string name="voice_error_no_permission">RECORD_AUDIO permission not granted</string>
+    <string name="voice_error_failed">Voice input failed</string>
+    <string name="voice_error_invalid_provider">Invalid voice input provider</string>
+    <string name="voice_error_not_available">Voice input provider is not available</string>
+    <string name="voice_error_disconnected">Voice input provider disconnected</string>
+    <string name="voice_error_null_binding">Voice input provider returned no binding</string>
+    <string name="voice_error_cannot_bind">Cannot bind voice input provider</string>
+    <string name="voice_error_bind_timeout">Voice input provider bind timed out</string>
+    <string name="voice_error_call_failed">Voice input provider call failed</string>
+    <string name="voice_error_invalid_audio_config">Voice input provider requested an unsupported audio format</string>
+    <string name="voice_error_audio_minbuf">AudioRecord.getMinBufferSize=%d</string>
+    <string name="voice_error_audio_construct">AudioRecord construct denied: %s</string>
+    <string name="voice_error_audio_not_init">AudioRecord not initialized</string>
+    <string name="voice_error_audio_start_failed">startRecording failed: %s</string>
 </resources>

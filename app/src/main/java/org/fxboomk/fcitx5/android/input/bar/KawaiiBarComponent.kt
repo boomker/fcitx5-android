@@ -78,6 +78,7 @@ import org.fxboomk.fcitx5.android.input.predict.AiSuggestionStripComponent
 import org.fxboomk.fcitx5.android.input.predict.LlmPrefs
 import org.fxboomk.fcitx5.android.input.predict.hasCompletedAiResult
 import org.fxboomk.fcitx5.android.input.predict.hasInteractiveAiContent
+import org.fxboomk.fcitx5.android.input.voice.VoiceInputProviderManager
 import org.fxboomk.fcitx5.android.input.popup.PopupComponent
 import org.fxboomk.fcitx5.android.input.status.StatusAreaWindow
 import org.fxboomk.fcitx5.android.input.wm.InputWindow
@@ -349,8 +350,13 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
     }
 
     private var voiceInputSubtype: Pair<String, InputMethodSubtype>? = null
+    private var voiceInputProviderId: String? = null
 
     private val switchToVoiceInputCallback = View.OnClickListener {
+        voiceInputProviderId?.let {
+            VoiceInputProviderManager.toggle(service, it)
+            return@OnClickListener
+        }
         val (id, subtype) = voiceInputSubtype ?: return@OnClickListener
         InputMethodUtil.switchInputMethod(service, id, subtype)
     }
@@ -360,9 +366,13 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         capFlags: CapabilityFlags = CapabilityFlags.fromEditorInfo(service.currentInputEditorInfo)
     ) {
         isCapabilityFlagsPassword = toolbarNumRowOnPassword && capFlags.has(CapabilityFlag.Password)
+        voiceInputProviderId = preferredVoiceInput.takeIf {
+            VoiceInputProviderManager.isProviderId(it) && VoiceInputProviderManager.hasProvider(it, service)
+        }
         voiceInputSubtype = InputMethodUtil.findVoiceSubtype(preferredVoiceInput)
         val shouldShowVoiceInput =
-            showVoiceInputButton && voiceInputSubtype != null && !capFlags.has(CapabilityFlag.Password)
+            showVoiceInputButton && !capFlags.has(CapabilityFlag.Password) &&
+                (voiceInputProviderId != null || voiceInputSubtype != null)
         val hideKeyboardOrVoiceCallback = if (shouldShowVoiceInput) {
             switchToVoiceInputCallback
         } else {
@@ -720,6 +730,9 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         ClipboardManager.addOnUpdateListener(onClipboardUpdateListener)
         clipboardSuggestion.registerOnChangeListener(onClipboardSuggestionUpdateListener)
         clipboardItemTimeout.registerOnChangeListener(onClipboardTimeoutUpdateListener)
+        VoiceInputProviderManager.voiceErrorCallback = { message ->
+            Toast.makeText(service, message, Toast.LENGTH_SHORT).show()
+        }
     }
 
     override fun onStartInput(info: EditorInfo, capFlags: CapabilityFlags) {
@@ -731,9 +744,13 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             idleUi.inlineSuggestionsBar.clear()
         }
+        voiceInputProviderId = preferredVoiceInput.takeIf {
+            VoiceInputProviderManager.isProviderId(it) && VoiceInputProviderManager.hasProvider(it, service)
+        }
         voiceInputSubtype = InputMethodUtil.findVoiceSubtype(preferredVoiceInput)
         val shouldShowVoiceInput =
-            showVoiceInputButton && voiceInputSubtype != null && !capFlags.has(CapabilityFlag.Password)
+            showVoiceInputButton && !capFlags.has(CapabilityFlag.Password) &&
+                (voiceInputProviderId != null || voiceInputSubtype != null)
         val hideKeyboardOrVoiceCallback = if (shouldShowVoiceInput) {
             switchToVoiceInputCallback
         } else {

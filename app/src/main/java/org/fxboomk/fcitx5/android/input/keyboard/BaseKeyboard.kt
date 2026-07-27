@@ -727,6 +727,7 @@ abstract class BaseKeyboard(
                             // Reset direction lock on finger up
                             swipeDirectionLocked = null
                             verticalSwipeTriggered = false
+                            onAction(KeyAction.VoiceInputHoldEnd)
                             false
                         }
                         else -> false

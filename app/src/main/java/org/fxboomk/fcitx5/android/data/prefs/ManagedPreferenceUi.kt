@@ -10,12 +10,21 @@ import androidx.preference.EditTextPreference
 import androidx.preference.ListPreference
 import androidx.preference.Preference
 import org.fxboomk.fcitx5.android.R
+import org.fxboomk.fcitx5.android.input.voice.VoiceInputProviderManager
 import org.fxboomk.fcitx5.android.ui.main.modified.MySwitchPreference
 import org.fxboomk.fcitx5.android.ui.main.settings.DialogSeekBarPreference
 import org.fxboomk.fcitx5.android.ui.main.settings.EditTextIntPreference
 import org.fxboomk.fcitx5.android.ui.main.settings.TwinSeekBarPreference
 import org.fxboomk.fcitx5.android.utils.InputMethodUtil
 import org.fxboomk.fcitx5.android.utils.includes
+
+private const val SHUO_DIAN_SHA = "说点啥"
+
+private fun isShuoDianVoiceInput(label: CharSequence): Boolean =
+    label.toString().contains(SHUO_DIAN_SHA)
+
+private fun shuoDianVoiceInputLabel(isBackground: Boolean): String =
+    if (isBackground) "$SHUO_DIAN_SHA(后台)" else "$SHUO_DIAN_SHA(前台)"
 
 abstract class ManagedPreferenceUi<T : Preference>(
     val key: String,
@@ -104,11 +113,38 @@ abstract class ManagedPreferenceUi<T : Preference>(
             setDefaultValue(defaultValue)
             setTitle(this@VoiceInputList.title)
             setDialogTitle(this@VoiceInputList.title)
-            val voiceInputMethods = InputMethodUtil.listVoiceInputMethods()
-            entryValues = arrayOf("", *voiceInputMethods.map { it.first.id }.toTypedArray())
+            val voiceInputProviderEntries = VoiceInputProviderManager.listProviders(context)
+                .map {
+                    val label = if (isShuoDianVoiceInput(it.label)) {
+                        shuoDianVoiceInputLabel(isBackground = true)
+                    } else {
+                        it.label
+                    }
+                    it.id to label
+                }
+            val voiceInputMethodEntries = InputMethodUtil.listVoiceInputMethods()
+                .map {
+                    val label = it.first.loadLabel(context.packageManager)
+                    val displayLabel = if (isShuoDianVoiceInput(label)) {
+                        shuoDianVoiceInputLabel(isBackground = false)
+                    } else {
+                        label
+                    }
+                    it.first.id to displayLabel
+                }
+            val (shuoDianProviderEntries, otherProviderEntries) =
+                voiceInputProviderEntries.partition { isShuoDianVoiceInput(it.second) }
+            val (shuoDianMethodEntries, otherMethodEntries) =
+                voiceInputMethodEntries.partition { isShuoDianVoiceInput(it.second) }
+            val voiceInputEntries =
+                otherProviderEntries + otherMethodEntries + shuoDianMethodEntries + shuoDianProviderEntries
+            entryValues = arrayOf(
+                "",
+                *voiceInputEntries.map { it.first }.toTypedArray()
+            )
             entries = arrayOf(
                 context.getString(R.string.system_default),
-                *voiceInputMethods.map { it.first.loadLabel(context.packageManager) }.toTypedArray()
+                *voiceInputEntries.map { it.second }.toTypedArray()
             )
             // shows "(Not Available)" if selected id is not present
             summaryProvider = Preference.SummaryProvider<ListPreference> { preference ->
