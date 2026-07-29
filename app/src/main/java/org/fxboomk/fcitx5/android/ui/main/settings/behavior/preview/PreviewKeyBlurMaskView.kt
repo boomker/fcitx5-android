@@ -31,6 +31,7 @@ class PreviewKeyBlurMaskView(context: Context) : View(context) {
     private val keyViews = ArrayList<KeyView>(64)
     private val keyClipRects = ArrayList<Rect>(64)
     private val keyClipRadii = ArrayList<Float>(64)
+    private val keyClipOval = ArrayList<Boolean>(64)
 
     private var keyboard: TextKeyboard? = null
     private var blurBitmap: Bitmap? = null
@@ -120,7 +121,13 @@ class PreviewKeyBlurMaskView(context: Context) : View(context) {
         keyClipRects.forEachIndexed { index, rect ->
             val saveId = canvas.save()
             val radius = keyClipRadii.getOrElse(index) { 0f }
-            if (radius > 0f) {
+            val isOval = keyClipOval.getOrElse(index) { false }
+            if (isOval) {
+                clipRectF.set(rect)
+                clipPath.reset()
+                clipPath.addOval(clipRectF, Path.Direction.CW)
+                canvas.clipPath(clipPath)
+            } else if (radius > 0f) {
                 clipRectF.set(rect)
                 clipPath.reset()
                 clipPath.addRoundRect(clipRectF, radius, radius, Path.Direction.CW)
@@ -149,6 +156,7 @@ class PreviewKeyBlurMaskView(context: Context) : View(context) {
         hasVisibleKey = false
         keyClipRects.clear()
         keyClipRadii.clear()
+        keyClipOval.clear()
         val keyboardView = keyboard ?: return
         val parentView = parent as? ViewGroup ?: return
 
@@ -162,6 +170,7 @@ class PreviewKeyBlurMaskView(context: Context) : View(context) {
             hasVisibleKey = false
             keyClipRects.clear()
             keyClipRadii.clear()
+            keyClipOval.clear()
             keyViews.forEach { key ->
                 if (!key.isShown) return@forEach
                 hasVisibleKey = true
@@ -169,18 +178,34 @@ class PreviewKeyBlurMaskView(context: Context) : View(context) {
                 clipRect.set(0, 0, key.width, key.height)
                 parentView.offsetDescendantRectToMyCoords(key, clipRect)
                 clipRect.offset(-left, -top)
+                val hMargin: Int
+                val vMargin: Int
+                val radius: Float
+                val isOval: Boolean
+                if (key.isCircularSideKey) {
+                    val (circleH, circleV) = key.resolveBlurClipInsets(key.width, key.height)
+                    hMargin = circleH
+                    vMargin = circleV
+                    radius = 0f
+                    isOval = true
+                } else {
+                    hMargin = key.hMargin
+                    vMargin = key.vMargin
+                    radius = key.radius
+                    isOval = false
+                }
                 clipRect.set(
-                    clipRect.left + key.hMargin,
-                    clipRect.top + key.vMargin,
-                    clipRect.right - key.hMargin,
-                    clipRect.bottom - key.vMargin
+                    clipRect.left + hMargin,
+                    clipRect.top + vMargin,
+                    clipRect.right - hMargin,
+                    clipRect.bottom - vMargin
                 )
                 if (clipRect.width() <= 0 || clipRect.height() <= 0) return@forEach
                 if (!clipRect.intersect(0, 0, width, height)) return@forEach
                 val maxRadius = minOf(clipRect.width(), clipRect.height()) * 0.5f
-                val radius = key.radius.coerceIn(0f, maxRadius)
                 keyClipRects.add(Rect(clipRect))
-                keyClipRadii.add(radius)
+                keyClipRadii.add(radius.coerceIn(0f, maxRadius))
+                keyClipOval.add(isOval)
             }
         }
 
