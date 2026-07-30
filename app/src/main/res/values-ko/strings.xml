@@ -135,6 +135,7 @@
     <string name="text_keyboard_layout_row_height_multiplier">행 높이 배수</string>
     <string name="text_keyboard_layout_row_height_multiplier_invalid">행 높이 배수는 0보다 큰 숫자여야 합니다</string>
     <string name="text_keyboard_layout_row_sub_label_position">보조 레이블 위치</string>
+    <string name="text_keyboard_layout_row_sub_label_top_bottom">상단 및 하단</string>
     <string name="text_keyboard_layout_row_sub_label_top">상단</string>
     <string name="text_keyboard_layout_row_sub_label_top_right">오른쪽 위</string>
     <string name="text_keyboard_layout_row_sub_label_bottom">하단</string>
@@ -156,6 +157,7 @@
     <string name="text_keyboard_layout_key_type">키 유형</string>
     <string name="text_keyboard_layout_key_main">기본 문자</string>
     <string name="text_keyboard_layout_key_alt">보조 문자</string>
+    <string name="text_keyboard_layout_key_alt_one">보조 문자 1</string>
     <string name="text_keyboard_layout_key_display_text">표시 텍스트</string>
     <string name="text_keyboard_layout_key_label">레이블</string>
     <string name="text_keyboard_layout_key_sub_label">하위 레이블</string>
@@ -305,6 +307,7 @@
     <string name="text_keyboard_layout_macro_no_event">이벤트가 구성되지 않았습니다</string>
     <string name="text_keyboard_layout_macro_event_preview">%1$s → … (총 %2$d 단계)</string>
     <string name="text_keyboard_layout_alt_label">대체 레이블</string>
+    <string name="text_keyboard_layout_alt_label_one">대체 레이블 1</string>
     <string name="text_keyboard_layout_swipe_label">스와이프 레이블</string>
 
     <!-- Macro Editor -->
@@ -653,7 +656,7 @@
     <string name="split_keyboard_use_landscape_layout_summary">활성화되고 분할 키보드가 켜져 있으면 가로 레이아웃 매개변수(높이, 여백 등)를 사용합니다. 이 옵션은 자동 분할 키보드가 켜져 있을 때만 사용할 수 있습니다.</string>
     <string name="status_area">상태 영역</string>
     <string name="swipe_down">아래로 스와이프</string>
-    <string name="swipe_symbol_behavior">기호 숨김 시 기호 스와이프 방향</string>
+    <string name="swipe_symbol_behavior">기호 스와이프 방향</string>
     <string name="swipe_up">위로 스와이프</string>
     <string name="switch_to_voice_input">음성 입력으로 전환</string>
     <string name="system_default">시스템 기본값</string>
@@ -743,7 +746,7 @@
     <string name="navbar_border">내비게이션 바 테두리</string>
     <string name="light_mode_theme_summary">선택한 여러 테마를 전환할 때 순환</string>
     <string name="dark_mode_theme_summary">선택한 여러 테마를 전환할 때 순환</string>
-    <string name="space_swipe_vertical_behavior">스페이스 키 위/아래 스와이프 동작</string>
+    <string name="space_swipe_vertical_behavior">스페이스 키 상하 스와이프 동작</string>
     <string name="space_swipe_vertical_behavior_arrow_keys">하이라이트를 단어 단위로 이동</string>
     <string name="space_swipe_vertical_behavior_candidate_rows">후보 행 전환</string>
     <string name="manage_plugins">플러그인 관리</string>

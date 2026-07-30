@@ -14,13 +14,15 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
+import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.core.view.ViewCompat
@@ -78,8 +80,8 @@ class RowEditorActivity : AppCompatActivity() {
     private var saveMenuItem: MenuItem? = null
 
     private lateinit var heightMultiplierEdit: EditText
-    private lateinit var subLabelValue: TextView
-    private lateinit var backgroundStyleValue: TextView
+    private lateinit var subLabelPositionSpinner: Spinner
+    private lateinit var backgroundStyleSpinner: Spinner
     private lateinit var backgroundColorValue: TextView
     private lateinit var backgroundColorSwatch: View
 
@@ -156,20 +158,38 @@ class RowEditorActivity : AppCompatActivity() {
         })
         contentContainer.addView(heightField.first)
 
-        val subLabelRow = createActionRow(
-            title = getString(R.string.text_keyboard_layout_row_sub_label_position)
-        ) {
-            showSubLabelPositionPicker()
+        val subLabelRow = createSpinnerRow(
+            title = getString(R.string.text_keyboard_layout_row_sub_label_position),
+            items = subLabelPositionLabels()
+        )
+        subLabelPositionSpinner = subLabelRow.second
+        subLabelPositionSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val next = rowStyle.copy(altTextPosition = subLabelPositionFromIndex(position))
+                if (next == rowStyle) return
+                rowStyle = next
+                bindUiState()
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) = Unit
         }
-        subLabelValue = subLabelRow.second
         contentContainer.addView(subLabelRow.first)
 
-        val backgroundStyleRow = createActionRow(
-            title = getString(R.string.text_keyboard_layout_row_background_style)
-        ) {
-            showBackgroundStylePicker()
+        val backgroundStyleRow = createSpinnerRow(
+            title = getString(R.string.text_keyboard_layout_row_background_style),
+            items = backgroundStyleLabels()
+        )
+        backgroundStyleSpinner = backgroundStyleRow.second
+        backgroundStyleSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val next = rowStyle.copy(backgroundStyle = backgroundStyleFromIndex(position))
+                if (next == rowStyle) return
+                rowStyle = next
+                bindUiState()
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) = Unit
         }
-        backgroundStyleValue = backgroundStyleRow.second
         contentContainer.addView(backgroundStyleRow.first)
 
         val backgroundColorRow = createColorActionRow(
@@ -183,17 +203,12 @@ class RowEditorActivity : AppCompatActivity() {
     }
 
     private fun bindUiState() {
-        subLabelValue.text = when (rowStyle.altTextPosition) {
-            KeyboardRowStyleUtils.AltTextPosition.Top -> getString(R.string.text_keyboard_layout_row_sub_label_top)
-            KeyboardRowStyleUtils.AltTextPosition.TopRight -> getString(R.string.text_keyboard_layout_row_sub_label_top_right)
-            KeyboardRowStyleUtils.AltTextPosition.Bottom -> getString(R.string.text_keyboard_layout_row_sub_label_bottom)
-            null -> getString(R.string.text_keyboard_layout_row_follow_theme)
+        if (subLabelPositionSpinner.selectedItemPosition != subLabelPositionIndex(rowStyle.altTextPosition)) {
+            subLabelPositionSpinner.setSelection(subLabelPositionIndex(rowStyle.altTextPosition))
         }
 
-        backgroundStyleValue.text = when (rowStyle.backgroundStyle) {
-            KeyboardRowStyleUtils.BackgroundStyle.Solid -> getString(R.string.text_keyboard_layout_row_background_style_solid)
-            KeyboardRowStyleUtils.BackgroundStyle.Gradient -> getString(R.string.text_keyboard_layout_row_background_style_gradient)
-            null -> getString(R.string.text_keyboard_layout_row_background_style_default)
+        if (backgroundStyleSpinner.selectedItemPosition != backgroundStyleIndex(rowStyle.backgroundStyle)) {
+            backgroundStyleSpinner.setSelection(backgroundStyleIndex(rowStyle.backgroundStyle))
         }
 
         val color = rowStyle.backgroundColor
@@ -213,63 +228,46 @@ class RowEditorActivity : AppCompatActivity() {
         updateSaveButtonState()
     }
 
-    private fun showSubLabelPositionPicker() {
-        val options = arrayOf(
-            getString(R.string.text_keyboard_layout_row_follow_theme),
-            getString(R.string.text_keyboard_layout_row_sub_label_top),
-            getString(R.string.text_keyboard_layout_row_sub_label_top_right),
-            getString(R.string.text_keyboard_layout_row_sub_label_bottom)
-        )
-        val checked = when (rowStyle.altTextPosition) {
-            KeyboardRowStyleUtils.AltTextPosition.Top -> 1
-            KeyboardRowStyleUtils.AltTextPosition.TopRight -> 2
-            KeyboardRowStyleUtils.AltTextPosition.Bottom -> 3
-            null -> 0
-        }
-        AlertDialog.Builder(this)
-            .setTitle(R.string.text_keyboard_layout_row_sub_label_position)
-            .setSingleChoiceItems(options, checked) { dialog, which ->
-                rowStyle = rowStyle.copy(
-                    altTextPosition = when (which) {
-                        1 -> KeyboardRowStyleUtils.AltTextPosition.Top
-                        2 -> KeyboardRowStyleUtils.AltTextPosition.TopRight
-                        3 -> KeyboardRowStyleUtils.AltTextPosition.Bottom
-                        else -> null
-                    }
-                )
-                dialog.dismiss()
-                bindUiState()
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
+    private fun subLabelPositionLabels(): List<String> = listOf(
+        getString(R.string.text_keyboard_layout_row_follow_theme),
+        getString(R.string.text_keyboard_layout_row_sub_label_top_bottom),
+        getString(R.string.text_keyboard_layout_row_sub_label_top),
+        getString(R.string.text_keyboard_layout_row_sub_label_top_right),
+        getString(R.string.text_keyboard_layout_row_sub_label_bottom)
+    )
+
+    private fun subLabelPositionIndex(position: KeyboardRowStyleUtils.AltTextPosition?): Int = when (position) {
+        KeyboardRowStyleUtils.AltTextPosition.TopBottom -> 1
+        KeyboardRowStyleUtils.AltTextPosition.Top -> 2
+        KeyboardRowStyleUtils.AltTextPosition.TopRight -> 3
+        KeyboardRowStyleUtils.AltTextPosition.Bottom -> 4
+        null -> 0
     }
 
-    private fun showBackgroundStylePicker() {
-        val options = arrayOf(
-            getString(R.string.text_keyboard_layout_row_background_style_default),
-            getString(R.string.text_keyboard_layout_row_background_style_solid),
-            getString(R.string.text_keyboard_layout_row_background_style_gradient)
-        )
-        val checked = when (rowStyle.backgroundStyle) {
-            KeyboardRowStyleUtils.BackgroundStyle.Solid -> 1
-            KeyboardRowStyleUtils.BackgroundStyle.Gradient -> 2
-            null -> 0
-        }
-        AlertDialog.Builder(this)
-            .setTitle(R.string.text_keyboard_layout_row_background_style)
-            .setSingleChoiceItems(options, checked) { dialog, which ->
-                rowStyle = rowStyle.copy(
-                    backgroundStyle = when (which) {
-                        1 -> KeyboardRowStyleUtils.BackgroundStyle.Solid
-                        2 -> KeyboardRowStyleUtils.BackgroundStyle.Gradient
-                        else -> null
-                    }
-                )
-                dialog.dismiss()
-                bindUiState()
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
+    private fun subLabelPositionFromIndex(index: Int): KeyboardRowStyleUtils.AltTextPosition? = when (index) {
+        1 -> KeyboardRowStyleUtils.AltTextPosition.TopBottom
+        2 -> KeyboardRowStyleUtils.AltTextPosition.Top
+        3 -> KeyboardRowStyleUtils.AltTextPosition.TopRight
+        4 -> KeyboardRowStyleUtils.AltTextPosition.Bottom
+        else -> null
+    }
+
+    private fun backgroundStyleLabels(): List<String> = listOf(
+        getString(R.string.text_keyboard_layout_row_background_style_default),
+        getString(R.string.text_keyboard_layout_row_background_style_solid),
+        getString(R.string.text_keyboard_layout_row_background_style_gradient)
+    )
+
+    private fun backgroundStyleIndex(style: KeyboardRowStyleUtils.BackgroundStyle?): Int = when (style) {
+        KeyboardRowStyleUtils.BackgroundStyle.Solid -> 1
+        KeyboardRowStyleUtils.BackgroundStyle.Gradient -> 2
+        null -> 0
+    }
+
+    private fun backgroundStyleFromIndex(index: Int): KeyboardRowStyleUtils.BackgroundStyle? = when (index) {
+        1 -> KeyboardRowStyleUtils.BackgroundStyle.Solid
+        2 -> KeyboardRowStyleUtils.BackgroundStyle.Gradient
+        else -> null
     }
 
     private fun openColorEditor() {
@@ -352,6 +350,44 @@ class RowEditorActivity : AppCompatActivity() {
             )
         }
         return row to valueView
+    }
+
+    private fun createSpinnerRow(
+        title: String,
+        items: List<String>
+    ): Pair<LinearLayout, Spinner> {
+        val spinner = Spinner(this).apply {
+            adapter = ArrayAdapter(
+                this@RowEditorActivity,
+                android.R.layout.simple_spinner_item,
+                items
+            ).apply {
+                setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            }
+        }
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, dp(8), 0, dp(8))
+
+            addView(
+                TextView(this@RowEditorActivity).apply {
+                    text = title
+                    textSize = 13f
+                    setTextColor(styledColor(android.R.attr.textColorSecondary))
+                },
+                LinearLayout.LayoutParams(dp(120), LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                    rightMargin = dp(8)
+                }
+            )
+            addView(
+                spinner,
+                LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                    weight = 1f
+                }
+            )
+        }
+        return row to spinner
     }
 
     private fun createColorActionRow(

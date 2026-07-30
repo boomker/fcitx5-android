@@ -185,6 +185,7 @@ abstract class BaseKeyboard(
                         is AltTextKeyView -> {
                             keyView.mainText.setFontTypeFace("key_main_font")
                             keyView.altText.setFontTypeFace("key_alt_font")
+                            keyView.altText1.setFontTypeFace("key_alt_font")
                         }
                         is TextKeyView -> keyView.mainText.setFontTypeFace("key_main_font")
                     }
@@ -910,6 +911,7 @@ abstract class BaseKeyboard(
             is AltTextKeyView -> {
                 newView.mainText.setFontTypeFace("key_main_font")
                 newView.altText.setFontTypeFace("key_alt_font")
+                newView.altText1.setFontTypeFace("key_alt_font")
             }
             is TextKeyView -> newView.mainText.setFontTypeFace("key_main_font")
         }
@@ -950,6 +952,7 @@ abstract class BaseKeyboard(
             is KeyDef.Appearance.AltText -> KeyDef.Appearance.AltText(
                 displayText = displayText,
                 altText = altText,
+                altText1 = altText1,
                 character = character,
                 textSize = sourceText.textSize,
                 textStyle = sourceText.textStyle,
@@ -1013,6 +1016,7 @@ abstract class BaseKeyboard(
         is KeyDef.Appearance.AltText -> KeyDef.Appearance.AltText(
             displayText = displayText,
             altText = altText,
+            altText1 = altText1,
             character = character,
             textSize = textSize,
             textStyle = textStyle,
@@ -1178,8 +1182,9 @@ abstract class BaseKeyboard(
                     view.onGestureListener = OnGestureListener { currentView, event ->
                         when (event.type) {
                             GestureType.Up -> {
-                                if (!event.consumed && shouldTriggerSymbolBySwipe(currentView, event.totalY)) {
-                                    onAction(it.action)
+                                val action = selectSwipeSymbolAction(currentView, event.totalY, it)
+                                if (!event.consumed && action != null) {
+                                    onAction(action)
                                     true
                                 } else {
                                     false
@@ -1277,8 +1282,7 @@ abstract class BaseKeyboard(
                                     PopupAction.PreviewAction(currentView.id, it.content, currentView.bounds)
                                 )
                                 GestureType.Move -> {
-                                    val triggered = shouldTriggerSymbolBySwipe(currentView, event.totalY)
-                                    val text = if (triggered) it.alternative else it.content
+                                    val text = selectAltPreviewText(currentView, event.totalY, it)
                                     onPopupAction(
                                         PopupAction.PreviewUpdateAction(currentView.id, text)
                                     )
@@ -1477,9 +1481,44 @@ abstract class BaseKeyboard(
     }
 
     private fun shouldTriggerSymbolBySwipe(view: View, totalY: Int): Boolean {
-        val altTextView = view as? SwipeHintAwareKeyView
-        return altTextView?.shouldTriggerAltBySwipe(totalY, swipeSymbolDirection)
-            ?: swipeSymbolDirection.checkY(totalY)
+        return selectSwipeAltTarget(view, totalY) != null
+    }
+
+    private fun selectSwipeAltTarget(view: View, totalY: Int): AltTextSwipeTarget? {
+        if (totalY == 0) return null
+        return when (swipeSymbolDirection) {
+            SwipeSymbolDirection.Up ->
+                AltTextSwipeTarget.Primary.takeIf { totalY < 0 }
+            SwipeSymbolDirection.Down ->
+                AltTextSwipeTarget.Secondary.takeIf { totalY > 0 }
+            SwipeSymbolDirection.Disabled -> null
+            SwipeSymbolDirection.Auto ->
+                (view as? SwipeHintAwareKeyView)?.selectAltTextSwipeTarget(totalY)
+        }
+    }
+
+    private fun selectSwipeSymbolAction(
+        view: View,
+        totalY: Int,
+        behavior: KeyDef.Behavior.Swipe
+    ): KeyAction? {
+        return when (selectSwipeAltTarget(view, totalY)) {
+            AltTextSwipeTarget.Primary -> behavior.action
+            AltTextSwipeTarget.Secondary -> behavior.downAction ?: behavior.action
+            null -> null
+        }
+    }
+
+    private fun selectAltPreviewText(
+        view: View,
+        totalY: Int,
+        popup: KeyDef.Popup.AltPreview
+    ): String {
+        return when (selectSwipeAltTarget(view, totalY)) {
+            AltTextSwipeTarget.Primary -> popup.alternative
+            AltTextSwipeTarget.Secondary -> popup.alternative1 ?: popup.alternative
+            null -> popup.content
+        }
     }
 
     protected open fun preprocessMacroAction(

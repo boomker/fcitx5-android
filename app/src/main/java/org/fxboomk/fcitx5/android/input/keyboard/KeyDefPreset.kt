@@ -79,6 +79,7 @@ class SymbolKey(
 class AlphabetKey(
     val character: String,
     val punctuation: String,
+    val punctuation1: String? = null,
     val displayText: String = character,
     variant: Variant = Variant.Normal,
     popup: Array<Popup>? = null,
@@ -95,6 +96,7 @@ class AlphabetKey(
     Appearance.AltText(
         displayText = displayText,
         altText = punctuation,
+        altText1 = punctuation1,
         character = character,
         textSize = 23f,
         variant = variant,
@@ -110,10 +112,13 @@ class AlphabetKey(
     ),
     setOf(
         Behavior.Press(KeyAction.FcitxKeyAction(character)),
-        Behavior.Swipe(KeyAction.FcitxKeyAction(punctuation))
+        Behavior.Swipe(
+            KeyAction.FcitxKeyAction(punctuation),
+            punctuation1?.takeIf { it.isNotEmpty() }?.let { KeyAction.FcitxKeyAction(it) }
+        )
     ),
     popup ?: arrayOf(
-        Popup.AltPreview(character, punctuation),
+        Popup.AltPreview(character, punctuation, punctuation1),
         Popup.Keyboard.Preset(character)
     )
 )
@@ -585,6 +590,7 @@ class NumPadKey(
  * Macro 按键，支持自定义 tap/swipe/longPress 行为
  * @param label 显示文本（点击行为）
  * @param altLabel 备选显示文本（划动行为，可选）
+ * @param altLabel1 第二个备选显示文本（可选）
  * @param longPressLabel 长按时在 Popup 选单中显示的标签文本（可选）
  * @param tap 点击时执行的 macro
  * @param swipe 划动时执行的 macro（可选）
@@ -597,6 +603,7 @@ class MacroKey(
     val label: String,
     val character: String = label,
     val altLabel: String? = null,
+    val altLabel1: String? = null,
     val longPressLabel: String? = null,
     val tap: MacroAction,
     val swipe: MacroAction? = null,
@@ -616,6 +623,7 @@ class MacroKey(
     Appearance.AltText(
         displayText = label,
         altText = altLabel ?: "",
+        altText1 = altLabel1,
         character = character,
         textSize = 23f,
         percentWidth = percentWidth,

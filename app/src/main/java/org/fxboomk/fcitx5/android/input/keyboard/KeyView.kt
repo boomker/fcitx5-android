@@ -54,8 +54,13 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 
+enum class AltTextSwipeTarget {
+    Primary,
+    Secondary
+}
+
 interface SwipeHintAwareKeyView {
-    fun shouldTriggerAltBySwipe(totalY: Int, fallback: SwipeSymbolDirection): Boolean
+    fun selectAltTextSwipeTarget(totalY: Int): AltTextSwipeTarget?
 }
 
 abstract class KeyView(
@@ -649,6 +654,9 @@ class AltTextKeyView(
 ) :
     TextKeyView(ctx, theme, def, horizontalGapScale), SwipeHintAwareKeyView {
     private enum class AltTextLayoutMode {
+        TopBottom,
+        TopCorners,
+        BottomCorners,
         Top,
         TopRight,
         Bottom,
@@ -682,9 +690,31 @@ class AltTextKeyView(
         )
     }
 
+    val altText1 = view(::AutoScaleTextView) {
+        isClickable = false
+        isFocusable = false
+        scaleMode = AutoScaleTextView.Mode.Proportional
+        gravity = Gravity.CENTER
+        setPadding(hMargin, 0, hMargin, 0)
+        setTextSize(TypedValue.COMPLEX_UNIT_SP, baseAltTextSizeSp)
+        fontKey = "key_alt_font"
+        setTypeface(typeface, Typeface.NORMAL)
+        text = def.altText1.orEmpty()
+        textDirection = View.TEXT_DIRECTION_FIRST_STRONG_LTR
+        setTextColor(
+            resolveAltTextColor(
+                when (def.variant) {
+                    Variant.Normal, Variant.AltForeground, Variant.Alternative -> theme.altKeyTextColor
+                    Variant.Accent -> theme.accentKeyTextColor
+                }
+            )
+        )
+    }
+
     init {
         appearanceView.apply {
             add(altText, lParams(0, wrapContent))
+            add(altText1, lParams(0, wrapContent))
         }
         // 修复时序问题：使用 post 延后执行，确保获取到 layout 后的最终高度
         appearanceView.post {
@@ -695,9 +725,35 @@ class AltTextKeyView(
     override fun setTextScale(scale: Float) {
         super.setTextScale(scale)
         altText.setTextSize(TypedValue.COMPLEX_UNIT_SP, baseAltTextSizeSp * scale)
+        altText1.setTextSize(TypedValue.COMPLEX_UNIT_SP, baseAltTextSizeSp * scale)
         altText.requestLayout()
+        altText1.requestLayout()
         lastLayoutMode = null
         applyLayout()
+    }
+
+    private fun hasSecondAltText(): Boolean = !altText1.text.isNullOrBlank()
+
+    private fun applyMainTextCenterPosition() {
+        mainText.gravity = Gravity.CENTER
+        mainText.updateLayoutParams<ConstraintLayout.LayoutParams> {
+            topMargin = 0
+            bottomMargin = 0
+            bottomToTop = unset
+            topToTop = parentId
+            bottomToBottom = parentId
+        }
+    }
+
+    private fun applyMainTextAboveBottomAltPosition(anchor: View) {
+        mainText.gravity = Gravity.CENTER
+        mainText.updateLayoutParams<ConstraintLayout.LayoutParams> {
+            bottomToBottom = unset
+            bottomMargin = 0
+            topToTop = parentId
+            topMargin = vMargin
+            bottomToTop = anchor.existingOrNewId
+        }
     }
 
     private fun applyTopRightAltTextPadding() {
@@ -708,15 +764,109 @@ class AltTextKeyView(
         altText.setPadding(hMargin, 0, hMargin, 0)
     }
 
-    private fun applyTopRightAltTextPosition() {
-        mainText.updateLayoutParams<ConstraintLayout.LayoutParams> {
-            // reset
-            topMargin = 0
-            bottomToTop = unset
-            // set
+    private fun applyBottomAltText1Padding() {
+        altText1.setPadding(hMargin, 0, hMargin, 0)
+    }
+
+    private fun hideAltText1() {
+        altText1.visibility = View.GONE
+        applyBottomAltText1Padding()
+        altText1.gravity = Gravity.CENTER
+    }
+
+    private fun applyTopBottomAltTextPosition() {
+        applyMainTextCenterPosition()
+        altText.visibility = View.VISIBLE
+        altText.updateLayoutParams<ConstraintLayout.LayoutParams> {
+            width = 0
+            bottomToBottom = unset
+            bottomMargin = 0
             topToTop = parentId
-            bottomToBottom = parentId
+            topMargin = vMargin + cornerLabelTopSafeInset
+            leftToLeft = parentId
+            leftMargin = hMargin
+            rightToRight = parentId
+            rightMargin = hMargin
         }
+        applyBottomAltTextPadding()
+        altText.gravity = Gravity.CENTER
+
+        altText1.visibility = View.VISIBLE
+        altText1.updateLayoutParams<ConstraintLayout.LayoutParams> {
+            width = 0
+            topToTop = unset
+            topMargin = 0
+            leftToLeft = parentId
+            leftMargin = hMargin
+            rightToRight = parentId
+            rightMargin = hMargin
+            bottomToBottom = parentId
+            bottomMargin = vMargin + dp(2)
+        }
+        applyBottomAltText1Padding()
+        altText1.gravity = Gravity.CENTER
+    }
+
+    private fun applyCornerPairAltTextPosition(top: Boolean) {
+        if (top) {
+            applyMainTextCenterPosition()
+        } else {
+            applyMainTextAboveBottomAltPosition(altText)
+        }
+
+        val topMargin = vMargin + cornerLabelTopSafeInset
+        val bottomMargin = vMargin + dp(2)
+        altText.visibility = View.VISIBLE
+        altText.updateLayoutParams<ConstraintLayout.LayoutParams> {
+            width = wrapContent
+            leftToRight = unset
+            rightToLeft = unset
+            rightToRight = unset
+            rightMargin = 0
+            if (top) {
+                topToTop = parentId
+                this.topMargin = topMargin
+                bottomToBottom = unset
+                this.bottomMargin = 0
+            } else {
+                topToTop = unset
+                this.topMargin = 0
+                bottomToBottom = parentId
+                this.bottomMargin = bottomMargin
+            }
+            leftToLeft = parentId
+            leftMargin = hMargin
+        }
+        altText.setPadding(0, 0, 0, 0)
+        altText.gravity = Gravity.CENTER
+
+        altText1.visibility = View.VISIBLE
+        altText1.updateLayoutParams<ConstraintLayout.LayoutParams> {
+            width = wrapContent
+            leftToLeft = unset
+            leftToRight = unset
+            leftMargin = 0
+            rightToLeft = unset
+            if (top) {
+                topToTop = parentId
+                this.topMargin = topMargin
+                bottomToBottom = unset
+                this.bottomMargin = 0
+            } else {
+                topToTop = unset
+                this.topMargin = 0
+                bottomToBottom = parentId
+                this.bottomMargin = bottomMargin
+            }
+            rightToRight = parentId
+            rightMargin = hMargin
+        }
+        altText1.setPadding(0, 0, 0, 0)
+        altText1.gravity = Gravity.CENTER
+    }
+
+    private fun applyTopRightAltTextPosition() {
+        applyMainTextCenterPosition()
         altText.visibility = View.VISIBLE
         altText.updateLayoutParams<ConstraintLayout.LayoutParams> {
             // reset
@@ -729,6 +879,7 @@ class AltTextKeyView(
         }
         applyTopRightAltTextPadding()
         altText.gravity = Gravity.END or Gravity.CENTER_VERTICAL
+        hideAltText1()
     }
 
     private fun applyTopAltTextPosition() {
@@ -752,6 +903,7 @@ class AltTextKeyView(
         }
         applyBottomAltTextPadding()
         altText.gravity = Gravity.CENTER
+        hideAltText1()
     }
 
     private fun applyBottomAltTextPosition() {
@@ -776,6 +928,7 @@ class AltTextKeyView(
         }
         applyBottomAltTextPadding()
         altText.gravity = Gravity.CENTER
+        hideAltText1()
     }
 
     private fun applyNoAltTextPosition() {
@@ -790,36 +943,72 @@ class AltTextKeyView(
         altText.visibility = View.GONE
         applyBottomAltTextPadding()
         altText.gravity = Gravity.CENTER
+        hideAltText1()
+    }
+
+    private fun resolveThemeLayoutMode(): AltTextLayoutMode {
+        val pref = ThemeManager.prefs.punctuationPosition.getValue()
+        if (pref == PunctuationPosition.None) return AltTextLayoutMode.Hidden
+        return when (pref) {
+            PunctuationPosition.TopRight -> AltTextLayoutMode.TopRight
+            PunctuationPosition.Bottom -> AltTextLayoutMode.Bottom
+            PunctuationPosition.None -> AltTextLayoutMode.Hidden
+        }
+    }
+
+    private fun resolveThemeCornerPairLayoutMode(): AltTextLayoutMode {
+        return when (ThemeManager.prefs.punctuationPosition.getValue()) {
+            PunctuationPosition.TopRight -> AltTextLayoutMode.TopCorners
+            PunctuationPosition.Bottom -> AltTextLayoutMode.BottomCorners
+            PunctuationPosition.None -> AltTextLayoutMode.Hidden
+        }
     }
 
     private fun resolveLayoutMode(keyHeight: Int): AltTextLayoutMode {
         if (altText.text.isNullOrBlank()) return AltTextLayoutMode.Hidden
+        if (ThemeManager.prefs.punctuationPosition.getValue() == PunctuationPosition.None) {
+            return AltTextLayoutMode.Hidden
+        }
+        val hasSecondAlt = hasSecondAltText()
         val preferred = when (def.altTextPositionOverride) {
-            KeyDef.Appearance.AltTextPosition.Top -> AltTextLayoutMode.Top
-            KeyDef.Appearance.AltTextPosition.TopRight -> AltTextLayoutMode.TopRight
-            KeyDef.Appearance.AltTextPosition.Bottom -> AltTextLayoutMode.Bottom
-            null -> {
-                val pref = ThemeManager.prefs.punctuationPosition.getValue()
-                if (pref == PunctuationPosition.None) return AltTextLayoutMode.Hidden
-                when (pref) {
-                    PunctuationPosition.TopRight -> AltTextLayoutMode.TopRight
-                    PunctuationPosition.Bottom -> AltTextLayoutMode.Bottom
-                    PunctuationPosition.None -> AltTextLayoutMode.Hidden
-                }
+            KeyDef.Appearance.AltTextPosition.TopBottom -> {
+                if (hasSecondAlt) AltTextLayoutMode.TopBottom else resolveThemeLayoutMode()
             }
+            KeyDef.Appearance.AltTextPosition.Top -> {
+                if (hasSecondAlt) AltTextLayoutMode.TopCorners else AltTextLayoutMode.Top
+            }
+            KeyDef.Appearance.AltTextPosition.TopRight -> {
+                if (hasSecondAlt) AltTextLayoutMode.TopCorners else AltTextLayoutMode.TopRight
+            }
+            KeyDef.Appearance.AltTextPosition.Bottom -> {
+                if (hasSecondAlt) AltTextLayoutMode.BottomCorners else AltTextLayoutMode.Bottom
+            }
+            null -> if (hasSecondAlt) resolveThemeCornerPairLayoutMode() else resolveThemeLayoutMode()
         }
         if (keyHeight <= 0) return preferred
 
         val contentHeight = keyHeight - vMargin * 2
         val mainHeight = mainText.paint.run { fontMetrics.bottom - fontMetrics.top }
         val altHeight = altText.paint.run { fontMetrics.bottom - fontMetrics.top }
+        val altText1Height = altText1.paint.run { fontMetrics.bottom - fontMetrics.top }
         val compactMinHeight = max(mainHeight, altHeight + cornerLabelTopSafeInset)
         val stackedMinHeight = mainHeight + altHeight + dp(1)
+        val topBottomMinHeight = mainHeight + altHeight + altText1Height + dp(2)
 
         return when (preferred) {
+            AltTextLayoutMode.TopBottom -> when {
+                contentHeight >= topBottomMinHeight -> AltTextLayoutMode.TopBottom
+                hasSecondAlt && contentHeight >= compactMinHeight -> resolveThemeCornerPairLayoutMode()
+                else -> AltTextLayoutMode.Hidden
+            }
             AltTextLayoutMode.Bottom -> when {
                 contentHeight >= stackedMinHeight -> AltTextLayoutMode.Bottom
                 contentHeight >= compactMinHeight -> AltTextLayoutMode.TopRight
+                else -> AltTextLayoutMode.Hidden
+            }
+            AltTextLayoutMode.TopCorners,
+            AltTextLayoutMode.BottomCorners -> when {
+                contentHeight >= compactMinHeight -> preferred
                 else -> AltTextLayoutMode.Hidden
             }
             AltTextLayoutMode.Top -> when {
@@ -839,6 +1028,9 @@ class AltTextKeyView(
         if (mode == lastLayoutMode) return
         lastLayoutMode = mode
         when (mode) {
+            AltTextLayoutMode.TopBottom -> applyTopBottomAltTextPosition()
+            AltTextLayoutMode.TopCorners -> applyCornerPairAltTextPosition(top = true)
+            AltTextLayoutMode.BottomCorners -> applyCornerPairAltTextPosition(top = false)
             AltTextLayoutMode.Bottom -> applyBottomAltTextPosition()
             AltTextLayoutMode.Top -> applyTopAltTextPosition()
             AltTextLayoutMode.TopRight -> applyTopRightAltTextPosition()
@@ -846,13 +1038,27 @@ class AltTextKeyView(
         }
     }
 
-    override fun shouldTriggerAltBySwipe(totalY: Int, fallback: SwipeSymbolDirection): Boolean {
-        if (totalY == 0) return false
-        return when (lastLayoutMode ?: resolveLayoutMode(appearanceView.height)) {
-            AltTextLayoutMode.Bottom -> totalY > 0
-            AltTextLayoutMode.Top -> totalY < 0
-            AltTextLayoutMode.TopRight -> totalY < 0
-            AltTextLayoutMode.Hidden -> fallback.checkY(totalY)
+    override fun selectAltTextSwipeTarget(totalY: Int): AltTextSwipeTarget? {
+        if (totalY == 0) return null
+        val mode = lastLayoutMode ?: resolveLayoutMode(appearanceView.height)
+        return when (mode) {
+            AltTextLayoutMode.TopBottom,
+            AltTextLayoutMode.TopCorners -> if (totalY < 0) {
+                AltTextSwipeTarget.Primary
+            } else {
+                AltTextSwipeTarget.Secondary
+            }
+            AltTextLayoutMode.BottomCorners -> if (totalY < 0) {
+                AltTextSwipeTarget.Secondary
+            } else {
+                AltTextSwipeTarget.Primary
+            }
+            AltTextLayoutMode.Top,
+            AltTextLayoutMode.TopRight ->
+                AltTextSwipeTarget.Primary.takeIf { totalY < 0 }
+            AltTextLayoutMode.Bottom ->
+                AltTextSwipeTarget.Primary.takeIf { totalY > 0 }
+            AltTextLayoutMode.Hidden -> null
         }
     }
 
@@ -885,6 +1091,14 @@ class AltTextKeyView(
             applyLayout()
         }
         altText.setTextColor(
+            resolveAltTextColor(
+                when (def.variant) {
+                    Variant.Normal, Variant.AltForeground, Variant.Alternative -> newTheme.altKeyTextColor
+                    Variant.Accent -> newTheme.accentKeyTextColor
+                }
+            )
+        )
+        altText1.setTextColor(
             resolveAltTextColor(
                 when (def.variant) {
                     Variant.Normal, Variant.AltForeground, Variant.Alternative -> newTheme.altKeyTextColor
@@ -964,6 +1178,7 @@ class ImageAltTextKeyView(
         applyLayout()
     }
 
+
     private fun applyTopRightAltTextPadding() {
         altText.setPaddingRelative(0, 0, cornerLabelHorizontalSafeInset, 0)
     }
@@ -1055,21 +1270,28 @@ class ImageAltTextKeyView(
         altText.gravity = Gravity.CENTER
     }
 
+    private fun resolveThemeLayoutMode(): AltTextLayoutMode {
+        val pref = ThemeManager.prefs.punctuationPosition.getValue()
+        if (pref == PunctuationPosition.None) return AltTextLayoutMode.Hidden
+        return when (pref) {
+            PunctuationPosition.TopRight -> AltTextLayoutMode.TopRight
+            PunctuationPosition.Bottom -> AltTextLayoutMode.Bottom
+            PunctuationPosition.None -> AltTextLayoutMode.Hidden
+        }
+    }
+
+
     private fun resolveLayoutMode(keyHeight: Int): AltTextLayoutMode {
         if (altText.text.isNullOrBlank()) return AltTextLayoutMode.Hidden
+        if (ThemeManager.prefs.punctuationPosition.getValue() == PunctuationPosition.None) {
+            return AltTextLayoutMode.Hidden
+        }
         val preferred = when (def.altTextPositionOverride) {
+            KeyDef.Appearance.AltTextPosition.TopBottom -> resolveThemeLayoutMode()
             KeyDef.Appearance.AltTextPosition.Top -> AltTextLayoutMode.Top
             KeyDef.Appearance.AltTextPosition.TopRight -> AltTextLayoutMode.TopRight
             KeyDef.Appearance.AltTextPosition.Bottom -> AltTextLayoutMode.Bottom
-            null -> {
-                val pref = ThemeManager.prefs.punctuationPosition.getValue()
-                if (pref == PunctuationPosition.None) return AltTextLayoutMode.Hidden
-                when (pref) {
-                    PunctuationPosition.TopRight -> AltTextLayoutMode.TopRight
-                    PunctuationPosition.Bottom -> AltTextLayoutMode.Bottom
-                    PunctuationPosition.None -> AltTextLayoutMode.Hidden
-                }
-            }
+            null -> resolveThemeLayoutMode()
         }
         if (keyHeight <= 0) return preferred
 
@@ -1109,13 +1331,13 @@ class ImageAltTextKeyView(
         }
     }
 
-    override fun shouldTriggerAltBySwipe(totalY: Int, fallback: SwipeSymbolDirection): Boolean {
-        if (totalY == 0) return false
+    override fun selectAltTextSwipeTarget(totalY: Int): AltTextSwipeTarget? {
+        if (totalY == 0) return null
         return when (lastLayoutMode ?: resolveLayoutMode(appearanceView.height)) {
-            AltTextLayoutMode.Bottom -> totalY > 0
-            AltTextLayoutMode.Top -> totalY < 0
-            AltTextLayoutMode.TopRight -> totalY < 0
-            AltTextLayoutMode.Hidden -> fallback.checkY(totalY)
+            AltTextLayoutMode.Bottom -> AltTextSwipeTarget.Primary.takeIf { totalY > 0 }
+            AltTextLayoutMode.Top,
+            AltTextLayoutMode.TopRight -> AltTextSwipeTarget.Primary.takeIf { totalY < 0 }
+            AltTextLayoutMode.Hidden -> null
         }
     }
 

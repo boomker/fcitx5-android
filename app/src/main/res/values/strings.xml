@@ -284,7 +284,7 @@
     <string name="disable_addon_warn_dep">Disable %1$s</string>
     <string name="disable_addon_warn_optdep">Disable some features in %1$s</string>
     <string name="disable_addon_warn_confirm">Are you sure you want to disable it?</string>
-    <string name="swipe_symbol_behavior">Symbol swipe direction (when symbols are hidden)</string>
+    <string name="swipe_symbol_behavior">Symbol swipe direction</string>
     <string name="swipe_down">Swipe down</string>
     <string name="swipe_up">Swipe up</string>
     <string name="disabled">Disabled</string>
@@ -333,7 +333,7 @@
     <string name="prediction_backspace_behavior">Backspace behavior during prediction</string>
     <string name="prediction_backspace_behavior_delete_text">Delete text before cursor</string>
     <string name="prediction_backspace_behavior_dismiss_candidates">Dismiss candidates and show toolbar</string>
-    <string name="space_swipe_vertical_behavior">Space key swipe up/down behavior</string>
+    <string name="space_swipe_vertical_behavior">Space key vertical swipe behavior</string>
     <string name="space_swipe_vertical_behavior_arrow_keys">Move highlight word by word</string>
     <string name="space_swipe_vertical_behavior_candidate_rows">Switch candidate rows</string>
     <string name="show_lang_switch_key">Show language switch key</string>
@@ -734,6 +734,7 @@
     <string name="text_keyboard_layout_key_type">Key Type</string>
     <string name="text_keyboard_layout_key_main">Main Character</string>
     <string name="text_keyboard_layout_key_alt">Alt Character</string>
+    <string name="text_keyboard_layout_key_alt_one">Alt Character 1</string>
     <string name="text_keyboard_layout_key_display_text">Display Text</string>
     <string name="text_keyboard_layout_key_label">Label</string>
     <string name="text_keyboard_layout_key_sub_label">Sub Label</string>
@@ -772,12 +773,14 @@
     <string name="text_keyboard_layout_macro_no_event">No event configured</string>
     <string name="text_keyboard_layout_macro_event_preview">%1$s → … (%2$d steps total)</string>
     <string name="text_keyboard_layout_alt_label">Alt Label</string>
+    <string name="text_keyboard_layout_alt_label_one">Alt Label 1</string>
     <string name="text_keyboard_layout_swipe_label">Swipe Label</string>
     <string name="text_keyboard_layout_row_editor_title">Edit Row Properties</string>
     <string name="text_keyboard_layout_row_editor_subtitle">Row %1$d</string>
     <string name="text_keyboard_layout_row_height_multiplier">Height Multiplier</string>
     <string name="text_keyboard_layout_row_height_multiplier_invalid">Height multiplier must be a number greater than 0</string>
     <string name="text_keyboard_layout_row_sub_label_position">Sub-label Position</string>
+    <string name="text_keyboard_layout_row_sub_label_top_bottom">Top &amp; Bottom</string>
     <string name="text_keyboard_layout_row_sub_label_top">Top</string>
     <string name="text_keyboard_layout_row_sub_label_top_right">Top Right</string>
     <string name="text_keyboard_layout_row_sub_label_bottom">Bottom</string>

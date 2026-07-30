@@ -75,6 +75,7 @@ class ThemeColorEditorActivity : AppCompatActivity() {
     private lateinit var alphaSlider: AlphaPreviewSlider
 
     private var currentColor: Int = Color.BLACK
+    private var saveMenuItem: MenuItem? = null
     private var currentHue: Float = 0f
     private var currentSaturation: Float = 1f
     private var currentValue: Float = 1f
@@ -301,14 +302,15 @@ class ThemeColorEditorActivity : AppCompatActivity() {
                 internalTextUpdate = false
             }
         }
+        updateSaveButtonState()
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menu.add(Menu.NONE, MENU_DONE, Menu.NONE, getString(R.string.save)).apply {
-            setIcon(R.drawable.ic_baseline_check_24)
+        saveMenuItem = menu.add(Menu.NONE, MENU_SAVE, Menu.NONE, getString(R.string.save)).apply {
+            setIcon(R.drawable.ic_baseline_save_24)
             setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
-            icon?.setTint(styledColor(android.R.attr.textColorPrimary))
         }
+        updateSaveButtonState()
         return true
     }
 
@@ -317,11 +319,17 @@ class ThemeColorEditorActivity : AppCompatActivity() {
             finish()
             true
         }
-        MENU_DONE -> {
+        MENU_SAVE -> {
             finishWithResult()
             true
         }
         else -> super.onOptionsItemSelected(item)
+    }
+
+    private fun updateSaveButtonState() {
+        val changed = currentColor != currentInput.initialColor
+        saveMenuItem?.isEnabled = changed
+        saveMenuItem?.icon?.mutate()?.setTint(if (changed) Color.BLACK else Color.GRAY)
     }
 
     private fun finishWithResult() {
@@ -375,6 +383,6 @@ class ThemeColorEditorActivity : AppCompatActivity() {
     companion object {
         const val EXTRA_INPUT = "theme_color_editor_input"
         const val EXTRA_RESULT = "theme_color_editor_result"
-        private const val MENU_DONE = 1
+        private const val MENU_SAVE = 1
     }
 }

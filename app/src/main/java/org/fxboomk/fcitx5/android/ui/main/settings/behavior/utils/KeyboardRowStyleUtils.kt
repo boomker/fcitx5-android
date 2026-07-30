@@ -14,6 +14,7 @@ object KeyboardRowStyleUtils {
     const val ROW_BACKGROUND_COLOR = "backgroundColor"
 
     enum class AltTextPosition(val wireValue: String) {
+        TopBottom("topBottom"),
         Top("top"),
         TopRight("topRight"),
         Bottom("bottom");

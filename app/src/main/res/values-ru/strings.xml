@@ -174,7 +174,7 @@
     <string name="disable_addon_warn_dep">Отключить %1$s</string>
     <string name="disable_addon_warn_optdep">Отключить некоторые функции в %1$s</string>
     <string name="disable_addon_warn_confirm">Вы уверены, что хотите отключить?</string>
-    <string name="swipe_symbol_behavior">Направление свайпа для символов (когда символы скрыты)</string>
+    <string name="swipe_symbol_behavior">Направление свайпа для символов</string>
     <string name="swipe_down">Провести вниз</string>
     <string name="swipe_up">Провести вверх</string>
     <string name="disabled">Отключено</string>
@@ -399,6 +399,7 @@
     <string name="text_keyboard_layout_row_height_multiplier">Множитель высоты</string>
     <string name="text_keyboard_layout_row_height_multiplier_invalid">Множитель высоты должен быть числом больше 0</string>
     <string name="text_keyboard_layout_row_sub_label_position">Положение дополнительной метки</string>
+    <string name="text_keyboard_layout_row_sub_label_top_bottom">Сверху и снизу</string>
     <string name="text_keyboard_layout_row_sub_label_top">Сверху</string>
     <string name="text_keyboard_layout_row_sub_label_top_right">Сверху справа</string>
     <string name="text_keyboard_layout_row_sub_label_bottom">Снизу</string>
@@ -420,6 +421,7 @@
     <string name="text_keyboard_layout_key_type">Тип клавиши</string>
     <string name="text_keyboard_layout_key_main">Основной символ</string>
     <string name="text_keyboard_layout_key_alt">Альтернативный символ</string>
+    <string name="text_keyboard_layout_key_alt_one">Альтернативный символ 1</string>
     <string name="text_keyboard_layout_key_display_text">Отображаемый текст</string>
     <string name="text_keyboard_layout_key_label">Метка</string>
     <string name="text_keyboard_layout_key_sub_label">Подметка</string>
@@ -546,6 +548,7 @@
     <string name="text_keyboard_layout_macro_no_event">Событие не настроено</string>
     <string name="text_keyboard_layout_macro_event_preview">%1$s → … (всего шагов: %2$d)</string>
     <string name="text_keyboard_layout_alt_label">Альтернативная метка</string>
+    <string name="text_keyboard_layout_alt_label_one">Альтернативная метка 1</string>
     <string name="text_keyboard_layout_swipe_label">Метка свайпа</string>
 
     <!-- Macro Editor -->
@@ -741,7 +744,7 @@
     <string name="gboard_style_color_keys">Расцветка клавиш в стиле Gboard</string>
     <string name="wallpaper_blend_percent">Смешивание клавиатуры с обоями</string>
     <string name="navbar_border">Рамка панели навигации</string>
-    <string name="space_swipe_vertical_behavior">Действие при свайпе вверх/вниз по пробелу</string>
+    <string name="space_swipe_vertical_behavior">Действие при вертикальном свайпе по пробелу</string>
     <string name="space_swipe_vertical_behavior_arrow_keys">Перемещать выделение по словам</string>
     <string name="space_swipe_vertical_behavior_candidate_rows">Переключать строки кандидатов</string>
     <string name="manage_plugins">Управление плагинами</string>

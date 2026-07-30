@@ -31,9 +31,11 @@ object LayoutJsonUtils {
         "type",
         "main",
         "alt",
+        "alt1",
         "displayText",
         "label",
         "altLabel",
+        "altLabel1",
         "subLabel",
         "weight",
         "rowHeightPercent",
@@ -225,9 +227,11 @@ object LayoutJsonUtils {
             type = type,
             main = obj["main"]?.jsonPrimitive?.content,
             alt = obj["alt"]?.jsonPrimitive?.content,
+            alt1 = obj["alt1"]?.jsonPrimitive?.content,
             displayText = obj["displayText"],  // AlphabetKey 和 MacroKey 共用
             label = obj["label"]?.jsonPrimitive?.content,
             altLabel = obj["altLabel"]?.jsonPrimitive?.content,
+            altLabel1 = obj["altLabel1"]?.jsonPrimitive?.content,
             longPressLabel = obj["longPressLabel"]?.jsonPrimitive?.content,
             subLabel = obj["subLabel"]?.jsonPrimitive?.content,
             swipeLabel = obj["swipeLabel"]?.jsonPrimitive?.content,
@@ -477,9 +481,11 @@ object LayoutJsonUtils {
      * @property type 按键类型
      * @property main 主要字符（AlphabetKey）
      * @property alt 备选字符（AlphabetKey）
+     * @property alt1 第二备选字符（AlphabetKey）
      * @property displayText 显示文本（支持子模式）
      * @property label 标签（LayoutSwitchKey, SymbolKey, MacroKey）
      * @property altLabel 备选标签（MacroKey）
+     * @property altLabel1 第二备选标签（MacroKey）
      * @property subLabel 子标签（LayoutSwitchKey）
     * @property swipeLabel 划动标签（支持 swipe 的普通键）
      * @property weight 权重
@@ -491,9 +497,11 @@ object LayoutJsonUtils {
         val type: String,
         val main: String? = null,
         val alt: String? = null,
+        val alt1: String? = null,
         val displayText: JsonElement? = null,  // AlphabetKey 和 MacroKey 共用
         val label: String? = null,  // MacroKey/SymbolKey/LayoutSwitchKey 使用
         val altLabel: String? = null,  // MacroKey 使用
+        val altLabel1: String? = null,  // MacroKey 使用
         val longPressLabel: String? = null,  // MacroKey 使用
         val subLabel: String? = null,  // LayoutSwitchKey 使用
         val swipeLabel: String? = null,  // 非 Macro 的 swipe 提示
@@ -549,6 +557,7 @@ object LayoutJsonUtils {
             is AlphabetKey -> {
                 json["main"] = keyDef.character
                 json["alt"] = keyDef.punctuation
+                keyDef.punctuation1?.takeIf { it.isNotEmpty() }?.let { json["alt1"] = it }
                 json["displayText"] = keyDef.displayText
                 json["weight"] = appearance.percentWidth.takeIf { it != 0.1f }
             }
@@ -593,6 +602,9 @@ object LayoutJsonUtils {
                 json["label"] = keyDef.label
                 if (keyDef.altLabel != null) {
                     json["altLabel"] = keyDef.altLabel
+                }
+                if (keyDef.altLabel1 != null) {
+                    json["altLabel1"] = keyDef.altLabel1
                 }
                 if (keyDef.longPressLabel != null) {
                     json["longPressLabel"] = keyDef.longPressLabel
@@ -710,6 +722,7 @@ object LayoutJsonUtils {
             "AlphabetKey" -> AlphabetKey(
                 character = key.main ?: "",
                 punctuation = key.alt ?: "",
+                punctuation1 = key.alt1?.takeIf { it.isNotEmpty() },
                 displayText = resolveDisplayText(
                     key.displayText,
                     subModeLabel,
@@ -830,6 +843,7 @@ object LayoutJsonUtils {
                     label = label,
                     character = baseLabel.ifEmpty { label },
                     altLabel = altLabel.ifEmpty { null },
+                    altLabel1 = key.altLabel1?.takeIf { it.isNotEmpty() },
                     longPressLabel = key.longPressLabel,
                     tap = tap,
                     swipe = key.swipe,
@@ -850,6 +864,7 @@ object LayoutJsonUtils {
         keyDef.appearance.rowHeightMultiplier = rowStyle.heightMultiplier
         keyDef.appearance.altTextPositionOverride = when (rowStyle.altTextPosition) {
             KeyboardRowStyleUtils.AltTextPosition.Top -> KeyDef.Appearance.AltTextPosition.Top
+            KeyboardRowStyleUtils.AltTextPosition.TopBottom -> KeyDef.Appearance.AltTextPosition.TopBottom
             KeyboardRowStyleUtils.AltTextPosition.TopRight -> KeyDef.Appearance.AltTextPosition.TopRight
             KeyboardRowStyleUtils.AltTextPosition.Bottom -> KeyDef.Appearance.AltTextPosition.Bottom
             null -> null

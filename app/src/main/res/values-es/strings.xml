@@ -165,6 +165,7 @@
     <string name="text_keyboard_layout_row_height_multiplier">Multiplicador de altura</string>
     <string name="text_keyboard_layout_row_height_multiplier_invalid">El multiplicador de altura debe ser un número mayor que 0</string>
     <string name="text_keyboard_layout_row_sub_label_position">Posición de la subetiqueta</string>
+    <string name="text_keyboard_layout_row_sub_label_top_bottom">Arriba y abajo</string>
     <string name="text_keyboard_layout_row_sub_label_top">Arriba</string>
     <string name="text_keyboard_layout_row_sub_label_top_right">Arriba a la derecha</string>
     <string name="text_keyboard_layout_row_sub_label_bottom">Abajo</string>
@@ -186,6 +187,7 @@
     <string name="text_keyboard_layout_key_type">Tipo de tecla</string>
     <string name="text_keyboard_layout_key_main">Carácter principal</string>
     <string name="text_keyboard_layout_key_alt">Carácter alternativo</string>
+    <string name="text_keyboard_layout_key_alt_one">Carácter alternativo 1</string>
     <string name="text_keyboard_layout_key_display_text">Texto mostrado</string>
     <string name="text_keyboard_layout_key_label">Etiqueta</string>
     <string name="text_keyboard_layout_key_sub_label">Subetiqueta</string>
@@ -336,6 +338,7 @@
     <string name="text_keyboard_layout_macro_no_event">No hay evento configurado</string>
     <string name="text_keyboard_layout_macro_event_preview">%1$s → … (%2$d pasos en total)</string>
     <string name="text_keyboard_layout_alt_label">Etiqueta alternativa</string>
+    <string name="text_keyboard_layout_alt_label_one">Etiqueta alternativa 1</string>
     <string name="text_keyboard_layout_swipe_label">Etiqueta de deslizamiento</string>
 
     <!-- Macro Editor -->
@@ -663,7 +666,7 @@
     <string name="split_keyboard_use_landscape_layout_summary">Si esta activado y el teclado dividido esta activo, usa parametros de diseno horizontal (alto, relleno, etc.). Esta opcion solo esta disponible cuando el teclado dividido automatico esta habilitado.</string>
     <string name="status_area">Area de estado</string>
     <string name="swipe_down">Deslizar hacia abajo</string>
-    <string name="swipe_symbol_behavior">Dirección de deslizamiento para símbolos (cuando los símbolos están ocultos)</string>
+    <string name="swipe_symbol_behavior">Dirección de deslizamiento para símbolos</string>
     <string name="swipe_up">Deslizar hacia arriba</string>
     <string name="switch_to_voice_input">Cambiar a entrada de voz</string>
     <string name="synced">¡Sincronizado!</string>
@@ -743,7 +746,7 @@
     <string name="gboard_style_color_keys">Colores de teclas estilo Gboard</string>
     <string name="wallpaper_blend_percent">Mezcla del teclado con el fondo de pantalla</string>
     <string name="navbar_border">Borde de la barra de navegación</string>
-    <string name="space_swipe_vertical_behavior">Acción al deslizar arriba/abajo en la barra espaciadora</string>
+    <string name="space_swipe_vertical_behavior">Acción al deslizar verticalmente en la barra espaciadora</string>
     <string name="space_swipe_vertical_behavior_arrow_keys">Mover el resaltado palabra por palabra</string>
     <string name="space_swipe_vertical_behavior_candidate_rows">Cambiar filas de candidatos</string>
     <string name="manage_plugins">Administrar complementos</string>

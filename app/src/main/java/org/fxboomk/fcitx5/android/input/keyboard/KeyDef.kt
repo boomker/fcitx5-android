@@ -42,6 +42,7 @@ open class KeyDef(
         val shadowColorMonet: String? = null
     ) {
         enum class AltTextPosition {
+            TopBottom,
             Top,
             TopRight,
             Bottom
@@ -101,6 +102,7 @@ open class KeyDef(
             displayText: String,
             val altText: String,
             val character: String,
+            val altText1: String? = null,
             textSize: Float,
             /**
              * `Int` constants in [Typeface].
@@ -267,7 +269,8 @@ open class KeyDef(
         ) : Behavior()
 
         class Swipe(
-            val action: KeyAction
+            val action: KeyAction,
+            val downAction: KeyAction? = null
         ) : Behavior()
 
         class DoubleTap(
@@ -278,7 +281,11 @@ open class KeyDef(
     sealed class Popup {
         open class Preview(val content: String) : Popup()
 
-        class AltPreview(content: String, val alternative: String) : Preview(content)
+        class AltPreview(
+            content: String,
+            val alternative: String,
+            val alternative1: String? = null
+        ) : Preview(content)
 
         sealed class Keyboard : Popup() {
             data class Preset(val label: String, val transformPunctuation: Boolean = true) :

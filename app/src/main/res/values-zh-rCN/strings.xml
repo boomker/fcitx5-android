@@ -277,7 +277,7 @@
     <string name="disable_addon_warn_dep">禁用%1$s</string>
     <string name="disable_addon_warn_optdep">禁用%1$s中的某些功能</string>
     <string name="disable_addon_warn_confirm">确定要禁用它吗？</string>
-    <string name="swipe_symbol_behavior">符号划动方向（符号隐藏时）</string>
+    <string name="swipe_symbol_behavior">符号划动方向</string>
     <string name="swipe_down">下划</string>
     <string name="swipe_up">上划</string>
     <string name="disabled">禁用</string>
@@ -326,7 +326,7 @@
     <string name="prediction_backspace_behavior">预测时退格键行为</string>
     <string name="prediction_backspace_behavior_delete_text">删除光标前文本</string>
     <string name="prediction_backspace_behavior_dismiss_candidates">取消候选并显示工具栏</string>
-    <string name="space_swipe_vertical_behavior">空格键上/下滑行为</string>
+    <string name="space_swipe_vertical_behavior">空格键上下划行为</string>
     <string name="space_swipe_vertical_behavior_arrow_keys">逐词移动高亮</string>
     <string name="space_swipe_vertical_behavior_candidate_rows">切换候选词行</string>
     <string name="show_lang_switch_key">显示语言切换键</string>
@@ -575,6 +575,7 @@
     <string name="text_keyboard_layout_key_type">按键类型</string>
     <string name="text_keyboard_layout_key_main">主字符</string>
     <string name="text_keyboard_layout_key_alt">副字符</string>
+    <string name="text_keyboard_layout_key_alt_one">副字符一</string>
     <string name="text_keyboard_layout_key_display_text">显示文本</string>
     <string name="text_keyboard_layout_key_label">标签</string>
     <string name="text_keyboard_layout_key_sub_label">子标签</string>
@@ -633,12 +634,14 @@
     <string name="text_keyboard_layout_macro_no_event">未配置事件</string>
     <string name="text_keyboard_layout_macro_event_preview">%1$s → … (共 %2$d 步)</string>
     <string name="text_keyboard_layout_alt_label">副标签</string>
+    <string name="text_keyboard_layout_alt_label_one">副标签一</string>
     <string name="text_keyboard_layout_swipe_label">划动标签</string>
     <string name="text_keyboard_layout_row_editor_title">编辑整行属性</string>
     <string name="text_keyboard_layout_row_editor_subtitle">第 %1$d 行</string>
     <string name="text_keyboard_layout_row_height_multiplier">行高度倍比</string>
     <string name="text_keyboard_layout_row_height_multiplier_invalid">行高度倍比必须是大于 0 的数字</string>
     <string name="text_keyboard_layout_row_sub_label_position">副标签位置</string>
+    <string name="text_keyboard_layout_row_sub_label_top_bottom">顶底</string>
     <string name="text_keyboard_layout_row_sub_label_top">顶部</string>
     <string name="text_keyboard_layout_row_sub_label_top_right">右上</string>
     <string name="text_keyboard_layout_row_sub_label_bottom">底部</string>

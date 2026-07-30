@@ -68,6 +68,27 @@ class LayoutJsonUtilsRowStyleTest {
     }
 
     @Test
+    fun alphabetKey_secondAltCharacter_roundTripsToAppearance() {
+        val keyJson = LayoutJsonUtils.parseKeyJson(
+            Json.parseToJsonElement(
+                """{"type":"AlphabetKey","main":"q","alt":"1","alt1":"@"}"""
+            ).jsonObject
+        )!!
+        val keyDef = LayoutJsonUtils.createKeyDef(
+            key = keyJson,
+            rowStyle = KeyboardRowStyleUtils.RowStyle(
+                altTextPosition = KeyboardRowStyleUtils.AltTextPosition.TopBottom
+            )
+        )
+        val appearance = keyDef.appearance as KeyDef.Appearance.AltText
+
+        assertEquals("@", keyJson.alt1)
+        assertEquals("@", appearance.altText1)
+        assertEquals(KeyDef.Appearance.AltTextPosition.TopBottom, appearance.altTextPositionOverride)
+        assertEquals("@", LayoutJsonUtils.keyDefToJson(keyDef)["alt1"])
+    }
+
+    @Test
     fun createKeyDef_appliesRowStyleToAppearance() {
         val rowStyle = KeyboardRowStyleUtils.RowStyle(
             heightMultiplier = 1.6f,

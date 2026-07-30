@@ -211,7 +211,7 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
         val swipeSymbolDirection = enumList(
             R.string.swipe_symbol_behavior,
             "swipe_symbol_behavior",
-            SwipeSymbolDirection.Down
+            SwipeSymbolDirection.Auto
         )
         val longPressDelay = int(
             R.string.keyboard_long_press_delay,

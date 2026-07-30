@@ -123,6 +123,7 @@ class KeyEditorActivity : AppCompatActivity() {
 
     private var alphabetMainEdit: EditText? = null
     private var alphabetAltEdit: EditText? = null
+    private var alphabetAlt1Edit: EditText? = null
     private var alphabetWeightEdit: EditText? = null
     private var alphabetDisplayTextSimpleEdit: EditText? = null
     private var alphabetDisplayTextModeSpecific = false
@@ -143,6 +144,7 @@ class KeyEditorActivity : AppCompatActivity() {
     private val macroDisplayTextModeItems = mutableListOf<KeyboardEditorUiBuilder.DisplayTextItem>()
     private val macroDisplayTextRowBindings = mutableListOf<KeyboardEditorUiBuilder.DisplayTextRowBinding>()
     private var macroAltLabelEdit: EditText? = null
+    private var macroAltLabel1Edit: EditText? = null
     private var macroLongPressLabelEdit: EditText? = null
     private var macroWeightEdit: EditText? = null
 
@@ -380,6 +382,7 @@ class KeyEditorActivity : AppCompatActivity() {
         fieldsContainer.removeAllViews()
         alphabetMainEdit = null
         alphabetAltEdit = null
+        alphabetAlt1Edit = null
         alphabetWeightEdit = null
         alphabetDisplayTextSimpleEdit = null
         alphabetDisplayTextRowBindings.clear()
@@ -394,6 +397,8 @@ class KeyEditorActivity : AppCompatActivity() {
         macroDisplayTextModeItems.clear()
         macroDisplayTextRowBindings.clear()
         macroAltLabelEdit = null
+        macroAltLabel1Edit = null
+        macroLongPressLabelEdit = null
         macroWeightEdit = null
         simpleWeightEdit = null
         nonMacroSwipeLabelEdit = null
@@ -432,8 +437,13 @@ class KeyEditorActivity : AppCompatActivity() {
                     getString(R.string.text_keyboard_layout_key_alt),
                     keyData["alt"] as? String ?: ""
                 )
+                val alt1Edit = uiBuilder.createEditField(
+                    getString(R.string.text_keyboard_layout_key_alt_one),
+                    keyData["alt1"] as? String ?: ""
+                )
                 fieldsContainer.addView(mainEdit.first)
                 fieldsContainer.addView(altEdit.first)
+                fieldsContainer.addView(alt1Edit.first)
                 if (!disableWeightEditing) {
                     val weightEdit = uiBuilder.createEditField(
                         getString(R.string.text_keyboard_layout_key_weight),
@@ -450,6 +460,7 @@ class KeyEditorActivity : AppCompatActivity() {
 
                 alphabetMainEdit = mainEdit.second
                 alphabetAltEdit = altEdit.second
+                alphabetAlt1Edit = alt1Edit.second
 
                 uiBuilder.renderDisplayTextEditor(
                     displayTextContainer,
@@ -572,6 +583,10 @@ class KeyEditorActivity : AppCompatActivity() {
                     getString(R.string.text_keyboard_layout_alt_label),
                     keyData["altLabel"] as? String ?: ""
                 )
+                val altLabel1Edit = uiBuilder.createEditField(
+                    getString(R.string.text_keyboard_layout_alt_label_one),
+                    keyData["altLabel1"] as? String ?: ""
+                )
                 val longPressLabelEdit = uiBuilder.createEditField(
                     getString(R.string.text_keyboard_layout_longpress_label),
                     keyData["longPressLabel"] as? String ?: ""
@@ -579,6 +594,7 @@ class KeyEditorActivity : AppCompatActivity() {
                 longPressLabelEdit.second.hint = getString(R.string.text_keyboard_layout_longpress_label_fallback_hint)
                 fieldsContainer.addView(labelEdit.first)
                 fieldsContainer.addView(altLabelEdit.first)
+                fieldsContainer.addView(altLabel1Edit.first)
                 fieldsContainer.addView(longPressLabelEdit.first)
                 if (!disableWeightEditing) {
                     val weightEdit = uiBuilder.createEditField(
@@ -591,6 +607,7 @@ class KeyEditorActivity : AppCompatActivity() {
 
                 macroLabelEdit = labelEdit.second
                 macroAltLabelEdit = altLabelEdit.second
+                macroAltLabel1Edit = altLabel1Edit.second
                 macroLongPressLabelEdit = longPressLabelEdit.second
 
                 val labelTextContainer = LinearLayout(this).apply {
@@ -1200,8 +1217,10 @@ class KeyEditorActivity : AppCompatActivity() {
             "AlphabetKey" -> {
                 val main = alphabetMainEdit?.text?.toString().orEmpty()
                 val alt = alphabetAltEdit?.text?.toString().orEmpty()
+                val alt1 = alphabetAlt1Edit?.text?.toString().orEmpty()
                 if (main.isNotEmpty()) draft["main"] = main
                 if (alt.isNotEmpty()) draft["alt"] = alt
+                if (alt1.isNotEmpty()) draft["alt1"] = alt1
                 if (!disableWeightEditing) {
                     parseWeight(alphabetWeightEdit?.text?.toString())?.let { draft["weight"] = it }
                 }
@@ -1261,6 +1280,8 @@ class KeyEditorActivity : AppCompatActivity() {
                 if (baseLabel.isNotEmpty()) draft["label"] = baseLabel
                 val altLabel = macroAltLabelEdit?.text?.toString().orEmpty()
                 if (altLabel.isNotEmpty()) draft["altLabel"] = altLabel
+                val altLabel1 = macroAltLabel1Edit?.text?.toString().orEmpty()
+                if (altLabel1.isNotEmpty()) draft["altLabel1"] = altLabel1
                 val longPressLabel = macroLongPressLabelEdit?.text?.toString().orEmpty()
                 if (longPressLabel.isNotEmpty()) draft["longPressLabel"] = longPressLabel
                 if (!disableWeightEditing) {
@@ -1624,6 +1645,9 @@ class KeyEditorActivity : AppCompatActivity() {
             "AlphabetKey" -> {
                 newKey["main"] = alphabetMainEdit?.text?.toString().orEmpty()
                 newKey["alt"] = alphabetAltEdit?.text?.toString().orEmpty()
+                alphabetAlt1Edit?.text?.toString()?.takeIf { it.isNotEmpty() }?.let {
+                    newKey["alt1"] = it
+                }
                 if (!disableWeightEditing) {
                     parseWeight(alphabetWeightEdit?.text?.toString())?.let { newKey["weight"] = it }
                 }
@@ -1681,6 +1705,8 @@ class KeyEditorActivity : AppCompatActivity() {
                 newKey["label"] = baseLabel
                 val altLabel = macroAltLabelEdit?.text?.toString().orEmpty()
                 if (altLabel.isNotEmpty()) newKey["altLabel"] = altLabel
+                val altLabel1 = macroAltLabel1Edit?.text?.toString().orEmpty()
+                if (altLabel1.isNotEmpty()) newKey["altLabel1"] = altLabel1
                 val longPressLabel = macroLongPressLabelEdit?.text?.toString().orEmpty()
                 if (longPressLabel.isNotEmpty()) newKey["longPressLabel"] = longPressLabel
                 if (!disableWeightEditing) {

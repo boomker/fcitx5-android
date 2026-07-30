@@ -244,6 +244,7 @@
     <string name="text_keyboard_layout_row_height_multiplier">Höhenfaktor</string>
     <string name="text_keyboard_layout_row_height_multiplier_invalid">Der Höhenfaktor muss eine Zahl größer als 0 sein</string>
     <string name="text_keyboard_layout_row_sub_label_position">Position des Unterlabels</string>
+    <string name="text_keyboard_layout_row_sub_label_top_bottom">Oben und unten</string>
     <string name="text_keyboard_layout_row_sub_label_top">Oben</string>
     <string name="text_keyboard_layout_row_sub_label_top_right">Oben rechts</string>
     <string name="text_keyboard_layout_row_sub_label_bottom">Unten</string>
@@ -265,6 +266,7 @@
     <string name="text_keyboard_layout_key_type">Tastentyp</string>
     <string name="text_keyboard_layout_key_main">Hauptzeichen</string>
     <string name="text_keyboard_layout_key_alt">Alternatives Zeichen</string>
+    <string name="text_keyboard_layout_key_alt_one">Alternatives Zeichen 1</string>
     <string name="text_keyboard_layout_key_display_text">Anzeigetext</string>
     <string name="text_keyboard_layout_key_label">Beschriftung</string>
     <string name="text_keyboard_layout_key_sub_label">Unterbeschriftung</string>
@@ -302,6 +304,7 @@
     <string name="text_keyboard_layout_macro_no_event">Kein Ereignis konfiguriert</string>
     <string name="text_keyboard_layout_macro_event_preview">%1$s → … (insgesamt %2$d Schritte)</string>
     <string name="text_keyboard_layout_alt_label">Alternatives Etikett</string>
+    <string name="text_keyboard_layout_alt_label_one">Alternatives Etikett 1</string>
     <string name="text_keyboard_layout_swipe_label">Wisch-Label</string>
     <string name="text_keyboard_layout_display_value_hint">Anzeigewert</string>
     <string name="text_keyboard_layout_key_label_caps">Caps</string>
@@ -664,7 +667,7 @@
     <string name="split_keyboard_use_landscape_layout">Bei geteilter Tastatur Querformat-Layoutparameter verwenden</string>
     <string name="split_keyboard_use_landscape_layout_summary">Wenn aktiviert, werden bei aktiver geteilter Tastatur die Querformat-Layoutparameter (Höhe, Abstände usw.) verwendet. Nur verfügbar, wenn die automatische geteilte Tastatur aktiviert ist.</string>
     <string name="status_area">Statusbereich</string>
-    <string name="swipe_symbol_behavior">Wischrichtung für Symbole (wenn Symbole ausgeblendet sind)</string>
+    <string name="swipe_symbol_behavior">Wischrichtung für Symbole</string>
     <string name="switch_to_voice_input">Zur Spracheingabe wechseln</string>
     <string name="table_dict_replace_message">Tabellenwörterbuch "%1$s" existiert bereits. Sie können ein neues Wörterbuch importieren und es ersetzen.</string>
     <string name="table_file_does_not_exist_message">Tabellenwörterbuch "%1$s" existiert nicht. Bitte prüfen Sie die Wörterbuchdatei oder importieren Sie sie erneut.</string>
@@ -739,7 +742,7 @@
     <string name="gboard_style_color_keys">Tastenfarbgebung im Gboard-Stil</string>
     <string name="wallpaper_blend_percent">Mischverhältnis zwischen Tastatur und Hintergrundbild</string>
     <string name="navbar_border">Rand der Navigationsleiste</string>
-    <string name="space_swipe_vertical_behavior">Verhalten beim Hoch-/Runterwischen auf der Leertaste</string>
+    <string name="space_swipe_vertical_behavior">Verhalten beim vertikalen Wischen auf der Leertaste</string>
     <string name="space_swipe_vertical_behavior_arrow_keys">Markierung wortweise verschieben</string>
     <string name="space_swipe_vertical_behavior_candidate_rows">Kandidatenzeilen wechseln</string>
     <string name="manage_plugins">Plugins verwalten</string>
