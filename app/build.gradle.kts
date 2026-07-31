@@ -257,7 +257,6 @@ dependencies {
     implementation(libs.flexbox)
     implementation(libs.dependency)
     implementation(libs.timber)
-    implementation(libs.jieba)
     implementation(libs.splitties.bitflags)
     implementation(libs.splitties.dimensions)
     implementation(libs.splitties.resources)

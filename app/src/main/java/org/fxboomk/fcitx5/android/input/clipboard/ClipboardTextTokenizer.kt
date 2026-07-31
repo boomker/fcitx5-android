@@ -4,7 +4,8 @@
  */
 package org.fxboomk.fcitx5.android.input.clipboard
 
-import com.huaban.analysis.jieba.JiebaSegmenter
+import android.icu.text.BreakIterator
+import java.util.Locale
 
 data class ClipboardToken(
     val text: String,
@@ -14,7 +15,8 @@ data class ClipboardToken(
 
 object ClipboardTextTokenizer {
 
-    private val segmenter by lazy(LazyThreadSafetyMode.SYNCHRONIZED) { JiebaSegmenter() }
+    private fun createWordBreaker() =
+        BreakIterator.getWordInstance(Locale.CHINESE)
     private val coarseTokenPattern = Regex(
         """\p{IsHan}+|[A-Za-z0-9]+(?:[._-][A-Za-z0-9]+)*|[~\\/]+|[^\s]"""
     )
@@ -54,9 +56,22 @@ object ClipboardTextTokenizer {
         chunk: String,
         baseStart: Int
     ) {
-        val words = runCatching { segmenter.sentenceProcess(chunk) }
-            .getOrElse { listOf(chunk) }
-            .filter { it.isNotBlank() }
+        val words = runCatching {
+            val breaker = createWordBreaker()
+            val words = mutableListOf<String>()
+            breaker.setText(chunk)
+            var start = breaker.first()
+            var end = breaker.next()
+            while (end != BreakIterator.DONE) {
+                val word = chunk.substring(start, end)
+                if (word.isNotBlank()) {
+                    words += word
+                }
+                start = end
+                end = breaker.next()
+            }
+            words
+        }.getOrElse { listOf(chunk) }
         if (words.isEmpty()) {
             output += ClipboardToken(chunk, baseStart, baseStart + chunk.length)
             return
