@@ -681,10 +681,10 @@ internal class LlmClient(
 
     private fun JSONObject.optNonBlankText(key: String): String? {
         val value = opt(key)
-        return when (value) {
-            null, JSONObject.NULL -> null
-            is String -> value
-            else -> value.toString()
+        return if (value == null || value == JSONObject.NULL) {
+            null
+        } else {
+            value.toString()
         }
             ?.trim()
             ?.takeIf { it.isNotEmpty() && !it.equals("null", ignoreCase = true) }
