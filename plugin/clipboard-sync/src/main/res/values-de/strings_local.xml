@@ -23,6 +23,9 @@
     <string name="clipboard_permission_title">System-Zwischenablage-Berechtigung</string>
     <string name="clipboard_permission_summary">Bitte erlauben Sie der App, die System-Zwischenablage zu lesen/schreiben und die zugehörigen Berechtigungen zu nutzen</string>
     <string name="sync_account_title">Synchronisierungskonto</string>
+    <string name="oneclip_access_token_title">Zugriffstoken</string>
+    <string name="oneclip_access_token_dialog_title">Zugriffstoken bearbeiten</string>
+    <string name="oneclip_access_token_summary">Zugriffstoken: %1$s</string>
     <string name="sync_network_title">Synchronisierungsnetzwerk</string>
     <string name="sync_network_summary_any">Synchronisierung in jedem Netzwerk erlauben</string>
     <string name="sync_network_wifi_only_title">Nur über Wi-Fi synchronisieren</string>

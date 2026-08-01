@@ -686,6 +686,12 @@ class SettingsActivity : AppCompatActivity() {
             val passwordEdit = view.findViewById<EditText>(R.id.password_edit)
             val toggleButton = view.findViewById<ImageButton>(R.id.password_toggle_button)
 
+            val isOneClip = activeProfile == PROFILE_ONE_CLIP
+            usernameEdit.visibility = if (isOneClip) View.GONE else View.VISIBLE
+            passwordEdit.hint = getString(
+                if (isOneClip) R.string.oneclip_access_token_title else R.string.local_password
+            )
+
             usernameEdit.setText(storedUsernameForProfile(prefs, activeProfile))
             usernameEdit.setSelection(usernameEdit.text?.length ?: 0)
             passwordEdit.setText(storedPasswordForProfile(prefs, activeProfile))
@@ -717,7 +723,7 @@ class SettingsActivity : AppCompatActivity() {
             updatePasswordVisibility()
 
             AlertDialog.Builder(context)
-                .setTitle(R.string.sync_account_dialog_title)
+                .setTitle(if (isOneClip) R.string.oneclip_access_token_dialog_title else R.string.sync_account_dialog_title)
                 .setView(view)
                 .setPositiveButton(android.R.string.ok) { _, _ ->
                     val newUsername = usernameEdit.text?.toString().orEmpty()
@@ -730,7 +736,7 @@ class SettingsActivity : AppCompatActivity() {
                             putString("password", newPassword)
                         }
                         .apply()
-                    updateCredentialPreferenceSummary(newUsername, newPassword)
+                    updateCredentialPreferenceSummary(newUsername, newPassword, activeProfile)
                 }
                 .setNegativeButton(android.R.string.cancel, null)
                 .create()
@@ -938,18 +944,29 @@ class SettingsActivity : AppCompatActivity() {
                 .putString("username", username)
                 .putString("password", password)
                 .apply()
-            updateCredentialPreferenceSummary(username, password)
+            updateCredentialPreferenceSummary(username, password, activeProfile)
         }
 
-        private fun updateCredentialPreferenceSummary(username: String, password: String) {
-            val usernameSummary = username.ifBlank { getString(R.string.credential_not_set) }
+        private fun updateCredentialPreferenceSummary(
+            username: String,
+            password: String,
+            profileKey: String
+        ) {
             val passwordSummary = if (password.isBlank()) {
                 getString(R.string.credential_not_set)
             } else {
                 "*".repeat(password.length.coerceAtMost(16))
             }
-            findPreference<Preference>(SYNC_ACCOUNT_KEY)?.summary =
-                getString(R.string.sync_account_summary, usernameSummary, passwordSummary)
+            findPreference<Preference>(SYNC_ACCOUNT_KEY)?.let { pref ->
+                if (profileKey == PROFILE_ONE_CLIP) {
+                    pref.title = getString(R.string.oneclip_access_token_title)
+                    pref.summary = getString(R.string.oneclip_access_token_summary, passwordSummary)
+                } else {
+                    val usernameSummary = username.ifBlank { getString(R.string.credential_not_set) }
+                    pref.title = getString(R.string.sync_account_title)
+                    pref.summary = getString(R.string.sync_account_summary, usernameSummary, passwordSummary)
+                }
+            }
         }
 
         private fun storedUsernameForProfile(prefs: SharedPreferences, profileKey: String): String {

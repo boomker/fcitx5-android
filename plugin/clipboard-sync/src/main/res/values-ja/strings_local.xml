@@ -23,6 +23,9 @@
     <string name="clipboard_permission_title">システムクリップボード権限</string>
     <string name="clipboard_permission_summary">アプリにシステムクリップボードの読み書きと関連権限を許可してください</string>
     <string name="sync_account_title">同期アカウント</string>
+    <string name="oneclip_access_token_title">アクセストークン</string>
+    <string name="oneclip_access_token_dialog_title">アクセストークンを編集</string>
+    <string name="oneclip_access_token_summary">アクセストークン：%1$s</string>
     <string name="sync_network_title">同期ネットワーク</string>
     <string name="sync_network_summary_any">任意のネットワークで同期を許可</string>
     <string name="sync_network_wifi_only_title">Wi-Fi のみで同期</string>

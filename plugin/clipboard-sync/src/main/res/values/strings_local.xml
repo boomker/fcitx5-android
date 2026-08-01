@@ -31,6 +31,9 @@
     <string name="sync_account_title">同步账户</string>
     <string name="sync_account_dialog_title">编辑同步账户</string>
     <string name="sync_account_summary">账号：%1$s\n密码：%2$s</string>
+    <string name="oneclip_access_token_title">访问令牌</string>
+    <string name="oneclip_access_token_dialog_title">编辑访问令牌</string>
+    <string name="oneclip_access_token_summary">访问令牌：%1$s</string>
     <string name="sync_network_title">同步网络</string>
     <string name="sync_network_summary_any">允许任意网络同步</string>
     <string name="sync_network_summary_wifi_only">仅使用 Wi-Fi 同步</string>

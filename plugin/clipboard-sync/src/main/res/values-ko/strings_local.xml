@@ -23,6 +23,9 @@
     <string name="clipboard_permission_title">시스템 클립보드 권한</string>
     <string name="clipboard_permission_summary">앱이 시스템 클립보드를 읽고 쓰도록 허용하고 관련 권한을 부여하세요</string>
     <string name="sync_account_title">동기화 계정</string>
+    <string name="oneclip_access_token_title">액세스 토큰</string>
+    <string name="oneclip_access_token_dialog_title">액세스 토큰 편집</string>
+    <string name="oneclip_access_token_summary">액세스 토큰: %1$s</string>
     <string name="sync_network_title">동기화 네트워크</string>
     <string name="sync_network_summary_any">모든 네트워크에서 동기화 허용</string>
     <string name="sync_network_wifi_only_title">Wi-Fi에서만 동기화</string>

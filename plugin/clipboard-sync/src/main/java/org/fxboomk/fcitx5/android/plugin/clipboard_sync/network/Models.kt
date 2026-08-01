@@ -19,12 +19,15 @@ data class ClipboardData(
     @JsonNames("text", "Clipboard", "value")
     val text: String = "",
 
+    @JsonNames("preview")
+    val preview: String = "",
+
     @SerialName("Hash")
     @JsonNames("hash")
     val hash: String = "",
 
     @SerialName("HasData")
-    @JsonNames("hasData")
+    @JsonNames("hasData", "hasFile")
     val hasData: Boolean = false,
 
     @SerialName("DataName")
@@ -35,6 +38,9 @@ data class ClipboardData(
     @JsonNames("size")
     val size: Long = 0,
 
+    @JsonNames("files")
+    val files: List<OneClipFileData> = emptyList(),
+
     @JsonNames("hasImage")
     val hasImage: Boolean = false,
 
@@ -43,6 +49,23 @@ data class ClipboardData(
 
     val remoteTimestamp: Long = 0L,
 
+    @JsonNames("mimeType", "contentType")
+    val mimeType: String = ""
+)
+
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+data class OneClipFileData(
+    @JsonNames("name", "fileName", "filename")
+    val name: String = "",
+
+    @JsonNames("size")
+    val size: Long = 0L,
+
+    @JsonNames("downloadURL", "downloadUrl", "url")
+    val downloadUrl: String = "",
+
+    @JsonNames("contentType", "mimeType", "mime")
     val mimeType: String = ""
 )
 

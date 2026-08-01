@@ -23,6 +23,9 @@
     <string name="clipboard_permission_title">Доступ к системному буферу обмена</string>
     <string name="clipboard_permission_summary">Разрешите приложению читать и записывать системный буфер обмена и связанные разрешения</string>
     <string name="sync_account_title">Учётная запись синхронизации</string>
+    <string name="oneclip_access_token_title">Токен доступа</string>
+    <string name="oneclip_access_token_dialog_title">Изменить токен доступа</string>
+    <string name="oneclip_access_token_summary">Токен доступа: %1$s</string>
     <string name="sync_network_title">Сеть для синхронизации</string>
     <string name="sync_network_summary_any">Разрешить синхронизацию в любой сети</string>
     <string name="sync_network_wifi_only_title">Синхронизировать только по Wi‑Fi</string>

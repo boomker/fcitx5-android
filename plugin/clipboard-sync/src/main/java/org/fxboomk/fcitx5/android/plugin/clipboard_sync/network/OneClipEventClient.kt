@@ -5,6 +5,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import okhttp3.Call
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.IOException
@@ -12,7 +13,7 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.thread
 
-class OneClipEventClient(serverUrl: String) {
+class OneClipEventClient(serverUrl: String, private val accessToken: String = "") {
     companion object {
         private const val ROOT_PATH = "/"
         private const val CURRENT_PATH = "/api/current"
@@ -165,7 +166,20 @@ class OneClipEventClient(serverUrl: String) {
 
     private fun url(path: String): String {
         val normalizedPath = if (path.startsWith("/")) path else "/$path"
-        return baseUrl + normalizedPath
+        val resolvedUrl = baseUrl.toHttpUrl()
+        val tokenFromUrl = resolvedUrl.queryParameter("token").orEmpty()
+        val effectiveToken = accessToken.trim().ifBlank { tokenFromUrl }
+        val baseWithoutQuery = resolvedUrl.newBuilder()
+            .query(null)
+            .fragment(null)
+            .build()
+            .toString()
+            .trimEnd('/')
+        val builder = (baseWithoutQuery + normalizedPath).toHttpUrl().newBuilder()
+        if (effectiveToken.isNotBlank()) {
+            builder.setQueryParameter("token", effectiveToken)
+        }
+        return builder.build().toString()
     }
 
     private fun normalizeServerUrl(url: String): String {

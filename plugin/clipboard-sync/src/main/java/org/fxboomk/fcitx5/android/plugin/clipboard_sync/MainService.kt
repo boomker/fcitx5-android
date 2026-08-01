@@ -643,7 +643,10 @@ class MainService : FcitxPluginService() {
                     return@launch
                 }
 
-                val client = OneClipEventClient(endpoint.address)
+                val client = OneClipEventClient(
+                    serverUrl = endpoint.address,
+                    accessToken = currentPasswordForProfile(endpoint.profileKey)
+                )
                 oneClipClient = client
 
                 try {

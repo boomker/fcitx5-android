@@ -13,6 +13,8 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import okhttp3.Credentials
 import okhttp3.FormBody
+import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -53,7 +55,6 @@ object SyncClient {
     private const val SYNCCLIPBOARD_HISTORY_PAGE_SIZE = 50
     private const val SAVED_URI_READY_RETRY_COUNT = 10
     private const val SAVED_URI_READY_RETRY_DELAY_MS = 150L
-    private val ONECLIP_UNSUPPORTED_FILE_TYPES = setOf("code", "file")
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -112,6 +113,7 @@ object SyncClient {
             ServerBackend.ONECLIP -> fetchOneClipClipboard(
                 context = context,
                 serverUrl = serverUrl,
+                accessToken = pass,
                 lastRevision = lastRevision,
                 downloadDirUri = downloadDirUri,
                 preDownloadFilter = preDownloadFilter
@@ -147,6 +149,7 @@ object SyncClient {
                 client = httpClient,
                 context = context,
                 serverUrl = serverUrl,
+                accessToken = pass,
                 content = content
             )
 
@@ -195,7 +198,7 @@ object SyncClient {
                 }
 
                 ServerBackend.ONECLIP -> {
-                    val historyUrl = oneClipUrl(serverUrl, "/api/current")
+                    val historyUrl = oneClipUrl(serverUrl, "/api/current", pass)
                     Log.d(TAG, "[Test] Testing OneClip connection to $historyUrl")
                     Request.Builder()
                         .url(historyUrl)
@@ -401,12 +404,13 @@ object SyncClient {
     private fun fetchOneClipClipboard(
         context: Context,
         serverUrl: String,
+        accessToken: String,
         lastRevision: String?,
         downloadDirUri: Uri?,
         preDownloadFilter: ((ClipboardData) -> Boolean)?
     ): FetchResult {
         val currentRequest = Request.Builder()
-            .url(oneClipUrl(serverUrl, "/api/current"))
+            .url(oneClipUrl(serverUrl, "/api/current", accessToken))
             .get()
             .build()
 
@@ -424,34 +428,51 @@ object SyncClient {
             if (revision == lastRevision) {
                 return fetchResult(null, revision)
             }
-            if (preDownloadFilter?.invoke(item) == false) {
-                return fetchResult(null, revision)
-            }
-
             val normalizedType = item.type.lowercase(Locale.ROOT)
             if (normalizedType == "image" || item.hasImage) {
+                if (preDownloadFilter?.invoke(item) == false) {
+                    return fetchResult(null, revision)
+                }
                 val imageData = downloadOneClipImage(
                     context = context,
                     serverUrl = serverUrl,
+                    accessToken = accessToken,
                     itemId = item.id,
                     timestamp = item.timestamp,
                     downloadDirUri = downloadDirUri
                 )
                 return fetchResult(imageData, revision)
             }
-            if (normalizedType in ONECLIP_UNSUPPORTED_FILE_TYPES) {
-                Log.d(TAG, "[Pull] Ignoring unsupported OneClip file-like item: type=$normalizedType id=${item.id}")
-                return fetchResult(null, revision)
+            if (isOneClipFileEntry(item, normalizedType)) {
+                val fileItems = item.files.ifEmpty { listOf(OneClipFileData()) }
+                val downloadedItems = fileItems.mapIndexedNotNull { index, file ->
+                    val metadata = oneClipFileMetadata(item, file, index)
+                    if (preDownloadFilter?.invoke(metadata) == false) {
+                        null
+                    } else {
+                        downloadOneClipFile(
+                            context = context,
+                            serverUrl = serverUrl,
+                            accessToken = accessToken,
+                            item = metadata,
+                            downloadUrl = file.downloadUrl,
+                            downloadDirUri = downloadDirUri
+                        )
+                    }
+                }
+                return FetchResult(downloadedItems, revision)
             }
 
-            return fetchResult(
-                item.copy(
-                    type = "Text",
-                    hash = item.id,
-                    remoteTimestamp = (item.timestamp * 1000).toLong()
-                ),
-                revision
+            val textData = item.copy(
+                type = "Text",
+                text = item.text.ifBlank { item.preview },
+                hash = item.id,
+                remoteTimestamp = (item.timestamp * 1000).toLong()
             )
+            if (preDownloadFilter?.invoke(textData) == false) {
+                return fetchResult(null, revision)
+            }
+            return fetchResult(textData, revision)
         }
     }
 
@@ -520,19 +541,20 @@ object SyncClient {
         client: OkHttpClient,
         context: Context,
         serverUrl: String,
+        accessToken: String,
         content: String
     ) {
         val uri = content.toClipboardUriOrNull()
         try {
-            primeOneClipSession(client, serverUrl)
+            primeOneClipSession(client, serverUrl, accessToken)
             if (uri != null && isImageUri(context, uri)) {
                 val bytes = readClipboardUriBytes(context, uri)
                     ?: throw StaleClipboardContentException("Clipboard image URI is no longer readable: $uri")
-                uploadOneClipImage(client, serverUrl, bytes)
+                uploadOneClipImage(client, serverUrl, accessToken, bytes)
             } else if (uri != null && !isReadableClipboardUri(context, uri)) {
                 throw StaleClipboardContentException("Clipboard URI is no longer readable: $uri")
             } else {
-                uploadOneClipText(client, serverUrl, content)
+                uploadOneClipText(client, serverUrl, accessToken, content)
             }
         } catch (e: Exception) {
             Log.e(TAG, "[Push] OneClip upload failed", e)
@@ -662,11 +684,11 @@ object SyncClient {
         }
     }
 
-    private fun uploadOneClipText(client: OkHttpClient, serverUrl: String, text: String) {
+    private fun uploadOneClipText(client: OkHttpClient, serverUrl: String, accessToken: String, text: String) {
         val requestBody = json.encodeToString(OneClipUploadTextRequest(text))
             .toRequestBody(JSON_MEDIA_TYPE)
         val request = Request.Builder()
-            .url(oneClipUrl(serverUrl, "/api/upload"))
+            .url(oneClipUrl(serverUrl, "/api/upload", accessToken))
             .post(requestBody)
             .build()
 
@@ -683,12 +705,12 @@ object SyncClient {
         }
     }
 
-    private fun uploadOneClipImage(client: OkHttpClient, serverUrl: String, bytes: ByteArray) {
+    private fun uploadOneClipImage(client: OkHttpClient, serverUrl: String, accessToken: String, bytes: ByteArray) {
         val base64Image = Base64.encodeToString(bytes, Base64.NO_WRAP)
         val requestBody = json.encodeToString(OneClipUploadImageRequest(base64Image))
             .toRequestBody(JSON_MEDIA_TYPE)
         val request = Request.Builder()
-            .url(oneClipUrl(serverUrl, "/api/upload-image"))
+            .url(oneClipUrl(serverUrl, "/api/upload-image", accessToken))
             .post(requestBody)
             .build()
 
@@ -705,11 +727,11 @@ object SyncClient {
         }
     }
 
-    private fun primeOneClipSession(client: OkHttpClient, serverUrl: String) {
+    private fun primeOneClipSession(client: OkHttpClient, serverUrl: String, accessToken: String) {
         val warmupPaths = listOf("/", "/api/current")
         for (path in warmupPaths) {
             val request = Request.Builder()
-                .url(oneClipUrl(serverUrl, path))
+                .url(oneClipUrl(serverUrl, path, accessToken))
                 .get()
                 .build()
             client.newCall(request).execute().use { response ->
@@ -723,6 +745,7 @@ object SyncClient {
     private fun downloadOneClipImage(
         context: Context,
         serverUrl: String,
+        accessToken: String,
         itemId: String,
         timestamp: Double,
         downloadDirUri: Uri?
@@ -733,7 +756,7 @@ object SyncClient {
         }
 
         val request = Request.Builder()
-            .url(oneClipUrl(serverUrl, "/api/image/$itemId"))
+            .url(oneClipUrl(serverUrl, "/api/image/$itemId", accessToken))
             .get()
             .build()
 
@@ -764,6 +787,121 @@ object SyncClient {
                 mimeType = mimeType
             )
         }
+    }
+
+    private fun isOneClipFileEntry(item: ClipboardData, normalizedType: String): Boolean {
+        return item.hasData || item.files.isNotEmpty() || normalizedType in setOf(
+            "file", "files", "code", "document", "documentlist", "filelist"
+        )
+    }
+
+    private fun oneClipFileMetadata(
+        item: ClipboardData,
+        file: OneClipFileData,
+        index: Int
+    ): ClipboardData {
+        val itemId = if (item.files.size > 1) "${item.id}:$index" else item.id
+        return item.copy(
+            id = itemId,
+            type = "File",
+            text = "",
+            hash = item.id,
+            hasData = true,
+            dataName = file.name.ifBlank { item.dataName },
+            size = file.size.takeIf { it > 0 } ?: item.size,
+            mimeType = file.mimeType.ifBlank { item.mimeType },
+            remoteTimestamp = (item.timestamp * 1000).toLong()
+        )
+    }
+
+    private fun downloadOneClipFile(
+        context: Context,
+        serverUrl: String,
+        accessToken: String,
+        item: ClipboardData,
+        downloadUrl: String,
+        downloadDirUri: Uri?
+    ): ClipboardData {
+        if (downloadDirUri == null) {
+            Log.w(TAG, "[Pull] OneClip file received but no download directory is configured")
+            return item.copy(
+                type = "File",
+                hash = item.id,
+                remoteTimestamp = (item.timestamp * 1000).toLong()
+            )
+        }
+
+        val request = Request.Builder()
+            .url(oneClipDownloadUrl(serverUrl, downloadUrl, accessToken, item.id))
+            .get()
+            .build()
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                throw IOException("Failed to download OneClip file: ${response.code} ${response.message}")
+            }
+
+            val mimeType = response.body?.contentType()?.toString().orEmpty().ifBlank { "application/octet-stream" }
+            val bytes = response.body?.bytes() ?: ByteArray(0)
+            val fileName = extractOneClipFileName(
+                contentDisposition = response.header("Content-Disposition"),
+                item = item,
+                mimeType = mimeType
+            )
+            val savedUri = saveFile(
+                context = context,
+                dirUri = downloadDirUri,
+                fileName = fileName,
+                bytes = bytes,
+                mimeType = mimeType
+            )
+
+            return item.copy(
+                type = "File",
+                text = savedUri?.toString().orEmpty(),
+                hash = item.id,
+                hasData = true,
+                dataName = fileName,
+                size = bytes.size.toLong(),
+                mimeType = mimeType,
+                remoteTimestamp = (item.timestamp * 1000).toLong()
+            )
+        }
+    }
+
+    private fun extractOneClipFileName(
+        contentDisposition: String?,
+        item: ClipboardData,
+        mimeType: String
+    ): String {
+        extractFileNameFromContentDisposition(contentDisposition)?.let { return it }
+        item.dataName.substringAfterLast('/').takeIf { it.isNotBlank() }?.let { return it }
+        item.preview.substringAfterLast('/').takeIf { it.isNotBlank() }?.let { return it }
+        val extension = extensionFromMimeType(mimeType, "bin")
+        return "OneClip-${item.id.ifBlank { System.currentTimeMillis().toString() }}.$extension"
+    }
+
+    private fun extractFileNameFromContentDisposition(contentDisposition: String?): String? {
+        contentDisposition
+            ?.substringAfter("filename*=", "")
+            ?.takeIf { it.isNotBlank() }
+            ?.substringBefore(';')
+            ?.trim()
+            ?.trim('"')
+            ?.substringAfter("''", "")
+            ?.takeIf { it.isNotBlank() }
+            ?.let { encoded ->
+                return runCatching { URLDecoder.decode(encoded, Charsets.UTF_8.name()) }
+                    .getOrDefault(encoded)
+            }
+
+        return contentDisposition
+            ?.substringAfter("filename=", "")
+            ?.takeIf { it.isNotBlank() }
+            ?.substringBefore(';')
+            ?.trim()
+            ?.trim('"')
+            ?.takeIf { it.isNotBlank() }
     }
 
     fun saveIncomingBytes(
@@ -1385,10 +1523,58 @@ object SyncClient {
         return url to "${url}SyncClipboard.json"
     }
 
-    private fun oneClipUrl(serverUrl: String, path: String): String {
-        val base = resolveUrl(serverUrl).trimEnd('/')
+    private fun oneClipUrl(serverUrl: String, path: String, accessToken: String = ""): String {
+        val server = resolveUrl(serverUrl).toHttpUrl()
         val normalizedPath = if (path.startsWith("/")) path else "/$path"
-        return base + normalizedPath
+        val endpoint = (server.newBuilder()
+            .query(null)
+            .fragment(null)
+            .build()
+            .toString()
+            .trimEnd('/') + normalizedPath)
+            .toHttpUrl()
+        return oneClipUrlWithToken(endpoint, server, accessToken).toString()
+    }
+
+    private fun oneClipDownloadUrl(
+        serverUrl: String,
+        downloadUrl: String,
+        accessToken: String,
+        itemId: String
+    ): String {
+        if (downloadUrl.isBlank()) {
+            return oneClipUrl(serverUrl, "/api/file/$itemId", accessToken)
+        }
+        val server = resolveUrl(serverUrl).toHttpUrl()
+        val endpoint = downloadUrl.toHttpUrlOrNull() ?: (
+            server.newBuilder()
+                .query(null)
+                .fragment(null)
+                .build()
+                .toString()
+                .trimEnd('/') + if (downloadUrl.startsWith("/")) downloadUrl else "/$downloadUrl"
+            ).toHttpUrl()
+        return oneClipUrlWithToken(endpoint, server, accessToken).toString()
+    }
+
+    private fun oneClipUrlWithToken(
+        endpoint: okhttp3.HttpUrl,
+        server: okhttp3.HttpUrl,
+        accessToken: String
+    ): okhttp3.HttpUrl {
+        if (endpoint.host != server.host || endpoint.port != server.port || endpoint.scheme != server.scheme) {
+            return endpoint
+        }
+        val token = accessToken.trim().ifBlank {
+            endpoint.queryParameter("token").orEmpty().ifBlank {
+                server.queryParameter("token").orEmpty()
+            }
+        }
+        return endpoint.newBuilder().apply {
+            if (token.isNotBlank()) {
+                setQueryParameter("token", token)
+            }
+        }.build()
     }
 
     private const val REVISION_ETAG_PREFIX = "etag:"
