@@ -34,7 +34,7 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Fetch source code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           submodules: recursive
@@ -62,13 +62,13 @@ jobs:
       #    git checkout -- *
 
       - name: Setup Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: "temurin"
           java-version: "17"
 
       - name: Setup Android environment
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
 
       - name: Install Android NDK
         run: |
@@ -101,7 +101,7 @@ jobs:
           ./prepare_personal_build.sh
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v5
+        uses: gradle/actions/setup-gradle@v6
         with:
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
 
@@ -183,7 +183,7 @@ jobs:
           done
         
       - name: Upload app with plugins
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: app-${{ matrix.os }}-${{ matrix.abi }}-with-plugins
           path: app/build/outputs/apk/release/*.apk
