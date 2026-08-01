@@ -33,6 +33,7 @@ object ClipboardUriStore {
     private const val EXTERNAL_STORAGE_AUTHORITY = "com.android.externalstorage.documents"
     private const val OPEN_RETRY_COUNT = 5
     private const val OPEN_RETRY_DELAY_MS = 120L
+    private val unsafeFileNameCharacters = Regex("""[\\/:*?"<>|\u0000-\u001F]""")
 
     fun String.toClipboardUriOrNull(): Uri? {
         return if (startsWith("content://") || startsWith("file://")) Uri.parse(this) else null
@@ -147,12 +148,18 @@ object ClipboardUriStore {
             ?.trim()
             ?.takeIf { it.isNotEmpty() }
             ?: "clipboard-${System.currentTimeMillis()}"
-        val sanitized = baseName.replace(Regex("[^A-Za-z0-9._-]"), "_")
+        val sanitized = sanitizeFileName(baseName)
         if (sanitized.contains('.')) return sanitized
         val extension = MimeTypeMap.getSingleton()
             .getExtensionFromMimeType(mimeType)
             ?.takeIf { it.isNotBlank() }
         return if (extension != null) "$sanitized.$extension" else sanitized
+    }
+
+    internal fun sanitizeFileName(name: String): String {
+        return name.replace(unsafeFileNameCharacters, "_")
+            .takeUnless { it.isBlank() || it == "." || it == ".." }
+            ?: "clipboard"
     }
 
     private fun resolveMimeType(context: Context, uri: Uri): String {
