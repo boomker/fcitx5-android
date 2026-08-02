@@ -9,7 +9,7 @@ object Versions {
 
     val java = JavaVersion.VERSION_11
     const val compileSdk = 36
-    const val minSdk = 23
+    const val minSdk = 24
     const val targetSdk = 36
 
     const val defaultCMake = "3.31.6"

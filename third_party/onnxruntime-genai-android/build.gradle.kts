@@ -9,7 +9,7 @@ plugins {
 }
 
 group = "org.fxboomk.fcitx5.android.thirdparty"
-version = "0.13.1"
+version = "0.15.0"
 
 fun Project.githubPackagesRepositoryUrl(): String {
     val explicit = providers.gradleProperty("githubPackagesRepository").orNull?.trim().orEmpty()
@@ -39,7 +39,7 @@ fun isFileBackedRepository(url: String): Boolean = url.startsWith("file:", ignor
 
 val artifactName = "onnxruntime-genai-android"
 val artifactFileName = "$artifactName-$version.aar"
-val artifactSha256 = "6cd42859af1c0d28c5a3c72ac4714a99b8e9f23b610b8616ff32d709bd51d4aa"
+val artifactSha256 = "a4aeadcd4d70b877c56a74ece7778324a5ee4686f395ef29e4d2a83908b83a6c"
 val artifactUrl =
     "https://github.com/microsoft/onnxruntime-genai/releases/download/v$version/$artifactFileName"
 val downloadedArtifact = layout.buildDirectory.file("downloads/$artifactFileName")
@@ -66,6 +66,9 @@ fun requireExpectedSha256(file: File) {
 
 val downloadOrtGenAiAar by tasks.registering {
     outputs.file(downloadedArtifact)
+    notCompatibleWithConfigurationCache(
+        "This publishing-only task performs an HTTP download from a Gradle script action."
+    )
     doLast {
         val target = downloadedArtifact.get().asFile
         if (target.exists() && target.length() > 0L) {
