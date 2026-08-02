@@ -127,7 +127,14 @@ jobs:
           SIGN_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           SIGN_KEY_PWD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          ./gradlew clean -PincludeMainlineFlavor=true :app:assembleMainlineRelease :assembleReleasePlugins
+          local_third_party_repository="file://${PWD}/.local-thirdparty-artifacts"
+          ./gradlew \
+            -PgithubPackagesRepository="$local_third_party_repository" \
+            :third_party:onnxruntime-genai-android:publish
+          ./gradlew clean \
+            -PincludeMainlineFlavor=true \
+            -PgithubPackagesRepository="$local_third_party_repository" \
+            :app:assembleMainlineRelease :assembleReleasePlugins
           mkdir -p app/build/outputs/apk/release/
           mv app/build/outputs/apk/mainline/release/*.apk app/build/outputs/apk/release/
       
