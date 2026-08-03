@@ -12,6 +12,7 @@ import android.text.TextWatcher
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.LinearLayout
+import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -23,6 +24,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
 import org.fxboomk.fcitx5.android.R
+import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.input.config.UserConfigFiles
 import splitties.dimensions.dp
 import splitties.resources.styledColor
@@ -38,10 +40,16 @@ class LayoutFileProfileInputActivity : AppCompatActivity() {
         const val EXTRA_COPY_CURRENT_DEFAULT = "copy_current_default"
         const val EXTRA_RESULT_PROFILE = "result_profile"
         const val EXTRA_RESULT_COPY_CURRENT = "result_copy_current"
+        const val EXTRA_RESULT_HEIGHT_PERCENT_PORTRAIT = "result_height_percent_portrait"
+        const val EXTRA_RESULT_HEIGHT_PERCENT_LANDSCAPE = "result_height_percent_landscape"
+        const val EXTRA_INITIAL_HEIGHT_PERCENT_PORTRAIT = "initial_height_percent_portrait"
+        const val EXTRA_INITIAL_HEIGHT_PERCENT_LANDSCAPE = "initial_height_percent_landscape"
 
         const val ACTION_CREATE = "create"
         const val ACTION_RENAME = "rename"
         private const val MENU_SAVE_ID = 9001
+        private const val MIN_LAYOUT_HEIGHT_PERCENT = 10
+        private const val MAX_LAYOUT_HEIGHT_PERCENT = 90
     }
 
     private val toolbar by lazy {
@@ -61,6 +69,8 @@ class LayoutFileProfileInputActivity : AppCompatActivity() {
 
     private lateinit var profileInput: AppCompatEditText
     private var copySwitch: SwitchCompat? = null
+    private var portraitHeightSeekBar: SeekBar? = null
+    private var landscapeHeightSeekBar: SeekBar? = null
     private var saveMenuItem: MenuItem? = null
     private lateinit var action: String
     private var initialProfile: String = ""
@@ -141,6 +151,26 @@ class LayoutFileProfileInputActivity : AppCompatActivity() {
                 )
             )
         }
+        content.addView(TextView(this).apply {
+            text = getString(R.string.keyboard_height)
+            textSize = 13f
+            setTextColor(styledColor(android.R.attr.textColorSecondary))
+        })
+        val keyboardPrefs = AppPrefs.getInstance().keyboard
+        portraitHeightSeekBar = addLayoutHeightSlider(
+            getString(R.string.portrait),
+            intent.getIntExtra(
+                EXTRA_INITIAL_HEIGHT_PERCENT_PORTRAIT,
+                keyboardPrefs.keyboardHeightPercent.getValue()
+            )
+        )
+        landscapeHeightSeekBar = addLayoutHeightSlider(
+            getString(R.string.landscape),
+            intent.getIntExtra(
+                EXTRA_INITIAL_HEIGHT_PERCENT_LANDSCAPE,
+                keyboardPrefs.keyboardHeightPercentLandscape.getValue()
+            )
+        )
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -156,7 +186,17 @@ class LayoutFileProfileInputActivity : AppCompatActivity() {
     private fun updateSaveButtonState() {
         val normalized = UserConfigFiles.normalizeTextKeyboardLayoutProfile(profileInput.text?.toString().orEmpty())
         val changed = normalized != null && (
-            normalized != initialProfile || (copySwitch?.isChecked ?: true) != initialCopyCurrent
+            normalized != initialProfile || (copySwitch?.isChecked ?: true) != initialCopyCurrent ||
+                portraitHeightSeekBar?.progress?.plus(MIN_LAYOUT_HEIGHT_PERCENT) !=
+                    intent.getIntExtra(
+                        EXTRA_INITIAL_HEIGHT_PERCENT_PORTRAIT,
+                        AppPrefs.getInstance().keyboard.keyboardHeightPercent.getValue()
+                    ) ||
+                landscapeHeightSeekBar?.progress?.plus(MIN_LAYOUT_HEIGHT_PERCENT) !=
+                    intent.getIntExtra(
+                        EXTRA_INITIAL_HEIGHT_PERCENT_LANDSCAPE,
+                        AppPrefs.getInstance().keyboard.keyboardHeightPercentLandscape.getValue()
+                    )
         )
         saveMenuItem?.isEnabled = changed
         saveMenuItem?.icon?.mutate()?.setTint(if (changed) Color.BLACK else Color.GRAY)
@@ -179,6 +219,12 @@ class LayoutFileProfileInputActivity : AppCompatActivity() {
                     putExtra(EXTRA_ACTION, action)
                     putExtra(EXTRA_RESULT_PROFILE, normalized)
                     putExtra(EXTRA_RESULT_COPY_CURRENT, copySwitch?.isChecked ?: true)
+                    portraitHeightSeekBar?.let {
+                        putExtra(EXTRA_RESULT_HEIGHT_PERCENT_PORTRAIT, it.progress + MIN_LAYOUT_HEIGHT_PERCENT)
+                    }
+                    landscapeHeightSeekBar?.let {
+                        putExtra(EXTRA_RESULT_HEIGHT_PERCENT_LANDSCAPE, it.progress + MIN_LAYOUT_HEIGHT_PERCENT)
+                    }
                 }
                 setResult(RESULT_OK, data)
                 finish()
@@ -186,5 +232,35 @@ class LayoutFileProfileInputActivity : AppCompatActivity() {
             }
             else -> super.onOptionsItemSelected(item)
         }
+    }
+
+    private fun addLayoutHeightSlider(label: String, initialValue: Int): SeekBar {
+        val group = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+        val initial = initialValue.coerceIn(MIN_LAYOUT_HEIGHT_PERCENT, MAX_LAYOUT_HEIGHT_PERCENT)
+        val valueLabel = TextView(this).apply {
+            text = "$label: $initial%"
+            textSize = 13f
+            setTextColor(styledColor(android.R.attr.textColorSecondary))
+        }
+        val seekBar = SeekBar(this).apply {
+            max = MAX_LAYOUT_HEIGHT_PERCENT - MIN_LAYOUT_HEIGHT_PERCENT
+            progress = initial - MIN_LAYOUT_HEIGHT_PERCENT
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+                    valueLabel.text = "$label: ${progress + MIN_LAYOUT_HEIGHT_PERCENT}%"
+                    updateSaveButtonState()
+                }
+
+                override fun onStartTrackingTouch(seekBar: SeekBar) = Unit
+
+                override fun onStopTrackingTouch(seekBar: SeekBar) = Unit
+            })
+        }
+        group.addView(valueLabel)
+        group.addView(seekBar)
+        content.addView(group)
+        return seekBar
     }
 }

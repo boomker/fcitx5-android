@@ -43,6 +43,7 @@ import org.fxboomk.fcitx5.android.data.theme.ThemeManager
 import org.fxboomk.fcitx5.android.input.config.ConfigProviders
 import org.fxboomk.fcitx5.android.input.config.UserConfigFiles
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.data.LayoutDataManager
+import org.fxboomk.fcitx5.android.ui.main.settings.behavior.data.LayoutHeightPercentOverrides
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.share.JsonFileQrShareManager
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.share.LayoutQrTransferCodec
 import org.fxboomk.fcitx5.android.ui.main.settings.theme.ThemeQrTransferCodec
@@ -85,7 +86,7 @@ class ShareReceiveManager(
         data class LayoutJson(
             val parsed: Map<String, List<List<Map<String, Any?>>>>,
             val profile: String?,
-            val heightOverrides: Map<String, Int>
+            val heightOverrides: Map<String, LayoutHeightPercentOverrides>
         ) : DetectionResult
         data class PopupJson(val parsed: Map<String, List<String>>) : DetectionResult
     }

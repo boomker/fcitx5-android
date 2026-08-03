@@ -323,9 +323,9 @@
     <string name="edit_text_keyboard_layout_summary_with_file">Allgemeines Tastaturlayout bearbeiten (%1$s)</string>
     <string name="text_keyboard_layout_file_select_title">Liste allgemeiner Tastaturlayouts</string>
     <string name="text_keyboard_layout_file_select_summary">Aktuelle Datei: %1$s</string>
-    <string name="text_keyboard_layout_file_switch">Layout-Datei wechseln</string>
-    <string name="text_keyboard_layout_file_create">Layout-Datei erstellen</string>
-    <string name="text_keyboard_layout_file_rename">Layout-Datei umbenennen</string>
+    <string name="text_keyboard_layout_file_switch">Layout wechseln</string>
+    <string name="text_keyboard_layout_file_create">Layout erstellen</string>
+    <string name="text_keyboard_layout_file_rename">Layout bearbeiten</string>
     <string name="text_keyboard_layout_file_name">Dateiprofilname</string>
     <string name="text_keyboard_layout_file_name_hint">z. B. personal, gaming</string>
     <string name="text_keyboard_layout_file_name_invalid">Ungültiger Profilname</string>
@@ -672,7 +672,7 @@
     <string name="table_dict_replace_message">Tabellenwörterbuch "%1$s" existiert bereits. Sie können ein neues Wörterbuch importieren und es ersetzen.</string>
     <string name="table_file_does_not_exist_message">Tabellenwörterbuch "%1$s" existiert nicht. Bitte prüfen Sie die Wörterbuchdatei oder importieren Sie sie erneut.</string>
     <string name="text_editing_button_radius">Eckradius der Textbearbeitungstasten</string>
-    <string name="text_keyboard_layout_file_delete">Layout-Datei löschen</string>
+    <string name="text_keyboard_layout_file_delete">Layout löschen</string>
     <string name="text_keyboard_layout_file_delete_confirm">Layout-Dateiprofil "%1$s" und dessen Sicherung wirklich löschen?</string>
     <string name="text_keyboard_layout_file_delete_failed">Löschen der Layout-Datei fehlgeschlagen</string>
     <string name="text_keyboard_layout_file_deleted">Profil gelöscht: %1$s</string>

@@ -546,10 +546,10 @@
     <string name="edit_text_keyboard_layout_summary_with_file">编辑通用键盘布局（%1$s）</string>
     <string name="text_keyboard_layout_file_select_title">通用键盘布局清单</string>
     <string name="text_keyboard_layout_file_select_summary">当前配置：%1$s</string>
-    <string name="text_keyboard_layout_file_switch">切换布局文件</string>
-    <string name="text_keyboard_layout_file_create">新建布局文件</string>
-    <string name="text_keyboard_layout_file_rename">重命名布局文件</string>
-    <string name="text_keyboard_layout_file_delete">删除布局文件</string>
+    <string name="text_keyboard_layout_file_switch">切换布局</string>
+    <string name="text_keyboard_layout_file_create">新建布局</string>
+    <string name="text_keyboard_layout_file_rename">修改布局</string>
+    <string name="text_keyboard_layout_file_delete">删除布局</string>
     <string name="text_keyboard_layout_file_renamed">已重命名配置：%1$s → %2$s</string>
     <string name="text_keyboard_layout_file_rename_failed">重命名布局文件失败</string>
     <string name="text_keyboard_layout_file_delete_confirm">确认删除布局文件配置“%1$s”及其备份？</string>

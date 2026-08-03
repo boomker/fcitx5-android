@@ -23,6 +23,7 @@ import org.fxboomk.fcitx5.android.input.clipboard.ClipboardWindow
 import org.fxboomk.fcitx5.android.input.dialog.AddMoreInputMethodsPrompt
 import org.fxboomk.fcitx5.android.input.dialog.InputMethodPickerDialog
 import org.fxboomk.fcitx5.android.input.editing.TextEditingWindow
+import org.fxboomk.fcitx5.android.input.bar.ui.ToolButton
 import org.fxboomk.fcitx5.android.input.keyboard.LangSwitchBehavior
 import org.fxboomk.fcitx5.android.input.keyboard.switchToEnglishInputMode
 import org.fxboomk.fcitx5.android.input.status.StatusAreaWindow
@@ -346,6 +347,11 @@ data object AiCandidatesAction : ButtonAction() {
         view: View?,
         onActionComplete: (() -> Unit)?
     ) {
+        (view as? ToolButton)?.iconAnimate()
+            ?.rotationBy(180f)
+            ?.setDuration(160L)
+            ?.withEndAction { view.iconRotation = 0f }
+            ?.start()
         service.inputView?.openAiSuggestionPanel()
         onActionComplete?.invoke()
     }

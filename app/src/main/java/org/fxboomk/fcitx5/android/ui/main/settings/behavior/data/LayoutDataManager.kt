@@ -13,6 +13,13 @@ import org.fxboomk.fcitx5.android.ui.main.settings.behavior.utils.KeyboardRowSty
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.utils.LayoutJsonUtils
 import java.io.File
 
+data class LayoutHeightPercentOverrides(
+    val portrait: Int? = null,
+    val landscape: Int? = null
+) {
+    fun isEmpty(): Boolean = portrait == null && landscape == null
+}
+
 /**
  * 布局数据管理器，管理键盘布局的数据结构。
  *
@@ -25,7 +32,9 @@ import java.io.File
 class LayoutDataManager(private val context: Context) {
     private companion object {
         private const val LAYOUT_META_KEY = "__meta__"
-        private const val LAYOUT_META_HEIGHT_PERCENT_KEY = "keyboard_height_percent"
+        private const val LAYOUT_META_HEIGHT_PERCENT_PORTRAIT_KEY = "keyboard_height_percent"
+        private const val LAYOUT_META_HEIGHT_PERCENT_LANDSCAPE_KEY =
+            "keyboard_height_percent_landscape"
     }
 
     
@@ -36,14 +45,14 @@ class LayoutDataManager(private val context: Context) {
      * - "layoutName:subModeLabel" - 子模式布局
      */
     val entries = mutableMapOf<String, MutableList<MutableList<MutableMap<String, Any?>>>>()
-    val layoutHeightPercentOverrides = mutableMapOf<String, Int>()
+    val layoutHeightPercentOverrides = mutableMapOf<String, LayoutHeightPercentOverrides>()
     
     /**
      * 原始数据快照，用于检测是否有更改
      */
     private var originalEntries: Map<String, List<List<Map<String, Any?>>>> = emptyMap()
-    private var originalLayoutHeightPercentOverrides: Map<String, Int> = emptyMap()
-    private var lastParsedLayoutHeightPercentOverrides: Map<String, Int> = emptyMap()
+    private var originalLayoutHeightPercentOverrides: Map<String, LayoutHeightPercentOverrides> = emptyMap()
+    private var lastParsedLayoutHeightPercentOverrides: Map<String, LayoutHeightPercentOverrides> = emptyMap()
     
     /**
      * 迁移管理器
@@ -150,7 +159,7 @@ class LayoutDataManager(private val context: Context) {
             val jsonElement = lenientJson.parseToJsonElement(jsonStr)
             val jsonObject = jsonElement.jsonObject
             val result = mutableMapOf<String, List<List<Map<String, Any?>>>>()
-            val parsedLayoutHeightOverrides = mutableMapOf<String, Int>()
+            val parsedLayoutHeightOverrides = mutableMapOf<String, LayoutHeightPercentOverrides>()
 
             // 处理每个布局条目
             jsonObject.entries.forEach { (layoutName, layoutValue) ->
@@ -592,9 +601,12 @@ class LayoutDataManager(private val context: Context) {
     fun validateEntries(): List<String> {
         val errors = mutableListOf<String>()
 
-        layoutHeightPercentOverrides.forEach { (layoutName, percent) ->
-            if (percent !in 10..90) {
+        layoutHeightPercentOverrides.forEach { (layoutName, overrides) ->
+            if (overrides.portrait != null && overrides.portrait !in 10..90) {
                 errors.add("布局 \"$layoutName\" 的 keyboard_height_percent 必须在 10 到 90 之间")
+            }
+            if (overrides.landscape != null && overrides.landscape !in 10..90) {
+                errors.add("布局 \"$layoutName\" 的 keyboard_height_percent_landscape 必须在 10 到 90 之间")
             }
         }
         
@@ -813,27 +825,38 @@ class LayoutDataManager(private val context: Context) {
             }
         }
 
-    fun getLayoutHeightPercentOverride(layoutName: String): Int? {
+    fun getLayoutHeightPercentOverride(layoutName: String): LayoutHeightPercentOverrides? {
         return layoutHeightPercentOverrides[layoutName]
     }
 
-    fun setLayoutHeightPercentOverride(layoutName: String, value: Int?) {
-        if (value == null) {
+    fun setLayoutHeightPercentOverride(layoutName: String, value: LayoutHeightPercentOverrides?) {
+        val sanitized = value?.let {
+            LayoutHeightPercentOverrides(
+                portrait = it.portrait?.coerceIn(10, 90),
+                landscape = it.landscape?.coerceIn(10, 90)
+            )
+        }
+        if (sanitized == null || sanitized.isEmpty()) {
             layoutHeightPercentOverrides.remove(layoutName)
         } else {
-            layoutHeightPercentOverrides[layoutName] = value.coerceIn(10, 90)
+            layoutHeightPercentOverrides[layoutName] = sanitized
         }
     }
 
-    fun latestParsedLayoutHeightPercentOverrides(): Map<String, Int> {
+    fun latestParsedLayoutHeightPercentOverrides(): Map<String, LayoutHeightPercentOverrides> {
         return lastParsedLayoutHeightPercentOverrides
     }
 
-    private fun parseLayoutHeightPercent(layoutObject: JsonObject): Int? {
+    private fun parseLayoutHeightPercent(layoutObject: JsonObject): LayoutHeightPercentOverrides? {
         val meta = layoutObject[LAYOUT_META_KEY] as? JsonObject ?: return null
-        val raw = (meta[LAYOUT_META_HEIGHT_PERCENT_KEY] as? JsonPrimitive)?.intOrNull
-            ?: (meta[LAYOUT_META_HEIGHT_PERCENT_KEY] as? JsonPrimitive)?.content?.toIntOrNull()
-        return raw?.takeIf { it in 10..90 }
+        val portrait = parseHeightPercent(meta, LAYOUT_META_HEIGHT_PERCENT_PORTRAIT_KEY)
+        val landscape = parseHeightPercent(meta, LAYOUT_META_HEIGHT_PERCENT_LANDSCAPE_KEY)
+        return LayoutHeightPercentOverrides(portrait, landscape).takeUnless { it.isEmpty() }
+    }
+
+    private fun parseHeightPercent(meta: JsonObject, key: String): Int? {
+        val value = meta[key] as? JsonPrimitive ?: return null
+        return (value.intOrNull ?: value.content.toIntOrNull())?.takeIf { it in 10..90 }
     }
 
     private fun normalizeRowsForParsedData(rows: List<List<Map<String, Any?>>>): List<List<Map<String, Any?>>> {

@@ -476,9 +476,9 @@
     <string name="edit_text_keyboard_layout_summary_with_file">Редактировать общую раскладку клавиатуры (%1$s)</string>
     <string name="text_keyboard_layout_file_select_title">Список общих раскладок клавиатуры</string>
     <string name="text_keyboard_layout_file_select_summary">Текущий файл: %1$s</string>
-    <string name="text_keyboard_layout_file_switch">Переключить файл раскладки</string>
-    <string name="text_keyboard_layout_file_create">Создать файл раскладки</string>
-    <string name="text_keyboard_layout_file_rename">Переименовать файл раскладки</string>
+    <string name="text_keyboard_layout_file_switch">Переключить раскладку</string>
+    <string name="text_keyboard_layout_file_create">Создать раскладку</string>
+    <string name="text_keyboard_layout_file_rename">Изменить раскладку</string>
     <string name="text_keyboard_layout_file_name">Имя профиля файла</string>
     <string name="text_keyboard_layout_file_name_hint">например: personal, gaming</string>
     <string name="text_keyboard_layout_file_name_invalid">Недопустимое имя профиля</string>
@@ -681,7 +681,7 @@
     <string name="split_keyboard_threshold">Порог раздельной клавиатуры</string>
     <string name="split_keyboard_use_landscape_layout">Использовать параметры альбомной ориентации при раздельной клавиатуре</string>
     <string name="split_keyboard_use_landscape_layout_summary">При включении и активной раздельной клавиатуре использовать параметры альбомной ориентации (высота, отступы и т.д.). Доступно только при включённой автоматической раздельной клавиатуре.</string>
-    <string name="text_keyboard_layout_file_delete">Удалить файл раскладки</string>
+    <string name="text_keyboard_layout_file_delete">Удалить раскладку</string>
     <string name="text_keyboard_layout_file_delete_confirm">Подтвердить удаление файла раскладки «%1$s» и его резервных копий?</string>
     <string name="text_keyboard_layout_file_delete_failed">Не удалось удалить файл раскладки</string>
     <string name="text_keyboard_layout_file_deleted">Профиль удалён: %1$s</string>

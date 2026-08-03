@@ -9,6 +9,7 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.fxboomk.fcitx5.android.input.keyboard.KeyDef
+import org.fxboomk.fcitx5.android.ui.main.settings.behavior.data.LayoutHeightPercentOverrides
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
@@ -65,6 +66,29 @@ class LayoutJsonUtilsRowStyleTest {
         assertEquals("bottom", rowObject["altTextPosition"]!!.jsonPrimitive.content)
         assertEquals("solid", rowObject["backgroundStyle"]!!.jsonPrimitive.content)
         assertEquals(1, rowObject["keys"]!!.jsonArray.size)
+    }
+
+    @Test
+    fun convertToSaveJson_writesPortraitAndLandscapeHeightOverrides() {
+        val rows: List<List<Map<String, Any?>>> = listOf(
+            listOf(
+                mapOf(
+                    "type" to "AlphabetKey",
+                    "main" to "q"
+                )
+            )
+        )
+
+        val json = LayoutJsonUtils.convertToSaveJson(
+            entries = mapOf("rime" to rows),
+            layoutHeightPercentOverrides = mapOf(
+                "rime" to LayoutHeightPercentOverrides(portrait = 34, landscape = 49)
+            )
+        )
+        val metadata = json["rime"]!!.jsonObject["__meta__"]!!.jsonObject
+
+        assertEquals("34", metadata["keyboard_height_percent"]!!.jsonPrimitive.content)
+        assertEquals("49", metadata["keyboard_height_percent_landscape"]!!.jsonPrimitive.content)
     }
 
     @Test

@@ -242,9 +242,9 @@
     <string name="edit_text_keyboard_layout_summary_with_file">Editar distribución general del teclado (%1$s)</string>
     <string name="text_keyboard_layout_file_select_title">Perfiles de distribución general del teclado</string>
     <string name="text_keyboard_layout_file_select_summary">Archivo actual: %1$s</string>
-    <string name="text_keyboard_layout_file_switch">Cambiar archivo de diseño</string>
-    <string name="text_keyboard_layout_file_create">Crear archivo de diseño</string>
-    <string name="text_keyboard_layout_file_rename">Cambiar nombre del archivo de diseño</string>
+    <string name="text_keyboard_layout_file_switch">Cambiar diseño</string>
+    <string name="text_keyboard_layout_file_create">Crear diseño</string>
+    <string name="text_keyboard_layout_file_rename">Editar diseño</string>
     <string name="text_keyboard_layout_file_name">Nombre de perfil del archivo</string>
     <string name="text_keyboard_layout_file_name_hint">p. ej., personal, gaming</string>
     <string name="text_keyboard_layout_file_name_invalid">Nombre de perfil no válido</string>
@@ -677,7 +677,7 @@
     <string name="table_im">Metodos de entrada de tabla</string>
     <string name="text_editing">Edicion de texto</string>
     <string name="text_editing_button_radius">Radio de boton de edicion de texto</string>
-    <string name="text_keyboard_layout_file_delete">Eliminar archivo de diseno</string>
+    <string name="text_keyboard_layout_file_delete">Eliminar diseño</string>
     <string name="text_keyboard_layout_file_delete_confirm">¿Eliminar el perfil de archivo de diseno "%1$s" y sus copias de seguridad?</string>
     <string name="text_keyboard_layout_file_delete_failed">No se pudo eliminar el archivo de diseno</string>
     <string name="text_keyboard_layout_file_deleted">Perfil eliminado: %1$s</string>

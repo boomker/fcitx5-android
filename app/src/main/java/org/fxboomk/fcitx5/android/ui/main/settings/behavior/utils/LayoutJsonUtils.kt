@@ -7,6 +7,7 @@ package org.fxboomk.fcitx5.android.ui.main.settings.behavior.utils
 import android.util.Log
 import kotlinx.serialization.json.*
 import org.fxboomk.fcitx5.android.input.keyboard.*
+import org.fxboomk.fcitx5.android.ui.main.settings.behavior.data.LayoutHeightPercentOverrides
 
 // Import Macro types explicitly
 import org.fxboomk.fcitx5.android.input.keyboard.MacroAction
@@ -903,7 +904,7 @@ object LayoutJsonUtils {
      */
     fun convertToSaveJson(
         entries: Map<String, List<List<Map<String, Any?>>>>,
-        layoutHeightPercentOverrides: Map<String, Int> = emptyMap()
+        layoutHeightPercentOverrides: Map<String, LayoutHeightPercentOverrides> = emptyMap()
     ): JsonObject {
         val layoutMap = mutableMapOf<String, JsonElement>()
 
@@ -923,11 +924,9 @@ object LayoutJsonUtils {
             if (hasSubModeKeys) {
                 val subModeMap = mutableMapOf<String, JsonElement>()
                 layoutHeightPercentOverrides[baseName]
-                    ?.takeIf { it in 10..90 }
-                    ?.let { percent ->
-                        subModeMap["__meta__"] = JsonObject(
-                            mapOf("keyboard_height_percent" to JsonPrimitive(percent))
-                        )
+                    ?.toMetadata()
+                    ?.let { metadata ->
+                        subModeMap["__meta__"] = metadata
                     }
 
                 for (key in subModeKeys) {
@@ -940,14 +939,11 @@ object LayoutJsonUtils {
                     } else {
                         "$baseName:$subModeLabel"
                     }
-                    val subModeOverridePercent =
-                        layoutHeightPercentOverrides[overrideKey]?.takeIf { it in 10..90 }
-                    subModeMap[subModeLabel] = if (subModeLabel != "default" && subModeOverridePercent != null) {
+                    val subModeMetadata = layoutHeightPercentOverrides[overrideKey]?.toMetadata()
+                    subModeMap[subModeLabel] = if (subModeLabel != "default" && subModeMetadata != null) {
                         JsonObject(
                             mapOf(
-                                "__meta__" to JsonObject(
-                                    mapOf("keyboard_height_percent" to JsonPrimitive(subModeOverridePercent))
-                                ),
+                                "__meta__" to subModeMetadata,
                                 "default" to jsonArray
                             )
                         )
@@ -961,15 +957,13 @@ object LayoutJsonUtils {
                 val key = subModeKeys.firstOrNull() ?: baseName
                 val rows = entries[key] ?: continue
                 val jsonArray = JsonArray(rows.map(::rowToJsonElement))
-                val overridePercent = layoutHeightPercentOverrides[baseName]?.takeIf { it in 10..90 }
-                layoutMap[baseName] = if (overridePercent == null) {
+                val metadata = layoutHeightPercentOverrides[baseName]?.toMetadata()
+                layoutMap[baseName] = if (metadata == null) {
                     jsonArray
                 } else {
                     JsonObject(
                         mapOf(
-                            "__meta__" to JsonObject(
-                                mapOf("keyboard_height_percent" to JsonPrimitive(overridePercent))
-                            ),
+                            "__meta__" to metadata,
                             "default" to jsonArray
                         )
                     )
@@ -978,6 +972,18 @@ object LayoutJsonUtils {
         }
 
         return JsonObject(layoutMap.toSortedMap())
+    }
+
+    private fun LayoutHeightPercentOverrides.toMetadata(): JsonObject? {
+        val values = buildMap<String, JsonElement> {
+            portrait?.takeIf { it in 10..90 }?.let {
+                put("keyboard_height_percent", JsonPrimitive(it))
+            }
+            landscape?.takeIf { it in 10..90 }?.let {
+                put("keyboard_height_percent_landscape", JsonPrimitive(it))
+            }
+        }
+        return values.takeIf { it.isNotEmpty() }?.let(::JsonObject)
     }
 
     fun rowToJsonElement(row: List<Map<String, Any?>>): JsonElement {

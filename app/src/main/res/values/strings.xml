@@ -703,10 +703,10 @@
     <string name="edit_text_keyboard_layout_summary_with_file">Edit general keyboard layout (%1$s)</string>
     <string name="text_keyboard_layout_file_select_title">General Keyboard Layout Profiles</string>
     <string name="text_keyboard_layout_file_select_summary">Current profile: %1$s</string>
-    <string name="text_keyboard_layout_file_switch">Switch layout file</string>
-    <string name="text_keyboard_layout_file_create">Create layout file</string>
-    <string name="text_keyboard_layout_file_rename">Rename layout file</string>
-    <string name="text_keyboard_layout_file_delete">Delete layout file</string>
+    <string name="text_keyboard_layout_file_switch">Switch layout</string>
+    <string name="text_keyboard_layout_file_create">Create layout</string>
+    <string name="text_keyboard_layout_file_rename">Edit layout</string>
+    <string name="text_keyboard_layout_file_delete">Delete layout</string>
     <string name="text_keyboard_layout_file_renamed">Renamed profile: %1$s → %2$s</string>
     <string name="text_keyboard_layout_file_rename_failed">Failed to rename layout file</string>
     <string name="text_keyboard_layout_file_delete_confirm">Delete layout file profile "%1$s" and its backups?</string>

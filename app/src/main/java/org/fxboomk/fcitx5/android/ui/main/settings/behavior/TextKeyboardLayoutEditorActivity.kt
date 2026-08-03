@@ -21,6 +21,7 @@ import android.widget.ArrayAdapter
 import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.LinearLayout
+import android.widget.SeekBar
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
@@ -60,6 +61,7 @@ import org.fxboomk.fcitx5.android.ui.main.settings.behavior.adapter.KeyboardLayo
 import org.fxboomk.fcitx5.android.utils.AppUtil
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.adapter.SimpleDividerItemDecoration
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.data.LayoutDataManager
+import org.fxboomk.fcitx5.android.ui.main.settings.behavior.data.LayoutHeightPercentOverrides
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.dialog.KeyEditorActivity
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.dialog.LayoutFileProfileInputActivity
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.dialog.RowEditorActivity
@@ -324,10 +326,36 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             when (action) {
                 LayoutFileProfileInputActivity.ACTION_CREATE -> {
                     val copyCurrent = data.getBooleanExtra(LayoutFileProfileInputActivity.EXTRA_RESULT_COPY_CURRENT, true)
-                    createLayoutProfileFromInput(normalized, copyCurrent)
+                    val keyboardPrefs = AppPrefs.getInstance().keyboard
+                    val portraitHeightPercent = data.getIntExtra(
+                        LayoutFileProfileInputActivity.EXTRA_RESULT_HEIGHT_PERCENT_PORTRAIT,
+                        keyboardPrefs.keyboardHeightPercent.getValue()
+                    )
+                    val landscapeHeightPercent = data.getIntExtra(
+                        LayoutFileProfileInputActivity.EXTRA_RESULT_HEIGHT_PERCENT_LANDSCAPE,
+                        keyboardPrefs.keyboardHeightPercentLandscape.getValue()
+                    )
+                    createLayoutProfileFromInput(
+                        normalized,
+                        copyCurrent,
+                        portraitHeightPercent,
+                        landscapeHeightPercent
+                    )
                 }
                 LayoutFileProfileInputActivity.ACTION_RENAME -> {
-                    renameLayoutProfileFromInput(normalized)
+                    val heightOverrides = currentLayoutHeightPercentOverrides()
+                    val keyboardPrefs = AppPrefs.getInstance().keyboard
+                    renameLayoutProfileFromInput(
+                        normalized,
+                        data.getIntExtra(
+                            LayoutFileProfileInputActivity.EXTRA_RESULT_HEIGHT_PERCENT_PORTRAIT,
+                            heightOverrides.portrait ?: keyboardPrefs.keyboardHeightPercent.getValue()
+                        ),
+                        data.getIntExtra(
+                            LayoutFileProfileInputActivity.EXTRA_RESULT_HEIGHT_PERCENT_LANDSCAPE,
+                            heightOverrides.landscape ?: keyboardPrefs.keyboardHeightPercentLandscape.getValue()
+                        )
+                    )
                 }
             }
         }
@@ -436,9 +464,9 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             .setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER)
         menu.add(Menu.NONE, MENU_LAYOUT_FILE_CREATE_ID, 2, getString(R.string.text_keyboard_layout_file_create))
             .setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER)
-        menu.add(Menu.NONE, MENU_LAYOUT_FILE_RENAME_ID, 3, getString(R.string.text_keyboard_layout_file_rename))
+        menu.add(Menu.NONE, MENU_LAYOUT_FILE_DELETE_ID, 3, getString(R.string.text_keyboard_layout_file_delete))
             .setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER)
-        menu.add(Menu.NONE, MENU_LAYOUT_FILE_DELETE_ID, 4, getString(R.string.text_keyboard_layout_file_delete))
+        menu.add(Menu.NONE, MENU_LAYOUT_FILE_RENAME_ID, 4, getString(R.string.text_keyboard_layout_file_rename))
             .setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER)
         menu.add(Menu.NONE, MENU_QR_IMPORT_SCAN_ID, 5, getString(R.string.text_keyboard_layout_qr_import_scan))
             .setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER)
@@ -1876,6 +1904,16 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                 putExtra(LayoutFileProfileInputActivity.EXTRA_ACTION, LayoutFileProfileInputActivity.ACTION_RENAME)
                 putExtra(LayoutFileProfileInputActivity.EXTRA_INITIAL_PROFILE, currentLayoutProfile)
                 putExtra(LayoutFileProfileInputActivity.EXTRA_SHOW_COPY_SWITCH, false)
+                val heightOverrides = currentLayoutHeightPercentOverrides()
+                putExtra(
+                    LayoutFileProfileInputActivity.EXTRA_INITIAL_HEIGHT_PERCENT_PORTRAIT,
+                    heightOverrides.portrait ?: AppPrefs.getInstance().keyboard.keyboardHeightPercent.getValue()
+                )
+                putExtra(
+                    LayoutFileProfileInputActivity.EXTRA_INITIAL_HEIGHT_PERCENT_LANDSCAPE,
+                    heightOverrides.landscape
+                        ?: AppPrefs.getInstance().keyboard.keyboardHeightPercentLandscape.getValue()
+                )
             }
             layoutFileInputLauncher.launch(intent)
             return
@@ -1903,6 +1941,24 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         }
         container.addView(nameLabel)
         container.addView(nameEdit)
+        val heightLabel = TextView(this).apply {
+            text = getString(R.string.keyboard_height)
+            textSize = DIALOG_LABEL_TEXT_SIZE_SP
+            setTextColor(styledColor(android.R.attr.textColorSecondary))
+        }
+        container.addView(heightLabel)
+        val heightOverrides = currentLayoutHeightPercentOverrides()
+        val portraitHeightSeekBar = addLayoutHeightSlider(
+            container,
+            getString(R.string.portrait),
+            heightOverrides.portrait ?: AppPrefs.getInstance().keyboard.keyboardHeightPercent.getValue()
+        )
+        val landscapeHeightSeekBar = addLayoutHeightSlider(
+            container,
+            getString(R.string.landscape),
+            heightOverrides.landscape
+                ?: AppPrefs.getInstance().keyboard.keyboardHeightPercentLandscape.getValue()
+        )
 
         val dialog = AlertDialog.Builder(this)
             .setTitle(R.string.text_keyboard_layout_file_rename)
@@ -1917,73 +1973,13 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                     showToast(getString(R.string.text_keyboard_layout_file_name_invalid))
                     return@setOnClickListener
                 }
-                if (newProfile == oldProfile) {
-                    dialog.dismiss()
-                    return@setOnClickListener
-                }
-                val newFile = UserConfigFiles.textKeyboardLayoutJson(newProfile)
-                if (newFile == null) {
-                    showToast(getString(R.string.text_keyboard_layout_file_rename_failed))
-                    return@setOnClickListener
-                }
-                if (newFile.exists()) {
-                    showToast(getString(R.string.text_keyboard_layout_file_already_exists))
-                    return@setOnClickListener
-                }
-                if (hasChanges() && !saveLayout()) {
-                    showToast(getString(R.string.text_keyboard_layout_save_failed))
-                    return@setOnClickListener
-                }
-                runCatching {
-                    oldFile.parentFile?.mkdirs()
-                    val renameTargets = mutableListOf<Pair<File, File>>()
-                    if (oldFile.exists()) {
-                        renameTargets += oldFile to newFile
-                    }
-                    val oldPrefix = "${oldFile.nameWithoutExtension}_backup_"
-                    val newPrefix = "${newFile.nameWithoutExtension}_backup_"
-                    val backups = oldFile.parentFile?.listFiles { candidate ->
-                        candidate.isFile &&
-                                candidate.name.startsWith(oldPrefix) &&
-                                candidate.name.endsWith(".json")
-                    }.orEmpty()
-                    backups.forEach { backup ->
-                        val suffix = backup.name.removePrefix(oldPrefix)
-                        renameTargets += backup to File(backup.parentFile, "$newPrefix$suffix")
-                    }
-                    renameTargets.forEach { (from, to) ->
-                        if (!from.renameTo(to)) {
-                            throw IllegalStateException("rename ${from.name} failed")
-                        }
-                    }
-                }.onSuccess {
-                    switchToLayoutProfile(newProfile, showSwitchToast = false)
-                    showToast(
-                        getString(
-                            R.string.text_keyboard_layout_file_renamed,
-                            displayProfile(oldProfile),
-                            displayProfile(newProfile)
-                        )
+                if (renameLayoutProfileFromInput(
+                        newProfile,
+                        portraitHeightSeekBar.progress + MIN_LAYOUT_HEIGHT_PERCENT,
+                        landscapeHeightSeekBar.progress + MIN_LAYOUT_HEIGHT_PERCENT
                     )
+                ) {
                     dialog.dismiss()
-                }.onFailure {
-                    showToast(getString(R.string.text_keyboard_layout_file_rename_failed))
-                    runCatching {
-                        val currentFile = UserConfigFiles.textKeyboardLayoutJson(newProfile)
-                        val oldPrefix = "${oldFile.nameWithoutExtension}_backup_"
-                        val newPrefix = "${newFile.nameWithoutExtension}_backup_"
-                        if (currentFile?.exists() == true && !oldFile.exists()) {
-                            currentFile.renameTo(oldFile)
-                        }
-                        oldFile.parentFile?.listFiles { candidate ->
-                            candidate.isFile &&
-                                    candidate.name.startsWith(newPrefix) &&
-                                    candidate.name.endsWith(".json")
-                        }.orEmpty().forEach { candidate ->
-                            val suffix = candidate.name.removePrefix(newPrefix)
-                            candidate.renameTo(File(candidate.parentFile, "$oldPrefix$suffix"))
-                        }
-                    }
                 }
             }
         }
@@ -2028,9 +2024,26 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             text = getString(R.string.text_keyboard_layout_file_copy_current)
             isChecked = true
         }
+        val heightLabel = TextView(this).apply {
+            text = getString(R.string.keyboard_height)
+            textSize = DIALOG_LABEL_TEXT_SIZE_SP
+            setTextColor(styledColor(android.R.attr.textColorSecondary))
+        }
         container.addView(nameLabel)
         container.addView(nameEdit)
         container.addView(copySwitch)
+        container.addView(heightLabel)
+        val keyboardPrefs = AppPrefs.getInstance().keyboard
+        val portraitHeightSeekBar = addLayoutHeightSlider(
+            container,
+            getString(R.string.portrait),
+            keyboardPrefs.keyboardHeightPercent.getValue()
+        )
+        val landscapeHeightSeekBar = addLayoutHeightSlider(
+            container,
+            getString(R.string.landscape),
+            keyboardPrefs.keyboardHeightPercentLandscape.getValue()
+        )
 
         val dialog = AlertDialog.Builder(this)
             .setTitle(R.string.text_keyboard_layout_file_create)
@@ -2069,6 +2082,11 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                         templateManager.loadFromFile(null)
                         targetFile.writeText(templateManager.exportCurrentJsonString())
                     }
+                    applyLayoutHeightPercentOverrides(
+                        targetFile,
+                        portraitHeightSeekBar.progress + MIN_LAYOUT_HEIGHT_PERCENT,
+                        landscapeHeightSeekBar.progress + MIN_LAYOUT_HEIGHT_PERCENT
+                    )
                 }.onSuccess {
                     switchToLayoutProfile(normalized)
                     dialog.dismiss()
@@ -2080,7 +2098,12 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         dialog.show()
     }
 
-    private fun createLayoutProfileFromInput(normalized: String, copyCurrent: Boolean) {
+    private fun createLayoutProfileFromInput(
+        normalized: String,
+        copyCurrent: Boolean,
+        portraitHeightPercent: Int,
+        landscapeHeightPercent: Int
+    ) {
         val targetFile = UserConfigFiles.textKeyboardLayoutJson(normalized)
         if (targetFile == null) {
             showToast(getString(R.string.cannot_resolve_text_keyboard_layout))
@@ -2105,6 +2128,11 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                 templateManager.loadFromFile(null)
                 targetFile.writeText(templateManager.exportCurrentJsonString())
             }
+            applyLayoutHeightPercentOverrides(
+                targetFile,
+                portraitHeightPercent,
+                landscapeHeightPercent
+            )
         }.onSuccess {
             switchToLayoutProfile(normalized)
         }.onFailure {
@@ -2112,77 +2140,155 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         }
     }
 
-    private fun renameLayoutProfileFromInput(newProfile: String) {
+    private fun applyLayoutHeightPercentOverrides(
+        file: File,
+        portraitHeightPercent: Int,
+        landscapeHeightPercent: Int
+    ) {
+        LayoutDataManager(this).apply {
+            loadFromFile(file)
+            layoutHeightPercentOverrides.clear()
+            entries.keys
+                .map { it.substringBefore(':') }
+                .distinct()
+                .forEach {
+                    setLayoutHeightPercentOverride(
+                        it,
+                        LayoutHeightPercentOverrides(
+                            portrait = portraitHeightPercent,
+                            landscape = landscapeHeightPercent
+                        )
+                    )
+                }
+            file.writeText(exportCurrentJsonString())
+        }
+    }
+
+    private fun addLayoutHeightSlider(
+        container: LinearLayout,
+        label: String,
+        initialValue: Int
+    ): SeekBar {
+        val group = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+        val valueLabel = TextView(this).apply {
+            text = "$label: ${initialValue.coerceIn(MIN_LAYOUT_HEIGHT_PERCENT, MAX_LAYOUT_HEIGHT_PERCENT)}%"
+            textSize = DIALOG_LABEL_TEXT_SIZE_SP
+            setTextColor(styledColor(android.R.attr.textColorSecondary))
+        }
+        val seekBar = SeekBar(this).apply {
+            max = MAX_LAYOUT_HEIGHT_PERCENT - MIN_LAYOUT_HEIGHT_PERCENT
+            progress = initialValue.coerceIn(MIN_LAYOUT_HEIGHT_PERCENT, MAX_LAYOUT_HEIGHT_PERCENT) -
+                MIN_LAYOUT_HEIGHT_PERCENT
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+                    valueLabel.text = "$label: ${progress + MIN_LAYOUT_HEIGHT_PERCENT}%"
+                }
+
+                override fun onStartTrackingTouch(seekBar: SeekBar) = Unit
+
+                override fun onStopTrackingTouch(seekBar: SeekBar) = Unit
+            })
+        }
+        group.addView(valueLabel)
+        group.addView(seekBar)
+        container.addView(group)
+        return seekBar
+    }
+
+    private fun currentLayoutHeightPercentOverrides(): LayoutHeightPercentOverrides {
+        val keyboardPrefs = AppPrefs.getInstance().keyboard
+        val overrides = currentLayout
+            ?.let(dataManager::getLayoutHeightPercentOverride)
+            ?: LayoutHeightPercentOverrides()
+        return LayoutHeightPercentOverrides(
+            portrait = overrides.portrait ?: keyboardPrefs.keyboardHeightPercent.getValue(),
+            landscape = overrides.landscape ?: keyboardPrefs.keyboardHeightPercentLandscape.getValue()
+        )
+    }
+
+    private fun renameLayoutProfileFromInput(
+        newProfile: String,
+        portraitHeightPercent: Int,
+        landscapeHeightPercent: Int
+    ): Boolean {
         val oldProfile = currentLayoutProfile
         val oldFile = layoutFile ?: UserConfigFiles.textKeyboardLayoutJson(oldProfile)
         if (oldFile == null) {
             showToast(getString(R.string.text_keyboard_layout_file_rename_failed))
-            return
+            return false
         }
-        if (newProfile == oldProfile) return
-        val newFile = UserConfigFiles.textKeyboardLayoutJson(newProfile)
+        val newFile = if (newProfile == oldProfile) oldFile else UserConfigFiles.textKeyboardLayoutJson(newProfile)
         if (newFile == null) {
             showToast(getString(R.string.text_keyboard_layout_file_rename_failed))
-            return
+            return false
         }
-        if (newFile.exists()) {
+        if (newProfile != oldProfile && newFile.exists()) {
             showToast(getString(R.string.text_keyboard_layout_file_already_exists))
-            return
+            return false
         }
         if (hasChanges() && !saveLayout()) {
             showToast(getString(R.string.text_keyboard_layout_save_failed))
-            return
+            return false
         }
-        runCatching {
-            oldFile.parentFile?.mkdirs()
-            val renameTargets = mutableListOf<Pair<File, File>>()
-            if (oldFile.exists()) {
-                renameTargets += oldFile to newFile
-            }
-            val oldPrefix = "${oldFile.nameWithoutExtension}_backup_"
-            val newPrefix = "${newFile.nameWithoutExtension}_backup_"
-            val backups = oldFile.parentFile?.listFiles { candidate ->
-                candidate.isFile &&
-                        candidate.name.startsWith(oldPrefix) &&
-                        candidate.name.endsWith(".json")
-            }.orEmpty()
-            backups.forEach { backup ->
-                val suffix = backup.name.removePrefix(oldPrefix)
-                renameTargets += backup to File(backup.parentFile, "$newPrefix$suffix")
-            }
-            renameTargets.forEach { (from, to) ->
-                if (!from.renameTo(to)) {
-                    throw IllegalStateException("rename ${from.name} failed")
+        return runCatching {
+            if (newProfile != oldProfile) {
+                oldFile.parentFile?.mkdirs()
+                val renameTargets = mutableListOf<Pair<File, File>>()
+                if (oldFile.exists()) {
+                    renameTargets += oldFile to newFile
                 }
-            }
-        }.onSuccess {
-            switchToLayoutProfile(newProfile, showSwitchToast = false)
-            showToast(
-                getString(
-                    R.string.text_keyboard_layout_file_renamed,
-                    displayProfile(oldProfile),
-                    displayProfile(newProfile)
-                )
-            )
-        }.onFailure {
-            showToast(getString(R.string.text_keyboard_layout_file_rename_failed))
-            runCatching {
-                val currentFile = UserConfigFiles.textKeyboardLayoutJson(newProfile)
                 val oldPrefix = "${oldFile.nameWithoutExtension}_backup_"
                 val newPrefix = "${newFile.nameWithoutExtension}_backup_"
-                if (currentFile?.exists() == true && !oldFile.exists()) {
-                    currentFile.renameTo(oldFile)
-                }
-                oldFile.parentFile?.listFiles { candidate ->
+                val backups = oldFile.parentFile?.listFiles { candidate ->
                     candidate.isFile &&
-                            candidate.name.startsWith(newPrefix) &&
-                            candidate.name.endsWith(".json")
-                }.orEmpty().forEach { candidate ->
-                    val suffix = candidate.name.removePrefix(newPrefix)
-                    candidate.renameTo(File(candidate.parentFile, "$oldPrefix$suffix"))
+                        candidate.name.startsWith(oldPrefix) &&
+                        candidate.name.endsWith(".json")
+                }.orEmpty()
+                backups.forEach { backup ->
+                    val suffix = backup.name.removePrefix(oldPrefix)
+                    renameTargets += backup to File(backup.parentFile, "$newPrefix$suffix")
+                }
+                renameTargets.forEach { (from, to) ->
+                    if (!from.renameTo(to)) {
+                        throw IllegalStateException("rename ${from.name} failed")
+                    }
                 }
             }
-        }
+            applyLayoutHeightPercentOverrides(newFile, portraitHeightPercent, landscapeHeightPercent)
+        }.onSuccess {
+            switchToLayoutProfile(newProfile, showSwitchToast = false)
+            if (newProfile != oldProfile) {
+                showToast(
+                    getString(
+                        R.string.text_keyboard_layout_file_renamed,
+                        displayProfile(oldProfile),
+                        displayProfile(newProfile)
+                    )
+                )
+            }
+        }.onFailure {
+            showToast(getString(R.string.text_keyboard_layout_file_rename_failed))
+            if (newProfile != oldProfile) {
+                runCatching {
+                    val currentFile = UserConfigFiles.textKeyboardLayoutJson(newProfile)
+                    val oldPrefix = "${oldFile.nameWithoutExtension}_backup_"
+                    val newPrefix = "${newFile.nameWithoutExtension}_backup_"
+                    if (currentFile?.exists() == true && !oldFile.exists()) {
+                        currentFile.renameTo(oldFile)
+                    }
+                    oldFile.parentFile?.listFiles { candidate ->
+                        candidate.isFile &&
+                                candidate.name.startsWith(newPrefix) &&
+                                candidate.name.endsWith(".json")
+                    }.orEmpty().forEach { candidate ->
+                        val suffix = candidate.name.removePrefix(newPrefix)
+                        candidate.renameTo(File(candidate.parentFile, "$oldPrefix$suffix"))
+                    }
+                }
+            }
+        }.isSuccess
     }
 
     private fun showToast(message: String) {
@@ -2521,6 +2627,8 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         private const val MENU_QR_IMPORT_IMAGE_ID = 3008
         private const val FCITX_CONNECTION_NAME = "TextKeyboardLayoutEditorActivity"
         private const val DIALOG_LABEL_TEXT_SIZE_SP = 13f
+        private const val MIN_LAYOUT_HEIGHT_PERCENT = 10
+        private const val MAX_LAYOUT_HEIGHT_PERCENT = 90
         private const val DIALOG_CONTENT_TEXT_SIZE_SP = 14f
     }
 

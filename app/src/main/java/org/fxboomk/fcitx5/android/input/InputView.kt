@@ -59,8 +59,11 @@ import org.fxboomk.fcitx5.android.input.broadcast.InputBroadcastReceiver
 import org.fxboomk.fcitx5.android.input.broadcast.PreeditEmptyStateComponent
 import org.fxboomk.fcitx5.android.input.broadcast.PunctuationComponent
 import org.fxboomk.fcitx5.android.input.broadcast.ReturnKeyDrawableComponent
+import org.fxboomk.fcitx5.android.input.candidates.expanded.ExpandedCandidateStyle
 import org.fxboomk.fcitx5.android.input.candidates.horizontal.HorizontalCandidateComponent
 import org.fxboomk.fcitx5.android.input.candidates.expanded.window.BaseExpandedCandidateWindow
+import org.fxboomk.fcitx5.android.input.candidates.expanded.window.FlexboxExpandedCandidateWindow
+import org.fxboomk.fcitx5.android.input.candidates.expanded.window.GridExpandedCandidateWindow
 import org.fxboomk.fcitx5.android.input.predict.AiSuggestionOverlay
 import org.fxboomk.fcitx5.android.input.predict.AiSuggestionStripComponent
 import org.fxboomk.fcitx5.android.input.predict.LlmPrefs
@@ -69,6 +72,7 @@ import org.fxboomk.fcitx5.android.input.action.ButtonAction
 import org.fxboomk.fcitx5.android.input.keyboard.BaseKeyboard
 import org.fxboomk.fcitx5.android.input.keyboard.KeyView
 import org.fxboomk.fcitx5.android.input.keyboard.KeyboardWindow
+import org.fxboomk.fcitx5.android.input.keyboard.TextKeyboard
 import org.fxboomk.fcitx5.android.input.picker.PickerWindow
 import org.fxboomk.fcitx5.android.input.picker.emojiPicker
 import org.fxboomk.fcitx5.android.input.picker.emoticonPicker
@@ -91,6 +95,9 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.intOrNull
 import timber.log.Timber
 import org.mechdancer.dependency.DynamicScope
 import org.mechdancer.dependency.manager.wrapToUniqueComponent
@@ -122,6 +129,9 @@ class InputView(
     fcitx: FcitxConnection,
     theme: Theme
 ) : BaseInputView(service, fcitx, theme) {
+    private companion object {
+        const val AI_CANDIDATE_EXPAND_DELAY_MS = 160L
+    }
 
     private val keyBorder by ThemeManager.prefs.keyBorder
 
@@ -967,11 +977,31 @@ class InputView(
     private var adjustingStartKeyboardTop = 0
 
     private fun resolveKeyboardHeightPercent(): Int {
-        return if (isLayoutLandscape) {
+        return resolveCurrentLayoutHeightPercentOverride() ?: if (isLayoutLandscape) {
             keyboardPrefs.keyboardHeightPercentLandscape.getValue()
         } else {
             keyboardPrefs.keyboardHeightPercent.getValue()
         }
+    }
+
+    private fun resolveCurrentLayoutHeightPercentOverride(): Int? {
+        val ime = TextKeyboard.ime ?: return null
+        val json = TextKeyboard.textLayoutJson ?: return null
+        val layout = (json[ime.uniqueName] ?: json[ime.displayName]) as? JsonObject ?: return null
+        val subMode = layout[ime.subMode.label] as? JsonObject
+        return layoutHeightPercentFromMeta(subMode) ?: layoutHeightPercentFromMeta(layout)
+    }
+
+    private fun layoutHeightPercentFromMeta(layout: JsonObject?): Int? {
+        val meta = layout?.get("__meta__") as? JsonObject ?: return null
+        val key = if (isLayoutLandscape) {
+            "keyboard_height_percent_landscape"
+        } else {
+            "keyboard_height_percent"
+        }
+        return (meta[key] as? JsonPrimitive)
+            ?.intOrNull
+            ?.takeIf { it in 10..90 }
     }
 
     private fun resolveKeyboardSidePadding(): Int {
@@ -1201,6 +1231,8 @@ class InputView(
     }
 
     private val keyboardPrefs = AppPrefs.getInstance().keyboard
+
+    private val expandedCandidateStyle by keyboardPrefs.expandedCandidateStyle
 
     private val focusChangeResetKeyboard by keyboardPrefs.focusChangeResetKeyboard
 
@@ -2046,7 +2078,7 @@ class InputView(
                     context.windowManager.defaultDisplay
                 }.getRealSize(it)
             }.y
-            val percent = (if (isLayoutLandscape) keyboardHeightPercentLandscape else keyboardHeightPercent).getValue()
+            val percent = resolveKeyboardHeightPercent()
             Timber.d("keyboardHeightPx get(): base=RealSize($base), percent=$percent")
             val baseHeight = base * percent / 100
             if (isFloating) {
@@ -2601,7 +2633,30 @@ class InputView(
         aiSuggestionStrip.updateCursorAnchor(anchor, parent)
     }
 
-    internal fun openAiSuggestionPanel(): Boolean = aiSuggestionStrip.openSuggestionTable()
+    internal fun openAiSuggestionPanel(): Boolean {
+        val opened = aiSuggestionStrip.openSuggestionTable()
+        if (!opened) return false
+        val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+        if (LlmPrefs.currentPredictionDisplayMode(prefs) ==
+            LlmPrefs.PredictionDisplayMode.CandidateExpanded
+        ) {
+            postDelayed({
+                if (!aiSuggestionStrip.isPanelVisible() ||
+                    windowManager.currentWindowOrNull() is BaseExpandedCandidateWindow<*>
+                ) {
+                    return@postDelayed
+                }
+                service.restoreVirtualKeyboardForKawaiiBarAction()
+                windowManager.attachWindow(
+                    when (expandedCandidateStyle) {
+                        ExpandedCandidateStyle.Grid -> GridExpandedCandidateWindow()
+                        ExpandedCandidateStyle.Flexbox -> FlexboxExpandedCandidateWindow()
+                    }
+                )
+            }, AI_CANDIDATE_EXPAND_DELAY_MS)
+        }
+        return true
+    }
 
     internal fun isAiSuggestionPanelVisible(): Boolean = aiSuggestionStrip.isPanelVisible()
 
