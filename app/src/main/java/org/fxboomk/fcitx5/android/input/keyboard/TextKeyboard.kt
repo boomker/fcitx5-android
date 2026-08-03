@@ -167,62 +167,31 @@ class TextKeyboard(
                 return cachedRawLayoutJson
             }
 
-        private fun getTextLayoutJsonForIme(displayName: String): JsonArray? {
-            val json = textLayoutJson ?: return null
-            return json[displayName]?.jsonArray
-        }
-
         fun getLayout(): List<List<KeyDef>> {
-            val imeName = ime?.uniqueName
-            val subModeLabel = ime?.subMode?.label ?: ""
+            val currentIme = ime
+            val imeName = currentIme?.uniqueName
+            val subModeLabel = currentIme?.subMode?.label ?: ""
             val showLangSwitch = AppPrefs.getInstance().keyboard.showLangSwitchKey.getValue()
             if (imeName != null) {
                 val json = textLayoutJson
                 if (json != null) {
-                    // Try uniqueName first, then displayName
-                    val layoutKey = imeName
-                    val imeLayoutElement = json[layoutKey]
-                        ?: json[ime?.displayName]
-
-                    if (imeLayoutElement != null) {
-                        // Check if this is a submode structure (JsonObject) or direct layout (JsonArray)
-                        val subModeLayoutElement = if (imeLayoutElement is JsonObject) {
-                            // Submode structure: try submode label, then "default", then empty string
-                            imeLayoutElement[subModeLabel]
-                                ?: imeLayoutElement["default"]
-                                ?: imeLayoutElement[""]
-                        } else {
-                            // Direct layout array, use as-is
-                            imeLayoutElement
-                        }
-
-                        if (subModeLayoutElement is JsonArray) {
-                            // Use a cache key that includes submode and showLangSwitch for proper caching
-                            // Include showLangSwitch in cache key so layout is re-created when setting changes
-                            val cacheKey = "$layoutKey:$subModeLabel:$showLangSwitch"
-                            return cachedKeyDefLayouts.getOrPut(cacheKey) {
-                                subModeLayoutElement.map { rowElement ->
-                                    LayoutJsonUtils.createKeyDefsForRowElement(
-                                        rowElement = rowElement,
-                                        showLangSwitch = showLangSwitch,
-                                        subModeLabel = subModeLabel,
-                                        subModeName = ime?.subMode?.name ?: ""
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    // Fallback to global "default" layout
-                    json["default"]?.let { layoutElement ->
-                        if (layoutElement is JsonArray) {
-                            return cachedKeyDefLayouts.getOrPut("default:$showLangSwitch") {
-                                layoutElement.map { rowElement ->
-                                    LayoutJsonUtils.createKeyDefsForRowElement(
-                                        rowElement = rowElement,
-                                        showLangSwitch = showLangSwitch
-                                    )
-                                }
+                    val resolution = resolveTextKeyboardLayout(
+                        json = json,
+                        uniqueName = imeName,
+                        displayName = currentIme.displayName,
+                        subModeLabel = subModeLabel,
+                    )
+                    val rows = resolution?.rows
+                    if (rows != null) {
+                        val cacheKey = "${resolution.sourceKey}:$subModeLabel:$showLangSwitch"
+                        return cachedKeyDefLayouts.getOrPut(cacheKey) {
+                            rows.map { rowElement ->
+                                LayoutJsonUtils.createKeyDefsForRowElement(
+                                    rowElement = rowElement,
+                                    showLangSwitch = showLangSwitch,
+                                    subModeLabel = subModeLabel,
+                                    subModeName = currentIme.subMode.name,
+                                )
                             }
                         }
                     }

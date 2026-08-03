@@ -73,6 +73,8 @@ import org.fxboomk.fcitx5.android.input.keyboard.BaseKeyboard
 import org.fxboomk.fcitx5.android.input.keyboard.KeyView
 import org.fxboomk.fcitx5.android.input.keyboard.KeyboardWindow
 import org.fxboomk.fcitx5.android.input.keyboard.TextKeyboard
+import org.fxboomk.fcitx5.android.input.keyboard.keyboardHeightPercentOverride
+import org.fxboomk.fcitx5.android.input.keyboard.resolveTextKeyboardLayout
 import org.fxboomk.fcitx5.android.input.picker.PickerWindow
 import org.fxboomk.fcitx5.android.input.picker.emojiPicker
 import org.fxboomk.fcitx5.android.input.picker.emoticonPicker
@@ -95,9 +97,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.intOrNull
 import timber.log.Timber
 import org.mechdancer.dependency.DynamicScope
 import org.mechdancer.dependency.manager.wrapToUniqueComponent
@@ -987,21 +986,12 @@ class InputView(
     private fun resolveCurrentLayoutHeightPercentOverride(): Int? {
         val ime = TextKeyboard.ime ?: return null
         val json = TextKeyboard.textLayoutJson ?: return null
-        val layout = (json[ime.uniqueName] ?: json[ime.displayName]) as? JsonObject ?: return null
-        val subMode = layout[ime.subMode.label] as? JsonObject
-        return layoutHeightPercentFromMeta(subMode) ?: layoutHeightPercentFromMeta(layout)
-    }
-
-    private fun layoutHeightPercentFromMeta(layout: JsonObject?): Int? {
-        val meta = layout?.get("__meta__") as? JsonObject ?: return null
-        val key = if (isLayoutLandscape) {
-            "keyboard_height_percent_landscape"
-        } else {
-            "keyboard_height_percent"
-        }
-        return (meta[key] as? JsonPrimitive)
-            ?.intOrNull
-            ?.takeIf { it in 10..90 }
+        return resolveTextKeyboardLayout(
+            json = json,
+            uniqueName = ime.uniqueName,
+            displayName = ime.displayName,
+            subModeLabel = ime.subMode.label,
+        )?.keyboardHeightPercentOverride(isLayoutLandscape)
     }
 
     private fun resolveKeyboardSidePadding(): Int {
