@@ -14,21 +14,21 @@ This fork mainly strengthens two areas:
 
 After consolidating the latest 10 commits, this round of updates mainly falls into the following areas:
 
-- Settings search is now more complete:
-  - The main settings page now has a search entry with cross-page navigation and automatic scrolling to the matched preference.
-  - Search results are deduplicated by title and path to avoid repeated entries for the same setting.
-  - Toolbar menu items are now included in the settings search index, making common actions easier to find directly.
-- Keyboard and candidate-bar behavior keeps getting refined:
-  - The physical-keyboard candidate bar preference was moved into the keyboard settings section, with input-device tests added around the behavior.
-  - Floating keyboard state is now persisted, and handle/key styling details were fixed.
-  - Paged candidate lists now always re-bind candidate views, reducing stale display issues caused by view reuse.
-  - The blur clipping shape for circular Gboard side keys was corrected.
-- Toolbar and editor UI feedback is clearer:
-  - Save actions in layout, key, font, and popup editors now use icon buttons.
-  - Save icons are tinted by enabled state, making it easier to see when changes can be saved.
-- AI provider and stability maintenance:
-  - Moonshot was added as an AI provider, and Zhipu was moved to the end of the provider list.
-  - A crash in `onStop` when the plugin service had already disconnected was fixed.
+- Keyboard layout and candidate-bar capabilities keep expanding:
+  - Text keyboard layouts can now override keyboard height separately in portrait and landscape instead of relying only on global settings.
+  - When AI candidates use expanded display mode, the full candidate window opens automatically for easier browsing.
+  - Popup gestures, key styling, and candidate-list binding continue to be refined to reduce stale displays caused by view reuse.
+- Clipboard sync and file handling are more reliable:
+  - OneClip pull, push, image, and file downloads now consistently use access tokens.
+  - OneClip file entries can be downloaded to the configured directory while continuing to respect extension and size filters.
+  - Clipboard filenames preserve Unicode characters such as Chinese text and only replace characters disallowed by the filesystem.
+- Prediction and runtime maintenance:
+  - AI provider support continues to include options such as Moonshot, with expanded AI candidate display.
+  - Text clipboard tokenization now uses Android platform ICU, reducing extra dependencies and processing overhead.
+  - After updating ONNX Runtime components, the app minimum supported version is Android 7.0 (API 24).
+- Build and release workflow maintenance:
+  - CI builds no longer depend on third-party artifacts being published first, reducing timing issues between concurrent builds.
+  - GitHub Actions runtimes have been updated as part of the Node 24 migration.
 
 ## Highlights
 
@@ -53,7 +53,7 @@ The project already integrates the `clipboard-sync` plugin build chain and can b
 Currently supported clipboard sync backends:
 
 - [`OneClip`](https://oneclip.cloud/)
-- [`ClipCascade`](https://github.com/NOBB2333/ClipCascade_go)
+- `ClipCascade`
 - [`SyncClipboard`](https://github.com/Jeric-X/SyncClipboard)
 
 Plugin capabilities include:
@@ -63,6 +63,8 @@ Plugin capabilities include:
 - Pushing Android clipboard content back to the server.
 - Manually uploading clipboard entries to the server when on-demand sync is needed.
 - Background keep-alive, reconnect logic, foreground service mode, and quick settings tile control.
+- OneClip pull, push, image, and file downloads support access tokens.
+- File sync can save to the configured directory while preserving Unicode characters such as Chinese text in filenames where possible.
 - Sync filters for:
   - text length
   - file extensions
@@ -79,6 +81,7 @@ If your workflow is “copy on desktop, input on phone” or “copy on phone, r
 - [`librime` (the Rime plugin)](https://github.com/boomker/librime) prediction capability has been enhanced so it can learn from user input history and supports backup of prediction data.
 - Prediction, suggestion, and language-model related capabilities from libime and the Chinese plugin stack are preserved.
 - The AI provider list now includes options such as Moonshot.
+- AI candidates support an expanded candidate window for browsing more prediction results.
 - The keyboard layer also keeps gaining configurable features such as MacroKey support, Shift behavior switches, and popup gesture highlight improvements.
 
 ### 4. Keyboard layout and popup preset sharing
@@ -87,6 +90,7 @@ If your workflow is “copy on desktop, input on phone” or “copy on phone, r
 - Shared data can be imported either by camera scanning or from a file.
 - QR images can be previewed before sharing so you can verify the content first.
 - Text keyboard layout JSON also supports direct key color configuration, making it easier to share complete visual layout presets.
+- Text keyboard layout JSON supports separate portrait and landscape keyboard-height settings for each layout.
 
 ### 5. Toolbar and UI customization
 
@@ -133,11 +137,13 @@ If you only want to try the actively maintained version, the recommended choice 
 
 ### Requirements
 
-- Android SDK Platform / Build-Tools 35
-- Android NDK 25
-- CMake 3.22.1
+- Android SDK Platform / Build-Tools 36
+- Android NDK 28
+- CMake 3.31.6
 - `extra-cmake-modules`
 - `gettext`
+
+The app currently supports Android 7.0 (API 24) and newer.
 
 ### Initialize repository
 
