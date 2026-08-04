@@ -438,13 +438,16 @@ class KeyboardLayoutAdapter(
         // Add keys - short click to edit, with drag support (directly on the key)
         displayRow.forEachIndexed { keyIndex, key ->
             val actualKeyIndex = resolveActualKeyIndex(position, keyIndex)
-            val type = key["type"] as? String ?: ""
-            val isMacroKey = type == "MacroKey"
-            val hasComposeOverride = key["composeOverride"] is Map<*, *>
+            val theme = ThemeManager.activeTheme
             val rowBackgroundColor = KeyboardRowStyleUtils.resolveRowBackgroundColor(
                 style = rowStyle,
                 visibleIndex = keyIndex,
-                visibleCount = displayRow.size
+                visibleCount = displayRow.size,
+                baseColor = resolveThemeColorReference(
+                    context,
+                    theme,
+                    rowStyle.backgroundColorMonet
+                ) ?: rowStyle.backgroundColor
             )
             val keyChip = TextView(context).apply {
                 text = buildKeyLabel(key)
@@ -452,20 +455,11 @@ class KeyboardLayoutAdapter(
                 setPadding(context.dp(10), context.dp(8), context.dp(10), context.dp(8))
                 gravity = Gravity.CENTER
                 background = android.graphics.drawable.GradientDrawable().apply {
-                    if (rowBackgroundColor != null) {
-                        setColor(rowBackgroundColor)
-                        setStroke(context.dp(1), context.styledColor(android.R.attr.colorControlNormal))
-                    } else if (isMacroKey) {
-                        // MacroKey: 使用主题强调色区分
-                        setColor(context.styledColor(android.R.attr.colorAccent))
-                        setStroke(context.dp(2), context.styledColor(android.R.attr.colorControlHighlight))
-                    } else {
-                        setColor(context.styledColor(android.R.attr.colorButtonNormal))
-                        setStroke(context.dp(1), context.styledColor(android.R.attr.colorControlNormal))
-                    }
+                    setColor(resolvePreviewKeyBackgroundColor(key, rowBackgroundColor))
+                    setStroke(context.dp(1), theme.dividerColor)
                     cornerRadius = context.dp(4).toFloat()
                 }
-                setTextColor(resolvePreviewKeyTextColor(key, isMacroKey, hasComposeOverride))
+                setTextColor(resolvePreviewKeyTextColor(key))
                 setOnClickListener {
                     val adapterPosition = holder.bindingAdapterPosition
                     if (adapterPosition != RecyclerView.NO_POSITION && actualKeyIndex >= 0) {
@@ -851,19 +845,35 @@ class KeyboardLayoutAdapter(
     }
 
     private fun resolvePreviewKeyTextColor(
-        key: Map<String, Any?>,
-        isMacroKey: Boolean,
-        hasComposeOverride: Boolean
+        key: Map<String, Any?>
     ): Int {
-        val defaultColor = when {
-            isMacroKey -> context.styledColor(android.R.attr.textColorPrimaryInverse)
-            hasComposeOverride -> context.styledColor(android.R.attr.colorAccent)
-            else -> context.styledColor(android.R.attr.textColorPrimary)
-        }
         val theme = ThemeManager.activeTheme
+        val defaultColor = when (key["type"] as? String) {
+            "CapsKey", "LayoutSwitchKey", "CommaKey", "LanguageKey",
+            "SymbolKey", "BackspaceKey" -> theme.altKeyTextColor
+            "ReturnKey" -> theme.accentKeyTextColor
+            else -> theme.keyTextColor
+        }
         return resolveThemeColorReference(context, theme, key["textColorMonet"] as? String)
             ?: parseColorInt(key["textColor"])
             ?: defaultColor
+    }
+
+    private fun resolvePreviewKeyBackgroundColor(
+        key: Map<String, Any?>,
+        rowBackgroundColor: Int?
+    ): Int {
+        if (rowBackgroundColor != null) return rowBackgroundColor
+
+        val theme = ThemeManager.activeTheme
+        return resolveThemeColorReference(context, theme, key["backgroundColorMonet"] as? String)
+            ?: parseColorInt(key["backgroundColor"])
+            ?: when (key["type"] as? String) {
+                "CapsKey", "LayoutSwitchKey", "CommaKey", "LanguageKey",
+                "SymbolKey", "BackspaceKey" -> theme.altKeyBackgroundColor
+                "ReturnKey" -> theme.accentKeyBackgroundColor
+                else -> theme.keyBackgroundColor
+            }
     }
 
     private fun parseColorInt(value: Any?): Int? {

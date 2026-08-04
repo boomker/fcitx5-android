@@ -6,6 +6,7 @@ package org.fxboomk.fcitx5.android.ui.main.settings.behavior.dialog
 
 import android.content.Intent
 import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -13,7 +14,6 @@ import android.view.Gravity
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
-import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.EditText
@@ -23,6 +23,7 @@ import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.core.view.ViewCompat
@@ -30,9 +31,14 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
 import org.fxboomk.fcitx5.android.R
+import org.fxboomk.fcitx5.android.data.theme.SystemColorResourceId
 import org.fxboomk.fcitx5.android.data.theme.ThemeManager
+import org.fxboomk.fcitx5.android.data.theme.ThemeMonet
+import org.fxboomk.fcitx5.android.data.theme.THEME_COLOR_REF_PREFIX
+import org.fxboomk.fcitx5.android.data.theme.resolveThemeColorReference
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.utils.KeyboardRowStyleUtils
 import org.fxboomk.fcitx5.android.ui.main.settings.theme.ThemeColorEditorActivity
+import org.fxboomk.fcitx5.android.ui.main.settings.theme.SystemColorResourcePickerDialog
 import org.fxboomk.fcitx5.android.utils.serializable
 import splitties.dimensions.dp
 import splitties.resources.styledColor
@@ -88,7 +94,7 @@ class RowEditorActivity : AppCompatActivity() {
     private val colorEditorLauncher =
         registerForActivityResult(ThemeColorEditorActivity.Contract()) { result ->
             result ?: return@registerForActivityResult
-            rowStyle = rowStyle.copy(backgroundColor = result.color)
+            rowStyle = rowStyle.copy(backgroundColor = result.color, backgroundColorMonet = null)
             bindUiState()
         }
 
@@ -195,7 +201,7 @@ class RowEditorActivity : AppCompatActivity() {
         val backgroundColorRow = createColorActionRow(
             title = getString(R.string.text_keyboard_layout_row_background_color)
         ) {
-            openColorEditor()
+            showBackgroundColorOptions()
         }
         backgroundColorValue = backgroundColorRow.second
         backgroundColorSwatch = backgroundColorRow.third
@@ -211,18 +217,21 @@ class RowEditorActivity : AppCompatActivity() {
             backgroundStyleSpinner.setSelection(backgroundStyleIndex(rowStyle.backgroundStyle))
         }
 
-        val color = rowStyle.backgroundColor
-        backgroundColorValue.text = if (color == null) {
-            getString(R.string.text_keyboard_layout_row_background_not_set)
-        } else {
-            String.format("#%08X", color)
+        val colorReference = rowStyle.backgroundColorMonet?.takeIf { it.isNotBlank() }
+        val color = colorReference?.let {
+            resolveThemeColorReference(this, ThemeManager.activeTheme, it)
+        } ?: rowStyle.backgroundColor
+        backgroundColorValue.text = when {
+            colorReference != null -> formatColorReferenceName(colorReference)
+            color != null -> String.format("#%08X", color)
+            else -> getString(R.string.text_keyboard_layout_row_background_not_set)
         }
         backgroundColorSwatch.background = android.graphics.drawable.GradientDrawable().apply {
             shape = android.graphics.drawable.GradientDrawable.RECTANGLE
             cornerRadius = dp(4).toFloat()
             setColor(color ?: ThemeManager.activeTheme.keyBackgroundColor)
         }
-        backgroundColorSwatch.alpha = if (color == null) 0.4f else 1f
+        backgroundColorSwatch.alpha = if (colorReference == null && color == null) 0.4f else 1f
         backgroundColorValue.alpha = if (rowStyle.backgroundStyle == null) 0.55f else 1f
         backgroundColorSwatch.alpha = if (rowStyle.backgroundStyle == null) 0.25f else backgroundColorSwatch.alpha
         updateSaveButtonState()
@@ -271,7 +280,9 @@ class RowEditorActivity : AppCompatActivity() {
     }
 
     private fun openColorEditor() {
-        val initialColor = rowStyle.backgroundColor ?: ThemeManager.activeTheme.keyBackgroundColor
+        val initialColor = rowStyle.backgroundColorMonet?.let {
+            resolveThemeColorReference(this, ThemeManager.activeTheme, it)
+        } ?: rowStyle.backgroundColor ?: ThemeManager.activeTheme.keyBackgroundColor
         colorEditorLauncher.launch(
             ThemeColorEditorActivity.EditorInput(
                 fieldName = "rowBackgroundColor",
@@ -288,13 +299,20 @@ class RowEditorActivity : AppCompatActivity() {
             ?.toFloatOrNull()
             ?: return null
         if (heightMultiplier <= 0f) return null
-        if (rowStyle.backgroundStyle != null && rowStyle.backgroundColor == null) return null
         return rowStyle.copy(heightMultiplier = heightMultiplier)
+    }
+
+    private fun hasRequiredBackgroundColor(style: KeyboardRowStyleUtils.RowStyle): Boolean {
+        return style.backgroundStyle == null ||
+            style.backgroundColor != null ||
+            !style.backgroundColorMonet.isNullOrBlank()
     }
 
     private fun updateSaveButtonState() {
         val candidate = currentEditedStyle()
-        val enabled = candidate != null && candidate != initialStyle
+        val enabled = candidate != null &&
+            hasRequiredBackgroundColor(candidate) &&
+            candidate != initialStyle
         saveMenuItem?.isEnabled = enabled
         saveMenuItem?.icon?.mutate()?.setTint(if (enabled) Color.BLACK else Color.GRAY)
     }
@@ -304,7 +322,7 @@ class RowEditorActivity : AppCompatActivity() {
             Toast.makeText(this, R.string.text_keyboard_layout_row_height_multiplier_invalid, Toast.LENGTH_SHORT).show()
             return
         }
-        if (normalizedStyle.backgroundStyle != null && normalizedStyle.backgroundColor == null) {
+        if (!hasRequiredBackgroundColor(normalizedStyle)) {
             Toast.makeText(this, R.string.text_keyboard_layout_row_background_color_required, Toast.LENGTH_SHORT).show()
             return
         }
@@ -315,6 +333,111 @@ class RowEditorActivity : AppCompatActivity() {
         }
         setResult(RESULT_OK, result)
         finish()
+    }
+
+    private fun showBackgroundColorOptions() {
+        val supportsMonet = ThemeMonet.supportsCustomMappingEditor(this)
+        val options = mutableListOf<String>()
+        val actions = mutableListOf<() -> Unit>()
+
+        options += getString(R.string.text_keyboard_layout_key_color_mode_theme)
+        actions += {
+            rowStyle = rowStyle.copy(backgroundColor = null, backgroundColorMonet = null)
+            bindUiState()
+        }
+
+        options += getString(R.string.text_keyboard_layout_key_color_mode_custom)
+        actions += { openColorEditor() }
+
+        options += getString(R.string.text_keyboard_layout_key_color_mode_theme_key_pick)
+        actions += { openThemeColorTokenPicker() }
+
+        if (supportsMonet) {
+            options += getString(R.string.text_keyboard_layout_key_color_mode_monet_pick)
+            actions += { openMonetColorPicker() }
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle(R.string.text_keyboard_layout_row_background_color)
+            .setItems(options.toTypedArray()) { _, which ->
+                actions.getOrNull(which)?.invoke()
+            }
+            .show()
+    }
+
+    private fun openThemeColorTokenPicker() {
+        val currentToken = rowStyle.backgroundColorMonet
+            ?.takeIf { it.startsWith(THEME_COLOR_REF_PREFIX) }
+            ?.removePrefix(THEME_COLOR_REF_PREFIX)
+        val checkedIndex = ThemeColorTokenPicker.tokens.indexOf(currentToken)
+
+        AlertDialog.Builder(this)
+            .setTitle(R.string.text_keyboard_layout_key_color_mode_theme_key_pick)
+            .setSingleChoiceItems(
+                ThemeColorTokenPicker.PreviewAdapter(
+                    this,
+                    ThemeColorTokenPicker.tokens,
+                    ThemeManager.activeTheme,
+                    singleLineLabel = true
+                ),
+                checkedIndex
+            ) { dialog, which ->
+                val token = ThemeColorTokenPicker.tokens.getOrNull(which)
+                    ?: return@setSingleChoiceItems
+                rowStyle = rowStyle.copy(
+                    backgroundColor = null,
+                    backgroundColorMonet = "$THEME_COLOR_REF_PREFIX$token"
+                )
+                dialog.dismiss()
+                bindUiState()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun openMonetColorPicker() {
+        if (!ThemeMonet.supportsCustomMappingEditor(this)) {
+            Toast.makeText(
+                this,
+                R.string.text_keyboard_layout_key_color_monet_unavailable,
+                Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
+        val available = SystemColorResourceId.getAvailableForSdk(Build.VERSION.SDK_INT)
+        val current = rowStyle.backgroundColorMonet
+            ?.takeUnless { it.startsWith(THEME_COLOR_REF_PREFIX) }
+            ?.let(SystemColorResourceId::fromResourceName)
+            ?: available.firstOrNull()
+            ?: return
+        SystemColorResourcePickerDialog.show(
+            this,
+            current,
+            object : SystemColorResourcePickerDialog.OnColorResourceSelectedListener {
+                override fun onColorResourceSelected(resourceId: SystemColorResourceId) {
+                    rowStyle = rowStyle.copy(
+                        backgroundColor = null,
+                        backgroundColorMonet = resourceId.resourceId
+                    )
+                    bindUiState()
+                }
+            }
+        )
+    }
+
+    private fun formatColorReferenceName(ref: String): String {
+        return if (ref.startsWith(THEME_COLOR_REF_PREFIX)) {
+            val token = ref.removePrefix(THEME_COLOR_REF_PREFIX)
+            getString(
+                R.string.text_keyboard_layout_key_color_mode_theme_ref,
+                ThemeColorTokenPicker.formatTokenName(token)
+            )
+        } else {
+            getString(
+                R.string.text_keyboard_layout_key_color_mode_monet,
+                ref.removePrefix("system_").replace("_", " ")
+            )
+        }
     }
 
     private fun createActionRow(

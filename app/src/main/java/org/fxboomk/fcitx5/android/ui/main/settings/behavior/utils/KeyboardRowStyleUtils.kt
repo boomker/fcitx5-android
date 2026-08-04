@@ -12,6 +12,7 @@ object KeyboardRowStyleUtils {
     const val ROW_ALT_TEXT_POSITION = "altTextPosition"
     const val ROW_BACKGROUND_STYLE = "backgroundStyle"
     const val ROW_BACKGROUND_COLOR = "backgroundColor"
+    const val ROW_BACKGROUND_COLOR_MONET = "backgroundColorMonet"
 
     enum class AltTextPosition(val wireValue: String) {
         TopBottom("topBottom"),
@@ -41,13 +42,15 @@ object KeyboardRowStyleUtils {
         val heightMultiplier: Float = 1f,
         val altTextPosition: AltTextPosition? = null,
         val backgroundStyle: BackgroundStyle? = null,
-        val backgroundColor: Int? = null
+        val backgroundColor: Int? = null,
+        val backgroundColorMonet: String? = null
     ) {
         fun isDefault(): Boolean {
             return heightMultiplier == 1f &&
                 altTextPosition == null &&
                 backgroundStyle == null &&
-                backgroundColor == null
+                backgroundColor == null &&
+                backgroundColorMonet == null
         }
     }
 
@@ -122,6 +125,7 @@ object KeyboardRowStyleUtils {
         style.altTextPosition?.let { meta[ROW_ALT_TEXT_POSITION] = it.wireValue }
         style.backgroundStyle?.let { meta[ROW_BACKGROUND_STYLE] = it.wireValue }
         style.backgroundColor?.let { meta[ROW_BACKGROUND_COLOR] = it }
+        style.backgroundColorMonet?.let { meta[ROW_BACKGROUND_COLOR_MONET] = it }
         return meta
     }
 
@@ -131,16 +135,18 @@ object KeyboardRowStyleUtils {
             heightMultiplier = parseFloat(meta[ROW_HEIGHT_MULTIPLIER])?.takeIf { it > 0f } ?: 1f,
             altTextPosition = AltTextPosition.fromWireValue(meta[ROW_ALT_TEXT_POSITION] as? String),
             backgroundStyle = BackgroundStyle.fromWireValue(meta[ROW_BACKGROUND_STYLE] as? String),
-            backgroundColor = parseInt(meta[ROW_BACKGROUND_COLOR])
+            backgroundColor = parseInt(meta[ROW_BACKGROUND_COLOR]),
+            backgroundColorMonet = (meta[ROW_BACKGROUND_COLOR_MONET] as? String)?.trim()
         ).normalize()
     }
 
     fun resolveRowBackgroundColor(
         style: RowStyle,
         visibleIndex: Int,
-        visibleCount: Int
+        visibleCount: Int,
+        baseColor: Int? = style.backgroundColor
     ): Int? {
-        val baseColor = style.backgroundColor ?: return null
+        baseColor ?: return null
         return when (style.backgroundStyle) {
             BackgroundStyle.Solid -> baseColor
             BackgroundStyle.Gradient -> {
@@ -156,12 +162,18 @@ object KeyboardRowStyleUtils {
 
     private fun RowStyle.normalize(): RowStyle {
         val normalizedHeight = heightMultiplier.takeIf { it > 0f } ?: 1f
-        val normalizedStyle = backgroundStyle.takeIf { backgroundColor != null }
-        val normalizedColor = backgroundColor.takeIf { normalizedStyle != null }
+        val normalizedReference = backgroundColorMonet?.takeIf { it.isNotBlank() }
+        val hasBackgroundColor = backgroundColor != null || normalizedReference != null
+        val normalizedStyle = backgroundStyle.takeIf { hasBackgroundColor }
+        val normalizedColor = backgroundColor.takeIf {
+            normalizedStyle != null && normalizedReference == null
+        }
+        val normalizedColorReference = normalizedReference?.takeIf { normalizedStyle != null }
         return copy(
             heightMultiplier = normalizedHeight,
             backgroundStyle = normalizedStyle,
-            backgroundColor = normalizedColor
+            backgroundColor = normalizedColor,
+            backgroundColorMonet = normalizedColorReference
         )
     }
 

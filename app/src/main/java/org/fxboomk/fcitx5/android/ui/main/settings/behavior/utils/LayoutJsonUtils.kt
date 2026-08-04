@@ -6,8 +6,11 @@ package org.fxboomk.fcitx5.android.ui.main.settings.behavior.utils
 
 import android.util.Log
 import kotlinx.serialization.json.*
+import org.fxboomk.fcitx5.android.data.theme.ThemeManager
+import org.fxboomk.fcitx5.android.data.theme.resolveThemeColorReference
 import org.fxboomk.fcitx5.android.input.keyboard.*
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.data.LayoutHeightPercentOverrides
+import org.fxboomk.fcitx5.android.utils.appContext
 
 // Import Macro types explicitly
 import org.fxboomk.fcitx5.android.input.keyboard.MacroAction
@@ -349,7 +352,9 @@ object LayoutJsonUtils {
                 KeyboardRowStyleUtils.ROW_HEIGHT_MULTIPLIER to parseOptionalFloat(rowObject[KeyboardRowStyleUtils.ROW_HEIGHT_MULTIPLIER]),
                 KeyboardRowStyleUtils.ROW_ALT_TEXT_POSITION to rowObject[KeyboardRowStyleUtils.ROW_ALT_TEXT_POSITION]?.jsonPrimitive?.contentOrNull,
                 KeyboardRowStyleUtils.ROW_BACKGROUND_STYLE to rowObject[KeyboardRowStyleUtils.ROW_BACKGROUND_STYLE]?.jsonPrimitive?.contentOrNull,
-                KeyboardRowStyleUtils.ROW_BACKGROUND_COLOR to parseOptionalInt(rowObject[KeyboardRowStyleUtils.ROW_BACKGROUND_COLOR])
+                KeyboardRowStyleUtils.ROW_BACKGROUND_COLOR to parseOptionalInt(rowObject[KeyboardRowStyleUtils.ROW_BACKGROUND_COLOR]),
+                KeyboardRowStyleUtils.ROW_BACKGROUND_COLOR_MONET to
+                    rowObject[KeyboardRowStyleUtils.ROW_BACKGROUND_COLOR_MONET]?.jsonPrimitive?.contentOrNull
             )
         )
     }
@@ -712,13 +717,30 @@ object LayoutJsonUtils {
         visibleIndex: Int = 0,
         visibleCount: Int = 1
     ): KeyDef {
+        val rowBackgroundReference = rowStyle.backgroundColorMonet
+        val rowGradientBaseColor = if (rowStyle.backgroundStyle == BackgroundStyle.Gradient) {
+            rowStyle.backgroundColor
+                ?: resolveThemeColorReference(
+                    appContext,
+                    ThemeManager.activeTheme,
+                    rowBackgroundReference
+                )
+        } else {
+            rowStyle.backgroundColor
+        }
         val rowBackgroundColor = KeyboardRowStyleUtils.resolveRowBackgroundColor(
             style = rowStyle,
             visibleIndex = visibleIndex,
-            visibleCount = visibleCount
+            visibleCount = visibleCount,
+            baseColor = rowGradientBaseColor
         )
         val effectiveBackgroundColor = rowBackgroundColor ?: key.backgroundColor
-        val effectiveBackgroundColorMonet = if (rowBackgroundColor != null) null else key.backgroundColorMonet
+        val effectiveBackgroundColorMonet = when {
+            rowBackgroundColor != null -> null
+            rowStyle.backgroundStyle == BackgroundStyle.Solid &&
+                !rowBackgroundReference.isNullOrBlank() -> rowBackgroundReference
+            else -> key.backgroundColorMonet
+        }
         val keyDef = when (key.type) {
             "AlphabetKey" -> AlphabetKey(
                 character = key.main ?: "",
@@ -1010,6 +1032,9 @@ object LayoutJsonUtils {
         }
         rowStyle.backgroundColor?.let {
             rowObject[KeyboardRowStyleUtils.ROW_BACKGROUND_COLOR] = JsonPrimitive(it)
+        }
+        rowStyle.backgroundColorMonet?.let {
+            rowObject[KeyboardRowStyleUtils.ROW_BACKGROUND_COLOR_MONET] = JsonPrimitive(it)
         }
         rowObject[KeyboardRowStyleUtils.ROW_KEYS_FIELD] = keyArray
         return JsonObject(rowObject)

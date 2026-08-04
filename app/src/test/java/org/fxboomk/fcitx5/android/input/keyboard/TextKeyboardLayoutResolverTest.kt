@@ -7,12 +7,32 @@ package org.fxboomk.fcitx5.android.input.keyboard
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import org.fxboomk.fcitx5.android.data.theme.ThemePreset
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class TextKeyboardLayoutResolverTest {
+
+    @Test
+    fun keyDefLayoutCacheKey_changesWithThemeColors() {
+        val lightKey = TextKeyboard.KeyDefLayoutCacheKey(
+            sourceKey = "default",
+            subModeLabel = "",
+            showLangSwitch = true,
+            theme = ThemePreset.MaterialLight,
+        )
+        val darkKey = TextKeyboard.KeyDefLayoutCacheKey(
+            sourceKey = "default",
+            subModeLabel = "",
+            showLangSwitch = true,
+            theme = ThemePreset.MaterialDark,
+        )
+
+        assertNotEquals(lightKey, darkKey)
+    }
 
     @Test
     fun metadataBearingDefaultLayoutProvidesRowsAndOrientationSpecificHeights() {

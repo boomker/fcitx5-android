@@ -34,6 +34,13 @@ class TextKeyboard(
 
     enum class CapsState { None, Once, Lock }
 
+    internal data class KeyDefLayoutCacheKey(
+        val sourceKey: String,
+        val subModeLabel: String,
+        val showLangSwitch: Boolean,
+        val theme: Theme,
+    )
+
     companion object {
         const val Name = "Text"
         private var lastModified = 0L
@@ -107,7 +114,7 @@ class TextKeyboard(
             }
 
         // Cache for parsed KeyDef layouts to avoid recreating them on every reloadLayout()
-        private val cachedKeyDefLayouts = mutableMapOf<String, List<List<KeyDef>>>()
+        private val cachedKeyDefLayouts = mutableMapOf<KeyDefLayoutCacheKey, List<List<KeyDef>>>()
         private var lastLayoutCacheInvalidated = 0L
 
         /**
@@ -183,7 +190,12 @@ class TextKeyboard(
                     )
                     val rows = resolution?.rows
                     if (rows != null) {
-                        val cacheKey = "${resolution.sourceKey}:$subModeLabel:$showLangSwitch"
+                        val cacheKey = KeyDefLayoutCacheKey(
+                            sourceKey = resolution.sourceKey,
+                            subModeLabel = subModeLabel,
+                            showLangSwitch = showLangSwitch,
+                            theme = ThemeManager.activeTheme,
+                        )
                         return cachedKeyDefLayouts.getOrPut(cacheKey) {
                             rows.map { rowElement ->
                                 LayoutJsonUtils.createKeyDefsForRowElement(

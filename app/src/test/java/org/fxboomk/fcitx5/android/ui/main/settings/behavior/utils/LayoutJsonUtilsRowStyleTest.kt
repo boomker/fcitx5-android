@@ -12,6 +12,7 @@ import org.fxboomk.fcitx5.android.input.keyboard.KeyDef
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.data.LayoutHeightPercentOverrides
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -66,6 +67,51 @@ class LayoutJsonUtilsRowStyleTest {
         assertEquals("bottom", rowObject["altTextPosition"]!!.jsonPrimitive.content)
         assertEquals("solid", rowObject["backgroundStyle"]!!.jsonPrimitive.content)
         assertEquals(1, rowObject["keys"]!!.jsonArray.size)
+    }
+
+    @Test
+    fun structuredRow_backgroundColorReference_roundTrips() {
+        val rowsArray = Json.parseToJsonElement(
+            """
+            [
+              {
+                "backgroundStyle": "solid",
+                "backgroundColorMonet": "theme:accentKeyBackgroundColor",
+                "keys": [
+                  {"type": "AlphabetKey", "main": "q", "alt": "1"}
+                ]
+              }
+            ]
+            """.trimIndent()
+        ).jsonArray
+
+        val rows = LayoutJsonUtils.parseLayoutRows(rowsArray)
+        val rowStyle = KeyboardRowStyleUtils.rowStyle(rows.single())
+        val json = LayoutJsonUtils.convertToSaveJson(mapOf("rime" to rows))
+        val rowObject = json["rime"]!!.jsonArray.single().jsonObject
+
+        assertEquals("theme:accentKeyBackgroundColor", rowStyle.backgroundColorMonet)
+        assertEquals(
+            "theme:accentKeyBackgroundColor",
+            rowObject["backgroundColorMonet"]!!.jsonPrimitive.content
+        )
+    }
+
+    @Test
+    fun createKeyDef_preservesSolidRowBackgroundColorReference() {
+        val keyDef = LayoutJsonUtils.createKeyDef(
+            key = LayoutJsonUtils.KeyJson(type = "AlphabetKey", main = "q", alt = "1"),
+            rowStyle = KeyboardRowStyleUtils.RowStyle(
+                backgroundStyle = KeyboardRowStyleUtils.BackgroundStyle.Solid,
+                backgroundColorMonet = "theme:accentKeyBackgroundColor"
+            )
+        )
+
+        assertNull(keyDef.appearance.backgroundColor)
+        assertEquals(
+            "theme:accentKeyBackgroundColor",
+            keyDef.appearance.backgroundColorMonet
+        )
     }
 
     @Test

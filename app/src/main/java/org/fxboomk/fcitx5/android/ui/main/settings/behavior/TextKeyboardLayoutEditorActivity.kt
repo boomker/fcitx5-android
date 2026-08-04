@@ -223,7 +223,12 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
     private var originalEntries: Map<String, List<List<Map<String, Any?>>>> = emptyMap()
 
     private val previewManager by lazy {
-        KeyboardPreviewManager(this, previewKeyboardContainer, dataManager.entries)
+        KeyboardPreviewManager(
+            this,
+            previewKeyboardContainer,
+            dataManager.entries,
+            dataManager::getLayoutHeightPercentOverride
+        )
     }
     
     private val keyEditorLauncher: ActivityResultLauncher<Intent> =

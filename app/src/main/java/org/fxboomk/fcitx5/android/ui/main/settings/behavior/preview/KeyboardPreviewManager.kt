@@ -8,6 +8,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
+import android.content.res.Configuration
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
@@ -27,6 +28,7 @@ import org.fxboomk.fcitx5.android.input.config.DefaultConfigProvider
 import org.fxboomk.fcitx5.android.input.config.MemoryConfigProvider
 import org.fxboomk.fcitx5.android.input.keyboard.TextKeyboard
 import org.fxboomk.fcitx5.android.ui.main.settings.preview.PreviewInputMethodEntry
+import org.fxboomk.fcitx5.android.ui.main.settings.behavior.data.LayoutHeightPercentOverrides
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.utils.LayoutJsonUtils
 import splitties.dimensions.dp
 import java.io.File
@@ -53,7 +55,8 @@ import java.io.File
 class KeyboardPreviewManager(
     private val context: Context,
     private val previewContainer: ViewGroup,
-    private val entries: Map<String, List<List<Map<String, Any?>>>>
+    private val entries: Map<String, List<List<Map<String, Any?>>>>,
+    private val layoutHeightPercentProvider: (String) -> LayoutHeightPercentOverrides? = { null }
 ) {
     private var previewKeyboard: TextKeyboard? = null
     private val previewBlurMask by lazy { PreviewKeyBlurMaskView(context) }
@@ -157,9 +160,17 @@ class KeyboardPreviewManager(
             val displayMetrics = context.resources.displayMetrics
             val screenHeight = displayMetrics.heightPixels
 
-            // Get keyboard height percentage from preferences
             val keyboardPrefs = AppPrefs.getInstance().keyboard
-            val heightPercent = keyboardPrefs.keyboardHeightPercent.getValue()
+            val isLandscape = context.resources.configuration.orientation ==
+                Configuration.ORIENTATION_LANDSCAPE
+            val layoutHeightOverride = layoutHeightPercentProvider(layoutName)
+            val heightPercent = if (isLandscape) {
+                layoutHeightOverride?.landscape
+                    ?: keyboardPrefs.keyboardHeightPercentLandscape.getValue()
+            } else {
+                layoutHeightOverride?.portrait
+                    ?: keyboardPrefs.keyboardHeightPercent.getValue()
+            }
             val keyboardHeight = screenHeight * heightPercent / 100
 
             // Get keyboard side and bottom padding from preferences

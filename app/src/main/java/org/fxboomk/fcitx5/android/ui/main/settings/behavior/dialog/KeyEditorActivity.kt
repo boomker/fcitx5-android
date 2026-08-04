@@ -12,8 +12,6 @@ import android.view.Gravity
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
-import android.view.ViewGroup
-import android.widget.BaseAdapter
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -37,6 +35,8 @@ import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.data.theme.SystemColorResourceId
 import org.fxboomk.fcitx5.android.data.theme.ThemeManager
 import org.fxboomk.fcitx5.android.data.theme.ThemeMonet
+import org.fxboomk.fcitx5.android.data.theme.THEME_COLOR_REF_PREFIX
+import org.fxboomk.fcitx5.android.data.theme.resolveThemeColorReference
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.utils.LayoutJsonUtils
 import org.fxboomk.fcitx5.android.ui.main.settings.theme.SystemColorResourcePickerDialog
 import org.fxboomk.fcitx5.android.ui.main.settings.theme.ThemeColorEditorActivity
@@ -52,14 +52,6 @@ import java.util.Arrays
 import java.util.LinkedHashMap
 
 class KeyEditorActivity : AppCompatActivity() {
-
-    private data class ThemeColorToken(
-        val token: String,
-        val resolver: (org.fxboomk.fcitx5.android.data.theme.Theme) -> Int
-    ) {
-        val displayName: String
-            get() = token.replace(Regex("([a-z])([A-Z])"), "$1 $2")
-    }
 
     private data class EditableColorField(
         val customKey: String,
@@ -187,30 +179,6 @@ class KeyEditorActivity : AppCompatActivity() {
         )
     )
 
-    private val themeColorTokens = listOf(
-        ThemeColorToken("backgroundColor") { it.backgroundColor },
-        ThemeColorToken("barColor") { it.barColor },
-        ThemeColorToken("keyboardColor") { it.keyboardColor },
-        ThemeColorToken("keyBackgroundColor") { it.keyBackgroundColor },
-        ThemeColorToken("keyTextColor") { it.keyTextColor },
-        ThemeColorToken("candidateTextColor") { it.candidateTextColor },
-        ThemeColorToken("candidateLabelColor") { it.candidateLabelColor },
-        ThemeColorToken("candidateCommentColor") { it.candidateCommentColor },
-        ThemeColorToken("altKeyBackgroundColor") { it.altKeyBackgroundColor },
-        ThemeColorToken("altKeyTextColor") { it.altKeyTextColor },
-        ThemeColorToken("accentKeyBackgroundColor") { it.accentKeyBackgroundColor },
-        ThemeColorToken("accentKeyTextColor") { it.accentKeyTextColor },
-        ThemeColorToken("keyPressHighlightColor") { it.keyPressHighlightColor },
-        ThemeColorToken("keyShadowColor") { it.keyShadowColor },
-        ThemeColorToken("popupBackgroundColor") { it.popupBackgroundColor },
-        ThemeColorToken("popupTextColor") { it.popupTextColor },
-        ThemeColorToken("spaceBarColor") { it.spaceBarColor },
-        ThemeColorToken("dividerColor") { it.dividerColor },
-        ThemeColorToken("clipboardEntryColor") { it.clipboardEntryColor },
-        ThemeColorToken("genericActiveBackgroundColor") { it.genericActiveBackgroundColor },
-        ThemeColorToken("genericActiveForegroundColor") { it.genericActiveForegroundColor }
-    )
-
     private val macroEditorLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             val data = result.data ?: return@registerForActivityResult
@@ -259,7 +227,6 @@ class KeyEditorActivity : AppCompatActivity() {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
         readIntentExtras()
-        baselineKeySnapshot = snapshotOf(keyData)
 
         val toolbarBaseTopPadding = toolbar.paddingTop
         ViewCompat.setOnApplyWindowInsetsListener(toolbar) { view, insets ->
@@ -270,6 +237,7 @@ class KeyEditorActivity : AppCompatActivity() {
         ViewCompat.requestApplyInsets(toolbar)
 
         buildForm()
+        baselineKeySnapshot = snapshotOf(buildDraftKeyData())
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -333,6 +301,7 @@ class KeyEditorActivity : AppCompatActivity() {
             composeOverrideData = null
             keyData.remove("composeOverride")
             independentColor = keyData["independentColor"] as? Boolean ?: false
+            keyData["independentColor"] = independentColor
         }
 
         val titleRes = if (keyIndex != null) R.string.edit else R.string.text_keyboard_layout_add_key
@@ -880,7 +849,9 @@ class KeyEditorActivity : AppCompatActivity() {
                 customColor != null -> formatAndroidColorCode(customColor)
                 else -> getString(R.string.text_keyboard_layout_key_color_mode_theme)
             }
-            val resolvedColor = resolveColorReference(theme, colorRef) ?: customColor ?: field.themeColorGetter(theme)
+            val resolvedColor = resolveThemeColorReference(this, theme, colorRef)
+                ?: customColor
+                ?: resolveThemeDefaultColor(field, theme)
 
             val row = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
@@ -991,22 +962,20 @@ class KeyEditorActivity : AppCompatActivity() {
     }
 
     private fun openThemeColorTokenPicker(field: EditableColorField) {
-        val availableTokens = availableThemeTokensForField(field)
-        if (availableTokens.isEmpty()) return
-
         val theme = ThemeManager.activeTheme
         val currentToken = (keyColorOverrides[field.monetKey] as? String)
             ?.takeIf { it.startsWith(THEME_COLOR_REF_PREFIX) }
             ?.removePrefix(THEME_COLOR_REF_PREFIX)
-        val checkedIndex = availableTokens.indexOfFirst { it.token == currentToken }
+        val checkedIndex = ThemeColorTokenPicker.tokens.indexOf(currentToken)
 
         AlertDialog.Builder(this)
             .setTitle(R.string.text_keyboard_layout_key_color_mode_theme_key_pick)
             .setSingleChoiceItems(
-                ThemeColorTokenPreviewAdapter(this, availableTokens, theme),
+                ThemeColorTokenPicker.PreviewAdapter(this, ThemeColorTokenPicker.tokens, theme),
                 checkedIndex
             ) { dialog, which ->
-                val token = availableTokens.getOrNull(which)?.token ?: return@setSingleChoiceItems
+                val token = ThemeColorTokenPicker.tokens.getOrNull(which)
+                    ?: return@setSingleChoiceItems
                 persistCurrentDraft()
                 setColorOverride(field, null, "$THEME_COLOR_REF_PREFIX$token")
                 dialog.dismiss()
@@ -1021,10 +990,10 @@ class KeyEditorActivity : AppCompatActivity() {
         persistCurrentDraft()
         val theme = ThemeManager.activeTheme
         val current = parseColorInt(keyColorOverrides[field.customKey])
-            ?: resolveColorReference(theme, keyColorOverrides[field.monetKey] as? String)
-            ?: resolveColorReference(theme, inheritedBaseKeyColorData[field.monetKey] as? String)
+            ?: resolveThemeColorReference(this, theme, keyColorOverrides[field.monetKey] as? String)
+            ?: resolveThemeColorReference(this, theme, inheritedBaseKeyColorData[field.monetKey] as? String)
             ?: parseColorInt(inheritedBaseKeyColorData[field.customKey])
-            ?: field.themeColorGetter(theme)
+            ?: resolveThemeDefaultColor(field, theme)
         if (DeviceUtil.isHMOS) {
             colorEditorLauncher.launch(
                 ThemeColorEditorActivity.EditorInput(
@@ -1069,91 +1038,38 @@ class KeyEditorActivity : AppCompatActivity() {
         )
     }
 
-    private fun resolveMonetColor(resourceName: String?): Int? {
-        val name = resourceName?.takeIf { it.isNotBlank() } ?: return null
-        val colorResId = resources.getIdentifier(name, "color", "android")
-        if (colorResId == 0) return null
-        return runCatching { getColor(colorResId) }.getOrNull()
-    }
-
-    private fun resolveThemeTokenColor(theme: org.fxboomk.fcitx5.android.data.theme.Theme, token: String?): Int? {
-        val value = token?.takeIf { it.isNotBlank() } ?: return null
-        return themeColorTokens.firstOrNull { it.token == value }?.resolver?.invoke(theme)
-    }
-
-    private fun resolveColorReference(theme: org.fxboomk.fcitx5.android.data.theme.Theme, ref: String?): Int? {
-        val value = ref?.takeIf { it.isNotBlank() } ?: return null
-        return if (value.startsWith(THEME_COLOR_REF_PREFIX)) {
-            resolveThemeTokenColor(theme, value.removePrefix(THEME_COLOR_REF_PREFIX))
-        } else {
-            resolveMonetColor(value)
+    private fun resolveThemeDefaultColor(
+        field: EditableColorField,
+        theme: org.fxboomk.fcitx5.android.data.theme.Theme
+    ): Int {
+        return when (field.customKey) {
+            "backgroundColor" -> when (selectedType) {
+                "CapsKey", "LayoutSwitchKey", "CommaKey",
+                "LanguageKey", "SymbolKey", "BackspaceKey" -> theme.altKeyBackgroundColor
+                "ReturnKey" -> theme.accentKeyBackgroundColor
+                else -> theme.keyBackgroundColor
+            }
+            "textColor" -> when (selectedType) {
+                "CapsKey", "LayoutSwitchKey", "CommaKey",
+                "LanguageKey", "SymbolKey", "BackspaceKey" -> theme.altKeyTextColor
+                "ReturnKey" -> theme.accentKeyTextColor
+                else -> theme.keyTextColor
+            }
+            else -> field.themeColorGetter(theme)
         }
     }
 
     private fun formatColorReferenceName(ref: String): String {
         return if (ref.startsWith(THEME_COLOR_REF_PREFIX)) {
             val token = ref.removePrefix(THEME_COLOR_REF_PREFIX)
-            getString(R.string.text_keyboard_layout_key_color_mode_theme_ref, formatThemeColorTokenName(token))
+            getString(
+                R.string.text_keyboard_layout_key_color_mode_theme_ref,
+                ThemeColorTokenPicker.formatTokenName(token)
+            )
         } else {
             formatMonetResourceName(ref)
         }
     }
-
-    private fun availableThemeTokensForField(field: EditableColorField): List<ThemeColorToken> {
-        return themeColorTokens
-    }
-
-    private fun formatThemeColorTokenName(token: String): String {
-        return themeColorTokens.firstOrNull { it.token == token }?.displayName
-            ?: token.replace(Regex("([a-z])([A-Z])"), "$1 $2")
-    }
-
-    private class ThemeColorTokenPreviewAdapter(
-        private val context: android.content.Context,
-        private val tokens: List<ThemeColorToken>,
-        private val theme: org.fxboomk.fcitx5.android.data.theme.Theme
-    ) : BaseAdapter() {
-        override fun getCount(): Int = tokens.size
-        override fun getItem(position: Int): Any = tokens[position]
-        override fun getItemId(position: Int): Long = position.toLong()
-
-        override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
-            val row = (convertView as? LinearLayout) ?: LinearLayout(context).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER_VERTICAL
-                setPadding(context.dp(12), context.dp(10), context.dp(12), context.dp(10))
-                val colorPreview = View(context).apply {
-                    layoutParams = LinearLayout.LayoutParams(context.dp(20), context.dp(20))
-                }
-                val nameText = TextView(context).apply {
-                    setTextColor(context.styledColor(android.R.attr.textColorPrimary))
-                    textSize = 14f
-                    layoutParams = LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.WRAP_CONTENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT
-                    ).apply {
-                        marginStart = context.dp(12)
-                    }
-                }
-                addView(colorPreview)
-                addView(nameText)
-                tag = ThemeColorTokenRowHolder(colorPreview, nameText)
-            }
-            val holder = row.tag as ThemeColorTokenRowHolder
-            val token = tokens[position]
-            holder.colorPreview.background = android.graphics.drawable.GradientDrawable().apply {
-                cornerRadius = context.dp(4).toFloat()
-                setColor(token.resolver(theme))
-            }
-            holder.nameText.text = token.displayName
-            return row
-        }
-    }
-
-    private data class ThemeColorTokenRowHolder(
-        val colorPreview: View,
-        val nameText: TextView
-    )
 
     private fun formatMonetResourceName(resourceName: String): String {
         return resourceName.removePrefix("system_").replace("_", " ")
@@ -1840,7 +1756,6 @@ class KeyEditorActivity : AppCompatActivity() {
     }
 
     companion object {
-        private const val THEME_COLOR_REF_PREFIX = "theme:"
         private const val MENU_SAVE_ID = 5001
         private const val MENU_DELETE_ID = 5002
 
