@@ -232,7 +232,10 @@
     <string name="keyboard_settings_toolbar_and_voice">Toolbar and voice</string>
     <string name="keyboard_settings_key_and_gesture">Keys and gestures</string>
     <string name="keyboard_settings_layout_and_split">Layout and split keyboard</string>
-    <string name="keyboard_settings_candidates">Candidate display</string>
+    <string name="keyboard_settings_candidates">Composition and candidates</string>
+    <string name="preedit_style">Composition area style</string>
+    <string name="preedit_style_default">Default</string>
+    <string name="preedit_style_inline_candidate_bar">Inline candidate bar</string>
     <string name="keyboard_settings_advanced_customization">Advanced customization</string>
     <string name="keyboard_settings_split_tools_section">Split keyboard tools</string>
     <string name="keyboard_advanced_customization_summary">Fonts, popup presets, layout files, and toolbar buttons</string>

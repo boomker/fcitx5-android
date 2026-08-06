@@ -225,7 +225,10 @@
     <string name="keyboard_settings_toolbar_and_voice">工具栏与语音</string>
     <string name="keyboard_settings_key_and_gesture">按键与手势</string>
     <string name="keyboard_settings_layout_and_split">布局与分体</string>
-    <string name="keyboard_settings_candidates">候选词显示</string>
+    <string name="keyboard_settings_candidates">编码与候选词</string>
+    <string name="preedit_style">编码区样式</string>
+    <string name="preedit_style_default">默认</string>
+    <string name="preedit_style_inline_candidate_bar">内嵌候选栏</string>
     <string name="keyboard_settings_advanced_customization">高级自定义</string>
     <string name="keyboard_settings_split_tools_section">分体键盘工具</string>
     <string name="keyboard_advanced_customization_summary">字体、弹出预设、布局文件与工具栏按钮</string>

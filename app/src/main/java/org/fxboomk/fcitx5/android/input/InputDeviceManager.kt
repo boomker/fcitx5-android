@@ -119,10 +119,12 @@ class InputDeviceManager(
     fun onFloatingModeChanged() {
         setupInputViewEvents(isVirtualKeyboard)
         setupCandidatesViewEvents(isVirtualKeyboard)
+        inputView?.updateCompositionAreaStyle()
     }
 
     fun onPhysicalKeyboardHorizontalCandidateBarChanged() {
         setupViewEvents(isVirtualKeyboard)
+        inputView?.updateCompositionAreaStyle()
     }
 
     fun forceVirtualKeyboardForKawaiiBarAction() {

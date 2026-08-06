@@ -73,6 +73,7 @@ internal object KeyboardSettingsSupport {
     )
 
     val candidatesKeys = listOf(
+        "preedit_style",
         "horizontal_candidate_style",
         "expanded_candidate_style",
         "expanded_candidate_grid_span_count_portrait"

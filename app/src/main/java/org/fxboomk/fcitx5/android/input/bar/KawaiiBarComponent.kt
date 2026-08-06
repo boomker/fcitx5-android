@@ -32,6 +32,7 @@ import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.core.CapabilityFlag
 import org.fxboomk.fcitx5.android.core.CapabilityFlags
 import org.fxboomk.fcitx5.android.core.CandidateWord
+import org.fxboomk.fcitx5.android.core.FcitxEvent
 import org.fxboomk.fcitx5.android.core.FcitxEvent.CandidateListEvent
 import org.fxboomk.fcitx5.android.data.clipboard.ClipboardManager
 import org.fxboomk.fcitx5.android.data.clipboard.db.ClipboardEntry
@@ -80,6 +81,8 @@ import org.fxboomk.fcitx5.android.input.predict.hasCompletedAiResult
 import org.fxboomk.fcitx5.android.input.predict.hasInteractiveAiContent
 import org.fxboomk.fcitx5.android.input.voice.VoiceInputProviderManager
 import org.fxboomk.fcitx5.android.input.popup.PopupComponent
+import org.fxboomk.fcitx5.android.input.preedit.CompositionAreaStyle
+import org.fxboomk.fcitx5.android.input.preedit.PreeditUi
 import org.fxboomk.fcitx5.android.input.status.StatusAreaWindow
 import org.fxboomk.fcitx5.android.input.wm.InputWindow
 import org.fxboomk.fcitx5.android.input.wm.InputWindowManager
@@ -97,6 +100,7 @@ import splitties.views.backgroundColor
 import splitties.views.dsl.core.add
 import splitties.views.dsl.core.lParams
 import splitties.views.dsl.core.matchParent
+import splitties.views.horizontalPadding
 import java.util.concurrent.Executor
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
@@ -154,6 +158,7 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
     private val clipboardItemTimeout = prefs.clipboard.clipboardItemTimeout
     private val clipboardMaskSensitive by prefs.clipboard.clipboardMaskSensitive
     private val expandedCandidateStyle by prefs.keyboard.expandedCandidateStyle
+    private val compositionAreaStyle = prefs.keyboard.compositionAreaStyle
     private val expandToolbarByDefault by prefs.keyboard.expandToolbarByDefault
     private val toolbarNumRowOnPassword by prefs.keyboard.toolbarNumRowOnPassword
     private val showVoiceInputButton by prefs.keyboard.showVoiceInputButton
@@ -166,6 +171,7 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
     private var isCapabilityFlagsPassword: Boolean = false
     private var isKeyboardLayoutNumber: Boolean = false
     private var aiSuggestionExpandAvailable: Boolean = false
+    private var latestInputPanel = FcitxEvent.InputPanelEvent.Data()
 
     private enum class NumberRowState { Auto, ForceShow, ForceHide }
 
@@ -593,14 +599,34 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
     }
 
     private val candidateUi by lazy {
-        CandidateUi(context, theme, horizontalCandidate.view).apply {
+        CandidateUi(
+            context,
+            theme,
+            horizontalCandidate.view,
+            PreeditUi(
+                context,
+                theme,
+                setupTextView = {
+                    horizontalPadding = dp(8)
+                },
+                fontScale = 0.75f
+            )
+        ).apply {
             expandButton.apply {
                 swipeEnabled = true
                 swipeThresholdY = dp(HEIGHT.toFloat())
                 onGestureListener = swipeDownExpandCallback
             }
+            setInlineMode(usesInlineCompositionArea)
         }
     }
+
+    internal val usesInlineCompositionArea: Boolean
+        get() = compositionAreaStyle.getValue() == CompositionAreaStyle.InlineCandidateBar &&
+            !isFloatingCandidatesActive()
+
+    internal val shouldDisplayStandalonePreedit: Boolean
+        get() = !usesInlineCompositionArea && !isFloatingCandidatesActive()
 
     private val titleUi by lazy {
         TitleUi(context, theme)
@@ -719,6 +745,15 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         }
     }
 
+    fun updateCompositionAreaStyle() {
+        horizontalCandidate.setInlineMode(usesInlineCompositionArea)
+        candidateUi.setInlineMode(usesInlineCompositionArea)
+        candidateUi.updateInlinePreedit(latestInputPanel)
+    }
+
+    val barHeight: Int
+        get() = if (usesInlineCompositionArea) INLINE_HEIGHT else HEIGHT
+
     override fun onScopeSetupFinished(scope: DynamicScope) {
         ClipboardManager.lastEntry?.let {
             val now = System.currentTimeMillis()
@@ -764,6 +799,11 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
             }
         )
         evalIdleUiState()
+    }
+
+    override fun onInputPanelUpdate(data: FcitxEvent.InputPanelEvent.Data) {
+        latestInputPanel = data
+        candidateUi.updateInlinePreedit(data)
     }
 
     /**
@@ -868,6 +908,8 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
 
     companion object {
         const val HEIGHT = 40
+        const val INLINE_HEIGHT = 60
+        const val INLINE_PREEDIT_HEIGHT = 20
     }
 
     private fun updateButtonsState() {

@@ -535,7 +535,7 @@ class InputView(
         val kWidth = if (keyboardView.width > 0) keyboardView.width else resolveFloatingWidth()
         val kHeight = if (keyboardView.height > 0) keyboardView.height else {
             // Default components height estimate
-            resolveFloatingHeight() + dp(KawaiiBarComponent.HEIGHT) + keyboardBottomPaddingPx
+            resolveFloatingHeight() + dp(kawaiiBar.barHeight) + keyboardBottomPaddingPx
         }
         // Visual dimensions
         val handleThickness = dp(6)
@@ -612,7 +612,7 @@ class InputView(
         val keyboardHeight = if (keyboardView.height > 0) {
             keyboardView.height
         } else {
-            resolveFloatingHeight() + dp(KawaiiBarComponent.HEIGHT) + keyboardBottomPaddingPx
+            resolveFloatingHeight() + dp(kawaiiBar.barHeight) + keyboardBottomPaddingPx
         }
 
         val maxX = (containerWidth - keyboardWidth).coerceAtLeast(0)
@@ -1222,6 +1222,9 @@ class InputView(
 
     private val keyboardPrefs = AppPrefs.getInstance().keyboard
 
+    private val shouldDisplayStandalonePreedit: Boolean
+        get() = kawaiiBar.shouldDisplayStandalonePreedit
+
     private val expandedCandidateStyle by keyboardPrefs.expandedCandidateStyle
 
     private val focusChangeResetKeyboard by keyboardPrefs.focusChangeResetKeyboard
@@ -1249,6 +1252,7 @@ class InputView(
         keyboardPrefs.splitKeyboardThreshold,
         keyboardPrefs.splitKeyboardGapPercent,
         splitKeyboardUseLandscapeLayout,
+        keyboardPrefs.compositionAreaStyle,
     )
 
     var isFloating = false
@@ -1656,9 +1660,11 @@ class InputView(
         keyboardView.translationY = 0f
 
         preedit.ui.root.updateLayoutParams<ConstraintLayout.LayoutParams> {
-            width = matchParent
+            width = wrapContent
             startToStart = ConstraintLayout.LayoutParams.PARENT_ID
-            endToEnd = ConstraintLayout.LayoutParams.PARENT_ID
+            startToEnd = unset
+            endToStart = unset
+            endToEnd = unset
             bottomToTop = keyboardView.id
             topToBottom = unset
             topToTop = unset
@@ -2023,10 +2029,9 @@ class InputView(
             // Update preedit constraints for floating mode
             // It should be attached to top of keyboardView
             preedit.ui.root.updateLayoutParams<ConstraintLayout.LayoutParams> {
-                width = 0 // match constraints
-                // Remove centerHorizontally (startToStart=parent, endToEnd=parent) if present from initial setup
+                width = wrapContent
                 startToStart = keyboardView.id
-                endToEnd = keyboardView.id
+                endToEnd = unset
                 bottomToTop = keyboardView.id
                 // Remove other vertical constraints
                 topToBottom = unset
@@ -2100,6 +2105,9 @@ class InputView(
     @Keep
     private val onKeyboardSizeChangeListener = ManagedPreferenceProvider.OnChangeListener { key ->
         if (keyboardSizePrefs.any { it.key == key }) {
+            if (key == keyboardPrefs.compositionAreaStyle.key) {
+                updateCompositionAreaStyle()
+            }
             updateFloatingState()
             updateFloatingHandlesVisibility()
             updateOneHandHandleVisibility()
@@ -2189,7 +2197,7 @@ class InputView(
                 startOfParent()
                 endOfParent()
             })
-            add(kawaiiBar.view, lParams(matchParent, dp(KawaiiBarComponent.HEIGHT)) {
+            add(kawaiiBar.view, lParams(matchParent, dp(kawaiiBar.barHeight)) {
                 topOfParent()
                 centerHorizontally()
             })
@@ -2261,9 +2269,9 @@ class InputView(
 
         updateKeyboardSize()
 
-        add(preedit.ui.root, lParams(matchParent, wrapContent) {
+        add(preedit.ui.root, lParams(wrapContent, wrapContent) {
             bottomToTop = keyboardView.id
-            centerHorizontally()
+            startToStart = ConstraintLayout.LayoutParams.PARENT_ID
         })
         add(keyboardView, lParams(matchParent, wrapContent) {
             centerHorizontally()
@@ -2599,6 +2607,7 @@ class InputView(
 
             is FcitxEvent.InputPanelEvent -> {
                 preeditEmptyState.updatePreeditEmptyState(preedit = it.data.preedit)
+                setPreeditVisibility(shouldDisplayStandalonePreedit)
                 broadcaster.onInputPanelUpdate(it.data)
             }
 
@@ -2721,6 +2730,15 @@ class InputView(
      */
     fun setPreeditVisibility(shouldDisplay: Boolean) {
         preedit.shouldDisplay = shouldDisplay
+        preedit.ui.root.visibility =
+            if (shouldDisplay && preedit.ui.visible) View.VISIBLE else View.INVISIBLE
+    }
+
+    internal fun updateCompositionAreaStyle() {
+        kawaiiBar.updateCompositionAreaStyle()
+        setPreeditVisibility(shouldDisplayStandalonePreedit)
+        updateKeyboardSize()
+        requestLayout()
     }
 
     private fun updateKeyboardTopBarPosition() {

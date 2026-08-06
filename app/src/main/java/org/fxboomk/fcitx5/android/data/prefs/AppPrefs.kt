@@ -26,6 +26,7 @@ import org.fxboomk.fcitx5.android.input.keyboard.SpaceSwipeVerticalBehavior
 import org.fxboomk.fcitx5.android.input.keyboard.SwipeSymbolDirection
 import org.fxboomk.fcitx5.android.input.picker.PickerWindow
 import org.fxboomk.fcitx5.android.input.popup.EmojiModifier
+import org.fxboomk.fcitx5.android.input.preedit.CompositionAreaStyle
 import org.fxboomk.fcitx5.android.utils.DeviceUtil
 import org.fxboomk.fcitx5.android.utils.appContext
 import org.fxboomk.fcitx5.android.utils.vibrator
@@ -378,6 +379,11 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
             R.string.horizontal_candidate_style,
             "horizontal_candidate_style",
             HorizontalCandidateMode.AutoFillWidth
+        )
+        val compositionAreaStyle = enumList(
+            R.string.preedit_style,
+            "preedit_style",
+            CompositionAreaStyle.Default
         )
         val expandedCandidateStyle = enumList(
             R.string.expanded_candidate_style,

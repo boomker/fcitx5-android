@@ -131,8 +131,9 @@ class KeyboardSettingsHomeFragment : ManagedPreferenceFragment(AppPrefs.getInsta
     }
 
     private fun buildCandidatesSummary(keyboardPrefs: AppPrefs.Keyboard): String {
+        val composition = getString(keyboardPrefs.compositionAreaStyle.getValue().stringRes)
         val horizontal = getString(keyboardPrefs.horizontalCandidateStyle.getValue().stringRes)
         val expanded = getString(keyboardPrefs.expandedCandidateStyle.getValue().stringRes)
-        return "$horizontal，$expanded"
+        return "$composition，$horizontal，$expanded"
     }
 }

@@ -34,12 +34,11 @@ class CandidateItemUi(
     private val font: Typeface? = null
 ) : Ui {
 
+    private val configuredFontSize = FontProviders.getFontSize("cand_font", 20f)
+
     val text = view(::AutoScaleTextView) {
         scaleMode = AutoScaleTextView.Mode.Proportional
-        val fontSize = org.fxboomk.fcitx5.android.input.font.FontProviders.getFontSize(
-            "cand_font", 20f
-        )
-        textSize = fontSize
+        textSize = configuredFontSize
         isSingleLine = true
         gravity = gravityCenter
         setTextColor(theme.candidateTextColor)
@@ -68,6 +67,13 @@ class CandidateItemUi(
         if (text.typeface !== resolved) {
             text.typeface = resolved
         }
+    }
+
+    fun setFontScale(scale: Float) {
+        text.setTextSize(
+            android.util.TypedValue.COMPLEX_UNIT_SP,
+            (configuredFontSize * scale).coerceAtLeast(1f)
+        )
     }
 
     fun applyFirstCandidateStyle(

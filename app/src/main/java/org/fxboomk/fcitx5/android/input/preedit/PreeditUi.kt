@@ -30,7 +30,8 @@ import splitties.views.dsl.core.verticalLayout
 open class PreeditUi(
     override val ctx: Context,
     private val theme: Theme,
-    private val setupTextView: (TextView.() -> Unit)? = null
+    private val setupTextView: (TextView.() -> Unit)? = null,
+    private val fontScale: Float = 1f
 ) : Ui {
 
     class CursorSpan(ctx: Context, @ColorInt color: Int, metrics: Paint.FontMetricsInt) :
@@ -82,7 +83,10 @@ open class PreeditUi(
         val fontSize = org.fxboomk.fcitx5.android.input.font.FontProviders.getFontSize(
             "preedit_font", 16f
         )
-        setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, fontSize)
+        setTextSize(
+            android.util.TypedValue.COMPLEX_UNIT_SP,
+            (fontSize * fontScale).coerceAtLeast(1f)
+        )
         typeface = FontProviders.resolveTypeface("preedit_font", typeface)
     }
 

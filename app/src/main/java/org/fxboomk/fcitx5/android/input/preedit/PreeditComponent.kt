@@ -4,6 +4,7 @@
  */
 package org.fxboomk.fcitx5.android.input.preedit
 
+import android.graphics.drawable.GradientDrawable
 import android.view.View
 import org.fxboomk.fcitx5.android.core.FcitxEvent
 import org.fxboomk.fcitx5.android.data.theme.Theme
@@ -11,7 +12,6 @@ import org.fxboomk.fcitx5.android.data.theme.ThemeManager
 import org.fxboomk.fcitx5.android.input.broadcast.InputBroadcastReceiver
 import org.fxboomk.fcitx5.android.input.dependency.context
 import org.fxboomk.fcitx5.android.input.dependency.theme
-import org.fxboomk.fcitx5.android.utils.borderDrawable
 import org.mechdancer.dependency.Dependent
 import org.mechdancer.dependency.UniqueComponent
 import org.mechdancer.dependency.manager.ManagedHandler
@@ -38,12 +38,17 @@ class PreeditComponent : UniqueComponent<PreeditComponent>(), Dependent, InputBr
         PreeditUi(context, theme, setupTextView = {
             horizontalPadding = dp(8)
         }).apply {
-            root.background = borderDrawable(
-                width = 1,
-                stroke = theme.dividerColor,
-                background = bkgColor,
-                cornerRadius = context.dp(6).toFloat()
-            )
+            root.background = GradientDrawable().apply {
+                setColor(bkgColor)
+                setStroke(1, theme.dividerColor)
+                val radius = context.dp(9).toFloat()
+                cornerRadii = floatArrayOf(
+                    radius, radius,
+                    radius, radius,
+                    0f, 0f,
+                    0f, 0f
+                )
+            }
             // TODO make it customizable
             root.alpha = 0.8f
             root.visibility = View.INVISIBLE

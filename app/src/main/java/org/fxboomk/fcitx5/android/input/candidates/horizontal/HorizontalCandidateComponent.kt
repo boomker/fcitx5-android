@@ -139,6 +139,13 @@ class HorizontalCandidateComponent :
 
     private var layoutMinWidth = 0
     private var layoutFlexGrow = 1f
+    private var inlineMode = false
+
+    fun setInlineMode(inline: Boolean) {
+        if (inlineMode == inline) return
+        inlineMode = inline
+        adapter.notifyDataSetChanged()
+    }
 
     /**
      * (for [HorizontalCandidateMode.AutoFillWidth] only)
@@ -262,6 +269,7 @@ class HorizontalCandidateComponent :
     private fun measuredCandidateTextWidth(candidate: String, layoutMinWidth: Int): Int {
         measurementCandidateUi.apply {
             root.minimumWidth = max(context.dp(40), layoutMinWidth)
+            setFontScale(if (inlineMode) INLINE_CANDIDATE_FONT_SCALE else 1f)
             updateCandidate(CandidateWord("", candidate, "", false))
             applyConfiguredTypeface()
             root.measure(
@@ -410,6 +418,9 @@ class HorizontalCandidateComponent :
                 } else {
                     holder.ui.resetToDefaultBackground(theme.keyPressHighlightColor)
                 }
+                holder.ui.setFontScale(
+                    if (inlineMode) INLINE_CANDIDATE_FONT_SCALE else 1f
+                )
                 val isAiCandidate = isAiCandidatePosition(position)
                 holder.itemView.setOnClickListener {
                     if (isAiCandidate) {
@@ -678,5 +689,9 @@ class HorizontalCandidateComponent :
         updateNativeCandidateSnapshot(emptyArray(), 0, 0, -1)
         aiSuggestions = emptyList()
         renderCurrentCandidates()
+    }
+
+    private companion object {
+        const val INLINE_CANDIDATE_FONT_SCALE = 0.9f
     }
 }
