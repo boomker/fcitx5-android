@@ -305,6 +305,9 @@ class MainService : FcitxPluginService() {
         if (serviceRunning) {
             updateForegroundState()
             ensureSyncRuntime()
+            if (!prefs.getBoolean(PREF_QUICK_SYNC, DEFAULT_QUICK_SYNC_ENABLED)) {
+                return
+            }
             ensureRemoteBinding()
             return
         }
@@ -317,6 +320,9 @@ class MainService : FcitxPluginService() {
         registerNetworkCallbackIfNeeded()
         registerScreenStateReceiverIfNeeded()
         refreshSyncRuntime()
+        if (!prefs.getBoolean(PREF_QUICK_SYNC, DEFAULT_QUICK_SYNC_ENABLED)) {
+            return
+        }
         ensureRemoteBinding(forceRebind = true)
         handleSystemClipboardChanged()
     }
@@ -398,7 +404,7 @@ class MainService : FcitxPluginService() {
     }
 
     private fun handleLocalClipboardUpdate(content: String, origin: String) {
-        if (content.isBlank()) return
+        if (content.isBlank() || !prefs.getBoolean(PREF_QUICK_SYNC, DEFAULT_QUICK_SYNC_ENABLED)) return
         val normalizedContent = OutgoingClipboardFilter.transform(this, connection?.remoteService, content)
         if (consumeIgnoredRemoteClipboardContent(normalizedContent)) {
             return
@@ -570,9 +576,15 @@ class MainService : FcitxPluginService() {
     }
 
     private fun startClipCascadeSync() {
+        if (!prefs.getBoolean(PREF_QUICK_SYNC, DEFAULT_QUICK_SYNC_ENABLED)) {
+            return
+        }
         disconnectClipCascadeClient()
         syncJob = scope.launch {
             while (isActive) {
+                if (!prefs.getBoolean(PREF_QUICK_SYNC, DEFAULT_QUICK_SYNC_ENABLED)) {
+                    return@launch
+                }
                 if (shouldBlockSyncForCurrentNetwork()) {
                     delay(NETWORK_RECONNECT_DEBOUNCE_MS)
                     continue
@@ -593,6 +605,9 @@ class MainService : FcitxPluginService() {
                 clipCascadeClient = client
 
                 try {
+                    if (!prefs.getBoolean(PREF_QUICK_SYNC, DEFAULT_QUICK_SYNC_ENABLED)) {
+                        return@launch
+                    }
                     client.connect { data ->
                         markBackendActivity()
                         handleClipCascadeMessage(data)
@@ -630,9 +645,15 @@ class MainService : FcitxPluginService() {
     }
 
     private fun startOneClipSync() {
+        if (!prefs.getBoolean(PREF_QUICK_SYNC, DEFAULT_QUICK_SYNC_ENABLED)) {
+            return
+        }
         disconnectOneClipClient()
         syncJob = scope.launch {
             while (isActive) {
+                if (!prefs.getBoolean(PREF_QUICK_SYNC, DEFAULT_QUICK_SYNC_ENABLED)) {
+                    return@launch
+                }
                 if (shouldBlockSyncForCurrentNetwork()) {
                     delay(NETWORK_RECONNECT_DEBOUNCE_MS)
                     continue
@@ -643,6 +664,9 @@ class MainService : FcitxPluginService() {
                     return@launch
                 }
 
+                if (!prefs.getBoolean(PREF_QUICK_SYNC, DEFAULT_QUICK_SYNC_ENABLED)) {
+                    return@launch
+                }
                 val client = OneClipEventClient(
                     serverUrl = endpoint.address,
                     accessToken = currentPasswordForProfile(endpoint.profileKey)
@@ -663,6 +687,9 @@ class MainService : FcitxPluginService() {
                         }
                     }
 
+                    if (!prefs.getBoolean(PREF_QUICK_SYNC, DEFAULT_QUICK_SYNC_ENABLED)) {
+                        return@launch
+                    }
                     checkRemoteClipboard()
                     markBackendActivity()
                     markSyncLinkEstablished("oneclip-connected")
@@ -698,10 +725,15 @@ class MainService : FcitxPluginService() {
     }
 
     private suspend fun checkRemoteClipboard(forceRefresh: Boolean = false) {
-        if (shouldBlockSyncForCurrentNetwork()) {
+        if (!prefs.getBoolean(PREF_QUICK_SYNC, DEFAULT_QUICK_SYNC_ENABLED) ||
+            shouldBlockSyncForCurrentNetwork()
+        ) {
             return
         }
         remoteFetchMutex.withLock {
+            if (!prefs.getBoolean(PREF_QUICK_SYNC, DEFAULT_QUICK_SYNC_ENABLED)) {
+                return
+            }
             importedProfileIdsInCurrentSync.clear()
             val endpoint = currentEndpoint()
             ensureEndpointState(endpoint)
@@ -728,6 +760,9 @@ class MainService : FcitxPluginService() {
                 downloadDirUri = downloadUri,
                 preDownloadFilter = ::shouldAcceptIncomingMetadata
             )
+            if (!prefs.getBoolean(PREF_QUICK_SYNC, DEFAULT_QUICK_SYNC_ENABLED)) {
+                return
+            }
             noteRemoteSyncSuccess()
 
             val fetchedItems = result.items
@@ -773,6 +808,9 @@ class MainService : FcitxPluginService() {
 
             var importedAll = true
             acceptedItems.forEach { data ->
+                if (!prefs.getBoolean(PREF_QUICK_SYNC, DEFAULT_QUICK_SYNC_ENABLED)) {
+                    return@withLock
+                }
                 val remoteText = data.text
                 Log.d(TAG, "[Pull] Processed data: type=${data.type}, text=$remoteText")
                 acknowledgePendingUploads(remoteText)
@@ -805,6 +843,9 @@ class MainService : FcitxPluginService() {
                 rememberIgnoredRemoteClipboardContent(remoteText)
 
                 withContext(Dispatchers.Main) {
+                    if (!prefs.getBoolean(PREF_QUICK_SYNC, DEFAULT_QUICK_SYNC_ENABLED)) {
+                        return@withContext
+                    }
                     if (latestItem.type.equals("Text", ignoreCase = true)) {
                         updateSystemClipboard(remoteText)
                     } else {
@@ -2112,8 +2153,8 @@ class MainService : FcitxPluginService() {
         persistRemoteRevisions()
     }
 
-    private suspend fun flushPendingUploads(reason: String, force: Boolean = false) {
-        if (!force && !prefs.getBoolean(PREF_QUICK_SYNC, DEFAULT_QUICK_SYNC_ENABLED)) {
+    private suspend fun flushPendingUploads(reason: String) {
+        if (!prefs.getBoolean(PREF_QUICK_SYNC, DEFAULT_QUICK_SYNC_ENABLED)) {
             return
         }
         if (shouldBlockSyncForCurrentNetwork()) {
@@ -2121,12 +2162,17 @@ class MainService : FcitxPluginService() {
         }
         pendingUploadDrainMutex.withLock {
             while (true) {
+                if (!prefs.getBoolean(PREF_QUICK_SYNC, DEFAULT_QUICK_SYNC_ENABLED)) {
+                    return
+                }
                 val next = pendingUploadMutex.withLock {
                     pendingUploads.firstOrNull()
                 } ?: return
 
                 try {
-                    pushClipboardToCloud(next.content)
+                    if (!pushClipboardToCloud(next.content)) {
+                        return
+                    }
                     pendingUploadMutex.withLock {
                         if (pendingUploads.firstOrNull() == next) {
                             pendingUploads.removeAt(0)
@@ -2156,7 +2202,10 @@ class MainService : FcitxPluginService() {
         }
     }
 
-    private suspend fun pushClipboardToCloud(text: String) {
+    private suspend fun pushClipboardToCloud(text: String): Boolean {
+        if (!prefs.getBoolean(PREF_QUICK_SYNC, DEFAULT_QUICK_SYNC_ENABLED)) {
+            return false
+        }
         val endpoint = currentEndpoint()
         val url = endpoint.address
         val user = currentUsernameForProfile(endpoint.profileKey)
@@ -2182,13 +2231,17 @@ class MainService : FcitxPluginService() {
         } else {
             SyncClient.putClipboard(this@MainService, url, user, pass, backend, text)
         }
+        if (!prefs.getBoolean(PREF_QUICK_SYNC, DEFAULT_QUICK_SYNC_ENABLED)) {
+            return false
+        }
         lastUploadedContent = text
         persistLastSyncedContent(text)
         markBackendActivity()
+        return true
     }
 
     private fun forceUploadClipboard(content: String, origin: String) {
-        if (content.isBlank()) return
+        if (content.isBlank() || !prefs.getBoolean(PREF_QUICK_SYNC, DEFAULT_QUICK_SYNC_ENABLED)) return
         val normalizedContent = OutgoingClipboardFilter.transform(this, connection?.remoteService, content)
         scope.launch {
             val queued = enqueuePendingUpload(normalizedContent)
@@ -2200,7 +2253,7 @@ class MainService : FcitxPluginService() {
                 return@launch
             }
             Log.d(TAG, "[Push] Received explicit upload request from $origin")
-            flushPendingUploads("explicit:$origin", force = true)
+            flushPendingUploads("explicit:$origin")
         }
     }
 

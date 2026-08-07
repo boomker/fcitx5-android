@@ -93,11 +93,15 @@ object SyncNetworkPolicy {
     fun requiredRuntimePermissions(): Array<String> {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             arrayOf(
+                Manifest.permission.ACCESS_COARSE_LOCATION,
                 Manifest.permission.ACCESS_FINE_LOCATION,
                 Manifest.permission.NEARBY_WIFI_DEVICES
             )
         } else {
-            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
+            arrayOf(
+                Manifest.permission.ACCESS_COARSE_LOCATION,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            )
         }
     }
 
@@ -120,7 +124,16 @@ object SyncNetworkPolicy {
 
     @Suppress("DEPRECATION")
     fun availableScanSsids(context: Context): List<String> {
-        if (!hasRequiredRuntimePermissions(context) || !isLocationEnabled(context)) {
+        if (
+            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) !=
+                PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) !=
+                PackageManager.PERMISSION_GRANTED ||
+            (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                ContextCompat.checkSelfPermission(context, Manifest.permission.NEARBY_WIFI_DEVICES) !=
+                PackageManager.PERMISSION_GRANTED) ||
+            !isLocationEnabled(context)
+        ) {
             return emptyList()
         }
         val wifiManager = context.applicationContext.getSystemService(WifiManager::class.java) ?: return emptyList()
