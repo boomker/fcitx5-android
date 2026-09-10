@@ -164,6 +164,9 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
     }
 
     private val keyActionListener = KeyActionListener { it, source ->
+        if (service.inputView?.handleClipboardSearchKeyAction(it) == true) {
+            return@KeyActionListener
+        }
         if (it is KeyAction.LayoutSwitchAction) {
             switchLayout(it.act)
         } else {

@@ -99,11 +99,17 @@ class ClipboardUi(override val ctx: Context, private val theme: Theme) : Ui {
         contentDescription = ctx.getString(R.string.delete_all)
     }
 
+    val searchButton = ToolButton(ctx, R.drawable.ic_baseline_search_24, theme).apply {
+        contentDescription = ctx.getString(R.string.search)
+    }
+
     val extension = horizontalLayout {
+        add(searchButton, lParams(dp(40), dp(40)))
         add(deleteAllButton, lParams(dp(40), dp(40)))
     }
 
-    private fun setDeleteButtonShown(enabled: Boolean) {
+    private fun setActionButtonsShown(enabled: Boolean) {
+        searchButton.visibility = if (enabled) View.VISIBLE else View.INVISIBLE
         deleteAllButton.visibility = if (enabled) View.VISIBLE else View.INVISIBLE
     }
 
@@ -153,17 +159,17 @@ class ClipboardUi(override val ctx: Context, private val theme: Theme) : Ui {
         when (state) {
             ClipboardStateMachine.State.Normal -> {
                 viewAnimator.displayedChild = 0
-                setDeleteButtonShown(true)
+                setActionButtonsShown(true)
             }
 
             ClipboardStateMachine.State.AddMore -> {
                 viewAnimator.displayedChild = 1
-                setDeleteButtonShown(false)
+                setActionButtonsShown(false)
             }
 
             ClipboardStateMachine.State.EnableListening -> {
                 viewAnimator.displayedChild = 2
-                setDeleteButtonShown(false)
+                setActionButtonsShown(false)
             }
         }
     }

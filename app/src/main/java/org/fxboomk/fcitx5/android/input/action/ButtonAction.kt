@@ -362,6 +362,12 @@ data object ClipboardAction : ButtonAction() {
         view: View?,
         onActionComplete: (() -> Unit)?
     ) {
+        service.inputView?.let { inputView ->
+            if (inputView.clipboardSearchActive) {
+                inputView.closeClipboardSearch()
+                return
+            }
+        }
         windowManager.attachWindow(ClipboardWindow())
     }
 

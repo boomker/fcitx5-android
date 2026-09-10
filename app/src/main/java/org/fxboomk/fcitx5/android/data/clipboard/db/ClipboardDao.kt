@@ -32,6 +32,33 @@ interface ClipboardDao {
     @Query("SELECT * FROM ${ClipboardEntry.TABLE_NAME} WHERE rowId=:rowId AND deleted=0 LIMIT 1")
     suspend fun get(rowId: Long): ClipboardEntry?
 
+    @Query(
+        "SELECT * FROM ${ClipboardEntry.TABLE_NAME} " +
+            "WHERE source=:source AND pinned=0 AND deleted=0 " +
+            "AND text NOT LIKE 'content://%' AND text NOT LIKE 'file://%' " +
+            "AND instr(lower(text), lower(:query)) > 0 " +
+            "ORDER BY timestamp DESC"
+    )
+    suspend fun searchTextEntriesBySource(source: String, query: String): List<ClipboardEntry>
+
+    @Query(
+        "SELECT * FROM ${ClipboardEntry.TABLE_NAME} " +
+            "WHERE deleted=0 " +
+            "AND text NOT LIKE 'content://%' AND text NOT LIKE 'file://%' " +
+            "AND instr(lower(text), lower(:query)) > 0 " +
+            "ORDER BY timestamp DESC"
+    )
+    suspend fun searchTextEntries(query: String): List<ClipboardEntry>
+
+    @Query(
+        "SELECT * FROM ${ClipboardEntry.TABLE_NAME} " +
+            "WHERE pinned=1 AND deleted=0 " +
+            "AND text NOT LIKE 'content://%' AND text NOT LIKE 'file://%' " +
+            "AND instr(lower(text), lower(:query)) > 0 " +
+            "ORDER BY timestamp DESC"
+    )
+    suspend fun searchFavoriteTextEntries(query: String): List<ClipboardEntry>
+
     @Query("SELECT * FROM ${ClipboardEntry.TABLE_NAME} WHERE deleted=0 ORDER BY pinned DESC, timestamp DESC")
     fun allEntries(): PagingSource<Int, ClipboardEntry>
 

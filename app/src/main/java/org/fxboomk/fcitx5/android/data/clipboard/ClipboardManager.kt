@@ -238,6 +238,30 @@ object ClipboardManager : ClipboardManager.OnPrimaryClipChangedListener,
 
     fun mediaEntries() = clbDao.mediaEntries()
 
+    suspend fun search(
+        query: String,
+        category: ClipboardSearchCategory = ClipboardSearchCategory.Local,
+        fallbackFromLocalToAll: Boolean = true
+    ): ClipboardSearchResult = searchClipboardEntries(
+        query = query,
+        category = category,
+        fallbackFromLocalToAll = fallbackFromLocalToAll,
+        searchCategory = { target, normalizedQuery ->
+            when (target) {
+                ClipboardSearchCategory.All -> clbDao.searchTextEntries(normalizedQuery)
+                ClipboardSearchCategory.Favorites -> clbDao.searchFavoriteTextEntries(normalizedQuery)
+                ClipboardSearchCategory.Local -> clbDao.searchTextEntriesBySource(
+                    ClipboardEntry.SOURCE_LOCAL,
+                    normalizedQuery
+                )
+                ClipboardSearchCategory.Remote -> clbDao.searchTextEntriesBySource(
+                    ClipboardEntry.SOURCE_REMOTE,
+                    normalizedQuery
+                )
+            }
+        }
+    )
+
     suspend fun pin(id: Int) = clbDao.updatePinStatus(id, true)
 
     suspend fun unpin(id: Int) {

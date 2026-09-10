@@ -83,6 +83,17 @@
     <string name="remove_from_favorites">Remove from Favorites</string>
     <string name="delete">Delete</string>
     <string name="clipboard">Clipboard</string>
+    <string name="clipboard_search_title">Search clipboard</string>
+    <string name="clipboard_search_hint">Enter keywords</string>
+    <string name="clipboard_search_initial">Enter keywords to search clipboard history</string>
+    <string name="clipboard_search_searching">Searching…</string>
+    <string name="clipboard_search_local_results">Local history · %1$d results</string>
+    <string name="clipboard_search_all_results">All history · %1$d results</string>
+    <string name="clipboard_search_auto_all_results">Searched all history automatically · %1$d results</string>
+    <string name="clipboard_search_favorite_results">Favorites · %1$d results</string>
+    <string name="clipboard_search_remote_results">Remote history · %1$d results</string>
+    <string name="clipboard_search_category_remote">Remote</string>
+    <string name="clipboard_search_no_results">No matching history found</string>
     <string name="clipboard_category_all">All</string>
     <string name="clipboard_category_favorites">Favorites</string>
     <string name="clipboard_category_local">Local</string>

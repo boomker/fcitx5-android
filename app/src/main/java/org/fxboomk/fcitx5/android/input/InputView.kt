@@ -38,11 +38,14 @@ import androidx.annotation.RequiresApi
 import androidx.preference.PreferenceManager
 import androidx.core.graphics.ColorUtils
 import androidx.core.view.updateLayoutParams
+import androidx.lifecycle.lifecycleScope
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.core.CapabilityFlags
 import org.fxboomk.fcitx5.android.core.FcitxEvent
+import org.fxboomk.fcitx5.android.core.FcitxKeyMapping
 import org.fxboomk.fcitx5.android.daemon.FcitxConnection
 import org.fxboomk.fcitx5.android.daemon.launchOnReady
+import org.fxboomk.fcitx5.android.data.clipboard.ClipboardManager
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.data.prefs.SplitKeyboardStateManager
 import org.fxboomk.fcitx5.android.data.prefs.ManagedPreferenceProvider
@@ -53,6 +56,7 @@ import org.fxboomk.fcitx5.android.data.theme.ThemePreset
 import org.fxboomk.fcitx5.android.input.bar.KawaiiBarComponent
 import org.fxboomk.fcitx5.android.utils.DarkenColorFilter
 import org.fxboomk.fcitx5.android.input.calculator.CalculatorExpression
+import org.fxboomk.fcitx5.android.input.clipboard.ClipboardSearchOverlay
 import org.fxboomk.fcitx5.android.input.config.ConfigChangeListener
 import org.fxboomk.fcitx5.android.input.config.ConfigProviders
 import org.fxboomk.fcitx5.android.input.broadcast.InputBroadcaster
@@ -72,6 +76,7 @@ import org.fxboomk.fcitx5.android.input.keyboard.CommonKeyActionListener
 import org.fxboomk.fcitx5.android.input.action.ButtonAction
 import org.fxboomk.fcitx5.android.input.keyboard.BaseKeyboard
 import org.fxboomk.fcitx5.android.input.keyboard.KeyView
+import org.fxboomk.fcitx5.android.input.keyboard.KeyAction
 import org.fxboomk.fcitx5.android.input.keyboard.KeyboardWindow
 import org.fxboomk.fcitx5.android.input.keyboard.TextKeyboard
 import org.fxboomk.fcitx5.android.input.keyboard.keyboardHeightPercentOverride
@@ -1200,6 +1205,30 @@ class InputView(
             visibility = GONE
         }
     }
+    private val clipboardPrefs = AppPrefs.getInstance().clipboard
+    private val clipboardReturnAfterPaste by clipboardPrefs.clipboardReturnAfterPaste
+    private val clipboardMaskSensitive by clipboardPrefs.clipboardMaskSensitive
+    private val clipboardEntryRadius by ThemeManager.prefs.clipboardEntryRadius
+    private var restoreFloatingAfterClipboardSearch = false
+    private val clipboardSearchOverlay by lazy {
+        ClipboardSearchOverlay(
+            context = themedContext,
+            theme = theme,
+            entryRadius = context.dp(clipboardEntryRadius.toFloat()),
+            maskSensitive = clipboardMaskSensitive,
+            scope = service.lifecycleScope,
+            onClose = ::closeClipboardSearch,
+            onCursorPositioned = { fcitx.runIfReady { reset() } },
+            onEntryClick = { entry ->
+                service.commitClipboardEntry(entry.text)
+                service.lifecycleScope.launch { ClipboardManager.markUsed(entry.id) }
+                if (clipboardReturnAfterPaste) closeClipboardSearch()
+            }
+        ).also { it.root.visibility = GONE }
+    }
+
+    val clipboardSearchActive: Boolean
+        get() = clipboardSearchOverlay.root.visibility == VISIBLE
 
     private fun setupScope() {
         scope += this@InputView.wrapToUniqueComponent()
@@ -1930,6 +1959,17 @@ class InputView(
             rect.union(handleRect)
         }
 
+        if (clipboardSearchActive) {
+            val searchLocation = IntArray(2)
+            clipboardSearchOverlay.root.getLocationInWindow(searchLocation)
+            rect.union(
+                searchLocation[0],
+                searchLocation[1],
+                searchLocation[0] + clipboardSearchOverlay.root.width,
+                searchLocation[1] + clipboardSearchOverlay.root.height
+            )
+        }
+
         // Include adjusting mode handles if in adjusting mode
         if (isAdjustingMode) {
             if (adjustingHeightHandle.visibility == View.VISIBLE) {
@@ -1984,6 +2024,13 @@ class InputView(
 
         outRegion.set(rect)
         aiSuggestionOverlay.unionTouchableRegion(outRegion)
+    }
+
+    fun getDockedContentTop(): Int {
+        val target = if (clipboardSearchActive) clipboardSearchOverlay.root else keyboardView
+        val location = IntArray(2)
+        target.getLocationInWindow(location)
+        return location[1]
     }
 
     private fun updateAiSuggestionOverlayFallbackTop() {
@@ -2279,6 +2326,12 @@ class InputView(
             centerHorizontally()
             bottomOfParent()
         })
+        add(clipboardSearchOverlay.root, lParams(matchParent, 0) {
+            topOfParent()
+            bottomToTop = keyboardView.id
+            startOfParent()
+            endOfParent()
+        })
         add(floatingRightHandle, lParams(dp(10), dp(10)) {
             startToStart = ConstraintLayout.LayoutParams.PARENT_ID
             topToTop = ConstraintLayout.LayoutParams.PARENT_ID
@@ -2562,6 +2615,7 @@ class InputView(
      * called when [InputView] is about to show, or restart
      */
     fun startInput(info: EditorInfo, capFlags: CapabilityFlags, restarting: Boolean = false) {
+        if (clipboardSearchActive) closeClipboardSearch()
         // Don't hide the adjusting overlay if drag is in progress
         if (!ButtonsAdjustingWindow.isDragInProgress) {
             hideButtonsAdjustingOverlay()
@@ -2603,6 +2657,7 @@ class InputView(
                 broadcaster.onPagedCandidateUpdate(it.data)
             }
             is FcitxEvent.ClientPreeditEvent -> {
+                if (clipboardSearchActive) return
                 preeditEmptyState.updatePreeditEmptyState(clientPreedit = it.data)
                 broadcaster.onClientPreeditUpdate(it.data)
             }
@@ -2623,6 +2678,73 @@ class InputView(
             }
 
             else -> {}
+        }
+    }
+
+    fun openClipboardSearch() {
+        if (clipboardSearchActive) return
+        windowManager.attachWindow(KeyboardWindow)
+        restoreFloatingAfterClipboardSearch = isFloating
+        if (isFloating) toggleFloatingMode()
+        fcitx.runIfReady { reset() }
+        clipboardSearchOverlay.open()
+        clipboardSearchOverlay.root.visibility = VISIBLE
+        clipboardSearchOverlay.root.bringToFront()
+        service.window.window?.decorView?.requestLayout()
+    }
+
+    fun closeClipboardSearch() {
+        if (!clipboardSearchActive) return
+        clipboardSearchOverlay.close()
+        clipboardSearchOverlay.root.visibility = GONE
+        fcitx.runIfReady { reset() }
+        if (restoreFloatingAfterClipboardSearch && !isFloating) toggleFloatingMode()
+        restoreFloatingAfterClipboardSearch = false
+        service.window.window?.decorView?.requestLayout()
+    }
+
+    fun handleClipboardSearchEvent(event: FcitxEvent<*>): Boolean {
+        if (!clipboardSearchActive) return false
+        when (event) {
+            is FcitxEvent.CommitStringEvent -> {
+                clipboardSearchOverlay.commit(event.data.text, event.data.cursor)
+                return true
+            }
+            is FcitxEvent.ClientPreeditEvent -> clipboardSearchOverlay.setPreedit(event.data)
+            is FcitxEvent.DeleteSurroundingEvent -> {
+                clipboardSearchOverlay.deleteSurrounding(event.data.before, event.data.after)
+                return true
+            }
+            is FcitxEvent.KeyEvent -> {
+                if (event.data.up) return true
+                when (event.data.sym.sym) {
+                    FcitxKeyMapping.FcitxKey_BackSpace -> clipboardSearchOverlay.backspace()
+                    FcitxKeyMapping.FcitxKey_Delete -> clipboardSearchOverlay.delete()
+                    FcitxKeyMapping.FcitxKey_Left -> clipboardSearchOverlay.moveCursor(-1)
+                    FcitxKeyMapping.FcitxKey_Right -> clipboardSearchOverlay.moveCursor(1)
+                    FcitxKeyMapping.FcitxKey_Return -> Unit
+                    else -> if (event.data.unicode > 0) {
+                        clipboardSearchOverlay.commit(Character.toString(event.data.unicode))
+                    }
+                }
+                return true
+            }
+            else -> return false
+        }
+        return false
+    }
+
+    fun handleClipboardSearchKeyAction(action: KeyAction): Boolean {
+        if (!clipboardSearchActive) return false
+        return when (action) {
+            is KeyAction.CommitAction -> {
+                clipboardSearchOverlay.commit(action.text)
+                true
+            }
+            is KeyAction.FcitxKeyAction,
+            is KeyAction.SymAction,
+            is KeyAction.LayoutSwitchAction -> false
+            else -> true
         }
     }
 
@@ -2919,6 +3041,7 @@ class InputView(
         blurUpdateJob?.cancel()
         blurUpdateScope.cancel()
         aiSuggestionStrip.close()
+        clipboardSearchOverlay.close()
         // clear DynamicScope, implies that InputView should not be attached again after detached.
         scope.clear()
         super.onDetachedFromWindow()
