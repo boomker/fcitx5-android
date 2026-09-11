@@ -10,8 +10,44 @@ enum class ClipboardSearchCategory {
     All,
     Favorites,
     Local,
-    Remote
+    Remote,
+    Media
 }
+
+enum class ClipboardSearchDismissReason {
+    ResultClick,
+    Explicit
+}
+
+fun shouldDismissClipboardSearch(
+    pinned: Boolean,
+    reason: ClipboardSearchDismissReason
+): Boolean = !pinned || reason == ClipboardSearchDismissReason.Explicit
+
+fun clipboardSearchCommitText(entry: ClipboardEntry, pinned: Boolean): String =
+    if (pinned && !entry.isUriEntry()) "${entry.text}\n" else entry.text
+
+fun searchMediaEntries(
+    entries: List<ClipboardEntry>,
+    query: String,
+    resolveFileName: (ClipboardEntry) -> String?
+): List<ClipboardEntry> {
+    val normalizedQuery = query.trim()
+    return entries.asSequence()
+        .filter(ClipboardEntry::isUriEntry)
+        .filter {
+            normalizedQuery.isEmpty() ||
+                resolveFileName(it)?.contains(normalizedQuery, ignoreCase = true) == true
+        }
+        .sortedByDescending(ClipboardEntry::timestamp)
+        .toList()
+}
+
+fun mergeClipboardSearchEntries(
+    textEntries: List<ClipboardEntry>,
+    mediaEntries: List<ClipboardEntry>
+): List<ClipboardEntry> = (textEntries + mediaEntries)
+    .sortedByDescending(ClipboardEntry::timestamp)
 
 data class ClipboardSearchResult(
     val category: ClipboardSearchCategory,

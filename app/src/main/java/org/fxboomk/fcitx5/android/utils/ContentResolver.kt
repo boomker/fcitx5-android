@@ -6,6 +6,7 @@
 package org.fxboomk.fcitx5.android.utils
 
 import android.content.ContentResolver
+import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
 import timber.log.Timber
@@ -17,3 +18,10 @@ fun ContentResolver.queryFileName(uri: Uri): String? = runCatching {
 }.onFailure { error ->
     Timber.w(error, "Failed to query file name for uri: %s", uri)
 }.getOrNull()
+
+fun resolveClipboardUriFileName(context: Context, uri: Uri): String? = when (uri.scheme) {
+    "content" -> context.contentResolver.queryFileName(uri) ?: uri.lastPathSegment ?: uri.path
+    else -> uri.lastPathSegment ?: uri.path
+}?.let { Uri.decode(it).substringAfterLast('/').substringAfterLast(':') }
+    ?.trim()
+    ?.takeIf { it.isNotEmpty() }

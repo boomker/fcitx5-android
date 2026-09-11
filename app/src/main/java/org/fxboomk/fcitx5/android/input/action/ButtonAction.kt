@@ -378,9 +378,7 @@ data object ClipboardAction : ButtonAction() {
         windowManager: InputWindowManager,
         view: View
     ) {
-        if (!AppUtil.launchPluginSettings(context, "clipboard-sync")) {
-            AppUtil.launchMainToRoute(context, SettingsRoute.Clipboard)
-        }
+        service.inputView?.openClipboardSearch()
     }
 }
 

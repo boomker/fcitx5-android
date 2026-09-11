@@ -56,7 +56,9 @@ class ClipboardSearchUi(override val ctx: Context, private val theme: Theme) : U
         visibility = View.INVISIBLE
     }
 
-    private val title = textView {
+    val pinButton = ToolButton(ctx, R.drawable.ic_outline_push_pin_24, theme)
+
+    val dragHandle = textView {
         text = ctx.getString(R.string.clipboard_search_title)
         typeface = Typeface.defaultFromStyle(Typeface.BOLD)
         textSize = 16f
@@ -68,7 +70,8 @@ class ClipboardSearchUi(override val ctx: Context, private val theme: Theme) : U
         ClipboardSearchCategory.All to createCategoryButton(R.string.clipboard_category_all),
         ClipboardSearchCategory.Favorites to createCategoryButton(R.string.clipboard_category_favorites),
         ClipboardSearchCategory.Local to createCategoryButton(R.string.clipboard_category_local),
-        ClipboardSearchCategory.Remote to createCategoryButton(R.string.clipboard_search_category_remote)
+        ClipboardSearchCategory.Remote to createCategoryButton(R.string.clipboard_search_category_remote),
+        ClipboardSearchCategory.Media to createCategoryButton(R.string.clipboard_search_category_media)
     )
 
     private val categoryBar = horizontalLayout {
@@ -131,7 +134,7 @@ class ClipboardSearchUi(override val ctx: Context, private val theme: Theme) : U
         add(clearButton, lParams(dp(40), dp(40)))
     }
 
-    private val panel = verticalLayout {
+    val panel = verticalLayout {
         background = GradientDrawable().apply {
             cornerRadius = dp(14).toFloat()
             setColor(theme.barColor)
@@ -141,7 +144,8 @@ class ClipboardSearchUi(override val ctx: Context, private val theme: Theme) : U
         add(horizontalLayout {
             gravity = Gravity.CENTER_VERTICAL
             add(backButton, lParams(dp(40), dp(40)))
-            add(title, lParams(0, dp(40)) { weight = 1f })
+            add(dragHandle, lParams(0, dp(40)) { weight = 1f })
+            add(pinButton, lParams(dp(40), dp(40)))
         }, lParams(matchParent, dp(40)))
         add(categoryBar, lParams(matchParent, dp(40)))
         add(frameLayout {
@@ -195,6 +199,16 @@ class ClipboardSearchUi(override val ctx: Context, private val theme: Theme) : U
             button.background = categoryBackground(selected)
             button.setTextColor(if (selected) theme.accentKeyTextColor else theme.keyTextColor)
         }
+    }
+
+    fun setPinned(pinned: Boolean) {
+        pinButton.setIcon(
+            if (pinned) R.drawable.ic_baseline_push_pin_24 else R.drawable.ic_outline_push_pin_24
+        )
+        pinButton.setActive(pinned)
+        pinButton.contentDescription = ctx.getString(
+            if (pinned) R.string.clipboard_search_unpin else R.string.clipboard_search_pin
+        )
     }
 
     fun setOnCursorPositionedListener(listener: (Int) -> Unit) {

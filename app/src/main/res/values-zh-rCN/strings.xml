@@ -81,6 +81,7 @@
     <string name="remove_from_favorites">取消</string>
     <string name="delete">删除</string>
     <string name="clipboard">剪贴板</string>
+    <string name="clipboard_settings">剪贴板设置</string>
     <string name="clipboard_search_title">搜索剪贴板</string>
     <string name="clipboard_search_hint">输入关键词</string>
     <string name="clipboard_search_initial">输入关键词搜索剪贴板记录</string>
@@ -90,12 +91,16 @@
     <string name="clipboard_search_auto_all_results">已自动搜索全部记录，共 %1$d 条</string>
     <string name="clipboard_search_favorite_results">收藏记录，共 %1$d 条</string>
     <string name="clipboard_search_remote_results">远程记录，共 %1$d 条</string>
+    <string name="clipboard_search_media_results">图文记录，共 %1$d 条</string>
     <string name="clipboard_search_category_remote">远程</string>
+    <string name="clipboard_search_category_media">图文</string>
+    <string name="clipboard_search_pin">固定搜索浮窗</string>
+    <string name="clipboard_search_unpin">取消固定搜索浮窗</string>
     <string name="clipboard_search_no_results">没有找到相关记录</string>
     <string name="clipboard_category_all">全部</string>
     <string name="clipboard_category_favorites">收藏</string>
     <string name="clipboard_category_local">本机</string>
-    <string name="clipboard_category_media">图片・文件</string>
+    <string name="clipboard_category_media">图文</string>
     <string name="clipboard_category_remote">其他设备</string>
     <string name="clipboard_entry_image">图片</string>
     <string name="clipboard_entry_image_named">图片 · %1$s</string>

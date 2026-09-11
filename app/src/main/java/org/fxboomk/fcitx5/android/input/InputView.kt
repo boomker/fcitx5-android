@@ -46,6 +46,7 @@ import org.fxboomk.fcitx5.android.core.FcitxKeyMapping
 import org.fxboomk.fcitx5.android.daemon.FcitxConnection
 import org.fxboomk.fcitx5.android.daemon.launchOnReady
 import org.fxboomk.fcitx5.android.data.clipboard.ClipboardManager
+import org.fxboomk.fcitx5.android.data.clipboard.clipboardSearchCommitText
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.data.prefs.SplitKeyboardStateManager
 import org.fxboomk.fcitx5.android.data.prefs.ManagedPreferenceProvider
@@ -1206,7 +1207,6 @@ class InputView(
         }
     }
     private val clipboardPrefs = AppPrefs.getInstance().clipboard
-    private val clipboardReturnAfterPaste by clipboardPrefs.clipboardReturnAfterPaste
     private val clipboardMaskSensitive by clipboardPrefs.clipboardMaskSensitive
     private val clipboardEntryRadius by ThemeManager.prefs.clipboardEntryRadius
     private var restoreFloatingAfterClipboardSearch = false
@@ -1219,10 +1219,16 @@ class InputView(
             scope = service.lifecycleScope,
             onClose = ::closeClipboardSearch,
             onCursorPositioned = { fcitx.runIfReady { reset() } },
-            onEntryClick = { entry ->
-                service.commitClipboardEntry(entry.text)
-                service.lifecycleScope.launch { ClipboardManager.markUsed(entry.id) }
-                if (clipboardReturnAfterPaste) closeClipboardSearch()
+            onEntryClick = { entry, pinned ->
+                val committed = if (entry.isUriEntry()) {
+                    service.pasteOrOpenClipboardContent(entry.text)
+                } else {
+                    service.commitClipboardEntry(clipboardSearchCommitText(entry, pinned))
+                    true
+                }
+                if (committed) {
+                    service.lifecycleScope.launch { ClipboardManager.markUsed(entry.id) }
+                }
             }
         ).also { it.root.visibility = GONE }
     }

@@ -7,6 +7,7 @@ package org.fxboomk.fcitx5.android.input
 
 import android.annotation.SuppressLint
 import android.app.Dialog
+import android.content.ClipData
 import android.content.ClipDescription
 import android.content.Intent
 import android.content.pm.ActivityInfo
@@ -80,6 +81,7 @@ import org.fxboomk.fcitx5.android.input.cursor.CursorRange
 import org.fxboomk.fcitx5.android.input.cursor.CursorTracker
 import org.fxboomk.fcitx5.android.input.keyboard.TextKeyboard
 import org.fxboomk.fcitx5.android.utils.InputMethodUtil
+import org.fxboomk.fcitx5.android.utils.ClipboardSharedContent
 import org.fxboomk.fcitx5.android.utils.ClipboardUriStore
 import org.fxboomk.fcitx5.android.utils.alpha
 import org.fxboomk.fcitx5.android.utils.forceShowSelf
@@ -975,6 +977,36 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         }
     }
 
+    fun pasteOrOpenClipboardContent(text: String): Boolean {
+        val staged = ClipboardUriStore.stageForCommit(this, text) ?: return false
+        if (commitUriContent(staged)) return true
+        return shareClipboardContent(staged)
+    }
+
+    fun shareClipboardContent(text: String): Boolean {
+        val staged = ClipboardUriStore.stageForCommit(this, text) ?: return false
+        return shareClipboardContent(staged)
+    }
+
+    private fun shareClipboardContent(staged: ClipboardSharedContent): Boolean {
+        val sendIntent = Intent(Intent.ACTION_SEND).apply {
+            type = staged.mimeType
+            putExtra(Intent.EXTRA_STREAM, staged.uri)
+            clipData = ClipData.newUri(contentResolver, "clipboard", staged.uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        val chooser = Intent.createChooser(sendIntent, null).apply {
+            clipData = sendIntent.clipData
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        return runCatching {
+            startActivity(chooser)
+            true
+        }.onFailure {
+            Timber.w(it, "Unable to share clipboard content: %s", staged.uri)
+        }.getOrDefault(false)
+    }
+
     fun recordAiInsertionUndoSnapshot(
         insertedText: String,
         replacedText: String,
@@ -1052,6 +1084,10 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
 
     private fun commitUriContent(text: String): Boolean {
         val staged = ClipboardUriStore.stageForCommit(this, text) ?: return false
+        return commitUriContent(staged)
+    }
+
+    private fun commitUriContent(staged: ClipboardSharedContent): Boolean {
         val editorInfo = currentInputEditorInfo ?: return false
         val inputConnection = currentInputConnection ?: return false
         val packageName = editorInfo.packageName

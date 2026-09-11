@@ -33,6 +33,7 @@ import org.fxboomk.fcitx5.android.utils.ClipboardUriStore.toClipboardUriOrNull
 import org.fxboomk.fcitx5.android.utils.WeakHashSet
 import org.fxboomk.fcitx5.android.utils.appContext
 import org.fxboomk.fcitx5.android.utils.clipboardManager
+import org.fxboomk.fcitx5.android.utils.resolveClipboardUriFileName
 import timber.log.Timber
 
 object ClipboardManager : ClipboardManager.OnPrimaryClipChangedListener,
@@ -248,7 +249,14 @@ object ClipboardManager : ClipboardManager.OnPrimaryClipChangedListener,
         fallbackFromLocalToAll = fallbackFromLocalToAll,
         searchCategory = { target, normalizedQuery ->
             when (target) {
-                ClipboardSearchCategory.All -> clbDao.searchTextEntries(normalizedQuery)
+                ClipboardSearchCategory.All -> mergeClipboardSearchEntries(
+                    textEntries = clbDao.searchTextEntries(normalizedQuery),
+                    mediaEntries = searchMediaEntries(
+                        clbDao.getAllMediaEntries(),
+                        normalizedQuery,
+                        ::resolveMediaFileName
+                    )
+                )
                 ClipboardSearchCategory.Favorites -> clbDao.searchFavoriteTextEntries(normalizedQuery)
                 ClipboardSearchCategory.Local -> clbDao.searchTextEntriesBySource(
                     ClipboardEntry.SOURCE_LOCAL,
@@ -258,9 +266,18 @@ object ClipboardManager : ClipboardManager.OnPrimaryClipChangedListener,
                     ClipboardEntry.SOURCE_REMOTE,
                     normalizedQuery
                 )
+                ClipboardSearchCategory.Media -> searchMediaEntries(
+                    clbDao.getAllMediaEntries(),
+                    normalizedQuery,
+                    ::resolveMediaFileName
+                )
             }
         }
     )
+
+    private fun resolveMediaFileName(entry: ClipboardEntry): String? =
+        runCatching { Uri.parse(entry.text) }.getOrNull()
+            ?.let { resolveClipboardUriFileName(appContext, it) }
 
     suspend fun pin(id: Int) = clbDao.updatePinStatus(id, true)
 

@@ -37,7 +37,12 @@ import splitties.views.dsl.core.wrapContent
 import splitties.views.imageDrawable
 import splitties.views.setPaddingDp
 
-class ClipboardEntryUi(override val ctx: Context, private val theme: Theme, radius: Float) : Ui {
+class ClipboardEntryUi(
+    override val ctx: Context,
+    private val theme: Theme,
+    radius: Float,
+    private val searchResultLayout: Boolean = false
+) : Ui {
 
     val preview = imageView {
         visibility = View.GONE
@@ -65,7 +70,7 @@ class ClipboardEntryUi(override val ctx: Context, private val theme: Theme, radi
 
     val textView = textView {
         minLines = 1
-        maxLines = 4
+        maxLines = if (searchResultLayout) 3 else 4
         textSize = 14f
         setPaddingDp(8, 4, 8, 4)
         ellipsize = TextUtils.TruncateAt.END
@@ -100,7 +105,7 @@ class ClipboardEntryUi(override val ctx: Context, private val theme: Theme, radi
 
     override val root = CustomGestureView(ctx).apply {
         isClickable = true
-        minimumHeight = dp(30)
+        minimumHeight = dp(if (searchResultLayout) 68 else 30)
         foreground = RippleDrawable(
             ColorStateList.valueOf(theme.keyPressHighlightColor), null,
             GradientDrawable().apply {
@@ -115,9 +120,38 @@ class ClipboardEntryUi(override val ctx: Context, private val theme: Theme, radi
         add(layout, lParams(matchParent, matchParent))
     }
 
-    fun setEntry(text: String, pinned: Boolean, previewBitmap: Bitmap? = null) {
+    fun setEntry(
+        text: String,
+        pinned: Boolean,
+        previewBitmap: Bitmap? = null,
+        compactMedia: Boolean = false
+    ) {
         textView.text = text
         pin.visibility = if (pinned) View.VISIBLE else View.GONE
+        if (searchResultLayout) {
+            if (compactMedia) {
+                preview.visibility = if (previewBitmap != null) View.VISIBLE else View.GONE
+                imagePlaceholder.visibility = if (previewBitmap == null) View.VISIBLE else View.GONE
+                textView.visibility = View.GONE
+                previewBitmap?.let(preview::setImageBitmap)
+            } else {
+                preview.visibility = View.GONE
+                imagePlaceholder.visibility = View.GONE
+                textView.visibility = View.VISIBLE
+                textView.updateLayoutParams<ConstraintLayout.LayoutParams> {
+                    width = 0
+                    startToStart = ConstraintLayout.LayoutParams.PARENT_ID
+                    endToEnd = ConstraintLayout.LayoutParams.PARENT_ID
+                    topToTop = ConstraintLayout.LayoutParams.PARENT_ID
+                    bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID
+                    marginStart = 0
+                }
+                textView.setPaddingDp(8, 4, 8, 4)
+                textView.gravity = Gravity.CENTER_VERTICAL or Gravity.START
+                textView.textAlignment = View.TEXT_ALIGNMENT_VIEW_START
+            }
+            return
+        }
         if (previewBitmap != null) {
             preview.setImageBitmap(previewBitmap)
             preview.visibility = View.VISIBLE

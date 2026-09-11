@@ -65,6 +65,7 @@ import org.fxboomk.fcitx5.android.input.candidates.expanded.window.FlexboxExpand
 import org.fxboomk.fcitx5.android.input.candidates.expanded.window.GridExpandedCandidateWindow
 import org.fxboomk.fcitx5.android.input.candidates.floating.FloatingCandidatesMode
 import org.fxboomk.fcitx5.android.input.candidates.horizontal.HorizontalCandidateComponent
+import org.fxboomk.fcitx5.android.input.clipboard.ClipboardAdapter
 import org.fxboomk.fcitx5.android.input.clipboard.ClipboardWindow
 import org.fxboomk.fcitx5.android.input.dependency.UniqueViewComponent
 import org.fxboomk.fcitx5.android.input.dependency.context
@@ -164,6 +165,7 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
     private val preferredVoiceInput by prefs.keyboard.preferredVoiceInput
 
     private var clipboardTimeoutJob: Job? = null
+    private var clipboardPreviewJob: Job? = null
 
     private var isClipboardFresh: Boolean = false
     private var isInlineSuggestionPresent: Boolean = false
@@ -181,14 +183,27 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         ClipboardManager.OnClipboardUpdateListener {
             if (!clipboardSuggestion.getValue()) return@OnClipboardUpdateListener
             service.lifecycleScope.launch {
+                clipboardPreviewJob?.cancel()
                 if (it.text.isEmpty()) {
+                    idleUi.clipboardUi.showText("")
                     isClipboardFresh = false
+                } else if (it.isUriEntry() && it.type.startsWith("image/")) {
+                    idleUi.clipboardUi.showImagePreview(null)
+                    isClipboardFresh = true
+                    val previewKey = ClipboardAdapter.imagePreviewKey(it)
+                    clipboardPreviewJob = launch {
+                        val bitmap = ClipboardAdapter.loadImagePreview(context, it)
+                        if (ClipboardAdapter.imagePreviewKey(ClipboardManager.lastEntry ?: return@launch) == previewKey) {
+                            idleUi.clipboardUi.showImagePreview(bitmap)
+                        }
+                    }
+                    launchClipboardTimeoutJob()
                 } else {
-                    idleUi.clipboardUi.text.text = if (it.sensitive && clipboardMaskSensitive) {
+                    idleUi.clipboardUi.showText(if (it.sensitive && clipboardMaskSensitive) {
                         ClipboardEntry.BULLET.repeat(min(42, it.text.length))
                     } else {
                         it.text.take(42)
-                    }
+                    })
                     isClipboardFresh = true
                     launchClipboardTimeoutJob()
                 }
@@ -204,6 +219,8 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
                 evalIdleUiState()
                 clipboardTimeoutJob?.cancel()
                 clipboardTimeoutJob = null
+                clipboardPreviewJob?.cancel()
+                clipboardPreviewJob = null
             }
         }
 
@@ -562,9 +579,15 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         }
         ui.clipboardUi.suggestionView.apply {
             setOnClickListener {
-                ClipboardManager.lastEntry?.let {
-                    service.commitText(it.text)
-                }
+                val handled = ClipboardManager.lastEntry?.let {
+                    if (it.isUriEntry()) {
+                        service.pasteOrOpenClipboardContent(it.text)
+                    } else {
+                        service.commitText(it.text)
+                        true
+                    }
+                } ?: false
+                if (!handled) return@setOnClickListener
                 clipboardTimeoutJob?.cancel()
                 clipboardTimeoutJob = null
                 isClipboardFresh = false

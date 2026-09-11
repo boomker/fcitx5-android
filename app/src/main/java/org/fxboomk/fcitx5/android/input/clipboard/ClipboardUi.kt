@@ -103,13 +103,19 @@ class ClipboardUi(override val ctx: Context, private val theme: Theme) : Ui {
         contentDescription = ctx.getString(R.string.search)
     }
 
+    val settingsButton = ToolButton(ctx, R.drawable.ic_baseline_settings_24, theme).apply {
+        contentDescription = ctx.getString(R.string.clipboard_settings)
+    }
+
     val extension = horizontalLayout {
         add(searchButton, lParams(dp(40), dp(40)))
+        add(settingsButton, lParams(dp(40), dp(40)))
         add(deleteAllButton, lParams(dp(40), dp(40)))
     }
 
     private fun setActionButtonsShown(enabled: Boolean) {
         searchButton.visibility = if (enabled) View.VISIBLE else View.INVISIBLE
+        settingsButton.visibility = if (enabled) View.VISIBLE else View.INVISIBLE
         deleteAllButton.visibility = if (enabled) View.VISIBLE else View.INVISIBLE
     }
 

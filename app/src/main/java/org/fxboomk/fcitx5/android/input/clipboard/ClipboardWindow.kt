@@ -6,7 +6,7 @@ package org.fxboomk.fcitx5.android.input.clipboard
 
 import android.annotation.SuppressLint
 import android.app.SearchManager
-import android.content.ClipDescription
+import android.content.ClipData
 import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -22,8 +22,6 @@ import androidx.core.text.bold
 import androidx.core.text.buildSpannedString
 import androidx.core.text.color
 import androidx.core.view.updateLayoutParams
-import androidx.core.view.inputmethod.InputConnectionCompat
-import androidx.core.view.inputmethod.InputContentInfoCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
@@ -59,10 +57,11 @@ import org.fxboomk.fcitx5.android.input.keyboard.KeyboardWindow
 import org.fxboomk.fcitx5.android.input.wm.InputWindow
 import org.fxboomk.fcitx5.android.input.wm.InputWindowManager
 import org.fxboomk.fcitx5.android.utils.AppUtil
-import org.fxboomk.fcitx5.android.utils.ClipboardUriStore
 import org.fxboomk.fcitx5.android.utils.EventStateMachine
+import org.fxboomk.fcitx5.android.utils.clipboardManager
 import org.fxboomk.fcitx5.android.utils.item
 import org.fxboomk.fcitx5.android.utils.styledColorOrDefault
+import org.fxboomk.fcitx5.android.ui.main.settings.SettingsRoute
 import org.mechdancer.dependency.manager.must
 import splitties.dimensions.dp
 import splitties.views.dsl.core.withTheme
@@ -117,6 +116,10 @@ class ClipboardWindow : InputWindow.ExtendedInputWindow<ClipboardWindow>() {
             }
 
             override fun onShare(entry: ClipboardEntry) {
+                if (entry.isUriEntry()) {
+                    service.shareClipboardContent(entry.text)
+                    return
+                }
                 val target = Intent(Intent.ACTION_SEND).apply {
                     type = "text/plain"
                     putExtra(Intent.EXTRA_TEXT, entry.text)
@@ -172,24 +175,8 @@ class ClipboardWindow : InputWindow.ExtendedInputWindow<ClipboardWindow>() {
             }
 
             override fun onPasteContent(entry: ClipboardEntry): Boolean {
-                val staged = ClipboardUriStore.stageForCommit(context, entry.text) ?: return false
-                val editorInfo = service.currentInputEditorInfo ?: return false
-                val inputConnection = service.currentInputConnection ?: return false
-                editorInfo.packageName?.takeIf { it.isNotEmpty() }?.let { packageName ->
-                    service.grantUriPermission(packageName, staged.uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                }
-                val description = ClipDescription(
-                    staged.uri.lastPathSegment ?: "clipboard",
-                    arrayOf(staged.mimeType)
-                )
-                val committed = InputConnectionCompat.commitContent(
-                    inputConnection,
-                    editorInfo,
-                    InputContentInfoCompat(staged.uri, description, null),
-                    InputConnectionCompat.INPUT_CONTENT_GRANT_READ_URI_PERMISSION,
-                    null
-                )
-                if (committed) {
+                val handled = service.pasteOrOpenClipboardContent(entry.text)
+                if (handled) {
                     service.lifecycleScope.launch {
                         ClipboardManager.markUsed(entry.id)
                     }
@@ -197,7 +184,7 @@ class ClipboardWindow : InputWindow.ExtendedInputWindow<ClipboardWindow>() {
                         windowManager.attachWindow(KeyboardWindow)
                     }
                 }
-                return committed
+                return handled
             }
 
             override fun onOpenFile(uri: Uri) {
@@ -241,6 +228,19 @@ class ClipboardWindow : InputWindow.ExtendedInputWindow<ClipboardWindow>() {
                     ClipboardManager.markUsed(entry.id)
                 }
                 if (clipboardReturnAfterPaste) windowManager.attachWindow(KeyboardWindow)
+            }
+
+            override fun onCopy(entry: ClipboardEntry) {
+                val clipData = if (entry.isUriEntry()) {
+                    ClipData.newUri(
+                        context.contentResolver,
+                        "clipboard",
+                        Uri.parse(entry.text)
+                    )
+                } else {
+                    ClipData.newPlainText("clipboard", entry.text)
+                }
+                context.clipboardManager.setPrimaryClip(clipData)
             }
         }
     }
@@ -350,6 +350,9 @@ class ClipboardWindow : InputWindow.ExtendedInputWindow<ClipboardWindow>() {
             }
             searchButton.setOnClickListener {
                 service.inputView?.openClipboardSearch()
+            }
+            settingsButton.setOnClickListener {
+                AppUtil.launchMainToRoute(context, SettingsRoute.Clipboard)
             }
         }
     }

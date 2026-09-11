@@ -5,6 +5,8 @@
 package org.fxboomk.fcitx5.android.input.clipboard
 
 import android.content.Context
+import android.view.MotionEvent
+import android.view.ViewConfiguration
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -16,6 +18,8 @@ import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.core.FormattedText
 import org.fxboomk.fcitx5.android.data.clipboard.ClipboardManager
 import org.fxboomk.fcitx5.android.data.clipboard.ClipboardSearchCategory
+import org.fxboomk.fcitx5.android.data.clipboard.ClipboardSearchDismissReason
+import org.fxboomk.fcitx5.android.data.clipboard.shouldDismissClipboardSearch
 import org.fxboomk.fcitx5.android.data.clipboard.db.ClipboardEntry
 import org.fxboomk.fcitx5.android.data.theme.Theme
 
@@ -27,23 +31,43 @@ class ClipboardSearchOverlay(
     private val scope: CoroutineScope,
     private val onClose: () -> Unit,
     private val onCursorPositioned: () -> Unit,
-    private val onEntryClick: (ClipboardEntry) -> Unit
+    private val onEntryClick: (ClipboardEntry, Boolean) -> Unit
 ) {
     private val ui = ClipboardSearchUi(context, theme)
     val root get() = ui.root
     private val inputState = ClipboardSearchInputState()
 
-    private val adapter = ClipboardSearchAdapter(theme, entryRadius, maskSensitive, onEntryClick)
+    private val adapter = ClipboardSearchAdapter(theme, entryRadius, maskSensitive) { entry ->
+        onEntryClick(entry, isPinned)
+        requestDismiss(ClipboardSearchDismissReason.ResultClick)
+    }
     private var searchJob: Job? = null
     private var selectedCategory = ClipboardSearchCategory.Local
     private var categoryExplicitlySelected = false
+    var isPinned = false
+        private set
+
+    private val longPressTimeout = ViewConfiguration.getLongPressTimeout().toLong()
+    private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
+    private var dragActivated = false
+    private var downRawX = 0f
+    private var downRawY = 0f
+    private var initialTranslationX = 0f
+    private var initialTranslationY = 0f
+    private val activateDrag = Runnable { dragActivated = true }
 
     init {
         ui.recyclerView.layoutManager =
             StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL)
         ui.recyclerView.itemAnimator = null
         ui.recyclerView.adapter = adapter
-        ui.backButton.setOnClickListener { onClose() }
+        ui.backButton.setOnClickListener {
+            requestDismiss(ClipboardSearchDismissReason.Explicit)
+        }
+        ui.pinButton.setOnClickListener {
+            isPinned = !isPinned
+            ui.setPinned(isPinned)
+        }
         ui.clearButton.setOnClickListener {
             inputState.clear()
             onInputChanged()
@@ -54,7 +78,9 @@ class ClipboardSearchOverlay(
             onInputChanged()
         }
         ui.setOnCursorPositionedListener(::setCursor)
+        setupDragging()
         ui.setSelectedCategory(selectedCategory)
+        ui.setPinned(isPinned)
         showInitialState()
     }
 
@@ -62,17 +88,29 @@ class ClipboardSearchOverlay(
         inputState.clear()
         selectedCategory = ClipboardSearchCategory.Local
         categoryExplicitlySelected = false
+        isPinned = false
+        ui.panel.translationX = 0f
+        ui.panel.translationY = 0f
         adapter.submitList(emptyList())
         ui.setSelectedCategory(selectedCategory)
+        ui.setPinned(isPinned)
         ui.renderInput(inputState)
         showInitialState()
     }
 
     fun close() {
+        ui.dragHandle.removeCallbacks(activateDrag)
+        dragActivated = false
         searchJob?.cancel()
         searchJob = null
         adapter.submitList(emptyList())
         inputState.clear()
+    }
+
+    fun requestDismiss(reason: ClipboardSearchDismissReason): Boolean {
+        if (!shouldDismissClipboardSearch(isPinned, reason)) return false
+        onClose()
+        return true
     }
 
     fun commit(text: String, cursor: Int = -1) {
@@ -151,6 +189,7 @@ class ClipboardSearchOverlay(
                     ClipboardSearchCategory.Favorites -> R.string.clipboard_search_favorite_results
                     ClipboardSearchCategory.Local -> R.string.clipboard_search_local_results
                     ClipboardSearchCategory.Remote -> R.string.clipboard_search_remote_results
+                    ClipboardSearchCategory.Media -> R.string.clipboard_search_media_results
                 }
                 ui.showResults(ui.ctx.getString(status, result.entries.size))
             }
@@ -159,5 +198,45 @@ class ClipboardSearchOverlay(
 
     private fun showInitialState() {
         ui.showMessage(ui.ctx.getString(R.string.clipboard_search_initial))
+    }
+
+    private fun setupDragging() {
+        ui.dragHandle.setOnTouchListener { view, event ->
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    downRawX = event.rawX
+                    downRawY = event.rawY
+                    initialTranslationX = ui.panel.translationX
+                    initialTranslationY = ui.panel.translationY
+                    dragActivated = false
+                    view.postDelayed(activateDrag, longPressTimeout)
+                    true
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    val dx = event.rawX - downRawX
+                    val dy = event.rawY - downRawY
+                    if (!dragActivated && dx * dx + dy * dy > touchSlop * touchSlop) {
+                        view.removeCallbacks(activateDrag)
+                    }
+                    if (dragActivated) {
+                        val minX = -ui.panel.left.toFloat()
+                        val maxX = (root.width - ui.panel.right).toFloat()
+                        val minY = -ui.panel.top.toFloat()
+                        val maxY = (root.height - ui.panel.bottom).toFloat()
+                        ui.panel.translationX = (initialTranslationX + dx).coerceIn(minX, maxX)
+                        ui.panel.translationY = (initialTranslationY + dy).coerceIn(minY, maxY)
+                    }
+                    true
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    view.removeCallbacks(activateDrag)
+                    val handled = dragActivated
+                    dragActivated = false
+                    if (!handled && event.actionMasked == MotionEvent.ACTION_UP) view.performClick()
+                    true
+                }
+                else -> false
+            }
+        }
     }
 }
