@@ -5,6 +5,7 @@ import kotlinx.serialization.json.Json
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.utils.appContext
 import org.fxboomk.fcitx5.android.utils.errorRuntime
+import org.fxboomk.fcitx5.android.utils.errorT
 import org.fxboomk.fcitx5.android.utils.extract
 import org.fxboomk.fcitx5.android.utils.withTempDir
 import org.fxboomk.fcitx5.android.utils.zipInputStream
@@ -332,16 +333,23 @@ object ThemeFilesManager {
             // Try importing with different ZIP encodings (UTF-8, GBK, Big5)
             // This handles ZIP files created on Windows with non-UTF-8 encodings
             val encodings = listOf("UTF-8", "GBK", "Big5")
+            var lastError: Exception? = null
             for (encoding in encodings) {
                 try {
                     return@runCatching importThemeWithEncoding(zipBytes.inputStream(), encoding, importedName)
+                } catch (e: ThemeImportException) {
+                    // Definitive domain error (e.g. name clash): retrying with another
+                    // encoding cannot fix it and would replace the message
+                    throw e
                 } catch (e: Exception) {
                     // Try next encoding
+                    lastError = e
                 }
             }
-            
+
             // All encodings failed
-            errorRuntime(R.string.exception_theme_src_image)
+            Timber.w(lastError, "Theme import failed with all zip encodings")
+            errorRuntime(R.string.exception_theme_parse)
         }
 
     fun decodeTheme(src: InputStream): Result<Theme.Custom> =
@@ -430,7 +438,7 @@ object ThemeFilesManager {
                 )
                 val importedThemeName = importedName ?: ThemeManager.nonActiveImportName(decoded.name)
                 if (ThemeManager.BuiltinThemes.find { it.name == importedThemeName } != null)
-                    errorRuntime(R.string.exception_theme_name_clash)
+                    errorT(::ThemeImportException, R.string.exception_theme_name_clash)
                 val oldTheme = ThemeManager.getTheme(importedThemeName) as? Theme.Custom
                 val newCreated = oldTheme == null
                 val theme = decoded.copy(name = importedThemeName)
@@ -505,3 +513,9 @@ object ThemeFilesManager {
     }
 
 }
+
+/**
+ * Import failed for a reason that no other zip encoding could fix
+ * (localized message is safe to show to the user)
+ */
+class ThemeImportException(message: String) : RuntimeException(message)
