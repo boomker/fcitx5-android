@@ -266,6 +266,22 @@ class StatusAreaWindow : InputWindow.ExtendedInputWindow<StatusAreaWindow>(),
 
     var popupMenu: PopupMenu? = null
 
+    /**
+     * Rime selector menus repeat the switch name in every entry
+     * ("注解类型 ➜ 空白"); the invoking button already carries the name, so
+     * keep only the value part. Non-matching entries are returned unchanged.
+     */
+    private fun selectorItemText(parent: Action, item: Action): String {
+        val parentIndex = StatusAreaEntry.firstArrowIndex(parent.shortText)
+        if (parentIndex <= 0) return item.shortText
+        val name = parent.shortText.substring(0, parentIndex).trim()
+        val itemIndex = StatusAreaEntry.firstArrowIndex(item.shortText)
+        if (itemIndex <= 0) return item.shortText
+        val itemName = item.shortText.substring(0, itemIndex).trim()
+        val value = item.shortText.substring(itemIndex + 1).trim()
+        return if (itemName == name && value.isNotEmpty()) value else item.shortText
+    }
+
     private val adapter: StatusAreaAdapter by lazy {
         object : StatusAreaAdapter() {
             override fun onItemClick(view: View, entry: StatusAreaEntry) {
@@ -286,6 +302,7 @@ class StatusAreaWindow : InputWindow.ExtendedInputWindow<StatusAreaWindow>(),
                                 false
                             }
                         var groupId = 0 // Menu.NONE; ungrouped
+                        val parentAction = entry.action
                         actions.forEach {
                             if (it.isSeparator) {
                                 if (hasDivider) {
@@ -301,7 +318,15 @@ class StatusAreaWindow : InputWindow.ExtendedInputWindow<StatusAreaWindow>(),
                                     }
                                 }
                             } else {
-                                menu.add(groupId, 0, 0, it.shortText).apply {
+                                // A selector menu carries no checked state on its
+                                // entries; the current value is the one repeating
+                                // the parent's "name <arrow> value" text.
+                                val checked = it.isChecked ||
+                                    (StatusAreaEntry.firstArrowIndex(parentAction.shortText) >= 0 &&
+                                        it.shortText == parentAction.shortText)
+                                val title = selectorItemText(parentAction, it) +
+                                    if (checked) " ✓" else ""
+                                menu.add(groupId, 0, 0, title).apply {
                                     setOnMenuItemClickListener { _ ->
                                         activateAction(it)
                                         true
@@ -442,6 +467,7 @@ class StatusAreaWindow : InputWindow.ExtendedInputWindow<StatusAreaWindow>(),
 
     private val rimeTabButton by lazy {
         ToolButton(context, R.drawable.ic_baseline_code_24, theme).apply {
+            activeHighlight = true
             contentDescription = context.getString(R.string.status_area_rime)
             setIconDrawable(
                 TextIconDrawable("㞢", Typeface.DEFAULT_BOLD, resources.displayMetrics.density)
@@ -452,6 +478,7 @@ class StatusAreaWindow : InputWindow.ExtendedInputWindow<StatusAreaWindow>(),
 
     private val mainTabButton by lazy {
         ToolButton(context, R.drawable.ic_baseline_tune_24, theme).apply {
+            activeHighlight = true
             contentDescription = context.getString(R.string.status_area_main_tab)
             setOnClickListener { switchPage(StatusPage.Main) }
         }

@@ -6,6 +6,9 @@ package org.fxboomk.fcitx5.android.input.bar.ui
 
 import android.content.Context
 import android.content.res.ColorStateList
+import android.graphics.drawable.InsetDrawable
+import android.graphics.drawable.ShapeDrawable
+import android.graphics.drawable.shapes.OvalShape
 import android.view.ViewPropertyAnimator
 import android.widget.ImageView
 import android.graphics.drawable.Drawable
@@ -93,6 +96,13 @@ class ToolButton(context: Context) : CustomGestureView(context) {
     }
 
     /**
+     * Render the active state as a filled circle behind the icon instead of a
+     * tint-only change. Opt-in for page-tab buttons: on tinted bars the active
+     * tint alone can look dimmed rather than selected.
+     */
+    var activeHighlight = false
+
+    /**
      * Set the active state of this button.
      * When active, the button icon color changes, background remains transparent.
      */
@@ -104,14 +114,25 @@ class ToolButton(context: Context) : CustomGestureView(context) {
 
     private fun updateAppearance() {
         val theme = theme ?: return
-        // Only change icon color when active, background remains transparent
-        // Use accentKeyBackgroundColor to match the one-handed handle color
-        val iconColor = if (isActive) theme.accentKeyBackgroundColor else theme.altKeyTextColor
-
-        image.imageTintList = ColorStateList.valueOf(iconColor)
+        if (activeHighlight && isActive) {
+            image.background = InsetDrawable(ShapeDrawable(OvalShape()).apply {
+                paint.color = theme.genericActiveBackgroundColor
+            }, dp(3))
+            image.imageTintList = ColorStateList.valueOf(theme.genericActiveForegroundColor)
+        } else {
+            image.background = null
+            // Only change icon color when active, background remains transparent
+            // Use accentKeyBackgroundColor to match the one-handed handle color
+            val iconColor = if (isActive) theme.accentKeyBackgroundColor else theme.altKeyTextColor
+            image.imageTintList = ColorStateList.valueOf(iconColor)
+        }
     }
 
     private fun currentIconColor(): Int? = theme?.let {
-        if (isActive) it.accentKeyBackgroundColor else it.altKeyTextColor
+        when {
+            activeHighlight && isActive -> it.genericActiveForegroundColor
+            isActive -> it.accentKeyBackgroundColor
+            else -> it.altKeyTextColor
+        }
     }
 }

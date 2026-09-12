@@ -8,7 +8,6 @@ import android.content.Context
 import android.graphics.Typeface
 import android.graphics.drawable.ShapeDrawable
 import android.graphics.drawable.shapes.OvalShape
-import android.icu.text.BreakIterator
 import android.os.Build
 import android.util.TypedValue
 import android.view.View
@@ -122,22 +121,11 @@ class StatusAreaEntryUi(override val ctx: Context, private val theme: Theme) : U
         } else {
             icon.visibility = View.GONE
             textIcon.visibility = View.VISIBLE
-            textIcon.text = getFirstCharacter(entry.label)
+            textIcon.text = entry.glyph ?: StatusAreaEntry.firstCharacter(entry.label)
             textIcon.setTextColor(contentColor)
         }
         bkgDrawable.paint.color =
             if (entry.active) theme.genericActiveBackgroundColor else theme.keyBackgroundColor
         label.text = entry.label
-    }
-
-    private fun getFirstCharacter(s: String): String {
-        if (s.isEmpty()) return ""
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            val iterator = BreakIterator.getCharacterInstance()
-            iterator.setText(s)
-            s.substring(iterator.first(), iterator.next())
-        } else {
-            s.substring(0, s.offsetByCodePoints(0, 1))
-        }
     }
 }

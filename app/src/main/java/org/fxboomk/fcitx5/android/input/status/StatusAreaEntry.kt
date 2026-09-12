@@ -6,6 +6,8 @@ package org.fxboomk.fcitx5.android.input.status
 
 import androidx.annotation.DrawableRes
 import android.graphics.drawable.Drawable
+import android.icu.text.BreakIterator
+import android.os.Build
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.core.Action
 import org.fxboomk.fcitx5.android.input.action.ButtonAction
@@ -16,7 +18,10 @@ sealed class StatusAreaEntry(
     val icon: Int,
     val iconText: String? = null,
     val active: Boolean,
-    val customIcon: Drawable? = null
+    val customIcon: Drawable? = null,
+    // Text rendered inside the circle when no icon is set; falls back to the
+    // first character of label.
+    val glyph: String? = null
 ) {
     /**
      * Status Area entry backed by a ButtonAction
@@ -46,8 +51,13 @@ sealed class StatusAreaEntry(
         }
     }
 
-    class Fcitx(val action: Action, label: String, icon: Int, active: Boolean) :
-        StatusAreaEntry(label, icon, null, active)
+    class Fcitx(
+        val action: Action,
+        label: String,
+        icon: Int,
+        active: Boolean,
+        glyph: String? = null
+    ) : StatusAreaEntry(label, icon, null, active, glyph = glyph)
 
     companion object {
         private fun drawableFromIconName(icon: String) = when (icon) {
@@ -79,7 +89,55 @@ sealed class StatusAreaEntry(
 
         fun fromAction(it: Action): Fcitx {
             val active = it.icon.endsWith("-active") || it.isChecked
-            return Fcitx(it, it.shortText, drawableFromIconName(it.icon), active)
+            val selector = selectorParts(it)
+            return Fcitx(
+                it,
+                selector?.first ?: it.shortText,
+                drawableFromIconName(it.icon),
+                active,
+                glyph = selector?.second?.let { value -> firstCharacter(value) }
+            )
+        }
+
+        /**
+         * A multi-valued selector action (one carrying a menu) composes its
+         * shortText as "name <arrow> current value". A plain toggle instead
+         * reads "current <arrow> next" and must keep the raw text.
+         */
+        private fun selectorParts(action: Action): Pair<String, String>? {
+            if (action.menu.isNullOrEmpty()) return null
+            val index = firstArrowIndex(action.shortText)
+            if (index <= 0) return null
+            val name = action.shortText.substring(0, index).trim()
+            val value = action.shortText.substring(index + 1).trim()
+            if (name.isEmpty() || value.isEmpty()) return null
+            return name to value
+        }
+
+        /**
+         * Arrow characters schemas embed in switch labels to separate the
+         * switch name from its value; they are not consistent about which one.
+         */
+        private val ARROWS = charArrayOf('→', '➜')
+
+        fun firstArrowIndex(text: String): Int {
+            var first = -1
+            for (arrow in ARROWS) {
+                val index = text.indexOf(arrow)
+                if (index >= 0 && (first < 0 || index < first)) first = index
+            }
+            return first
+        }
+
+        fun firstCharacter(s: String): String {
+            if (s.isEmpty()) return ""
+            return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                val iterator = BreakIterator.getCharacterInstance()
+                iterator.setText(s)
+                s.substring(iterator.first(), iterator.next())
+            } else {
+                s.substring(0, s.offsetByCodePoints(0, 1))
+            }
         }
     }
 }
