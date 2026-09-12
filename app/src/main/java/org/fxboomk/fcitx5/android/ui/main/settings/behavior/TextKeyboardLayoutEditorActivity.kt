@@ -22,6 +22,7 @@ import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.SeekBar
+import android.widget.Space
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
@@ -134,21 +135,30 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         }
     }
 
+    // 收起状态下带 weight 的子 View 会被 LinearLayout 以 EXACTLY 规格测量，minimumWidth/minEms
+    // 会被忽略，所以下拉框使用 wrap_content 自适应宽度，由最小宽度保证可见字符数
     private val layoutSpinner by lazy {
         Spinner(this).apply {
-            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-                weight = 1f
-                setMargins(0, 0, 0, 0)
-            }
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
         }
     }
 
     private val subModeSpinner by lazy {
         Spinner(this).apply {
-            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-                weight = 1f
-                setMargins(0, 0, 0, 0)
-            }
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        }
+    }
+
+    // 占据剩余宽度，使 +/🗑 始终靠右
+    private val spinnerFillSpace by lazy {
+        Space(this).apply {
+            layoutParams = LinearLayout.LayoutParams(0, 0, 1f)
         }
     }
 
@@ -161,17 +171,6 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             minWidth = dp(40)
             gravity = Gravity.CENTER
             setOnClickListener { openLayoutEditor(null) }
-        }
-    }
-
-    private val deleteLayoutButton by lazy {
-        TextView(this).apply {
-            text = "🗑"
-            textSize = 14f
-            setPadding(dp(12), dp(4), dp(12), dp(4))
-            minWidth = dp(40)
-            gravity = Gravity.CENTER
-            setOnClickListener { confirmDeleteCurrentEditingLayout() }
         }
     }
 
@@ -513,7 +512,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             true
         }
         MENU_LAYOUT_FILE_DELETE_ID -> {
-            confirmDeleteCurrentLayoutFile()
+            confirmDeleteCurrentEditingTarget()
             true
         }
         MENU_QR_EXPORT_ID -> {
@@ -618,9 +617,10 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
 
     private fun buildSpinner() {
         spinnerContainer.removeAllViews()
-        // Build display list showing both uniqueName and displayName
+        // Build display list showing the IME display name only, without the " (uniqueName)" suffix
         val displayItems = mutableListOf<String>()
         val layoutNameMap = mutableMapOf<String, String>() // display -> actual key
+        val usedDisplayItems = mutableMapOf<String, String>() // display -> actual key
 
         // Filter out submode keys (format: "layoutName:subModeLabel")
         // Only show base layout keys (those without a colon)
@@ -640,30 +640,33 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                 it.uniqueName == layoutName || it.displayName == layoutName
             }
 
-            if (matchingIme != null) {
-                // Show both names if they are different
-                // Format: displayName (uniqueName)
-                if (matchingIme.uniqueName != matchingIme.displayName) {
-                    val displayItem = "${matchingIme.displayName} (${matchingIme.uniqueName})"
-                    displayItems.add(displayItem)
-                    layoutNameMap[displayItem] = layoutName
-                } else {
-                    displayItems.add(layoutName)
-                    layoutNameMap[layoutName] = layoutName
+            // Prefer displayName; fall back to uniqueName / layout key only when needed to
+            // keep the display -> key mapping unambiguous
+            val preferred = matchingIme?.displayName?.takeIf { it.isNotBlank() }
+                ?: matchingIme?.uniqueName?.takeIf { it.isNotBlank() }
+                ?: layoutName
+            var displayItem = preferred
+            if (usedDisplayItems[displayItem] != null) {
+                val alternative = matchingIme?.uniqueName?.takeIf { it.isNotBlank() }
+                displayItem = when {
+                    alternative != null && usedDisplayItems[alternative] == null -> alternative
+                    usedDisplayItems[layoutName] == null -> layoutName
+                    else -> {
+                        var index = 2
+                        while (usedDisplayItems["$preferred $index"] != null) index++
+                        "$preferred $index"
+                    }
                 }
-            } else {
-                displayItems.add(layoutName)
-                layoutNameMap[layoutName] = layoutName
             }
+            displayItems.add(displayItem)
+            layoutNameMap[displayItem] = layoutName
+            usedDisplayItems[displayItem] = layoutName
         }
 
-        val adapter = ArrayAdapter(
-            this,
-            android.R.layout.simple_spinner_item,
-            displayItems.toTypedArray()
-        )
+        val adapter = createSpinnerAdapter(displayItems, layoutSpinner, SPINNER_MIN_VISIBLE_CHARS)
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         layoutSpinner.adapter = adapter
+        applySpinnerDropDownWidth(layoutSpinner, displayItems)
 
         // Set selection based on current layout
         currentLayout?.let {
@@ -718,8 +721,8 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         // Build the fixed spinner container structure
         spinnerContainer.removeAllViews()
         spinnerContainer.addView(layoutSpinner)
+        spinnerContainer.addView(spinnerFillSpace)
         spinnerContainer.addView(addLayoutButton)
-        spinnerContainer.addView(deleteLayoutButton)
         // Don't add to listContainer here - buildRows() will do it
     }
 
@@ -783,7 +786,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         spinnerContainer.addView(subModeSpinner, 1) // Add after layoutSpinner
 
         // Bind submode spinner data
-        bindSubModeSpinner(labels, if (isRime) RIME_SUBMODE_MIN_VISIBLE_CHARS else 0)
+        bindSubModeSpinner(labels, if (isRime) SPINNER_MIN_VISIBLE_CHARS else 0)
 
         // Update button behavior for submode
         updateLayoutButtonBehavior()
@@ -817,19 +820,19 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
     }
 
     /**
-     * Update the behavior of add/delete layout buttons based on current submode state.
+     * Update the behavior of the add layout button based on current submode state.
      * - When a submode is selected and has no dedicated layout: "+" adds submode layout
-     * - When a submode is selected and has dedicated layout: "🗑" deletes submode layout
-     * - Otherwise: buttons work on base layout
+     * - Otherwise: "+" works on base layout
+     * Deleting the current layout/submode layout is handled by the toolbar menu "删除布局".
      */
     private fun updateLayoutButtonBehavior() {
         val layoutName = currentLayout ?: return
         val subModeLabel = previewSubModeLabel?.takeIf { it.isNotBlank() }
-        
+
         if (subModeLabel != null) {
             val subModeKey = "$layoutName:$subModeLabel"
             val hasSubModeLayout = entries.containsKey(subModeKey)
-            
+
             // Update add button: add submode layout if it doesn't exist
             if (!hasSubModeLayout) {
                 addLayoutButton.setOnClickListener { addSubModeForCurrentSelection() }
@@ -841,50 +844,70 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                 }
                 addLayoutButton.alpha = 0.5f
             }
-            
-            // Update delete button: delete submode layout if it exists, otherwise delete base layout
-            deleteLayoutButton.setOnClickListener {
-                if (hasSubModeLayout) {
-                    confirmDeleteSubModeLayout(layoutName, subModeLabel)
-                } else {
-                    confirmDeleteBaseLayout(layoutName)
-                }
-            }
         } else {
             // No submode selected - restore default behavior
             addLayoutButton.setOnClickListener { openLayoutEditor(null) }
             addLayoutButton.alpha = 1.0f
-            deleteLayoutButton.setOnClickListener { confirmDeleteCurrentEditingLayout() }
         }
     }
 
-    private fun bindSubModeSpinner(labels: List<String>, minimumVisibleCharacters: Int) {
-        subModeSpinner.minimumWidth = if (minimumVisibleCharacters > 0) {
-            val characterWidth = TextView(this).apply { textSize = 16f }
-                .paint.measureText("中".repeat(minimumVisibleCharacters))
-            (characterWidth + dp(SPINNER_HORIZONTAL_PADDING_DP)).toInt()
-        } else {
-            0
-        }
-        val adapter = object : ArrayAdapter<String>(
+    private fun createSpinnerAdapter(
+        items: List<String>,
+        spinner: Spinner,
+        minimumVisibleCharacters: Int
+    ): ArrayAdapter<String> {
+        val characterWidth = TextView(this).apply { textSize = SPINNER_ITEM_TEXT_SIZE_SP }
+            .paint.measureText("中")
+        val minTextWidth = characterWidth * minimumVisibleCharacters
+        // 收起状态下 Spinner 宽度 = 文本 + 背景内边距（含下拉箭头）
+        val spinnerChromeWidth = (spinner.paddingLeft + spinner.paddingRight).toFloat()
+        // 行内容宽度按两个下拉框 + 两个按钮（各占 minWidth）分配，上限保证 +/🗑 始终可见
+        val contentWidth = listContainer.width
+            .takeIf { it > 0 }
+            ?: resources.displayMetrics.widthPixels
+        val rowContentWidth = contentWidth - listContainer.paddingLeft - listContainer.paddingRight
+        // 行内容宽度扣除右侧 "+" 按钮后由两个下拉框均分，上限保证按钮始终可见
+        val capTextWidth = ((rowContentWidth - dp(SPINNER_ACTION_BUTTON_RESERVE_DP)) / 2f
+            - spinnerChromeWidth)
+            .coerceAtLeast(0f)
+        val boundedMinWidth = minTextWidth.coerceAtMost(capTextWidth)
+        return object : ArrayAdapter<String>(
             this,
             android.R.layout.simple_spinner_item,
-            labels
+            items
         ) {
             override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
                 return super.getView(position, convertView, parent).also { view ->
-                    (view as? TextView)?.minEms = minimumVisibleCharacters
+                    (view as? TextView)?.apply {
+                        minimumWidth = boundedMinWidth.toInt()
+                        maxWidth = capTextWidth.toInt()
+                    }
                 }
             }
 
+            // 展开视图不设宽度限制，保证列表项完整显示
             override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View {
                 return super.getDropDownView(position, convertView, parent).also { view ->
-                    (view as? TextView)?.minEms = minimumVisibleCharacters
+                    (view as? TextView)?.minimumWidth = boundedMinWidth.toInt()
                 }
             }
         }
+    }
+
+    // 弹出列表宽度按最长选项自适应，避免窄下拉框导致列表项被截断
+    private fun applySpinnerDropDownWidth(spinner: Spinner, items: List<String>) {
+        val paint = TextView(this).apply { textSize = SPINNER_ITEM_TEXT_SIZE_SP }.paint
+        val desired = ((items.maxOfOrNull { paint.measureText(it) } ?: 0f)
+            + dp(SPINNER_HORIZONTAL_PADDING_DP)).toInt()
+        val maxWidth = resources.displayMetrics.widthPixels - dp(SPINNER_HORIZONTAL_PADDING_DP)
+        spinner.dropDownWidth = desired.coerceAtMost(maxWidth)
+    }
+
+    private fun bindSubModeSpinner(labels: List<String>, minimumVisibleCharacters: Int) {
+        val adapter = createSpinnerAdapter(labels, subModeSpinner, minimumVisibleCharacters)
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         subModeSpinner.adapter = adapter
+        applySpinnerDropDownWidth(subModeSpinner, labels)
 
         val selectedIndex = labels.indexOf(previewSubModeLabel).takeIf { it >= 0 } ?: 0
         subModeSpinner.setSelection(selectedIndex)
@@ -986,14 +1009,21 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun createDeleteSubModeButton(): TextView {
-        return TextView(this).apply {
-            text = "🗑"
-            textSize = 14f
-            setPadding(dp(12), dp(6), dp(12), dp(6))
-            minWidth = dp(40)
-            gravity = Gravity.CENTER
-            setOnClickListener { confirmDeleteCurrentEditingLayout() }
+    /**
+     * Delete the layout currently being edited, matching the former inline "🗑" button:
+     * - When a submode is selected and has a dedicated layout, delete that submode layout
+     * - When a submode is selected without a dedicated layout, delete the base layout
+     * - Otherwise delete the current base layout
+     */
+    private fun confirmDeleteCurrentEditingTarget() {
+        val layoutName = currentLayout ?: return
+        val subModeLabel = previewSubModeLabel?.takeIf { it.isNotBlank() }
+        if (subModeLabel != null && entries.containsKey("$layoutName:$subModeLabel")) {
+            confirmDeleteSubModeLayout(layoutName, subModeLabel)
+        } else if (subModeLabel != null) {
+            confirmDeleteBaseLayout(layoutName)
+        } else {
+            confirmDeleteCurrentEditingLayout()
         }
     }
 
@@ -1873,70 +1903,6 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun confirmDeleteCurrentLayoutFile() {
-        val profile = currentLayoutProfile
-        val file = layoutFile
-        val label = displayProfile(profile)
-        if (hasChanges()) {
-            AlertDialog.Builder(this)
-                .setTitle(R.string.text_keyboard_layout_discard_changes_title)
-                .setMessage(R.string.text_keyboard_layout_delete_file_discard_message)
-                .setPositiveButton(R.string.text_keyboard_layout_discard_changes_positive) { _, _ ->
-                    deleteCurrentLayoutFile(file, profile, label)
-                }
-                .setNegativeButton(R.string.text_keyboard_layout_discard_changes_negative, null)
-                .show()
-            return
-        }
-        deleteCurrentLayoutFile(file, profile, label)
-    }
-
-    private fun deleteCurrentLayoutFile(file: File?, profile: String, label: String) {
-        val targetFile = file ?: UserConfigFiles.textKeyboardLayoutJson(profile)
-        if (targetFile == null) {
-            showToast(getString(R.string.text_keyboard_layout_file_delete_failed))
-            return
-        }
-        AlertDialog.Builder(this)
-            .setTitle(R.string.text_keyboard_layout_file_delete)
-            .setMessage(getString(R.string.text_keyboard_layout_file_delete_confirm, label))
-            .setPositiveButton(R.string.text_keyboard_layout_discard_changes_positive) { _, _ ->
-                runCatching {
-                    val parent = targetFile.parentFile ?: throw IllegalStateException("Missing parent dir")
-                    val backups = parent.listFiles { candidate ->
-                        candidate.isFile &&
-                                candidate.name.startsWith("${targetFile.nameWithoutExtension}_backup_") &&
-                                candidate.name.endsWith(".json")
-                    }.orEmpty()
-                    val trashDir = File(parent, ".trash-${targetFile.nameWithoutExtension}-${System.currentTimeMillis()}")
-                    if (!trashDir.mkdirs()) throw IllegalStateException("Unable to create trash dir")
-                    val moved = mutableListOf<Pair<File, File>>()
-                    fun moveToTrash(source: File) {
-                        val trash = File(trashDir, source.name)
-                        if (!source.renameTo(trash)) {
-                            throw IllegalStateException("Unable to stage ${source.name} for deletion")
-                        }
-                        moved += source to trash
-                    }
-                    if (targetFile.exists()) moveToTrash(targetFile)
-                    backups.forEach(::moveToTrash)
-                    moved.forEach { (_, trash) ->
-                        if (!trash.delete()) {
-                            throw IllegalStateException("Unable to delete staged file ${trash.name}")
-                        }
-                    }
-                    trashDir.delete()
-                    val fallbackProfile = UserConfigFiles.DEFAULT_TEXT_KEYBOARD_LAYOUT_PROFILE
-                    switchToLayoutProfile(fallbackProfile)
-                    showToast(getString(R.string.text_keyboard_layout_file_deleted, label))
-                }.onFailure {
-                    showToast(getString(R.string.text_keyboard_layout_file_delete_failed))
-                }
-            }
-            .setNegativeButton(R.string.text_keyboard_layout_discard_changes_negative, null)
-            .show()
-    }
-
     private fun openRenameLayoutFileDialog() {
         if (DeviceUtil.isHMOS) {
             val intent = Intent(this, LayoutFileProfileInputActivity::class.java).apply {
@@ -2656,7 +2622,9 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
     }
 
     companion object {
-        private const val RIME_SUBMODE_MIN_VISIBLE_CHARS = 4
+        private const val SPINNER_MIN_VISIBLE_CHARS = 4
+        private const val SPINNER_ACTION_BUTTON_RESERVE_DP = 40
+        private const val SPINNER_ITEM_TEXT_SIZE_SP = 16f
         private const val SPINNER_HORIZONTAL_PADDING_DP = 32
         private const val MENU_SAVE_ID = 3001
         private const val MENU_LAYOUT_FILE_SWITCH_ID = 3002
