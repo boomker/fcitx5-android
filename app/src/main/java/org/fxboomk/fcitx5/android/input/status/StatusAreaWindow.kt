@@ -4,13 +4,17 @@
  */
 package org.fxboomk.fcitx5.android.input.status
 
+import android.graphics.Typeface
 import android.net.Uri
 import android.os.Build
+import android.view.MotionEvent
 import android.view.View
+import android.view.animation.DecelerateInterpolator
 import android.widget.PopupMenu
 import android.widget.Toast
 import androidx.core.text.buildSpannedString
 import androidx.core.text.color
+import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import org.fxboomk.fcitx5.android.R
@@ -33,6 +37,7 @@ import org.fxboomk.fcitx5.android.input.dependency.fcitx
 import org.fxboomk.fcitx5.android.input.dependency.inputMethodService
 import org.fxboomk.fcitx5.android.input.dependency.theme
 import org.fxboomk.fcitx5.android.input.editorinfo.EditorInfoWindow
+import org.fxboomk.fcitx5.android.input.font.TextIconDrawable
 import org.fxboomk.fcitx5.android.input.keyboard.KeyboardWindow
 import org.fxboomk.fcitx5.android.input.status.StatusAreaEntry.ActionEntry
 import org.fxboomk.fcitx5.android.input.wm.InputWindow
@@ -48,9 +53,10 @@ import splitties.views.backgroundColor
 import splitties.views.dsl.core.add
 import splitties.views.dsl.core.horizontalLayout
 import splitties.views.dsl.core.lParams
-import splitties.views.dsl.recyclerview.recyclerView
+import androidx.recyclerview.widget.RecyclerView
 import splitties.views.recyclerview.gridLayoutManager
 import timber.log.Timber
+import kotlin.math.abs
 
 class StatusAreaWindow : InputWindow.ExtendedInputWindow<StatusAreaWindow>(),
     InputBroadcastReceiver {
@@ -74,6 +80,28 @@ class StatusAreaWindow : InputWindow.ExtendedInputWindow<StatusAreaWindow>(),
     }
 
     private var currentButtonsConfig: List<ConfigurableButton> = emptyList()
+
+    /**
+     * Pages of the status area grid: Main shows the app-configurable buttons
+     * (plus non-Rime fcitx actions when the Rime engine is not active), Rime
+     * shows the actions provided by the Rime engine.
+     */
+    private enum class StatusPage { Main, Rime }
+
+    private var currentPage = StatusPage.Main
+    private var latestActions: Array<Action> = emptyArray()
+
+    /**
+     * Whether the active fcitx input method belongs to the rime engine; only
+     * then are the page tabs (and the dedicated Rime page) shown.
+     */
+    private var isRimeEngine = false
+
+    private fun refreshRimeEngineState() {
+        isRimeEngine = runCatching {
+            fcitx.runImmediately { inputMethodEntryCached }.addon == "rime"
+        }.getOrDefault(false)
+    }
 
     private fun staticEntries(): Array<StatusAreaEntry> {
         val config = currentButtonsConfig.ifEmpty { loadButtonsConfig() }
@@ -131,11 +159,52 @@ class StatusAreaWindow : InputWindow.ExtendedInputWindow<StatusAreaWindow>(),
         return (configurableEntries + inputMethodOptionsEntry).toTypedArray()
     }
 
+    private fun fcitxActionEntries(): Array<StatusAreaEntry> =
+        Array(latestActions.size) { StatusAreaEntry.fromAction(latestActions[it]) }
+
     private fun renderEntries(actions: Array<Action>) {
-        adapter.entries = arrayOf(
-            *staticEntries(),
-            *Array(actions.size) { StatusAreaEntry.fromAction(actions[it]) }
-        )
+        latestActions = actions
+        renderCurrentPage()
+    }
+
+    private fun renderCurrentPage() {
+        val rimeTabAvailable = isRimeEngine && latestActions.isNotEmpty()
+        if (currentPage == StatusPage.Rime && !rimeTabAvailable) {
+            currentPage = StatusPage.Main
+        }
+        adapter.entries = when (currentPage) {
+            StatusPage.Main ->
+                if (isRimeEngine) staticEntries()
+                else arrayOf(*staticEntries(), *fcitxActionEntries())
+            StatusPage.Rime -> fcitxActionEntries()
+        }
+        tabExtension.isVisible = rimeTabAvailable
+        mainTabButton.setActive(currentPage == StatusPage.Main)
+        rimeTabButton.setActive(currentPage == StatusPage.Rime)
+    }
+
+    private fun switchPage(page: StatusPage) {
+        val target = when (page) {
+            StatusPage.Rime ->
+                page.takeIf { isRimeEngine && latestActions.isNotEmpty() } ?: return
+            StatusPage.Main -> page
+        }
+        if (currentPage == target) return
+        currentPage = target
+        renderCurrentPage()
+        animatePageTransition(target)
+    }
+
+    private fun animatePageTransition(page: StatusPage) {
+        // The incoming page slides in from the side it was swiped/tapped towards
+        view.translationX = (if (page == StatusPage.Rime) context.dp(48) else -context.dp(48)).toFloat()
+        view.alpha = 0.3f
+        view.animate()
+            .translationX(0f)
+            .alpha(1f)
+            .setDuration(180L)
+            .setInterpolator(DecelerateInterpolator())
+            .start()
     }
 
     private fun activateAction(action: Action) {
@@ -314,8 +383,32 @@ class StatusAreaWindow : InputWindow.ExtendedInputWindow<StatusAreaWindow>(),
 
     private val keyBorder by ThemeManager.prefs.keyBorder
 
+    private var swipeDownX = 0f
+    private var swipeDownY = 0f
+    private var swipeDownTime = 0L
+
     val view by lazy {
-        context.recyclerView {
+        object : RecyclerView(context) {
+            override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+                when (ev.actionMasked) {
+                    MotionEvent.ACTION_DOWN -> {
+                        swipeDownX = ev.x
+                        swipeDownY = ev.y
+                        swipeDownTime = System.currentTimeMillis()
+                    }
+                    MotionEvent.ACTION_UP -> {
+                        val dx = ev.x - swipeDownX
+                        val dy = ev.y - swipeDownY
+                        val quick = System.currentTimeMillis() - swipeDownTime < 500L
+                        val horizontal = abs(dx) > dp(64) && abs(dx) > abs(dy) * 2
+                        if (quick && horizontal) {
+                            switchPage(if (dx < 0) StatusPage.Rime else StatusPage.Main)
+                        }
+                    }
+                }
+                return super.dispatchTouchEvent(ev)
+            }
+        }.apply {
             if (!keyBorder) {
                 backgroundColor = theme.barColor
             }
@@ -325,7 +418,8 @@ class StatusAreaWindow : InputWindow.ExtendedInputWindow<StatusAreaWindow>(),
     }
 
     override fun onStatusAreaUpdate(actions: Array<Action>) {
-        // Reload config before rendering
+        // Reload engine state and config before rendering
+        refreshRimeEngineState()
         currentButtonsConfig = loadButtonsConfig()
         renderEntries(actions)
     }
@@ -346,6 +440,30 @@ class StatusAreaWindow : InputWindow.ExtendedInputWindow<StatusAreaWindow>(),
         }
     }
 
+    private val rimeTabButton by lazy {
+        ToolButton(context, R.drawable.ic_baseline_code_24, theme).apply {
+            contentDescription = context.getString(R.string.status_area_rime)
+            setIconDrawable(
+                TextIconDrawable("㞢", Typeface.DEFAULT_BOLD, resources.displayMetrics.density)
+            )
+            setOnClickListener { switchPage(StatusPage.Rime) }
+        }
+    }
+
+    private val mainTabButton by lazy {
+        ToolButton(context, R.drawable.ic_baseline_tune_24, theme).apply {
+            contentDescription = context.getString(R.string.status_area_main_tab)
+            setOnClickListener { switchPage(StatusPage.Main) }
+        }
+    }
+
+    private val tabExtension by lazy {
+        context.horizontalLayout {
+            add(mainTabButton, lParams(dp(40), dp(40)))
+            add(rimeTabButton, lParams(dp(40), dp(40)))
+        }.apply { isVisible = false }
+    }
+
     private val barExtension by lazy {
         context.horizontalLayout {
             if (editorInfoInspector) {
@@ -355,10 +473,14 @@ class StatusAreaWindow : InputWindow.ExtendedInputWindow<StatusAreaWindow>(),
         }
     }
 
+    override fun onCreateLeadingBarExtension() = tabExtension
+
     override fun onCreateBarExtension() = barExtension
 
     override fun onAttached() {
-        // Load config when attached
+        // Load config when attached and start from the Main page
+        currentPage = StatusPage.Main
+        refreshRimeEngineState()
         currentButtonsConfig = loadButtonsConfig()
         fcitx.launchOnReady {
             val data = it.statusArea()

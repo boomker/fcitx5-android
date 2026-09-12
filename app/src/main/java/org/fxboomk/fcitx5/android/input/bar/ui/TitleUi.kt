@@ -42,6 +42,8 @@ class TitleUi(override val ctx: Context, theme: Theme) : Ui {
 
     private var extension: View? = null
 
+    private var leadingExtension: View? = null
+
     override val root = constraintLayout {
         add(backButton, lParams(dp(40), dp(40)) {
             topOfParent()
@@ -88,6 +90,40 @@ class TitleUi(override val ctx: Context, theme: Theme) : Ui {
         extension?.let {
             root.removeView(it)
             extension = null
+        }
+    }
+
+    /**
+     * Add a view to the leading edge of the title bar, right after the back
+     * button (e.g. page tabs). The title text is re-anchored after it.
+     */
+    fun addLeadingExtension(view: View) {
+        if (leadingExtension != null) {
+            throw IllegalStateException("TitleBar leading extension is already present")
+        }
+        leadingExtension = view
+        root.run {
+            add(view, root.lParams(root.wrapContent, ctx.dp(40)) {
+                centerVertically()
+                after(backButton, ctx.dp(8))
+            })
+        }
+        titleText.layoutParams = root.lParams(root.wrapContent, ctx.dp(40)) {
+            topOfParent()
+            after(view, ctx.dp(8))
+            bottomOfParent()
+        }
+    }
+
+    fun removeLeadingExtension() {
+        leadingExtension?.let {
+            root.removeView(it)
+            leadingExtension = null
+            titleText.layoutParams = root.lParams(root.wrapContent, ctx.dp(40)) {
+                topOfParent()
+                after(backButton, ctx.dp(8))
+                bottomOfParent()
+            }
         }
     }
 }

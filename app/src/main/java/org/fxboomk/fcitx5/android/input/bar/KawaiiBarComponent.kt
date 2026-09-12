@@ -722,6 +722,7 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
             titleUi.setReturnButtonOnClickListener { }
             titleUi.setTitle("")
             titleUi.removeExtension()
+            titleUi.removeLeadingExtension()
         }
         view.displayedChild = index
     }
@@ -855,6 +856,7 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         when (window) {
             is InputWindow.ExtendedInputWindow<*> -> {
                 titleUi.setTitle(window.title)
+                window.onCreateLeadingBarExtension()?.let { titleUi.addLeadingExtension(it) }
                 window.onCreateBarExtension()?.let { titleUi.addExtension(it, window.showTitle) }
                 titleUi.setReturnButtonOnClickListener {
                     windowManager.attachWindow(KeyboardWindow)

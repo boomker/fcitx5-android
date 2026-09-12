@@ -74,6 +74,15 @@ sealed class InputWindow : Dependent {
             return null
         }
 
+        /**
+         * Optional view placed at the leading edge of the title bar, right
+         * after the back button (e.g. page tabs). Unlike [onCreateBarExtension],
+         * it is not affected by [showTitle].
+         */
+        open fun onCreateLeadingBarExtension(): View? {
+            return null
+        }
+
         override val type: KClass<out IUniqueComponent<*>> by lazy { defaultType() }
 
         override fun equals(other: Any?): Boolean = defaultEquals(other)
