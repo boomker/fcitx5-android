@@ -2627,6 +2627,10 @@ class InputView(
             hideButtonsAdjustingOverlay()
         }
         keyboardWindow.checkAndApplyFontRefresh()
+        // Apply the composition area style in case it changed while the input view was hidden
+        if (kawaiiBar.view.layoutParams?.height != dp(kawaiiBar.barHeight)) {
+            updateCompositionAreaStyle()
+        }
         broadcaster.onStartInput(info, capFlags, restarting)
         returnKeyDrawable.updateDrawableOnEditorInfo(info)
         if (focusChangeResetKeyboard || !restarting) {
@@ -2879,6 +2883,11 @@ class InputView(
     }
 
     internal fun updateCompositionAreaStyle() {
+        // The bar height was fixed at construction time; re-apply it so switching to/from
+        // the inline candidate bar takes effect without recreating InputView
+        kawaiiBar.view.updateLayoutParams<LayoutParams> {
+            height = dp(kawaiiBar.barHeight)
+        }
         kawaiiBar.updateCompositionAreaStyle()
         setPreeditVisibility(shouldDisplayStandalonePreedit)
         updateKeyboardSize()

@@ -278,7 +278,14 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
     fun syncCandidateBarState(candidateEmpty: Boolean) {
         // When floating candidates window is active, always treat as empty
         // to prevent KawaiiBar from entering Candidate state
-        val effectiveEmpty = if (isFloatingCandidatesActive()) true else candidateEmpty
+        val effectiveEmpty = when {
+            isFloatingCandidatesActive() -> true
+            // With the inline composition area, keep the candidate bar (and the typed code
+            // in the inline preedit) visible while preedit is non-empty, even if no
+            // candidate matches the code
+            usesInlineCompositionArea && barStateMachine.getBooleanState(PreeditEmpty) == false -> false
+            else -> candidateEmpty
+        }
         barStateMachine.push(CandidatesUpdated, CandidateEmpty to effectiveEmpty)
     }
 
@@ -926,8 +933,8 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
 
     companion object {
         const val HEIGHT = 40
-        const val INLINE_HEIGHT = 60
-        const val INLINE_PREEDIT_HEIGHT = 20
+        const val INLINE_HEIGHT = 62
+        const val INLINE_PREEDIT_HEIGHT = 22
     }
 
     private fun updateButtonsState() {
