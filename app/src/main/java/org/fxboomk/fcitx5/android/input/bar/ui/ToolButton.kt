@@ -6,16 +6,15 @@ package org.fxboomk.fcitx5.android.input.bar.ui
 
 import android.content.Context
 import android.content.res.ColorStateList
-import android.view.Gravity
 import android.view.ViewPropertyAnimator
 import android.widget.ImageView
-import android.widget.TextView
 import android.graphics.drawable.Drawable
 import androidx.annotation.ColorInt
 import androidx.annotation.DrawableRes
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.data.theme.Theme
 import org.fxboomk.fcitx5.android.input.font.ButtonIconFont
+import org.fxboomk.fcitx5.android.input.font.TextIconDrawable
 import org.fxboomk.fcitx5.android.input.keyboard.CustomGestureView
 import org.fxboomk.fcitx5.android.utils.borderlessRippleDrawable
 import org.fxboomk.fcitx5.android.utils.circlePressHighlightDrawable
@@ -23,7 +22,6 @@ import splitties.dimensions.dp
 import splitties.views.dsl.core.add
 import splitties.views.dsl.core.imageView
 import splitties.views.dsl.core.lParams
-import splitties.views.dsl.core.textView
 import splitties.views.dsl.core.wrapContent
 import splitties.views.gravityCenter
 import splitties.views.imageResource
@@ -42,15 +40,6 @@ class ToolButton(context: Context) : CustomGestureView(context) {
         scaleType = ImageView.ScaleType.CENTER_INSIDE
     }
 
-    val text = textView {
-        isClickable = false
-        isFocusable = false
-        padding = dp(10)
-        gravity = Gravity.CENTER
-        textSize = 20f
-        visibility = GONE
-    }
-
     var iconRotation: Float
         get() = image.rotation
         set(value) {
@@ -63,31 +52,33 @@ class ToolButton(context: Context) : CustomGestureView(context) {
     constructor(context: Context, @DrawableRes icon: Int, theme: Theme) : this(context) {
         this.theme = theme
         image.imageTintList = ColorStateList.valueOf(theme.altKeyTextColor)
-        text.setTextColor(theme.altKeyTextColor)
         setIcon(icon)
         setPressHighlightColor(theme.keyPressHighlightColor)
         add(image, lParams(wrapContent, wrapContent, gravityCenter))
-        add(text, lParams(wrapContent, wrapContent, gravityCenter))
     }
 
     fun iconAnimate(): ViewPropertyAnimator = image.animate()
 
     fun setIcon(@DrawableRes icon: Int) {
-        image.visibility = VISIBLE
-        text.visibility = GONE
         image.imageResource = icon
     }
 
+    /**
+     * Render a glyph from the button icon font through the same ImageView and
+     * normalized 24dp box as drawable icons, so its size and vertical position
+     * match them instead of following uneven font metrics.
+     */
     fun setIconText(iconText: String) {
-        image.visibility = GONE
-        text.visibility = VISIBLE
-        text.text = iconText
-        text.typeface = ButtonIconFont.typeface(context)
+        val drawable = TextIconDrawable(
+            iconText,
+            ButtonIconFont.typeface(context),
+            resources.displayMetrics.density
+        )
+        currentIconColor()?.let(drawable::setTint)
+        image.setImageDrawable(drawable)
     }
 
     fun setIconDrawable(drawable: Drawable) {
-        image.visibility = VISIBLE
-        text.visibility = GONE
         image.setImageDrawable(drawable.mutate().apply {
             currentIconColor()?.let(::setTint)
         })
@@ -118,7 +109,6 @@ class ToolButton(context: Context) : CustomGestureView(context) {
         val iconColor = if (isActive) theme.accentKeyBackgroundColor else theme.altKeyTextColor
 
         image.imageTintList = ColorStateList.valueOf(iconColor)
-        text.setTextColor(iconColor)
     }
 
     private fun currentIconColor(): Int? = theme?.let {

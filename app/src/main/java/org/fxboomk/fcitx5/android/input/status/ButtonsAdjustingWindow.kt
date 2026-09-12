@@ -37,6 +37,7 @@ import org.fxboomk.fcitx5.android.input.config.ConfigProviders
 import org.fxboomk.fcitx5.android.input.config.ConfigurableButton
 import org.fxboomk.fcitx5.android.input.dependency.inputMethodService
 import org.fxboomk.fcitx5.android.input.font.ButtonIconFont
+import org.fxboomk.fcitx5.android.input.font.TextIconDrawable
 import org.fxboomk.fcitx5.android.input.wm.InputWindow
 import splitties.dimensions.dp
 import splitties.views.backgroundColor
@@ -224,11 +225,15 @@ data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjust
             theme: Theme
         ) {
             if (iconText != null) {
-                icon.visibility = View.GONE
-                textIcon.visibility = View.VISIBLE
-                textIcon.text = iconText
-                textIcon.typeface = ButtonIconFont.typeface(context)
-                textIcon.setTextColor(theme.keyTextColor)
+                icon.visibility = View.VISIBLE
+                textIcon.visibility = View.GONE
+                icon.setImageDrawable(
+                    TextIconDrawable(
+                        iconText,
+                        ButtonIconFont.typeface(context),
+                        context.resources.displayMetrics.density
+                    ).apply { setTint(theme.keyTextColor) }
+                )
             } else if (iconDrawable != null) {
                 icon.visibility = View.VISIBLE
                 textIcon.visibility = View.GONE
