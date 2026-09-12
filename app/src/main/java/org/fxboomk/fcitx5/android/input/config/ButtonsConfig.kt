@@ -5,15 +5,9 @@
 package org.fxboomk.fcitx5.android.input.config
 
 import android.content.Context
-import android.content.res.ColorStateList
-import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.Paint
-import android.graphics.Path
 import android.graphics.drawable.Drawable
 import androidx.annotation.DrawableRes
 import androidx.appcompat.content.res.AppCompatResources
-import androidx.core.graphics.PathParser
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -72,6 +66,12 @@ object ButtonIconSpec {
 
     fun svg(value: String?): String? = value?.trim()?.takeIf { it.startsWith("svg:") }
 
+    /**
+     * Recognizes pasted SVG markup, tolerating an XML declaration, comments, a DOCTYPE
+     * or any other prolog before the <svg> tag.
+     */
+    fun svgMarkup(value: String?): String? = value?.trim()?.takeIf { it.contains("<svg", ignoreCase = true) }
+
     fun canonicalSvg(value: String): String? = svg(value)?.let {
         "svg:" + it.removePrefix("svg:").trim()
     }
@@ -87,97 +87,10 @@ object ButtonIconSpec {
     fun drawable(context: Context, value: String?, @DrawableRes fallback: Int): Drawable? {
         val svgValue = svg(value)
         if (svgValue != null) {
-            return SvgPathDrawable.parse(svgValue.removePrefix("svg:"), context.resources.displayMetrics.density)
+            return SvgIconDrawable.parse(svgValue.removePrefix("svg:"), context.resources.displayMetrics.density)
         }
         if (fallback == 0) return null
         return AppCompatResources.getDrawable(context, drawableResource(context, value, fallback))
-    }
-}
-
-/** Renders the path-based SVG subset used by toolbar icons without adding another dependency. */
-private class SvgPathDrawable(
-    private val path: Path,
-    private val fillColor: Int,
-    private val viewBoxWidth: Float,
-    private val viewBoxHeight: Float,
-    private val density: Float
-) : Drawable() {
-    private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
-    private var tintList: ColorStateList? = null
-    private var tintColor: Int? = null
-
-    override fun draw(canvas: Canvas) {
-        paint.color = tintColor ?: fillColor
-        val scale = minOf(bounds.width() / viewBoxWidth, bounds.height() / viewBoxHeight)
-        canvas.save()
-        canvas.translate(
-            bounds.left + (bounds.width() - viewBoxWidth * scale) / 2f,
-            bounds.top + (bounds.height() - viewBoxHeight * scale) / 2f
-        )
-        canvas.scale(scale, scale)
-        canvas.drawPath(path, paint)
-        canvas.restore()
-    }
-
-    override fun setAlpha(alpha: Int) { paint.alpha = alpha }
-    override fun setColorFilter(colorFilter: android.graphics.ColorFilter?) {
-        paint.colorFilter = colorFilter
-    }
-
-    override fun setTint(tintColor: Int) {
-        tintList = null
-        this.tintColor = tintColor
-        invalidateSelf()
-    }
-
-    override fun setTintList(tint: ColorStateList?) {
-        tintList = tint
-        tintColor = tint?.getColorForState(state, tint.defaultColor)
-        invalidateSelf()
-    }
-
-    override fun isStateful(): Boolean = tintList?.isStateful == true
-
-    override fun onStateChange(state: IntArray): Boolean {
-        val tint = tintList ?: return false
-        val newColor = tint.getColorForState(state, tint.defaultColor)
-        if (newColor == tintColor) return false
-        tintColor = newColor
-        invalidateSelf()
-        return true
-    }
-    override fun getIntrinsicWidth(): Int = (24f * density + 0.5f).toInt()
-    override fun getIntrinsicHeight(): Int = getIntrinsicWidth()
-    @Suppress("OVERRIDE_DEPRECATION")
-    override fun getOpacity(): Int = android.graphics.PixelFormat.TRANSLUCENT
-
-    companion object {
-        fun parse(xml: String, density: Float): Drawable? = runCatching {
-            val parser = android.util.Xml.newPullParser().apply { setInput(xml.reader()) }
-            val combinedPath = Path()
-            var hasPath = false
-            var fillColor = Color.BLACK
-            var width = 24f
-            var height = 24f
-            while (parser.next() != org.xmlpull.v1.XmlPullParser.END_DOCUMENT) {
-                if (parser.eventType != org.xmlpull.v1.XmlPullParser.START_TAG) continue
-                if (parser.name == "svg") {
-                    parser.getAttributeValue(null, "viewBox")?.trim()?.split(Regex("[ ,]+"))
-                        ?.mapNotNull(String::toFloatOrNull)
-                        ?.takeIf { it.size == 4 }
-                        ?.let { width = it[2]; height = it[3] }
-                } else if (parser.name == "path") {
-                    parser.getAttributeValue(null, "d")?.let { data ->
-                        combinedPath.addPath(PathParser.createPathFromPathData(data))
-                        hasPath = true
-                    }
-                    parser.getAttributeValue(null, "fill")
-                        ?.takeUnless { it == "currentColor" || it == "none" }
-                        ?.let { fillColor = Color.parseColor(it) }
-                }
-            }
-            SvgPathDrawable(combinedPath, fillColor, width, height, density).takeIf { hasPath }
-        }.getOrNull()
     }
 }
 

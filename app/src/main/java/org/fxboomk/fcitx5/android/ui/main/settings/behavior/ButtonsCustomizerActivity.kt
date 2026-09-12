@@ -650,7 +650,7 @@ class ButtonsCustomizerActivity : AppCompatActivity() {
         fun updateIconPreview() {
             val value = iconInput.text?.toString().orEmpty()
             val glyph = ButtonIconSpec.glyph(value)
-            val svgValue = if (value.trimStart().startsWith("<svg")) "svg:${value.trim()}" else null
+            val svgValue = ButtonIconSpec.svgMarkup(value)?.let { "svg:${it.trim()}" }
             val drawable = when {
                 svgValue != null -> ButtonIconSpec.drawable(this, svgValue, 0)
                 value.isBlank() -> ButtonIconSpec.drawable(this, null, defaultIconRes)
@@ -730,11 +730,8 @@ class ButtonsCustomizerActivity : AppCompatActivity() {
                 val customIcon = if (iconValue.isBlank()) {
                     null
                 } else {
-                    if (iconValue.startsWith("<svg")) {
-                        ButtonIconSpec.canonicalSvg("svg:$iconValue")
-                    } else {
-                        ButtonIconSpec.canonicalCodePoint(iconValue)
-                    }
+                    ButtonIconSpec.svgMarkup(iconValue)?.let { ButtonIconSpec.canonicalSvg("svg:$it") }
+                        ?: ButtonIconSpec.canonicalCodePoint(iconValue)
                 }
                 if (iconValue.isNotBlank() && customIcon == null) {
                     iconInput.error = getString(R.string.button_icon_code_invalid)
