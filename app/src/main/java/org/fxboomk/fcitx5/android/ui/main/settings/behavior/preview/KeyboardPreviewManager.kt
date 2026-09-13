@@ -161,7 +161,12 @@ class KeyboardPreviewManager(
             val keyboardPrefs = AppPrefs.getInstance().keyboard
             val isLandscape = context.resources.configuration.orientation ==
                 Configuration.ORIENTATION_LANDSCAPE
-            val layoutHeightOverride = layoutHeightPercentProvider(layoutName)
+            // 编辑专属子模式布局时优先取该子模式的高度覆写，未配置则回退基础布局
+            val subModeOverrideKey = previewSubModeLabel
+                ?.takeIf { it.isNotBlank() && entries.containsKey("$layoutName:$it") }
+                ?.let { "$layoutName:$it" }
+            val layoutHeightOverride = subModeOverrideKey?.let(layoutHeightPercentProvider)
+                ?: layoutHeightPercentProvider(layoutName)
             val heightPercent = if (isLandscape) {
                 layoutHeightOverride?.landscape
                     ?: keyboardPrefs.keyboardHeightPercentLandscape.getValue()

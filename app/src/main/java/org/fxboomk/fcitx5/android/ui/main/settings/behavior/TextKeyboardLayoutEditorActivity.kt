@@ -1854,7 +1854,18 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         ConfigProviders.provider = ConfigProviders.provider
         currentLayoutProfile = normalized
         layoutFile = provider.textKeyboardLayoutFile()
+        // 保留当前编辑目标（基础布局 + 专属子模式布局）：
+        // loadState 会依据 fcitx 当前 IME 的子模式重置选择，导致编辑子模式布局时跳回基础布局
+        val previousLayout = currentLayout
+        val previousSubModeLabel = previewSubModeLabel
         loadState()
+        if (previousLayout != null && entries.containsKey(previousLayout)) {
+            currentLayout = previousLayout
+            if (previousSubModeLabel != null && entries.containsKey("$previousLayout:$previousSubModeLabel")) {
+                previewSubModeLabel = previousSubModeLabel
+                lastEditingTarget = "$previousLayout:$previousSubModeLabel"
+            }
+        }
         buildSpinner()
         buildSubModeSpinner(forceResetSelection = true)
         buildRows()
@@ -1919,6 +1930,12 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                     heightOverrides.landscape
                         ?: AppPrefs.getInstance().keyboard.keyboardHeightPercentLandscape.getValue()
                 )
+                currentEditingSubModeKey()?.let {
+                    putExtra(
+                        LayoutFileProfileInputActivity.EXTRA_HEIGHT_TARGET_LABEL,
+                        getString(R.string.text_keyboard_layout_height_target_submode, previewSubModeLabel)
+                    )
+                }
             }
             layoutFileInputLauncher.launch(intent)
             return
@@ -1947,7 +1964,11 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         container.addView(nameLabel)
         container.addView(nameEdit)
         val heightLabel = TextView(this).apply {
-            text = getString(R.string.keyboard_height)
+            text = if (currentEditingSubModeKey() != null) {
+                getString(R.string.text_keyboard_layout_height_target_submode, previewSubModeLabel)
+            } else {
+                getString(R.string.keyboard_height)
+            }
             textSize = DIALOG_LABEL_TEXT_SIZE_SP
             setTextColor(styledColor(android.R.attr.textColorSecondary))
         }
@@ -2148,23 +2169,34 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
     private fun applyLayoutHeightPercentOverrides(
         file: File,
         portraitHeightPercent: Int,
-        landscapeHeightPercent: Int
+        landscapeHeightPercent: Int,
+        subModeKey: String? = null
     ) {
         LayoutDataManager(this).apply {
             loadFromFile(file)
-            layoutHeightPercentOverrides.clear()
-            entries.keys
-                .map { it.substringBefore(':') }
-                .distinct()
-                .forEach {
-                    setLayoutHeightPercentOverride(
-                        it,
-                        LayoutHeightPercentOverrides(
-                            portrait = portraitHeightPercent,
-                            landscape = landscapeHeightPercent
-                        )
+            if (subModeKey != null) {
+                // 仅覆写当前编辑的子模式布局，保留其余布局与子模式已有的高度配置
+                setLayoutHeightPercentOverride(
+                    subModeKey,
+                    LayoutHeightPercentOverrides(
+                        portrait = portraitHeightPercent,
+                        landscape = landscapeHeightPercent
                     )
-                }
+                )
+            } else {
+                entries.keys
+                    .map { it.substringBefore(':') }
+                    .distinct()
+                    .forEach {
+                        setLayoutHeightPercentOverride(
+                            it,
+                            LayoutHeightPercentOverrides(
+                                portrait = portraitHeightPercent,
+                                landscape = landscapeHeightPercent
+                            )
+                        )
+                    }
+            }
             file.writeText(exportCurrentJsonString())
         }
     }
@@ -2202,9 +2234,21 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         return seekBar
     }
 
+    /**
+     * 当前编辑目标对应的高度覆写键：
+     * - 编辑专属子模式布局时返回 "layoutName:subModeLabel"
+     * - 子模式未建专属布局或编辑基础布局时返回 null，高度作用于基础布局
+     */
+    private fun currentEditingSubModeKey(): String? {
+        val layoutName = currentLayout ?: return null
+        val subModeLabel = previewSubModeLabel?.takeIf { it.isNotBlank() } ?: return null
+        val subModeKey = "$layoutName:$subModeLabel"
+        return if (entries.containsKey(subModeKey)) subModeKey else null
+    }
+
     private fun currentLayoutHeightPercentOverrides(): LayoutHeightPercentOverrides {
         val keyboardPrefs = AppPrefs.getInstance().keyboard
-        val overrides = currentLayout
+        val overrides = (currentEditingSubModeKey() ?: currentLayout)
             ?.let(dataManager::getLayoutHeightPercentOverride)
             ?: LayoutHeightPercentOverrides()
         return LayoutHeightPercentOverrides(
@@ -2261,7 +2305,12 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                     }
                 }
             }
-            applyLayoutHeightPercentOverrides(newFile, portraitHeightPercent, landscapeHeightPercent)
+            applyLayoutHeightPercentOverrides(
+                newFile,
+                portraitHeightPercent,
+                landscapeHeightPercent,
+                currentEditingSubModeKey()
+            )
         }.onSuccess {
             switchToLayoutProfile(newProfile, showSwitchToast = false)
             if (newProfile != oldProfile) {

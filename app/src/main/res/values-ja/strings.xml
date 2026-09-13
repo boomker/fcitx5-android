@@ -504,6 +504,7 @@
     <string name="text_keyboard_layout_submode_already_exists">サブモード "%1$s" の専用レイアウトが既に存在します</string>
     <string name="text_keyboard_layout_delete_submode_layout_confirm">サブモードレイアウト "%1$s" を削除しますか？</string>
     <string name="text_keyboard_layout_editing_submode">サブモード "%1$s" の専用レイアウトを編集中</string>
+    <string name="text_keyboard_layout_height_target_submode">サブモード "%1$s" のキーボードの高さ</string>
     <string name="text_keyboard_layout_editing_default">"%1$s" のデフォルトレイアウトを編集中</string>
     <string name="candidates_orientation">候補リストの向き</string>
     <string name="automatic">自動</string>

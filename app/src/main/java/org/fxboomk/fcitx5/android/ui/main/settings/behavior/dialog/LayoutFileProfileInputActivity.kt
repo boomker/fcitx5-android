@@ -44,6 +44,7 @@ class LayoutFileProfileInputActivity : AppCompatActivity() {
         const val EXTRA_RESULT_HEIGHT_PERCENT_LANDSCAPE = "result_height_percent_landscape"
         const val EXTRA_INITIAL_HEIGHT_PERCENT_PORTRAIT = "initial_height_percent_portrait"
         const val EXTRA_INITIAL_HEIGHT_PERCENT_LANDSCAPE = "initial_height_percent_landscape"
+        const val EXTRA_HEIGHT_TARGET_LABEL = "height_target_label"
 
         const val ACTION_CREATE = "create"
         const val ACTION_RENAME = "rename"
@@ -152,7 +153,8 @@ class LayoutFileProfileInputActivity : AppCompatActivity() {
             )
         }
         content.addView(TextView(this).apply {
-            text = getString(R.string.keyboard_height)
+            text = intent.getStringExtra(EXTRA_HEIGHT_TARGET_LABEL)
+                ?: getString(R.string.keyboard_height)
             textSize = 13f
             setTextColor(styledColor(android.R.attr.textColorSecondary))
         })

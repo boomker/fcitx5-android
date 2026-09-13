@@ -918,6 +918,7 @@
     <string name="text_keyboard_layout_submode_already_exists">Submode "%1$s" already has a dedicated layout</string>
     <string name="text_keyboard_layout_no_submode_selected">No submode selected</string>
     <string name="text_keyboard_layout_editing_submode">Editing layout for submode "%1$s"</string>
+    <string name="text_keyboard_layout_height_target_submode">Keyboard height for submode "%1$s"</string>
     <string name="text_keyboard_layout_editing_default">Editing default layout for "%1$s"</string>
     <string name="text_keyboard_layout_switch_submode_failed">Failed to switch to submode "%1$s"</string>
     <string name="text_keyboard_layout_discard_changes_title">Discard unsaved layout changes?</string>

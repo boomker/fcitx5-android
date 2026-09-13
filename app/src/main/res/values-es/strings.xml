@@ -321,6 +321,7 @@
     <string name="text_keyboard_layout_submode_already_exists">El submodo "%1$s" ya tiene un diseño dedicado</string>
     <string name="text_keyboard_layout_delete_submode_layout_confirm">¿Eliminar el diseño del submodo "%1$s"?</string>
     <string name="text_keyboard_layout_editing_submode">Editando diseño para el submodo "%1$s"</string>
+    <string name="text_keyboard_layout_height_target_submode">Altura del teclado para el submodo "%1$s"</string>
     <string name="text_keyboard_layout_editing_default">Editando diseño predeterminado para "%1$s"</string>
     <string name="font_size">Tamaño de fuente</string>
     <string name="font_size_value">%1$d sp</string>

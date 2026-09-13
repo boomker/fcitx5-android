@@ -2492,7 +2492,19 @@ class InputView(
         updateKeyboardSize()
     }
 
+    // 最近一次写入窗口的键盘高度百分比，用于检测子模式专属布局高度在方案切换后的变化
+    private var lastAppliedKeyboardHeightPercent: Int? = null
+
+    // 子模式专属布局高度只体现在 resolveKeyboardHeightPercent() 的返回值里，
+    // 只有结果与上次实际应用值不同才重建窗口尺寸，避免每次 IME 更新都全量刷新
+    private fun updateKeyboardHeightIfChanged() {
+        if (resolveKeyboardHeightPercent() != lastAppliedKeyboardHeightPercent) {
+            updateKeyboardSize()
+        }
+    }
+
     private fun updateKeyboardSize() {
+        lastAppliedKeyboardHeightPercent = resolveKeyboardHeightPercent()
         applyStoredOneHandSideIfNeeded()
 
         ButtonsAdjustingWindow.updateOverlayInsets(
@@ -2680,6 +2692,9 @@ class InputView(
 
             is FcitxEvent.IMChangeEvent -> {
                 broadcaster.onImeUpdate(it.data)
+                // Rime 输入方案（子模式）切换会改变专属布局高度，
+                // 广播只刷新键位行不重算窗口高度，这里按需补一次刷新
+                updateKeyboardHeightIfChanged()
             }
 
             is FcitxEvent.StatusAreaEvent -> {

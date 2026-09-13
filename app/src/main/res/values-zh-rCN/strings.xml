@@ -656,6 +656,7 @@
     <string name="text_keyboard_layout_delete_submode_layout_confirm">删除子模式布局"%1$s"？</string>
     <string name="text_keyboard_layout_no_submode_selected">未选择子模式</string>
     <string name="text_keyboard_layout_editing_submode">正在编辑子模式"%1$s"的专用布局</string>
+    <string name="text_keyboard_layout_height_target_submode">子模式"%1$s"的键盘高度</string>
     <string name="text_keyboard_layout_editing_default">正在编辑"%1$s"的默认布局</string>
     <string name="text_keyboard_layout_key_label_lang">Lang</string>
     <string name="text_keyboard_layout_key_label_space">Space</string>
