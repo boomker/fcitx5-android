@@ -25,7 +25,6 @@ class CursorTracker {
         if (!latest.rangeEquals(new)) {
             predictions.add(new)
         }
-        Timber.d("current: $current; predicted: ${predictions.joinToString()}")
     }
 
     fun predict(start: Int, end: Int = start) {

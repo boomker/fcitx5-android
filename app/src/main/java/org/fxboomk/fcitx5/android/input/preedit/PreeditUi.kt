@@ -107,7 +107,15 @@ open class PreeditUi(
         view.visibility = if (visible) View.VISIBLE else View.GONE
     }
 
-    fun update(inputPanel: FcitxEvent.InputPanelEvent.Data) {
+    private var lastUpdatedData: FcitxEvent.InputPanelEvent.Data? = null
+
+    /**
+     * Update preedit views with [inputPanel].
+     * @return whether the views were actually updated (data changed)
+     */
+    fun update(inputPanel: FcitxEvent.InputPanelEvent.Data): Boolean {
+        if (inputPanel == lastUpdatedData) return false
+        lastUpdatedData = inputPanel
         val activeBkg = theme.genericActiveBackgroundColor
         val upString: SpannedString
         val upCursor: Int
@@ -133,7 +141,7 @@ open class PreeditUi(
         if (!visible) {
             updateTextView(upView, "", false)
             updateTextView(downView, "", false)
-            return
+            return true
         }
         val upStringWithCursor = if (upCursor < 0 || upCursor == upString.length) {
             upString
@@ -145,6 +153,7 @@ open class PreeditUi(
         }
         updateTextView(upView, upStringWithCursor, hasUp)
         updateTextView(downView, downString, hasDown)
+        return true
     }
 
     private fun SpannedString.withCompactSyllableGaps(): SpannedString {

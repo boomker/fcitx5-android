@@ -2759,16 +2759,24 @@ class InputView(
     }
 
     fun updateSelection(start: Int, end: Int) {
+        broadcaster.onSelectionUpdate(start, end)
+    }
+
+    /**
+     * Fetch text before cursor and update the calculator suggestion.
+     * Only invoked after a commit ending with '=', keeping the typing hot path free of
+     * synchronous getTextBeforeCursor Binder calls.
+     */
+    fun checkCalculatorSuggestion() {
         val textBeforeCursor = service.currentInputConnection
             ?.getTextBeforeCursor(CALCULATOR_CONTEXT_CHARS, 0)
             ?.toString()
-        val calculatorSuggestion = if (start == end) {
-            textBeforeCursor?.let(CalculatorExpression::extractSuggestion)
-        } else {
-            null
-        }
+        val calculatorSuggestion = textBeforeCursor?.let(CalculatorExpression::extractSuggestion)
         horizontalCandidate.updateCalculatorSuggestion(calculatorSuggestion)
-        broadcaster.onSelectionUpdate(start, end)
+    }
+
+    fun clearCalculatorSuggestion() {
+        horizontalCandidate.updateCalculatorSuggestion(null)
     }
 
     internal fun updateAiSuggestionCursorAnchor(anchor: FloatArray?, parent: FloatArray) {

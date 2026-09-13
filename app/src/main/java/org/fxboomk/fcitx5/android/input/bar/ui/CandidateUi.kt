@@ -72,7 +72,7 @@ class CandidateUi(
     }
 
     fun updateInlinePreedit(data: org.fxboomk.fcitx5.android.core.FcitxEvent.InputPanelEvent.Data) {
-        inlinePreeditUi.update(data)
+        if (!inlinePreeditUi.update(data)) return
         inlinePreeditUi.root.visibility =
             if (inlineMode && inlinePreeditUi.visible) View.VISIBLE else View.GONE
         content.requestLayout()
