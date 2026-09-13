@@ -6,6 +6,7 @@ package org.fxboomk.fcitx5.android.ui.main.settings.behavior.utils
 
 import android.util.Log
 import kotlinx.serialization.json.*
+import org.fxboomk.fcitx5.android.data.theme.Theme
 import org.fxboomk.fcitx5.android.data.theme.ThemeManager
 import org.fxboomk.fcitx5.android.data.theme.resolveThemeColorReference
 import org.fxboomk.fcitx5.android.input.keyboard.*
@@ -402,7 +403,8 @@ object LayoutJsonUtils {
         rowElement: JsonElement,
         showLangSwitch: Boolean = true,
         subModeLabel: String = "",
-        subModeName: String = ""
+        subModeName: String = "",
+        theme: Theme = ThemeManager.activeTheme
     ): List<KeyDef> {
         val rowArray = keyArrayFromRowElement(rowElement) ?: return emptyList()
         val rowStyle = rowStyleFromJson(rowElement)
@@ -414,7 +416,8 @@ object LayoutJsonUtils {
                 subModeName = subModeName,
                 rowStyle = rowStyle,
                 visibleIndex = visibleIndex,
-                visibleCount = keyJsons.size
+                visibleCount = keyJsons.size,
+                theme = theme
             )
         }
     }
@@ -715,14 +718,17 @@ object LayoutJsonUtils {
         subModeName: String = "",
         rowStyle: RowStyle = RowStyle(),
         visibleIndex: Int = 0,
-        visibleCount: Int = 1
+        visibleCount: Int = 1,
+        theme: Theme = ThemeManager.activeTheme
     ): KeyDef {
         val rowBackgroundReference = rowStyle.backgroundColorMonet
+        // Resolve gradient base colors against the theme that owns the keyboard
+        // being built, not necessarily the globally active one.
         val rowGradientBaseColor = if (rowStyle.backgroundStyle == BackgroundStyle.Gradient) {
             rowStyle.backgroundColor
                 ?: resolveThemeColorReference(
                     appContext,
-                    ThemeManager.activeTheme,
+                    theme,
                     rowBackgroundReference
                 )
         } else {
@@ -900,7 +906,8 @@ object LayoutJsonUtils {
                 subModeName = subModeName,
                 rowStyle = rowStyle,
                 visibleIndex = visibleIndex,
-                visibleCount = visibleCount
+                visibleCount = visibleCount,
+                theme = theme
             )
             overrideDef.independentColor = override.independentColor ?: false
             keyDef.composeOverride = overrideDef

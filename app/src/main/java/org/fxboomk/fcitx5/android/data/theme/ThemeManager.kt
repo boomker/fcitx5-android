@@ -304,11 +304,23 @@ object ThemeManager {
             prefs.gboardNonMainKeyOpacity.getValue(),
             ThemePrefs.DefaultNonMainKeyOpacity
         )
+        // 100% means "keep the theme's own alpha": imported themes may rely on
+        // translucent key colors (e.g. keys over a gradient background), forcing
+        // full opacity there destroys the design.
+        if (mainOpacity >= 100 && nonMainOpacity >= 100) return theme
 
-        val mainKeyColor = withOpacity(theme.keyBackgroundColor, mainOpacity)
-        val nonMainKeyColor = withOpacity(theme.altKeyBackgroundColor, nonMainOpacity)
-        val spaceBarColor = withOpacity(theme.spaceBarColor, mainOpacity)
-        val clipboardColor = withOpacity(theme.clipboardEntryColor, mainOpacity)
+        val mainKeyColor =
+            if (mainOpacity >= 100) theme.keyBackgroundColor
+            else withOpacity(theme.keyBackgroundColor, mainOpacity)
+        val nonMainKeyColor =
+            if (nonMainOpacity >= 100) theme.altKeyBackgroundColor
+            else withOpacity(theme.altKeyBackgroundColor, nonMainOpacity)
+        val spaceBarColor =
+            if (mainOpacity >= 100) theme.spaceBarColor
+            else withOpacity(theme.spaceBarColor, mainOpacity)
+        val clipboardColor =
+            if (mainOpacity >= 100) theme.clipboardEntryColor
+            else withOpacity(theme.clipboardEntryColor, mainOpacity)
         return when (theme) {
             is Theme.Builtin -> theme.copy(
                 keyBackgroundColor = mainKeyColor,

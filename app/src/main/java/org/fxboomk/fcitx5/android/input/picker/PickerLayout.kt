@@ -28,7 +28,7 @@ class PickerLayout(context: Context, theme: Theme, switchKey: KeyDef) :
     ConstraintLayout(context) {
 
     class Keyboard(context: Context, theme: Theme, switchKey: KeyDef) : BaseKeyboard(
-        context, theme, {listOf(
+        context, theme, { _ -> listOf(
             listOf(
                 LayoutSwitchKey("ABC", TextKeyboard.Name),
                 PunctuationKey(","),

@@ -6,6 +6,7 @@ package org.fxboomk.fcitx5.android.ui.main.settings.theme
 
 import android.content.Context
 import android.content.res.ColorStateList
+import android.graphics.Color
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.ShapeDrawable
@@ -134,7 +135,9 @@ class ThemeThumbnailUi(override val ctx: Context) : Ui {
         }
         
         // Set other non-time-consuming UI elements
-        bar.backgroundColor = theme.barColor
+        // Keep the bar strip consistent with the real bar chrome: with key border
+        // enabled the bar is transparent and the keyboard background shows through.
+        bar.backgroundColor = if (keyBorder) Color.TRANSPARENT else theme.barColor
         themeNameText.apply {
             text = formatThemeName(theme.name)
             setTextColor(theme.keyTextColor)
@@ -184,10 +187,10 @@ class ThemeThumbnailUi(override val ctx: Context) : Ui {
                             if (theme.shouldApplyBlur()) {
                                 theme.blurredBackgroundDrawable(enableBlur = true, keyBorder = keyBorder)
                             } else {
-                                theme.backgroundDrawable()
+                                theme.backgroundDrawable(keyBorder)
                             }
                         }
-                        else -> theme.backgroundDrawable()
+                        else -> theme.backgroundDrawable(keyBorder)
                     }
                 }
                 if (generation != loadGeneration) return@launch
@@ -196,7 +199,7 @@ class ThemeThumbnailUi(override val ctx: Context) : Ui {
                 throw e
             } catch (e: Exception) {
                 if (generation != loadGeneration) return@launch
-                bkg.imageDrawable = theme.backgroundDrawable()
+                bkg.imageDrawable = theme.backgroundDrawable(keyBorder)
             }
         }
     }

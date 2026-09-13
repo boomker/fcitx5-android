@@ -180,9 +180,9 @@ class TextKeyboard private constructor(
                 return cachedRawLayoutJson
             }
 
-        fun getLayout(): List<List<KeyDef>> = getLayout(ime)
+        fun getLayout(): List<List<KeyDef>> = getLayout(ime, ThemeManager.activeTheme)
 
-        internal fun getLayout(currentIme: InputMethodEntry?): List<List<KeyDef>> {
+        internal fun getLayout(currentIme: InputMethodEntry?, theme: Theme): List<List<KeyDef>> {
             val imeName = currentIme?.uniqueName
             val subModeLabel = currentIme?.subMode?.label ?: ""
             val showLangSwitch = AppPrefs.getInstance().keyboard.showLangSwitchKey.getValue()
@@ -201,7 +201,7 @@ class TextKeyboard private constructor(
                             sourceKey = resolution.sourceKey,
                             subModeLabel = subModeLabel,
                             showLangSwitch = showLangSwitch,
-                            theme = ThemeManager.activeTheme,
+                            theme = theme,
                         )
                         return cachedKeyDefLayouts.getOrPut(cacheKey) {
                             rows.map { rowElement ->
@@ -210,6 +210,7 @@ class TextKeyboard private constructor(
                                     showLangSwitch = showLangSwitch,
                                     subModeLabel = subModeLabel,
                                     subModeName = currentIme.subMode.name,
+                                    theme = theme,
                                 )
                             }
                         }

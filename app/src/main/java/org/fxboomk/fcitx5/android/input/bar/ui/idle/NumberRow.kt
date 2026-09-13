@@ -18,7 +18,7 @@ import timber.log.Timber
 import kotlin.math.abs
 
 @SuppressLint("ViewConstructor")
-class NumberRow(ctx: Context, theme: Theme) : BaseKeyboard(ctx, theme, ::Layout) {
+class NumberRow(ctx: Context, theme: Theme) : BaseKeyboard(ctx, theme, { _ -> Layout }) {
 
     private var gestureStartEvent: MotionEvent? = null
     private var collapseGestureTriggered: Boolean = false

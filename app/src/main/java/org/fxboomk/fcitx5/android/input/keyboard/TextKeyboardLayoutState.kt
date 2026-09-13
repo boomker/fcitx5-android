@@ -5,9 +5,10 @@
 package org.fxboomk.fcitx5.android.input.keyboard
 
 import org.fxboomk.fcitx5.android.core.InputMethodEntry
+import org.fxboomk.fcitx5.android.data.theme.Theme
 
 internal class TextKeyboardLayoutState(
     var ime: InputMethodEntry? = null,
 ) {
-    fun getLayout(): List<List<KeyDef>> = TextKeyboard.getLayout(ime)
+    fun getLayout(theme: Theme): List<List<KeyDef>> = TextKeyboard.getLayout(ime, theme)
 }

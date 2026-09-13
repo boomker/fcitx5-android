@@ -52,7 +52,7 @@ class ExpandedCandidateLayout(
     onLongFormClick: () -> Unit,
 ) : ConstraintLayout(context) {
 
-    class Keyboard(context: Context, theme: Theme) : BaseKeyboard(context, theme, ::Layout) {
+    class Keyboard(context: Context, theme: Theme) : BaseKeyboard(context, theme, { _ -> Layout }) {
         companion object {
             const val UpBtnLabel = "U"
             const val DownBtnLabel = "D"

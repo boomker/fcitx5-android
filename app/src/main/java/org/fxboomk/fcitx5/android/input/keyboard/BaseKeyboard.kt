@@ -75,11 +75,11 @@ import kotlin.math.roundToInt
 abstract class BaseKeyboard(
     context: Context,
     protected var theme: Theme,
-    private val layoutProvider: () ->List<List<KeyDef>>
+    private val layoutProvider: (Theme) -> List<List<KeyDef>>
 ) : ConstraintLayout(context) {
 
     private val keyLayout: List<List<KeyDef>>
-        get() = layoutProvider()
+        get() = layoutProvider(theme)
     var keyActionListener: KeyActionListener? = null
 
     private val prefs = AppPrefs.getInstance()
@@ -624,9 +624,15 @@ abstract class BaseKeyboard(
      * Iterates all KeyViews and updates their theme properties.
      */
     fun updateTheme(newTheme: Theme) {
+        val themeChanged = theme != newTheme
         theme = newTheme
 
-        if (::keyRows.isInitialized) {
+        if (::keyRows.isInitialized && themeChanged) {
+            // Some key colors (row gradient token references) are resolved from the
+            // theme while parsing the layout into KeyDefs, so a theme change needs a
+            // full rebuild instead of an in-place recolor.
+            refreshStyle()
+        } else if (::keyRows.isInitialized) {
             keyRows.forEach { row ->
                 row.children.forEach { child ->
                     (child as? KeyView)?.updateTheme(newTheme)
