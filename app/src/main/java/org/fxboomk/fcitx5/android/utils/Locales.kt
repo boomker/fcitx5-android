@@ -39,7 +39,7 @@ object Locales {
                 if (i == 0 && it.language == "en") break
             }
             languageWithCountry = locales.firstOrNull() ?: ""
-            language = languageWithCountry.substringBefore(':')
+            language = languageWithCountry.substringBefore('_')
             fcitxLocale = locales.joinToString(":")
         } else {
             @Suppress("DEPRECATION")
