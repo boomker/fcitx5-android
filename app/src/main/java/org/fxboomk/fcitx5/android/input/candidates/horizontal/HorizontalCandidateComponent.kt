@@ -611,17 +611,45 @@ class HorizontalCandidateComponent :
         )
     }
 
+    // memo of the last rendered inputs; identical inputs produce no new render work
+    private var lastRenderedCandidates: Array<CandidateWord>? = null
+    private var lastRenderedTotal = Int.MIN_VALUE
+    private var lastRenderedActiveIndex = Int.MIN_VALUE
+    private var lastRenderedIndexOffset = Int.MIN_VALUE
+    private var lastRenderedAvailableWidth = Int.MIN_VALUE
+    private var lastRenderedMaxSpanCount = Int.MIN_VALUE
+    private var lastRenderedFillStyle: HorizontalCandidateMode? = null
+
     private fun updateCandidates(
         candidates: Array<CandidateWord>,
         total: Int,
         activeIndex: Int,
         indexOffset: Int,
     ) {
+        val maxSpanCount = maxSpanCountPref.getValue()
+        if (
+            lastRenderedTotal == total &&
+            lastRenderedActiveIndex == activeIndex &&
+            lastRenderedIndexOffset == indexOffset &&
+            lastRenderedAvailableWidth == view.width &&
+            lastRenderedMaxSpanCount == maxSpanCount &&
+            lastRenderedFillStyle == fillStyle &&
+            lastRenderedCandidates.contentEquals(candidates)
+        ) {
+            return
+        }
+        lastRenderedTotal = total
+        lastRenderedActiveIndex = activeIndex
+        lastRenderedIndexOffset = indexOffset
+        lastRenderedAvailableWidth = view.width
+        lastRenderedMaxSpanCount = maxSpanCount
+        lastRenderedFillStyle = fillStyle
+        lastRenderedCandidates = candidates
         val sizing = resolveHorizontalCandidateLayoutSizing(
             fillStyle = fillStyle,
             candidateCount = candidates.size,
             availableWidth = view.width,
-            maxSpanCount = maxSpanCountPref.getValue(),
+            maxSpanCount = maxSpanCount,
             dividerWidth = dividerDrawable.intrinsicWidth,
         )
         layoutMinWidth = sizing.minWidth

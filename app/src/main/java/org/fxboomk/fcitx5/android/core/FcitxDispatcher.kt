@@ -37,8 +37,13 @@ class FcitxDispatcher(private val controller: FcitxController) : CoroutineDispat
     }
 
     // this is fcitx main thread
-    private val internalDispatcher = Executors.newSingleThreadExecutor {
-        Thread(it).apply {
+    private val internalDispatcher = Executors.newSingleThreadExecutor { runnable ->
+        Thread {
+            // key processing latency is user-visible, keep this thread schedulable
+            // even when background work saturates smaller cores
+            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_URGENT_DISPLAY)
+            runnable.run()
+        }.apply {
             name = "fcitx-main"
         }
     }.asCoroutineDispatcher()
