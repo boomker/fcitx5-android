@@ -33,8 +33,10 @@ import kotlin.concurrent.withLock
  * and call [disconnect] on client destroyed. Client should not leak the instance of [FcitxAPI],
  * and must use [FcitxConnection] to access fcitx functionalities.
  *
- * The instance of [Fcitx] always exists,but whether the dispatcher runs and callback works depend on clients, i.e.
- * if no clients are connected, [Fcitx.stop] will be called.
+ * The instance of [Fcitx] always exists. Once started it keeps running even when all
+ * clients are gone (e.g. user switched to another IME), so the next keyboard pull-up
+ * reuses the warm instance instead of paying the full native startup and Rime engine
+ * initialization again. Use [restartFcitx] or [stopFcitx] to stop it explicitly.
  *
  * Functions are thread-safe in this class.
  */
@@ -102,10 +104,12 @@ object FcitxDaemon {
         if (name !in clients)
             return
         clients -= name
-        if (clients.isEmpty()) {
-            Timber.d("FcitxDaemon stop fcitx")
-            realFcitx.stop()
-        }
+        // Keep the engine warm after the last client disconnects. Restarting it
+        // on the next pull-up re-runs data sync, native startup and the Rime
+        // engine init (including its maintenance/deploy check), which used to
+        // leave the keyboard visible but not ready for seconds. Explicit stop
+        // paths: [restartFcitx], [stopFcitx], and process death.
+        Timber.d("FcitxDaemon disconnect $name, ${clients.size} client(s) left")
     }
 
     /**
@@ -143,11 +147,30 @@ object FcitxDaemon {
     }
 
     /**
-     * Start fcitx instance.
+     * Stop fcitx instance.
      * Should only be used when it has been stopped **AND** user data importing failed.
      */
     fun startFcitx() {
         realFcitx.start()
+    }
+
+    /**
+     * Whether the fcitx instance is currently running (READY), regardless of clients.
+     */
+    fun isRunning(): Boolean = realFcitx.isReady
+
+    /**
+     * Save the state of the running fcitx instance, regardless of connected clients.
+     * Since the instance stays warm after the last client disconnects, shutdown
+     * handling can no longer rely on a client being present to persist state.
+     * No-op when the instance is not running.
+     */
+    fun saveIfRunning() = lock.withLock {
+        if (realFcitx.isReady) {
+            runBlocking(realFcitx.lifeCycleScope.coroutineContext) {
+                realFcitx.save()
+            }
+        }
     }
 
     init {

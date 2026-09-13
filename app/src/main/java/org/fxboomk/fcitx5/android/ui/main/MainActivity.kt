@@ -206,8 +206,10 @@ class MainActivity : AppCompatActivity() {
 
     override fun onStop() {
         try {
+            // Persist non-Rime state; Rime's save would release all sessions
+            // and sync user data, which delays the next keyboard pull-up.
             viewModel.fcitx.runIfReady {
-                save()
+                saveNonRimeState()
             }
         } catch (error: IllegalStateException) {
             if (error.message?.contains("is disconnected") != true) throw error

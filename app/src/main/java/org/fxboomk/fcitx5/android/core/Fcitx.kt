@@ -80,6 +80,8 @@ class Fcitx(private val context: Context) : FcitxAPI, FcitxLifecycleOwner {
     override fun translate(str: String, domain: String) = getFcitxTranslation(domain, str)
 
     override suspend fun save() = withFcitxContext { saveFcitxState() }
+    override suspend fun saveNonRimeState() =
+        withFcitxContext { saveFcitxStateWithoutRime() }
     override suspend fun reloadConfig() = withFcitxContext { reloadFcitxConfig() }
 
     override suspend fun sendKey(
@@ -257,6 +259,9 @@ class Fcitx(private val context: Context) : FcitxAPI, FcitxLifecycleOwner {
 
         @JvmStatic
         external fun saveFcitxState()
+
+        @JvmStatic
+        external fun saveFcitxStateWithoutRime()
 
         @JvmStatic
         external fun reloadFcitxConfig()

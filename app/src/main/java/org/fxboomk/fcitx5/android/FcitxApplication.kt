@@ -42,9 +42,8 @@ class FcitxApplication : Application() {
         override fun onReceive(context: Context, intent: Intent) {
             if (intent.action != Intent.ACTION_SHUTDOWN) return
             Timber.d("Device shutting down, trying to save fcitx state...")
-            val fcitx = FcitxDaemon.getFirstConnectionOrNull()
-                ?: return Timber.d("No active fcitx connection, skipping")
-            fcitx.runImmediately { save() }
+            // The instance stays warm even without clients, so save by instance state
+            FcitxDaemon.saveIfRunning()
         }
     }
 
@@ -53,10 +52,8 @@ class FcitxApplication : Application() {
             if (intent.action != Intent.ACTION_USER_UNLOCKED) return
             if (!isDirectBootMode) return
             Timber.d("Device unlocked, app will exit now and restart to normal mode")
-            FcitxDaemon.getFirstConnectionOrNull()?.also {
-                // try to shutdown fcitx gracefully
-                FcitxDaemon.stopFcitx()
-            }
+            // The instance may still be warm without any client
+            FcitxDaemon.stopFcitx()
             AppUtil.exit()
         }
     }
@@ -64,7 +61,7 @@ class FcitxApplication : Application() {
     private val restartFcitxInstanceReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             if (intent.action != ACTION_RESTART_FCITX_INSTANCE) return
-            if (FcitxDaemon.getFirstConnectionOrNull() != null) {
+            if (FcitxDaemon.isRunning()) {
                 Timber.i("Received broadcast '${intent.action}', try to restart fcitx instance ...")
                 FcitxDaemon.restartFcitx()
             } else {
