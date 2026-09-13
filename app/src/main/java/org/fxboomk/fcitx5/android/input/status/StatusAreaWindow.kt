@@ -467,7 +467,6 @@ class StatusAreaWindow : InputWindow.ExtendedInputWindow<StatusAreaWindow>(),
 
     private val rimeTabButton by lazy {
         ToolButton(context, R.drawable.ic_baseline_code_24, theme).apply {
-            activeHighlight = true
             contentDescription = context.getString(R.string.status_area_rime)
             setIconDrawable(
                 TextIconDrawable("㞢", Typeface.DEFAULT_BOLD, resources.displayMetrics.density)
@@ -478,7 +477,6 @@ class StatusAreaWindow : InputWindow.ExtendedInputWindow<StatusAreaWindow>(),
 
     private val mainTabButton by lazy {
         ToolButton(context, R.drawable.ic_baseline_tune_24, theme).apply {
-            activeHighlight = true
             contentDescription = context.getString(R.string.status_area_main_tab)
             setOnClickListener { switchPage(StatusPage.Main) }
         }
