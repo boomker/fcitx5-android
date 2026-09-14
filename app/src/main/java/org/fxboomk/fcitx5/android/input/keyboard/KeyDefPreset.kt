@@ -21,6 +21,10 @@ import org.fxboomk.fcitx5.android.input.keyboard.MacroAction
 import org.fxboomk.fcitx5.android.input.keyboard.MacroStep
 import org.fxboomk.fcitx5.android.input.keyboard.KeyRef
 
+private val symbolKeyActionMapping = mapOf(
+    "。" to "."
+)
+
 val NumLockState = KeyStates(KeyState.NumLock, KeyState.Virtual)
 
 class SymbolKey(
@@ -67,7 +71,7 @@ class SymbolKey(
         )
     },
     buildSet {
-        add(Behavior.Press(KeyAction.FcitxKeyAction(symbol)))
+        add(Behavior.Press(KeyAction.FcitxKeyAction(symbolKeyActionMapping[symbol] ?: symbol)))
         swipe?.let { add(Behavior.Swipe(it)) }
     },
     popup ?: arrayOf(

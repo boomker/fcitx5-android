@@ -93,9 +93,6 @@ class CommonKeyActionListener :
             else -> null
         }
 
-    private fun String.isSingleNonAsciiChar(): Boolean =
-        codePointCount(0, length) == 1 && codePointAt(0) > 0x7F
-
     private fun moveVisibleCandidateHighlight(delta: Int) {
         service.lifecycleScope.launch(Dispatchers.Main.immediate) {
             service.moveVisibleCandidateHighlight(delta)
@@ -195,16 +192,7 @@ class CommonKeyActionListener :
                         }
                     } else {
                         service.postFcitxJob {
-                            // A non-ASCII character (e.g. a custom symbol label "。") cannot be
-                            // processed by the engine as a key event: it falls through and gets
-                            // committed as-is, unlike ASCII punctuation such as "." whose keysym
-                            // the engine handles by committing the pending candidate first.
-                            if (!action.up && action.act.isSingleNonAsciiChar() && hasPreedit()) {
-                                commitAndReset()
-                                service.lifecycleScope.launch { service.commitText(action.act) }
-                            } else {
-                                sendKey(action.act, action.states.states, action.code, action.up)
-                            }
+                            sendKey(action.act, action.states.states, action.code, action.up)
                         }
                     }
                 }
