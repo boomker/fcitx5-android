@@ -382,7 +382,7 @@
     <string name="plugin_upgrade_failed">升级插件失败</string>
     <string name="plugin_updates_download_ready">已下载 %1$d 个插件更新包，准备安装</string>
     <string name="no_plugin_updates_available">所选插件没有可用的新版本</string>
-    <string name="rime_schema_selector_title">方案选单</string>
+    <string name="rime_schema_selector_title">管理方案选单</string>
     <string name="plugins_loaded">已加载</string>
     <string name="plugins_failed">待加载</string>
     <string name="missing_plugin_descriptor">缺少插件描述文件</string>
