@@ -157,7 +157,7 @@
     <string name="button_icon_code_point_summary">Usa la fuente configurada para los iconos de botones o, de forma predeterminada, el archivo iconfont.ttf incluido. Déjalo vacío para usar el icono predeterminado.</string>
     <string name="button_icon_code_point_invalid">Introduce de 4 a 6 dígitos hexadecimales</string>
     <string name="button_icon_code">Código de icono o SVG</string>
-    <string name="button_icon_code_hint">Punto de código Unicode del glyph o &lt;svg&gt;...</string>
+    <string name="button_icon_code_hint">Punto de código Unicode del glyph o &lt;svg&gt;&#8230;</string>
     <string name="button_icon_code_summary">Introduce un punto de código de glyph de iconfont o código SVG. Se muestra una vista previa de SVG y glyph durante la edición; déjalo vacío para restaurar el icono predeterminado.</string>
     <string name="button_icon_code_invalid">Introduce un punto de código válido o código SVG que contenga un elemento path</string>
     <string name="language_switch">Cambiar idioma</string>
@@ -549,6 +549,7 @@
     <string name="exception_theme_filename">La extension de %1$s no corresponde a un tema</string>
     <string name="exception_theme_json">No se pudo encontrar el JSON del tema</string>
     <string name="exception_theme_name_clash">El nombre del tema entra en conflicto con temas integrados</string>
+    <string name="exception_theme_parse">No se pudo analizar el archivo del tema</string>
     <string name="exception_theme_src_image">No se pudo guardar la imagen original del fondo del tema</string>
     <string name="exception_user_data_filename">La extension de %1$s no corresponde a datos de usuario de fcitx5-android</string>
     <string name="exception_user_data_metadata">No se pudieron encontrar los metadatos de datos de usuario</string>
@@ -700,6 +701,9 @@
     <string name="split_keyboard_use_landscape_layout">Usar diseno horizontal cuando el teclado dividido este activo</string>
     <string name="split_keyboard_use_landscape_layout_summary">Si esta activado y el teclado dividido esta activo, usa parametros de diseno horizontal (alto, relleno, etc.). Esta opcion solo esta disponible cuando el teclado dividido automatico esta habilitado.</string>
     <string name="status_area">Area de estado</string>
+    <string name="status_area_main_tab">Botones predeterminados de Fcitx5</string>
+    <string name="commit_first_candidate_character">Insertar primer carácter</string>
+    <string name="commit_last_candidate_character">Insertar último carácter</string>
     <string name="swipe_down">Deslizar hacia abajo</string>
     <string name="swipe_symbol_behavior">Dirección de deslizamiento para signos de puntuación</string>
     <string name="swipe_up">Deslizar hacia arriba</string>

@@ -327,7 +327,7 @@
     <string name="button_icon_code_point_summary">優先使用已設定的按鈕圖示字型，否則使用內建 iconfont.ttf；留空則恢復預設圖示。</string>
     <string name="button_icon_code_point_invalid">請輸入 4 至 6 位十六進位碼點</string>
     <string name="button_icon_code">圖示代碼或 SVG</string>
-    <string name="button_icon_code_hint">Glyph Unicode 碼點或 &lt;svg&gt;...</string>
+    <string name="button_icon_code_hint">Glyph Unicode 碼點或 &lt;svg&gt;&#8230;</string>
     <string name="button_icon_code_summary">支援 Iconfont glyph 碼點或 SVG 代碼，編輯時均可即時預覽；留空可恢復預設圖示。</string>
     <string name="button_icon_code_invalid">請輸入有效的碼點，或包含 path 的 SVG 代碼</string>
     <string name="language_switch">語言切換</string>
@@ -436,6 +436,9 @@
     <string name="haptic_on_repeat">重複按鍵時振動</string>
     <string name="redo">重做</string>
     <string name="status_area">狀態區</string>
+    <string name="status_area_main_tab">Fcitx5 預設按鈕</string>
+    <string name="commit_first_candidate_character">提交首字</string>
+    <string name="commit_last_candidate_character">提交尾字</string>
     <string name="expand_candidates_list">展開選字列表</string>
     <string name="hide_candidates_list">隱藏選字列表</string>
     <string name="switch_to_voice_input">切換到語音輸入</string>

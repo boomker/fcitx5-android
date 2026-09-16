@@ -164,6 +164,7 @@
     <string name="exception_theme_name_clash">Название темы конфликтует со встроенными темами</string>
     <string name="exception_theme_src_image">Не удалось сохранить исходное изображение фона темы</string>
     <string name="exception_theme_cropped_image">Не удалось сохранить обрезанное изображение фона темы</string>
+    <string name="exception_theme_parse">Не удалось разобрать файл темы</string>
     <string name="follow_system_day_night_theme">Следовать системной теме «день/ночь»</string>
     <string name="follow_system_day_night_theme_summary">Если включено, случайный выбор из выбранных вручную тем на основе режима системы</string>
     <string name="light_mode_theme">Светлая тема</string>
@@ -355,6 +356,9 @@
     <string name="haptic_on_repeat">Вибрация при повторном нажатии клавиши</string>
     <string name="redo">Повторить</string>
     <string name="status_area">Область состояния</string>
+    <string name="status_area_main_tab">Кнопки Fcitx5 по умолчанию</string>
+    <string name="commit_first_candidate_character">Ввести первый символ</string>
+    <string name="commit_last_candidate_character">Ввести последний символ</string>
     <string name="expand_candidates_list">Развернуть список кандидатов</string>
     <string name="hide_candidates_list">Скрыть список кандидатов</string>
     <string name="switch_to_voice_input">Переключиться на голосовой ввод</string>
@@ -398,7 +402,7 @@
     <string name="button_icon_code_point_summary">Используется настроенный шрифт значков кнопок или встроенный iconfont.ttf по умолчанию. Оставьте поле пустым, чтобы использовать значок по умолчанию.</string>
     <string name="button_icon_code_point_invalid">Введите от 4 до 6 шестнадцатеричных цифр</string>
     <string name="button_icon_code">Код значка или SVG</string>
-    <string name="button_icon_code_hint">Кодовая точка Unicode glyph или &lt;svg&gt;...</string>
+    <string name="button_icon_code_hint">Кодовая точка Unicode glyph или &lt;svg&gt;&#8230;</string>
     <string name="button_icon_code_summary">Введите кодовую точку glyph из Iconfont или код SVG. Во время редактирования доступен предварительный просмотр SVG и glyph; оставьте поле пустым, чтобы восстановить значок по умолчанию.</string>
     <string name="button_icon_code_invalid">Введите допустимую кодовую точку или код SVG с элементом path</string>
     <string name="language_switch">Смена языка</string>

@@ -567,7 +567,7 @@
     <string name="button_icon_code_point_summary">Uses the configured button icon font, or the bundled iconfont.ttf by default. Leave blank to use the default icon.</string>
     <string name="button_icon_code_point_invalid">Enter 4 to 6 hexadecimal digits</string>
     <string name="button_icon_code">Icon code or SVG</string>
-    <string name="button_icon_code_hint">Glyph Unicode code point or &lt;svg&gt;...</string>
+    <string name="button_icon_code_hint">Glyph Unicode code point or &lt;svg&gt;&#8230;</string>
     <string name="button_icon_code_summary">Enter an iconfont glyph code point or SVG code. Both SVG and glyph are previewed while editing; leave blank to restore the default icon.</string>
     <string name="button_icon_code_invalid">Enter a valid code point or SVG containing a path</string>
     <string name="language_switch">Language Switch</string>
@@ -685,6 +685,8 @@
     <string name="status_area">Status area</string>
     <string name="status_area_rime" translatable="false">Rime</string>
     <string name="status_area_main_tab">Fcitx5 default buttons</string>
+    <string name="commit_first_candidate_character">Commit first character</string>
+    <string name="commit_last_candidate_character">Commit last character</string>
     <string name="expand_candidates_list">Expand candidates list</string>
     <string name="hide_candidates_list">Hide candidates list</string>
     <string name="switch_to_voice_input">Switch to voice input</string>

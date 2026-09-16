@@ -605,11 +605,11 @@ class NumPadKey(
 /**
  * Macro 按键，支持自定义 tap/swipe/longPress 行为
  * @param label 显示文本（点击行为）
- * @param altLabel 备选显示文本（划动行为，可选）
- * @param altLabel1 第二个备选显示文本（可选）
+ * @param altLabel 备选显示文本（上划行为，可选）
+ * @param altLabel1 第二个备选显示文本（下划行为，可选）
  * @param longPressLabel 长按时在 Popup 选单中显示的标签文本（可选）
  * @param tap 点击时执行的 macro
- * @param swipe 划动时执行的 macro（可选）
+ * @param swipe 未配置副标签时划动执行的 macro（可选）
  * @param longPress 长按时执行的 macro（可选）
  * @param percentWidth 按键宽度比例
  * @param variant 样式变体
@@ -653,7 +653,7 @@ class MacroKey(
         shadowColor = shadowColor,
         shadowColorMonet = shadowColorMonet
     ),
-    buildBehaviors(tap, swipe, longPress),
+    buildBehaviors(tap, swipe, longPress, altLabel, altLabel1),
     buildPopup(popup, tap, label, longPress, longPressLabel)
 ) {
     private companion object {
@@ -723,11 +723,20 @@ class MacroKey(
         fun buildBehaviors(
             tap: MacroAction,
             swipe: MacroAction?,
-            longPress: MacroAction?
+            longPress: MacroAction?,
+            altLabel: String?,
+            altLabel1: String?
         ): Set<Behavior> {
             return buildSet {
                 add(Behavior.Press(tap))
-                swipe?.let { add(Behavior.Swipe(it)) }
+                val swipeBehavior = altLabel?.takeIf { it.isNotEmpty() }?.let {
+                    Behavior.Swipe(
+                        action = KeyAction.CommitAction(it),
+                        downAction = altLabel1?.takeIf { it.isNotEmpty() }
+                            ?.let(KeyAction::CommitAction)
+                    )
+                } ?: swipe?.let { Behavior.Swipe(it) }
+                swipeBehavior?.let(::add)
                 longPress?.let { add(Behavior.LongPress(it)) }
             }
         }

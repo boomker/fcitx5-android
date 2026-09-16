@@ -13,6 +13,7 @@ import org.fxboomk.fcitx5.android.input.keyboard.KeyAction
 import org.fxboomk.fcitx5.android.input.keyboard.KeyDef
 import org.fxboomk.fcitx5.android.input.keyboard.MacroAction
 import org.fxboomk.fcitx5.android.input.keyboard.MacroKey
+import org.fxboomk.fcitx5.android.input.keyboard.MacroStep
 import org.fxboomk.fcitx5.android.input.keyboard.SymbolKey
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.data.LayoutHeightPercentOverrides
 import org.junit.Assert.assertEquals
@@ -185,6 +186,47 @@ class LayoutJsonUtilsRowStyleTest {
             .single()
 
         assertEquals(KeyAction.FcitxKeyAction("1"), swipe.action)
+        assertNull(swipe.downAction)
+    }
+
+    @Test
+    fun macroKey_altLabels_commitTheirExactTextOnEachSwipeDirection() {
+        val keyDef = MacroKey(
+            label = "q",
+            altLabel = "A",
+            altLabel1 = "Ä",
+            tap = MacroAction(emptyList())
+        )
+        val swipe = keyDef.behaviors.filterIsInstance<KeyDef.Behavior.Swipe>().single()
+
+        assertEquals(KeyAction.CommitAction("A"), swipe.action)
+        assertEquals(KeyAction.CommitAction("Ä"), swipe.downAction)
+    }
+
+    @Test
+    fun macroKey_singleAltLabel_fallsBackToPrimarySwipeAction() {
+        val keyDef = MacroKey(
+            label = "q",
+            altLabel = "A",
+            tap = MacroAction(emptyList())
+        )
+        val swipe = keyDef.behaviors.filterIsInstance<KeyDef.Behavior.Swipe>().single()
+
+        assertEquals(KeyAction.CommitAction("A"), swipe.action)
+        assertNull(swipe.downAction)
+    }
+
+    @Test
+    fun macroKey_withoutAltLabels_keepsConfiguredSwipeMacro() {
+        val swipeMacro = MacroAction(listOf(MacroStep.Text("macro")))
+        val keyDef = MacroKey(
+            label = "q",
+            tap = MacroAction(emptyList()),
+            swipe = swipeMacro
+        )
+        val swipe = keyDef.behaviors.filterIsInstance<KeyDef.Behavior.Swipe>().single()
+
+        assertEquals(swipeMacro, swipe.action)
         assertNull(swipe.downAction)
     }
 

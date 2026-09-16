@@ -1,6 +1,6 @@
 /*
  * SPDX-License-Identifier: LGPL-2.1-or-later
- * SPDX-FileCopyrightText: Copyright 2024-2025 Fcitx5 for Android Contributors
+ * SPDX-FileCopyrightText: Copyright 2024-2026 Fcitx5 for Android Contributors
  */
 
 package org.fxboomk.fcitx5.android.input
@@ -14,8 +14,10 @@ import androidx.core.text.buildSpannedString
 import androidx.core.text.color
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.core.FcitxEvent
 import org.fxboomk.fcitx5.android.daemon.FcitxConnection
@@ -24,6 +26,7 @@ import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.data.theme.Theme
 import org.fxboomk.fcitx5.android.data.theme.ThemeManager
 import org.fxboomk.fcitx5.android.data.theme.ThemePrefs
+import org.fxboomk.fcitx5.android.input.candidates.candidateEdgeCharacters
 import org.fxboomk.fcitx5.android.utils.item
 import org.fxboomk.fcitx5.android.utils.navbarFrameHeight
 import org.fxboomk.fcitx5.android.utils.styledColorOrDefault
@@ -71,6 +74,15 @@ abstract class BaseInputView(
         fcitx.runIfReady { triggerCandidateAction(idx, actionIdx) }
     }
 
+    private fun commitCandidateCharacter(character: String) {
+        service.postFcitxJob {
+            reset()
+            withContext(Dispatchers.Main.immediate) {
+                service.commitText(character)
+            }
+        }
+    }
+
     private var candidateActionMenu: PopupMenu? = null
 
     val themedContext = context.withTheme(R.style.Theme_InputViewTheme)
@@ -80,7 +92,8 @@ abstract class BaseInputView(
         candidateActionMenu = null
         service.lifecycleScope.launch {
             val actions = fcitx.runOnReady { getCandidateActions(idx) }
-            if (actions.isEmpty()) return@launch
+            val edgeCharacters = text.candidateEdgeCharacters()
+            if (actions.isEmpty() && edgeCharacters == null) return@launch
             InputFeedbacks.hapticFeedback(view, longPress = true)
             candidateActionMenu = PopupMenu(themedContext, view).apply {
                 menu.add(buildSpannedString {
@@ -96,6 +109,14 @@ abstract class BaseInputView(
                     }
                 }).apply {
                     isEnabled = false
+                }
+                edgeCharacters?.let { characters ->
+                    menu.item(R.string.commit_first_candidate_character) {
+                        commitCandidateCharacter(characters.first)
+                    }
+                    menu.item(R.string.commit_last_candidate_character) {
+                        commitCandidateCharacter(characters.last)
+                    }
                 }
                 actions.forEach { action ->
                     menu.item(action.text) {

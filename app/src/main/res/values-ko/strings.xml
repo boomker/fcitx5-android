@@ -127,7 +127,7 @@
     <string name="button_icon_code_point_summary">설정된 버튼 아이콘 글꼴을 사용하며, 설정하지 않은 경우 내장된 iconfont.ttf를 사용합니다. 비워 두면 기본 아이콘을 사용합니다.</string>
     <string name="button_icon_code_point_invalid">4~6자리 16진수를 입력하세요</string>
     <string name="button_icon_code">아이콘 코드 또는 SVG</string>
-    <string name="button_icon_code_hint">Glyph 유니코드 코드 포인트 또는 &lt;svg&gt;...</string>
+    <string name="button_icon_code_hint">Glyph 유니코드 코드 포인트 또는 &lt;svg&gt;&#8230;</string>
     <string name="button_icon_code_summary">Iconfont glyph 코드 포인트 또는 SVG 코드를 입력하세요. 편집 중 SVG와 glyph를 모두 미리 볼 수 있으며, 비워 두면 기본 아이콘으로 복원됩니다.</string>
     <string name="button_icon_code_invalid">유효한 코드 포인트 또는 path가 포함된 SVG 코드를 입력하세요</string>
     <string name="language_switch">언어 전환</string>
@@ -531,6 +531,7 @@
     <string name="exception_theme_filename">%1$s 파일 확장자는 테마 파일이 아닙니다</string>
     <string name="exception_theme_json">테마 JSON을 찾을 수 없습니다</string>
     <string name="exception_theme_name_clash">테마 이름이 내장 테마와 충돌합니다</string>
+    <string name="exception_theme_parse">테마 파일을 파싱할 수 없습니다</string>
     <string name="exception_theme_src_image">테마 배경의 원본 이미지를 저장할 수 없습니다</string>
     <string name="exception_user_data_filename">%1$s 파일 확장자는 fcitx5-android 사용자 데이터 파일이 아닙니다</string>
     <string name="exception_user_data_metadata">사용자 데이터 메타데이터를 찾을 수 없습니다</string>
@@ -689,6 +690,9 @@
     <string name="split_keyboard_use_landscape_layout">분할 키보드 활성 시 가로 레이아웃 사용</string>
     <string name="split_keyboard_use_landscape_layout_summary">활성화되고 분할 키보드가 켜져 있으면 가로 레이아웃 매개변수(높이, 여백 등)를 사용합니다. 이 옵션은 자동 분할 키보드가 켜져 있을 때만 사용할 수 있습니다.</string>
     <string name="status_area">상태 영역</string>
+    <string name="status_area_main_tab">Fcitx5 기본 버튼</string>
+    <string name="commit_first_candidate_character">첫 글자 입력</string>
+    <string name="commit_last_candidate_character">마지막 글자 입력</string>
     <string name="swipe_down">아래로 스와이프</string>
     <string name="swipe_symbol_behavior">구두점 스와이프 방향</string>
     <string name="swipe_up">위로 스와이프</string>

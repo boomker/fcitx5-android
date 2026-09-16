@@ -160,6 +160,7 @@
     <string name="exception_theme_name_clash">テーマ名がビルトインテーマと衝突します</string>
     <string name="exception_theme_src_image">選択した画像をテーマの背景として保存できません</string>
     <string name="exception_theme_cropped_image">切り取った画像をテーマの背景として保存できません</string>
+    <string name="exception_theme_parse">テーマファイルを解析できませんでした</string>
     <string name="follow_system_day_night_theme">システムのテーマに従う</string>
     <string name="follow_system_day_night_theme_summary">有効にすると、システムのモードに基づいて選択した明暗テーマからランダムに選択</string>
     <string name="light_mode_theme">ライトモードテーマ</string>
@@ -324,7 +325,7 @@
     <string name="button_icon_code_point_summary">設定されたボタンアイコンフォントを使用し、未設定の場合は内蔵の iconfont.ttf を使用します。空欄にすると既定のアイコンを使用します。</string>
     <string name="button_icon_code_point_invalid">4～6 桁の 16 進数を入力してください</string>
     <string name="button_icon_code">アイコンコードまたは SVG</string>
-    <string name="button_icon_code_hint">Glyph の Unicode コードポイントまたは &lt;svg&gt;...</string>
+    <string name="button_icon_code_hint">Glyph の Unicode コードポイントまたは &lt;svg&gt;&#8230;</string>
     <string name="button_icon_code_summary">Iconfont glyph のコードポイントまたは SVG コードを入力します。編集中は SVG と glyph の両方をプレビューできます。空欄にすると既定のアイコンに戻ります。</string>
     <string name="button_icon_code_invalid">有効なコードポイント、または path を含む SVG コードを入力してください</string>
     <string name="language_switch">言語切替</string>
@@ -698,6 +699,9 @@
     <string name="split_keyboard_use_landscape_layout">分割キーボード時に横向きレイアウトパラメータを使用</string>
     <string name="split_keyboard_use_landscape_layout_summary">有効化後、分割キーボードが有効な場合に横向きレイアウトパラメータ（高さ、余白など）を使用します。自動分割キーボードが有効な場合のみ利用可能です。</string>
     <string name="status_area">ステータス領域</string>
+    <string name="status_area_main_tab">Fcitx5 のデフォルトボタン</string>
+    <string name="commit_first_candidate_character">先頭文字を確定</string>
+    <string name="commit_last_candidate_character">末尾文字を確定</string>
     <string name="switch_to_voice_input">音声入力に切り替え</string>
     <string name="toggle_number_keyboard">数字キーボードを切り替え</string>
     <string name="text_editing_button_radius">テキスト編集ボタンの角丸半径</string>

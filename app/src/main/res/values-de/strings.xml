@@ -236,7 +236,7 @@
     <string name="button_icon_code_point_summary">Verwendet die konfigurierte Schrift für Schaltflächensymbole oder standardmäßig die integrierte iconfont.ttf. Leer lassen, um das Standardsymbol zu verwenden.</string>
     <string name="button_icon_code_point_invalid">Geben Sie 4 bis 6 Hexadezimalziffern ein</string>
     <string name="button_icon_code">Symbolcode oder SVG</string>
-    <string name="button_icon_code_hint">Glyph-Unicode-Codepunkt oder &lt;svg&gt;...</string>
+    <string name="button_icon_code_hint">Glyph-Unicode-Codepunkt oder &lt;svg&gt;&#8230;</string>
     <string name="button_icon_code_summary">Geben Sie einen Iconfont-Glyph-Codepunkt oder SVG-Code ein. SVG und Glyph werden während der Bearbeitung als Vorschau angezeigt; leer lassen, um das Standardsymbol wiederherzustellen.</string>
     <string name="button_icon_code_invalid">Geben Sie einen gültigen Codepunkt oder SVG-Code mit einem path-Element ein</string>
     <string name="language_switch">Sprache wechseln</string>
@@ -598,6 +598,7 @@
     <string name="exception_theme_cropped_image">Zugeschnittenes Theme-Hintergrundbild konnte nicht gespeichert werden</string>
     <string name="exception_theme_filename">Datei %1$s hat keine Theme-Erweiterung</string>
     <string name="exception_theme_name_clash">Theme-Name kollidiert mit integriertem Theme</string>
+    <string name="exception_theme_parse">Die Theme-Datei konnte nicht geparst werden</string>
     <string name="exception_theme_src_image">Originalbild des Theme-Hintergrunds konnte nicht gespeichert werden</string>
     <string name="exception_user_data_filename">Datei %1$s hat keine fcitx5-android-Benutzerdaten-Erweiterung</string>
     <string name="exception_user_data_metadata">Metadaten der Benutzerdaten nicht gefunden</string>
@@ -702,6 +703,9 @@
     <string name="split_keyboard_use_landscape_layout">Bei geteilter Tastatur Querformat-Layoutparameter verwenden</string>
     <string name="split_keyboard_use_landscape_layout_summary">Wenn aktiviert, werden bei aktiver geteilter Tastatur die Querformat-Layoutparameter (Höhe, Abstände usw.) verwendet. Nur verfügbar, wenn die automatische geteilte Tastatur aktiviert ist.</string>
     <string name="status_area">Statusbereich</string>
+    <string name="status_area_main_tab">Fcitx5-Standardschaltflächen</string>
+    <string name="commit_first_candidate_character">Erstes Zeichen eingeben</string>
+    <string name="commit_last_candidate_character">Letztes Zeichen eingeben</string>
     <string name="swipe_symbol_behavior">Wischrichtung für Satzzeichen</string>
     <string name="switch_to_voice_input">Zur Spracheingabe wechseln</string>
     <string name="toggle_number_keyboard">Zifferntastatur umschalten</string>
