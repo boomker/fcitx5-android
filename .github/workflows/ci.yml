@@ -68,7 +68,12 @@ jobs:
           java-version: "17"
 
       - name: Setup Android environment
+        # 2026-09-15 起 Google 不再提供 `tools` 包，setup-android 默认安装
+        # `tools platform-tools` 会以 exit 1 失败（android-actions/setup-android#537）；
+        # 本仓库的 SDK 包均由 prepare_personal_build.sh / Gradle 自行安装，只装 platform-tools 即可
         uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools'
 
       - name: Install Android NDK
         run: |
