@@ -30,6 +30,7 @@
     <string name="next">다음</string>
     <string name="prev">이전</string>
     <string name="done">완료</string>
+    <string name="candidate_frequency_reset">후보 단어 빈도를 초기화했습니다</string>
     <string name="setup_keyboard">키보드 설정 완료</string>
     <string name="setup_channel">설정 마법사</string>
     <string name="pinyin_dict">병음 사전</string>

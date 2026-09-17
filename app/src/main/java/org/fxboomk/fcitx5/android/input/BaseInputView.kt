@@ -5,6 +5,7 @@
 
 package org.fxboomk.fcitx5.android.input
 
+import android.view.MotionEvent
 import android.view.View
 import android.view.WindowInsets
 import android.widget.PopupMenu
@@ -26,10 +27,15 @@ import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.data.theme.Theme
 import org.fxboomk.fcitx5.android.data.theme.ThemeManager
 import org.fxboomk.fcitx5.android.data.theme.ThemePrefs
+import org.fxboomk.fcitx5.android.input.candidates.CandidateCharacterPopup
+import org.fxboomk.fcitx5.android.input.candidates.candidateCharacters
 import org.fxboomk.fcitx5.android.input.candidates.candidateEdgeCharacters
+import org.fxboomk.fcitx5.android.input.candidates.isCandidateFrequencyResetActionText
+import org.fxboomk.fcitx5.android.input.keyboard.CustomGestureView
 import org.fxboomk.fcitx5.android.utils.item
 import org.fxboomk.fcitx5.android.utils.navbarFrameHeight
 import org.fxboomk.fcitx5.android.utils.styledColorOrDefault
+import org.fxboomk.fcitx5.android.utils.toast
 import splitties.views.dsl.core.withTheme
 import kotlin.math.max
 
@@ -79,6 +85,120 @@ abstract class BaseInputView(
             reset()
             withContext(Dispatchers.Main.immediate) {
                 service.commitText(character)
+            }
+        }
+    }
+
+    private var candidateCharacterPopup: CandidateCharacterPopup? = null
+
+    fun bindCandidateGesture(view: CustomGestureView, idx: Int, text: String) {
+        val characters = text.candidateCharacters()
+        var resetFrequency = false
+        var gestureCancelled = false
+        var popup: CandidateCharacterPopup? = null
+
+        view.swipeEnabled = true
+        view.swipeThresholdY = resources.displayMetrics.density * 20f
+        view.setOnTouchListener { _, event ->
+            if (event.actionMasked == MotionEvent.ACTION_CANCEL) {
+                gestureCancelled = true
+                resetFrequency = false
+                popup = null
+                dismissCandidateCharacterPopup()
+                view.parent?.requestDisallowInterceptTouchEvent(false)
+            }
+            false
+        }
+        view.onGestureListener = CustomGestureView.OnGestureListener { _, event ->
+            when (event.type) {
+                CustomGestureView.GestureType.Down -> {
+                    dismissCandidateCharacterPopup()
+                    resetFrequency = false
+                    gestureCancelled = false
+                    popup = null
+                    view.parent?.requestDisallowInterceptTouchEvent(true)
+                    false
+                }
+
+                CustomGestureView.GestureType.Move -> {
+                    when {
+                        popup != null -> {
+                            popup?.updateFocus(event.x, event.y)
+                            true
+                        }
+
+                        event.totalY < 0 && characters.isNotEmpty() -> {
+                            popup = CandidateCharacterPopup(view, characters, theme).also {
+                                candidateCharacterPopup = it
+                                it.show()
+                                it.updateFocus(event.x, event.y)
+                            }
+                            InputFeedbacks.hapticFeedback(view, longPress = true)
+                            true
+                        }
+
+                        event.totalY > 0 -> {
+                            resetFrequency = true
+                            InputFeedbacks.hapticFeedback(view, longPress = true)
+                            true
+                        }
+
+                        else -> false
+                    }
+                }
+
+                CustomGestureView.GestureType.Up -> {
+                    view.parent?.requestDisallowInterceptTouchEvent(false)
+                    if (gestureCancelled) {
+                        gestureCancelled = false
+                        return@OnGestureListener event.consumed
+                    }
+                    popup?.let {
+                        it.updateFocus(event.x, event.y)
+                        it.selectedCharacter()?.let(::commitCandidateCharacter)
+                        dismissCandidateCharacterPopup()
+                        popup = null
+                        return@OnGestureListener true
+                    }
+                    if (resetFrequency) {
+                        resetCandidateFrequency(idx)
+                        resetFrequency = false
+                        return@OnGestureListener true
+                    }
+                    event.consumed
+                }
+            }
+        }
+    }
+
+    fun unbindCandidateGesture(view: CustomGestureView) {
+        dismissCandidateCharacterPopup()
+        view.setOnTouchListener(null)
+        view.onGestureListener = null
+        view.swipeEnabled = false
+        view.parent?.requestDisallowInterceptTouchEvent(false)
+    }
+
+    private fun dismissCandidateCharacterPopup() {
+        candidateCharacterPopup?.dismiss()
+        candidateCharacterPopup = null
+    }
+
+    private fun resetCandidateFrequency(idx: Int) {
+        service.lifecycleScope.launch {
+            val triggered = runCatching {
+                fcitx.runOnReady {
+                    val action = getCandidateActions(idx).firstOrNull {
+                        !it.isSeparator && it.text.isCandidateFrequencyResetActionText()
+                    } ?: return@runOnReady false
+                    triggerCandidateAction(idx, action.id)
+                    true
+                }
+            }.getOrDefault(false)
+            if (triggered) {
+                withContext(Dispatchers.Main.immediate) {
+                    context.toast(R.string.candidate_frequency_reset)
+                }
             }
         }
     }
@@ -169,6 +289,7 @@ abstract class BaseInputView(
     }
 
     override fun onDetachedFromWindow() {
+        dismissCandidateCharacterPopup()
         handleEvents = false
         super.onDetachedFromWindow()
     }

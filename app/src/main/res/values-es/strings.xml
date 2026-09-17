@@ -30,6 +30,7 @@
     <string name="next">Siguiente</string>
     <string name="prev">Anterior</string>
     <string name="done">Hecho</string>
+    <string name="candidate_frequency_reset">Frecuencia del candidato restablecida</string>
     <string name="import_error">Error de importación</string>
     <string name="dict_already_exists">El diccionario ya existe</string>
     <string name="invalid_dict">El tipo de diccionario no es válido</string>

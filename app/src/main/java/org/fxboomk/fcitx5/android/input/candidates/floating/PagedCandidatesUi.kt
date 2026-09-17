@@ -22,6 +22,7 @@ import com.google.android.flexbox.FlexboxLayoutManager
 import org.fxboomk.fcitx5.android.core.FcitxEvent
 import org.fxboomk.fcitx5.android.core.FcitxEvent.PagedCandidateEvent.LayoutHint
 import org.fxboomk.fcitx5.android.data.theme.Theme
+import org.fxboomk.fcitx5.android.input.keyboard.CustomGestureView
 import splitties.views.dsl.core.Ui
 import splitties.views.dsl.recyclerview.recyclerView
 
@@ -31,6 +32,8 @@ class PagedCandidatesUi(
     private val setupTextView: TextView.() -> Unit,
     private val onCandidateClick: (Int) -> Unit,
     private val onCandidateAction: (Int, String, View) -> Unit,
+    private val onBindCandidateGesture: (CustomGestureView, Int, String) -> Unit,
+    private val onUnbindCandidateGesture: (CustomGestureView) -> Unit,
     private val onPrevPage: () -> Unit,
     private val onNextPage: () -> Unit,
     private val highlightRadius: Float
@@ -100,6 +103,7 @@ class PagedCandidatesUi(
                         onCandidateAction.invoke(position, candidate.text, v)
                         true
                     }
+                    onBindCandidateGesture(holder.ui.root, position, candidate.text)
                     holder.ui.root.updateLayoutParams<FlexboxLayoutManager.LayoutParams> {
                         width = if (isVertical) MATCH_PARENT else WRAP_CONTENT
                     }
@@ -118,6 +122,8 @@ class PagedCandidatesUi(
         override fun onViewRecycled(holder: UiHolder) {
             if (holder is UiHolder.Candidate) {
                 holder.ui.root.setOnClickListener(null)
+                holder.ui.root.setOnLongClickListener(null)
+                onUnbindCandidateGesture(holder.ui.root)
             }
             super.onViewRecycled(holder)
         }

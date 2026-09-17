@@ -32,6 +32,7 @@
     <string name="next">Weiter</string>
     <string name="prev">Zurück</string>
     <string name="done">Fertig</string>
+    <string name="candidate_frequency_reset">Kandidatenhäufigkeit zurückgesetzt</string>
     <string name="setup_keyboard">Tastatureinrichtung beenden</string>
     <string name="setup_channel">Einrichtungsassistent</string>
     <string name="pinyin_dict">Pinyin-Wörterbücher</string>

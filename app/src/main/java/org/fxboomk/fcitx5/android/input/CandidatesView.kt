@@ -139,6 +139,8 @@ class CandidatesView(
         ctx, theme, setupTextView,
         onCandidateClick = { index -> fcitx.launchOnReady { it.select(index) } },
         onCandidateAction = { index, text, view -> showCandidateActionMenu(index, text, view) },
+        onBindCandidateGesture = ::bindCandidateGesture,
+        onUnbindCandidateGesture = ::unbindCandidateGesture,
         onPrevPage = { fcitx.launchOnReady { it.offsetCandidatePage(-1) } },
         onNextPage = { fcitx.launchOnReady { it.offsetCandidatePage(1) } },
         highlightRadius = dp(highlightRadius).toFloat()

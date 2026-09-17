@@ -35,6 +35,7 @@
     <string name="next">Next</string>
     <string name="prev">Prev</string>
     <string name="done">Done</string>
+    <string name="candidate_frequency_reset">Candidate frequency reset</string>
     <string name="setup_keyboard">Finish setting up the keyboard</string>
     <string name="setup_channel">Setup Wizard</string>
     <string name="pinyin_dict">Pinyin Dictionaries</string>

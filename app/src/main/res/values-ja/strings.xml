@@ -32,6 +32,7 @@
     <string name="next">次</string>
     <string name="prev">前</string>
     <string name="done">完了</string>
+    <string name="candidate_frequency_reset">候補の使用頻度をリセットしました</string>
     <string name="setup_keyboard">キーボードセットアップの完了</string>
     <string name="setup_channel">セットアップウィザード</string>
     <string name="pinyin_dict">Pinyin 辞書</string>

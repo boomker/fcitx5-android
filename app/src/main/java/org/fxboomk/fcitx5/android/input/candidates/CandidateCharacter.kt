@@ -7,11 +7,60 @@ package org.fxboomk.fcitx5.android.input.candidates
 
 import java.text.BreakIterator
 import java.util.Locale
+import kotlin.math.ceil
+import kotlin.math.sqrt
 
 internal data class CandidateEdgeCharacters(
     val first: String,
     val last: String
 )
+
+internal fun String.candidateCharacters(): List<String> {
+    if (isBlank()) return emptyList()
+
+    val iterator = BreakIterator.getCharacterInstance(Locale.ROOT).apply {
+        setText(this@candidateCharacters)
+    }
+    return buildList {
+        var start = iterator.first()
+        var end = iterator.next()
+        while (end != BreakIterator.DONE) {
+            add(substring(start, end))
+            start = end
+            end = iterator.next()
+        }
+    }
+}
+
+internal data class CandidateCharacterGrid(
+    val rows: Int,
+    val columns: Int
+)
+
+internal fun candidateCharacterGrid(characterCount: Int): CandidateCharacterGrid {
+    val count = characterCount.coerceAtLeast(1)
+    if (count < 4) return CandidateCharacterGrid(rows = 1, columns = count)
+    if (count == 6) return CandidateCharacterGrid(rows = 2, columns = 3)
+
+    val size = ceil(sqrt(count.toDouble())).toInt()
+    return CandidateCharacterGrid(rows = size, columns = size)
+}
+
+internal fun isInsideCandidateCharacterPopup(
+    x: Float,
+    y: Float,
+    width: Int,
+    height: Int
+): Boolean = x >= 0f && x < width && y >= 0f && y < height
+
+internal fun String.isCandidateFrequencyResetActionText(): Boolean {
+    val normalized = trim().lowercase(Locale.ROOT)
+    if (normalized.isEmpty()) return false
+    if (normalized in knownFrequencyResetActionTexts) return true
+    val frequencyTerms = listOf("candidate", "word", "frequency")
+    return listOf("forget", "reset").any(normalized::contains) &&
+            frequencyTerms.any(normalized::contains)
+}
 
 internal fun String.candidateEdgeCharacters(): CandidateEdgeCharacters? {
     if (isBlank() || isPunctuationOrSymbolCandidate() || isKeycapEmojiCandidate()) return null
@@ -66,3 +115,21 @@ private fun String.isKeycapEmojiCandidate(): Boolean {
 
 private const val VARIATION_SELECTOR_16 = 0xFE0F
 private const val COMBINING_ENCLOSING_KEYCAP = 0x20E3
+
+private val knownFrequencyResetActionTexts = setOf(
+    "forget candidate",
+    "forget word",
+    "oublie la proposition",
+    "oublie le mot",
+    "glem ord",
+    "wort vergessen",
+    "забыть слово",
+    "забыть слово-кандидат",
+    "단어 잊기",
+    "忘记候选词",
+    "忘记词汇",
+    "忘記候選詞",
+    "忽略字詞",
+    "重置词频",
+    "重置詞頻"
+)

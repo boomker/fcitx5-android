@@ -502,11 +502,17 @@ class HorizontalCandidateComponent :
                         true
                     }
                 }
+                if (isCalculatorCandidate || isAiCandidate) {
+                    inputView.unbindCandidateGesture(holder.ui.root)
+                } else {
+                    inputView.bindCandidateGesture(holder.ui.root, holder.idx, holder.text)
+                }
             }
 
             override fun onViewRecycled(holder: CandidateViewHolder) {
                 holder.itemView.setOnClickListener(null)
                 holder.itemView.setOnLongClickListener(null)
+                inputView.unbindCandidateGesture(holder.ui.root)
                 super.onViewRecycled(holder)
             }
         }

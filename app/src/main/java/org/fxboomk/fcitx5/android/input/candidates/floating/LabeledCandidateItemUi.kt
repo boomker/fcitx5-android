@@ -13,8 +13,14 @@ import androidx.core.text.buildSpannedString
 import androidx.core.text.color
 import org.fxboomk.fcitx5.android.core.CandidateWord
 import org.fxboomk.fcitx5.android.data.theme.Theme
+import org.fxboomk.fcitx5.android.input.keyboard.CustomGestureView
 import splitties.views.dsl.core.Ui
+import splitties.views.dsl.core.add
+import splitties.views.dsl.core.lParams
+import splitties.views.dsl.core.matchParent
 import splitties.views.dsl.core.textView
+import splitties.views.dsl.core.view
+import splitties.views.dsl.core.wrapContent
 
 class LabeledCandidateItemUi(
     override val ctx: Context,
@@ -23,8 +29,13 @@ class LabeledCandidateItemUi(
     private val highlightRadius: Float
 ) : Ui {
 
-    override val root = textView {
+    private val textView = textView {
         setupTextView(this)
+    }
+
+    override val root = view(::CustomGestureView) {
+        longPressFeedbackEnabled = false
+        add(textView, lParams(wrapContent, matchParent))
     }
 
     private val highlightDrawable = GradientDrawable().apply {
@@ -37,7 +48,7 @@ class LabeledCandidateItemUi(
         val labelFg = if (active) activeFg else theme.candidateLabelColor
         val fg = if (active) activeFg else theme.candidateTextColor
         val altFg = if (active) activeFg else theme.candidateCommentColor
-        root.text = buildSpannedString {
+        textView.text = buildSpannedString {
             color(labelFg) {
                 append(candidate.label)
             }

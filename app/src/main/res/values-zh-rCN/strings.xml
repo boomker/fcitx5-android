@@ -33,6 +33,7 @@
     <string name="next">下一步</string>
     <string name="prev">上一步</string>
     <string name="done">完成</string>
+    <string name="candidate_frequency_reset">词频已重置</string>
     <string name="setup_keyboard">请完成键盘设置</string>
     <string name="setup_channel">设置向导</string>
     <string name="pinyin_dict">拼音词库</string>
