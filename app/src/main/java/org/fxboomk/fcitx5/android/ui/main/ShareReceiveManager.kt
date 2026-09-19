@@ -272,7 +272,7 @@ class ShareReceiveManager(
         val confirmed = confirmImportOverwrite(activity.getString(R.string.share_receive_layout_overwrite_message, label))
         if (!confirmed) return
         val dataManager = LayoutDataManager(activity)
-        layout.parsed.toSortedMap().forEach { (key, value) ->
+        layout.parsed.forEach { (key, value) ->
             dataManager.entries[key] = value.map { row ->
                 row.map { cell -> cell.toMutableMap() }.toMutableList()
             }.toMutableList()

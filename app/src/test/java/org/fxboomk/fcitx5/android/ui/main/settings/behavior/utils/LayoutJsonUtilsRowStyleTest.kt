@@ -8,6 +8,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import org.fxboomk.fcitx5.android.data.theme.Theme
 import org.fxboomk.fcitx5.android.input.keyboard.AlphabetKey
 import org.fxboomk.fcitx5.android.input.keyboard.KeyAction
 import org.fxboomk.fcitx5.android.input.keyboard.KeyDef
@@ -24,6 +25,36 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LayoutJsonUtilsRowStyleTest {
+
+    /**
+     * 本地 JVM 测试没有 Android 环境，显式传入 Theme，
+     * 避免触发 ThemeManager 类初始化（其需要应用存储目录）。
+     */
+    private val testTheme = Theme.Builtin(
+        name = "test",
+        isDark = false,
+        backgroundColor = 0xFFE7E7E7,
+        barColor = 0xFFDDDDDD,
+        keyboardColor = 0xFFF5F5F5,
+        keyBackgroundColor = 0xFFFFFFFF,
+        keyTextColor = 0xFF222222,
+        candidateTextColor = 0xFF222222,
+        candidateLabelColor = 0xFF888888,
+        candidateCommentColor = 0xFF888888,
+        altKeyBackgroundColor = 0xFFCCCCCC,
+        altKeyTextColor = 0xFF222222,
+        accentKeyBackgroundColor = 0xFF3D9AB0,
+        accentKeyTextColor = 0xFFFFFFFF,
+        keyPressHighlightColor = 0xFFB3E5FC,
+        keyShadowColor = 0x00000000,
+        popupBackgroundColor = 0xFFFFFFFF,
+        popupTextColor = 0xFF222222,
+        spaceBarColor = 0xFFDDDDDD,
+        dividerColor = 0xFFBBBBBB,
+        clipboardEntryColor = 0xFFEEEEEE,
+        genericActiveBackgroundColor = 0xFFB3E5FC,
+        genericActiveForegroundColor = 0xFF222222
+    )
 
     @Test
     fun parseLayoutRows_readsStructuredRowMetaBeforeKeys() {
@@ -106,7 +137,7 @@ class LayoutJsonUtilsRowStyleTest {
 
     @Test
     fun createKeyDef_preservesSolidRowBackgroundColorReference() {
-        val keyDef = LayoutJsonUtils.createKeyDef(
+        val keyDef = createKeyDef(
             key = LayoutJsonUtils.KeyJson(type = "AlphabetKey", main = "q", alt = "1"),
             rowStyle = KeyboardRowStyleUtils.RowStyle(
                 backgroundStyle = KeyboardRowStyleUtils.BackgroundStyle.Solid,
@@ -144,6 +175,24 @@ class LayoutJsonUtilsRowStyleTest {
         assertEquals("49", metadata["keyboard_height_percent_landscape"]!!.jsonPrimitive.content)
     }
 
+    // 统一走测试主题，避免触发 ThemeManager 类初始化（其需要应用存储目录，纯 JVM 测试不可用）
+    private fun createKeyDef(
+        key: LayoutJsonUtils.KeyJson,
+        subModeLabel: String = "",
+        subModeName: String = "",
+        rowStyle: KeyboardRowStyleUtils.RowStyle = KeyboardRowStyleUtils.RowStyle(),
+        visibleIndex: Int = 0,
+        visibleCount: Int = 1
+    ) = LayoutJsonUtils.createKeyDef(
+        key = key,
+        subModeLabel = subModeLabel,
+        subModeName = subModeName,
+        rowStyle = rowStyle,
+        visibleIndex = visibleIndex,
+        visibleCount = visibleCount,
+        theme = testTheme
+    )
+
     @Test
     fun alphabetKey_secondAltCharacter_roundTripsToAppearance() {
         val keyJson = LayoutJsonUtils.parseKeyJson(
@@ -151,7 +200,7 @@ class LayoutJsonUtilsRowStyleTest {
                 """{"type":"AlphabetKey","main":"q","alt":"1","alt1":"@"}"""
             ).jsonObject
         )!!
-        val keyDef = LayoutJsonUtils.createKeyDef(
+        val keyDef = createKeyDef(
             key = keyJson,
             rowStyle = KeyboardRowStyleUtils.RowStyle(
                 altTextPosition = KeyboardRowStyleUtils.AltTextPosition.TopBottom
@@ -172,7 +221,7 @@ class LayoutJsonUtilsRowStyleTest {
                 """{"type":"AlphabetKey","main":"q","alt":"A","alt1":"Ä"}"""
             ).jsonObject
         )!!
-        val keyDef = LayoutJsonUtils.createKeyDef(keyJson)
+        val keyDef = createKeyDef(keyJson)
         val swipe = keyDef.behaviors.filterIsInstance<KeyDef.Behavior.Swipe>().single()
 
         assertEquals(KeyAction.CommitAction("A"), swipe.action)
@@ -250,11 +299,11 @@ class LayoutJsonUtilsRowStyleTest {
         val rowStyle = KeyboardRowStyleUtils.RowStyle(
             altTextPosition = KeyboardRowStyleUtils.AltTextPosition.Bottom
         )
-        val symbol = LayoutJsonUtils.createKeyDef(
+        val symbol = createKeyDef(
             key = LayoutJsonUtils.KeyJson(type = "SymbolKey", label = ".", swipeLabel = "?"),
             rowStyle = rowStyle
         )
-        val macro = LayoutJsonUtils.createKeyDef(
+        val macro = createKeyDef(
             key = LayoutJsonUtils.KeyJson(
                 type = "MacroKey",
                 label = "a",
@@ -277,19 +326,19 @@ class LayoutJsonUtilsRowStyleTest {
             backgroundColor = 0xFF667788.toInt()
         )
 
-        val first = LayoutJsonUtils.createKeyDef(
+        val first = createKeyDef(
             key = LayoutJsonUtils.KeyJson(type = "AlphabetKey", main = "q", alt = "1"),
             rowStyle = rowStyle,
             visibleIndex = 0,
             visibleCount = 3
         )
-        val middle = LayoutJsonUtils.createKeyDef(
+        val middle = createKeyDef(
             key = LayoutJsonUtils.KeyJson(type = "AlphabetKey", main = "w", alt = "2"),
             rowStyle = rowStyle,
             visibleIndex = 1,
             visibleCount = 3
         )
-        val last = LayoutJsonUtils.createKeyDef(
+        val last = createKeyDef(
             key = LayoutJsonUtils.KeyJson(type = "AlphabetKey", main = "e", alt = "3"),
             rowStyle = rowStyle,
             visibleIndex = 2,

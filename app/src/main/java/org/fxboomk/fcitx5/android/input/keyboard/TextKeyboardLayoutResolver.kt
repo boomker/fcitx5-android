@@ -59,6 +59,21 @@ internal fun TextKeyboardLayoutResolution.keyboardHeightPercentOverride(
     return layoutHeightPercentFromMeta(subMode, key) ?: layoutHeightPercentFromMeta(root, key)
 }
 
+/**
+ * 文件级（profile 层）键盘高度覆写：文件顶层 {"__profile__": {"__meta__": {...}}}。
+ * 字面量需与 LayoutJsonUtils.PROFILE_META_KEY 保持一致。
+ */
+internal const val PROFILE_META_KEY = "__profile__"
+
+internal fun JsonObject?.fileLevelKeyboardHeightPercentOverride(landscape: Boolean): Int? {
+    if (this == null) return null
+    val profile = this[PROFILE_META_KEY] as? JsonObject ?: return null
+    return layoutHeightPercentFromMeta(
+        profile,
+        if (landscape) "keyboard_height_percent_landscape" else "keyboard_height_percent"
+    )
+}
+
 private fun layoutHeightPercentFromMeta(layout: JsonElement?, key: String): Int? {
     val meta = (layout as? JsonObject)?.get("__meta__") as? JsonObject ?: return null
     return (meta[key] as? JsonPrimitive)

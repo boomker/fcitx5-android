@@ -12,6 +12,7 @@ import org.fxboomk.fcitx5.android.ui.main.settings.behavior.migration.DataMigrat
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.utils.KeyboardRowStyleUtils
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.utils.LayoutJsonUtils
 import java.io.File
+import java.util.LinkedHashMap
 
 data class LayoutHeightPercentOverrides(
     val portrait: Int? = null,
@@ -46,13 +47,22 @@ class LayoutDataManager(private val context: Context) {
      */
     val entries = mutableMapOf<String, MutableList<MutableList<MutableMap<String, Any?>>>>()
     val layoutHeightPercentOverrides = mutableMapOf<String, LayoutHeightPercentOverrides>()
+
+    /**
+     * 文件级键盘高度覆写（优先级低于基础布局/子模式覆写），存储在文件顶层 __profile__ 键。
+     */
+    var profileHeightOverrides: LayoutHeightPercentOverrides? = null
+        private set
     
     /**
      * 原始数据快照，用于检测是否有更改
      */
     private var originalEntries: Map<String, List<List<Map<String, Any?>>>> = emptyMap()
+    private var originalEntryOrder: List<String> = emptyList()
     private var originalLayoutHeightPercentOverrides: Map<String, LayoutHeightPercentOverrides> = emptyMap()
+    private var originalProfileHeightOverrides: LayoutHeightPercentOverrides? = null
     private var lastParsedLayoutHeightPercentOverrides: Map<String, LayoutHeightPercentOverrides> = emptyMap()
+    private var lastParsedProfileHeightOverrides: LayoutHeightPercentOverrides? = null
     
     /**
      * 迁移管理器
@@ -78,12 +88,13 @@ class LayoutDataManager(private val context: Context) {
         }
         
         // 将解析结果复制到 entries
-        parsed.toSortedMap().forEach { (k, v) ->
+        parsed.forEach { (k, v) ->
             entries[k] = v.map { row ->
                 row.map { key -> key.toMutableMap() }.toMutableList()
             }.toMutableList()
         }
         layoutHeightPercentOverrides.putAll(lastParsedLayoutHeightPercentOverrides)
+        profileHeightOverrides = lastParsedProfileHeightOverrides
         pruneLayoutHeightOverrides()
         
         // 确保至少有一个布局
@@ -106,13 +117,14 @@ class LayoutDataManager(private val context: Context) {
                 // 迁移失败恢复备份后，重新加载数据确保内存与文件一致
                 entries.clear()
                 val restoredParsed = parseJsonText(file.readText(), file.name)
-                restoredParsed.toSortedMap().forEach { (k, v) ->
+                restoredParsed.forEach { (k, v) ->
                     entries[k] = v.map { row ->
                         row.map { key -> key.toMutableMap() }.toMutableList()
                     }.toMutableList()
                 }
                 layoutHeightPercentOverrides.clear()
                 layoutHeightPercentOverrides.putAll(lastParsedLayoutHeightPercentOverrides)
+                profileHeightOverrides = lastParsedProfileHeightOverrides
                 pruneLayoutHeightOverrides()
                 // 确保至少有一个布局
                 if (entries.isEmpty()) {
@@ -128,7 +140,9 @@ class LayoutDataManager(private val context: Context) {
 
         // 保存原始数据快照
         originalEntries = normalizedEntries()
+        originalEntryOrder = entries.keys.toList()
         originalLayoutHeightPercentOverrides = layoutHeightPercentOverrides.toSortedMap()
+        originalProfileHeightOverrides = profileHeightOverrides
 
         return true
     }
@@ -146,6 +160,7 @@ class LayoutDataManager(private val context: Context) {
         fallbackToDefault: Boolean = true
     ): Map<String, List<List<Map<String, Any?>>>> {
         lastParsedLayoutHeightPercentOverrides = emptyMap()
+        lastParsedProfileHeightOverrides = null
         val lenientJson = Json {
             ignoreUnknownKeys = true
             isLenient = true
@@ -158,11 +173,18 @@ class LayoutDataManager(private val context: Context) {
 
             val jsonElement = lenientJson.parseToJsonElement(jsonStr)
             val jsonObject = jsonElement.jsonObject
-            val result = mutableMapOf<String, List<List<Map<String, Any?>>>>()
+            val result = LinkedHashMap<String, List<List<Map<String, Any?>>>>()
             val parsedLayoutHeightOverrides = mutableMapOf<String, LayoutHeightPercentOverrides>()
 
             // 处理每个布局条目
             jsonObject.entries.forEach { (layoutName, layoutValue) ->
+                if (layoutName == LayoutJsonUtils.PROFILE_META_KEY) {
+                    // 文件级高度等配置，不属于布局条目
+                    if (layoutValue is JsonObject) {
+                        lastParsedProfileHeightOverrides = parseLayoutHeightPercent(layoutValue)
+                    }
+                    return@forEach
+                }
                 try {
                     when (layoutValue) {
                         is JsonArray -> {
@@ -203,7 +225,7 @@ class LayoutDataManager(private val context: Context) {
                     android.util.Log.e("LayoutDataManager", "Failed to parse layout: $layoutName", e)
                 }
             }
-            lastParsedLayoutHeightPercentOverrides = parsedLayoutHeightOverrides.toSortedMap()
+            lastParsedLayoutHeightPercentOverrides = LinkedHashMap(parsedLayoutHeightOverrides)
             
             if (result.isEmpty()) {
                 android.util.Log.w("LayoutDataManager", "No valid layouts found in JSON file")
@@ -216,7 +238,11 @@ class LayoutDataManager(private val context: Context) {
     }
 
     fun exportCurrentJsonString(): String {
-        val jsonElement = LayoutJsonUtils.convertToSaveJson(entries, layoutHeightPercentOverrides)
+        val jsonElement = LayoutJsonUtils.convertToSaveJson(
+            entries,
+            layoutHeightPercentOverrides,
+            profileHeightOverrides
+        )
         val prettyJson = Json { prettyPrint = true }
         return prettyJson.encodeToString(jsonElement) + "\n"
     }
@@ -272,16 +298,22 @@ class LayoutDataManager(private val context: Context) {
             file.parentFile?.mkdirs()
 
             // Convert to JSON and save, using compact format (each key object on one line)
-            val jsonElement = LayoutJsonUtils.convertToSaveJson(entries, layoutHeightPercentOverrides)
+            val jsonElement = LayoutJsonUtils.convertToSaveJson(
+                entries,
+                layoutHeightPercentOverrides,
+                profileHeightOverrides
+            )
             val compactJson = LayoutJsonUtils.formatJsonCompact(jsonElement)
             file.writeText(compactJson + "\n")
-            
+
             // 清除缓存
             TextKeyboard.clearCachedKeyDefLayouts()
-            
+
             // 更新原始数据快照
             originalEntries = normalizedEntries()
+            originalEntryOrder = entries.keys.toList()
             originalLayoutHeightPercentOverrides = layoutHeightPercentOverrides.toSortedMap()
+            originalProfileHeightOverrides = profileHeightOverrides
             
             true
         }.getOrElse { e ->
@@ -360,7 +392,98 @@ class LayoutDataManager(private val context: Context) {
         
         return entries.keys.toList()
     }
-    
+
+    /**
+     * 获取基础布局名称，按当前文件中的顺序返回。
+     */
+    fun baseLayoutNames(): List<String> = entries.keys
+        .filter { !it.contains(':') }
+        .toList()
+
+    /**
+     * 获取基础布局下的专属子布局，按当前文件中的顺序返回。
+     */
+    fun subLayoutKeys(baseLayout: String): List<String> = entries.keys
+        .filter { it.startsWith("$baseLayout:") }
+        .toList()
+
+    /**
+     * 删除基础布局（输入法层级，如 rime、双拼等）：将该层级的布局配置复位为默认 26 键预设。
+     *
+     * 基础布局是运行时布局解析的回退锚点（见 TextKeyboardLayoutResolver），不会被真正移除；
+     * 其专属子布局与子布局高度覆盖保持不变，可单独删除。
+     *
+     * @return 复位后的布局键列表
+     */
+    fun deleteBaseLayoutTree(baseLayout: String): List<String> {
+        if (entries.keys.none { it == baseLayout || it.startsWith("$baseLayout:") }) {
+            return entries.keys.toList()
+        }
+        val rows = defaultPresetRows()
+        layoutHeightPercentOverrides.remove(baseLayout)
+        if (entries.containsKey(baseLayout)) {
+            entries[baseLayout] = rows
+            return entries.keys.toList()
+        }
+        // 仅存在子布局时，把复位后的基础布局插到其子布局之前，保持分组键序
+        val rebuilt = LinkedHashMap<String, MutableList<MutableList<MutableMap<String, Any?>>>>()
+        var inserted = false
+        entries.forEach { (key, value) ->
+            if (!inserted && key.startsWith("$baseLayout:")) {
+                rebuilt[baseLayout] = rows
+                inserted = true
+            }
+            rebuilt[key] = value
+        }
+        if (!inserted) {
+            rebuilt[baseLayout] = rows
+        }
+        entries.clear()
+        entries.putAll(rebuilt)
+        return entries.keys.toList()
+    }
+
+    private fun defaultPresetRows(): MutableList<MutableList<MutableMap<String, Any?>>> =
+        loadDefaultPreset().getValue(LayoutJsonUtils.DEFAULT_BASE_LAYOUT_KEY).map { row ->
+            row.map { key -> key.toMutableMap() }.toMutableList()
+        }.toMutableList()
+
+    /**
+     * 将指定布局（基础布局或子模式布局）复位为默认 26 键预设，高度覆写保持不变。
+     *
+     * 若该键尚不存在（如为仅在基础布局层定制的方案创建专属布局），会新增该键。
+     */
+    fun resetLayoutToDefaultPreset(key: String) {
+        entries[key] = defaultPresetRows()
+    }
+
+    /**
+     * 默认 26 键预设布局的只读快照，用于"是否定制"的内容比较。
+     */
+    fun defaultPresetSnapshot(): List<List<Map<String, Any?>>> =
+        loadDefaultPreset().getValue(LayoutJsonUtils.DEFAULT_BASE_LAYOUT_KEY).map { row ->
+            row.map { it.toMap() }
+        }
+
+    /**
+     * 判断给定布局内容是否与默认 26 键预设完全一致。
+     *
+     * 一致（未定制）要求：行数、每行键数、每个按键的全部属性值都与预设相同；
+     * 数字按数值比较，忽略 Int/Float 等类型差异。
+     */
+    fun matchesDefaultPreset(rows: List<List<Map<String, Any?>>>): Boolean {
+        val preset = defaultPresetSnapshot()
+        if (rows.size != preset.size) return false
+        rows.forEachIndexed { rowIndex, row ->
+            val presetRow = preset[rowIndex]
+            if (row.size != presetRow.size) return false
+            row.forEachIndexed { keyIndex, key ->
+                if (!deepEquals(key, presetRow[keyIndex])) return false
+            }
+        }
+        return true
+    }
+
     /**
      * Add submode layout
      *
@@ -590,7 +713,9 @@ class LayoutDataManager(private val context: Context) {
     fun hasChanges(): Boolean {
         pruneLayoutHeightOverrides()
         return normalizedEntries() != originalEntries ||
-            layoutHeightPercentOverrides.toSortedMap() != originalLayoutHeightPercentOverrides
+            entries.keys.toList() != originalEntryOrder ||
+            layoutHeightPercentOverrides.toSortedMap() != originalLayoutHeightPercentOverrides ||
+            profileHeightOverrides != originalProfileHeightOverrides
     }
     
     /**
@@ -818,12 +943,18 @@ class LayoutDataManager(private val context: Context) {
      *
      * @return 标准化后的数据
      */
-    fun normalizedEntries(): Map<String, List<List<Map<String, Any?>>>> =
-        entries.toSortedMap().mapValues { (_, rows) ->
-            rows.map { row ->
+    fun normalizedEntries(): Map<String, List<List<Map<String, Any?>>>> {
+        // 不能写成 LinkedHashMap<...>().apply { entries.forEach { ... } }：
+        // apply 内的 entries 会解析到 receiver 自身的 Map.entries（空集），
+        // 遮蔽本类 entries 字段，导致本函数永远返回空 Map、hasChanges 永远为 false。
+        val result = LinkedHashMap<String, List<List<Map<String, Any?>>>>()
+        entries.forEach { (layoutKey, rows) ->
+            result[layoutKey] = rows.map { row ->
                 row.map { key -> key.toMap() }
             }
         }
+        return result
+    }
 
     fun getLayoutHeightPercentOverride(layoutName: String): LayoutHeightPercentOverrides? {
         return layoutHeightPercentOverrides[layoutName]
@@ -841,6 +972,19 @@ class LayoutDataManager(private val context: Context) {
         } else {
             layoutHeightPercentOverrides[layoutName] = sanitized
         }
+    }
+
+    /**
+     * 设置文件级键盘高度覆写；空值清除（该文件回退到全局默认高度）。
+     */
+    fun setProfileHeightOverrides(value: LayoutHeightPercentOverrides?) {
+        val sanitized = value?.let {
+            LayoutHeightPercentOverrides(
+                portrait = it.portrait?.coerceIn(10, 90),
+                landscape = it.landscape?.coerceIn(10, 90)
+            )
+        }
+        profileHeightOverrides = sanitized?.takeUnless { it.isEmpty() }
     }
 
     fun latestParsedLayoutHeightPercentOverrides(): Map<String, LayoutHeightPercentOverrides> {
@@ -896,4 +1040,17 @@ class LayoutDataManager(private val context: Context) {
      * 验证异常类
      */
     class ValidationException(val errors: List<String>) : Exception("Validation failed: ${errors.joinToString("; ")}")
+}
+
+/**
+ * 深度比较：Map/List 递归比较，数字按数值比较（忽略 Int/Float 等类型差异）。
+ * 供"与出厂默认预设比对"等场景使用。
+ */
+internal fun deepEquals(a: Any?, b: Any?): Boolean = when {
+    a is Number && b is Number -> a.toDouble() == b.toDouble()
+    a is Map<*, *> && b is Map<*, *> ->
+        a.size == b.size && a.keys.all { key -> deepEquals(a[key], b[key]) }
+    a is List<*> && b is List<*> ->
+        a.size == b.size && a.indices.all { deepEquals(a[it], b[it]) }
+    else -> a == b
 }

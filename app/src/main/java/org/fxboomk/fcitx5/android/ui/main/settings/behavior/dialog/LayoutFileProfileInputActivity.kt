@@ -5,13 +5,16 @@
 package org.fxboomk.fcitx5.android.ui.main.settings.behavior.dialog
 
 import android.content.Intent
+import android.content.res.Configuration
 import android.graphics.Color
+import android.graphics.Typeface
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
@@ -24,8 +27,13 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
 import org.fxboomk.fcitx5.android.R
+import org.fxboomk.fcitx5.android.daemon.FcitxConnection
+import org.fxboomk.fcitx5.android.daemon.FcitxDaemon
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.input.config.UserConfigFiles
+import org.fxboomk.fcitx5.android.ui.main.settings.behavior.data.LayoutDataManager
+import org.fxboomk.fcitx5.android.ui.main.settings.behavior.preview.KeyboardPreviewManager
+import org.fxboomk.fcitx5.android.ui.main.settings.behavior.utils.LayoutJsonUtils
 import splitties.dimensions.dp
 import splitties.resources.styledColor
 import splitties.views.backgroundColor
@@ -49,6 +57,7 @@ class LayoutFileProfileInputActivity : AppCompatActivity() {
         const val ACTION_CREATE = "create"
         const val ACTION_RENAME = "rename"
         private const val MENU_SAVE_ID = 9001
+        private const val FCITX_CONNECTION_NAME = "LayoutFileProfileInputActivity"
         private const val MIN_LAYOUT_HEIGHT_PERCENT = 10
         private const val MAX_LAYOUT_HEIGHT_PERCENT = 90
     }
@@ -64,9 +73,23 @@ class LayoutFileProfileInputActivity : AppCompatActivity() {
         LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             addView(toolbar, LinearLayout.LayoutParams(matchParent, wrapContent))
-            addView(content, LinearLayout.LayoutParams(matchParent, wrapContent))
+            val scroll = ScrollView(this@LayoutFileProfileInputActivity).apply {
+                addView(
+                    content,
+                    LinearLayout.LayoutParams(matchParent, wrapContent)
+                )
+            }
+            addView(scroll, LinearLayout.LayoutParams(matchParent, wrapContent))
         }
     }
+
+    private val fcitxConnection: FcitxConnection by lazy {
+        FcitxDaemon.connect(FCITX_CONNECTION_NAME)
+    }
+    private lateinit var previewContainer: LinearLayout
+    private var previewManager: KeyboardPreviewManager? = null
+    private var previewLayoutName: String? = null
+    private var previewSubModeLabel: String? = null
 
     private lateinit var profileInput: AppCompatEditText
     private var copySwitch: SwitchCompat? = null
@@ -86,6 +109,7 @@ class LayoutFileProfileInputActivity : AppCompatActivity() {
             addView(TextView(this@LayoutFileProfileInputActivity).apply {
                 text = getString(R.string.text_keyboard_layout_file_name)
                 textSize = 13f
+                setTypeface(typeface, Typeface.BOLD)
                 setTextColor(styledColor(android.R.attr.textColorSecondary))
             })
 
@@ -156,7 +180,9 @@ class LayoutFileProfileInputActivity : AppCompatActivity() {
             text = intent.getStringExtra(EXTRA_HEIGHT_TARGET_LABEL)
                 ?: getString(R.string.keyboard_height)
             textSize = 13f
+            setTypeface(typeface, Typeface.BOLD)
             setTextColor(styledColor(android.R.attr.textColorSecondary))
+            setPadding(0, 0, 0, dp(8))
         })
         val keyboardPrefs = AppPrefs.getInstance().keyboard
         portraitHeightSeekBar = addLayoutHeightSlider(
@@ -173,6 +199,74 @@ class LayoutFileProfileInputActivity : AppCompatActivity() {
                 keyboardPrefs.keyboardHeightPercentLandscape.getValue()
             )
         )
+
+        setupPreview()
+    }
+
+    override fun onDestroy() {
+        runCatching { FcitxDaemon.disconnect(FCITX_CONNECTION_NAME) }
+        super.onDestroy()
+    }
+
+    /**
+     * 加载当前激活配置的布局数据，按当前激活的输入法解析目标布局并建立实时预览。
+     */
+    private fun setupPreview() {
+        val profile = UserConfigFiles.normalizeTextKeyboardLayoutProfile(
+            AppPrefs.getInstance().keyboard.textKeyboardLayoutProfile.getValue()
+        ) ?: return
+        val file = UserConfigFiles.textKeyboardLayoutJson(profile) ?: return
+        val dataManager = LayoutDataManager(this)
+        dataManager.loadFromFile(file)
+
+        content.addView(TextView(this).apply {
+            text = getString(R.string.text_keyboard_layout_customize_preview)
+            textSize = 13f
+            setTypeface(typeface, Typeface.BOLD)
+            setTextColor(styledColor(android.R.attr.textColorSecondary))
+        })
+        previewContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+        content.addView(
+            previewContainer,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        )
+
+        val entries = dataManager.entries
+        val ime = runCatching {
+            fcitxConnection.runImmediately { currentIme() }
+        }.getOrNull()
+        previewLayoutName = when {
+            ime != null && entries.containsKey(ime.uniqueName) -> ime.uniqueName
+            ime != null && entries.containsKey(ime.displayName) -> ime.displayName
+            entries.containsKey(LayoutJsonUtils.DEFAULT_BASE_LAYOUT_KEY) ->
+                LayoutJsonUtils.DEFAULT_BASE_LAYOUT_KEY
+            else -> null
+        } ?: return
+        previewSubModeLabel = ime?.subMode?.label
+            ?.ifBlank { ime.subMode.name }
+            ?.takeIf { it.isNotBlank() }
+
+        previewManager = KeyboardPreviewManager(
+            this,
+            previewContainer,
+            entries
+        ) { key ->
+            dataManager.getLayoutHeightPercentOverride(key) ?: dataManager.profileHeightOverrides
+        }
+        previewManager?.updatePreview(previewLayoutName!!, previewSubModeLabel, fcitxConnection)
+        updatePreviewHeight()
+    }
+
+    private fun updatePreviewHeight() {
+        val isLandscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+        val percent = (if (isLandscape) landscapeHeightSeekBar else portraitHeightSeekBar)
+            ?.progress?.plus(MIN_LAYOUT_HEIGHT_PERCENT) ?: return
+        previewManager?.updatePreviewHeight(percent)
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -253,6 +347,7 @@ class LayoutFileProfileInputActivity : AppCompatActivity() {
                 override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
                     valueLabel.text = "$label: ${progress + MIN_LAYOUT_HEIGHT_PERCENT}%"
                     updateSaveButtonState()
+                    updatePreviewHeight()
                 }
 
                 override fun onStartTrackingTouch(seekBar: SeekBar) = Unit

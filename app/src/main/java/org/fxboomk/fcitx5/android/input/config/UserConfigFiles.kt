@@ -101,6 +101,12 @@ object UserConfigFiles {
 
     fun popupPresetJson(): File? = configDir()?.let { File(it, "PopupPreset.json") }
 
+    /**
+     * Rime 用户数据目录（fcitx 数据目录下的 rime 子目录，
+     * 与设置页"打开用户数据目录"指向的 data/rime 一致）。
+     */
+    fun rimeDataDir(): File? = externalFilesRoot()?.let { File(it, "data/rime") }
+
     fun fontsetJson(): File? = fontsDir()?.let { File(it, "fontset.json") }
     
     fun kawaiiBarButtonsConfig(): File? = configDir()?.let { File(it, "KawaiiBarButtonsLayout.json") }

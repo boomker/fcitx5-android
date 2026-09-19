@@ -316,7 +316,6 @@
     <string name="text_keyboard_layout_copy_from">Aus bestehendem Layout kopieren</string>
     <string name="text_keyboard_layout_name_empty">Layoutname darf nicht leer sein</string>
     <string name="text_keyboard_layout_delete_key_confirm">Diese Taste löschen?</string>
-    <string name="text_keyboard_layout_delete_layout_confirm">Layout "%1$s" löschen?</string>
     <string name="text_keyboard_layout_delete_row_confirm">Zeile %1$d löschen?</string>
     <string name="text_keyboard_layout_select_input_method_to_add">Eingabemethode zum Hinzufügen auswählen:</string>
     <string name="text_keyboard_layout_no_additional_input_methods">Keine weiteren Eingabemethoden verfügbar</string>
@@ -401,7 +400,6 @@
     <string name="split_keyboard_auto_calibrate_toast">Angewendet: %1$ddp, Lücke %2$d%% (%3$s)</string>
     <string name="split_keyboard_reset_toast">Auf Standardwerte zurückgesetzt</string>
     <string name="text_keyboard_layout_submode_already_exists">Submodus "%1$s" hat bereits ein dediziertes Layout</string>
-    <string name="text_keyboard_layout_delete_submode_layout_confirm">Submodus-Layout "%1$s" löschen?</string>
     <string name="text_keyboard_layout_editing_submode">Bearbeite Layout für Submodus "%1$s"</string>
     <string name="text_keyboard_layout_height_target_submode">Tastaturhöhe für Submodus "%1$s"</string>
     <string name="text_keyboard_layout_editing_default">Bearbeite Standard-Layout für "%1$s"</string>

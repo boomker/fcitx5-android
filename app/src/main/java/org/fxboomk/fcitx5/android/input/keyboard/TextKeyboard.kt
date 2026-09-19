@@ -338,7 +338,17 @@ class TextKeyboard private constructor(
         post { refreshAltTextLayouts() }
     }
 
-    private val keepLettersUppercase by AppPrefs.getInstance().keyboard.keepLettersUppercase
+    private val keepLettersUppercasePref: Boolean by AppPrefs.getInstance().keyboard.keepLettersUppercase
+
+    /**
+     * 预览等场景强制字母按键大写显示（覆盖 keepLettersUppercase 偏好）。
+     * 仅作用于单个 TextKeyboard 实例；空值时跟随用户偏好。
+     */
+    @Volatile
+    internal var keepLettersUppercaseOverride: Boolean? = null
+
+    private val keepLettersUppercase: Boolean
+        get() = keepLettersUppercaseOverride ?: keepLettersUppercasePref
 
     init {
         currentIme?.let { lastLayoutSignature = layoutSignature(it) }

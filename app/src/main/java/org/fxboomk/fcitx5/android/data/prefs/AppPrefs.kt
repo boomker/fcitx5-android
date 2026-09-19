@@ -274,6 +274,18 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
             "text_keyboard_layout_profile",
             "default"
         ).apply { register() }
+        // 布局配置（文件级）在管理页的展示顺序，换行分隔；缺省按名称排序
+        val textKeyboardLayoutProfileOrder = ManagedPreference.PString(
+            sharedPreferences,
+            "text_keyboard_layout_profile_order",
+            ""
+        ).apply { register() }
+        // 布局管理页中被折叠的配置名，换行分隔
+        val textKeyboardLayoutProfileCollapsed = ManagedPreference.PString(
+            sharedPreferences,
+            "text_keyboard_layout_profile_collapsed",
+            ""
+        ).apply { register() }
         val langSwitchKeyBehavior = run {
             val entryValues = listOf(
                 LangSwitchBehavior.Enumerate,

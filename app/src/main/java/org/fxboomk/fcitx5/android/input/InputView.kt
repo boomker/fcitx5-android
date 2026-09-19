@@ -80,6 +80,7 @@ import org.fxboomk.fcitx5.android.input.keyboard.KeyView
 import org.fxboomk.fcitx5.android.input.keyboard.KeyAction
 import org.fxboomk.fcitx5.android.input.keyboard.KeyboardWindow
 import org.fxboomk.fcitx5.android.input.keyboard.TextKeyboard
+import org.fxboomk.fcitx5.android.input.keyboard.fileLevelKeyboardHeightPercentOverride
 import org.fxboomk.fcitx5.android.input.keyboard.keyboardHeightPercentOverride
 import org.fxboomk.fcitx5.android.input.keyboard.resolveTextKeyboardLayout
 import org.fxboomk.fcitx5.android.input.picker.PickerWindow
@@ -994,12 +995,14 @@ class InputView(
     private fun resolveCurrentLayoutHeightPercentOverride(): Int? {
         val ime = TextKeyboard.ime ?: return null
         val json = TextKeyboard.textLayoutJson ?: return null
+        // 优先级：子模式覆写 > 基础布局覆写 > 文件级覆写（全局默认由调用方兜底）
         return resolveTextKeyboardLayout(
             json = json,
             uniqueName = ime.uniqueName,
             displayName = ime.displayName,
             subModeLabel = ime.subMode.label,
         )?.keyboardHeightPercentOverride(isLayoutLandscape)
+            ?: json.fileLevelKeyboardHeightPercentOverride(isLayoutLandscape)
     }
 
     private fun resolveKeyboardSidePadding(): Int {

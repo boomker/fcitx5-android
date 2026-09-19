@@ -81,7 +81,8 @@ class KeyboardLayoutAdapterTest {
                 mapOf("type" to "AlphabetKey", "main" to "i", "alt" to "8", "displayText" to "I")
             )
         )
-        assertTrue(
+        // 副字符一（alt1）不参与定制判定
+        assertFalse(
             KeyboardLayoutAdapter.hasCustomizedProperties(
                 mapOf("type" to "AlphabetKey", "main" to "i", "alt" to "8", "alt1" to "I")
             )

@@ -482,7 +482,6 @@
     <string name="text_keyboard_layout_copy_from">Скопировать из существующей раскладки</string>
     <string name="text_keyboard_layout_name_empty">Имя раскладки не может быть пустым</string>
     <string name="text_keyboard_layout_delete_key_confirm">Удалить эту клавишу?</string>
-    <string name="text_keyboard_layout_delete_layout_confirm">Удалить раскладку "%1$s"?</string>
     <string name="text_keyboard_layout_delete_row_confirm">Удалить ряд %1$d?</string>
     <string name="text_keyboard_layout_select_input_method_to_add">Выберите метод ввода для добавления:</string>
     <string name="text_keyboard_layout_no_additional_input_methods">Нет дополнительных методов ввода</string>
@@ -565,7 +564,6 @@
     <string name="split_keyboard_auto_calibrate_toast">Применено: %1$ddp, зазор %2$d%% (%3$s)</string>
     <string name="split_keyboard_reset_toast">Сброшено к значениям по умолчанию</string>
     <string name="text_keyboard_layout_submode_already_exists">Для субрежима "%1$s" уже есть отдельная раскладка</string>
-    <string name="text_keyboard_layout_delete_submode_layout_confirm">Удалить раскладку субрежима "%1$s"?</string>
     <string name="text_keyboard_layout_editing_submode">Редактирование раскладки для субрежима "%1$s"</string>
     <string name="text_keyboard_layout_height_target_submode">Высота клавиатуры для субрежима "%1$s"</string>
     <string name="text_keyboard_layout_editing_default">Редактирование раскладки по умолчанию для "%1$s"</string>

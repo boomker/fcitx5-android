@@ -409,7 +409,6 @@
     <string name="text_keyboard_layout_copy_from">既存レイアウトからコピー</string>
     <string name="text_keyboard_layout_name_empty">レイアウト名は空にできません</string>
     <string name="text_keyboard_layout_delete_key_confirm">このキーを削除しますか？</string>
-    <string name="text_keyboard_layout_delete_layout_confirm">レイアウト「%1$s」を削除しますか？</string>
     <string name="text_keyboard_layout_delete_row_confirm">%1$d 行目を削除しますか？</string>
     <string name="text_keyboard_layout_select_input_method_to_add">追加する入力メソッドを選択：</string>
     <string name="text_keyboard_layout_no_additional_input_methods">追加できる入力メソッドはありません</string>
@@ -504,7 +503,6 @@
     <string name="split_keyboard_auto_calibrate_toast">適用済み：%1$ddp、間隙 %2$d%% (%3$s)</string>
     <string name="split_keyboard_reset_toast">デフォルト値にリセットしました</string>
     <string name="text_keyboard_layout_submode_already_exists">サブモード "%1$s" の専用レイアウトが既に存在します</string>
-    <string name="text_keyboard_layout_delete_submode_layout_confirm">サブモードレイアウト "%1$s" を削除しますか？</string>
     <string name="text_keyboard_layout_editing_submode">サブモード "%1$s" の専用レイアウトを編集中</string>
     <string name="text_keyboard_layout_height_target_submode">サブモード "%1$s" のキーボードの高さ</string>
     <string name="text_keyboard_layout_editing_default">"%1$s" のデフォルトレイアウトを編集中</string>

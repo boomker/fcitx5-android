@@ -193,16 +193,13 @@ class KeyboardAdvancedCustomizationFragment : KeyboardSectionFragment() {
                 }
             })
             addPreference(Preference(requireContext()).apply {
-                setTitle(R.string.text_keyboard_layout_file_select_title)
+                setTitle(R.string.text_keyboard_layout_manage_title)
                 summary = KeyboardSettingsSupport.buildCurrentTextLayoutFileSummary(this@KeyboardAdvancedCustomizationFragment)
                 isSingleLineTitle = false
                 isIconSpaceReserved = false
                 textLayoutFileSelectPreference = this
                 setOnPreferenceClickListener {
-                    KeyboardSettingsSupport.showSelectTextLayoutFileDialog(this@KeyboardAdvancedCustomizationFragment) {
-                        textLayoutFilePreference?.summary = KeyboardSettingsSupport.buildTextLayoutSummary(this@KeyboardAdvancedCustomizationFragment)
-                        textLayoutFileSelectPreference?.summary = KeyboardSettingsSupport.buildCurrentTextLayoutFileSummary(this@KeyboardAdvancedCustomizationFragment)
-                    }
+                    startActivity(Intent(requireContext(), TextKeyboardLayoutProfileManagerActivity::class.java))
                     true
                 }
             })

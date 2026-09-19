@@ -145,6 +145,8 @@ class KeyboardLayoutAdapter(
             return key.any { (name, value) ->
                 when {
                     name in requiredFields || value == null -> false
+                    // 副字符一：忽略，不计入定制判定
+                    name == "alt1" -> false
                     name == "weight" -> !isDefaultWeight(type, value)
                     name == "displayText" && type == "AlphabetKey" -> value != key["main"]
                     name == "independentColor" -> value == true

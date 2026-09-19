@@ -113,6 +113,14 @@
             android:exported="false"
             android:label="@string/edit_text_keyboard_layout" />
         <activity
+            android:name=".ui.main.settings.behavior.TextKeyboardLayoutProfileManagerActivity"
+            android:exported="false"
+            android:label="@string/text_keyboard_layout_manage_title" />
+        <activity
+            android:name=".ui.main.settings.behavior.TextKeyboardLayoutCustomizeActivity"
+            android:exported="false"
+            android:label="@string/text_keyboard_layout_customize_title" />
+        <activity
             android:name=".ui.main.settings.behavior.dialog.KeyEditorActivity"
             android:exported="false"
             android:label="@string/edit_text_keyboard_layout" />

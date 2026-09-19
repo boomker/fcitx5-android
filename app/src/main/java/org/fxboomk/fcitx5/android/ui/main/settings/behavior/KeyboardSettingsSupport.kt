@@ -159,29 +159,6 @@ internal object KeyboardSettingsSupport {
         )
     }
 
-    fun showSelectTextLayoutFileDialog(fragment: ManagedPreferenceFragment, onChanged: () -> Unit) {
-        val profiles = UserConfigFiles.listTextKeyboardLayoutProfiles().toMutableList()
-        val current = currentTextLayoutProfile()
-        if (current !in profiles) profiles += current
-        val sortedProfiles = profiles.distinct().sortedWith(
-            compareBy({ it != UserConfigFiles.DEFAULT_TEXT_KEYBOARD_LAYOUT_PROFILE }, { it })
-        )
-        val labels = sortedProfiles.map { displayProfile(fragment, it) }.toTypedArray()
-        val initialSelection = sortedProfiles.indexOf(current).coerceAtLeast(0)
-
-        androidx.appcompat.app.AlertDialog.Builder(fragment.requireContext())
-            .setTitle(R.string.text_keyboard_layout_file_select_title)
-            .setSingleChoiceItems(labels, initialSelection) { dialog, which ->
-                val selectedProfile = sortedProfiles.getOrNull(which) ?: return@setSingleChoiceItems
-                AppPrefs.getInstance().keyboard.textKeyboardLayoutProfile.setValue(selectedProfile)
-                ConfigProviders.provider = ConfigProviders.provider
-                onChanged()
-                dialog.dismiss()
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
-    }
-
     fun PreferenceGroup.addDestinationPreference(
         fragment: ManagedPreferenceFragment,
         @StringRes title: Int,

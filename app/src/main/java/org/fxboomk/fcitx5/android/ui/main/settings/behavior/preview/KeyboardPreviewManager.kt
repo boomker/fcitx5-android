@@ -5,10 +5,8 @@
 package org.fxboomk.fcitx5.android.ui.main.settings.behavior.preview
 
 import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Color
 import android.content.res.Configuration
+import android.graphics.Color
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
@@ -115,6 +113,22 @@ class KeyboardPreviewManager(
     }
 
     /**
+     * 实时更新预览键盘高度（不重建键盘，仅调整布局参数），用于高度滑杆拖动时的即时预览。
+     *
+     * @param heightPercent 键盘高度百分比（10-90）
+     */
+    fun updatePreviewHeight(heightPercent: Int) {
+        val keyboard = previewKeyboard ?: return
+        val height = context.resources.displayMetrics.heightPixels *
+            heightPercent.coerceIn(10, 90) / 100
+        (previewBlurMask.layoutParams as? ViewGroup.LayoutParams)?.height = height
+        (keyboard.layoutParams as? ViewGroup.LayoutParams)?.height = height
+        previewBlurMask.requestLayout()
+        keyboard.requestLayout()
+        keyboard.post { previewBlurMask.refreshMask(hierarchyChanged = true) }
+    }
+
+    /**
      * Build submode map for temporary JSON file.
      */
     private fun buildSubModeMap(
@@ -155,6 +169,8 @@ class KeyboardPreviewManager(
         val theme = ThemeManager.activeTheme
 
         previewKeyboard = TextKeyboard(context, theme).apply {
+            // 预览中的字母键保持大写，与下方编辑器的按键标签视觉一致
+            keepLettersUppercaseOverride = true
             val displayMetrics = context.resources.displayMetrics
             val screenHeight = displayMetrics.heightPixels
 
@@ -205,7 +221,9 @@ class KeyboardPreviewManager(
             val previewIme = PreviewInputMethodEntry.create(
                 layoutName = layoutName,
                 subModeLabel = previewSubModeLabel,
-                base = currentIme
+                base = currentIme,
+                // 空格等位置展示输入法名："default" 布局显示为 "English"
+                displayName = LayoutJsonUtils.displayBaseLayoutName(layoutName)
             )
 
             onInputMethodUpdate(previewIme)
@@ -242,30 +260,6 @@ class KeyboardPreviewManager(
             previewContainer.removeView(it)
             previewKeyboard = null
         }
-    }
-
-    /**
-     * Get preview keyboard as bitmap.
-     * @return Bitmap of the preview keyboard, or null if no preview is available
-     */
-    fun getPreviewBitmap(): Bitmap? {
-        val keyboard = previewKeyboard ?: return null
-
-        val targetView = if (previewContainer.width > 0 && previewContainer.height > 0) {
-            previewContainer
-        } else {
-            keyboard
-        }
-        val width = targetView.width
-        val height = targetView.height
-        if (width <= 0 || height <= 0) return null
-
-        // Directly render the current view tree into bitmap
-        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
-        targetView.draw(canvas)
-
-        return bitmap
     }
 
     /**

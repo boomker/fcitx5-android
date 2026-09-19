@@ -7,6 +7,7 @@ package org.fxboomk.fcitx5.android.ui.main.settings.behavior.manager
 import kotlinx.serialization.json.JsonObject
 import org.fxboomk.fcitx5.android.core.Action
 import org.fxboomk.fcitx5.android.core.InputMethodEntry
+import org.fxboomk.fcitx5.android.core.data.DataManager
 import org.fxboomk.fcitx5.android.daemon.FcitxConnection
 
 /**
@@ -22,6 +23,12 @@ class SubModeManager(
     private val allImesFromJson: Array<InputMethodEntry>,
     private val entries: Map<String, List<List<Map<String, Any?>>>>
 ) {
+
+    companion object {
+        /** 中州韵插件是否已随当前应用加载（插件按签名与构建类型配对，debug 应用只配 .debug 插件） */
+        fun isRimePluginLoaded(): Boolean =
+            DataManager.getLoadedPlugins().any { it.name == "rime" }
+    }
 
     /**
      * SubMode state data class

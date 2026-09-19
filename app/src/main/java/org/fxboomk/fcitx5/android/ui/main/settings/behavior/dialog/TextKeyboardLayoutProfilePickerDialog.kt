@@ -10,6 +10,7 @@ import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.input.config.ConfigProviders
 import org.fxboomk.fcitx5.android.input.config.UserConfigFiles
+import org.fxboomk.fcitx5.android.ui.main.settings.behavior.utils.TextKeyboardLayoutProfileOrder
 import org.fxboomk.fcitx5.android.utils.toast
 
 object TextKeyboardLayoutProfilePickerDialog {
@@ -23,12 +24,8 @@ object TextKeyboardLayoutProfilePickerDialog {
             AppPrefs.getInstance().keyboard.textKeyboardLayoutProfile.getValue()
         ) ?: UserConfigFiles.DEFAULT_TEXT_KEYBOARD_LAYOUT_PROFILE
 
-        val profiles = UserConfigFiles.listTextKeyboardLayoutProfiles().toMutableList().apply {
-            if (current !in this) add(current)
-        }
-        val sortedProfiles = profiles
-            .distinct()
-            .sortedWith(compareBy({ it != UserConfigFiles.DEFAULT_TEXT_KEYBOARD_LAYOUT_PROFILE }, { it }))
+        // 与布局管理页保持一致的自定义顺序
+        val sortedProfiles = TextKeyboardLayoutProfileOrder.ordered(current)
         val labels = sortedProfiles.map { profile -> context.displayProfile(profile) }.toTypedArray()
         val selected = sortedProfiles.indexOf(current).coerceAtLeast(0)
 

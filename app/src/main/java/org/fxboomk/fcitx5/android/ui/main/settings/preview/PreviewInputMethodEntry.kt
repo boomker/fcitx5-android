@@ -11,13 +11,14 @@ object PreviewInputMethodEntry {
     fun create(
         layoutName: String = "Preview",
         subModeLabel: String? = null,
-        base: InputMethodEntry? = null
+        base: InputMethodEntry? = null,
+        displayName: String? = null
     ): InputMethodEntry {
         val selectedSubModeLabel = subModeLabel?.trim().orEmpty()
         return base
             ?.copy(
                 uniqueName = layoutName,
-                name = layoutName,
+                name = displayName?.takeIf { it.isNotBlank() } ?: layoutName,
                 subMode = if (selectedSubModeLabel.isNotEmpty()) {
                     base.subMode.copy(
                         label = selectedSubModeLabel,

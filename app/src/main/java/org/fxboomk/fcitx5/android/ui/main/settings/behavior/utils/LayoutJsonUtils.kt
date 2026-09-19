@@ -11,6 +11,7 @@ import org.fxboomk.fcitx5.android.data.theme.ThemeManager
 import org.fxboomk.fcitx5.android.data.theme.resolveThemeColorReference
 import org.fxboomk.fcitx5.android.input.keyboard.*
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.data.LayoutHeightPercentOverrides
+import java.util.LinkedHashMap
 import org.fxboomk.fcitx5.android.utils.appContext
 
 // Import Macro types explicitly
@@ -31,6 +32,25 @@ import org.fxboomk.fcitx5.android.ui.main.settings.behavior.utils.KeyboardRowSty
 object LayoutJsonUtils {
 
     private const val TAG = "LayoutJsonUtils"
+
+    /**
+     * 基础布局键 "default"：Fcitx5 自带 English 键盘等没有专属布局键的输入法
+     * 共用的回退布局（见 TextKeyboardLayoutResolver 的解析顺序）。
+     */
+    const val DEFAULT_BASE_LAYOUT_KEY = "default"
+
+    /** 基础布局键 [DEFAULT_BASE_LAYOUT_KEY] 的展示名。 */
+    const val DEFAULT_BASE_LAYOUT_DISPLAY_NAME = "English"
+
+    /**
+     * 文件级高度等配置的保留顶层键：{"__profile__": {"__meta__": {...}}}。
+     * 运行时解析（TextKeyboardLayoutResolver）以同名字面量读取，需保持一致。
+     */
+    const val PROFILE_META_KEY = "__profile__"
+
+    fun displayBaseLayoutName(name: String): String =
+        if (name == DEFAULT_BASE_LAYOUT_KEY) DEFAULT_BASE_LAYOUT_DISPLAY_NAME else name
+
     const val LAYER_SUBMODE_PREFIX = "__layer__:"
     private val KEY_FIELD_ORDER = listOf(
         "type",
@@ -934,9 +954,14 @@ object LayoutJsonUtils {
      */
     fun convertToSaveJson(
         entries: Map<String, List<List<Map<String, Any?>>>>,
-        layoutHeightPercentOverrides: Map<String, LayoutHeightPercentOverrides> = emptyMap()
+        layoutHeightPercentOverrides: Map<String, LayoutHeightPercentOverrides> = emptyMap(),
+        profileHeightOverrides: LayoutHeightPercentOverrides? = null
     ): JsonObject {
-        val layoutMap = mutableMapOf<String, JsonElement>()
+        val layoutMap = LinkedHashMap<String, JsonElement>()
+
+        profileHeightOverrides?.takeIf { !it.isEmpty() }?.toMetadata()?.let { metadata ->
+            layoutMap[PROFILE_META_KEY] = JsonObject(mapOf("__meta__" to metadata))
+        }
 
         val baseLayoutNames = entries.keys.map { key ->
             baseLayoutNameFromEntryKey(key)
@@ -952,7 +977,7 @@ object LayoutJsonUtils {
             }
 
             if (hasSubModeKeys) {
-                val subModeMap = mutableMapOf<String, JsonElement>()
+                val subModeMap = LinkedHashMap<String, JsonElement>()
                 layoutHeightPercentOverrides[baseName]
                     ?.toMetadata()
                     ?.let { metadata ->
@@ -982,7 +1007,7 @@ object LayoutJsonUtils {
                     }
                 }
 
-                layoutMap[baseName] = JsonObject(subModeMap.toSortedMap())
+                layoutMap[baseName] = JsonObject(subModeMap)
             } else {
                 val key = subModeKeys.firstOrNull() ?: baseName
                 val rows = entries[key] ?: continue
@@ -1001,7 +1026,7 @@ object LayoutJsonUtils {
             }
         }
 
-        return JsonObject(layoutMap.toSortedMap())
+        return JsonObject(layoutMap)
     }
 
     private fun LayoutHeightPercentOverrides.toMetadata(): JsonObject? {
