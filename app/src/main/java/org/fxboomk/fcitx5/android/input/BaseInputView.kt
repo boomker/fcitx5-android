@@ -91,43 +91,63 @@ abstract class BaseInputView(
 
     private var candidateCharacterPopup: CandidateCharacterPopup? = null
 
+    /**
+     * Binds the candidate action gesture used on the candidate bar (and floating candidates).
+     *
+     * The decompose ("拆字") popup and the reset-frequency ("重置词频") action are both gated
+     * behind a long press: the user must long press the candidate first, then drag the finger
+     * up (decompose) or down (reset frequency). A plain up/down drag no longer triggers these
+     * actions, so it stays available for scrolling wherever the candidate view lives inside a
+     * scrollable container.
+     *
+     * The original long-press action menu is preserved. Because a focusable [PopupMenu] steals
+     * the ongoing touch stream (the framework delivers ACTION_CANCEL once it grabs focus), the
+     * menu cannot be shown mid-hold while still tracking a follow-up drag. It is therefore shown
+     * on release, but only when the long press was not followed by a recognized directional drag.
+     */
     fun bindCandidateGesture(view: CustomGestureView, idx: Int, text: String) {
         val characters = text.candidateCharacters()
+        val directionThreshold = resources.displayMetrics.density * 16f
+        var longPressArmed = false
+        var actionTriggered = false
         var resetFrequency = false
-        var gestureCancelled = false
         var popup: CandidateCharacterPopup? = null
+        var downY = 0f
 
-        view.swipeEnabled = true
-        view.swipeThresholdY = resources.displayMetrics.density * 20f
-        view.setOnTouchListener { _, event ->
-            if (event.actionMasked == MotionEvent.ACTION_CANCEL) {
-                gestureCancelled = true
-                resetFrequency = false
-                popup = null
-                dismissCandidateCharacterPopup()
-                view.parent?.requestDisallowInterceptTouchEvent(false)
-            }
-            false
+        // Swipe detection is handled manually below and gated behind the long press, so a plain
+        // vertical drag falls through to the parent (e.g. RecyclerView) for scrolling.
+        view.swipeEnabled = false
+
+        view.setOnLongClickListener {
+            // Arm the gesture. The action itself (decompose / reset / menu) is decided on release.
+            longPressArmed = true
+            view.parent?.requestDisallowInterceptTouchEvent(true)
+            true
         }
-        view.onGestureListener = CustomGestureView.OnGestureListener { _, event ->
-            when (event.type) {
-                CustomGestureView.GestureType.Down -> {
-                    dismissCandidateCharacterPopup()
+
+        view.setOnTouchListener { _, event ->
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    longPressArmed = false
+                    actionTriggered = false
                     resetFrequency = false
-                    gestureCancelled = false
                     popup = null
-                    view.parent?.requestDisallowInterceptTouchEvent(true)
+                    downY = event.y
+                    dismissCandidateCharacterPopup()
                     false
                 }
 
-                CustomGestureView.GestureType.Move -> {
+                MotionEvent.ACTION_MOVE -> {
+                    if (!longPressArmed) return@setOnTouchListener false
+                    val deltaY = event.y - downY
                     when {
                         popup != null -> {
                             popup?.updateFocus(event.x, event.y)
                             true
                         }
 
-                        event.totalY < 0 && characters.isNotEmpty() -> {
+                        !actionTriggered && deltaY < -directionThreshold && characters.isNotEmpty() -> {
+                            actionTriggered = true
                             popup = CandidateCharacterPopup(view, characters, theme).also {
                                 candidateCharacterPopup = it
                                 it.show()
@@ -137,36 +157,53 @@ abstract class BaseInputView(
                             true
                         }
 
-                        event.totalY > 0 -> {
+                        !actionTriggered && deltaY > directionThreshold -> {
+                            actionTriggered = true
                             resetFrequency = true
                             InputFeedbacks.hapticFeedback(view, longPress = true)
                             true
                         }
 
-                        else -> false
+                        else -> actionTriggered
                     }
                 }
 
-                CustomGestureView.GestureType.Up -> {
+                MotionEvent.ACTION_UP -> {
                     view.parent?.requestDisallowInterceptTouchEvent(false)
-                    if (gestureCancelled) {
-                        gestureCancelled = false
-                        return@OnGestureListener event.consumed
+                    val armed = longPressArmed
+                    longPressArmed = false
+                    val shownPopup = popup
+                    when {
+                        shownPopup != null -> {
+                            shownPopup.updateFocus(event.x, event.y)
+                            shownPopup.selectedCharacter()?.let(::commitCandidateCharacter)
+                            dismissCandidateCharacterPopup()
+                            popup = null
+                        }
+
+                        resetFrequency -> resetCandidateFrequency(idx)
+
+                        armed -> showCandidateActionMenu(idx, text, view)
                     }
-                    popup?.let {
-                        it.updateFocus(event.x, event.y)
-                        it.selectedCharacter()?.let(::commitCandidateCharacter)
-                        dismissCandidateCharacterPopup()
-                        popup = null
-                        return@OnGestureListener true
-                    }
-                    if (resetFrequency) {
-                        resetCandidateFrequency(idx)
-                        resetFrequency = false
-                        return@OnGestureListener true
-                    }
-                    event.consumed
+                    resetFrequency = false
+                    actionTriggered = false
+                    // Return false so CustomGestureView still runs its ACTION_UP housekeeping
+                    // (state reset + click suppression). performClick only fires for a plain tap,
+                    // since an armed long press sets longPressTriggered and suppresses the click.
+                    false
                 }
+
+                MotionEvent.ACTION_CANCEL -> {
+                    view.parent?.requestDisallowInterceptTouchEvent(false)
+                    longPressArmed = false
+                    resetFrequency = false
+                    actionTriggered = false
+                    popup = null
+                    dismissCandidateCharacterPopup()
+                    false
+                }
+
+                else -> false
             }
         }
     }
@@ -174,6 +211,7 @@ abstract class BaseInputView(
     fun unbindCandidateGesture(view: CustomGestureView) {
         dismissCandidateCharacterPopup()
         view.setOnTouchListener(null)
+        view.setOnLongClickListener(null)
         view.onGestureListener = null
         view.swipeEnabled = false
         view.parent?.requestDisallowInterceptTouchEvent(false)

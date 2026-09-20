@@ -494,14 +494,9 @@ class HorizontalCandidateComponent :
                         fcitx.launchOnReady { it.select(holder.idx) }
                     }
                 }
-                holder.itemView.setOnLongClickListener {
-                    if (isCalculatorCandidate || isAiCandidate) {
-                        false
-                    } else {
-                        inputView.showCandidateActionMenu(holder.idx, holder.text, holder.ui.root)
-                        true
-                    }
-                }
+                // The long-press action menu, decompose ("拆字") and reset-frequency ("重置词频")
+                // gestures are all owned by bindCandidateGesture. Calculator/AI candidates have no
+                // such actions, so their gesture (and long-press listener) is unbound instead.
                 if (isCalculatorCandidate || isAiCandidate) {
                     inputView.unbindCandidateGesture(holder.ui.root)
                 } else {
