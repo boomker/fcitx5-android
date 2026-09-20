@@ -269,9 +269,26 @@ open class KeyDef(
             val action: KeyAction
         ) : Behavior()
 
+        /**
+         * 划动行为。
+         *
+         * [action]/[downAction] 是与副标签（altText/altText1）绑定的划动提交动作，
+         * 由 [SwipeSymbolDirection] 与标点符号位置共同决定触发方向（Primary/Secondary）。
+         *
+         * [upMacro]/[downMacro] 是按物理方向绑定的自定义划动宏（MacroKey 的
+         * “划动事件(上划)/(下划)”）。它们按实际手势方向（totalY 正负）判定，
+         * 且优先级高于副标签提交动作。
+         *
+         * [legacyMacro] 是旧版单个 “划动事件” 的运行时回退：仅当对应方向未配置
+         * 副标签、也未配置 [upMacro]/[downMacro] 时才触发，用于兼容尚未在编辑器中
+         * 迁移过的旧布局（不改写数据）。
+         */
         class Swipe(
-            val action: KeyAction,
-            val downAction: KeyAction? = null
+            val action: KeyAction? = null,
+            val downAction: KeyAction? = null,
+            val upMacro: KeyAction? = null,
+            val downMacro: KeyAction? = null,
+            val legacyMacro: KeyAction? = null
         ) : Behavior()
 
         class DoubleTap(

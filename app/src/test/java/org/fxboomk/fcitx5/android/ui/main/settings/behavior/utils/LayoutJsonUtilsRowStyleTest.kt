@@ -266,7 +266,7 @@ class LayoutJsonUtilsRowStyleTest {
     }
 
     @Test
-    fun macroKey_withoutAltLabels_keepsConfiguredSwipeMacro() {
+    fun macroKey_withoutAltLabels_keepsLegacySwipeMacroAsRuntimeFallback() {
         val swipeMacro = MacroAction(listOf(MacroStep.Text("macro")))
         val keyDef = MacroKey(
             label = "q",
@@ -275,8 +275,66 @@ class LayoutJsonUtilsRowStyleTest {
         )
         val swipe = keyDef.behaviors.filterIsInstance<KeyDef.Behavior.Swipe>().single()
 
-        assertEquals(swipeMacro, swipe.action)
+        // 旧版 swipe 不再占用 action，而是作为运行时回退（legacyMacro）保留，不改写数据。
+        assertNull(swipe.action)
         assertNull(swipe.downAction)
+        assertNull(swipe.upMacro)
+        assertNull(swipe.downMacro)
+        assertEquals(swipeMacro, swipe.legacyMacro)
+    }
+
+    @Test
+    fun macroKey_swipeUpDown_mapToPhysicalDirectionMacros() {
+        val up = MacroAction(listOf(MacroStep.Text("up")))
+        val down = MacroAction(listOf(MacroStep.Text("down")))
+        val keyDef = MacroKey(
+            label = "q",
+            tap = MacroAction(emptyList()),
+            swipeUp = up,
+            swipeDown = down
+        )
+        val swipe = keyDef.behaviors.filterIsInstance<KeyDef.Behavior.Swipe>().single()
+
+        assertEquals(up, swipe.upMacro)
+        assertEquals(down, swipe.downMacro)
+        assertNull(swipe.legacyMacro)
+    }
+
+    @Test
+    fun macroKey_swipeMacros_coexistWithSubLabelsAndTakePriority() {
+        // 同时配置划动事件(上/下划) 与 双副标签：宏走 upMacro/downMacro，
+        // 副标签提交仍在 action/downAction，运行时宏优先。
+        val up = MacroAction(listOf(MacroStep.Text("up")))
+        val down = MacroAction(listOf(MacroStep.Text("down")))
+        val keyDef = MacroKey(
+            label = "q",
+            altLabel = "A",
+            altLabel1 = "Ä",
+            tap = MacroAction(emptyList()),
+            swipeUp = up,
+            swipeDown = down
+        )
+        val swipe = keyDef.behaviors.filterIsInstance<KeyDef.Behavior.Swipe>().single()
+
+        assertEquals(up, swipe.upMacro)
+        assertEquals(down, swipe.downMacro)
+        assertEquals(KeyAction.CommitAction("A"), swipe.action)
+        assertEquals(KeyAction.CommitAction("Ä"), swipe.downAction)
+    }
+
+    @Test
+    fun macroKey_downOnlySwipe_leavesUpActionNull() {
+        val down = MacroAction(listOf(MacroStep.Text("down")))
+        val keyDef = MacroKey(
+            label = "q",
+            tap = MacroAction(emptyList()),
+            swipeDown = down
+        )
+        val swipe = keyDef.behaviors.filterIsInstance<KeyDef.Behavior.Swipe>().single()
+
+        assertNull(swipe.action)
+        assertNull(swipe.upMacro)
+        assertEquals(down, swipe.downMacro)
     }
 
     @Test

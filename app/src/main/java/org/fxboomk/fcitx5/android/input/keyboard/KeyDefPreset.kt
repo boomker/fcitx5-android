@@ -609,7 +609,9 @@ class NumPadKey(
  * @param altLabel1 第二个备选显示文本（下划行为，可选）
  * @param longPressLabel 长按时在 Popup 选单中显示的标签文本（可选）
  * @param tap 点击时执行的 macro
- * @param swipe 未配置副标签时划动执行的 macro（可选）
+ * @param swipeUp 上划执行的 macro（“划动事件(上划)”，优先级高于副标签，可选）
+ * @param swipeDown 下划执行的 macro（“划动事件(下划)”，优先级高于副标签，可选）
+ * @param swipe 旧版单个 “划动事件” macro；仅作运行时回退兼容旧布局（可选）
  * @param longPress 长按时执行的 macro（可选）
  * @param percentWidth 按键宽度比例
  * @param variant 样式变体
@@ -622,6 +624,8 @@ class MacroKey(
     val altLabel1: String? = null,
     val longPressLabel: String? = null,
     val tap: MacroAction,
+    val swipeUp: MacroAction? = null,
+    val swipeDown: MacroAction? = null,
     val swipe: MacroAction? = null,
     val longPress: MacroAction? = null,
     percentWidth: Float = 0.1f,
@@ -653,7 +657,7 @@ class MacroKey(
         shadowColor = shadowColor,
         shadowColorMonet = shadowColorMonet
     ),
-    buildBehaviors(tap, swipe, longPress, altLabel, altLabel1),
+    buildBehaviors(tap, swipeUp, swipeDown, swipe, longPress, altLabel, altLabel1),
     buildPopup(popup, tap, label, longPress, longPressLabel)
 ) {
     private companion object {
@@ -722,6 +726,8 @@ class MacroKey(
 
         fun buildBehaviors(
             tap: MacroAction,
+            swipeUp: MacroAction?,
+            swipeDown: MacroAction?,
             swipe: MacroAction?,
             longPress: MacroAction?,
             altLabel: String?,
@@ -729,14 +735,26 @@ class MacroKey(
         ): Set<Behavior> {
             return buildSet {
                 add(Behavior.Press(tap))
-                val swipeBehavior = altLabel?.takeIf { it.isNotEmpty() }?.let {
-                    Behavior.Swipe(
-                        action = KeyAction.CommitAction(it),
-                        downAction = altLabel1?.takeIf { it.isNotEmpty() }
-                            ?.let(KeyAction::CommitAction)
+                // 副标签提交动作（与显示布局 Primary/Secondary 绑定）
+                val primaryCommit = altLabel?.takeIf { it.isNotEmpty() }
+                    ?.let(KeyAction::CommitAction)
+                val secondaryCommit = altLabel1?.takeIf { it.isNotEmpty() }
+                    ?.let(KeyAction::CommitAction)
+                // 只要存在任意一种划动来源就需要 Swipe 行为：
+                // 自定义上/下划宏、副标签提交、或旧版回退宏。
+                val hasSwipe = swipeUp != null || swipeDown != null ||
+                    primaryCommit != null || secondaryCommit != null || swipe != null
+                if (hasSwipe) {
+                    add(
+                        Behavior.Swipe(
+                            action = primaryCommit,
+                            downAction = secondaryCommit,
+                            upMacro = swipeUp,
+                            downMacro = swipeDown,
+                            legacyMacro = swipe
+                        )
                     )
-                } ?: swipe?.let { Behavior.Swipe(it) }
-                swipeBehavior?.let(::add)
+                }
                 longPress?.let { add(Behavior.LongPress(it)) }
             }
         }

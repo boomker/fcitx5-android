@@ -328,6 +328,8 @@
     <string name="text_keyboard_layout_macro_key_label_required">레이블은 비어 있을 수 없습니다</string>
     <string name="text_keyboard_layout_macro_tap_event">탭 이벤트</string>
     <string name="text_keyboard_layout_macro_swipe_event">스와이프 이벤트</string>
+    <string name="text_keyboard_layout_macro_swipe_event_up">스와이프 이벤트(위로)</string>
+    <string name="text_keyboard_layout_macro_swipe_event_down">스와이프 이벤트(아래로)</string>
     <string name="text_keyboard_layout_macro_longpress_event">길게 누르기 이벤트</string>
     <string name="text_keyboard_layout_longpress_label">길게 누르기 레이블</string>
     <string name="text_keyboard_layout_longpress_label_fallback_hint">비워두면 팝업에서 레이블을 사용합니다</string>

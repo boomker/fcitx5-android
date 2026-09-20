@@ -65,6 +65,8 @@ object LayoutJsonUtils {
         "weight",
         "rowHeightPercent",
         "tap",
+        "swipeUp",
+        "swipeDown",
         "swipe",
         "longPress",
         "composeOverride",
@@ -270,6 +272,8 @@ object LayoutJsonUtils {
             shadowColor = parseOptionalInt(obj["shadowColor"]),
             shadowColorMonet = obj["shadowColorMonet"]?.jsonPrimitive?.contentOrNull,
             tap = obj["tap"]?.jsonObject?.let { parseMacroAction(it) },
+            swipeUp = obj["swipeUp"]?.jsonObject?.let { parseMacroAction(it) },
+            swipeDown = obj["swipeDown"]?.jsonObject?.let { parseMacroAction(it) },
             swipe = obj["swipe"]?.jsonObject?.let { parseMacroAction(it) },
             longPress = obj["longPress"]?.jsonObject?.let { parseMacroAction(it) },
             independentColor = independentColor,
@@ -544,7 +548,9 @@ object LayoutJsonUtils {
         val shadowColor: Int? = null,
         val shadowColorMonet: String? = null,
         val tap: MacroAction? = null,  // MacroKey 使用
-        val swipe: MacroAction? = null,  // MacroKey 使用
+        val swipeUp: MacroAction? = null,  // MacroKey 使用（划动事件-上划）
+        val swipeDown: MacroAction? = null,  // MacroKey 使用（划动事件-下划）
+        val swipe: MacroAction? = null,  // MacroKey 使用（旧版划动事件，仅兼容回退）
         val longPress: MacroAction? = null,  // MacroKey 使用
         val independentColor: Boolean? = null,
         val composeOverride: KeyJson? = null
@@ -639,7 +645,13 @@ object LayoutJsonUtils {
                     json["longPressLabel"] = keyDef.longPressLabel
                 }
                 json["tap"] = macroActionToJson(keyDef.tap)
-                keyDef.swipe?.let { json["swipe"] = macroActionToJson(it) }
+                keyDef.swipeUp?.let { json["swipeUp"] = macroActionToJson(it) }
+                keyDef.swipeDown?.let { json["swipeDown"] = macroActionToJson(it) }
+                // 旧版 swipe 仅在该键未迁移（无 swipeUp/swipeDown）时保留，保证
+                // 未在编辑器中改动过的键往返序列化不丢数据。
+                if (keyDef.swipeUp == null && keyDef.swipeDown == null) {
+                    keyDef.swipe?.let { json["swipe"] = macroActionToJson(it) }
+                }
                 keyDef.longPress?.let { json["longPress"] = macroActionToJson(it) }
                 json["weight"] = appearance.percentWidth.takeIf { it != 0.1f }
             }
@@ -896,6 +908,8 @@ object LayoutJsonUtils {
                     altLabel1 = key.altLabel1?.takeIf { it.isNotEmpty() },
                     longPressLabel = key.longPressLabel,
                     tap = tap,
+                    swipeUp = key.swipeUp,
+                    swipeDown = key.swipeDown,
                     swipe = key.swipe,
                     longPress = key.longPress,
                     percentWidth = key.weight ?: 0.1f,

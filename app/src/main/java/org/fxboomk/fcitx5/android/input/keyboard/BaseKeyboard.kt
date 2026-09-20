@@ -1526,14 +1526,37 @@ abstract class BaseKeyboard(
         totalY: Int,
         behavior: KeyDef.Behavior.Swipe
     ): KeyAction? {
+        // 按物理方向绑定的自定义划动宏（“划动事件(上划)/(下划)”）优先级最高，
+        // 高于副标签提交动作；它按实际手势方向判定，不依赖副标签的显示布局。
+        selectPhysicalSwipeMacro(totalY, behavior)?.let { return it }
         return when (selectSwipeAltTarget(view, totalY)) {
-            AltTextSwipeTarget.Primary -> behavior.action
-            AltTextSwipeTarget.Secondary -> behavior.downAction ?: behavior.action
+            AltTextSwipeTarget.Primary -> behavior.action ?: behavior.legacyMacro
+            AltTextSwipeTarget.Secondary ->
+                behavior.downAction ?: behavior.action ?: behavior.legacyMacro
             AltTextSwipeTarget.Uppercase ->
                 (view as? AltTextKeyView)?.uppercaseSwipeAction()
                     ?: behavior.downAction
                     ?: behavior.action
+                    ?: behavior.legacyMacro
             null -> null
+        }
+    }
+
+    /**
+     * 解析按物理方向（[totalY] 正负）触发的自定义划动宏。上划取 [Behavior.Swipe.upMacro]，
+     * 下划取 [Behavior.Swipe.downMacro]，并受 [swipeSymbolDirection] 约束。
+     */
+    private fun selectPhysicalSwipeMacro(
+        totalY: Int,
+        behavior: KeyDef.Behavior.Swipe
+    ): KeyAction? {
+        if (totalY == 0) return null
+        return when (swipeSymbolDirection) {
+            SwipeSymbolDirection.Disabled -> null
+            SwipeSymbolDirection.Up -> behavior.upMacro?.takeIf { totalY < 0 }
+            SwipeSymbolDirection.Down -> behavior.downMacro?.takeIf { totalY > 0 }
+            SwipeSymbolDirection.Auto ->
+                if (totalY < 0) behavior.upMacro else behavior.downMacro
         }
     }
 

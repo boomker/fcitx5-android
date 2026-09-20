@@ -146,7 +146,8 @@ class KeyEditorActivity : AppCompatActivity() {
     private var nonMacroSwipeLabelEdit: EditText? = null
 
     private var macroTapStepsData: List<Any> = emptyList()
-    private var macroSwipeStepsData: List<Any> = emptyList()
+    private var macroSwipeUpStepsData: List<Any> = emptyList()
+    private var macroSwipeDownStepsData: List<Any> = emptyList()
     private var macroLongPressStepsData: List<Any> = emptyList()
     private var nonMacroSwipeStepsData: List<Any> = emptyList()
     private var macroEditCallback: ((List<Any>) -> Unit)? = null
@@ -629,15 +630,18 @@ class KeyEditorActivity : AppCompatActivity() {
                 )
 
                 val tapAction = keyData["tap"] as? Map<*, *>
-                val swipeAction = keyData["swipe"] as? Map<*, *>
                 val longPressAction = keyData["longPress"] as? Map<*, *>
 
                 val tapMacroSteps = (tapAction?.get("macro") as? List<*>)?.filterNotNull() ?: emptyList()
-                val swipeMacroSteps = (swipeAction?.get("macro") as? List<*>)?.filterNotNull() ?: emptyList()
                 val longPressMacroSteps = (longPressAction?.get("macro") as? List<*>)?.filterNotNull() ?: emptyList()
 
+                // 拆分后的上/下划宏。旧版单个 "swipe" 在此按标点符号位置一次性迁移：
+                // 底部 → 下划，否则 → 上划（与运行时 Primary 方向一致）。
+                val (swipeUpMacroSteps, swipeDownMacroSteps) = resolveMacroSwipeSteps()
+
                 macroTapStepsData = tapMacroSteps
-                macroSwipeStepsData = swipeMacroSteps
+                macroSwipeUpStepsData = swipeUpMacroSteps
+                macroSwipeDownStepsData = swipeDownMacroSteps
                 macroLongPressStepsData = longPressMacroSteps
 
                 createMacroEditorButton(
@@ -656,13 +660,28 @@ class KeyEditorActivity : AppCompatActivity() {
                 ).forEach { fieldsContainer.addView(it) }
 
                 createMacroEditorButton(
-                    title = getString(R.string.text_keyboard_layout_macro_swipe_event),
-                    previewText = buildMacroPreview(swipeMacroSteps),
+                    title = getString(R.string.text_keyboard_layout_macro_swipe_event_up),
+                    previewText = buildMacroPreview(swipeUpMacroSteps),
                     onClick = {
-                        openMacroEditor(macroSwipeStepsData, getString(R.string.text_keyboard_layout_macro_swipe_event)) { newSteps ->
+                        openMacroEditor(macroSwipeUpStepsData, getString(R.string.text_keyboard_layout_macro_swipe_event_up)) { newSteps ->
                             val draft = buildDraftKeyData()
-                            macroSwipeStepsData = newSteps
-                            draft["swipe"] = mapOf("macro" to newSteps)
+                            macroSwipeUpStepsData = newSteps
+                            applyMacroSwipeDraft(draft)
+                            keyData = draft
+                            rebuildFields()
+                            updateActionButtonState()
+                        }
+                    }
+                ).forEach { fieldsContainer.addView(it) }
+
+                createMacroEditorButton(
+                    title = getString(R.string.text_keyboard_layout_macro_swipe_event_down),
+                    previewText = buildMacroPreview(swipeDownMacroSteps),
+                    onClick = {
+                        openMacroEditor(macroSwipeDownStepsData, getString(R.string.text_keyboard_layout_macro_swipe_event_down)) { newSteps ->
+                            val draft = buildDraftKeyData()
+                            macroSwipeDownStepsData = newSteps
+                            applyMacroSwipeDraft(draft)
                             keyData = draft
                             rebuildFields()
                             updateActionButtonState()
@@ -1219,6 +1238,43 @@ class KeyEditorActivity : AppCompatActivity() {
         return main.uppercase()
     }
 
+    /**
+     * 解析 MacroKey 的上/下划宏步骤。若该键尚未拆分（无 swipeUp/swipeDown），
+     * 则把旧版单个 "swipe" 按标点符号位置一次性迁移：底部 → 下划，否则 → 上划。
+     * 这与运行时旧版 swipe 回退命中的 Primary 方向一致。
+     */
+    private fun resolveMacroSwipeSteps(): Pair<List<Any>, List<Any>> {
+        fun steps(key: String): List<Any> =
+            ((keyData[key] as? Map<*, *>)?.get("macro") as? List<*>)?.filterNotNull() ?: emptyList()
+
+        val up = steps("swipeUp")
+        val down = steps("swipeDown")
+        if (up.isNotEmpty() || down.isNotEmpty()) return up to down
+
+        val legacy = steps("swipe")
+        if (legacy.isEmpty()) return emptyList<Any>() to emptyList()
+        val legacyToDown = ThemeManager.prefs.punctuationPosition.getValue() ==
+            ThemePrefs.PunctuationPosition.Bottom
+        return if (legacyToDown) emptyList<Any>() to legacy else legacy to emptyList()
+    }
+
+    /**
+     * 把当前上/下划宏状态写入 [target]，并移除旧版 "swipe"（新版永不写回旧字段）。
+     */
+    private fun applyMacroSwipeDraft(target: MutableMap<String, Any?>) {
+        target.remove("swipe")
+        if (macroSwipeUpStepsData.isNotEmpty()) {
+            target["swipeUp"] = mapOf("macro" to macroSwipeUpStepsData)
+        } else {
+            target.remove("swipeUp")
+        }
+        if (macroSwipeDownStepsData.isNotEmpty()) {
+            target["swipeDown"] = mapOf("macro" to macroSwipeDownStepsData)
+        } else {
+            target.remove("swipeDown")
+        }
+    }
+
     private fun buildDraftKeyData(): MutableMap<String, Any?> {
         val draft = mutableMapOf<String, Any?>()
         draft["type"] = selectedType
@@ -1322,9 +1378,7 @@ class KeyEditorActivity : AppCompatActivity() {
                     draft["tap"] = mapOf("macro" to macroTapStepsData)
                 }
 
-                if (macroSwipeStepsData.isNotEmpty()) {
-                    draft["swipe"] = mapOf("macro" to macroSwipeStepsData)
-                }
+                applyMacroSwipeDraft(draft)
 
                 if (macroLongPressStepsData.isNotEmpty()) {
                     draft["longPress"] = mapOf("macro" to macroLongPressStepsData)
@@ -1753,9 +1807,7 @@ class KeyEditorActivity : AppCompatActivity() {
                     )
                 }
 
-                if (macroSwipeStepsData.isNotEmpty()) {
-                    newKey["swipe"] = mapOf("macro" to macroSwipeStepsData)
-                }
+                applyMacroSwipeDraft(newKey)
 
                 if (macroLongPressStepsData.isNotEmpty()) {
                     newKey["longPress"] = mapOf("macro" to macroLongPressStepsData)

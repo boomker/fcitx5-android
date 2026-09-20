@@ -875,7 +875,8 @@ data object EditTextKeyboardLayoutAction : ButtonAction() {
 data object TextKeyboardLayoutFileSelectAction : ButtonAction() {
     override val id = "text_keyboard_layout_file_select"
     override val defaultIcon = R.drawable.ic_baseline_library_books_24
-    override val defaultLabelRes = R.string.text_keyboard_layout_file_select_title
+    // 应用动作列表条目名沿用最新的「键盘布局管理」；点击仍打开快速切换弹窗。
+    override val defaultLabelRes = R.string.text_keyboard_layout_manage_title
 
     override fun execute(
         context: Context,
