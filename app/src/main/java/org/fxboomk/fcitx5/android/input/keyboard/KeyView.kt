@@ -72,6 +72,18 @@ interface SwipeHintAwareKeyView {
     fun secondarySwipeTarget(): AltTextSwipeTarget = AltTextSwipeTarget.Secondary
 }
 
+/**
+ * Implemented by [KeyView] subclasses that render an [ImageView] icon (e.g. the
+ * caps/shift key). Attaching a swipe label ("划动标签") to such a key changes its
+ * concrete class from [ImageKeyView] to [ImageAltTextKeyView], so callers that
+ * need to update the icon must look the key up by this interface rather than by
+ * a concrete type, otherwise the labelled variant is missed and its icon never
+ * refreshes.
+ */
+interface KeyViewWithImage {
+    val img: ImageView
+}
+
 abstract class KeyView(
     ctx: Context,
     var theme: Theme,
@@ -1469,7 +1481,7 @@ class ImageAltTextKeyView(
     theme: Theme,
     def: KeyDef.Appearance.ImageAltText,
     horizontalGapScale: Float = 1f
-) : KeyView(ctx, theme, def, horizontalGapScale), SwipeHintAwareKeyView {
+) : KeyView(ctx, theme, def, horizontalGapScale), SwipeHintAwareKeyView, KeyViewWithImage {
     private enum class AltTextLayoutMode {
         Top,
         TopRight,
@@ -1482,7 +1494,7 @@ class ImageAltTextKeyView(
     )
     private var lastLayoutMode: AltTextLayoutMode? = null
 
-    val img = imageView { configure(theme, def.src, def.variant, def.viewId) }.apply {
+    override val img = imageView { configure(theme, def.src, def.variant, def.viewId) }.apply {
         imageTintList = ColorStateList.valueOf(
             resolveTextColor(
                 when (def.variant) {
@@ -1734,8 +1746,8 @@ class ImageKeyView(
     def: KeyDef.Appearance.Image,
     horizontalGapScale: Float = 1f
 ) :
-    KeyView(ctx, theme, def, horizontalGapScale) {
-    val img = imageView { configure(theme, def.src, def.variant, def.viewId) }.apply {
+    KeyView(ctx, theme, def, horizontalGapScale), KeyViewWithImage {
+    override val img = imageView { configure(theme, def.src, def.variant, def.viewId) }.apply {
         val defaultColor = when (def.variant) {
             Variant.Normal -> theme.keyTextColor
             Variant.AltForeground, Variant.Alternative -> theme.altKeyTextColor
@@ -1790,8 +1802,8 @@ class ImageTextKeyView(
     def: KeyDef.Appearance.ImageText,
     horizontalGapScale: Float = 1f
 ) :
-    TextKeyView(ctx, theme, def, horizontalGapScale) {
-    val img = imageView {
+    TextKeyView(ctx, theme, def, horizontalGapScale), KeyViewWithImage {
+    override val img = imageView {
         configure(theme, def.src, def.variant, def.viewId)
         val defaultColor = when (def.variant) {
             Variant.Normal -> theme.keyTextColor

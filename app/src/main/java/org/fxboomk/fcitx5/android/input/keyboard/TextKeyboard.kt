@@ -277,27 +277,31 @@ class TextKeyboard private constructor(
     )
 
     data class SpecialKeyViews(
-        val caps: List<ImageKeyView>,
-        val backspace: List<ImageKeyView>,
-        val quickphrase: List<ImageKeyView>,
+        val caps: List<KeyViewWithImage>,
+        val backspace: List<KeyViewWithImage>,
+        val quickphrase: List<KeyViewWithImage>,
         val space: List<TextKeyView>,
-        val `return`: List<ImageKeyView>
+        val `return`: List<KeyViewWithImage>
     )
 
     private fun findAllSpecialKeyViews(): SpecialKeyViews {
-        val caps = mutableListOf<ImageKeyView>()
-        val backspace = mutableListOf<ImageKeyView>()
-        val quickphrase = mutableListOf<ImageKeyView>()
+        val caps = mutableListOf<KeyViewWithImage>()
+        val backspace = mutableListOf<KeyViewWithImage>()
+        val quickphrase = mutableListOf<KeyViewWithImage>()
         val space = mutableListOf<TextKeyView>()
-        val returnKeys = mutableListOf<ImageKeyView>()
+        val returnKeys = mutableListOf<KeyViewWithImage>()
 
         allViews.forEach { view ->
             when (view.tag) {
-                R.id.button_caps -> (view as? ImageKeyView)?.let(caps::add)
-                R.id.button_backspace -> (view as? ImageKeyView)?.let(backspace::add)
-                R.id.button_quickphrase -> (view as? ImageKeyView)?.let(quickphrase::add)
+                // Match by KeyViewWithImage, not a concrete class: a key with a
+                // swipe label ("划动标签") renders as ImageAltTextKeyView instead of
+                // ImageKeyView, and casting to the concrete type would drop it so
+                // its icon (e.g. the caps/shift state) would never update.
+                R.id.button_caps -> (view as? KeyViewWithImage)?.let(caps::add)
+                R.id.button_backspace -> (view as? KeyViewWithImage)?.let(backspace::add)
+                R.id.button_quickphrase -> (view as? KeyViewWithImage)?.let(quickphrase::add)
                 R.id.button_space -> (view as? TextKeyView)?.let(space::add)
-                R.id.button_return -> (view as? ImageKeyView)?.let(returnKeys::add)
+                R.id.button_return -> (view as? KeyViewWithImage)?.let(returnKeys::add)
             }
         }
 
