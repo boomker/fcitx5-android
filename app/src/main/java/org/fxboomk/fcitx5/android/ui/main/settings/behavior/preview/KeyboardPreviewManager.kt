@@ -9,6 +9,7 @@ import android.content.res.Configuration
 import android.graphics.Color
 import android.view.View
 import android.view.ViewGroup
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 import kotlinx.serialization.encodeToString
@@ -57,6 +58,9 @@ class KeyboardPreviewManager(
     private val layoutHeightPercentProvider: (String) -> LayoutHeightPercentOverrides? = { null }
 ) {
     private var previewKeyboard: TextKeyboard? = null
+    // 单层预览图层：背景、模糊遮罩、键盘都放进这个固定高度的 FrameLayout，
+    // 无论外层容器是纵向 LinearLayout 还是 FrameLayout，预览高度都只等于一个键盘高度。
+    private var previewFrame: FrameLayout? = null
     private val previewBlurMask by lazy { PreviewKeyBlurMaskView(context) }
 
     /**
@@ -71,22 +75,14 @@ class KeyboardPreviewManager(
         previewSubModeLabel: String?,
         fcitxConnection: FcitxConnection
     ) {
-        previewContainer.removeAllViews()
+        // 只移除本管理器创建的预览图层，不清空外层容器上可能存在的其他视图/背景。
+        detachPreviewFrame()
 
         // Try to load submode-specific layout first
         val subModeKey = previewSubModeLabel?.let { "$layoutName:$it" }
         val rows = subModeKey?.let { entries[it] } ?: entries[layoutName] ?: return
 
-        val theme = ThemeManager.activeTheme
-        val keyBorder = ThemeManager.prefs.keyBorder.getValue()
-        previewContainer.background = theme.backgroundDrawable(keyBorder)
         previewBlurMask.bindKeyboard(null)
-
-        // Remove old keyboard view
-        previewKeyboard?.let {
-            previewContainer.removeView(it)
-            previewKeyboard = null
-        }
 
         // Build submode map with all available submodes for this layout
         val subModeMap = buildSubModeMap(layoutName, subModeKey, rows, previewSubModeLabel)
@@ -119,12 +115,12 @@ class KeyboardPreviewManager(
      */
     fun updatePreviewHeight(heightPercent: Int) {
         val keyboard = previewKeyboard ?: return
+        val frame = previewFrame ?: return
         val height = context.resources.displayMetrics.heightPixels *
             heightPercent.coerceIn(10, 90) / 100
-        (previewBlurMask.layoutParams as? ViewGroup.LayoutParams)?.height = height
-        (keyboard.layoutParams as? ViewGroup.LayoutParams)?.height = height
-        previewBlurMask.requestLayout()
-        keyboard.requestLayout()
+        // 仅调整外层图层高度即可，模糊遮罩与键盘均为 MATCH_PARENT，会随之更新。
+        frame.layoutParams?.height = height
+        frame.requestLayout()
         keyboard.post { previewBlurMask.refreshMask(hierarchyChanged = true) }
     }
 
@@ -167,6 +163,7 @@ class KeyboardPreviewManager(
         fcitxConnection: FcitxConnection
     ) {
         val theme = ThemeManager.activeTheme
+        val keyBorder = ThemeManager.prefs.keyBorder.getValue()
 
         previewKeyboard = TextKeyboard(context, theme).apply {
             // 预览中的字母键保持大写，与下方编辑器的按键标签视觉一致
@@ -192,24 +189,36 @@ class KeyboardPreviewManager(
             }
             val keyboardHeight = screenHeight * heightPercent / 100
 
-            // Get keyboard side and bottom padding from preferences
-            val sidePadding = keyboardPrefs.keyboardSidePadding.getValue()
-            val bottomPadding = keyboardPrefs.keyboardBottomPadding.getValue()
-            val sidePaddingPx = (sidePadding * displayMetrics.density).toInt()
-            val bottomPaddingPx = (bottomPadding * displayMetrics.density).toInt()
-
-            val layoutParams = ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                keyboardHeight
+            // 构建固定高度的单层预览：背景绘制在这一层，模糊遮罩与键盘在其上重叠。
+            // 这样背景仅覆盖键盘盘面本身，避免在纵向 LinearLayout 容器中因子视图堆叠
+            // 而导致背景图上下溢出。
+            val frame = FrameLayout(context).apply {
+                background = theme.backgroundDrawable(keyBorder)
+            }
+            // previewBlurMask 是复用视图，重建前先从旧父容器摘除，避免重复添加异常。
+            (previewBlurMask.parent as? ViewGroup)?.removeView(previewBlurMask)
+            frame.addView(
+                previewBlurMask,
+                FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.MATCH_PARENT
+                )
+            )
+            frame.addView(
+                this,
+                FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.MATCH_PARENT
+                )
             )
             previewContainer.addView(
-                previewBlurMask,
+                frame,
                 ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     keyboardHeight
                 )
             )
-            previewContainer.addView(this, layoutParams)
+            previewFrame = frame
 
             onAttach()
 
@@ -241,7 +250,7 @@ class KeyboardPreviewManager(
      * Show error message in preview container.
      */
     private fun showError(message: String) {
-        previewContainer.removeAllViews()
+        detachPreviewFrame()
         val errorText = TextView(context).apply {
             text = context.getString(R.string.text_keyboard_layout_preview_error, message)
             textSize = 12f
@@ -256,10 +265,21 @@ class KeyboardPreviewManager(
      */
     fun clear() {
         previewBlurMask.bindKeyboard(null)
-        previewKeyboard?.let {
+        detachPreviewFrame()
+    }
+
+    /**
+     * 从外层容器移除本管理器创建的预览图层，并复位内部引用。
+     * previewBlurMask 为复用视图，会一并从图层中摘除以便下次重新添加。
+     */
+    private fun detachPreviewFrame() {
+        (previewBlurMask.parent as? ViewGroup)?.removeView(previewBlurMask)
+        previewFrame?.let {
+            it.removeAllViews()
             previewContainer.removeView(it)
-            previewKeyboard = null
         }
+        previewFrame = null
+        previewKeyboard = null
     }
 
     /**
