@@ -330,7 +330,7 @@ object SettingsSearchIndex {
         addAdvancedKeyboardItem(context, R.string.edit_text_keyboard_layout, R.string.edit_text_keyboard_layout_summary)
         addAdvancedKeyboardItem(
             context,
-            R.string.text_keyboard_layout_file_select_title
+            R.string.text_keyboard_layout_manage_title
         )
         addAdvancedKeyboardItem(context, R.string.edit_buttons, R.string.edit_buttons_summary)
     }

@@ -48,6 +48,7 @@ import org.fxboomk.fcitx5.android.input.config.UserConfigFiles
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.data.LayoutDataManager
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.data.LayoutHeightPercentOverrides
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.dialog.LayoutFileProfileInputActivity
+import org.fxboomk.fcitx5.android.ui.main.settings.behavior.manager.RimeSchemaResolver
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.manager.SubModeManager
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.share.JsonFileQrShareManager
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.share.LayoutQrTransferCodec
@@ -357,7 +358,7 @@ class TextKeyboardLayoutProfileManagerActivity : AppCompatActivity() {
         if (allImes.isEmpty()) {
             allImes = fcitxConnection.runImmediately { enabledIme() }
         }
-        SubModeManager(fcitxConnection, allImes, managerFor(profile).entries)
+        SubModeManager(fcitxConnection, { allImes }, managerFor(profile).entries)
     }.getOrNull()
 
     /** 图标操作按钮：以图标替代文字，压缩动作按钮占用的宽度。 */
@@ -538,46 +539,12 @@ class TextKeyboardLayoutProfileManagerActivity : AppCompatActivity() {
     private fun fetchRimeSchemaLabels(profile: String, baseLayout: String): List<String> {
         val cacheKey = "$profile:$baseLayout"
         rimeSchemaLabelsCache[cacheKey]?.let { return it }
-        val labels = readRimeSchemaLabelsFromUserDir()
+        val labels = RimeSchemaResolver.readLabels()
         if (labels.isNotEmpty()) {
             rimeSchemaLabelsCache[cacheKey] = labels
         }
         return labels
     }
-
-    /** 依次读取部署产物 build/default.yaml → default.custom.yaml → default.yaml 的 schema_list。 */
-    private fun readRimeSchemaLabelsFromUserDir(): List<String> {
-        val rimeDir = UserConfigFiles.rimeDataDir() ?: return emptyList()
-        val buildDir = File(rimeDir, "build")
-        val ids = listOf(
-            File(buildDir, "default.yaml"),
-            File(rimeDir, "default.custom.yaml"),
-            File(rimeDir, "default.yaml")
-        ).firstOrNull { it.isFile }
-            ?.let { parseRimeSchemaIds(it.readText()) }
-            .orEmpty()
-        if (ids.isEmpty()) return emptyList()
-        return ids.map { id ->
-            File(buildDir, "$id.schema.yaml").takeIf { it.isFile }
-                ?.let { parseRimeSchemaName(it.readText()) }
-                ?: id
-        }
-    }
-
-    /** 解析 default*.yaml 中的 schema_list 条目（- schema: <id>）。 */
-    private fun parseRimeSchemaIds(yaml: String): List<String> =
-        Regex("""^\s*-\s*schema:\s*(\S+)\s*$""", RegexOption.MULTILINE)
-            .findAll(yaml)
-            .map { it.groupValues[1].trim('"', '\'') }
-            .toList()
-
-    /** 从已编译的 &lt;schema&gt;.schema.yaml 中提取方案显示名（schema: 下的 name）。 */
-    private fun parseRimeSchemaName(yaml: String): String? =
-        Regex("""^\s*name:\s*(.+?)\s*$""", RegexOption.MULTILINE)
-            .find(yaml)
-            ?.groupValues?.get(1)
-            ?.trim('"', '\'')
-            ?.takeIf { it.isNotBlank() }
 
     private fun buildSubLayoutRow(profile: String, baseLayout: String, row: SubLayoutRow): View {
         val display = if (row.customized) {

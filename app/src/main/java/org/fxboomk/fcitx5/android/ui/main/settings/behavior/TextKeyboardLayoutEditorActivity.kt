@@ -343,8 +343,8 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             attemptExit()
         }
 
-        // 初始化子模式管理器（必须在 loadState 之前）
-        subModeManager = SubModeManager(fcitxConnection, allImesFromJson, dataManager.entries)
+        // 使用提供器读取最新的 IME 列表；loadState 会在这里之后刷新数组。
+        subModeManager = SubModeManager(fcitxConnection, { allImesFromJson }, dataManager.entries)
         val targetProfile = intent.getStringExtra(EXTRA_TARGET_PROFILE)
         if (targetProfile != null) {
             // 直达指定配置文件（来自布局管理页"更多定制"）
@@ -697,24 +697,9 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             return
         }
 
-        // Save current IME state before activating target IME for fetching submode labels
-        val previousIme = runCatching {
-            fcitxConnection.runImmediately { inputMethodEntryCached }
-        }.getOrNull()
-
-        // Force activate the target IME before fetching submode labels
-        // This ensures Fcitx status area menu has the correct scheme list for Rime
-        val targetImeUniqueName = allImesFromJson.firstOrNull {
-            it.uniqueName == layoutName || it.displayName == layoutName
-        }?.uniqueName
-        if (targetImeUniqueName != null) {
-            fcitxConnection.runImmediately {
-                runCatching { activateIme(targetImeUniqueName) }.onFailure { e ->
-                    android.util.Log.w("TextKeyboardLayoutEditor", "Failed to activate IME: $targetImeUniqueName", e)
-                }
-            }
-        }
-
+        // Rime 优先读取部署目录中的 schema_list；其他输入法或清单缺失时，
+        // 由 SubModeManager 在同一原子块内完成状态区读取、临时激活与还原。
+        // 此处不再手动切换/还原，避免中途返回时把活动输入法遗留在目标输入法上。
         val subModeState = subModeManager.resolveSubModeState(layoutName, layoutLabels)
         val currentIme = subModeState.currentIme
         val labels = subModeState.labels
@@ -751,20 +736,6 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
 
         // Update button behavior for submode
         updateLayoutButtonBehavior()
-
-        // Restore previous IME state to avoid affecting external real input method
-        // Only restore if we activated a different IME and the previous IME is still available
-        if (targetImeUniqueName != null && previousIme != null && previousIme.uniqueName != targetImeUniqueName) {
-            runCatching {
-                fcitxConnection.runImmediately {
-                    runCatching { activateIme(previousIme.uniqueName) }.onFailure { e ->
-                        android.util.Log.w("TextKeyboardLayoutEditor", "Failed to restore previous IME: ${previousIme.uniqueName}", e)
-                    }
-                }
-            }.onFailure { e ->
-                android.util.Log.w("TextKeyboardLayoutEditor", "Failed to restore previous IME state", e)
-            }
-        }
     }
 
     private fun hideSubModeSpinner() {

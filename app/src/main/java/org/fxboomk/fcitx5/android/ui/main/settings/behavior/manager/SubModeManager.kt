@@ -20,9 +20,12 @@ import org.fxboomk.fcitx5.android.daemon.FcitxConnection
  */
 class SubModeManager(
     private val fcitxConnection: FcitxConnection,
-    private val allImesFromJson: Array<InputMethodEntry>,
+    private val allImesProvider: () -> Array<InputMethodEntry>,
     private val entries: Map<String, List<List<Map<String, Any?>>>>
 ) {
+
+    private val allImesFromJson: Array<InputMethodEntry>
+        get() = allImesProvider()
 
     companion object {
         /** 中州韵插件是否已随当前应用加载（插件按签名与构建类型配对，debug 应用只配 .debug 插件） */
@@ -131,66 +134,110 @@ class SubModeManager(
         return runCatching {
             fcitxConnection.runImmediately {
                 val targetImeUniqueName = resolveTargetImeUniqueName(layoutName)
-
-                if (targetImeUniqueName != null) {
-                    runCatching { activateIme(targetImeUniqueName) }.onFailure { e ->
-                        android.util.Log.w("SubModeManager", "Failed to activate IME: $targetImeUniqueName", e)
-                    }
+                val rimeLabels = if (isCurrentLayoutRime(layoutName)) {
+                    RimeSchemaResolver.readLabels()
+                } else {
+                    emptyList()
                 }
 
-                val ime = runCatching { currentIme() }.getOrElse { 
-                    android.util.Log.w("SubModeManager", "Failed to get current IME, using cached")
-                    inputMethodEntryCached 
-                }
-                val currentLabel = ime.subMode.label.ifEmpty { ime.subMode.name }.trim()
-                
-                var actions = runCatching { 
-                    statusArea() 
-                }.onFailure { e ->
-                    android.util.Log.w("SubModeManager", "Failed to get status area, using cached", e)
-                }.getOrNull() ?: statusAreaActionsCached
-
-                var fromStatusMenu = extractLabelsFromStatusArea(actions, currentLabel)
-
-                if (fromStatusMenu.isEmpty() && targetImeUniqueName != null) {
-                    android.util.Log.d("SubModeManager", "First attempt returned empty, retrying IME activation")
-                    runCatching { activateIme(targetImeUniqueName) }.onFailure { e ->
-                        android.util.Log.w("SubModeManager", "Failed to activate IME on retry: $targetImeUniqueName", e)
+                // A deployed Rime schema list is authoritative for available schemes and
+                // does not require changing the user's active input method. Only preserve
+                // the current label when it belongs to that list; the active IME may still
+                // be an unrelated engine while the user edits a Rime layout.
+                if (rimeLabels.isNotEmpty()) {
+                    val ime = runCatching { currentIme() }.getOrElse {
+                        android.util.Log.w("SubModeManager", "Failed to get current IME, using cached")
+                        inputMethodEntryCached
                     }
-                    actions = runCatching { 
-                        statusArea() 
+                    val currentLabel = ime.subMode.label.ifEmpty { ime.subMode.name }.trim()
+                    val labels = (listOf(currentLabel.takeIf { it in rimeLabels }) + rimeLabels)
+                        .filterNotNull()
+                        .distinct()
+                    return@runImmediately ime to labels
+                }
+
+                // 读取目标输入法的方案列表必须先把它激活为 Fcitx 当前输入法，但这纯粹是为了
+                // 读取状态区数据，绝不能改变用户实际正在使用的输入法。先记下进入本函数时真正
+                // 处于活动状态的输入法，无论后续走哪条分支（含空结果提前返回、重试、异常），
+                // 都在 finally 中还原，保证本函数对活动输入法零净改动。
+                val originalImeUniqueName = runCatching { currentIme() }
+                    .getOrElse { inputMethodEntryCached }
+                    .uniqueName
+                    .takeIf { it.isNotBlank() }
+
+                try {
+                    if (targetImeUniqueName != null) {
+                        runCatching { activateIme(targetImeUniqueName) }.onFailure { e ->
+                            android.util.Log.w("SubModeManager", "Failed to activate IME: $targetImeUniqueName", e)
+                        }
+                    }
+
+                    val ime = runCatching { currentIme() }.getOrElse {
+                        android.util.Log.w("SubModeManager", "Failed to get current IME, using cached")
+                        inputMethodEntryCached
+                    }
+                    val currentLabel = ime.subMode.label.ifEmpty { ime.subMode.name }.trim()
+
+                    var actions = runCatching {
+                        statusArea()
                     }.onFailure { e ->
-                        android.util.Log.w("SubModeManager", "Failed to get status area on retry", e)
+                        android.util.Log.w("SubModeManager", "Failed to get status area, using cached", e)
                     }.getOrNull() ?: statusAreaActionsCached
-                    fromStatusMenu = extractLabelsFromStatusArea(actions, currentLabel)
-                }
 
-                if (fromStatusMenu.isEmpty()) {
-                    android.util.Log.d("SubModeManager", "Second attempt returned empty, trying focusOutIn")
-                    runCatching { focusOutIn() }.onFailure { e ->
-                        android.util.Log.w("SubModeManager", "Failed to execute focusOutIn", e)
+                    var fromStatusMenu = extractLabelsFromStatusArea(actions, currentLabel)
+
+                    if (fromStatusMenu.isEmpty() && targetImeUniqueName != null) {
+                        android.util.Log.d("SubModeManager", "First attempt returned empty, retrying IME activation")
+                        runCatching { activateIme(targetImeUniqueName) }.onFailure { e ->
+                            android.util.Log.w("SubModeManager", "Failed to activate IME on retry: $targetImeUniqueName", e)
+                        }
+                        actions = runCatching {
+                            statusArea()
+                        }.onFailure { e ->
+                            android.util.Log.w("SubModeManager", "Failed to get status area on retry", e)
+                        }.getOrNull() ?: statusAreaActionsCached
+                        fromStatusMenu = extractLabelsFromStatusArea(actions, currentLabel)
                     }
-                    actions = runCatching { 
-                        statusArea() 
-                    }.onFailure { e ->
-                        android.util.Log.w("SubModeManager", "Failed to get status area after focusOutIn", e)
-                    }.getOrNull() ?: statusAreaActionsCached
-                    fromStatusMenu = extractLabelsFromStatusArea(actions, currentLabel)
-                }
 
-                val baseLabels = when {
-                    fromStatusMenu.isNotEmpty() -> fromStatusMenu
-                    else -> {
-                        android.util.Log.d("SubModeManager", "No submode labels found for layout: $layoutName")
-                        emptyList()
+                    if (fromStatusMenu.isEmpty()) {
+                        android.util.Log.d("SubModeManager", "Second attempt returned empty, trying focusOutIn")
+                        runCatching { focusOutIn() }.onFailure { e ->
+                            android.util.Log.w("SubModeManager", "Failed to execute focusOutIn", e)
+                        }
+                        actions = runCatching {
+                            statusArea()
+                        }.onFailure { e ->
+                            android.util.Log.w("SubModeManager", "Failed to get status area after focusOutIn", e)
+                        }.getOrNull() ?: statusAreaActionsCached
+                        fromStatusMenu = extractLabelsFromStatusArea(actions, currentLabel)
+                    }
+
+                    val baseLabels = when {
+                        fromStatusMenu.isNotEmpty() -> fromStatusMenu
+                        else -> {
+                            android.util.Log.d("SubModeManager", "No submode labels found for layout: $layoutName")
+                            emptyList()
+                        }
+                    }
+
+                    val labels = baseLabels.toMutableList().apply {
+                        if (currentLabel.isNotEmpty() && currentLabel !in this) add(0, currentLabel)
+                    }.distinct()
+
+                    ime to labels
+                } finally {
+                    // 还原进入前的活动输入法：仅当确实激活了与原输入法不同的目标时才切回，
+                    // 避免对未发生切换的场景（targetImeUniqueName 为空，如布局名未解析出输入法）
+                    // 发出多余的 activateIme 调用。拿不到原输入法名时也跳过。
+                    if (targetImeUniqueName != null &&
+                        originalImeUniqueName != null &&
+                        originalImeUniqueName != targetImeUniqueName
+                    ) {
+                        runCatching { activateIme(originalImeUniqueName) }.onFailure { e ->
+                            android.util.Log.w("SubModeManager", "Failed to restore original IME: $originalImeUniqueName", e)
+                        }
                     }
                 }
-
-                val labels = baseLabels.toMutableList().apply {
-                    if (currentLabel.isNotEmpty() && currentLabel !in this) add(0, currentLabel)
-                }.distinct()
-
-                ime to labels
             }
         }.onFailure { e ->
             android.util.Log.e("SubModeManager", "Failed to fetch current IME and submode labels for layout: $layoutName", e)
