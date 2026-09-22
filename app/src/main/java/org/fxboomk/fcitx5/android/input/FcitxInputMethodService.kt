@@ -1458,9 +1458,11 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     private var simulatedAltRightPressedCount = 0
     private var simulatedCapsLockPressedFromMacro = false
     private var simulatedCapsLockOnByMacroTap = false
+    private var virtualShiftLockOn = false
 
     public fun isSimulatedCapsLockOn(): Boolean = simulatedCapsLockOn
     public fun isSimulatedCapsLockOnByMacroTap(): Boolean = simulatedCapsLockOnByMacroTap
+    public fun isVirtualShiftLockOn(): Boolean = virtualShiftLockOn
 
     public fun setVirtualCapsLockState(enabled: Boolean) {
         if (simulatedCapsLockOn == enabled) return
@@ -1471,10 +1473,17 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         TextKeyboard.refreshCapsPresentationOnAll()
     }
 
+    public fun setVirtualShiftLockState(enabled: Boolean) {
+        if (virtualShiftLockOn == enabled) return
+        virtualShiftLockOn = enabled
+        TextKeyboard.refreshCapsPresentationOnAll()
+    }
+
     private fun onHardwareTypingModeEnter(event: KeyEvent) {
         if (event.keyCode == KeyEvent.KEYCODE_CAPS_LOCK) return
         if (event.unicodeChar == 0) return
         TextKeyboard.clearCapsStateOnAll()
+        setVirtualShiftLockState(false)
         setVirtualCapsLockState(event.isCapsLockOn)
     }
 

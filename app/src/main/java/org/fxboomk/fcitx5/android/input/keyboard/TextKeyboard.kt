@@ -25,6 +25,14 @@ import kotlinx.serialization.json.*
 import kotlinx.serialization.Serializable
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.utils.LayoutJsonUtils
 
+/**
+ * Virtual uppercase input uses Shift semantics for both one-shot and
+ * persistent caps states. A persistent virtual caps state must not be
+ * represented as a physical CapsLock modifier to input engines.
+ */
+internal fun virtualUppercaseKeyStates(): KeyStates =
+    KeyStates(KeyState.Virtual, KeyState.Shift)
+
 @SuppressLint("ViewConstructor")
 class TextKeyboard private constructor(
     context: Context,
@@ -408,14 +416,18 @@ class TextKeyboard private constructor(
                         CapsState.Once -> {
                             transformed = action.copy(
                                 act = action.act.uppercase(),
-                                states = KeyStates(KeyState.Virtual, KeyState.Shift)
+                                states = virtualUppercaseKeyStates()
                             )
                             switchCapsState()
                         }
                         CapsState.Lock -> {
+                            // A persistent virtual-cap state is a Shift lock, not a
+                            // physical CapsLock modifier. Rime treats CapsLock as a
+                            // mode switch and may commit the key instead of accepting
+                            // the uppercase letter as input code.
                             transformed = action.copy(
                                 act = action.act.uppercase(),
-                                states = KeyStates(KeyState.Virtual, KeyState.CapsLock)
+                                states = virtualUppercaseKeyStates()
                             )
                         }
                     }
@@ -565,7 +577,11 @@ class TextKeyboard private constructor(
 
     override fun onAttach() {
         ensureSpecialKeyViewsInitialized()
-        capsState = CapsState.None
+        capsState = if (getService()?.isVirtualShiftLockOn() == true) {
+            CapsState.Lock
+        } else {
+            CapsState.None
+        }
         updateCapsButtonIcon()
         updateAlphabetKeys()
     }
@@ -639,9 +655,6 @@ class TextKeyboard private constructor(
             lastLayoutSignature = signature
         }
         refreshDynamicState()
-        if (capsState != CapsState.None) {
-            switchCapsState()
-        }
     }
 
     override fun onStyleRefreshFinished() {
@@ -706,7 +719,7 @@ class TextKeyboard private constructor(
         val oldLocked = oldCapsState == CapsState.Lock
         val newLocked = capsState == CapsState.Lock
         if (oldLocked != newLocked) {
-            getService()?.setVirtualCapsLockState(newLocked)
+            getService()?.setVirtualShiftLockState(newLocked)
         }
         refreshCapsPresentation()
     }
