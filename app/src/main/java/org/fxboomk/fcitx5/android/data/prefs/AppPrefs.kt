@@ -17,6 +17,7 @@ import org.fxboomk.fcitx5.android.input.candidates.floating.FloatingCandidatesMo
 import org.fxboomk.fcitx5.android.input.candidates.floating.FloatingCandidatesOrientation
 import org.fxboomk.fcitx5.android.input.candidates.floating.FloatingCandidatesVirtualKeyboardPosition
 import org.fxboomk.fcitx5.android.input.candidates.horizontal.HorizontalCandidateMode
+import org.fxboomk.fcitx5.android.input.keyboard.CapsKeyBehavior
 import org.fxboomk.fcitx5.android.input.keyboard.LangSwitchBehavior
 import org.fxboomk.fcitx5.android.input.keyboard.PredictionBackspaceBehavior
 import org.fxboomk.fcitx5.android.input.keyboard.PredictionSpaceBehavior
@@ -198,6 +199,11 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
             R.string.keep_keyboard_letters_uppercase,
             "keep_keyboard_letters_uppercase",
             false
+        )
+        val capsKeyBehavior = enumList(
+            R.string.caps_key_behavior,
+            "caps_key_behavior",
+            CapsKeyBehavior.Default
         )
 
         val showVoiceInputButton =

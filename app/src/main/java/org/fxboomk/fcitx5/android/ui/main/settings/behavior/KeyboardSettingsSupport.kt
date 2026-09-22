@@ -39,7 +39,8 @@ internal object KeyboardSettingsSupport {
     val basicBehaviorKeys = listOf(
         "reset_keyboard_on_focus_change",
         "inline_suggestions",
-        "keep_keyboard_letters_uppercase"
+        "keep_keyboard_letters_uppercase",
+        "show_lang_switch_key"
     )
 
     val toolbarAndInputKeys = listOf(
@@ -52,8 +53,8 @@ internal object KeyboardSettingsSupport {
     val keyAndGestureKeys = listOf(
         "popup_on_key_press",
         "expand_keypress_area",
-        "show_lang_switch_key",
         "swipe_symbol_behavior",
+        "caps_key_behavior",
         "lang_switch_key_behavior",
         "space_key_label_mode",
         "space_long_press_behavior",

@@ -442,7 +442,8 @@ class TextKeyboard private constructor(
                 if (!action.lock && source == KeyActionListener.Source.Keyboard && tryConsumeMacroCapsLock()) {
                     // MacroKey tap Caps_Lock opened lock state: single tap on CapsKey should send Caps_Lock again.
                 } else {
-                    switchCapsState(action.lock)
+                    val behavior = AppPrefs.getInstance().keyboard.capsKeyBehavior.getValue()
+                    switchCapsState(shouldLockCapsAction(action.lock, behavior))
                 }
             }
             else -> {}

@@ -5,6 +5,8 @@
 package org.fxboomk.fcitx5.android.ui.main.settings.behavior
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class KeyboardCandidateSettingsOrganizationTest {
@@ -39,4 +41,15 @@ class KeyboardCandidateSettingsOrganizationTest {
             KeyboardSettingsSupport.candidateItemKeys
         )
     }
+
+    @Test
+    fun languageSwitchVisibilityIsInBasicBehaviorAndCapsBehaviorPrecedesLanguageSwitchBehavior() {
+        assertTrue("show_lang_switch_key" in KeyboardSettingsSupport.basicBehaviorKeys)
+        assertFalse("show_lang_switch_key" in KeyboardSettingsSupport.keyAndGestureKeys)
+        assertEquals(
+            KeyboardSettingsSupport.keyAndGestureKeys.indexOf("caps_key_behavior") + 1,
+            KeyboardSettingsSupport.keyAndGestureKeys.indexOf("lang_switch_key_behavior")
+        )
+    }
+
 }

@@ -19,4 +19,17 @@ class TextKeyboardCapsStateTest {
         assertTrue(states.has(KeyState.Shift))
         assertFalse(states.has(KeyState.CapsLock))
     }
+
+    @Test
+    fun defaultCapsKeyBehaviorKeepsSingleTapAsOneShot() {
+        assertFalse(shouldLockCapsAction(false, CapsKeyBehavior.Default))
+        assertTrue(shouldLockCapsAction(true, CapsKeyBehavior.Default))
+    }
+
+    @Test
+    fun singleTapLockCapsKeyBehaviorLocksOnSingleTap() {
+        assertTrue(shouldLockCapsAction(false, CapsKeyBehavior.SingleTapLock))
+        assertTrue(shouldLockCapsAction(true, CapsKeyBehavior.SingleTapLock))
+    }
+
 }

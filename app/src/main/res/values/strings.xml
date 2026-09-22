@@ -222,6 +222,9 @@
     <string name="skip">Skip</string>
     <string name="none">None</string>
     <string name="theme_migrated">Theme has been migrated to the current version</string>
+    <string name="caps_key_behavior">Caps key behavior</string>
+    <string name="caps_key_behavior_default">Keep default behavior</string>
+    <string name="caps_key_behavior_single_tap_lock">Single tap locks uppercase</string>
     <string name="keep_keyboard_letters_uppercase">Keep keyboard letters uppercase</string>
     <string name="choose_input_method">Choose input method</string>
     <string name="edit_clipboard">Edit clipboard</string>

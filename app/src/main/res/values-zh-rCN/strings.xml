@@ -215,6 +215,9 @@
     <string name="skip">跳过</string>
     <string name="none">无</string>
     <string name="theme_migrated">主题已迁移到当前版本</string>
+    <string name="caps_key_behavior">大写切换键行为</string>
+    <string name="caps_key_behavior_default">保持默认</string>
+    <string name="caps_key_behavior_single_tap_lock">单击锁定</string>
     <string name="keep_keyboard_letters_uppercase">键盘字母保持大写</string>
     <string name="choose_input_method">选择输入法</string>
     <string name="edit_clipboard">编辑剪贴板</string>
