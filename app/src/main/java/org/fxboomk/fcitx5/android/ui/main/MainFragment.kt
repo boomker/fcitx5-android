@@ -94,6 +94,16 @@ class MainFragment : PaddingPreferenceFragment() {
         loadFcitxSearchItems()
     }
 
+    override fun onStop() {
+        if (::searchPreference.isInitialized) {
+            searchQuery = ""
+            searchPreference.query = ""
+            searchPreference.deactivateSearch()
+            renderContent()
+        }
+        super.onStop()
+    }
+
     private fun loadFcitxSearchItems() {
         if (loadingFcitxSearchItems) return
         loadingFcitxSearchItems = true
