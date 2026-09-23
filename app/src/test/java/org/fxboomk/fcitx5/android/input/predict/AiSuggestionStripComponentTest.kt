@@ -108,6 +108,37 @@ class AiSuggestionStripComponentTest {
     }
 
     @Test
+    fun predictionErrorIsInteractiveButNeverACompletedCandidate() {
+        val state = AiSuggestionStripComponent.PresentationState(
+            mode = AiSuggestionStripComponent.PresentationMode.BubbleFallback,
+            suggestions = emptyList(),
+            anchor = null,
+            panelSuggestions = emptyList(),
+            singleTextCommitText = null,
+            isPanelOpen = false,
+            isLongFormEnabled = false,
+            isSingleTextMode = false,
+            isLoading = false,
+            loadingLabel = null,
+            isQuestionAnswerEnabled = false,
+            isThinkingEnabled = false,
+            isTranslateEnabled = false,
+            errorMessage = "模型服务暂时不可用，请稍后重试",
+        )
+
+        assertTrue(hasInteractiveAiContent(state))
+        assertFalse(hasCompletedAiResult(state))
+        assertFalse(
+            hasInteractiveAiContent(
+                state.copy(
+                    mode = AiSuggestionStripComponent.PresentationMode.Hidden,
+                    errorMessage = null,
+                ),
+            ),
+        )
+    }
+
+    @Test
     fun openTranslatePanelKeepsAiContentVisibleBeforeResultArrives() {
         val state = AiSuggestionStripComponent.PresentationState(
             mode = AiSuggestionStripComponent.PresentationMode.PanelVisible,

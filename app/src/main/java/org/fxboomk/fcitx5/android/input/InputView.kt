@@ -72,6 +72,7 @@ import org.fxboomk.fcitx5.android.input.candidates.expanded.window.FlexboxExpand
 import org.fxboomk.fcitx5.android.input.candidates.expanded.window.GridExpandedCandidateWindow
 import org.fxboomk.fcitx5.android.input.predict.AiSuggestionOverlay
 import org.fxboomk.fcitx5.android.input.predict.AiSuggestionStripComponent
+import org.fxboomk.fcitx5.android.input.predict.hasInteractiveAiContent
 import org.fxboomk.fcitx5.android.input.predict.LlmPrefs
 import org.fxboomk.fcitx5.android.input.keyboard.CommonKeyActionListener
 import org.fxboomk.fcitx5.android.input.action.ButtonAction
@@ -1187,7 +1188,13 @@ class InputView(
     private val kawaiiBar = KawaiiBarComponent()
     private val aiSuggestionStrip = AiSuggestionStripComponent(service, themedContext)
     private val aiSuggestionOverlay = AiSuggestionOverlay(themedContext, theme).apply {
-        onBubbleClick = { aiSuggestionStrip.openSuggestionTable() }
+        onBubbleClick = {
+            if (aiSuggestionStrip.currentPresentationState().errorMessage != null) {
+                aiSuggestionStrip.dismissPredictionError()
+            } else {
+                aiSuggestionStrip.openSuggestionTable()
+            }
+        }
         onDismissRequest = { aiSuggestionStrip.collapsePanel() }
         onCollapseClick = { aiSuggestionStrip.collapsePanel() }
         onQuestionAnswerClick = { aiSuggestionStrip.toggleQuestionAnswerMode() }
@@ -2827,6 +2834,12 @@ class InputView(
     }
 
     internal fun isAiSuggestionPanelVisible(): Boolean = aiSuggestionStrip.isPanelVisible()
+
+    internal fun isAiSuggestionExpandedWindowVisible(): Boolean {
+        val state = aiSuggestionStrip.currentPresentationState()
+        return windowManager.currentWindowOrNull() is BaseExpandedCandidateWindow<*> &&
+            hasInteractiveAiContent(state)
+    }
 
     internal fun currentAiSuggestionPresentationState(): AiSuggestionStripComponent.PresentationState =
         latestAiSuggestionPresentationState

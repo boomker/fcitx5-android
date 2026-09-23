@@ -107,6 +107,21 @@ class PredictionBackspaceBehaviorDeciderTest {
     }
 
     @Test
+    fun expandedAiCandidateWindowAlwaysDismissesBeforeDeletingText() {
+        assertEquals(
+            PredictionBackspaceAction.DismissCandidates,
+            predictionBackspaceAction(
+                hasPreedit = false,
+                hasNativePredictionCandidatesVisible = false,
+                hasAiPredictionCandidatesVisible = true,
+                hasAiExpandedCandidateWindowVisible = true,
+                isRimeInputMethod = false,
+                predictionBackspaceBehavior = PredictionBackspaceBehavior.DeleteText,
+            )
+        )
+    }
+
+    @Test
     fun noPredictionCandidatesGoesToFcitx() {
         assertEquals(
             PredictionBackspaceAction.SendToFcitx,

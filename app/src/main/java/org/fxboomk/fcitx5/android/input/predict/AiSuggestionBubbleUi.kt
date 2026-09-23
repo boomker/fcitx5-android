@@ -2,6 +2,7 @@ package org.fxboomk.fcitx5.android.input.predict
 
 import android.content.Context
 import android.graphics.drawable.GradientDrawable
+import android.text.TextUtils
 import android.view.Gravity
 import android.widget.FrameLayout
 import android.widget.TextView
@@ -39,8 +40,26 @@ class AiSuggestionBubbleUi(
         )
     }
 
-    fun updateCount(count: Int) {
-        label.text = if (count > 0) "AI $count" else "AI"
-        contentDescription = label.text
+    fun updateContent(count: Int, errorMessage: String? = null) {
+        if (errorMessage != null) {
+            label.text = errorMessage
+            label.gravity = Gravity.START or Gravity.CENTER_VERTICAL
+            label.maxLines = 2
+            label.ellipsize = TextUtils.TruncateAt.END
+            contentDescription = errorMessage
+        } else {
+            label.text = if (count > 0) "AI $count" else "AI"
+            label.gravity = Gravity.CENTER
+            label.maxLines = 1
+            label.ellipsize = null
+            contentDescription = label.text
+        }
+    }
+
+    fun setContentMaxWidth(maxWidth: Int): Boolean {
+        val constrainedWidth = maxWidth.coerceAtLeast(1)
+        if (label.maxWidth == constrainedWidth) return false
+        label.maxWidth = constrainedWidth
+        return true
     }
 }

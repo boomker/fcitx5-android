@@ -83,7 +83,8 @@ internal fun hasInteractiveAiContent(
 ): Boolean = state.isPanelOpen ||
     state.isLoading ||
     state.suggestions.isNotEmpty() ||
-    state.panelSuggestions.isNotEmpty()
+    state.panelSuggestions.isNotEmpty() ||
+    state.errorMessage != null
 
 internal fun hasCompletedAiResult(
     state: AiSuggestionStripComponent.PresentationState,
@@ -132,6 +133,7 @@ class AiSuggestionStripComponent(
         val isQuestionAnswerEnabled: Boolean,
         val isThinkingEnabled: Boolean,
         val isTranslateEnabled: Boolean,
+        val errorMessage: String? = null,
     )
 
     private data class InputTextSnapshot(
@@ -179,6 +181,7 @@ class AiSuggestionStripComponent(
     private var predictionSuppressed = false
     private var suppressionUntilCommitRevision = -1
     private var activeSuggestions: List<String> = emptyList()
+    private var errorMessage: String? = null
     private var suggestionsPreservedOnCursorMove = false
     private var panelVisible = false
     private var anchorState: CursorAnchorState? = null
@@ -207,6 +210,7 @@ class AiSuggestionStripComponent(
         isQuestionAnswerEnabled = false,
         isThinkingEnabled = false,
         isTranslateEnabled = false,
+        errorMessage = null,
     )
 
     var onPresentationChanged: ((PresentationState) -> Unit)? = null
@@ -313,6 +317,12 @@ class AiSuggestionStripComponent(
         return true
     }
 
+    fun dismissPredictionError(): Boolean {
+        if (errorMessage == null) return false
+        suppressPredictionUntilNextCommit("dismiss-prediction-error")
+        return true
+    }
+
     fun openSuggestionTable(): Boolean {
         panelVisible = true
         return if (shouldUseSingleTextPanel()) {
@@ -405,6 +415,7 @@ class AiSuggestionStripComponent(
             taskMode = taskMode,
             enableThinking = thinkingEnabled,
         )
+        errorMessage = null
         panelVisible = true
         panelContentMode = PanelContentMode.LongFormLoading
         activeSuggestions = activeSuggestions.take(1)
@@ -417,6 +428,7 @@ class AiSuggestionStripComponent(
             onResult = { suggestions ->
                 val latestBeforeCursor = fetchBeforeCursor(config).takeLast(config.maxContextChars)
                 if (latestBeforeCursor != beforeCursor) return@request
+                errorMessage = null
                 val longForm = suggestions.firstOrNull()
                     ?.let {
                         sanitizeSingleCandidate(
@@ -442,12 +454,10 @@ class AiSuggestionStripComponent(
             },
             onError = { error ->
                 Log.e(TAG, "long-form predict failed: ${error.message}", error)
-                if (receivedStreamingPartial && streamedLongForm.isNotBlank()) {
-                    panelDisplayedText = streamedLongForm
-                    panelContentMode = PanelContentMode.LongFormReady
-                } else {
-                    resetPanelContentState()
-                }
+                errorMessage = predictionErrorMessage(error)
+                activeSuggestions = emptyList()
+                panelVisible = true
+                resetPanelContentState()
                 dispatchPresentationChanged()
             },
             onPartial = { partial ->
@@ -513,6 +523,7 @@ class AiSuggestionStripComponent(
         cancelPseudoStreaming()
         resetPanelContentState()
         activeSuggestions = emptyList()
+        errorMessage = null
         panelVisible = false
         dispatchPresentationChanged()
     }
@@ -607,6 +618,7 @@ class AiSuggestionStripComponent(
         val shouldShowQuestionAnswerPanel = taskMode == LlmTaskMode.QuestionAnswer && panelVisible
         val shouldShowSuggestionsLoadingPanel = panelVisible && panelContentMode == PanelContentMode.SuggestionsLoading
         val fallbackSuggestions = activeSuggestions.take(1)
+        errorMessage = null
         if (shouldShowQuestionAnswerPanel) {
             cancelPseudoStreaming()
             panelContentMode = PanelContentMode.QuestionAnswerLoading
@@ -631,6 +643,7 @@ class AiSuggestionStripComponent(
                 if (latestBeforeCursor != beforeCursor) {
                     return@request
                 }
+                errorMessage = null
                 val normalized = suggestions.mapNotNull {
                     sanitizeSingleCandidate(
                         candidate = it,
@@ -662,11 +675,11 @@ class AiSuggestionStripComponent(
             },
             onError = { error ->
                 Log.e(TAG, "predict failed: ${error.message}", error)
-                if (shouldShowQuestionAnswerPanel) {
-                    activeSuggestions = fallbackSuggestions
-                    resetPanelContentState()
-                    dispatchPresentationChanged()
-                }
+                errorMessage = predictionErrorMessage(error)
+                activeSuggestions = emptyList()
+                panelVisible = shouldShowQuestionAnswerPanel
+                resetPanelContentState()
+                dispatchPresentationChanged()
             }
         )
     }
@@ -801,6 +814,7 @@ class AiSuggestionStripComponent(
         cancelPseudoStreaming()
         resetPanelContentState()
         activeSuggestions = emptyList()
+        errorMessage = null
         panelVisible = false
         dispatchPresentationChanged()
         if (resetRequestState) {
@@ -812,6 +826,9 @@ class AiSuggestionStripComponent(
         val config = LlmPrefs.read(service.applicationContext)
         val visibleSuggestions = activeSuggestions.take(currentSuggestionLimit())
         val baseMode = when {
+            errorMessage != null && panelVisible -> PresentationMode.PanelVisible
+            errorMessage != null && anchorState != null -> PresentationMode.BubbleAnchored
+            errorMessage != null -> PresentationMode.BubbleFallback
             panelVisible && panelContentMode != PanelContentMode.Suggestions -> PresentationMode.PanelVisible
             visibleSuggestions.isEmpty() -> PresentationMode.Hidden
             panelVisible -> PresentationMode.PanelVisible
@@ -864,10 +881,25 @@ class AiSuggestionStripComponent(
             isQuestionAnswerEnabled = taskMode == LlmTaskMode.QuestionAnswer,
             isThinkingEnabled = thinkingEnabled,
             isTranslateEnabled = taskMode == LlmTaskMode.Translate,
+            errorMessage = errorMessage,
         )
         onPresentationChanged?.invoke(
             latestPresentationState
         )
+    }
+
+    private fun predictionErrorMessage(error: Throwable): String {
+        val failure = error as? LlmPredictionFailure
+        failure?.providerMessage?.takeIf(String::isNotBlank)?.let { return it }
+        return when (failure?.kind) {
+            LlmPredictionFailure.Kind.BILLING_OR_QUOTA -> themedContext.getString(R.string.ai_clip_error_quota)
+            LlmPredictionFailure.Kind.AUTHENTICATION -> themedContext.getString(R.string.ai_clip_error_authentication)
+            LlmPredictionFailure.Kind.RATE_LIMIT -> themedContext.getString(R.string.ai_clip_error_rate_limit)
+            LlmPredictionFailure.Kind.SERVICE_UNAVAILABLE -> themedContext.getString(R.string.ai_clip_error_service)
+            LlmPredictionFailure.Kind.NETWORK -> themedContext.getString(R.string.ai_clip_error_network)
+            LlmPredictionFailure.Kind.INVALID_RESPONSE -> themedContext.getString(R.string.ai_clip_error_invalid_response)
+            null -> themedContext.getString(R.string.ai_clip_error_generic)
+        }
     }
 
     private fun syncThinkingModeForRuntime(config: LlmPrefs.Config) {
@@ -1033,6 +1065,7 @@ class AiSuggestionStripComponent(
         )
         lastRequestedBeforeCursor = sourceText
         cancelPseudoStreaming()
+        errorMessage = null
         panelVisible = true
         panelContentMode = PanelContentMode.TranslateLoading
         activeSuggestions = activeSuggestions.take(1)
@@ -1066,6 +1099,7 @@ class AiSuggestionStripComponent(
                 if (trigger == PredictionTrigger.Automatic && predictionSuppressed) return@request
                 val latestText = fetchEntireInputText(config).text.trim()
                 if (latestText != sourceText) return@request
+                errorMessage = null
                 val translated = suggestions.firstOrNull()
                     ?.let {
                         sanitizeSingleCandidate(
@@ -1095,16 +1129,10 @@ class AiSuggestionStripComponent(
             },
             onError = { error ->
                 Log.e(TAG, "translate predict failed: ${error.message}", error)
-                if (receivedStreamingPartial && streamedTranslation.isNotBlank()) {
-                    activeSuggestions = listOf(
-                        extractCommittedTranslation(streamedTranslation).ifBlank { streamedTranslation }
-                    )
-                    panelVisible = true
-                    panelDisplayedText = streamedTranslation
-                    panelContentMode = PanelContentMode.TranslateReady
-                } else {
-                    resetPanelContentState()
-                }
+                errorMessage = predictionErrorMessage(error)
+                activeSuggestions = emptyList()
+                panelVisible = true
+                resetPanelContentState()
                 dispatchPresentationChanged()
             },
         )
@@ -1127,6 +1155,7 @@ class AiSuggestionStripComponent(
         )
         lastRequestedBeforeCursor = beforeCursor
         cancelPseudoStreaming()
+        errorMessage = null
         panelVisible = true
         panelContentMode = PanelContentMode.QuestionAnswerLoading
         activeSuggestions = activeSuggestions.take(1)
@@ -1161,6 +1190,7 @@ class AiSuggestionStripComponent(
                 if (trigger == PredictionTrigger.Automatic && predictionSuppressed) return@request
                 val latestBeforeCursor = fetchBeforeCursor(config).takeLast(config.maxContextChars)
                 if (latestBeforeCursor != beforeCursor) return@request
+                errorMessage = null
                 val answer = suggestions.firstOrNull()
                     ?.let {
                         sanitizeSingleCandidate(
@@ -1201,6 +1231,9 @@ class AiSuggestionStripComponent(
             },
             onError = { error ->
                 Log.e(TAG, "question-answer predict failed: ${error.message}", error)
+                errorMessage = predictionErrorMessage(error)
+                activeSuggestions = emptyList()
+                panelVisible = true
                 resetPanelContentState()
                 dispatchPresentationChanged()
             },

@@ -127,8 +127,12 @@ internal class LlmPredictor(
                     }
                     onResult(it.suggestions.take(limit))
                 }.onFailure {
-                    onError?.invoke(it)
-                    onResult(emptyList())
+                    requestTracker.invalidate()
+                    if (onError != null) {
+                        onError.invoke(it)
+                    } else {
+                        onResult(emptyList())
+                    }
                 }
             } finally {
                 if (pendingJob === runningJob) {

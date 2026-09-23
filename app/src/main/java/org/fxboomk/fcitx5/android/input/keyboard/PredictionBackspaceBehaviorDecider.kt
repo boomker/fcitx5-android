@@ -14,10 +14,12 @@ internal fun predictionBackspaceAction(
     hasPreedit: Boolean,
     hasNativePredictionCandidatesVisible: Boolean,
     hasAiPredictionCandidatesVisible: Boolean,
+    hasAiExpandedCandidateWindowVisible: Boolean = false,
     isRimeInputMethod: Boolean,
     predictionBackspaceBehavior: PredictionBackspaceBehavior,
 ): PredictionBackspaceAction = when {
     hasPreedit -> PredictionBackspaceAction.SendToFcitx
+    hasAiExpandedCandidateWindowVisible -> PredictionBackspaceAction.DismissCandidates
     !hasNativePredictionCandidatesVisible && !hasAiPredictionCandidatesVisible ->
         PredictionBackspaceAction.SendToFcitx
     predictionBackspaceBehavior == PredictionBackspaceBehavior.DeleteText ->

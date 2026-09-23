@@ -4,6 +4,10 @@
 
 package org.fxboomk.fcitx5.android.input.predict
 
+import java.io.ByteArrayInputStream
+import java.io.InputStream
+import java.lang.reflect.InvocationTargetException
+import kotlin.jvm.functions.Function1
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -12,6 +16,31 @@ import org.junit.Test
 import org.json.JSONObject
 
 class LlmClientTest {
+
+    @Test
+    fun streamingProviderErrorIsRejectedBeforeItCanBecomeSuggestionText() {
+        val client = LlmClient()
+        val method = LlmClient::class.java.getDeclaredMethod(
+            "consumeStreamingResponse",
+            InputStream::class.java,
+            String::class.java,
+            Function1::class.java,
+        )
+        method.isAccessible = true
+        val stream = ByteArrayInputStream(
+            "data: {\"error\":{\"code\":\"insufficient_quota\",\"message\":\"secret details\"}}\n\n"
+                .toByteArray(),
+        )
+
+        val thrown = runCatching {
+            method.invoke(client, stream, "https://api.openai.com/v1/chat/completions", null)
+        }.exceptionOrNull() as InvocationTargetException
+        val failure = thrown.targetException.cause as LlmPredictionFailure
+
+        assertEquals(LlmPredictionFailure.Kind.BILLING_OR_QUOTA, failure.kind)
+        assertFalse(failure.userMessage.contains("secret details"))
+    }
+
     @Test
     fun customProviderPrefersThinkFalseForOpenAiCompatibleRequests() {
         val variants = LlmRequestPolicy.variants(

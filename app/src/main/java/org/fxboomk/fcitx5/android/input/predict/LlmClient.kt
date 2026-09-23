@@ -4,6 +4,7 @@ import android.util.Log
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.InputStream
+import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 import java.nio.charset.StandardCharsets
@@ -20,7 +21,8 @@ internal class LlmClient(
     private class HttpRequestFailure(
         val statusCode: Int,
         val responseBody: String,
-    ) : IllegalStateException("LLM request failed: HTTP $statusCode ${responseBody.take(240)}")
+        val classifiedFailure: LlmPredictionFailure = LlmPredictionFailure.fromHttp(statusCode, responseBody),
+    ) : IllegalStateException("LLM request failed: HTTP $statusCode", classifiedFailure)
 
     private data class RequestPlan(
         val endpoint: String,
@@ -156,9 +158,14 @@ internal class LlmClient(
             }
         }.orEmpty()
 
-        Log.d(TAG, "response code=$responseCode body=${responseBody.take(240)}")
+        Log.d(TAG, "response code=$responseCode bodyLength=${responseBody.length}")
         if (responseCode !in 200..299) {
             throw HttpRequestFailure(responseCode, responseBody)
+        }
+        if (!streaming) {
+            LlmPredictionFailure.classifyProviderEnvelope(responseBody)?.let { classified ->
+                throw HttpRequestFailure(responseCode, responseBody, classified)
+            }
         }
 
         val metadata = if (streaming) null else extractResponseMetadata(responseBody)
@@ -169,6 +176,9 @@ internal class LlmClient(
         }
         val suggestions = metadata?.suggestions?.takeIf { it.isNotEmpty() }
             ?: parseSuggestions(rawContent, beforeCursor)
+        if (rawContent.isBlank() || suggestions.isEmpty()) {
+            throw LlmPredictionFailure.invalidResponse()
+        }
         Log.d(TAG, "parsed suggestions=$suggestions rawContent=${rawContent.take(240)}")
         return PredictionResponse(
             suggestions = suggestions,
@@ -349,7 +359,7 @@ internal class LlmClient(
                     onPartialText = onPartialText,
                 )
             } catch (failure: HttpRequestFailure) {
-                lastFailure = failure
+                lastFailure = failure.classifiedFailure
                 if (
                     LlmRequestPolicy.shouldPersistThinkingDisabledSuppression(
                         statusCode = failure.statusCode,
@@ -369,13 +379,15 @@ internal class LlmClient(
                 }
                 Log.w(
                     TAG,
-                    "$mode protocol=${plan.protocol} failed status=${failure.statusCode} fallback=$canFallback body=${failure.responseBody.take(160)}"
+                    "$mode protocol=${plan.protocol} failed status=${failure.statusCode} fallback=$canFallback"
                 )
-                if (!canFallback) throw failure
+                if (!canFallback) throw failure.classifiedFailure
+            } catch (failure: IOException) {
+                throw LlmPredictionFailure.fromNetwork(failure)
             }
         }
 
-        throw (lastFailure ?: IllegalStateException("No $mode protocol candidates available"))
+        throw (lastFailure ?: LlmPredictionFailure.invalidResponse())
     }
 
     private fun buildCompletionPlans(request: PredictionRequest): List<RequestPlan> {
@@ -690,6 +702,9 @@ internal class LlmClient(
             .filter(String::isNotBlank)
             .forEach { line ->
                 if (line == "[DONE]") return@forEach
+                LlmPredictionFailure.classifyProviderEnvelope(line)?.let { classified ->
+                    throw HttpRequestFailure(statusCode = 200, responseBody = line, classifiedFailure = classified)
+                }
                 val json = runCatching { JSONObject(line) }.getOrNull() ?: return@forEach
                 if (LlmRequestPolicy.isAnthropicEndpoint(endpoint) || json.has("type")) {
                     parseAnthropicStreamingChunk(json, onTextDelta)

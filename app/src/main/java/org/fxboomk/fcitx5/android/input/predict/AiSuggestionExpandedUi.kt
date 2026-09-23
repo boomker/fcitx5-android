@@ -63,6 +63,28 @@ class AiSuggestionExpandedUi(
         )
     }
 
+    private val errorTextView = TextView(context).apply {
+        textSize = 16f
+        gravity = Gravity.START or Gravity.TOP
+        setTextColor(theme.candidateTextColor)
+        setPadding(context.dp(12), context.dp(14), context.dp(12), context.dp(14))
+    }
+
+    private val errorScrollView = ScrollView(context).apply {
+        visibility = View.GONE
+        isFillViewport = true
+        overScrollMode = View.OVER_SCROLL_NEVER
+        clipToPadding = false
+        background = contentBackground()
+        addView(
+            errorTextView,
+            LayoutParams(
+                LayoutParams.MATCH_PARENT,
+                LayoutParams.WRAP_CONTENT,
+            )
+        )
+    }
+
     private val thinkingChip = createActionChip(context.getString(R.string.ai_clip_thinking)) {
         onThinkingClick()
     }
@@ -113,6 +135,17 @@ class AiSuggestionExpandedUi(
             }
         )
         addView(
+            errorScrollView,
+            LayoutParams(
+                LayoutParams.MATCH_PARENT,
+                0,
+                1f,
+            ).apply {
+                val margin = context.dp(6)
+                setMargins(margin, margin, margin, margin)
+            }
+        )
+        addView(
             actionRow,
             LayoutParams(
                 LayoutParams.MATCH_PARENT,
@@ -135,6 +168,7 @@ class AiSuggestionExpandedUi(
         isQuestionAnswerEnabled: Boolean,
         isThinkingEnabled: Boolean,
         isTranslateEnabled: Boolean,
+        errorMessage: String? = null,
     ) {
         visibility = if (visible) View.VISIBLE else View.GONE
         if (!visible) return
@@ -144,6 +178,18 @@ class AiSuggestionExpandedUi(
         updateActionChip(translateChip, active = isTranslateEnabled)
         updateActionChip(longFormChip, active = isLongFormEnabled)
 
+        if (errorMessage != null) {
+            recyclerView.visibility = View.GONE
+            singleTextScrollView.visibility = View.GONE
+            clearSingleTextClickListener()
+            errorTextView.text = errorMessage
+            errorScrollView.visibility = View.VISIBLE
+            adapter.submitList(emptyList())
+            return
+        }
+
+        errorScrollView.visibility = View.GONE
+        errorTextView.text = ""
         val items = if (isLoading && values.isEmpty()) {
             listOf(PanelItem(loadingLabel.orEmpty(), false))
         } else {
@@ -164,20 +210,32 @@ class AiSuggestionExpandedUi(
                 null
             }
             singleTextScrollView.setOnClickListener(clickListener)
+            singleTextScrollView.isClickable = clickListener != null
+            singleTextScrollView.isFocusable = clickListener != null
             singleTextView.setOnClickListener(clickListener)
+            singleTextView.isClickable = clickListener != null
+            singleTextView.isFocusable = clickListener != null
             singleTextScrollView.alpha = if (singleItem?.enabled == false) 0.7f else 1f
             singleTextView.alpha = singleTextScrollView.alpha
         } else {
             singleTextScrollView.visibility = View.GONE
             recyclerView.visibility = View.VISIBLE
-            singleTextScrollView.setOnClickListener(null)
-            singleTextView.setOnClickListener(null)
-            singleTextScrollView.alpha = 1f
-            singleTextView.alpha = 1f
+            clearSingleTextClickListener()
             adapter.submitList(items)
             (recyclerView.layoutManager as? GridLayoutManager)?.spanCount =
                 spanCountFor(resources.configuration)
         }
+    }
+
+    private fun clearSingleTextClickListener() {
+        singleTextScrollView.setOnClickListener(null)
+        singleTextScrollView.isClickable = false
+        singleTextScrollView.isFocusable = false
+        singleTextView.setOnClickListener(null)
+        singleTextView.isClickable = false
+        singleTextView.isFocusable = false
+        singleTextScrollView.alpha = 1f
+        singleTextView.alpha = 1f
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -187,10 +245,12 @@ class AiSuggestionExpandedUi(
 
     fun scrollByPage(direction: Int) {
         if (direction == 0) return
-        if (singleTextScrollView.visibility == View.VISIBLE) {
-            singleTextScrollView.smoothScrollBy(0, direction * singleTextScrollView.height.coerceAtLeast(1))
-        } else {
-            recyclerView.smoothScrollBy(0, direction * recyclerView.height.coerceAtLeast(1))
+        when {
+            errorScrollView.visibility == View.VISIBLE ->
+                errorScrollView.smoothScrollBy(0, direction * errorScrollView.height.coerceAtLeast(1))
+            singleTextScrollView.visibility == View.VISIBLE ->
+                singleTextScrollView.smoothScrollBy(0, direction * singleTextScrollView.height.coerceAtLeast(1))
+            else -> recyclerView.smoothScrollBy(0, direction * recyclerView.height.coerceAtLeast(1))
         }
     }
 

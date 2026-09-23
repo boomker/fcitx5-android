@@ -271,6 +271,7 @@ abstract class BaseExpandedCandidateWindow<T : BaseExpandedCandidateWindow<T>> :
             isQuestionAnswerEnabled = state.isQuestionAnswerEnabled,
             isThinkingEnabled = state.isThinkingEnabled,
             isTranslateEnabled = state.isTranslateEnabled,
+            errorMessage = state.errorMessage,
         )
     }
 
@@ -306,6 +307,7 @@ abstract class BaseExpandedCandidateWindow<T : BaseExpandedCandidateWindow<T>> :
                     state.isPanelOpen && (
                         state.isSingleTextMode ||
                             state.isLoading ||
+                            state.errorMessage != null ||
                             overlayValues.isNotEmpty()
                         ) -> AiExpandedPresentation(
                         visible = hasAiState,

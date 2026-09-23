@@ -217,6 +217,8 @@ class CommonKeyActionListener :
                                     hasPreedit = preeditVisible,
                                     hasNativePredictionCandidatesVisible = nativePredictionCandidatesVisible,
                                     hasAiPredictionCandidatesVisible = aiSuggestionStrip.hasVisibleSuggestions(),
+                                    hasAiExpandedCandidateWindowVisible =
+                                        service.inputView?.isAiSuggestionExpandedWindowVisible() == true,
                                     isRimeInputMethod = isRimeInputMethod(),
                                     predictionBackspaceBehavior = predictionBackspaceBehavior,
                                 )

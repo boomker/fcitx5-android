@@ -454,6 +454,13 @@
     <string name="ai_clip_answer_loading" translatable="false">正在生成回答…</string>
     <string name="ai_clip_translate_loading" translatable="false">正在翻译…</string>
     <string name="ai_clip_long_form_loading" translatable="false">正在生成长文候选…</string>
+    <string name="ai_clip_error_quota" translatable="false">模型服务余额不足或已欠费，请检查账户后重试</string>
+    <string name="ai_clip_error_authentication" translatable="false">模型服务认证失败，请检查 API 密钥</string>
+    <string name="ai_clip_error_rate_limit" translatable="false">模型服务请求过于频繁，请稍后重试</string>
+    <string name="ai_clip_error_service" translatable="false">模型服务暂时不可用，请稍后重试</string>
+    <string name="ai_clip_error_network" translatable="false">无法连接模型服务，请检查网络后重试</string>
+    <string name="ai_clip_error_invalid_response" translatable="false">模型服务返回了无效结果，请稍后重试</string>
+    <string name="ai_clip_error_generic" translatable="false">模型预测失败，请稍后重试</string>
     <string name="llm_provider" translatable="false">模型服务商</string>
     <string name="llm_provider_local_ai" translatable="false">本地</string>
     <string name="llm_provider_custom" translatable="false">自定义</string>

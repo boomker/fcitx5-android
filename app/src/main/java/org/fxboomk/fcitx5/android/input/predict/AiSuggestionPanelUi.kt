@@ -178,6 +178,34 @@ class AiSuggestionPanelUi(
         )
     }
 
+    private val errorTextView = TextView(context).apply {
+        textSize = 16f
+        gravity = Gravity.START or Gravity.TOP
+        setTextColor(theme.candidateTextColor)
+        setPadding(context.dp(12), context.dp(14), context.dp(12), context.dp(14))
+    }
+
+    private val errorScrollView = ScrollView(context).apply {
+        visibility = View.GONE
+        isFillViewport = true
+        overScrollMode = View.OVER_SCROLL_NEVER
+        clipToPadding = false
+        setPadding(context.dp(10), 0, context.dp(10), context.dp(10))
+        background = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = context.dp(12).toFloat()
+            setColor(theme.keyBackgroundColor)
+            setStroke(context.dp(1), theme.dividerColor)
+        }
+        addView(
+            errorTextView,
+            LayoutParams(
+                LayoutParams.MATCH_PARENT,
+                LayoutParams.WRAP_CONTENT,
+            )
+        )
+    }
+
     private var headerDragActive = false
     private var lastHeaderDragRawX = 0f
     private var lastHeaderDragRawY = 0f
@@ -208,6 +236,16 @@ class AiSuggestionPanelUi(
         )
         addView(
             singleTextScrollView,
+            LayoutParams(
+                LayoutParams.MATCH_PARENT,
+                LayoutParams.WRAP_CONTENT,
+            ).apply {
+                val margin = context.dp(6)
+                setMargins(margin, margin, margin, margin)
+            }
+        )
+        addView(
+            errorScrollView,
             LayoutParams(
                 LayoutParams.MATCH_PARENT,
                 LayoutParams.WRAP_CONTENT,
@@ -264,18 +302,27 @@ class AiSuggestionPanelUi(
         isQuestionAnswerEnabled: Boolean,
         isThinkingEnabled: Boolean,
         isTranslateEnabled: Boolean,
+        errorMessage: String? = null,
     ) {
         updateActionChip(questionAnswerChip, active = isQuestionAnswerEnabled)
         updateActionChip(thinkingChip, active = isThinkingEnabled)
         updateActionChip(translateChip, active = isTranslateEnabled)
         updateActionChip(longFormChip, active = isLongFormEnabled)
+
+        if (errorMessage != null) {
+            recyclerView.visibility = View.GONE
+            singleTextScrollView.visibility = View.GONE
+            clearSingleTextClickListener()
+            errorTextView.text = errorMessage
+            errorScrollView.visibility = View.VISIBLE
+            adapter.submitList(emptyList())
+            return
+        }
+
+        errorScrollView.visibility = View.GONE
+        errorTextView.text = ""
         val items = if (isLoading && values.isEmpty()) {
-            listOf(
-                PanelItem(
-                    loadingLabel.orEmpty(),
-                    false,
-                )
-            )
+            listOf(PanelItem(loadingLabel.orEmpty(), false))
         } else {
             values.map { PanelItem(it, !isLoading) }
         }
@@ -304,18 +351,22 @@ class AiSuggestionPanelUi(
         } else {
             singleTextScrollView.visibility = View.GONE
             recyclerView.visibility = View.VISIBLE
-            singleTextScrollView.setOnClickListener(null)
-            singleTextScrollView.isClickable = false
-            singleTextScrollView.isFocusable = false
-            singleTextView.setOnClickListener(null)
-            singleTextView.isClickable = false
-            singleTextView.isFocusable = false
-            singleTextScrollView.alpha = 1f
-            singleTextView.alpha = 1f
+            clearSingleTextClickListener()
             adapter.submitList(items)
             (recyclerView.layoutManager as? GridLayoutManager)?.spanCount =
                 spanCountFor(resources.configuration)
         }
+    }
+
+    private fun clearSingleTextClickListener() {
+        singleTextScrollView.setOnClickListener(null)
+        singleTextScrollView.isClickable = false
+        singleTextScrollView.isFocusable = false
+        singleTextView.setOnClickListener(null)
+        singleTextView.isClickable = false
+        singleTextView.isFocusable = false
+        singleTextScrollView.alpha = 1f
+        singleTextView.alpha = 1f
     }
 
     fun setExpandedState(expanded: Boolean, panelHeight: Int? = null) {
@@ -329,6 +380,10 @@ class AiSuggestionPanelUi(
             weight = 0f
         }
         singleTextScrollView.updateLayoutParams<LayoutParams> {
+            height = contentHeight
+            weight = 0f
+        }
+        errorScrollView.updateLayoutParams<LayoutParams> {
             height = contentHeight
             weight = 0f
         }

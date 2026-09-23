@@ -108,7 +108,10 @@ class AiSuggestionOverlay(
             panelExpanded = false
         }
         currentState = state
-        bubbleUi.updateCount(state.suggestions.size)
+        bubbleUi.updateContent(
+            count = state.suggestions.size,
+            errorMessage = state.errorMessage,
+        )
         panelUi.updateContent(
             values = state.panelSuggestions,
             singleTextCommitValue = state.singleTextCommitText,
@@ -119,6 +122,7 @@ class AiSuggestionOverlay(
             isQuestionAnswerEnabled = state.isQuestionAnswerEnabled,
             isThinkingEnabled = state.isThinkingEnabled,
             isTranslateEnabled = state.isTranslateEnabled,
+            errorMessage = state.errorMessage,
         )
 
         bubbleUi.visibility = when (state.mode) {
@@ -197,6 +201,14 @@ class AiSuggestionOverlay(
     private fun positionChildren() {
         if (width <= 0 || height <= 0) return
 
+        val bubbleWidthChanged = bubbleUi.setContentMaxWidth(
+            (width - edgeGap * 2f).roundToInt().coerceAtLeast(1)
+        )
+        if (bubbleWidthChanged) {
+            bubbleUi.requestLayout()
+            post { positionChildren() }
+        }
+
         val targetPanelWidth = resolveAiSuggestionPanelWidth(
             containerWidth = width,
             edgeGap = edgeGap.toInt(),
@@ -240,26 +252,38 @@ class AiSuggestionOverlay(
         val bubbleHeight = bubbleUi.height.toFloat().takeIf { it > 0f } ?: return
         val anchor = currentState.anchor
 
-        val x = if (currentState.mode == AiSuggestionStripComponent.PresentationMode.BubbleAnchored && anchor != null) {
+        val desiredX = if (
+            currentState.mode == AiSuggestionStripComponent.PresentationMode.BubbleAnchored &&
+            anchor != null
+        ) {
             val afterCursor = anchor.horizontal + edgeGap
             val beforeCursor = anchor.horizontal - bubbleWidth - edgeGap
-            if (afterCursor + bubbleWidth <= width - edgeGap) {
-                afterCursor
-            } else {
-                beforeCursor.coerceAtLeast(edgeGap)
-            }
+            if (afterCursor + bubbleWidth <= width - edgeGap) afterCursor else beforeCursor
         } else {
             width - bubbleWidth - edgeGap
         }
-        val y = if (currentState.mode == AiSuggestionStripComponent.PresentationMode.BubbleAnchored && anchor != null) {
+        val desiredY = if (
+            currentState.mode == AiSuggestionStripComponent.PresentationMode.BubbleAnchored &&
+            anchor != null
+        ) {
             val lineCenter = (anchor.top + anchor.bottom) / 2f
-            (lineCenter - bubbleHeight / 2f).coerceIn(edgeGap, height - bubbleHeight - edgeGap)
+            lineCenter - bubbleHeight / 2f
         } else {
-            (fallbackTop + edgeGap).coerceIn(edgeGap, height - bubbleHeight - edgeGap)
+            fallbackTop + edgeGap
         }
 
-        bubbleUi.translationX = x
-        bubbleUi.translationY = y
+        bubbleUi.translationX = clampBubbleCoordinate(desiredX, bubbleWidth, width.toFloat())
+        bubbleUi.translationY = clampBubbleCoordinate(desiredY, bubbleHeight, height.toFloat())
+    }
+
+    private fun clampBubbleCoordinate(
+        desired: Float,
+        bubbleSize: Float,
+        containerSize: Float,
+    ): Float {
+        val max = (containerSize - bubbleSize - edgeGap).coerceAtLeast(0f)
+        val min = edgeGap.coerceAtMost(max)
+        return desired.coerceIn(min, max)
     }
 
     private fun positionPanel() {
