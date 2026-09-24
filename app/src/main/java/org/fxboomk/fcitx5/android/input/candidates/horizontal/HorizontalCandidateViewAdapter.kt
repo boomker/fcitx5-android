@@ -92,7 +92,9 @@ open class HorizontalCandidateViewAdapter(val theme: Theme) :
 
     @CallSuper
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CandidateViewHolder {
-        val ui = CandidateItemUi(parent.context, theme, candFont)
+        val ui = CandidateItemUi(parent.context, theme, candFont).apply {
+            enableHorizontalOverflow()
+        }
         ui.root.apply {
             minimumWidth = dp(40)
             layoutParams = FlexboxLayoutManager.LayoutParams(wrapContent, matchParent)
