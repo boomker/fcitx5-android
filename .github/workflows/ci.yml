@@ -138,6 +138,7 @@ jobs:
             :third_party:onnxruntime-genai-android:publish
           ./gradlew clean \
             -PincludeMainlineFlavor=true \
+            -PincludeFxFlavor=false \
             -PgithubPackagesRepository="$local_third_party_repository" \
             :app:assembleMainlineRelease :assembleReleasePlugins
           mkdir -p app/build/outputs/apk/release/
