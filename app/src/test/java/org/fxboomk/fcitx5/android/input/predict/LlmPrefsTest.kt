@@ -559,6 +559,142 @@ class LlmPrefsTest {
     }
 
     @Test
+    fun getScopedApiKeyRawDoesNotFallBackToTheSharedKey() {
+        val prefs = FakeSharedPreferences(
+            mutableMapOf(LlmPrefs.KEY_PROVIDER to LlmPrefs.Provider.OpenAI.value)
+        )
+        LlmPrefs.persistScopedApiKey(
+            prefs,
+            LlmPrefs.Provider.OpenAI,
+            "https://api.first.example/v1",
+            "sk-first",
+        )
+        prefs.edit().putString(LlmPrefs.KEY_API_KEY, "sk-shared").apply()
+
+        // A domain with its own key returns it; a domain without one stays blank instead
+        // of echoing the shared key (which is what caused every field to show the first key).
+        assertEquals(
+            "sk-first",
+            LlmPrefs.getScopedApiKeyRaw(prefs, LlmPrefs.Provider.OpenAI, "https://api.first.example/v1"),
+        )
+        assertEquals(
+            "",
+            LlmPrefs.getScopedApiKeyRaw(prefs, LlmPrefs.Provider.OpenAI, "https://api.second.example/v1"),
+        )
+        // A different host never inherits a credential without explicit consent.
+        assertEquals(
+            "",
+            LlmPrefs.getScopedApiKey(prefs, LlmPrefs.Provider.OpenAI, "https://api.second.example/v1"),
+        )
+    }
+
+    @Test
+    fun backupUsesPrimaryKeyOnlyWhenSharingIsEnabledAndExplicitKeyWins() {
+        val first = "https://api.first.example/v1"
+        val backup = "https://api.second.example/v1"
+        val prefs = FakeSharedPreferences(mutableMapOf(LlmPrefs.KEY_PROVIDER to LlmPrefs.Provider.OpenAI.value))
+        LlmPrefs.writeBaseUrls(prefs, listOf(first, backup), listOf(first, backup))
+        LlmPrefs.persistScopedApiKey(prefs, LlmPrefs.Provider.OpenAI, first, "sk-primary")
+
+        assertEquals("", LlmPrefs.getScopedApiKey(prefs, LlmPrefs.Provider.OpenAI, backup))
+        assertEquals("", LlmPrefs.read(prefs).remoteEndpoints[1].apiKey)
+        prefs.edit().putBoolean(LlmPrefs.KEY_SHARE_PRIMARY_API_KEY, true).apply()
+        assertEquals("sk-primary", LlmPrefs.getScopedApiKey(prefs, LlmPrefs.Provider.OpenAI, backup))
+        assertEquals("sk-primary", LlmPrefs.read(prefs).remoteEndpoints[1].apiKey)
+        LlmPrefs.persistScopedApiKey(prefs, LlmPrefs.Provider.OpenAI, backup, "sk-backup")
+        assertEquals("sk-backup", LlmPrefs.getScopedApiKey(prefs, LlmPrefs.Provider.OpenAI, backup))
+    }
+
+    @Test
+    fun selectingAnUnconfiguredBackupDoesNotTurnOldPrimaryKeyIntoItsKey() {
+        val first = "https://api.first.example/v1"
+        val backup = "https://api.second.example/v1"
+        val prefs = FakeSharedPreferences(mutableMapOf(
+            LlmPrefs.KEY_PROVIDER to LlmPrefs.Provider.OpenAI.value,
+            LlmPrefs.KEY_BASE_URL to first,
+            LlmPrefs.KEY_API_KEY to "sk-legacy-primary",
+        ))
+        LlmPrefs.writeBaseUrls(prefs, listOf(first, backup), listOf(first, backup))
+        assertEquals("sk-legacy-primary", LlmPrefs.read(prefs).remoteEndpoints[0].apiKey)
+        assertEquals("", LlmPrefs.read(prefs).remoteEndpoints[1].apiKey)
+
+        LlmPrefs.writeBaseUrls(prefs, listOf(first, backup), listOf(backup))
+        assertEquals("", LlmPrefs.getScopedApiKey(prefs, LlmPrefs.Provider.OpenAI, backup))
+        assertEquals("sk-legacy-primary", LlmPrefs.getScopedApiKey(prefs, LlmPrefs.Provider.OpenAI, first))
+    }
+
+    @Test
+    fun confirmedUrlDeletionRemovesOnlyThatUrlsScopedSettings() {
+        val first = "https://api.first.example/v1"
+        val backup = "https://api.second.example/v1"
+        val prefs = FakeSharedPreferences(mutableMapOf(LlmPrefs.KEY_PROVIDER to LlmPrefs.Provider.OpenAI.value))
+        LlmPrefs.writeBaseUrls(prefs, listOf(first, backup), listOf(first, backup))
+        LlmPrefs.persistScopedApiKey(prefs, LlmPrefs.Provider.OpenAI, first, "sk-first")
+        LlmPrefs.persistScopedApiKey(prefs, LlmPrefs.Provider.OpenAI, backup, "sk-backup")
+        LlmPrefs.persistScopedModel(prefs, LlmPrefs.Provider.OpenAI, backup, "backup-model")
+
+        LlmPrefs.writeBaseUrls(prefs, listOf(first), listOf(first))
+        LlmPrefs.removeScopedEndpointSettings(prefs, LlmPrefs.Provider.OpenAI, listOf(backup))
+        assertEquals("", LlmPrefs.getScopedApiKeyRaw(prefs, LlmPrefs.Provider.OpenAI, backup))
+        assertEquals("", LlmPrefs.getScopedModel(prefs, LlmPrefs.Provider.OpenAI, backup))
+        assertEquals("sk-first", LlmPrefs.getScopedApiKeyRaw(prefs, LlmPrefs.Provider.OpenAI, first))
+    }
+
+    @Test
+    fun providerSwitchNeverSendsPreviousProvidersSharedKeyToNewHost() {
+        val prefs = FakeSharedPreferences(mutableMapOf(
+            LlmPrefs.KEY_PROVIDER to LlmPrefs.Provider.OpenAI.value,
+            LlmPrefs.KEY_BASE_URL to "https://api.openai.com/v1",
+            LlmPrefs.KEY_API_KEY to "sk-openai",
+            LlmPrefs.KEY_SHARE_PRIMARY_API_KEY to true,
+        ))
+        assertEquals("", LlmPrefs.getScopedApiKey(
+            prefs, LlmPrefs.Provider.DeepSeek, "https://api.deepseek.com",
+        ))
+    }
+
+    @Test
+    fun enabledModelsDoesNotBorrowSharedModelForDomainsLeftBlank() {
+        val prefs = FakeSharedPreferences(
+            mutableMapOf(LlmPrefs.KEY_PROVIDER to LlmPrefs.Provider.OpenAI.value)
+        )
+        LlmPrefs.writeBaseUrls(
+            prefs,
+            listOf("https://api.a.example/v1", "https://api.b.example/v1"),
+            listOf("https://api.a.example/v1", "https://api.b.example/v1"),
+        )
+        LlmPrefs.persistScopedModel(prefs, LlmPrefs.Provider.OpenAI, "https://api.a.example/v1", "model-a")
+
+        // a.example has its own model; b.example was left blank and must NOT echo model-a
+        // (persistScopedModel also set KEY_MODEL=model-a, which used to leak in as a fallback).
+        assertEquals(listOf("model-a", ""), LlmPrefs.enabledModels(prefs))
+    }
+
+    @Test
+    fun switchingProvidersRemembersUrlsAndEnabledStatePerProvider() {
+        val prefs = FakeSharedPreferences(
+            mutableMapOf(LlmPrefs.KEY_PROVIDER to LlmPrefs.Provider.Custom.value)
+        )
+        val customUrls = listOf("http://10.0.0.1:8000", "http://10.0.0.2:8000")
+        LlmPrefs.writeBaseUrls(prefs, customUrls, customUrls)
+
+        // Custom -> OpenAI (first time): its default URL is loaded AND enabled (checked).
+        val openAiText = LlmPrefs.switchProviderBaseUrls(prefs, LlmPrefs.Provider.Custom, LlmPrefs.Provider.OpenAI)
+        val openAiUrls = LlmPrefs.parseBaseUrls(openAiText)
+        assertEquals(
+            LlmPrefs.parseBaseUrls(LlmPrefs.providerDefaultBaseUrl(LlmPrefs.Provider.OpenAI, prefs)),
+            openAiUrls,
+        )
+        assertEquals(openAiUrls, LlmPrefs.selectedBaseUrls(prefs, openAiUrls))
+
+        // OpenAI -> Custom: both original URLs and their enabled state are restored.
+        val restoredText = LlmPrefs.switchProviderBaseUrls(prefs, LlmPrefs.Provider.OpenAI, LlmPrefs.Provider.Custom)
+        val restoredUrls = LlmPrefs.parseBaseUrls(restoredText)
+        assertEquals(customUrls, restoredUrls)
+        assertEquals(customUrls, LlmPrefs.selectedBaseUrls(prefs, restoredUrls))
+    }
+
+    @Test
     fun syncScopedApiKeyToActivePreferencesReturnsMatchingStoredKey() {
         val prefs = FakeSharedPreferences()
         LlmPrefs.persistScopedApiKey(
@@ -597,8 +733,12 @@ class LlmPrefsTest {
     }
 
     @Test
-    fun customProviderUsesPersistedDefaultApiKeyWhenScopeEmpty() {
+    fun customProviderUsesPersistedDefaultApiKeyOnlyForPrimaryUnlessSharingEnabled() {
         val prefs = FakeSharedPreferences()
+        LlmPrefs.writeBaseUrls(
+            prefs, listOf("http://10.0.0.9:9000", "http://10.0.0.10:9000"),
+            listOf("http://10.0.0.9:9000", "http://10.0.0.10:9000"),
+        )
 
         LlmPrefs.persistScopedApiKey(
             prefs,
@@ -607,14 +747,16 @@ class LlmPrefsTest {
             "sk-custom-default",
         )
 
-        assertEquals(
-            "sk-custom-default",
-            LlmPrefs.getScopedApiKey(
-                prefs,
-                LlmPrefs.Provider.Custom,
-                "http://10.0.0.10:9000",
-            ),
-        )
+        assertEquals("sk-custom-default", LlmPrefs.getScopedApiKey(
+            prefs, LlmPrefs.Provider.Custom, "http://10.0.0.9:9000",
+        ))
+        assertEquals("", LlmPrefs.getScopedApiKey(
+            prefs, LlmPrefs.Provider.Custom, "http://10.0.0.10:9000",
+        ))
+        prefs.edit().putBoolean(LlmPrefs.KEY_SHARE_PRIMARY_API_KEY, true).apply()
+        assertEquals("sk-custom-default", LlmPrefs.getScopedApiKey(
+            prefs, LlmPrefs.Provider.Custom, "http://10.0.0.10:9000",
+        ))
     }
 
     @Test

@@ -890,8 +890,7 @@ class AiSuggestionStripComponent(
 
     private fun predictionErrorMessage(error: Throwable): String {
         val failure = error as? LlmPredictionFailure
-        failure?.providerMessage?.takeIf(String::isNotBlank)?.let { return it }
-        return when (failure?.kind) {
+        val message = failure?.providerMessage?.takeIf(String::isNotBlank) ?: when (failure?.kind) {
             LlmPredictionFailure.Kind.BILLING_OR_QUOTA -> themedContext.getString(R.string.ai_clip_error_quota)
             LlmPredictionFailure.Kind.AUTHENTICATION -> themedContext.getString(R.string.ai_clip_error_authentication)
             LlmPredictionFailure.Kind.RATE_LIMIT -> themedContext.getString(R.string.ai_clip_error_rate_limit)
@@ -900,6 +899,9 @@ class AiSuggestionStripComponent(
             LlmPredictionFailure.Kind.INVALID_RESPONSE -> themedContext.getString(R.string.ai_clip_error_invalid_response)
             null -> themedContext.getString(R.string.ai_clip_error_generic)
         }
+        return if (failure?.willSwitchEndpointOnNextRequest == true) {
+            "${themedContext.getString(R.string.ai_clip_error_next_endpoint)}\n$message"
+        } else message
     }
 
     private fun syncThinkingModeForRuntime(config: LlmPrefs.Config) {

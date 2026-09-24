@@ -8,6 +8,8 @@ import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 import java.nio.charset.StandardCharsets
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -18,6 +20,8 @@ private const val TAG = "LlmClient"
 internal class LlmClient(
     private val thinkingSuppressionStore: LlmThinkingSuppressionStore = NoOpLlmThinkingSuppressionStore,
 ) {
+    private val endpointFailoverState = LlmEndpointFailoverState()
+
     private class HttpRequestFailure(
         val statusCode: Int,
         val responseBody: String,
@@ -71,11 +75,18 @@ internal class LlmClient(
         request: PredictionRequest,
         onPartialText: ((String) -> Unit)? = null,
     ): PredictionResponse = withContext(Dispatchers.IO) {
+        predictWithEndpointFailover(request, onPartialText, endpointFailoverState, ::predictAtEndpoint)
+    }
+
+    private fun predictAtEndpoint(
+        request: PredictionRequest,
+        onPartialText: ((String) -> Unit)?,
+    ): PredictionResponse {
         val response = when (request.config.backend) {
             LlmPrefs.Backend.ChatCompletions -> predictChat(request, onPartialText)
             LlmPrefs.Backend.Completion -> predictCompletion(request, onPartialText)
         }
-        if (
+        return if (
             request.taskMode == LlmTaskMode.Translate &&
             !request.translationCorrectionAttempt &&
             response.suggestions.none {
@@ -129,63 +140,67 @@ internal class LlmClient(
         Log.d(TAG, "POST $endpoint beforeCursor='${beforeCursor.take(60)}'")
         val streaming = payload.optBoolean("stream", false)
         val connection = openConnection(endpoint, apiKey, streaming)
-        connection.outputStream.use { output ->
-            output.write(payload.toString().toByteArray(StandardCharsets.UTF_8))
-        }
+        try {
+            connection.outputStream.use { output ->
+                output.write(payload.toString().toByteArray(StandardCharsets.UTF_8))
+            }
 
-        val responseCode = connection.responseCode
-        val stream = if (responseCode in 200..299) connection.inputStream else connection.errorStream
-        val responseBody = stream?.use { input ->
-            if (responseCode in 200..299 && streaming) {
-                consumeStreamingResponse(
-                    input = input,
-                    endpoint = endpoint,
-                    onPartialText = if (suppressTranslationEcho && onPartialText != null) {
-                        { partial ->
-                            val filtered = normalizeTranslationPartialCandidate(beforeCursor, partial)
-                            if (filtered.isNotBlank()) {
-                                onPartialText(filtered)
+            val responseCode = connection.responseCode
+            val stream = if (responseCode in 200..299) connection.inputStream else connection.errorStream
+            val responseBody = stream?.use { input ->
+                if (responseCode in 200..299 && streaming) {
+                    consumeStreamingResponse(
+                        input = input,
+                        endpoint = endpoint,
+                        onPartialText = if (suppressTranslationEcho && onPartialText != null) {
+                            { partial ->
+                                val filtered = normalizeTranslationPartialCandidate(beforeCursor, partial)
+                                if (filtered.isNotBlank()) {
+                                    onPartialText(filtered)
+                                }
                             }
-                        }
-                    } else {
-                        onPartialText
-                    },
-                )
-            } else {
-                BufferedReader(InputStreamReader(input, StandardCharsets.UTF_8)).use { reader ->
-                    reader.readText()
+                        } else {
+                            onPartialText
+                        },
+                    )
+                } else {
+                    BufferedReader(InputStreamReader(input, StandardCharsets.UTF_8)).use { reader ->
+                        reader.readText()
+                    }
+                }
+            }.orEmpty()
+
+            Log.d(TAG, "response code=$responseCode bodyLength=${responseBody.length}")
+            if (responseCode !in 200..299) {
+                throw HttpRequestFailure(responseCode, responseBody)
+            }
+            if (!streaming) {
+                LlmPredictionFailure.classifyProviderEnvelope(responseBody)?.let { classified ->
+                    throw HttpRequestFailure(responseCode, responseBody, classified)
                 }
             }
-        }.orEmpty()
 
-        Log.d(TAG, "response code=$responseCode bodyLength=${responseBody.length}")
-        if (responseCode !in 200..299) {
-            throw HttpRequestFailure(responseCode, responseBody)
-        }
-        if (!streaming) {
-            LlmPredictionFailure.classifyProviderEnvelope(responseBody)?.let { classified ->
-                throw HttpRequestFailure(responseCode, responseBody, classified)
+            val metadata = if (streaming) null else extractResponseMetadata(responseBody)
+            val rawContent = if (streaming) {
+                responseBody
+            } else {
+                extractContent(responseBody)
             }
+            val suggestions = metadata?.suggestions?.takeIf { it.isNotEmpty() }
+                ?: parseSuggestions(rawContent, beforeCursor)
+            if (rawContent.isBlank() || suggestions.isEmpty()) {
+                throw LlmPredictionFailure.invalidResponse()
+            }
+            Log.d(TAG, "parsed suggestions=$suggestions rawContent=${rawContent.take(240)}")
+            return PredictionResponse(
+                suggestions = suggestions,
+                rawContent = rawContent,
+                modelId = metadata?.modelId.orEmpty(),
+                usage = metadata?.usage,
+            )
+        } finally {
+            connection.disconnect()
         }
-
-        val metadata = if (streaming) null else extractResponseMetadata(responseBody)
-        val rawContent = if (streaming) {
-            responseBody
-        } else {
-            extractContent(responseBody)
-        }
-        val suggestions = metadata?.suggestions?.takeIf { it.isNotEmpty() }
-            ?: parseSuggestions(rawContent, beforeCursor)
-        if (rawContent.isBlank() || suggestions.isEmpty()) {
-            throw LlmPredictionFailure.invalidResponse()
-        }
-        Log.d(TAG, "parsed suggestions=$suggestions rawContent=${rawContent.take(240)}")
-        return PredictionResponse(
-            suggestions = suggestions,
-            rawContent = rawContent,
-            modelId = metadata?.modelId.orEmpty(),
-            usage = metadata?.usage,
-        )
     }
 
     private fun predictChat(
@@ -985,4 +1000,96 @@ internal class LlmClient(
             """"type"\s*:\s*"text"[\s\S]*?"text"\s*:\s*"((?:\\.|[^"\\])*)""""
         )
     }
+}
+
+/** Keeps the last working endpoint, or the next endpoint after an error shown to the user.
+ * Settings changes reset the preference; no failure or key state is persisted to disk. */
+internal class LlmEndpointFailoverState {
+    private var configured: List<LlmPrefs.RemoteEndpoint>? = null
+    private var preferredBaseUrl: String? = null
+    private val deferredFailures = mutableSetOf<String>()
+
+    @Synchronized
+    fun ordered(endpoints: List<LlmPrefs.RemoteEndpoint>): List<LlmPrefs.RemoteEndpoint> {
+        if (configured != endpoints) {
+            configured = endpoints.toList()
+            preferredBaseUrl = null
+            deferredFailures.clear()
+        }
+        val first = endpoints.indexOfFirst { it.baseUrl == preferredBaseUrl }.takeIf { it >= 0 } ?: 0
+        return endpoints.drop(first) + endpoints.take(first)
+    }
+
+    @Synchronized
+    fun succeeded(endpoints: List<LlmPrefs.RemoteEndpoint>, baseUrl: String) {
+        if (configured == endpoints && baseUrl !in deferredFailures) preferredBaseUrl = baseUrl
+    }
+
+    @Synchronized
+    fun deferNext(endpoints: List<LlmPrefs.RemoteEndpoint>, failedBaseUrl: String): Boolean {
+        if (configured != endpoints || endpoints.size < 2) return false
+        val index = endpoints.indexOfFirst { it.baseUrl == failedBaseUrl }
+        if (index < 0) return false
+        deferredFailures.add(failedBaseUrl)
+        preferredBaseUrl = endpoints[(index + 1) % endpoints.size].baseUrl
+        return true
+    }
+}
+
+/** Network/service failures try the next endpoint now. Credential, quota and rate-limit
+ * failures surface to the user first, then start from the next endpoint on the next request. */
+internal suspend fun predictWithEndpointFailover(
+    request: LlmClient.PredictionRequest,
+    onPartialText: ((String) -> Unit)?,
+    state: LlmEndpointFailoverState = LlmEndpointFailoverState(),
+    predictAtEndpoint: (LlmClient.PredictionRequest, ((String) -> Unit)?) -> LlmClient.PredictionResponse,
+): LlmClient.PredictionResponse {
+    val context = currentCoroutineContext()
+    val endpoints = request.config.remoteEndpoints
+    val ordered = endpoints.takeIf { it.isNotEmpty() }?.let(state::ordered).orEmpty()
+    val configs = ordered.map { endpoint ->
+        request.config.copy(
+            baseUrl = endpoint.baseUrl,
+            model = endpoint.model,
+            apiKey = endpoint.apiKey,
+            remoteEndpoints = emptyList(),
+        )
+    }.ifEmpty { listOf(request.config) }
+    var lastFailure: LlmPredictionFailure? = null
+    for ((index, config) in configs.withIndex()) {
+        context.ensureActive()
+        var partialEmitted = false
+        val partialCallback = onPartialText?.let { callback ->
+            { partial: String ->
+                context.ensureActive()
+                partialEmitted = true
+                callback(partial)
+            }
+        }
+        try {
+            val response = predictAtEndpoint(request.copy(config = config), partialCallback)
+            if (ordered.isNotEmpty()) state.succeeded(endpoints, config.baseUrl)
+            return response
+        } catch (failure: LlmPredictionFailure) {
+            // These failures are displayed through the existing prediction error UI.
+            // A separate credential or balance on the next endpoint may still work.
+            if (failure.kind in setOf(
+                    LlmPredictionFailure.Kind.AUTHENTICATION,
+                    LlmPredictionFailure.Kind.BILLING_OR_QUOTA,
+                    LlmPredictionFailure.Kind.RATE_LIMIT,
+                )) {
+                context.ensureActive()
+                failure.willSwitchEndpointOnNextRequest =
+                    ordered.isNotEmpty() && state.deferNext(endpoints, config.baseUrl)
+                throw failure
+            }
+            lastFailure = failure
+        }
+        context.ensureActive()
+        if (index < configs.lastIndex && partialEmitted) {
+            // Streaming callbacks are snapshots: don't mix the two responses.
+            onPartialText?.invoke("")
+        }
+    }
+    throw (lastFailure ?: LlmPredictionFailure.invalidResponse())
 }

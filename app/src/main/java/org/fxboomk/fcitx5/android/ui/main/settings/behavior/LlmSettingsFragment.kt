@@ -168,9 +168,18 @@ class LlmSettingsFragment : PaddingPreferenceFragment() {
                 titleRes = R.string.llm_api_url,
                 defaultValue = "",
                 summaryProvider = Preference.SummaryProvider<EditTextPreference> { pref ->
-                    val raw = pref.text.orEmpty().trim()
-                    if (raw.isNotBlank()) {
-                        raw
+                    val raw = pref.text.orEmpty()
+                    val urls = LlmPrefs.parseBaseUrls(raw)
+                    if (urls.isNotEmpty()) {
+                        val sharedPrefs = pref.preferenceManager.sharedPreferences
+                        val selected = sharedPrefs?.let { LlmPrefs.selectedBaseUrls(it, urls) }.orEmpty()
+                        if (selected.isEmpty()) {
+                            context.getString(R.string.llm_api_url_none_enabled_summary, urls.size)
+                        } else if (selected.size == 1) {
+                            selected.single()
+                        } else {
+                            context.getString(R.string.llm_api_url_multiple_enabled_summary, selected.size)
+                        }
                     } else {
                         val sharedPrefs = pref.preferenceManager.sharedPreferences
                         val provider = sharedPrefs?.let(LlmPrefs::currentProvider) ?: LlmPrefs.Provider.Custom
@@ -187,11 +196,18 @@ class LlmSettingsFragment : PaddingPreferenceFragment() {
                 titleRes = R.string.llm_api_key,
                 defaultValue = "",
                 summaryProvider = Preference.SummaryProvider<EditTextPreference> { pref ->
-                    val apiKey = pref.text.orEmpty().trim()
-                    if (apiKey.isBlank()) {
+                    val keys = pref.preferenceManager.sharedPreferences
+                        ?.let(LlmPrefs::configuredApiKeys).orEmpty()
+                    if (keys.isEmpty()) {
                         context.getString(R.string._not_available_)
                     } else {
-                        context.getString(R.string.llm_api_key_set, summarizeSecret(apiKey))
+                        buildString {
+                            append(context.getString(R.string.llm_api_key_count_summary, keys.size))
+                            keys.forEach { (domain, key) ->
+                                append('\n')
+                                append("$domain：${maskKeyEnds(key)}")
+                            }
+                        }
                     }
                 },
                 inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD,
@@ -206,19 +222,20 @@ class LlmSettingsFragment : PaddingPreferenceFragment() {
                     if (runtime == LlmPrefs.Runtime.LocalOnDevice) {
                         LlmLocalModelManager.statusSummary(context)
                     } else {
-                        val modelName = pref.text.orEmpty().trim()
-                        val status = if (modelName.isBlank()) {
+                        val models = pref.preferenceManager.sharedPreferences
+                            ?.let(LlmPrefs::enabledModels).orEmpty()
+                            .filter { it.isNotBlank() }
+                        if (models.isEmpty()) {
                             context.getString(R.string.llm_model_status_remote_missing_name)
-                        } else if (LlmPrefs.read(context).isUsable) {
-                            context.getString(R.string.llm_model_status_remote_ready)
                         } else {
-                            context.getString(R.string.llm_model_status_remote_unavailable)
+                            buildString {
+                                append(context.getString(R.string.llm_model_count_summary, models.size))
+                                models.forEach {
+                                    append('\n')
+                                    append(it)
+                                }
+                            }
                         }
-                        context.getString(
-                            R.string.llm_model_status_remote_summary,
-                            modelName.ifBlank { context.getString(R.string.llm_model_summary_hint) },
-                            status,
-                        )
                     }
                 },
             ))
@@ -323,14 +340,18 @@ class LlmSettingsFragment : PaddingPreferenceFragment() {
         summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
         setOnPreferenceChangeListener { _, newValue ->
             val prefs = preferenceManager.sharedPreferences ?: return@setOnPreferenceChangeListener true
+            val currentProvider = LlmPrefs.currentProvider(prefs)
             val nextProvider = LlmPrefs.Provider.from(newValue?.toString())
             val nextRuntime = LlmPrefs.runtimeForProvider(nextProvider)
             prefs.edit().putString(LlmPrefs.KEY_RUNTIME, nextRuntime.value).apply()
-            val nextBase = LlmPrefs.providerDefaultBaseUrl(nextProvider, prefs)
-            findPreference<EditTextPreference>(LlmPrefs.KEY_BASE_URL)?.text = nextBase
-            val nextApiKey = LlmPrefs.getScopedApiKey(prefs, nextProvider, nextBase)
+            // Remember this provider's URLs + checkmarks and restore the target provider's.
+            val nextBaseText = LlmPrefs.switchProviderBaseUrls(prefs, currentProvider, nextProvider)
+            findPreference<EditTextPreference>(LlmPrefs.KEY_BASE_URL)?.text = nextBaseText
+            val primaryBase = LlmPrefs.primaryBaseUrl(prefs)
+                ?: LlmPrefs.providerDefaultBaseUrl(nextProvider, prefs)
+            val nextApiKey = LlmPrefs.getScopedApiKey(prefs, nextProvider, primaryBase)
             findPreference<EditTextPreference>(LlmPrefs.KEY_API_KEY)?.text = nextApiKey
-            val nextModel = LlmPrefs.syncScopedModelToActivePreferences(prefs, nextProvider, nextBase)
+            val nextModel = LlmPrefs.syncScopedModelToActivePreferences(prefs, nextProvider, primaryBase)
             findPreference<EditTextPreference>(LlmPrefs.KEY_MODEL)?.text = nextModel
             syncSamplingPreferenceState(nextProvider)
             syncRuntimePreferenceState(nextRuntime)
@@ -357,13 +378,14 @@ class LlmSettingsFragment : PaddingPreferenceFragment() {
         if (currentRawBase != effectiveBase) {
             basePref?.text = effectiveBase
         }
-        val apiKey = LlmPrefs.syncScopedApiKeyToActivePreferences(prefs, provider, effectiveBase)
+        val primaryBase = LlmPrefs.primaryBaseUrl(prefs) ?: effectiveBase
+        val apiKey = LlmPrefs.syncScopedApiKeyToActivePreferences(prefs, provider, primaryBase)
         findPreference<EditTextPreference>(LlmPrefs.KEY_API_KEY)?.text = apiKey
         val currentModel = findPreference<EditTextPreference>(LlmPrefs.KEY_MODEL)?.text.orEmpty()
         val restoredModel = LlmPrefs.syncScopedModelToActivePreferences(
             prefs,
             provider,
-            effectiveBase,
+            primaryBase,
             legacyFallback = currentModel,
         )
         findPreference<EditTextPreference>(LlmPrefs.KEY_MODEL)?.text = restoredModel
@@ -913,9 +935,8 @@ class LlmSettingsFragment : PaddingPreferenceFragment() {
         }
     }
 
-    private fun summarizeSecret(raw: String): String {
+    private fun maskKeyEnds(raw: String): String {
         val value = raw.trim()
-        if (value.length <= 8) return value
-        return value.take(6) + "..." + value.takeLast(3)
+        return if (value.length <= 8) value else "${value.take(4)}…${value.takeLast(4)}"
     }
 }

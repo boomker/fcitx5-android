@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import androidx.preference.PreferenceManager
 import java.net.Inet4Address
 import java.net.NetworkInterface
+import java.net.URL
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import org.fxboomk.fcitx5.android.R
@@ -21,12 +22,16 @@ object LlmPrefs {
     const val KEY_AUTO_PREDICT_ENABLED = KEY_PREFIX + "auto_predict_enabled"
     const val KEY_PROVIDER = KEY_PREFIX + "provider"
     const val KEY_BASE_URL = KEY_PREFIX + "base_url"
+    const val KEY_ENABLED_BASE_URLS = KEY_PREFIX + "enabled_base_urls"
+    const val KEY_SHARE_PRIMARY_API_KEY = KEY_PREFIX + "share_primary_api_key"
     const val KEY_MODEL = KEY_PREFIX + "model"
     const val KEY_API_KEY = KEY_PREFIX + "api_key"
     private const val KEY_CUSTOM_DEFAULT_BASE_URL = KEY_PREFIX + "custom_default_base_url"
     private const val KEY_CUSTOM_DEFAULT_API_KEY = KEY_PREFIX + "custom_default_api_key"
     private const val KEY_MODEL_SCOPE_PREFIX = KEY_PREFIX + "model_scope_"
     private const val KEY_API_KEY_SCOPE_PREFIX = KEY_PREFIX + "api_key_scope_"
+    private const val KEY_BASE_URLS_SCOPE_PREFIX = KEY_PREFIX + "base_urls_scope_"
+    private const val KEY_ENABLED_SCOPE_PREFIX = KEY_PREFIX + "enabled_scope_"
     const val KEY_SAMPLE_COUNT = KEY_PREFIX + "sample_count"
     const val KEY_MAX_OUTPUT_TOKENS = KEY_PREFIX + "max_output_tokens"
     const val KEY_MAX_PREDICTION_CANDIDATES = KEY_PREFIX + "max_prediction_candidates"
@@ -50,6 +55,8 @@ object LlmPrefs {
         KEY_AUTO_PREDICT_ENABLED,
         KEY_PROVIDER,
         KEY_BASE_URL,
+        KEY_ENABLED_BASE_URLS,
+        KEY_SHARE_PRIMARY_API_KEY,
         KEY_MODEL,
         KEY_API_KEY,
         KEY_CUSTOM_DEFAULT_BASE_URL,
@@ -71,6 +78,8 @@ object LlmPrefs {
     private val prefixedPreferenceKeys = listOf(
         KEY_MODEL_SCOPE_PREFIX,
         KEY_API_KEY_SCOPE_PREFIX,
+        KEY_BASE_URLS_SCOPE_PREFIX,
+        KEY_ENABLED_SCOPE_PREFIX,
         KEY_PERSONA_DETAIL_PREFIX,
     )
 
@@ -206,6 +215,211 @@ object LlmPrefs {
         val backend: Backend? = null,
     )
 
+    data class RemoteEndpoint(
+        val baseUrl: String,
+        val model: String,
+        val apiKey: String,
+    )
+
+    fun parseBaseUrls(raw: String): List<String> = raw
+        .splitToSequence('\n', '\r')
+        .map(::normalizeBaseUrl)
+        .filter(String::isNotBlank)
+        .distinct()
+        .toList()
+
+    fun encodeBaseUrls(baseUrls: Collection<String>): String = baseUrls
+        .map(::normalizeBaseUrl)
+        .filter(String::isNotBlank)
+        .distinct()
+        .joinToString("\n")
+
+    fun selectedBaseUrls(prefs: SharedPreferences, baseUrls: List<String>): List<String> {
+        val normalized = baseUrls.map(::normalizeBaseUrl).filter(String::isNotBlank).distinct()
+        val selected = prefs.getStringSet(KEY_ENABLED_BASE_URLS, null)?.toSet() ?: normalized.take(1).toSet()
+        return normalized.filter { it in selected }
+    }
+
+    fun writeBaseUrls(prefs: SharedPreferences, baseUrls: Collection<String>, enabledBaseUrls: Collection<String>) {
+        migrateLegacyPreferenceKeys(prefs)
+        val provider = currentProvider(prefs)
+        val oldPrimary = primaryBaseUrl(prefs) ?: providerDefaultBaseUrl(provider, prefs)
+        val oldScope = scopedApiKeyKey(prefs, provider, oldPrimary)
+        // Bind a legacy single key to its old host before changing the selected primary.
+        // Otherwise a later selection could silently send it to a different host.
+        val oldKey = prefs.getString(KEY_API_KEY, "").orEmpty().trim().ifBlank {
+            if (provider == Provider.Custom) prefs.getString(KEY_CUSTOM_DEFAULT_API_KEY, "").orEmpty().trim() else ""
+        }
+        val normalized = baseUrls.map(::normalizeBaseUrl).filter(String::isNotBlank).distinct()
+        val enabled = enabledBaseUrls.map(::normalizeBaseUrl).filter { it in normalized }.toSet()
+            .ifEmpty { normalized.take(1).toSet() }
+        val newPrimary = normalized.firstOrNull { it in enabled }
+        val newKey = newPrimary?.let { url ->
+            if (url == oldPrimary && !prefs.contains(oldScope)) oldKey
+            else prefs.getString(scopedApiKeyKey(prefs, provider, url), "").orEmpty().trim()
+        }.orEmpty()
+        prefs.edit().apply {
+            if (oldKey.isNotBlank() && !prefs.contains(oldScope)) putString(oldScope, oldKey)
+            putString(KEY_BASE_URL, encodeBaseUrls(normalized))
+            putStringSet(KEY_ENABLED_BASE_URLS, enabled)
+            putString(KEY_API_KEY, newKey)
+        }.apply()
+    }
+
+    /**
+     * Persists an API key per domain, writing it onto every configured URL that
+     * shares the domain (keys are scoped per full URL, so same-domain endpoints
+     * stay in sync). The active key ([KEY_API_KEY]) — and, for the custom
+     * provider, the stored default — follows [primaryDomain]. A blank key clears
+     * that domain's scoped entries.
+     */
+    fun writeScopedApiKeys(
+        prefs: SharedPreferences,
+        provider: Provider,
+        keyByDomain: Map<String, String>,
+        primaryDomain: String?,
+    ) {
+        migrateLegacyPreferenceKeys(prefs)
+        val urlsByDomain = parseBaseUrls(prefs.getString(KEY_BASE_URL, "").orEmpty()).groupBy(::domainOf)
+        val editor = prefs.edit()
+        keyByDomain.forEach { (domain, rawKey) ->
+            val key = rawKey.trim()
+            urlsByDomain[domainOf(domain)].orEmpty().forEach { url ->
+                val scopeKey = scopedApiKeyKey(prefs, provider, url)
+                if (key.isBlank()) editor.remove(scopeKey) else editor.putString(scopeKey, key)
+            }
+        }
+        val primaryKey = primaryDomain?.let { keyByDomain[it] ?: keyByDomain[domainOf(it)] }?.trim().orEmpty()
+        editor.putString(KEY_API_KEY, primaryKey)
+        if (provider == Provider.Custom) {
+            editor.putString(KEY_CUSTOM_DEFAULT_API_KEY, primaryKey)
+        }
+        editor.apply()
+    }
+
+    /** Called only after confirming URL edits; a provider switch keeps its scoped settings. */
+    fun removeScopedEndpointSettings(prefs: SharedPreferences, provider: Provider, removedUrls: Collection<String>) {
+        if (removedUrls.isEmpty()) return
+        prefs.edit().apply {
+            removedUrls.forEach { url ->
+                remove(scopedApiKeyKey(prefs, provider, url))
+                remove(scopedModelKey(prefs, provider, url))
+            }
+        }.apply()
+    }
+
+    data class EndpointDomain(val domain: String, val representativeBaseUrl: String)
+
+    /** The domain (host) that groups endpoints and scopes their key and model. */
+    fun domainOf(baseUrl: String): String {
+        val normalized = normalizeBaseUrl(baseUrl)
+        if (normalized.isBlank()) return ""
+        return runCatching { URL(normalized).host }.getOrNull()
+            ?.takeIf(String::isNotBlank)
+            ?.lowercase()
+            ?: normalized
+    }
+
+    /** Unique domains across the ENABLED URLs (an unchecked URL hides its domain
+     *  unless another enabled URL shares it), each with a representative URL. */
+    fun endpointDomains(prefs: SharedPreferences): List<EndpointDomain> {
+        val allUrls = parseBaseUrls(prefs.getString(KEY_BASE_URL, "").orEmpty())
+        val seen = linkedMapOf<String, String>()
+        selectedBaseUrls(prefs, allUrls).forEach { url ->
+            val domain = domainOf(url)
+            if (domain.isNotBlank() && domain !in seen) seen[domain] = url
+        }
+        return seen.map { (domain, url) -> EndpointDomain(domain, url) }
+    }
+
+    /** Domain of the active (first enabled) endpoint, used to sync the primary key/model. */
+    /** The active (first enabled) base URL, or the first configured URL. */
+    fun primaryBaseUrl(prefs: SharedPreferences): String? {
+        val urls = parseBaseUrls(prefs.getString(KEY_BASE_URL, "").orEmpty())
+        return selectedBaseUrls(prefs, urls).firstOrNull() ?: urls.firstOrNull()
+    }
+
+    fun primaryDomain(prefs: SharedPreferences): String? = primaryBaseUrl(prefs)?.let(::domainOf)
+
+    /**
+     * Remembers the current provider's URL list and enabled set, then loads [to]'s
+     * remembered list (or, the first time, [to]'s default URL — enabled) into the
+     * active [KEY_BASE_URL] / [KEY_ENABLED_BASE_URLS]. Returns the active URL text.
+     * Lets each provider keep its own URLs and checkmarks across provider switches.
+     */
+    fun switchProviderBaseUrls(prefs: SharedPreferences, from: Provider, to: Provider): String {
+        migrateLegacyPreferenceKeys(prefs)
+        if (from == to) return prefs.getString(KEY_BASE_URL, "").orEmpty()
+        prefs.edit().apply {
+            putString(scopedBaseUrlsKey(from), prefs.getString(KEY_BASE_URL, "").orEmpty())
+            val enabled = prefs.getStringSet(KEY_ENABLED_BASE_URLS, null)
+            if (enabled == null) remove(scopedEnabledKey(from)) else putStringSet(scopedEnabledKey(from), enabled)
+        }.apply()
+        val urls: List<String>
+        val enabled: Collection<String>
+        if (prefs.contains(scopedBaseUrlsKey(to))) {
+            urls = parseBaseUrls(prefs.getString(scopedBaseUrlsKey(to), "").orEmpty())
+            enabled = prefs.getStringSet(scopedEnabledKey(to), null)?.toList() ?: urls.take(1)
+        } else {
+            urls = parseBaseUrls(providerDefaultBaseUrl(to, prefs))
+            enabled = urls
+        }
+        writeBaseUrls(prefs, urls, enabled)
+        return encodeBaseUrls(urls)
+    }
+
+    private fun scopedBaseUrlsKey(provider: Provider): String = KEY_BASE_URLS_SCOPE_PREFIX + provider.value
+
+    private fun scopedEnabledKey(provider: Provider): String = KEY_ENABLED_SCOPE_PREFIX + provider.value
+
+    /** (domain, apiKey) for each enabled domain that has a key configured — its own
+     *  scoped key, or the legacy shared key for the primary domain. Mirrors what the
+     *  key editor shows, for the settings summary. */
+    fun configuredApiKeys(prefs: SharedPreferences): List<Pair<String, String>> {
+        val provider = currentProvider(prefs)
+        val primary = primaryDomain(prefs)
+        return endpointDomains(prefs).mapNotNull { entry ->
+            val key = getScopedApiKeyRaw(prefs, provider, entry.representativeBaseUrl).ifBlank {
+                if (entry.domain == primary) prefs.getString(KEY_API_KEY, "").orEmpty().trim() else ""
+            }
+            if (key.isBlank()) null else entry.domain to key
+        }
+    }
+
+    /** The model name explicitly configured for each enabled domain (raw scoped, with
+     *  NO fallback to the shared model) — so a domain left blank is not counted or
+     *  listed as another copy of the primary domain's model. */
+    fun enabledModels(prefs: SharedPreferences): List<String> {
+        val provider = currentProvider(prefs)
+        return endpointDomains(prefs).map { entry ->
+            getScopedModel(prefs, provider, entry.representativeBaseUrl)
+        }
+    }
+
+    /** Persists a model per domain, mirroring [writeScopedApiKeys] (written onto
+     *  every same-domain URL). The active model ([KEY_MODEL]) follows
+     *  [primaryDomain] when that domain has a non-blank model. */
+    fun writeScopedModels(
+        prefs: SharedPreferences,
+        provider: Provider,
+        modelByDomain: Map<String, String>,
+        primaryDomain: String?,
+    ) {
+        migrateLegacyPreferenceKeys(prefs)
+        val urlsByDomain = parseBaseUrls(prefs.getString(KEY_BASE_URL, "").orEmpty()).groupBy(::domainOf)
+        val editor = prefs.edit()
+        modelByDomain.forEach { (domain, rawModel) ->
+            val model = rawModel.trim()
+            urlsByDomain[domainOf(domain)].orEmpty().forEach { url ->
+                val scopeKey = scopedModelKey(prefs, provider, url)
+                if (model.isBlank()) editor.remove(scopeKey) else editor.putString(scopeKey, model)
+            }
+        }
+        val primaryModel = primaryDomain?.let { modelByDomain[it] ?: modelByDomain[domainOf(it)] }?.trim().orEmpty()
+        if (primaryModel.isNotBlank()) editor.putString(KEY_MODEL, primaryModel)
+        editor.apply()
+    }
+
     internal data class RememberedUiMode(
         val taskMode: LlmTaskMode = LlmTaskMode.Completion,
         val longFormEnabled: Boolean = false,
@@ -242,6 +456,7 @@ object LlmPrefs {
         val personaPreset: PersonaPreset = PersonaPreset.Custom,
         val personaName: String = "",
         val customPersona: String = "",
+        val remoteEndpoints: List<RemoteEndpoint> = emptyList(),
     ) {
         val isLocalOnDevice: Boolean
             get() = runtime == Runtime.LocalOnDevice
@@ -320,10 +535,19 @@ object LlmPrefs {
             DEFAULT_MAX_CONTEXT_CHARS,
             8..512,
         )
-        val baseUrl = overrides.baseUrl ?: prefs.getString(
+        val rawBaseUrl = overrides.baseUrl ?: prefs.getString(
             KEY_BASE_URL,
             providerDefaultBaseUrl(provider, prefs),
         ).orEmpty()
+        val baseUrls = parseBaseUrls(rawBaseUrl)
+        val storedPrimary = baseUrls.firstOrNull() ?: providerDefaultBaseUrl(provider, prefs)
+        val enabledBaseUrls = prefs.getStringSet(KEY_ENABLED_BASE_URLS, null)
+        val selectedBaseUrls = when {
+            overrides.baseUrl != null -> listOf(normalizeBaseUrl(overrides.baseUrl))
+            enabledBaseUrls == null -> baseUrls.take(1)
+            else -> baseUrls.filter { normalizeBaseUrl(it) in enabledBaseUrls }
+        }.distinct()
+        val baseUrl = selectedBaseUrls.firstOrNull() ?: normalizeBaseUrl(storedPrimary)
         val personaValue = currentPersonaValue(prefs)
         return Config(
             enabled = prefs.getBoolean(KEY_ENABLED, false),
@@ -354,6 +578,29 @@ object LlmPrefs {
                 prefs = prefs,
                 personaValue = personaValue,
             ),
+            remoteEndpoints = selectedBaseUrls.map { endpointBaseUrl ->
+                val normalized = normalizeBaseUrl(endpointBaseUrl)
+                val isActivePrimary = normalized == normalizeBaseUrl(baseUrl)
+                RemoteEndpoint(
+                    baseUrl = normalized,
+                    model = if (isActivePrimary) {
+                        (overrides.model ?: getScopedModel(prefs, provider, normalized)
+                            .ifBlank { prefs.getString(KEY_MODEL, DEFAULT_MODEL).orEmpty() })
+                            .trim()
+                            .ifBlank { providerDefaultModel(provider).ifBlank { runtime.defaultModel } }
+                    } else {
+                        getScopedModel(prefs, provider, normalized).ifBlank {
+                            prefs.getString(KEY_MODEL, DEFAULT_MODEL).orEmpty().trim()
+                                .ifBlank { providerDefaultModel(provider).ifBlank { runtime.defaultModel } }
+                        }
+                    },
+                    apiKey = if (isActivePrimary) {
+                        (overrides.apiKey ?: getScopedApiKey(prefs, provider, normalized)).trim()
+                    } else {
+                        getScopedApiKey(prefs, provider, normalized).trim()
+                    },
+                )
+            },
         )
     }
 
@@ -503,15 +750,36 @@ object LlmPrefs {
         baseUrl: String,
     ): String {
         migrateLegacyPreferenceKeys(prefs)
-        return prefs.getString(scopedApiKeyKey(prefs, provider, baseUrl), "").orEmpty().ifBlank {
-            if (provider == Provider.Custom) {
-                prefs.getString(KEY_CUSTOM_DEFAULT_API_KEY, "").orEmpty().trim()
-            } else {
-                ""
-            }
-        }.ifBlank {
-            prefs.getString(KEY_API_KEY, "").orEmpty().trim()
-        }
+        val scoped = getScopedApiKeyRaw(prefs, provider, baseUrl)
+        if (scoped.isNotBlank()) return scoped
+
+        // The legacy shared value belongs to the current provider and primary host only.
+        // Never silently send it to a different host; sharing must be explicitly enabled.
+        if (provider != currentProvider(prefs)) return ""
+        val primaryUrl = primaryBaseUrl(prefs) ?: providerDefaultBaseUrl(provider, prefs)
+        val sameDomain = domainOf(baseUrl) == domainOf(primaryUrl)
+        if (!sameDomain && !prefs.getBoolean(KEY_SHARE_PRIMARY_API_KEY, false)) return ""
+        val primaryScoped = getScopedApiKeyRaw(prefs, provider, primaryUrl)
+        if (primaryScoped.isNotBlank()) return primaryScoped
+        // Once a URL list has been saved, its legacy key was bound to the old host.
+        if (prefs.contains(KEY_ENABLED_BASE_URLS)) return ""
+        return if (provider == Provider.Custom) {
+            prefs.getString(KEY_CUSTOM_DEFAULT_API_KEY, "").orEmpty().trim()
+        } else {
+            ""
+        }.ifBlank { prefs.getString(KEY_API_KEY, "").orEmpty().trim() }
+    }
+
+    /** The API key stored specifically for [baseUrl]'s scope, WITHOUT falling back to
+     *  the shared/default key — so a per-domain editor shows blank when a domain has no
+     *  key of its own, instead of echoing (and then overwriting with) another domain's key. */
+    fun getScopedApiKeyRaw(
+        prefs: SharedPreferences,
+        provider: Provider,
+        baseUrl: String,
+    ): String {
+        migrateLegacyPreferenceKeys(prefs)
+        return prefs.getString(scopedApiKeyKey(prefs, provider, baseUrl), "").orEmpty().trim()
     }
 
     fun getScopedModel(

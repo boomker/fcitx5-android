@@ -22,6 +22,9 @@ internal class LlmPredictionFailure private constructor(
     val userMessage: String
         get() = kind.userMessage
 
+    /** UI hint for a classified failure that will change the endpoint on the next request. */
+    internal var willSwitchEndpointOnNextRequest: Boolean = false
+
     companion object {
         private val billingMarkers = listOf(
             "insufficient_quota",

@@ -461,6 +461,7 @@
     <string name="ai_clip_error_network" translatable="false">无法连接模型服务，请检查网络后重试</string>
     <string name="ai_clip_error_invalid_response" translatable="false">模型服务返回了无效结果，请稍后重试</string>
     <string name="ai_clip_error_generic" translatable="false">模型预测失败，请稍后重试</string>
+    <string name="ai_clip_error_next_endpoint" translatable="false">下次请求将切换到下一个已启用端点</string>
     <string name="llm_provider" translatable="false">模型服务商</string>
     <string name="llm_provider_local_ai" translatable="false">本地</string>
     <string name="llm_provider_custom" translatable="false">自定义</string>
@@ -472,6 +473,18 @@
     <string name="llm_provider_minimax" translatable="false">MiniMax CN</string>
     <string name="llm_provider_moonshot" translatable="false">Moonshot</string>
     <string name="llm_api_url" translatable="false">API 地址</string>
+    <string name="llm_api_url_none_enabled_summary" translatable="false">%1$d 个地址（均未启用）</string>
+    <string name="llm_api_url_multiple_enabled_summary" translatable="false">%1$d 个地址已启用，按顺序自动故障转移</string>
+    <string name="llm_api_url_multiline_hint" translatable="false">每行一个地址；勾选多个时按顺序自动故障转移。</string>
+    <string name="llm_api_url_endpoint_key_hint" translatable="false">该域名的 API 密钥</string>
+    <string name="llm_api_url_backup_key_hint" translatable="false">需开启下方共享主密钥</string>
+    <string name="llm_api_url_backup_key_shared_hint" translatable="false">留空时使用主端点密钥</string>
+    <string name="llm_share_primary_api_key" translatable="false">共享主端点密钥</string>
+    <string name="llm_endpoint_model_hint" translatable="false">该域名的模型名称</string>
+    <string name="llm_endpoint_delete" translatable="false">删除</string>
+    <string name="llm_endpoint_none_hint" translatable="false">请先在「API 地址」中添加地址</string>
+    <string name="llm_api_key_count_summary" translatable="false">配置了 %1$d 个密钥</string>
+    <string name="llm_model_count_summary" translatable="false">启用了 %1$d 个模型</string>
     <string name="llm_api_url_default_hint" translatable="false">留空时将使用服务商默认地址：%1$s</string>
     <string name="llm_api_url_custom_hint" translatable="false">当前为自定义服务商，请填写完整 API 地址。</string>
     <string name="llm_api_url_default_summary" translatable="false">留空时使用默认地址：%1$s</string>
