@@ -190,12 +190,24 @@ class CommonKeyActionListener :
             when (action) {
                 is FcitxKeyAction -> {
                     val delta = action.verticalArrowDelta()
-                    if (delta != null && service.hasVisibleCandidates()) {
-                        if (!action.up) {
-                            moveVisibleCandidateHighlight(delta)
+                    when {
+                        delta != null && service.hasVisibleCandidates() -> {
+                            if (!action.up) {
+                                moveVisibleCandidateHighlight(delta)
+                            }
                         }
-                    } else {
-                        service.postFcitxJob {
+                        // A symbol forwarded while a candidate is highlighted — e.g. the "[" / "]"
+                        // picked from the "k" / "l" long-press popup — should drive 以词定字 / forget
+                        // on the highlighted candidate, like the physical keyboard, instead of acting
+                        // on the engine's own candidate cursor.
+                        !action.up && action.act.length == 1 && service.applyHighlightedCandidateActionKey(
+                            action.act[0].code,
+                            ctrl = action.states.ctrl,
+                            alt = action.states.alt,
+                            shift = action.states.shift,
+                            meta = action.states.meta,
+                        ) -> {}
+                        else -> service.postFcitxJob {
                             sendKey(action.act, action.states.states, action.code, action.up)
                         }
                     }

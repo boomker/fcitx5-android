@@ -529,7 +529,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     // swallowed instead of leaking to the engine.
     private val highlightedCandidateActionKeys = mutableSetOf<Pair<Int, Int>>()
 
-    // A configured fcitx shortcut reduced to the parts we can match against a physical KeyEvent.
+    // A configured fcitx shortcut reduced to the parts we can match against a pressed key.
     private class ActionKey(
         val sym: Int,
         val ctrl: Boolean,
@@ -537,10 +537,9 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         val shift: Boolean,
         val meta: Boolean,
     ) {
-        fun matches(event: KeyEvent, sym: Int): Boolean =
-            this.sym == sym &&
-                ctrl == event.isCtrlPressed && alt == event.isAltPressed &&
-                shift == event.isShiftPressed && meta == event.isMetaPressed
+        fun matches(sym: Int, ctrl: Boolean, alt: Boolean, shift: Boolean, meta: Boolean): Boolean =
+            this.sym == sym && this.ctrl == ctrl && this.alt == alt &&
+                this.shift == shift && this.meta == meta
 
         companion object {
             fun of(key: Key): ActionKey? = key.sym.takeIf { it != 0 }?.let {
@@ -575,11 +574,12 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     private var candidateActionKeysRequestedAddon: String? = null
 
     /**
-     * Built-in engines (e.g. Pinyin) move only the UI highlight with the arrow keys and leave
-     * fcitx's candidate cursor on the first candidate, so a raw shortcut forwarded to the engine
-     * would act on that first candidate rather than the highlighted one. This intercepts the engine
-     * actions the user drives from a physical keyboard and applies them to the highlighted candidate
-     * (by absolute index), reusing the long-press candidate menu's paths:
+     * Built-in engines (e.g. Pinyin) move only the UI highlight with the arrow keys / space swipe
+     * and leave fcitx's candidate cursor on the first candidate, so a raw shortcut forwarded to the
+     * engine would act on that first candidate rather than the highlighted one. This matches a
+     * pressed [sym] + modifiers against the active engine's configured shortcuts and applies the
+     * action to the highlighted candidate (by absolute index), reusing the long-press candidate
+     * menu's paths; it returns true when the key was consumed:
      *   - the "Forget word" key forgets the highlighted word directly (the engine's native key is a
      *     two-step "pick which to forget" mode; acting on the highlight is the intent here).
      *   - the "Choose character from phrase" keys commit the N-th / last character of the
@@ -588,6 +588,54 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
      * Shortcuts are read from the active engine's fcitx config (so a remapped key is honored),
      * falling back to the Pinyin defaults. Rime keeps its candidate cursor in step with the
      * highlight (see [arrowHighlightSyncsEngineCursor]) and is left to flow through untouched.
+     * Shared by the physical keyboard ([handleHighlightedCandidateActionKeyEvent]) and the virtual
+     * keyboard (popup "[" / "]"). Must be called on the main thread (reads the UI highlight).
+     */
+    internal fun applyHighlightedCandidateActionKey(
+        sym: Int,
+        ctrl: Boolean = false,
+        alt: Boolean = false,
+        shift: Boolean = false,
+        meta: Boolean = false,
+    ): Boolean {
+        val entry = fcitx.runImmediately { inputMethodEntryCached }
+        if (entry.addon == "rime" || entry.icon == "fcitx-rime") return false
+        // Prefetch this engine's configured shortcuts so a later action key matches the user's own
+        // key bindings rather than only the defaults.
+        if (candidateActionKeysRequestedAddon != entry.addon) refreshCandidateActionKeys(entry.addon)
+        if (!hasVisibleCandidates()) return false
+        val nativeIndex = highlightedNativeCandidateIndex() ?: return false
+        val keys = candidateActionKeys?.takeIf { it.addon == entry.addon } ?: defaultCandidateActionKeys
+
+        // Forget the highlighted word.
+        if (keys.forgetWord.any { it.matches(sym, ctrl, alt, shift, meta) }) {
+            forgetHighlightedCandidate(nativeIndex)
+            return true
+        }
+        // 以词定字: commit the N-th / last character of the highlighted word. Match the key first
+        // (cheap) and bail before reading the candidate text, so unrelated keystrokes — this runs on
+        // every virtual-keyboard key — cost nothing.
+        val selectLast = keys.selectLastCharFromPhrase?.matches(sym, ctrl, alt, shift, meta) == true
+        val selectNth = if (selectLast) -1 else keys.selectCharFromPhrase.indexOfFirst {
+            it.matches(sym, ctrl, alt, shift, meta)
+        }
+        if (!selectLast && selectNth < 0) return false
+        // Only genuine multi-character words qualify; single-char / punctuation / symbol candidates
+        // fall through to the engine.
+        val chars = highlightedCandidateText()
+            ?.takeIf { it.candidateEdgeCharacters() != null }
+            ?.candidateCharacters()
+            ?: return false
+        val charIndex = if (selectLast) chars.lastIndex else selectNth
+        if (charIndex !in chars.indices) return false
+        commitHighlightedCandidateCharacter(chars[charIndex])
+        return true
+    }
+
+    /**
+     * Physical-keyboard entry point: a key-down whose key matches an engine action shortcut is
+     * applied to the highlighted candidate, and its key-up / auto-repeat are swallowed so the raw
+     * key never reaches the engine.
      */
     private fun handleHighlightedCandidateActionKeyEvent(event: KeyEvent): Boolean {
         val key = event.deviceId to event.keyCode
@@ -597,35 +645,17 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         }
         if (inputDeviceManager.isVirtualKeyboard) return false
         if (event.action != KeyEvent.ACTION_DOWN) return false
-        val entry = fcitx.runImmediately { inputMethodEntryCached }
-        if (entry.addon == "rime" || entry.icon == "fcitx-rime") return false
-        // Prefetch this engine's configured shortcuts so a later action key matches the user's own
-        // key bindings rather than only the defaults.
-        if (candidateActionKeysRequestedAddon != entry.addon) refreshCandidateActionKeys(entry.addon)
-        if (!hasVisibleCandidates()) return false
         val sym = KeySym.fromKeyEvent(event)?.sym ?: return false
-        val nativeIndex = highlightedNativeCandidateIndex() ?: return false
-        val keys = candidateActionKeys?.takeIf { it.addon == entry.addon } ?: defaultCandidateActionKeys
-
-        // Forget the highlighted word.
-        if (keys.forgetWord.any { it.matches(event, sym) }) {
-            forgetHighlightedCandidate(nativeIndex)
-            highlightedCandidateActionKeys.add(key)
-            return true
+        if (!applyHighlightedCandidateActionKey(
+                sym,
+                ctrl = event.isCtrlPressed,
+                alt = event.isAltPressed,
+                shift = event.isShiftPressed,
+                meta = event.isMetaPressed,
+            )
+        ) {
+            return false
         }
-        // 以词定字: commit one character of the highlighted word. Only genuine multi-character words
-        // qualify; single-char / punctuation / symbol candidates fall through to the engine.
-        val chars = highlightedCandidateText()
-            ?.takeIf { it.candidateEdgeCharacters() != null }
-            ?.candidateCharacters()
-            ?: return false
-        val charIndex = if (keys.selectLastCharFromPhrase?.matches(event, sym) == true) {
-            chars.lastIndex
-        } else {
-            keys.selectCharFromPhrase.indexOfFirst { it.matches(event, sym) }
-        }
-        if (charIndex !in chars.indices) return false
-        commitHighlightedCandidateCharacter(chars[charIndex])
         highlightedCandidateActionKeys.add(key)
         return true
     }
