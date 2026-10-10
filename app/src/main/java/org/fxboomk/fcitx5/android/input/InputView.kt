@@ -55,7 +55,6 @@ import org.fxboomk.fcitx5.android.data.theme.ThemeManager
 import org.fxboomk.fcitx5.android.data.theme.ThemeMonet
 import org.fxboomk.fcitx5.android.input.bar.KawaiiBarComponent
 import org.fxboomk.fcitx5.android.utils.DarkenColorFilter
-import org.fxboomk.fcitx5.android.input.calculator.CalculatorExpression
 import org.fxboomk.fcitx5.android.input.clipboard.ClipboardSearchOverlay
 import org.fxboomk.fcitx5.android.input.config.ConfigChangeListener
 import org.fxboomk.fcitx5.android.input.config.ConfigProviders
@@ -139,7 +138,6 @@ class InputView(
 ) : BaseInputView(service, fcitx, theme) {
     private companion object {
         const val AI_CANDIDATE_EXPAND_DELAY_MS = 160L
-        const val CALCULATOR_CONTEXT_CHARS = 512
     }
 
     private val keyBorder by ThemeManager.prefs.keyBorder
@@ -2828,20 +2826,13 @@ class InputView(
     }
 
     /**
-     * Fetch text before cursor and update the calculator suggestion.
-     * Only invoked after a commit ending with '=', keeping the typing hot path free of
-     * synchronous getTextBeforeCursor Binder calls.
+     * Update the calculator suggestion shown in the horizontal candidate bar. The service
+     * computes the suggestion once (see [FcitxInputMethodService.refreshCalculatorSuggestion])
+     * and fans it out to every candidate surface, so the floating [CandidatesView] can show
+     * the same result in "Floating window" mode.
      */
-    fun checkCalculatorSuggestion() {
-        val textBeforeCursor = service.currentInputConnection
-            ?.getTextBeforeCursor(CALCULATOR_CONTEXT_CHARS, 0)
-            ?.toString()
-        val calculatorSuggestion = textBeforeCursor?.let(CalculatorExpression::extractSuggestion)
-        horizontalCandidate.updateCalculatorSuggestion(calculatorSuggestion)
-    }
-
-    fun clearCalculatorSuggestion() {
-        horizontalCandidate.updateCalculatorSuggestion(null)
+    fun updateCalculatorSuggestion(suggestion: String?) {
+        horizontalCandidate.updateCalculatorSuggestion(suggestion)
     }
 
     internal fun updateAiSuggestionCursorAnchor(anchor: FloatArray?, parent: FloatArray) {

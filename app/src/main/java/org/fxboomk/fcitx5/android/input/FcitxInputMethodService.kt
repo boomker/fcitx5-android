@@ -75,6 +75,7 @@ import org.fxboomk.fcitx5.android.daemon.FcitxConnection
 import org.fxboomk.fcitx5.android.daemon.FcitxDaemon
 import org.fxboomk.fcitx5.android.data.InputFeedbacks
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
+import org.fxboomk.fcitx5.android.input.calculator.CalculatorExpression
 import org.fxboomk.fcitx5.android.input.candidates.candidateCharacters
 import org.fxboomk.fcitx5.android.input.candidates.candidateEdgeCharacters
 import org.fxboomk.fcitx5.android.input.candidates.isCandidateFrequencyResetActionText
@@ -1098,7 +1099,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     }
 
     private fun handleDeleteSurrounding(before: Int, after: Int) {
-        inputView?.clearCalculatorSuggestion()
+        clearCalculatorSuggestion()
         val ic = currentInputConnection ?: return
         if (before > 0) {
             selection.predictOffset(-before)
@@ -1116,7 +1117,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     }
 
     fun handleBackspaceDirectly() {
-        inputView?.clearCalculatorSuggestion()
+        clearCalculatorSuggestion()
         val ic = currentInputConnection ?: return
         val editorInfo = currentInputEditorInfo
         val isTypeNull = editorInfo.inputType and InputType.TYPE_MASK_CLASS == InputType.TYPE_NULL
@@ -1153,7 +1154,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     }
 
     private fun handleReturnKey() {
-        inputView?.clearCalculatorSuggestion()
+        clearCalculatorSuggestion()
         val ic = currentInputConnection ?: run {
             sendDownUpKeyEvents(KeyEvent.KEYCODE_ENTER)
             return
@@ -1217,13 +1218,35 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
      */
     private fun afterCommitUpdateCalculatorSuggestion(text: String) {
         if (!text.trimEnd().endsWith('=')) {
-            inputView?.clearCalculatorSuggestion()
+            clearCalculatorSuggestion()
             return
         }
         // post to let the editor apply the committed text before fetching context
         contentView.post {
-            inputView?.checkCalculatorSuggestion()
+            refreshCalculatorSuggestion()
         }
+    }
+
+    /**
+     * Compute the calculator suggestion from the text before the cursor and fan it out to
+     * every candidate surface: the horizontal bar (via [InputView]) and the floating
+     * [CandidatesView] used in "Floating window" mode. Only invoked after a commit ending
+     * with '=', keeping the typing hot path free of synchronous getTextBeforeCursor Binder calls.
+     */
+    private fun refreshCalculatorSuggestion() {
+        val textBeforeCursor = currentInputConnection
+            ?.getTextBeforeCursor(CALCULATOR_CONTEXT_CHARS, 0)
+            ?.toString()
+        updateCalculatorSuggestion(textBeforeCursor?.let(CalculatorExpression::extractSuggestion))
+    }
+
+    private fun clearCalculatorSuggestion() {
+        updateCalculatorSuggestion(null)
+    }
+
+    private fun updateCalculatorSuggestion(suggestion: String?) {
+        inputView?.updateCalculatorSuggestion(suggestion)
+        candidatesView?.updateCalculatorSuggestion(suggestion)
     }
 
     fun commitText(text: String, cursor: Int = -1) {
@@ -1547,7 +1570,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     fun deleteSelection() {
         val lastSelection = selection.latest
         if (lastSelection.isEmpty()) return
-        inputView?.clearCalculatorSuggestion()
+        clearCalculatorSuggestion()
         selection.predict(lastSelection.start)
         currentInputConnection?.commitText("", 1)
         refreshInputViewSelectionAfterEdit()
@@ -2155,7 +2178,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             val inputSessionGeneration = ++this.inputSessionGeneration
             selection.resetTo(attribute.initialSelStart, attribute.initialSelEnd)
             resetComposingState()
-            inputView?.clearCalculatorSuggestion()
+            clearCalculatorSuggestion()
             val flags = CapabilityFlags.fromEditorInfo(attribute)
             capabilityFlags = flags
             inputDeviceManager.notifyOnStartInput(attribute)
@@ -2236,7 +2259,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         if (!selfPredicted) {
             // cursor moved by the user or the app: previously shown calculator suggestion
             // (anchored to the old cursor position) is stale, drop it without any IPC
-            inputView?.clearCalculatorSuggestion()
+            clearCalculatorSuggestion()
         }
         inputView?.updateSelection(newSelStart, newSelEnd)
     }
@@ -2621,6 +2644,8 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
 
     @Suppress("ConstPropertyName")
     companion object {
+        /** Characters of context fed to the calculator expression detector after a commit. */
+        const val CALCULATOR_CONTEXT_CHARS = 512
         const val DefaultHighlightColor = 0x008577 // material_deep_teal_500
         const val DeleteSurroundingFlag = "org.fxboomk.fcitx5.android.DELETE_SURROUNDING"
     }

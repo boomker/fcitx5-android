@@ -16,6 +16,7 @@ import android.view.WindowInsets
 import android.widget.TextView
 import androidx.annotation.Size
 import org.fxboomk.fcitx5.android.R
+import org.fxboomk.fcitx5.android.core.CandidateWord
 import org.fxboomk.fcitx5.android.core.FcitxEvent
 import org.fxboomk.fcitx5.android.daemon.FcitxConnection
 import org.fxboomk.fcitx5.android.daemon.launchOnReady
@@ -82,9 +83,59 @@ class CandidatesView(
     /** Last engine cursor position; the UI highlight may temporarily differ. */
     private var engineCandidateCursorIndex = -1
 
+    /**
+     * Android-side calculator result ("1+1=" → "2"); not a fcitx candidate. Pushed in by
+     * [FcitxInputMethodService] and rendered as a trailing pseudo-candidate.
+     */
+    private var calculatorSuggestion: String? = null
+
     private fun effectiveCandidateCursorIndex(data: FcitxEvent.PagedCandidateEvent.Data): Int =
         if (data.candidates.isEmpty()) -1
         else data.cursorIndex.coerceIn(0, data.candidates.lastIndex)
+
+    /**
+     * The calculator result is only surfaced here in "Floating window" (Always) mode, where
+     * [CandidatesView] owns the candidate display. In the other modes the horizontal candidate
+     * bar shows it instead, so it must not appear in this (hidden) view.
+     */
+    private fun effectiveCalculatorSuggestion(): String? =
+        calculatorSuggestion?.takeIf {
+            candidatesPrefs.mode.getValue() == FloatingCandidatesMode.Always
+        }
+
+    private fun isCalculatorPosition(index: Int): Boolean =
+        effectiveCalculatorSuggestion() != null && index >= 0 && index == paged.candidates.size
+
+    /** Rendered item count including the trailing calculator pseudo-candidate, if any. */
+    private fun renderedCandidateCount(): Int =
+        paged.candidates.size + if (effectiveCalculatorSuggestion() != null) 1 else 0
+
+    /**
+     * Current highlight over the rendered list. Falls back to the calculator item when the
+     * engine has no candidate highlighted, so Space/Enter commits it on a physical keyboard.
+     */
+    private fun currentActiveIndex(): Int {
+        val count = renderedCandidateCount()
+        activeCandidateOverride?.let { if (it in 0 until count) return it }
+        val native = effectiveCandidateCursorIndex(paged)
+        if (native in paged.candidates.indices) return native
+        return if (effectiveCalculatorSuggestion() != null) paged.candidates.size else -1
+    }
+
+    private fun commitCalculatorSuggestion(): Boolean {
+        val suggestion = effectiveCalculatorSuggestion() ?: return false
+        service.commitText(suggestion)
+        calculatorSuggestion = null
+        updateUi()
+        return true
+    }
+
+    internal fun updateCalculatorSuggestion(suggestion: String?) {
+        val normalized = suggestion?.takeIf { it.isNotEmpty() }
+        if (calculatorSuggestion == normalized) return
+        calculatorSuggestion = normalized
+        updateUi()
+    }
 
     /**
      * horizontal, bottom, top
@@ -152,9 +203,21 @@ class CandidatesView(
 
     private val candidatesUi = PagedCandidatesUi(
         ctx, theme, setupTextView,
-        onCandidateClick = { index -> service.postFcitxJob { select(index) } },
-        onCandidateAction = { index, text, view -> showCandidateActionMenu(index, text, view) },
-        onBindCandidateGesture = ::bindCandidateGesture,
+        onCandidateClick = { index ->
+            if (isCalculatorPosition(index)) {
+                commitCalculatorSuggestion()
+            } else {
+                service.postFcitxJob { select(index) }
+            }
+        },
+        onCandidateAction = { index, text, view ->
+            // The calculator result is an Android-side pseudo-candidate with no engine
+            // actions (decompose / reset frequency), so skip the action menu for it.
+            if (!isCalculatorPosition(index)) showCandidateActionMenu(index, text, view)
+        },
+        onBindCandidateGesture = { view, index, text ->
+            if (!isCalculatorPosition(index)) bindCandidateGesture(view, index, text)
+        },
         onUnbindCandidateGesture = ::unbindCandidateGesture,
         onPrevPage = { fcitx.launchOnReady { it.offsetCandidatePage(-1) } },
         onNextPage = { fcitx.launchOnReady { it.offsetCandidatePage(1) } },
@@ -205,13 +268,21 @@ class CandidatesView(
         val maxCandidateRowWidth = (parentWidth - dp(windowPadding) * 2 - candidatesGap * 2)
             .roundToInt()
             .coerceAtLeast(0)
+        val calculator = effectiveCalculatorSuggestion()
+        // Render the engine candidates plus the calculator result as a trailing pseudo-candidate.
+        // [paged] stays the pure engine state used for selection/paging index math.
+        val renderData = if (calculator != null) {
+            paged.copy(candidates = paged.candidates + CandidateWord("", calculator, "", false))
+        } else {
+            paged
+        }
         candidatesUi.update(
-            data = paged,
+            data = renderData,
             orientation = orientation,
             maxRowWidthPx = maxCandidateRowWidth,
-            activeIndexOverride = activeCandidateOverride ?: effectiveCandidateCursorIndex(paged)
+            activeIndexOverride = currentActiveIndex()
         )
-        if (evaluateVisibility()) {
+        if (evaluateVisibility() || calculator != null) {
             visibility = VISIBLE
         } else {
             // RecyclerView won't update its items when ancestor view is GONE
@@ -227,18 +298,22 @@ class CandidatesView(
         paged = FcitxEvent.PagedCandidateEvent.Data.Empty
         activeCandidateOverride = null
         engineCandidateCursorIndex = -1
+        calculatorSuggestion = null
         updateUi()
     }
 
     internal fun hasVisiblePredictionCandidate(digit: Int? = null): Boolean {
-        val index = digit?.minus(1) ?: (activeCandidateOverride ?: effectiveCandidateCursorIndex(paged))
-        return index in paged.candidates.indices &&
+        val index = digit?.minus(1) ?: currentActiveIndex()
+        if (index < 0) return false
+        val isRenderedCandidate = isCalculatorPosition(index) || index in paged.candidates.indices
+        return isRenderedCandidate &&
             candidatesUi.root.getChildAt(index)?.isCandidateVisibleToUser() == true
     }
 
     internal fun selectVisiblePredictionCandidate(digit: Int? = null): Boolean {
         if (!hasVisiblePredictionCandidate(digit)) return false
-        val index = digit?.minus(1) ?: (activeCandidateOverride ?: effectiveCandidateCursorIndex(paged))
+        val index = digit?.minus(1) ?: currentActiveIndex()
+        if (isCalculatorPosition(index)) return commitCalculatorSuggestion()
         val expected = paged
         service.postFcitxJob {
             if (!service.hardwarePredictionSession.isSuppressed) selectPrediction(index, expected)
@@ -248,15 +323,16 @@ class CandidatesView(
 
     fun moveActiveCandidate(delta: Int, syncEngine: Boolean = false): Boolean {
         val next = nextFloatingCandidateIndex(
-            currentIndex = activeCandidateOverride ?: effectiveCandidateCursorIndex(paged),
+            currentIndex = currentActiveIndex(),
             delta = delta,
-            candidateCount = paged.candidates.size,
+            candidateCount = renderedCandidateCount(),
             reversed = candidatesUi.isReversed
         ) ?: return false
         activeCandidateOverride = next
-        // Keep fcitx's cursor in step with the Android-side highlight without
-        // depending on the user's Up/Down bindings.
-        if (syncEngine) {
+        // Keep fcitx's cursor in step with the Android-side highlight without depending on
+        // the user's Up/Down bindings. The calculator pseudo-candidate is not an engine
+        // candidate, so landing on it never drives engine cursor navigation.
+        if (syncEngine && next in paged.candidates.indices) {
             val indexDelta = next - engineCandidateCursorIndex
             if (indexDelta != 0) {
                 service.postCandidateCursorNavigation(indexDelta)
@@ -268,8 +344,9 @@ class CandidatesView(
     }
 
     fun selectActiveCandidate(): Boolean {
-        if (paged.candidates.isEmpty()) return false
-        val index = activeCandidateOverride ?: effectiveCandidateCursorIndex(paged)
+        val index = currentActiveIndex()
+        if (index < 0) return false
+        if (isCalculatorPosition(index)) return commitCalculatorSuggestion()
         if (index !in paged.candidates.indices) return false
         service.postFcitxJob { select(index) }
         return true
