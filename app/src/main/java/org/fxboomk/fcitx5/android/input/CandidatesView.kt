@@ -280,6 +280,9 @@ class CandidatesView(
             hasCandidates() && it in paged.candidates.indices
         }
 
+    internal fun highlightedCandidateText(): String? =
+        highlightedNativeCandidateIndex()?.let { paged.candidates.getOrNull(it)?.text }
+
     private var bottomInsets = 0
 
     private fun updatePosition() {

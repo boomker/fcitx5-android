@@ -56,15 +56,18 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.core.CapabilityFlags
 import org.fxboomk.fcitx5.android.core.FcitxAPI
 import org.fxboomk.fcitx5.android.core.FcitxEvent
 import org.fxboomk.fcitx5.android.core.FcitxKeyMapping
 import org.fxboomk.fcitx5.android.core.FormattedText
+import org.fxboomk.fcitx5.android.core.Key
 import org.fxboomk.fcitx5.android.core.KeyState
 import org.fxboomk.fcitx5.android.core.KeyStates
 import org.fxboomk.fcitx5.android.core.KeySym
+import org.fxboomk.fcitx5.android.core.RawConfig
 import org.fxboomk.fcitx5.android.core.ScancodeMapping
 import org.fxboomk.fcitx5.android.core.SubtypeManager
 import org.fxboomk.fcitx5.android.core.TextFormatFlag
@@ -72,6 +75,9 @@ import org.fxboomk.fcitx5.android.daemon.FcitxConnection
 import org.fxboomk.fcitx5.android.daemon.FcitxDaemon
 import org.fxboomk.fcitx5.android.data.InputFeedbacks
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
+import org.fxboomk.fcitx5.android.input.candidates.candidateCharacters
+import org.fxboomk.fcitx5.android.input.candidates.candidateEdgeCharacters
+import org.fxboomk.fcitx5.android.input.candidates.isCandidateFrequencyResetActionText
 import org.fxboomk.fcitx5.android.input.candidates.floating.FloatingCandidatesMode
 import org.fxboomk.fcitx5.android.data.prefs.ManagedPreference
 import org.fxboomk.fcitx5.android.data.prefs.ManagedPreferenceProvider
@@ -459,6 +465,10 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         candidatesView?.highlightedNativeCandidateIndex()
             ?: inputView?.takeIf { it.isShown }?.highlightedNativeCandidateIndex()
 
+    internal fun highlightedCandidateText(): String? =
+        candidatesView?.highlightedCandidateText()
+            ?: inputView?.takeIf { it.isShown }?.highlightedCandidateText()
+
     private fun moveVisibleCandidateHighlightOnMain(delta: Int, syncEngine: Boolean = false) {
         lifecycleScope.launch(Dispatchers.Main.immediate) {
             moveVisibleCandidateHighlight(delta, syncEngine)
@@ -479,6 +489,16 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         return true
     }
 
+    /**
+     * Rime moves its own candidate highlight with the arrow keys, so its engine cursor is
+     * kept in step with the UI highlight. Built-in engines leave their candidate cursor
+     * alone and only move the highlight background.
+     */
+    private fun arrowHighlightSyncsEngineCursor(): Boolean =
+        fcitx.runImmediately { inputMethodEntryCached }.let {
+            it.addon == "rime" || it.icon == "fcitx-rime"
+        }
+
     private fun handleVisibleCandidateArrowKeyEvent(event: KeyEvent): Boolean {
         val delta = visibleCandidateArrowDelta(event.keyCode) ?: return false
         if (event.action != KeyEvent.ACTION_DOWN && event.action != KeyEvent.ACTION_UP) return false
@@ -492,12 +512,180 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             return false
         }
         if (event.action == KeyEvent.ACTION_DOWN) {
-            // Physical arrow keys own the highlight here, so keep fcitx's candidate cursor
-            // in step with it. Otherwise a forwarded combination key (e.g. Ctrl+T) would act
-            // on the engine's first candidate instead of the one the user highlighted.
-            moveVisibleCandidateHighlightOnMain(delta, syncEngine = true)
+            // Physical arrow keys own the highlight here. Built-in engines move nothing but
+            // the highlight background; Rime keeps fcitx's candidate cursor in step so a
+            // forwarded combination key (e.g. Ctrl+T) still acts on the highlighted
+            // candidate instead of the engine's first one.
+            moveVisibleCandidateHighlightOnMain(
+                delta,
+                syncEngine = arrowHighlightSyncsEngineCursor(),
+            )
         }
         return true
+    }
+
+    // Physical keys consumed to drive an engine candidate action against the UI-highlighted
+    // candidate; tracked by (deviceId, keyCode) so the matching key-up and auto-repeat are
+    // swallowed instead of leaking to the engine.
+    private val highlightedCandidateActionKeys = mutableSetOf<Pair<Int, Int>>()
+
+    // A configured fcitx shortcut reduced to the parts we can match against a physical KeyEvent.
+    private class ActionKey(
+        val sym: Int,
+        val ctrl: Boolean,
+        val alt: Boolean,
+        val shift: Boolean,
+        val meta: Boolean,
+    ) {
+        fun matches(event: KeyEvent, sym: Int): Boolean =
+            this.sym == sym &&
+                ctrl == event.isCtrlPressed && alt == event.isAltPressed &&
+                shift == event.isShiftPressed && meta == event.isMetaPressed
+
+        companion object {
+            fun of(key: Key): ActionKey? = key.sym.takeIf { it != 0 }?.let {
+                val states = KeyStates.of(key.states)
+                ActionKey(key.sym, states.ctrl, states.alt, states.shift, states.meta)
+            }
+        }
+    }
+
+    // The highlighted-candidate action shortcuts read from one engine's fcitx config.
+    // selectCharFromPhrase is ordered: the N-th key picks the N-th character of the word.
+    private class CandidateActionKeys(
+        val addon: String,
+        val forgetWord: List<ActionKey>,
+        val selectCharFromPhrase: List<ActionKey>,
+        val selectLastCharFromPhrase: ActionKey?,
+    )
+
+    // fcitx Pinyin defaults (ForgetWord=Control+7, ChooseCharFromPhrase=[, ChooseLastChar=]),
+    // used until the active engine's own config has been read, and for engines that don't expose
+    // these options. 0x37='7', 0x5b='[', 0x5d=']'.
+    private val defaultCandidateActionKeys = CandidateActionKeys(
+        addon = "",
+        forgetWord = listOf(ActionKey(0x37, ctrl = true, alt = false, shift = false, meta = false)),
+        selectCharFromPhrase = listOf(ActionKey(0x5b, ctrl = false, alt = false, shift = false, meta = false)),
+        selectLastCharFromPhrase = ActionKey(0x5d, ctrl = false, alt = false, shift = false, meta = false),
+    )
+
+    @Volatile
+    private var candidateActionKeys: CandidateActionKeys? = null
+    @Volatile
+    private var candidateActionKeysRequestedAddon: String? = null
+
+    /**
+     * Built-in engines (e.g. Pinyin) move only the UI highlight with the arrow keys and leave
+     * fcitx's candidate cursor on the first candidate, so a raw shortcut forwarded to the engine
+     * would act on that first candidate rather than the highlighted one. This intercepts the engine
+     * actions the user drives from a physical keyboard and applies them to the highlighted candidate
+     * (by absolute index), reusing the long-press candidate menu's paths:
+     *   - the "Forget word" key forgets the highlighted word directly (the engine's native key is a
+     *     two-step "pick which to forget" mode; acting on the highlight is the intent here).
+     *   - the "Choose character from phrase" keys commit the N-th / last character of the
+     *     highlighted word ("以词定字").
+     *
+     * Shortcuts are read from the active engine's fcitx config (so a remapped key is honored),
+     * falling back to the Pinyin defaults. Rime keeps its candidate cursor in step with the
+     * highlight (see [arrowHighlightSyncsEngineCursor]) and is left to flow through untouched.
+     */
+    private fun handleHighlightedCandidateActionKeyEvent(event: KeyEvent): Boolean {
+        val key = event.deviceId to event.keyCode
+        if (key in highlightedCandidateActionKeys) {
+            if (event.action == KeyEvent.ACTION_UP) highlightedCandidateActionKeys.remove(key)
+            return true
+        }
+        if (inputDeviceManager.isVirtualKeyboard) return false
+        if (event.action != KeyEvent.ACTION_DOWN) return false
+        val entry = fcitx.runImmediately { inputMethodEntryCached }
+        if (entry.addon == "rime" || entry.icon == "fcitx-rime") return false
+        // Prefetch this engine's configured shortcuts so a later action key matches the user's own
+        // key bindings rather than only the defaults.
+        if (candidateActionKeysRequestedAddon != entry.addon) refreshCandidateActionKeys(entry.addon)
+        if (!hasVisibleCandidates()) return false
+        val sym = KeySym.fromKeyEvent(event)?.sym ?: return false
+        val nativeIndex = highlightedNativeCandidateIndex() ?: return false
+        val keys = candidateActionKeys?.takeIf { it.addon == entry.addon } ?: defaultCandidateActionKeys
+
+        // Forget the highlighted word.
+        if (keys.forgetWord.any { it.matches(event, sym) }) {
+            forgetHighlightedCandidate(nativeIndex)
+            highlightedCandidateActionKeys.add(key)
+            return true
+        }
+        // 以词定字: commit one character of the highlighted word. Only genuine multi-character words
+        // qualify; single-char / punctuation / symbol candidates fall through to the engine.
+        val chars = highlightedCandidateText()
+            ?.takeIf { it.candidateEdgeCharacters() != null }
+            ?.candidateCharacters()
+            ?: return false
+        val charIndex = if (keys.selectLastCharFromPhrase?.matches(event, sym) == true) {
+            chars.lastIndex
+        } else {
+            keys.selectCharFromPhrase.indexOfFirst { it.matches(event, sym) }
+        }
+        if (charIndex !in chars.indices) return false
+        commitHighlightedCandidateCharacter(chars[charIndex])
+        highlightedCandidateActionKeys.add(key)
+        return true
+    }
+
+    /** Trigger the engine's forget/reset-frequency action on the candidate at [nativeIndex]. */
+    private fun forgetHighlightedCandidate(nativeIndex: Int) {
+        postFcitxJob {
+            val action = getCandidateActions(nativeIndex).firstOrNull {
+                !it.isSeparator && it.text.isCandidateFrequencyResetActionText()
+            } ?: return@postFcitxJob
+            triggerCandidateAction(nativeIndex, action.id)
+        }
+    }
+
+    /** Reset the composition, then commit a single character picked from the highlighted word. */
+    private fun commitHighlightedCandidateCharacter(character: String) {
+        postFcitxJob {
+            reset()
+            withContext(Dispatchers.Main.immediate) {
+                commitText(character)
+            }
+        }
+    }
+
+    /** Read the given engine addon's config and cache the highlighted-candidate action shortcuts. */
+    private fun refreshCandidateActionKeys(addon: String) {
+        candidateActionKeysRequestedAddon = addon
+        postFcitxJob {
+            val config = runCatching { getAddonConfig(addon) }.getOrElse {
+                // Allow a later retry; the defaults keep the feature working meanwhile.
+                if (candidateActionKeysRequestedAddon == addon) candidateActionKeysRequestedAddon = null
+                return@postFcitxJob
+            }
+            val forgetWord = config.findActionKeys("ForgetWord")
+            val selectCharFromPhrase = config.findActionKeys("ChooseCharFromPhrase")
+            val selectLastCharFromPhrase = config.findActionKeys("ChooseLastCharFromPhrase").firstOrNull()
+            // Null means "this engine doesn't expose these options" — the handler then uses the
+            // Pinyin defaults, so a config-read quirk can't silently disable the feature.
+            candidateActionKeys = if (
+                forgetWord.isEmpty() && selectCharFromPhrase.isEmpty() && selectLastCharFromPhrase == null
+            ) {
+                null
+            } else {
+                CandidateActionKeys(addon, forgetWord, selectCharFromPhrase, selectLastCharFromPhrase)
+            }
+        }
+    }
+
+    // Depth-first search for a named Key / KeyList option anywhere in the config tree, parsing its
+    // value(s) into matchable shortcuts. Returns empty when the option is absent or unbound.
+    private fun RawConfig.findActionKeys(name: String): List<ActionKey> {
+        findByName(name)?.let { node ->
+            val values = node.subItems?.takeIf { it.isNotEmpty() }?.map { it.value }
+                ?: listOf(node.value)
+            return values.filter { it.isNotEmpty() }.mapNotNull { ActionKey.of(Key.parse(it)) }
+        }
+        subItems?.forEach { child ->
+            child.findActionKeys(name).let { if (it.isNotEmpty()) return it }
+        }
+        return emptyList()
     }
 
     private fun hasPreeditCached(): Boolean = fcitx.runImmediately {
@@ -1563,6 +1751,9 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             return true
         }
         if (handleHardwarePredictionKeyEvent(forwardedEvent)) {
+            return true
+        }
+        if (handleHighlightedCandidateActionKeyEvent(forwardedEvent)) {
             return true
         }
         cachedKeyEvents.put(timestamp, forwardedEvent)

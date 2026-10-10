@@ -1303,6 +1303,9 @@ class InputView(
     internal fun highlightedNativeCandidateIndex(): Int? =
         horizontalCandidate.highlightedNativeCandidateIndex()
 
+    internal fun highlightedCandidateText(): String? =
+        horizontalCandidate.highlightedCandidateText()
+
     fun moveHorizontalCandidateHighlight(delta: Int, syncEngine: Boolean = false): Boolean =
         horizontalCandidate.moveActiveCandidate(delta, syncEngine)
 

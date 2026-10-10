@@ -430,6 +430,10 @@ class HorizontalCandidateComponent :
     internal fun highlightedNativeCandidateIndex(): Int? =
         effectiveActiveCandidateIndex().takeIf { it in 0 until displayedNativeCount }?.plus(adapter.indexOffset)
 
+    internal fun highlightedCandidateText(): String? =
+        effectiveActiveCandidateIndex().takeIf { it in 0 until displayedNativeCount }
+            ?.let { adapter.candidates.getOrNull(it)?.text }
+
     /**
      * Commit the displayed item carrying the index label [digit] (1-9) when it is the
      * calculator result or an AI prediction. Native candidate positions return false so
