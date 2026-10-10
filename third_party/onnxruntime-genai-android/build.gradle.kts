@@ -64,7 +64,7 @@ fun requireExpectedSha256(file: File) {
     }
 }
 
-val downloadOrtGenAiAar by tasks.registering {
+val downloadOrtGenAiAar = tasks.register("downloadOrtGenAiAar") {
     outputs.file(downloadedArtifact)
     notCompatibleWithConfigurationCache(
         "This publishing-only task performs an HTTP download from a Gradle script action."

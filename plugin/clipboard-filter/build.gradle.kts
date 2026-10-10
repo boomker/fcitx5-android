@@ -54,7 +54,7 @@ abstract class MinifyClearUrlsRulesTask : DefaultTask() {
     }
 }
 
-val minifyClearUrlsRules by tasks.registering(MinifyClearUrlsRulesTask::class) {
+val minifyClearUrlsRules = tasks.register<MinifyClearUrlsRulesTask>("minifyClearUrlsRules") {
     inputFile.set(layout.projectDirectory.file("ClearURLsRules/data.min.json"))
     outputDir.set(layout.buildDirectory.dir("generated/clearurls-assets"))
 }
