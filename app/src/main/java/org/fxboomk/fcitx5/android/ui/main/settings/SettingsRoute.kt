@@ -38,6 +38,7 @@ import org.fxboomk.fcitx5.android.ui.main.settings.behavior.KeyboardTouchAndSoun
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.LlmAdvancedSettingsFragment
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.LlmSettingsFragment
 import org.fxboomk.fcitx5.android.ui.main.settings.global.GlobalConfigFragment
+import org.fxboomk.fcitx5.android.ui.main.settings.im.CustomShuangpinFragment
 import org.fxboomk.fcitx5.android.ui.main.settings.im.InputMethodConfigFragment
 import org.fxboomk.fcitx5.android.ui.main.settings.im.InputMethodListFragment
 import org.fxboomk.fcitx5.android.ui.main.settings.theme.ThemeFragment
@@ -64,6 +65,9 @@ sealed class SettingsRoute : Parcelable {
 
     @Serializable
     data class InputMethodConfig(val name: String, val uniqueName: String) : SettingsRoute()
+
+    @Serializable
+    data object CustomShuangpin : SettingsRoute()
 
     @Serializable
     data object AddonList : SettingsRoute()
@@ -236,6 +240,9 @@ sealed class SettingsRoute : Parcelable {
                 label = ctx.getString(R.string.input_methods)
             }
             fragment<InputMethodConfigFragment, InputMethodConfig>()
+            fragment<CustomShuangpinFragment, CustomShuangpin> {
+                label = ctx.getString(R.string.custom_shuangpin)
+            }
             fragment<AddonListFragment, AddonList> {
                 label = ctx.getString(R.string.addons)
             }

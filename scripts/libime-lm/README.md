@@ -76,6 +76,6 @@ silently dropped 7.3% of them (100,029 entries at `-q 4`, 107,289 at `-q 8`).
 
 ```sh
 # rebuild the APK, then compare what is actually inside it
-unzip -p app/build/outputs/apk/mainline/release/*.apk \
+unzip -p app/build/outputs/apk/release/*.apk \
     assets/usr/share/libime/zh_CN.lm | shasum -a 256
 ```

@@ -15,6 +15,7 @@ import org.fxboomk.fcitx5.android.core.FcitxAPI
 import org.fxboomk.fcitx5.android.core.RawConfig
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.data.prefs.ManagedPreferenceProvider
+import org.fxboomk.fcitx5.android.data.pinyin.CustomShuangpinSchemeStore
 import org.fxboomk.fcitx5.android.data.theme.ThemeManager
 import org.fxboomk.fcitx5.android.data.theme.ThemePrefs
 import org.fxboomk.fcitx5.android.input.candidates.floating.FloatingCandidatesMode
@@ -236,6 +237,17 @@ object SettingsSearchIndex {
                 )
             )
             fcitx.enabledIme().forEach { ime ->
+                if (ime.uniqueName == CustomShuangpinSchemeStore.UNIQUE_NAME) {
+                    add(
+                        SettingsSearchResult(
+                            title = CustomShuangpinSchemeStore.displayName(),
+                            path = listOf(context.getString(R.string.input_methods)),
+                            route = SettingsRoute.CustomShuangpin,
+                            summary = context.getString(R.string.custom_shuangpin)
+                        )
+                    )
+                    return@forEach
+                }
                 addAll(
                     rawConfigItems(
                         context,

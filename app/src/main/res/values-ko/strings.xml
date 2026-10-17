@@ -3,8 +3,6 @@
     <string name="app_name">백조 입력기</string>
     <string name="app_name_release">백조 입력기</string>
     <string name="app_name_debug">백조 입력기 (디버그)</string>
-    <string name="app_name_mainline_release">백조 입력기</string>
-    <string name="app_name_mainline_debug">백조 입력기 (디버그)</string>
     <string name="save">저장</string>
     <string name="input_methods">입력기</string>
     <string name="addons">애드온</string>
@@ -970,4 +968,26 @@
     <string name="swipe_action_timing_code_all">코드 있음(모두)</string>
     <string name="macro_editor_swipe_timing_item_configured">%1$s (%2$d)</string>
     <string name="text_keyboard_layout_macro_timing_preview">%1$s: %2$s</string>
+    <string name="custom_shuangpin">사용자 지정 쌍핀</string>
+    <string name="custom_shuangpin_tab_mapping">음절 매핑</string>
+    <string name="custom_shuangpin_tab_preferences">환경 설정</string>
+    <string name="custom_shuangpin_scheme_name">방안 이름</string>
+    <string name="custom_shuangpin_zero_initial">영성모 표식</string>
+    <string name="custom_shuangpin_initials">성모 매핑</string>
+    <string name="custom_shuangpin_finals">운모 매핑</string>
+    <string name="custom_shuangpin_key_none">설정 안 됨</string>
+    <string name="custom_shuangpin_mapping_hint">설정하지 않은 키는 기본 규칙을 사용합니다. 여러 글자 성모와 운모에는 보통 명시적인 키가 필요합니다.</string>
+    <string name="custom_shuangpin_name_invalid">비어 있지 않고 내장 방안 이름과 겹치지 않는 이름을 입력하세요.</string>
+    <string name="custom_shuangpin_zero_initial_invalid">소문자와 *만 사용할 수 있습니다.</string>
+    <string name="custom_shuangpin_syllables">음절 재정의</string>
+    <string name="custom_shuangpin_edit_syllables">음절 재정의 편집</string>
+    <string name="custom_shuangpin_syllable_count">%1$d개 재정의</string>
+    <string name="custom_shuangpin_syllables_hint">한 줄에 하나씩: 전체 병음=두 키. 여러 키는 쉼표로 구분할 수 있습니다.</string>
+    <string name="custom_shuangpin_syllables_invalid">음절 재정의 형식이 올바르지 않습니다. 예: ju=jv 또는 shi=ui,is.</string>
+    <string name="macro_editor_swipe_timing">동작 타이밍</string>
+    <string name="swipe_action_timing_no_code_no_candidates">코드 없음, 후보 없음</string>
+    <string name="swipe_action_timing_code_and_candidates">코드 있음, 후보 있음</string>
+    <string name="swipe_action_timing_no_code_candidates">코드 없음, 후보 있음</string>
+    <string name="swipe_action_timing_all">모두</string>
+    <string name="text_keyboard_layout_compose_override_description">조합 상태는 입력기가 입력 코드를 입력하는 중임을 의미합니다.</string>
 </resources>

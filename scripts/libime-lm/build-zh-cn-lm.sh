@@ -133,5 +133,5 @@ if [[ "${INSTALL}" == 1 ]]; then
     cp "${LM}" "${DEST}/zh_CN.lm"
     cp "${PREDICT}" "${DEST}/zh_CN.lm.predict"
     ls -l "${DEST}/zh_CN.lm" "${DEST}/zh_CN.lm.predict"
-    echo "remember to rebuild the APK (./gradlew assembleMainlineRelease -PbuildABI=arm64-v8a)"
+    echo "remember to rebuild the APK (./gradlew assembleRelease -PbuildABI=arm64-v8a)"
 fi

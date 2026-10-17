@@ -3,8 +3,6 @@
     <string name="app_name">Método de entrada Cisne</string>
     <string name="app_name_release">Método de entrada Cisne</string>
     <string name="app_name_debug">Método de entrada Cisne (depuración)</string>
-    <string name="app_name_mainline_release">Método de entrada Cisne</string>
-    <string name="app_name_mainline_debug">Método de entrada Cisne (depuración)</string>
     <string name="save">Guardar</string>
     <string name="input_methods">Métodos de entrada</string>
     <string name="addons">Complementos</string>
@@ -970,4 +968,26 @@
     <string name="swipe_action_timing_code_all">Con código (todos)</string>
     <string name="macro_editor_swipe_timing_item_configured">%1$s (%2$d)</string>
     <string name="text_keyboard_layout_macro_timing_preview">%1$s: %2$s</string>
+    <string name="custom_shuangpin">Shuangpin personalizado</string>
+    <string name="custom_shuangpin_tab_mapping">Asignación de sílabas</string>
+    <string name="custom_shuangpin_tab_preferences">Preferencias</string>
+    <string name="custom_shuangpin_scheme_name">Nombre del esquema</string>
+    <string name="custom_shuangpin_zero_initial">Marcador de inicial cero</string>
+    <string name="custom_shuangpin_initials">Asignaciones de iniciales</string>
+    <string name="custom_shuangpin_finals">Asignaciones de finales</string>
+    <string name="custom_shuangpin_key_none">Sin configurar</string>
+    <string name="custom_shuangpin_mapping_hint">Las teclas sin configurar usan la regla predeterminada. Las iniciales y finales de varias letras normalmente necesitan una tecla explícita.</string>
+    <string name="custom_shuangpin_name_invalid">Usa un nombre no vacío que no coincida con el de un esquema integrado.</string>
+    <string name="custom_shuangpin_zero_initial_invalid">Usa solo letras minúsculas y *.</string>
+    <string name="custom_shuangpin_syllables">Sobrescrituras de sílabas</string>
+    <string name="custom_shuangpin_edit_syllables">Editar sobrescrituras de sílabas</string>
+    <string name="custom_shuangpin_syllable_count">%1$d sobrescritura(s)</string>
+    <string name="custom_shuangpin_syllables_hint">Una asignación por línea: pinyin completo=dos teclas. Puedes separar varias teclas con comas.</string>
+    <string name="custom_shuangpin_syllables_invalid">Sobrescritura de sílaba no válida. Usa líneas como ju=jv o shi=ui,is.</string>
+    <string name="macro_editor_swipe_timing">Momento de la acción</string>
+    <string name="swipe_action_timing_no_code_no_candidates">Sin código, sin candidatos</string>
+    <string name="swipe_action_timing_code_and_candidates">Con código y candidatos</string>
+    <string name="swipe_action_timing_no_code_candidates">Sin código, con candidatos</string>
+    <string name="swipe_action_timing_all">Todos</string>
+    <string name="text_keyboard_layout_compose_override_description">El estado de composición significa que el método de entrada está introduciendo un código de entrada.</string>
 </resources>

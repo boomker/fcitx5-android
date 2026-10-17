@@ -80,13 +80,13 @@ jobs:
 
       - name: Build Release APK
         run: |
-          ./gradlew -PincludeMainlineFlavor=true -PincludeFxFlavor=false :app:assembleMainlineRelease :assembleReleasePlugins
+          ./gradlew :app:assembleRelease :assembleReleasePlugins
 
       - name: Upload app
         uses: actions/upload-artifact@v7
         with:
           name: app-${{ matrix.os }}
-          path: app/build/outputs/apk/mainline/release/
+          path: app/build/outputs/apk/release/
 
       - name: Pack plugins
         shell: bash

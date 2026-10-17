@@ -9,6 +9,7 @@ import android.view.View
 import androidx.lifecycle.Lifecycle
 import org.fxboomk.fcitx5.android.core.InputMethodEntry
 import org.fxboomk.fcitx5.android.core.SubtypeManager
+import org.fxboomk.fcitx5.android.data.pinyin.CustomShuangpinSchemeStore
 import org.fxboomk.fcitx5.android.daemon.launchOnReady
 import org.fxboomk.fcitx5.android.ui.common.BaseDynamicListUi
 import org.fxboomk.fcitx5.android.ui.common.DynamicListUi
@@ -35,7 +36,14 @@ class InputMethodListFragment : ProgressFragment(), OnItemChangedListener<InputM
     private lateinit var ui: BaseDynamicListUi<InputMethodEntry>
 
     override suspend fun initialize(): View {
-        val available = fcitx.runOnReady { availableIme().toSet() }
+        val available = fcitx.runOnReady {
+            availableIme().sortedWith(
+                compareBy<InputMethodEntry> {
+                    preferredAddOrder.indexOf(it.uniqueName)
+                        .let { index -> if (index < 0) Int.MAX_VALUE else index }
+                }.thenBy { it.displayName }
+            )
+        }
         val initialEnabled = fcitx.runOnReady { enabledIme().toList() }
         ui = requireContext().DynamicListUi(
             mode = BaseDynamicListUi.Mode.ChooseOne {
@@ -45,12 +53,22 @@ class InputMethodListFragment : ProgressFragment(), OnItemChangedListener<InputM
             enableOrder = true,
             initSettingsButton = { entry ->
                 setOnClickListener {
-                    navigateWithAnim(
-                        SettingsRoute.InputMethodConfig(entry.displayName, entry.uniqueName),
-                    )
+                    if (entry.uniqueName == CustomShuangpinSchemeStore.UNIQUE_NAME) {
+                        navigateWithAnim(SettingsRoute.CustomShuangpin)
+                    } else {
+                        navigateWithAnim(
+                            SettingsRoute.InputMethodConfig(entry.displayName, entry.uniqueName),
+                        )
+                    }
                 }
             },
-            show = { it.displayName }
+            show = { entry ->
+                if (entry.uniqueName == CustomShuangpinSchemeStore.UNIQUE_NAME) {
+                    CustomShuangpinSchemeStore.displayName()
+                } else {
+                    entry.displayName
+                }
+            }
         )
         ui.addOnItemChangedListener(this@InputMethodListFragment)
         ui.setViewModel(viewModel)
@@ -75,6 +93,13 @@ class InputMethodListFragment : ProgressFragment(), OnItemChangedListener<InputM
             ui.exitMultiSelect()
         }
         super.onStop()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (::ui.isInitialized) {
+            ui.notifyDataSetChanged()
+        }
     }
 
     override fun onDestroy() {
@@ -102,5 +127,20 @@ class InputMethodListFragment : ProgressFragment(), OnItemChangedListener<InputM
 
     override fun onItemUpdated(idx: Int, old: InputMethodEntry, new: InputMethodEntry) {
         updateIMState()
+    }
+
+    private companion object {
+        val preferredAddOrder = listOf(
+            "pinyin",
+            "shuangpin-xiaohe",
+            "shuangpin-ms",
+            "shuangpin-ziguang",
+            "shuangpin-gb",
+            CustomShuangpinSchemeStore.UNIQUE_NAME,
+            "shuangpin-ziranma",
+            "shuangpin-abc",
+            "shuangpin-pinyinjiajia",
+            "shuangpin-zhongwenzhixing"
+        )
     }
 }

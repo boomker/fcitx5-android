@@ -7,6 +7,7 @@ package org.fxboomk.fcitx5.android.ui.main.settings
 import android.os.Bundle
 import android.view.View
 import androidx.activity.OnBackPressedCallback
+import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
@@ -26,6 +27,9 @@ import org.fxboomk.fcitx5.android.utils.addPreference
 
 abstract class FcitxPreferenceFragment : PaddingPreferenceFragment() {
     abstract fun getPageTitle(): String
+    protected open val shouldUpdateToolbarTitle = true
+    protected open val preferenceFragmentManager: FragmentManager
+        get() = parentFragmentManager
     abstract suspend fun obtainConfig(fcitx: FcitxAPI): RawConfig
     abstract suspend fun saveConfig(fcitx: FcitxAPI, newConfig: RawConfig)
 
@@ -97,7 +101,7 @@ abstract class FcitxPreferenceFragment : PaddingPreferenceFragment() {
             configLoaded = raw.findByName("cfg") != null && raw.findByName("desc") != null
             preferenceScreen = if (configLoaded) {
                 PreferenceScreenFactory.create(
-                    preferenceManager, parentFragmentManager, raw, ::save
+                    preferenceManager, preferenceFragmentManager, raw, ::save
                 ).apply {
                     if (isEmpty()) {
                         addPreference(R.string.no_config_options)
@@ -117,6 +121,8 @@ abstract class FcitxPreferenceFragment : PaddingPreferenceFragment() {
 
     override fun onStart() {
         super.onStart()
-        viewModel.setToolbarTitle(getPageTitle())
+        if (shouldUpdateToolbarTitle) {
+            viewModel.setToolbarTitle(getPageTitle())
+        }
     }
 }

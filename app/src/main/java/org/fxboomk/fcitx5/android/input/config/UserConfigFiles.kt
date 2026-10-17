@@ -20,6 +20,11 @@ object UserConfigFiles {
 
     private fun externalFilesRoot(): File? = appContext.getExternalFilesDir(null)
 
+    /** Same fallback as the native side's `extData` parameter. */
+    private fun fcitxConfigDir(): File =
+        appContext.getExternalFilesDir(null)?.let { File(it, "config") }
+            ?: File(appContext.filesDir, "config")
+
     fun configDir(): File? = externalFilesRoot()?.let { File(it, "config") }
 
     fun fontsDir(): File? = externalFilesRoot()?.let { File(it, "fonts") }
@@ -120,6 +125,10 @@ object UserConfigFiles {
      * Replaces separate KawaiiBarButtonsLayout.json and StatusAreaButtonsLayout.json files.
      */
     fun buttonsLayoutConfig(): File? = configDir()?.let { File(it, "ButtonsLayout.json") }
+
+    fun customShuangpinSchemeJson(): File = File(fcitxConfigDir(), "CustomShuangpinScheme.json")
+
+    fun customShuangpinSpDat(): File = File(File(fcitxConfigDir(), "pinyin"), "sp.dat")
 
     private fun preferredTextKeyboardLayoutFileName(profile: String): String {
         return if (profile == DEFAULT_TEXT_KEYBOARD_LAYOUT_PROFILE) {

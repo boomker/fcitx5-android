@@ -3,8 +3,6 @@
     <string name="app_name">Swan Input Method</string>
     <string name="app_name_release">Swan Input Method</string>
     <string name="app_name_debug">Swan Input Method (Debug)</string>
-    <string name="app_name_mainline_release">Swan Input Method</string>
-    <string name="app_name_mainline_debug">Swan Input Method (Debug)</string>
     <string name="save">Save</string>
     <string name="input_methods">Input Methods</string>
     <string name="addons">Addons</string>
@@ -1101,4 +1099,20 @@
     <string name="theme_category_title">%1$s (%2$d)</string>
     <string name="theme_category_expanded">Expanded</string>
     <string name="theme_category_collapsed">Collapsed</string>
+    <string name="custom_shuangpin">Custom Shuangpin</string>
+    <string name="custom_shuangpin_tab_mapping">Syllable mapping</string>
+    <string name="custom_shuangpin_tab_preferences">Preferences</string>
+    <string name="custom_shuangpin_scheme_name">Scheme name</string>
+    <string name="custom_shuangpin_zero_initial">Zero-initial marker</string>
+    <string name="custom_shuangpin_initials">Initial mappings</string>
+    <string name="custom_shuangpin_finals">Final mappings</string>
+    <string name="custom_shuangpin_key_none">Not set</string>
+    <string name="custom_shuangpin_mapping_hint">Unset keys use the default rule. Multi-letter initials and finals normally need an explicit key.</string>
+    <string name="custom_shuangpin_name_invalid">Use a non-empty name that is not one of the built-in scheme names.</string>
+    <string name="custom_shuangpin_zero_initial_invalid">Use lowercase letters and * only.</string>
+    <string name="custom_shuangpin_syllables">Syllable overrides</string>
+    <string name="custom_shuangpin_edit_syllables">Edit syllable overrides</string>
+    <string name="custom_shuangpin_syllable_count">%1$d override(s)</string>
+    <string name="custom_shuangpin_syllables_hint">One mapping per line: full pinyin=two-key. Multiple keys can be separated by commas.</string>
+    <string name="custom_shuangpin_syllables_invalid">Invalid syllable override. Use lines like ju=jv or shi=ui,is.</string>
 </resources>

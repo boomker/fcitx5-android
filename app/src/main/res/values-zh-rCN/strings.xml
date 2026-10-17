@@ -3,8 +3,6 @@
     <string name="app_name">天鹅输入法</string>
     <string name="app_name_release">天鹅输入法</string>
     <string name="app_name_debug">天鹅输入法 (调试)</string>
-    <string name="app_name_mainline_release">天鹅输入法</string>
-    <string name="app_name_mainline_debug">天鹅输入法 (调试)</string>
     <string name="save">保存</string>
     <string name="input_methods">输入法</string>
     <string name="addons">附加组件</string>
@@ -977,4 +975,20 @@
     <string name="llm_persona_custom_name_description">%1$s。在下方还可以补充更详细的人设描述。</string>
     <string name="llm_persona_current_label">当前已选</string>
     <string name="llm_persona_delete_confirm">删除人设“%1$s”？</string>
+    <string name="custom_shuangpin">自定义双拼</string>
+    <string name="custom_shuangpin_tab_mapping">音节映射</string>
+    <string name="custom_shuangpin_tab_preferences">偏好</string>
+    <string name="custom_shuangpin_scheme_name">方案名称</string>
+    <string name="custom_shuangpin_zero_initial">零声母标识</string>
+    <string name="custom_shuangpin_initials">声母映射</string>
+    <string name="custom_shuangpin_finals">韵母映射</string>
+    <string name="custom_shuangpin_key_none">未设置</string>
+    <string name="custom_shuangpin_mapping_hint">未设置的按键使用默认规则；多字母声母和韵母通常需要显式指定按键。</string>
+    <string name="custom_shuangpin_name_invalid">请输入非空且不与内置方案同名的名称。</string>
+    <string name="custom_shuangpin_zero_initial_invalid">只能使用小写字母和 *。</string>
+    <string name="custom_shuangpin_syllables">音节覆盖</string>
+    <string name="custom_shuangpin_edit_syllables">编辑音节覆盖</string>
+    <string name="custom_shuangpin_syllable_count">%1$d 条覆盖</string>
+    <string name="custom_shuangpin_syllables_hint">每行一条：完整拼音=双键；多个双键可用逗号分隔。</string>
+    <string name="custom_shuangpin_syllables_invalid">音节覆盖格式无效。示例：ju=jv 或 shi=ui,is。</string>
 </resources>

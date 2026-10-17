@@ -3,8 +3,6 @@
     <string name="app_name">Лебединый метод ввода</string>
     <string name="app_name_release">Лебединый метод ввода</string>
     <string name="app_name_debug">Лебединый метод ввода (Отладка)</string>
-    <string name="app_name_mainline_release">Лебединый метод ввода</string>
-    <string name="app_name_mainline_debug">Лебединый метод ввода (Отладка)</string>
     <string name="save">Сохранить</string>
     <string name="input_methods">Методы ввода</string>
     <string name="addons">Дополнения</string>
@@ -970,4 +968,26 @@
     <string name="swipe_action_timing_code_all">Есть код (все)</string>
     <string name="macro_editor_swipe_timing_item_configured">%1$s (%2$d)</string>
     <string name="text_keyboard_layout_macro_timing_preview">%1$s: %2$s</string>
+    <string name="custom_shuangpin">Пользовательский шуанпинь</string>
+    <string name="custom_shuangpin_tab_mapping">Сопоставление слогов</string>
+    <string name="custom_shuangpin_tab_preferences">Настройки</string>
+    <string name="custom_shuangpin_scheme_name">Название схемы</string>
+    <string name="custom_shuangpin_zero_initial">Маркер нулевой инициали</string>
+    <string name="custom_shuangpin_initials">Сопоставления инициалей</string>
+    <string name="custom_shuangpin_finals">Сопоставления финалей</string>
+    <string name="custom_shuangpin_key_none">Не задано</string>
+    <string name="custom_shuangpin_mapping_hint">Для незаданных клавиш используется правило по умолчанию. Многобуквенные инициалы и финали обычно требуют явной клавиши.</string>
+    <string name="custom_shuangpin_name_invalid">Введите непустое имя, не совпадающее с названием встроенной схемы.</string>
+    <string name="custom_shuangpin_zero_initial_invalid">Используйте только строчные буквы и *.</string>
+    <string name="custom_shuangpin_syllables">Переопределения слогов</string>
+    <string name="custom_shuangpin_edit_syllables">Изменить переопределения слогов</string>
+    <string name="custom_shuangpin_syllable_count">%1$d переопределение(й)</string>
+    <string name="custom_shuangpin_syllables_hint">Одна запись на строку: полный пиньинь=две клавиши. Несколько клавиш можно разделить запятыми.</string>
+    <string name="custom_shuangpin_syllables_invalid">Неверное переопределение слога. Используйте строки вида ju=jv или shi=ui,is.</string>
+    <string name="macro_editor_swipe_timing">Момент действия</string>
+    <string name="swipe_action_timing_no_code_no_candidates">Нет кода, нет кандидатов</string>
+    <string name="swipe_action_timing_code_and_candidates">Есть код и кандидаты</string>
+    <string name="swipe_action_timing_no_code_candidates">Нет кода, есть кандидаты</string>
+    <string name="swipe_action_timing_all">Все</string>
+    <string name="text_keyboard_layout_compose_override_description">Состояние набора означает, что метод ввода в данный момент вводит код.</string>
 </resources>

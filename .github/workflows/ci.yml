@@ -137,12 +137,8 @@ jobs:
             -PgithubPackagesRepository="$local_third_party_repository" \
             :third_party:onnxruntime-genai-android:publish
           ./gradlew clean \
-            -PincludeMainlineFlavor=true \
-            -PincludeFxFlavor=false \
             -PgithubPackagesRepository="$local_third_party_repository" \
-            :app:assembleMainlineRelease :assembleReleasePlugins
-          mkdir -p app/build/outputs/apk/release/
-          mv app/build/outputs/apk/mainline/release/*.apk app/build/outputs/apk/release/
+            :app:assembleRelease :assembleReleasePlugins
       
       # move plugin apks to app/build/outputs/apk/release
       - name: Move plugin APKs

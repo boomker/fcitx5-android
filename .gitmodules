@@ -10,10 +10,10 @@
 	url = https://github.com/fcitx/fcitx5-lua.git
 [submodule "lib/libime/src/main/cpp/libime"]
 	path = lib/libime/src/main/cpp/libime
-	url = https://github.com/fcitx/libime.git
+	url = https://github.com/boomker/libime.git
 [submodule "lib/fcitx5-chinese-addons/src/main/cpp/fcitx5-chinese-addons"]
 	path = lib/fcitx5-chinese-addons/src/main/cpp/fcitx5-chinese-addons
-	url = https://github.com/fcitx/fcitx5-chinese-addons.git
+	url = https://github.com/boomker/fcitx5-chinese-addons.git
 [submodule "plugin/anthy/src/main/cpp/anthy-cmake"]
 	path = plugin/anthy/src/main/cpp/anthy-cmake
 	url = https://github.com/fcitx5-android/anthy-cmake.git

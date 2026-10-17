@@ -3,8 +3,6 @@
     <string name="app_name">白鳥入力法</string>
     <string name="app_name_release">白鳥入力法</string>
     <string name="app_name_debug">白鳥入力法 (デバッグ)</string>
-    <string name="app_name_mainline_release">白鳥入力法</string>
-    <string name="app_name_mainline_debug">白鳥入力法 (デバッグ)</string>
     <string name="save">保存</string>
     <string name="input_methods">インプットメソッド</string>
     <string name="addons">アドオン</string>
@@ -970,4 +968,26 @@
     <string name="swipe_action_timing_code_all">コードあり（すべて）</string>
     <string name="macro_editor_swipe_timing_item_configured">%1$s（%2$d）</string>
     <string name="text_keyboard_layout_macro_timing_preview">%1$s：%2$s</string>
+    <string name="custom_shuangpin">カスタム双拼</string>
+    <string name="custom_shuangpin_tab_mapping">音節マッピング</string>
+    <string name="custom_shuangpin_tab_preferences">環境設定</string>
+    <string name="custom_shuangpin_scheme_name">方案名</string>
+    <string name="custom_shuangpin_zero_initial">ゼロ声母マーカー</string>
+    <string name="custom_shuangpin_initials">声母マッピング</string>
+    <string name="custom_shuangpin_finals">韻母マッピング</string>
+    <string name="custom_shuangpin_key_none">未設定</string>
+    <string name="custom_shuangpin_mapping_hint">未設定のキーは既定の規則を使用します。複数文字の声母と韻母には通常、明示的なキーが必要です。</string>
+    <string name="custom_shuangpin_name_invalid">空でなく、組み込み方案名と重複しない名前を入力してください。</string>
+    <string name="custom_shuangpin_zero_initial_invalid">小文字と * のみ使用できます。</string>
+    <string name="custom_shuangpin_syllables">音節上書き</string>
+    <string name="custom_shuangpin_edit_syllables">音節上書きを編集</string>
+    <string name="custom_shuangpin_syllable_count">%1$d 件の上書き</string>
+    <string name="custom_shuangpin_syllables_hint">1 行に 1 件：完全なピンイン=2 キー。複数のキーはカンマで区切れます。</string>
+    <string name="custom_shuangpin_syllables_invalid">音節上書きの形式が正しくありません。例：ju=jv または shi=ui,is。</string>
+    <string name="macro_editor_swipe_timing">動作タイミング</string>
+    <string name="swipe_action_timing_no_code_no_candidates">コードなし、候補なし</string>
+    <string name="swipe_action_timing_code_and_candidates">コードあり、候補あり</string>
+    <string name="swipe_action_timing_no_code_candidates">コードなし、候補あり</string>
+    <string name="swipe_action_timing_all">すべて</string>
+    <string name="text_keyboard_layout_compose_override_description">入力中状態とは、入力メソッドが入力コードを入力している途中であることを意味します。</string>
 </resources>

@@ -12,21 +12,14 @@ plugins {
 val packageBase = "org.fxboomk.fcitx5.android"
 val appIdBase = "org.fxboomk.fcitx5.android"
 val originalPackageBase = "org.fcitx.fcitx5.android"
-val appIdFxSuffix = ".fx"
-val flavorFx = "fx"
-val flavorMainline = "mainline"
 val appLabelDefault = "@string/app_name"
-val appLabelMainlineRelease = "@string/app_name_mainline_release"
-val appLabelMainlineDebug = "@string/app_name_mainline_debug"
+val appLabelRelease = "@string/app_name_release"
+val appLabelDebug = "@string/app_name_debug"
 val originalPluginManifestAction = "$originalPackageBase.plugin.MANIFEST"
 val originalDebugPluginManifestAction = "$originalPackageBase.debug.plugin.MANIFEST"
 val originalIpcAction = "$originalPackageBase.IPC"
 val originalDebugIpcAction = "$originalPackageBase.debug.IPC"
 val imeSettingsActivity = "$packageBase.ui.main.MainActivity"
-val includeMainlineFlavor =
-    providers.gradleProperty("includeMainlineFlavor").map(String::toBoolean).orElse(true)
-val includeFxFlavor =
-    providers.gradleProperty("includeFxFlavor").map(String::toBoolean).orElse(false)
 
 android {
     namespace = packageBase
@@ -60,19 +53,6 @@ android {
         }
     }
 
-    flavorDimensions += "brand"
-    productFlavors {
-        create(flavorFx) {
-            dimension = "brand"
-            applicationIdSuffix = appIdFxSuffix
-            buildConfigField("boolean", "IS_FX_BUILD", "true")
-        }
-        create(flavorMainline) {
-            dimension = "brand"
-            buildConfigField("boolean", "IS_FX_BUILD", "false")
-        }
-    }
-
     buildFeatures {
         viewBinding = true
         resValues = true
@@ -89,12 +69,14 @@ android {
 
     buildTypes {
         release {
+            manifestPlaceholders["appLabel"] = appLabelRelease
             resValue("mipmap", "app_icon", "@mipmap/ic_launcher")
             resValue("mipmap", "app_icon_round", "@mipmap/ic_launcher_round")
             resValue("string", "app_name", "@string/app_name_release")
             proguardFile("proguard-rules.pro")
         }
         debug {
+            manifestPlaceholders["appLabel"] = appLabelDebug
             resValue("mipmap", "app_icon", "@mipmap/ic_launcher_debug")
             resValue("mipmap", "app_icon_round", "@mipmap/ic_launcher_round_debug")
         }
@@ -103,108 +85,6 @@ android {
     androidResources {
         @Suppress("UnstableApiUsage")
         generateLocaleConfig = true
-    }
-}
-
-    fun fallbackAliasFromFxTask(taskName: String): String? = when {
-        "FxDebug" in taskName -> taskName.replace("FxDebug", "Debug")
-        "FxRelease" in taskName -> taskName.replace("FxRelease", "Release")
-        else -> null
-}
-
-afterEvaluate {
-    val fxTasks = tasks.names
-        .filter { it.contains("FxDebug") || it.contains("FxRelease") }
-        .toList()
-    fxTasks.forEach { fxTaskName ->
-        val alias = fallbackAliasFromFxTask(fxTaskName) ?: return@forEach
-        if (tasks.findByName(alias) != null) return@forEach
-        val fxTask = tasks.findByName(fxTaskName) ?: return@forEach
-        tasks.register(alias) {
-            group = fxTask.group
-            description = "Alias of $fxTaskName"
-            dependsOn(fxTaskName)
-        }
-    }
-}
-
-fun String.capitalized(): String = replaceFirstChar { c ->
-    if (c.isLowerCase()) c.titlecase() else c.toString()
-}
-
-fun registerFxApkCompatCopy(buildType: String) {
-    val buildTypeCap = buildType.capitalized()
-    val assembleTask = "assembleFx$buildTypeCap"
-    val compatTask = "syncFx${buildTypeCap}ApkToLegacyDir"
-    tasks.register(compatTask) {
-        dependsOn(assembleTask)
-        doLast {
-            // clear old APKs in target folder to avoid confusion (delete only .apk files)
-            val destDir = layout.buildDirectory.dir("outputs/apk/$buildType").get().asFile
-            if (destDir.exists()) {
-                destDir.listFiles()?.filter { it.isFile && it.extension == "apk" }?.forEach { file ->
-                    try {
-                        file.delete()
-                    } catch (_: Exception) {
-                        // ignore deletion failures
-                    }
-                }
-            } else {
-                destDir.mkdirs()
-            }
-
-            // copy new fx APKs into legacy location
-            copy {
-                from(layout.buildDirectory.dir("outputs/apk/fx/$buildType"))
-                into(destDir)
-                include("*.apk")
-            }
-        }
-    }
-    tasks.matching { it.name == assembleTask }.configureEach {
-        finalizedBy(compatTask)
-    }
-}
-
-registerFxApkCompatCopy("debug")
-registerFxApkCompatCopy("release")
-
-androidComponents {
-    beforeVariants(selector().withFlavor("brand" to flavorMainline)) { variantBuilder ->
-        variantBuilder.enable = includeMainlineFlavor.get()
-    }
-    beforeVariants(selector().withFlavor("brand" to flavorFx)) { variantBuilder ->
-        variantBuilder.enable = includeFxFlavor.get()
-    }
-    onVariants { variant ->
-        when (variant.flavorName) {
-            flavorMainline -> {
-                val mainlineAppName = if (variant.buildType == "debug") {
-                    appLabelMainlineDebug
-                } else {
-                    appLabelMainlineRelease
-                }
-                variant.manifestPlaceholders.put("appLabel", mainlineAppName)
-                variant.outputs.forEach { output ->
-                    if (output is com.android.build.api.variant.impl.VariantOutputImpl) {
-                        output.outputFileName.set(
-                            output.outputFileName.get().replace("-mainline-", "-")
-                        )
-                    }
-                }
-            }
-            flavorFx -> {
-                variant.outputs.forEach { output ->
-                    if (output is com.android.build.api.variant.impl.VariantOutputImpl) {
-                        output.outputFileName.set(
-                            output.outputFileName.get()
-                                .replace("$appIdBase-", "$appIdBase$appIdFxSuffix-")
-                                .replace("-fx-", "-")
-                        )
-                    }
-                }
-            }
-        }
     }
 }
 

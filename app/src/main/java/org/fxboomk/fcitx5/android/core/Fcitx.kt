@@ -22,6 +22,8 @@ import org.fxboomk.fcitx5.android.core.data.DataManager
 import org.fxboomk.fcitx5.android.data.clipboard.ClipboardManager
 import org.fxboomk.fcitx5.android.data.clipboard.db.ClipboardEntry
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
+import org.fxboomk.fcitx5.android.data.pinyin.CustomShuangpinSchemeStore
+import org.fxboomk.fcitx5.android.data.pinyin.ShuangpinSchemeMigration
 import org.fxboomk.fcitx5.android.utils.ImmutableGraph
 import org.fxboomk.fcitx5.android.utils.Locales
 import org.fxboomk.fcitx5.android.utils.appContext
@@ -124,11 +126,24 @@ class Fcitx(private val context: Context) : FcitxAPI, FcitxLifecycleOwner {
     override suspend fun isEmpty(): Boolean = withFcitxContext { isInputPanelEmpty() }
     override suspend fun reset() = withFcitxContext { resetInputContext() }
     override suspend fun moveCursor(position: Int) = withFcitxContext { repositionCursor(position) }
-    override suspend fun availableIme() =
-        withFcitxContext { availableInputMethods() ?: emptyArray() }
+    override suspend fun availableIme() = withFcitxContext {
+        (availableInputMethods() ?: emptyArray())
+            .filter { it.uniqueName != ShuangpinSchemeMigration.LEGACY_UNIQUE_NAME }
+            .map(::decorateInputMethod)
+            .toTypedArray()
+    }
 
-    override suspend fun enabledIme() =
-        withFcitxContext { listInputMethods() ?: emptyArray() }
+    override suspend fun enabledIme() = withFcitxContext {
+        (listInputMethods() ?: emptyArray()).map(::decorateInputMethod)
+            .toTypedArray()
+    }
+
+    private fun decorateInputMethod(entry: InputMethodEntry): InputMethodEntry =
+        if (entry.uniqueName == CustomShuangpinSchemeStore.UNIQUE_NAME) {
+            entry.copy(name = CustomShuangpinSchemeStore.displayName())
+        } else {
+            entry
+        }
 
     override suspend fun setEnabledIme(array: Array<String>) =
         withFcitxContext { setEnabledInputMethods(array) }
@@ -138,8 +153,9 @@ class Fcitx(private val context: Context) : FcitxAPI, FcitxLifecycleOwner {
     override suspend fun enumerateIme(forward: Boolean) =
         withFcitxContext { nextInputMethod(forward) }
 
-    override suspend fun currentIme() =
-        withFcitxContext { inputMethodStatus() ?: inputMethodEntryCached }
+    override suspend fun currentIme() = withFcitxContext {
+        decorateInputMethod(inputMethodStatus() ?: inputMethodEntryCached)
+    }
 
     override suspend fun getGlobalConfig() = withFcitxContext {
         getFcitxGlobalConfig() ?: RawConfig()
@@ -455,6 +471,7 @@ class Fcitx(private val context: Context) : FcitxAPI, FcitxLifecycleOwner {
     private val dispatcher = FcitxDispatcher(object : FcitxDispatcher.FcitxController {
         override fun nativeStartup() {
             DataManager.sync()
+            CustomShuangpinSchemeStore.ensureInitialized()
             val locale = Locales.fcitxLocale
             val dataDir = DataManager.dataDir.absolutePath
             val plugins = DataManager.getLoadedPlugins()
@@ -488,6 +505,7 @@ class Fcitx(private val context: Context) : FcitxAPI, FcitxLifecycleOwner {
                     extDomains.toTypedArray()
                 )
             }
+            migrateLegacyShuangpinInputMethod()
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 lifecycle.launchWhenReady {
                     SubtypeManager.syncWith(enabledIme())
@@ -554,15 +572,16 @@ class Fcitx(private val context: Context) : FcitxAPI, FcitxLifecycleOwner {
     private fun handleFcitxEvent(event: FcitxEvent<*>) {
         when (event) {
             is FcitxEvent.ReadyEvent -> lifecycleRegistry.postEvent(FcitxLifecycle.Event.ON_READY)
-            is FcitxEvent.IMChangeEvent -> inputMethodEntryCached = event.data
+            is FcitxEvent.IMChangeEvent -> inputMethodEntryCached = decorateInputMethod(event.data)
             is FcitxEvent.StatusAreaEvent -> {
                 val (actions, im) = event.data
                 statusAreaActionsCached = actions
                 // Engine subMode update won't trigger IMChangeEvent, but usually updates StatusArea
-                if (im != inputMethodEntryCached) {
-                    inputMethodEntryCached = im
+                val decorated = decorateInputMethod(im)
+                if (decorated != inputMethodEntryCached) {
+                    inputMethodEntryCached = decorated
                     // notify downstream consumers that engine subMode has changed
-                    eventFlow_.tryEmit(FcitxEvent.IMChangeEvent(im))
+                    eventFlow_.tryEmit(FcitxEvent.IMChangeEvent(decorated))
                 }
             }
             is FcitxEvent.ClientPreeditEvent -> clientPreeditCached = event.data
@@ -570,6 +589,29 @@ class Fcitx(private val context: Context) : FcitxAPI, FcitxLifecycleOwner {
             is FcitxEvent.PagedCandidateEvent -> predictionCandidateSnapshot.update(event.data)
             else -> {}
         }
+    }
+
+    /**
+     * The old single "双拼" entry selected its scheme through a hidden config
+     * option. Replace it once with the matching per-scheme input method so
+     * existing users keep the same behaviour after the add-dialog refactor.
+     */
+    private fun migrateLegacyShuangpinInputMethod() {
+        val enabled = listInputMethods()?.map { it.uniqueName } ?: return
+        val legacyIndex = enabled.indexOf(ShuangpinSchemeMigration.LEGACY_UNIQUE_NAME)
+        if (legacyIndex < 0) return
+
+        val available = availableInputMethods()?.map { it.uniqueName }?.toSet() ?: return
+        val legacyProfile = getFcitxInputMethodConfig(ShuangpinSchemeMigration.LEGACY_UNIQUE_NAME)
+            ?.findByName("cfg")
+            ?.findByName("ShuangpinProfile")
+            ?.value
+        val target = ShuangpinSchemeMigration.targetForLegacyProfile(legacyProfile)
+        if (target !in available) return
+
+        val migrated = enabled.toMutableList()
+        migrated[legacyIndex] = target
+        setEnabledInputMethods(migrated.distinct().toTypedArray())
     }
 
     fun start() {

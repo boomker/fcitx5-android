@@ -15,8 +15,8 @@ import androidx.preference.EditTextPreference
 import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.Preference.SummaryProvider
-import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceDataStore
+import androidx.preference.PreferenceGroup
 import androidx.preference.PreferenceManager
 import androidx.preference.PreferenceScreen
 import arrow.core.getOrElse
@@ -26,6 +26,7 @@ import org.fxboomk.fcitx5.android.core.RawConfig
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.ui.main.modified.MySwitchPreference
 import org.fxboomk.fcitx5.android.utils.AppUtil
+import org.fxboomk.fcitx5.android.utils.CollapsiblePreferenceCategory
 import org.fxboomk.fcitx5.android.utils.LongClickPreference
 import org.fxboomk.fcitx5.android.utils.buildDocumentsProviderIntent
 import org.fxboomk.fcitx5.android.utils.buildPrimaryStorageIntent
@@ -79,7 +80,7 @@ object PreferenceScreenFactory {
         context: Context,
         fragmentManager: FragmentManager,
         cfg: RawConfig?,
-        screen: PreferenceScreen,
+        parent: PreferenceGroup,
         descriptor: ConfigDescriptor<*, *>,
         store: PreferenceDataStore,
         save: () -> Unit
@@ -91,7 +92,7 @@ object PreferenceScreenFactory {
         }
 
         if (descriptor is ConfigCustom) {
-            custom(context, fragmentManager, cfg, screen, descriptor, save)
+            custom(context, fragmentManager, cfg, parent, descriptor, save)
             return
         }
 
@@ -307,7 +308,7 @@ object PreferenceScreenFactory {
                 }
                 true
             }
-            screen.addPreference(this)
+            parent.addPreference(this)
         }
     }
 
@@ -325,20 +326,28 @@ object PreferenceScreenFactory {
         context: Context,
         fragmentManager: FragmentManager,
         cfg: RawConfig?,
-        screen: PreferenceScreen,
+        parent: PreferenceGroup,
         descriptor: ConfigCustom,
         save: () -> Unit
     ) {
         val subStore = FcitxRawConfigStore(cfg ?: RawConfig())
-        val subPref = PreferenceCategory(context).apply {
+        val subPref = CollapsiblePreferenceCategory(
+            context,
+            stateKey = "${rootTitle(parent)}:${descriptor.name}"
+        ).apply {
             key = descriptor.name
-            title = descriptor.description ?: descriptor.name
-            isSingleLineTitle = false
-            isIconSpaceReserved = false
+            setCollapsibleTitle(descriptor.description ?: descriptor.name)
         }
-        screen.addPreference(subPref)
+        parent.addPreference(subPref)
         descriptor.customTypeDef?.values?.forEach {
-            general(context, fragmentManager, cfg?.findByName(it.name), screen, it, subStore, save)
+            general(context, fragmentManager, cfg?.findByName(it.name), subPref, it, subStore, save)
+        }
+    }
+
+    private fun rootTitle(preference: Preference): CharSequence? {
+        var current = preference
+        while (true) {
+            current = current.parent ?: return current.title
         }
     }
 
