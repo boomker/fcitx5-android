@@ -88,6 +88,7 @@ import org.fxboomk.fcitx5.android.data.theme.ThemeManager
 import org.fxboomk.fcitx5.android.input.cursor.CursorRange
 import org.fxboomk.fcitx5.android.input.cursor.CursorTracker
 import org.fxboomk.fcitx5.android.input.keyboard.TextKeyboard
+import org.fxboomk.fcitx5.android.input.keyboard.shouldResetCapsStateOnHardwareTyping
 import org.fxboomk.fcitx5.android.input.keyboard.AutoCloseBracket
 import org.fxboomk.fcitx5.android.input.keyboard.resolveHardwarePredictionDigit
 import org.fxboomk.fcitx5.android.input.keyboard.shouldHardwareSpaceCommitPrediction
@@ -1987,6 +1988,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     private fun onHardwareTypingModeEnter(event: KeyEvent) {
         if (event.keyCode == KeyEvent.KEYCODE_CAPS_LOCK) return
         if (event.unicodeChar == 0) return
+        if (!shouldResetCapsStateOnHardwareTyping(simulatedCapsLockOnByMacroTap)) return
         TextKeyboard.clearCapsStateOnAll()
         setVirtualShiftLockState(false)
         setVirtualCapsLockState(event.isCapsLockOn)

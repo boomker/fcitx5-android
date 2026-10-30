@@ -14,3 +14,10 @@ enum class CapsKeyBehavior(override val stringRes: Int) : ManagedPreferenceEnum 
 
 internal fun shouldLockCapsAction(actionLock: Boolean, behavior: CapsKeyBehavior): Boolean =
     actionLock || behavior == CapsKeyBehavior.SingleTapLock
+
+/**
+ * MacroKey Caps_Lock is an explicit virtual lock and must survive ordinary typing.
+ * Physical typing should only reset transient/local caps state when no macro lock is active.
+ */
+internal fun shouldResetCapsStateOnHardwareTyping(macroCapsLockOn: Boolean): Boolean =
+    !macroCapsLockOn

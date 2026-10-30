@@ -34,6 +34,12 @@ class TextKeyboardCapsStateTest {
     }
 
     @Test
+    fun macroCapsLockSurvivesHardwareTypingStateRefresh() {
+        assertFalse(shouldResetCapsStateOnHardwareTyping(true))
+        assertTrue(shouldResetCapsStateOnHardwareTyping(false))
+    }
+
+    @Test
     fun uppercaseMacroDisplayTextStaysUppercaseAcrossCapsAndAsciiStates() {
         val macro = MacroKey(
             label = "Q",
