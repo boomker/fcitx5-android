@@ -751,8 +751,9 @@ class TextKeyboard private constructor(
     override fun onCompositionStateChanged(composing: Boolean) {
         super.onCompositionStateChanged(composing)
         ensureSpecialKeyViewsInitialized()
-        // Compose-state switches may recreate key views; re-apply caps presentation immediately.
-        updateAlphabetKeys()
+        // Compose-state switches may recreate the Caps key view; restore every state-dependent
+        // presentation, including the lock icon, after the hierarchy has been updated.
+        refreshCapsPresentation()
     }
 
     private fun transformPopupPreview(c: String): String {
