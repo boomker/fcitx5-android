@@ -5,6 +5,7 @@
 package org.fxboomk.fcitx5.android.input.action
 
 import org.fxboomk.fcitx5.android.input.config.ButtonsLayoutConfig
+import org.fxboomk.fcitx5.android.input.config.ConfigurableButton
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
@@ -26,5 +27,34 @@ class ButtonActionTest {
     fun moreButtonIsTheFixedFirstKawaiiBarButton() {
         assertEquals("more", ButtonsLayoutConfig.default().kawaiiBarButtons.first().id)
         assertEquals("font:E141", ButtonsLayoutConfig.default().kawaiiBarButtons.first().icon)
+    }
+
+    @Test
+    fun keyboardHeightAdjustmentIsAvailableInStatusArea() {
+        val config = ButtonsLayoutConfig.default()
+
+        assertSame(AdjustKeyboardHeightAction, ButtonAction.fromId("adjust_keyboard_height"))
+        assertTrue(ButtonAction.statusAreaActions.contains(AdjustKeyboardHeightAction))
+        assertEquals("adjust_keyboard_height", config.statusAreaButtons.last().id)
+    }
+
+    @Test
+    fun legacyConfigGainsKeyboardHeightAdjustmentBeforeInputMethodOptions() {
+        val legacy = ButtonsLayoutConfig(
+            kawaiiBarButtons = ButtonsLayoutConfig.default().kawaiiBarButtons,
+            statusAreaButtons = listOf(
+                ConfigurableButton("theme"),
+                ConfigurableButton("input_method_options")
+            ),
+            optionalButtons = emptyList()
+        )
+
+        val normalized = legacy.withKeyboardHeightAdjustButton()
+
+        assertEquals(
+            listOf("theme", "adjust_keyboard_height", "input_method_options"),
+            normalized.statusAreaButtons.map { it.id }
+        )
+        assertSame(normalized, normalized.withKeyboardHeightAdjustButton())
     }
 }

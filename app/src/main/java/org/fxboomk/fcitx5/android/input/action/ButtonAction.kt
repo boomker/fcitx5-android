@@ -23,6 +23,7 @@ import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.data.theme.ThemeManager
 import org.fxboomk.fcitx5.android.input.FcitxInputMethodService
 import org.fxboomk.fcitx5.android.input.clipboard.ClipboardWindow
+import org.fxboomk.fcitx5.android.input.config.ButtonsLayoutConfig
 import org.fxboomk.fcitx5.android.input.dialog.AddMoreInputMethodsPrompt
 import org.fxboomk.fcitx5.android.input.dialog.InputMethodPickerDialog
 import org.fxboomk.fcitx5.android.input.editing.TextEditingWindow
@@ -132,6 +133,7 @@ sealed class ButtonAction {
                 ReloadConfigAction,
                 VirtualKeyboardAction,
                 OneHandedKeyboardAction,
+                AdjustKeyboardHeightAction,
                 SearchAction,
                 BrowseUserDataDirAction,
                 SettingsGlobalOptionsAction,
@@ -214,6 +216,7 @@ sealed class ButtonAction {
                 ReloadConfigAction,
                 VirtualKeyboardAction,
                 OneHandedKeyboardAction,
+                AdjustKeyboardHeightAction,
                 MoreAction,
                 SearchAction
             )
@@ -636,6 +639,31 @@ data object OneHandedKeyboardAction : ButtonAction() {
         onActionComplete: (() -> Unit)?
     ) {
         service.toggleOneHandKeyboard()
+    }
+}
+
+data object AdjustKeyboardHeightAction : ButtonAction() {
+    override val id = ButtonsLayoutConfig.KEYBOARD_HEIGHT_ADJUST_ID
+    override val defaultIcon = R.drawable.ic_baseline_tune_24
+    override val defaultLabelRes = R.string.adjust_keyboard_height
+
+    override fun execute(
+        context: Context,
+        service: FcitxInputMethodService,
+        fcitx: FcitxConnection,
+        windowManager: InputWindowManager,
+        view: View?,
+        onActionComplete: (() -> Unit)?
+    ) {
+        service.inputView?.let { inputView ->
+            inputView.enterAdjustingMode()
+            windowManager.attachWindow(KeyboardWindow)
+            android.widget.Toast.makeText(
+                context,
+                R.string.keyboard_height_adjustment_hint,
+                android.widget.Toast.LENGTH_LONG
+            ).show()
+        }
     }
 }
 

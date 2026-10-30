@@ -22,7 +22,7 @@ data class ConfigurableButton(
      * Unique identifier for the button action.
      * Examples: "undo", "redo", "cursor_move", "floating_toggle", "clipboard", "more",
      *           "theme_toggle", "language_switch", "theme", "input_method_options", "reload_config",
-     *           "virtual_keyboard", "one_handed_keyboard"
+     *           "virtual_keyboard", "one_handed_keyboard", "adjust_keyboard_height"
      */
     @SerialName("id")
     val id: String,
@@ -131,6 +131,7 @@ data class ButtonsLayoutConfig(
     val hideKeyboardButton: ConfigurableButton = defaultHideKeyboardButton()
 ) {
     companion object {
+        const val KEYBOARD_HEIGHT_ADJUST_ID = "adjust_keyboard_height"
         private const val DEFAULT_MORE_ICON = "font:E141"
         private const val DEFAULT_HIDE_KEYBOARD_ICON = "ic_keyboard_hide_24"
 
@@ -167,7 +168,8 @@ data class ButtonsLayoutConfig(
                 ConfigurableButton("theme"),
                 ConfigurableButton("reload_config"),
                 ConfigurableButton("virtual_keyboard"),
-                ConfigurableButton("one_handed_keyboard")
+                ConfigurableButton("one_handed_keyboard"),
+                ConfigurableButton("adjust_keyboard_height")
             ),
             optionalButtons = listOf(ConfigurableButton("search")),
             hideKeyboardButton = defaultHideKeyboardButton()
@@ -180,6 +182,20 @@ data class ButtonsLayoutConfig(
         } else {
             defaultHideKeyboardButton()
         }
+
+    /**
+     * Ensure the keyboard height adjustment button exists for configs saved before it was added.
+     * It is inserted at the end of Status Area, just before the fixed input_method_options button.
+     */
+    fun withKeyboardHeightAdjustButton(): ButtonsLayoutConfig {
+        val allIds = (kawaiiBarButtons + statusAreaButtons + optionalButtons).mapTo(mutableSetOf()) { it.id }
+        if (KEYBOARD_HEIGHT_ADJUST_ID in allIds) return this
+        val buttons = statusAreaButtons.toMutableList()
+        val insertAt = buttons.indexOfFirst { it.id == "input_method_options" }
+            .takeIf { it >= 0 } ?: buttons.size
+        buttons.add(insertAt, ConfigurableButton(KEYBOARD_HEIGHT_ADJUST_ID))
+        return copy(statusAreaButtons = buttons)
+    }
 }
 
 /**

@@ -211,6 +211,7 @@ class ButtonsCustomizerActivity : AppCompatActivity() {
         ButtonDefinition("reload_config", R.drawable.ic_baseline_sync_24, R.string.reload_config),
         ButtonDefinition("virtual_keyboard", R.drawable.ic_baseline_keyboard_24, R.string.virtual_keyboard),
         ButtonDefinition("one_handed_keyboard", R.drawable.ic_baseline_keyboard_tab_24, R.string.one_handed_keyboard),
+        ButtonDefinition("adjust_keyboard_height", R.drawable.ic_baseline_tune_24, R.string.adjust_keyboard_height),
         ButtonDefinition("input_method_options", R.drawable.ic_baseline_language_24, R.string.input_method_options),
         ButtonDefinition("search", R.drawable.ic_baseline_search_24, R.string.search)
     )
@@ -322,7 +323,7 @@ class ButtonsCustomizerActivity : AppCompatActivity() {
     private fun loadState() {
         // Load unified buttons layout config
         val snapshot = ConfigProviders.readButtonsLayoutConfig<ButtonsLayoutConfig>()
-        val config = snapshot?.value ?: ButtonsLayoutConfig.default()
+        val config = (snapshot?.value ?: ButtonsLayoutConfig.default()).withKeyboardHeightAdjustButton()
         hideKeyboardButton = config.resolvedHideKeyboardButton()
 
         // Build combined list

@@ -42,7 +42,6 @@ sealed class StatusAreaEntry(
             InputMethod,
             ReloadConfig,
             Keyboard,
-            AdjustKeyboardHeight,
             ThemeList,
             OneHandKeyboard
         }

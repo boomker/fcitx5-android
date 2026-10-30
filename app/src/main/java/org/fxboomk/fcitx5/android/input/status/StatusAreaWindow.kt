@@ -73,7 +73,7 @@ class StatusAreaWindow : InputWindow.ExtendedInputWindow<StatusAreaWindow>(),
         return try {
             val snapshot = ConfigProviders.readButtonsLayoutConfig<ButtonsLayoutConfig>()
             val config = snapshot?.value ?: ButtonsLayoutConfig.default()
-            config.statusAreaButtons
+            config.withKeyboardHeightAdjustButton().statusAreaButtons
         } catch (e: Exception) {
             ButtonsLayoutConfig.default().statusAreaButtons
         }
@@ -132,12 +132,6 @@ class StatusAreaWindow : InputWindow.ExtendedInputWindow<StatusAreaWindow>(),
             )
         }
 
-        val keyboardHeightAdjustmentEntry = StatusAreaEntry.Android(
-            label = context.getString(R.string.adjust_keyboard_height),
-            icon = R.drawable.ic_baseline_tune_24,
-            type = StatusAreaEntry.Android.Type.AdjustKeyboardHeight
-        )
-
         // Always add input_method_options at the end; its configured icon is still honored.
         val inputMethodOptionsAction = ButtonAction.allActions.find { it.id == "input_method_options" }!!
         val inputMethodOptionsConfig = config.firstOrNull { it.id == "input_method_options" }
@@ -158,7 +152,7 @@ class StatusAreaWindow : InputWindow.ExtendedInputWindow<StatusAreaWindow>(),
             active = false
         )
 
-        return (configurableEntries + keyboardHeightAdjustmentEntry + inputMethodOptionsEntry).toTypedArray()
+        return (configurableEntries + inputMethodOptionsEntry).toTypedArray()
     }
 
     private fun fcitxActionEntries(): Array<StatusAreaEntry> =
@@ -356,17 +350,6 @@ class StatusAreaWindow : InputWindow.ExtendedInputWindow<StatusAreaWindow>(),
                             }
                         }
                         StatusAreaEntry.Android.Type.Keyboard -> AppUtil.launchMainToKeyboard(context)
-                        StatusAreaEntry.Android.Type.AdjustKeyboardHeight -> {
-                            service.inputView?.let { inputView ->
-                                inputView.enterAdjustingMode()
-                                windowManager.attachWindow(KeyboardWindow)
-                                Toast.makeText(
-                                    context,
-                                    R.string.keyboard_height_adjustment_hint,
-                                    Toast.LENGTH_LONG
-                                ).show()
-                            }
-                        }
                         StatusAreaEntry.Android.Type.ThemeList -> AppUtil.launchMainToThemeList(context)
                         StatusAreaEntry.Android.Type.OneHandKeyboard -> {
                             service.toggleOneHandKeyboard()
@@ -391,7 +374,8 @@ class StatusAreaWindow : InputWindow.ExtendedInputWindow<StatusAreaWindow>(),
                             }
                         )
                         // Actions that open their own windows should not close Status Area
-                        val opensOwnWindow = entry.buttonAction.id in listOf("cursor_move", "clipboard")
+                        val opensOwnWindow = entry.buttonAction.id in
+                            listOf("cursor_move", "clipboard", ButtonsLayoutConfig.KEYBOARD_HEIGHT_ADJUST_ID)
                         // For non-floating-toggle and non-window-opening actions that should close the Status Area
                         if (entry.buttonAction.id != "floating_toggle" && !opensOwnWindow) {
                             windowManager.attachWindow(KeyboardWindow)
