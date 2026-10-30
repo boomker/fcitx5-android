@@ -15,6 +15,8 @@ import org.fxboomk.fcitx5.android.core.KeySym
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.data.theme.Theme
 import org.fxboomk.fcitx5.android.input.AutoScaleTextView
+import org.fxboomk.fcitx5.android.input.config.KeyIconIds
+import org.fxboomk.fcitx5.android.input.config.KeyIconThemeStore
 import org.fxboomk.fcitx5.android.input.keyboard.CustomGestureView
 import org.fxboomk.fcitx5.android.input.keyboard.CustomGestureView.OnGestureListener
 import org.fxboomk.fcitx5.android.input.keyboard.ImageKeyView
@@ -112,7 +114,15 @@ class PickerPageUi(
             setOnClickListener(listener)
             repeatEnabled = true
             onRepeatListener = action
+            resolveBackspaceIcon()?.let(img::setImageDrawable)
         }
+    }
+
+    private fun resolveBackspaceIcon() =
+        KeyIconThemeStore.resolveDrawableObject(ctx, KeyIconIds.BACKSPACE, backspaceAppearance.src)
+
+    private val onKeyIconThemeChanged: () -> Unit = {
+        resolveBackspaceIcon()?.let(backspaceKey.img::setImageDrawable)
     }
 
     override val root = constraintLayout {
@@ -171,6 +181,21 @@ class PickerPageUi(
             }
         }
         layoutParams = ViewGroup.LayoutParams(matchParent, matchParent)
+    }
+
+    init {
+        if (density.showBackspace) {
+            root.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
+                override fun onViewAttachedToWindow(v: View) {
+                    KeyIconThemeStore.addOnChangedListener(onKeyIconThemeChanged)
+                    onKeyIconThemeChanged()
+                }
+
+                override fun onViewDetachedFromWindow(v: View) {
+                    KeyIconThemeStore.removeOnChangedListener(onKeyIconThemeChanged)
+                }
+            })
+        }
     }
 
     fun setItems(items: List<String>) {

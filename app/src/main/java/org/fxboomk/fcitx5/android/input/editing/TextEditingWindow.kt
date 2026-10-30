@@ -13,6 +13,7 @@ import org.fxboomk.fcitx5.android.data.theme.ThemeManager
 import org.fxboomk.fcitx5.android.input.FcitxInputMethodService
 import org.fxboomk.fcitx5.android.input.broadcast.InputBroadcastReceiver
 import org.fxboomk.fcitx5.android.input.clipboard.ClipboardWindow
+import org.fxboomk.fcitx5.android.input.config.KeyIconThemeStore
 import org.fxboomk.fcitx5.android.input.dependency.inputMethodService
 import org.fxboomk.fcitx5.android.input.dependency.theme
 import org.fxboomk.fcitx5.android.input.keyboard.CustomGestureView
@@ -100,12 +101,17 @@ class TextEditingWindow : InputWindow.ExtendedInputWindow<TextEditingWindow>(),
 
     override fun onCreateView(): View = ui.root
 
+    private val onKeyIconThemeChanged: () -> Unit = { ui.refreshIcons() }
+
     override fun onAttached() {
+        KeyIconThemeStore.addOnChangedListener(onKeyIconThemeChanged)
         val range = service.currentInputSelection
         onSelectionUpdate(range.start, range.end)
     }
 
-    override fun onDetached() {}
+    override fun onDetached() {
+        KeyIconThemeStore.removeOnChangedListener(onKeyIconThemeChanged)
+    }
 
     override fun onSelectionUpdate(start: Int, end: Int) {
         hasSelection = start != end

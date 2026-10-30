@@ -12,6 +12,8 @@ import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.data.InputFeedbacks
 import org.fxboomk.fcitx5.android.data.theme.Theme
 import org.fxboomk.fcitx5.android.input.bar.ui.ToolButton
+import org.fxboomk.fcitx5.android.input.config.KeyIconIds
+import org.fxboomk.fcitx5.android.input.config.KeyIconThemeStore
 import splitties.dimensions.dp
 import splitties.views.dsl.constraintlayout.above
 import splitties.views.dsl.constraintlayout.below
@@ -36,29 +38,49 @@ class TextEditingUi(
     private val radius: Float
 ) : Ui {
 
+    private data class IconButtonSpec(
+        val button: TextEditingButton,
+        val iconId: String,
+        @DrawableRes val fallback: Int
+    )
+
+    private val iconButtonSpecs = mutableListOf<IconButtonSpec>()
+
     private fun textButton(@StringRes id: Int, altStyle: Boolean = false) =
         TextEditingButton(ctx, theme, ripple, border, radius, altStyle).apply {
             setText(id)
         }
 
-    private fun iconButton(@DrawableRes icon: Int, altStyle: Boolean = false) =
+    private fun iconButton(iconId: String, @DrawableRes fallback: Int, altStyle: Boolean = false) =
         TextEditingButton(ctx, theme, ripple, border, radius, altStyle).apply {
-            setIcon(icon)
+            IconButtonSpec(this, iconId, fallback).also {
+                iconButtonSpecs += it
+                applyIcon(it)
+            }
         }
 
-    val upButton = iconButton(R.drawable.ic_baseline_keyboard_arrow_up_24).apply {
+    private fun applyIcon(spec: IconButtonSpec) {
+        KeyIconThemeStore.resolveDrawableObject(ctx, spec.iconId, spec.fallback)
+            ?.let(spec.button::setIconDrawable)
+    }
+
+    fun refreshIcons() {
+        iconButtonSpecs.forEach(::applyIcon)
+    }
+
+    val upButton = iconButton(KeyIconIds.CURSOR_UP, R.drawable.ic_baseline_keyboard_arrow_up_24).apply {
         contentDescription = ctx.getString(R.string.move_cursor_up)
     }
 
-    val rightButton = iconButton(R.drawable.ic_baseline_keyboard_arrow_right_24).apply {
+    val rightButton = iconButton(KeyIconIds.CURSOR_RIGHT, R.drawable.ic_baseline_keyboard_arrow_right_24).apply {
         contentDescription = ctx.getString(R.string.move_cursor_right)
     }
 
-    val downButton = iconButton(R.drawable.ic_baseline_keyboard_arrow_down_24).apply {
+    val downButton = iconButton(KeyIconIds.CURSOR_DOWN, R.drawable.ic_baseline_keyboard_arrow_down_24).apply {
         contentDescription = ctx.getString(R.string.move_cursor_down)
     }
 
-    val leftButton = iconButton(R.drawable.ic_baseline_keyboard_arrow_left_24).apply {
+    val leftButton = iconButton(KeyIconIds.CURSOR_LEFT, R.drawable.ic_baseline_keyboard_arrow_left_24).apply {
         contentDescription = ctx.getString(R.string.move_cursor_left)
     }
 
@@ -66,11 +88,11 @@ class TextEditingUi(
         enableActivatedState()
     }
 
-    val homeButton = iconButton(R.drawable.ic_baseline_first_page_24).apply {
+    val homeButton = iconButton(KeyIconIds.HOME, R.drawable.ic_baseline_first_page_24).apply {
         contentDescription = ctx.getString(R.string.move_cursor_to_start)
     }
 
-    val endButton = iconButton(R.drawable.ic_baseline_last_page_24).apply {
+    val endButton = iconButton(KeyIconIds.END, R.drawable.ic_baseline_last_page_24).apply {
         contentDescription = ctx.getString(R.string.move_cursor_to_end)
     }
 
@@ -84,7 +106,11 @@ class TextEditingUi(
 
     val pasteButton = textButton(android.R.string.paste, altStyle = true)
 
-    val backspaceButton = iconButton(R.drawable.ic_outline_backspace_24, altStyle = true).apply {
+    val backspaceButton = iconButton(
+        KeyIconIds.BACKSPACE,
+        R.drawable.ic_outline_backspace_24,
+        altStyle = true
+    ).apply {
         soundEffect = InputFeedbacks.SoundEffect.Delete
         contentDescription = ctx.getString(R.string.backspace)
     }

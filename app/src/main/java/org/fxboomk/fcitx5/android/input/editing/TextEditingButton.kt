@@ -8,6 +8,7 @@ package org.fxboomk.fcitx5.android.input.editing
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.res.ColorStateList
+import android.graphics.drawable.Drawable
 import android.graphics.drawable.RippleDrawable
 import android.graphics.drawable.StateListDrawable
 import androidx.annotation.DrawableRes
@@ -95,8 +96,19 @@ class TextEditingButton(
 
     fun setIcon(@DrawableRes icon: Int) {
         imageView.imageResource = icon
+        showIcon()
+    }
+
+    fun setIconDrawable(icon: Drawable) {
+        imageView.setImageDrawable(icon)
+        showIcon()
+    }
+
+    private fun showIcon() {
         removeView(textView)
-        add(imageView, lParams(wrapContent, wrapContent, gravityCenter))
+        if (imageView.parent == null) {
+            add(imageView, lParams(wrapContent, wrapContent, gravityCenter))
+        }
     }
 
     fun enableActivatedState() {
