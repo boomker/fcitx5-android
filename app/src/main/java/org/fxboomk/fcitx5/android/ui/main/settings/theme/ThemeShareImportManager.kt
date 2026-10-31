@@ -93,7 +93,7 @@ class ThemeShareImportManager(
                 tryAssembleAndImport(chunks)
             }.onFailure {
                 fragment.requireContext().toast(
-                    fragment.getString(R.string.text_keyboard_layout_qr_import_failed, it.localizedMessage ?: "")
+                    fragment.getString(R.string.text_keyboard_layout_import_failed, it.localizedMessage ?: "")
                 )
             }
         }
@@ -158,7 +158,7 @@ class ThemeShareImportManager(
                     )
                     return@onFailure
                 }
-                fragment.requireContext().toast(fragment.getString(R.string.text_keyboard_layout_qr_import_failed, it.localizedMessage ?: ""))
+                fragment.requireContext().toast(fragment.getString(R.string.text_keyboard_layout_import_failed, it.localizedMessage ?: ""))
             }
     }
 
@@ -177,7 +177,7 @@ class ThemeShareImportManager(
                     )
                     return@onFailure
                 }
-                fragment.requireContext().toast(fragment.getString(R.string.text_keyboard_layout_qr_import_failed, it.localizedMessage ?: ""))
+                fragment.requireContext().toast(fragment.getString(R.string.text_keyboard_layout_import_failed, it.localizedMessage ?: ""))
             }
     }
 

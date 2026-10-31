@@ -484,7 +484,7 @@
     <string name="text_keyboard_layout_manage_sub_reset_inherit">リセット完了：%1$s は親入力メソッドのレイアウトを継承するようになりました</string>
     <string name="text_keyboard_layout_manage_move_up">上へ移動</string>
     <string name="text_keyboard_layout_manage_delete">削除</string>
-    <string name="text_keyboard_layout_manage_import">インポート</string>
+    <string name="text_keyboard_layout_manage_import">設定をインポート</string>
     <string name="text_keyboard_layout_manage_share">共有</string>
     <string name="text_keyboard_layout_manage_new">新規</string>
     <string name="text_keyboard_layout_manage_edit">内容を編集</string>
@@ -494,6 +494,24 @@
     <string name="text_keyboard_layout_manage_delete_profile">プロファイルを削除</string>
     <string name="text_keyboard_layout_manage_import_scan">QRコードをスキャン</string>
     <string name="text_keyboard_layout_manage_import_image">QR画像からインポート</string>
+    <string name="text_keyboard_layout_manage_import_json">JSON ファイルからインポート</string>
+    <string name="text_keyboard_layout_manage_import_zip">ZIP アーカイブからインポート</string>
+    <string name="text_keyboard_layout_export_select_profiles">エクスポートする設定を選択</string>
+    <string name="text_keyboard_layout_export_select_all">すべて選択</string>
+    <string name="text_keyboard_layout_export_format">エクスポート形式</string>
+    <string name="text_keyboard_layout_export_format_qr">QR コード</string>
+    <string name="text_keyboard_layout_export_format_json">JSON ファイル</string>
+    <string name="text_keyboard_layout_export_format_zip">ZIP アーカイブ</string>
+    <string name="text_keyboard_layout_export_multi_zip_hint">複数の設定は ZIP アーカイブとしてのみエクスポートできます</string>
+    <string name="text_keyboard_layout_export_no_selection">少なくとも 1 つの設定を選択してください</string>
+    <string name="text_keyboard_layout_export_json_success">設定「%1$s」を JSON ファイルとしてエクスポートしました</string>
+    <string name="text_keyboard_layout_export_zip_success">%1$d 個の設定を ZIP アーカイブとしてエクスポートしました</string>
+    <string name="text_keyboard_layout_export_failed">エクスポートに失敗しました: %1$s</string>
+    <string name="text_keyboard_layout_zip_import_confirm_title">ZIP のインポート確認</string>
+    <string name="text_keyboard_layout_zip_import_confirm_message">%1$d 個のレイアウト設定を検出しました。新しい設定としてインポートしますか？</string>
+    <string name="text_keyboard_layout_zip_import_success">レイアウト設定をインポートしました: %1$d</string>
+    <string name="text_keyboard_layout_zip_import_invalid_entry">「%1$s」のレイアウトデータが無効です</string>
+    <string name="text_keyboard_layout_zip_import_empty">ZIP アーカイブに JSON レイアウトファイルが見つかりません</string>
     <string name="text_keyboard_layout_manage_default_not_deletable">デフォルトのプロファイルは削除できません</string>
     <string name="text_keyboard_layout_manage_more_customize">その他のカスタマイズ</string>
     <string name="text_keyboard_layout_editor_menu_manage">レイアウトを管理</string>
@@ -642,10 +660,16 @@
     <string name="text_keyboard_layout_qr_duplicate_chunk">このチャンクはすでにスキャン済みです</string>
     <string name="text_keyboard_layout_qr_import_no_chunk">画像内にQRチャンクが見つかりませんでした</string>
     <string name="text_keyboard_layout_qr_invalid_payload">無効なQRペイロードです</string>
-    <string name="text_keyboard_layout_qr_import_confirm_title">QRからレイアウトをインポート</string>
+    <string name="text_keyboard_layout_import_confirm_title">インポートの確認</string>
     <string name="text_keyboard_layout_qr_import_confirm_message">%1$d 件のレイアウト項目を検出しました。現在編集中のメモリデータを置き換えてインポートしますか？</string>
+    <string name="text_keyboard_layout_import_confirm_message_with_profile">%1$d 件のレイアウトデータを検出しました。設定「%2$s」にインポートしますか？</string>
     <string name="text_keyboard_layout_qr_import_success">QRレイアウトをインポートしました。保存するとファイルに反映されます。</string>
-    <string name="text_keyboard_layout_qr_import_failed">QRペイロードのインポートに失敗しました：%1$s</string>
+    <string name="text_keyboard_layout_import_success_profile">レイアウトを設定「%1$s」にインポートしました。</string>
+    <string name="text_keyboard_layout_import_success_new_profile">レイアウトをインポートし、新しい設定「%1$s」を作成しました。</string>
+    <string name="text_keyboard_layout_import_failed">インポートに失敗しました：%1$s</string>
+    <string name="text_keyboard_layout_import_invalid_data">レイアウトデータが無効または空です</string>
+    <string name="text_keyboard_layout_import_read_failed">選択したファイルを読み取れません</string>
+    <string name="text_keyboard_layout_import_default_profile_name">インポートしたレイアウト</string>
     <string name="text_keyboard_layout_qr_type_mismatch">QRタイプが一致しません。想定: %1$s、実際: %2$s。</string>
     <string name="qr_payload_type_theme">テーマ</string>
     <string name="qr_payload_type_layout">レイアウト</string>
@@ -737,9 +761,6 @@
     <string name="text_keyboard_layout_file_delete_failed">レイアウトファイルの削除に失敗しました</string>
     <string name="text_keyboard_layout_file_deleted">設定を削除しました：%1$s</string>
     <string name="text_keyboard_layout_file_saved">保存済み：%1$s</string>
-    <string name="text_keyboard_layout_qr_import_confirm_message_with_profile">%1$d 件のレイアウトデータを検出しました。設定「%2$s」にインポートして現在の編集中のデータを置き換えますか？</string>
-    <string name="text_keyboard_layout_qr_import_success_new_profile">QR レイアウトをインポートし、新しい設定「%1$s」を作成しました。保存をクリックしてファイルに書き込んでください。</string>
-    <string name="text_keyboard_layout_qr_import_success_profile">QR レイアウトを設定「%1$s」にインポートしました。保存をクリックしてファイルに書き込んでください。</string>
     
     <!-- Previously missing strings (now translated) -->
     <string name="hide_candidates_list">非表示</string>

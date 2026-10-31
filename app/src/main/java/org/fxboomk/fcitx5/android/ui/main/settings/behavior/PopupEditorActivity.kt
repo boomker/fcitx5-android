@@ -673,7 +673,7 @@ class PopupEditorActivity : AppCompatActivity() {
                 val json = JsonFileQrShareManager.decodeChunksToJson(chunks)
                 applyImportedPopupJson(json)
             }.onFailure {
-                showToast(getString(R.string.text_keyboard_layout_qr_import_failed, it.localizedMessage ?: ""))
+                showToast(getString(R.string.text_keyboard_layout_import_failed, it.localizedMessage ?: ""))
             }
         }
     }
@@ -731,7 +731,7 @@ class PopupEditorActivity : AppCompatActivity() {
             parsed
         }.onSuccess { parsed ->
             AlertDialog.Builder(this)
-                .setTitle(R.string.text_keyboard_layout_qr_import_confirm_title)
+                .setTitle(R.string.text_keyboard_layout_import_confirm_title)
                 .setMessage(getString(R.string.text_keyboard_layout_qr_import_confirm_message, parsed.size))
                 .setPositiveButton(android.R.string.ok) { _, _ ->
                     entries.clear()
@@ -759,7 +759,7 @@ class PopupEditorActivity : AppCompatActivity() {
                     )
                 )
             } else {
-                showToast(getString(R.string.text_keyboard_layout_qr_import_failed, it.localizedMessage ?: ""))
+                showToast(getString(R.string.text_keyboard_layout_import_failed, it.localizedMessage ?: ""))
             }
         }
     }

@@ -15,8 +15,11 @@ import android.os.Bundle
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
+import android.widget.ArrayAdapter
+import android.widget.CheckBox
 import android.widget.ImageButton
 import android.widget.LinearLayout
+import android.widget.Spinner
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.activity.result.ActivityResultLauncher
@@ -52,10 +55,12 @@ import org.fxboomk.fcitx5.android.ui.main.settings.behavior.dialog.LayoutFilePro
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.manager.RimeSchemaResolver
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.manager.SubModeManager
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.share.JsonFileQrShareManager
+import org.fxboomk.fcitx5.android.ui.main.settings.behavior.share.LayoutProfileArchive
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.share.LayoutQrTransferCodec
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.share.QrChunkCollector
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.utils.LayoutJsonUtils
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.utils.TextKeyboardLayoutProfileOrder
+import org.fxboomk.fcitx5.android.utils.queryFileName
 import org.fxboomk.fcitx5.android.utils.toast
 import splitties.dimensions.dp
 import splitties.resources.styledColor
@@ -79,7 +84,7 @@ import java.io.File
  *   或复位为出厂 26 键布局，方案本身不可删除）、非 Rime 子模式布局删除（复位为
  *   默认 26 键布局），均含确认；
  * - 新建配置、删除配置文件（含备份）；
- * - 二维码扫描 / 图片导入、二维码分享。
+ * - 二维码扫描 / 二维码图片 / JSON 文件 / ZIP 压缩包导入，二维码分享与 JSON / ZIP 导出。
  *
  * 注意：本页不复用 [org.fxboomk.fcitx5.android.ui.main.settings.behavior.dialog.TextKeyboardLayoutProfilePickerActivity]，
  * 后者被输入法按钮动作调用，用于键盘内快速切换，语义不同。
@@ -91,12 +96,29 @@ class TextKeyboardLayoutProfileManagerActivity : AppCompatActivity() {
 
         /** 已激活配置的对勾颜色（Material Green 500） */
         private const val ACTIVE_PROFILE_CHECK_COLOR = 0xFF4CAF50.toInt()
+
+        /** 布局配置文件名前缀，用于从所选文件名推导导入配置名 */
+        private val LAYOUT_FILE_NAME_PREFIXES = listOf(
+            "GeneralKeyboardLayout.",
+            "TextKeyboardLayout."
+        )
+
+        private const val STATE_PENDING_EXPORT_PROFILE = "pending_export_profile"
+        private const val STATE_PENDING_EXPORT_PROFILES = "pending_export_profiles"
+
+        private const val EXPORT_FORMAT_QR = 0
+        private const val EXPORT_FORMAT_JSON = 1
+        private const val EXPORT_FORMAT_ZIP = 2
     }
 
     /** 每个配置文件的内存数据缓存，key 为配置名 */
     private val profileManagers = mutableMapOf<String, LayoutDataManager>()
 
     private var currentProfile: String = UserConfigFiles.DEFAULT_TEXT_KEYBOARD_LAYOUT_PROFILE
+
+    /** 等待系统文件选择器返回的 JSON 导出目标 / ZIP 导出目标。 */
+    private var pendingExportProfile: String? = null
+    private var pendingExportProfiles: List<String> = emptyList()
 
     /** 仅在需要判定父级输入法布局是否为 Rime 时才连接 fcitx 守护进程（只读查询，不激活输入法） */
     private val fcitxConnection: FcitxConnection by lazy {
@@ -172,6 +194,30 @@ class TextKeyboardLayoutProfileManagerActivity : AppCompatActivity() {
             if (uri != null) importFromQrImage(uri)
         }
 
+    private val pickJsonLauncher: ActivityResultLauncher<Array<String>> =
+        registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            if (uri != null) importFromJsonFile(uri)
+        }
+
+    private val pickZipLauncher: ActivityResultLauncher<Array<String>> =
+        registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            if (uri != null) importFromZip(uri)
+        }
+
+    private val exportJsonLauncher: ActivityResultLauncher<String> =
+        registerForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+            val profile = pendingExportProfile
+            pendingExportProfile = null
+            if (uri != null && profile != null) writeProfileJsonTo(uri, profile)
+        }
+
+    private val exportZipLauncher: ActivityResultLauncher<String> =
+        registerForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
+            val profiles = pendingExportProfiles
+            pendingExportProfiles = emptyList()
+            if (uri != null && profiles.isNotEmpty()) writeProfilesZipTo(uri, profiles)
+        }
+
     private val cameraPermissionLauncher: ActivityResultLauncher<String> =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             if (granted) {
@@ -203,7 +249,22 @@ class TextKeyboardLayoutProfileManagerActivity : AppCompatActivity() {
         }
         ViewCompat.requestApplyInsets(toolbar)
 
+        pendingExportProfile = savedInstanceState?.getString(STATE_PENDING_EXPORT_PROFILE)
+        pendingExportProfiles = savedInstanceState
+            ?.getStringArrayList(STATE_PENDING_EXPORT_PROFILES)
+            ?.toList()
+            .orEmpty()
+
         reloadAll()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putString(STATE_PENDING_EXPORT_PROFILE, pendingExportProfile)
+        outState.putStringArrayList(
+            STATE_PENDING_EXPORT_PROFILES,
+            ArrayList(pendingExportProfiles)
+        )
     }
 
     override fun onSupportNavigateUp(): Boolean {
@@ -323,11 +384,11 @@ class TextKeyboardLayoutProfileManagerActivity : AppCompatActivity() {
             addView(iconButton(R.drawable.ic_baseline_plus_24, getString(R.string.text_keyboard_layout_manage_new)) {
                 openCreateProfile()
             }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-            addView(iconButton(R.drawable.ic_baseline_qr_code_scanner_24, getString(R.string.text_keyboard_layout_manage_import)) {
+            addView(iconButton(R.drawable.ic_baseline_file_download_24, getString(R.string.text_keyboard_layout_manage_import)) {
                 showImportChooser()
             }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
             addView(iconButton(R.drawable.ic_baseline_share_24, getString(R.string.text_keyboard_layout_manage_share)) {
-                shareCurrentProfileAsQr()
+                showShareExportDialog()
             }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         }
     }
@@ -1260,25 +1321,237 @@ class TextKeyboardLayoutProfileManagerActivity : AppCompatActivity() {
         }
     }
 
-    // ==================== 二维码分享 ====================
+    // ==================== 分享 / 导出 ====================
 
-    private fun shareCurrentProfileAsQr() {
-        val file = currentProfileFile()
+    private fun showShareExportDialog() {
+        val profiles = TextKeyboardLayoutProfileOrder.ordered(currentProfile)
+        val checked = BooleanArray(profiles.size) { profiles[it] == currentProfile }
+        val checkBoxes = mutableListOf<CheckBox>()
+        val profileList = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+        val scrollView = ScrollView(this).apply {
+            addView(profileList)
+        }
+        val formatSpinner = Spinner(this).apply {
+            adapter = ArrayAdapter(
+                this@TextKeyboardLayoutProfileManagerActivity,
+                android.R.layout.simple_spinner_item,
+                arrayOf(
+                    getString(R.string.text_keyboard_layout_export_format_qr),
+                    getString(R.string.text_keyboard_layout_export_format_json),
+                    getString(R.string.text_keyboard_layout_export_format_zip)
+                )
+            ).apply {
+                setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            }
+            setSelection(EXPORT_FORMAT_QR)
+        }
+        val formatHint = TextView(this).apply {
+            text = getString(R.string.text_keyboard_layout_export_multi_zip_hint)
+            textSize = 12f
+            setTextColor(styledColor(android.R.attr.textColorSecondary))
+            setPadding(0, dp(4), 0, 0)
+            visibility = View.GONE
+        }
+        var wasMultipleSelected = checked.count { it } > 1
+        profiles.forEachIndexed { index, profile ->
+            val checkBox = CheckBox(this).apply {
+                text = displayProfile(profile)
+                isChecked = checked[index]
+                setOnCheckedChangeListener { _, isChecked ->
+                    checked[index] = isChecked
+                    wasMultipleSelected = updateSelectionUi(
+                        checked,
+                        formatSpinner,
+                        formatHint,
+                        wasMultipleSelected
+                    )
+                }
+            }
+            checkBoxes += checkBox
+            profileList.addView(checkBox)
+        }
+        val formatLabel = TextView(this).apply {
+            text = getString(R.string.text_keyboard_layout_export_format)
+            textSize = 14f
+            setTextColor(styledColor(android.R.attr.textColorPrimary))
+            setPadding(0, dp(12), 0, dp(4))
+        }
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(24), dp(8), dp(24), dp(8))
+            addView(
+                scrollView,
+                LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    dp((profiles.size.coerceAtLeast(1) * 48).coerceAtMost(320))
+                )
+            )
+            addView(formatLabel)
+            addView(formatSpinner)
+            addView(formatHint)
+        }
+        wasMultipleSelected = updateSelectionUi(
+            checked,
+            formatSpinner,
+            formatHint,
+            wasMultipleSelected
+        )
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.text_keyboard_layout_export_select_profiles)
+            .setView(content)
+            .setNeutralButton(R.string.text_keyboard_layout_export_select_all, null)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.export, null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
+                checkBoxes.forEach { it.isChecked = true }
+                wasMultipleSelected = updateSelectionUi(
+                    checked,
+                    formatSpinner,
+                    formatHint,
+                    wasMultipleSelected
+                )
+            }
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val selected = profiles.filterIndexed { index, _ -> checked[index] }
+                if (selected.isEmpty()) {
+                    toast(getString(R.string.text_keyboard_layout_export_no_selection))
+                    return@setOnClickListener
+                }
+                when (formatSpinner.selectedItemPosition) {
+                    EXPORT_FORMAT_QR -> {
+                        if (selected.size != 1) {
+                            toast(getString(R.string.text_keyboard_layout_export_multi_zip_hint))
+                            return@setOnClickListener
+                        }
+                        dialog.dismiss()
+                        shareProfileAsQr(selected.single())
+                    }
+                    EXPORT_FORMAT_JSON -> {
+                        if (selected.size != 1) {
+                            toast(getString(R.string.text_keyboard_layout_export_multi_zip_hint))
+                            return@setOnClickListener
+                        }
+                        dialog.dismiss()
+                        exportProfileAsJson(selected.single())
+                    }
+                    EXPORT_FORMAT_ZIP -> {
+                        dialog.dismiss()
+                        exportProfilesAsZip(selected)
+                    }
+                }
+            }
+        }
+        dialog.show()
+    }
+
+    private fun updateSelectionUi(
+        checked: BooleanArray,
+        formatSpinner: Spinner,
+        formatHint: TextView,
+        wasMultipleSelected: Boolean
+    ): Boolean {
+        val multipleSelected = checked.count { it } > 1
+        formatHint.visibility = if (multipleSelected) View.VISIBLE else View.GONE
+        if (multipleSelected && formatSpinner.selectedItemPosition != EXPORT_FORMAT_ZIP) {
+            formatSpinner.setSelection(EXPORT_FORMAT_ZIP)
+        } else if (!multipleSelected && wasMultipleSelected &&
+            formatSpinner.selectedItemPosition != EXPORT_FORMAT_QR
+        ) {
+            formatSpinner.setSelection(EXPORT_FORMAT_QR)
+        }
+        return multipleSelected
+    }
+
+    private fun exportProfileAsJson(profile: String) {
+        if (!persistProfile(profile)) return
+        pendingExportProfile = profile
+        exportJsonLauncher.launch("$profile.json")
+    }
+
+    private fun exportProfilesAsZip(profiles: List<String>) {
+        profiles.forEach { if (!persistProfile(it)) return }
+        pendingExportProfiles = profiles
+        exportZipLauncher.launch("keyboard-layouts.zip")
+    }
+
+    private fun writeProfileJsonTo(uri: Uri, profile: String) {
+        val file = UserConfigFiles.textKeyboardLayoutJson(profile)
+        if (file == null || !file.isFile) {
+            toast(getString(R.string.cannot_resolve_text_keyboard_layout))
+            return
+        }
+        lifecycleScope.launch {
+            runCatching {
+                withContext(Dispatchers.IO) {
+                    contentResolver.openOutputStream(uri)?.use { output ->
+                        file.inputStream().use { it.copyTo(output) }
+                    } ?: error("openOutputStream returned null")
+                }
+            }.onSuccess {
+                toast(
+                    getString(
+                        R.string.text_keyboard_layout_export_json_success,
+                        displayProfile(profile)
+                    )
+                )
+            }.onFailure {
+                toast(getString(R.string.text_keyboard_layout_export_failed, it.localizedMessage ?: ""))
+            }
+        }
+    }
+
+    private fun writeProfilesZipTo(uri: Uri, profiles: List<String>) {
+        val files = profiles.mapNotNull { profile ->
+            UserConfigFiles.textKeyboardLayoutJson(profile)
+                ?.takeIf { it.isFile }
+                ?.let { profile to it }
+        }
+        if (files.size != profiles.size) {
+            toast(getString(R.string.cannot_resolve_text_keyboard_layout))
+            return
+        }
+        lifecycleScope.launch {
+            runCatching {
+                withContext(Dispatchers.IO) {
+                    contentResolver.openOutputStream(uri)?.use { output ->
+                        LayoutProfileArchive.exportZip(files, output)
+                    } ?: error("openOutputStream returned null")
+                }
+            }.onSuccess {
+                toast(
+                    getString(
+                        R.string.text_keyboard_layout_export_zip_success,
+                        profiles.size
+                    )
+                )
+            }.onFailure {
+                toast(getString(R.string.text_keyboard_layout_export_failed, it.localizedMessage ?: ""))
+            }
+        }
+    }
+
+    private fun shareProfileAsQr(profile: String) {
+        val file = UserConfigFiles.textKeyboardLayoutJson(profile)
         if (file == null) {
             toast(getString(R.string.cannot_resolve_text_keyboard_layout))
             return
         }
         // 分享前先落盘，确保文件内容与当前内存一致
-        if (!persistProfile(currentProfile)) return
+        if (!persistProfile(profile)) return
         lifecycleScope.launch {
             runCatching {
                 withContext(Dispatchers.Default) {
                     val (bitmap, _) = JsonFileQrShareManager.encodeSavedJsonFileToLongImage(
                         file = file,
                         transferType = LayoutQrTransferCodec.TRANSFER_TYPE_LAYOUT,
-                        transferProfile = currentProfile,
+                        transferProfile = profile,
                         typeLabel = getString(R.string.qr_payload_type_layout),
-                        nameLabel = displayProfile(currentProfile)
+                        nameLabel = displayProfile(profile)
                     )
                     JsonFileQrShareManager.saveLongImageToShareCache(
                         this@TextKeyboardLayoutProfileManagerActivity,
@@ -1306,12 +1579,14 @@ class TextKeyboardLayoutProfileManagerActivity : AppCompatActivity() {
         toast(getString(R.string.text_keyboard_layout_qr_exported))
     }
 
-    // ==================== 二维码导入 ====================
+    // ==================== 布局导入 ====================
 
     private fun showImportChooser() {
         val labels = arrayOf(
             getString(R.string.text_keyboard_layout_manage_import_scan),
-            getString(R.string.text_keyboard_layout_manage_import_image)
+            getString(R.string.text_keyboard_layout_manage_import_image),
+            getString(R.string.text_keyboard_layout_manage_import_json),
+            getString(R.string.text_keyboard_layout_manage_import_zip)
         )
         AlertDialog.Builder(this)
             .setTitle(R.string.text_keyboard_layout_manage_import)
@@ -1319,10 +1594,154 @@ class TextKeyboardLayoutProfileManagerActivity : AppCompatActivity() {
                 when (which) {
                     0 -> startCameraScanImport()
                     1 -> pickImageLauncher.launch("image/*")
+                    2 -> pickJsonLauncher.launch(
+                        arrayOf(
+                            "application/json",
+                            "text/json",
+                            "text/plain",
+                            "application/octet-stream"
+                        )
+                    )
+                    3 -> pickZipLauncher.launch(
+                        arrayOf(
+                            "application/zip",
+                            "application/x-zip",
+                            "application/x-zip-compressed",
+                            "application/octet-stream"
+                        )
+                    )
                 }
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
+    }
+
+    /** 从文件选择器读取 JSON 布局配置，并复用统一的导入确认流程。 */
+    private fun importFromJsonFile(uri: Uri) {
+        lifecycleScope.launch {
+            runCatching {
+                withContext(Dispatchers.IO) {
+                    val displayName = contentResolver.queryFileName(uri)
+                    val json = contentResolver.openInputStream(uri)
+                        ?.bufferedReader(Charsets.UTF_8)
+                        ?.use { it.readText() }
+                        ?: error(getString(R.string.text_keyboard_layout_import_read_failed))
+                    json to displayName
+                }
+            }.onSuccess { (json, displayName) ->
+                importAssembledJson(json, nextImportedProfileName(displayName))
+            }.onFailure {
+                toast(getString(R.string.text_keyboard_layout_import_failed, it.localizedMessage ?: ""))
+            }
+        }
+    }
+
+    private data class ZipLayoutProfile(val profile: String, val json: String)
+
+    /** 读取 ZIP 内的多个 JSON 布局配置；单条走统一确认，多条一次性确认后批量创建。 */
+    private fun importFromZip(uri: Uri) {
+        lifecycleScope.launch {
+            runCatching {
+                withContext(Dispatchers.IO) {
+                    val archiveEntries = contentResolver.openInputStream(uri)
+                        ?.use { LayoutProfileArchive.readZip(it) }
+                        ?: error(getString(R.string.text_keyboard_layout_import_read_failed))
+                    if (archiveEntries.isEmpty()) {
+                        error(getString(R.string.text_keyboard_layout_zip_import_empty))
+                    }
+                    val reserved = UserConfigFiles.listTextKeyboardLayoutProfiles().toMutableSet()
+                    archiveEntries.map { entry ->
+                        val parsed = LayoutDataManager(
+                            this@TextKeyboardLayoutProfileManagerActivity
+                        ).parseJsonText(entry.json, entry.name, fallbackToDefault = false)
+                        if (parsed.isEmpty()) {
+                            error(
+                                getString(
+                                    R.string.text_keyboard_layout_zip_import_invalid_entry,
+                                    entry.name
+                                )
+                            )
+                        }
+                        val profile = nextImportedProfileName(entry.name, reserved)
+                        reserved += profile
+                        ZipLayoutProfile(profile, entry.json)
+                    }
+                }
+            }.onSuccess { imported ->
+                if (imported.size == 1) {
+                    importAssembledJson(imported.single().json, imported.single().profile)
+                } else {
+                    confirmZipImport(imported)
+                }
+            }.onFailure {
+                toast(getString(R.string.text_keyboard_layout_import_failed, it.localizedMessage ?: ""))
+            }
+        }
+    }
+
+    private fun confirmZipImport(entries: List<ZipLayoutProfile>) {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.text_keyboard_layout_zip_import_confirm_title)
+            .setMessage(
+                getString(R.string.text_keyboard_layout_zip_import_confirm_message, entries.size)
+            )
+            .setPositiveButton(android.R.string.ok) { _, _ -> commitZipImport(entries) }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun commitZipImport(entries: List<ZipLayoutProfile>) {
+        lifecycleScope.launch {
+            val failures = withContext(Dispatchers.IO) {
+                entries.count { entry ->
+                    val target = UserConfigFiles.textKeyboardLayoutJson(entry.profile)
+                    target == null || runCatching {
+                        target.parentFile?.mkdirs()
+                        target.writeText(entry.json)
+                    }.isFailure
+                }
+            }
+            ConfigProviders.provider = ConfigProviders.provider
+            reloadAll()
+            if (failures == 0) {
+                toast(getString(R.string.text_keyboard_layout_zip_import_success, entries.size))
+            } else {
+                toast(getString(R.string.text_keyboard_layout_manage_save_failed))
+            }
+        }
+    }
+
+    /**
+     * 从文件名推导一个全新的配置名，确保不会覆盖现有配置。
+     * 例如 GeneralKeyboardLayout.MyLayout.json -> MyLayout，重名时追加 (2)、(3)。
+     * [reservedProfiles] 用于批量导入时避免同一批内的配置重名。
+     */
+    private fun nextImportedProfileName(
+        displayName: String?,
+        reservedProfiles: Set<String> = emptySet()
+    ): String {
+        val baseName = displayName?.substringAfterLast('/')?.substringAfterLast('\\')
+        val stem = baseName?.substringBeforeLast('.', baseName)?.trim().orEmpty()
+        val withoutKnownPrefix = LAYOUT_FILE_NAME_PREFIXES
+            .firstOrNull { stem.startsWith(it, ignoreCase = true) }
+            ?.let { prefix -> stem.substring(prefix.length) }
+            ?.takeIf { it.isNotBlank() }
+        val normalized = UserConfigFiles.normalizeTextKeyboardLayoutProfile(
+            withoutKnownPrefix ?: stem
+        ) ?: getString(R.string.text_keyboard_layout_import_default_profile_name)
+        val existingProfiles = UserConfigFiles.listTextKeyboardLayoutProfiles().toSet() +
+            reservedProfiles
+        if (
+            normalized != UserConfigFiles.DEFAULT_TEXT_KEYBOARD_LAYOUT_PROFILE &&
+            normalized !in existingProfiles
+        ) {
+            return normalized
+        }
+        var suffix = 2
+        while ("$normalized ($suffix)" in existingProfiles) {
+            suffix++
+        }
+        return "$normalized ($suffix)"
     }
 
     private fun startCameraScanImport() {
@@ -1396,33 +1815,36 @@ class TextKeyboardLayoutProfileManagerActivity : AppCompatActivity() {
                 if (it.message == "no-chunk") {
                     toast(getString(R.string.text_keyboard_layout_qr_import_no_chunk))
                 } else {
-                    toast(getString(R.string.text_keyboard_layout_qr_import_failed, it.localizedMessage ?: ""))
+                    toast(getString(R.string.text_keyboard_layout_import_failed, it.localizedMessage ?: ""))
                 }
             }
         }
     }
 
     /**
-     * 将扫描 / 图片解析出的完整布局 JSON 导入到目标配置：
-     * - 目标配置来自二维码内嵌 profile，缺省为当前配置；
+     * 将扫描 / 图片 / JSON 文件解析出的完整布局 JSON 导入到目标配置：
+     * - 目标配置来自二维码内嵌 profile 或由 JSON 文件名推导，缺省为当前配置；
      * - 若目标配置不存在则新建。
      */
     private fun importAssembledJson(json: String, importedProfile: String?) {
-        val parsed = runCatching {
-            LayoutDataManager(this).parseJsonText(json, "qr-import", fallbackToDefault = false)
-        }.getOrNull()
+        val parseResult = runCatching {
+            LayoutDataManager(this).parseJsonText(json, "layout-import", fallbackToDefault = false)
+        }
+        val parsed = parseResult.getOrNull()
         if (parsed.isNullOrEmpty()) {
-            toast(getString(R.string.text_keyboard_layout_qr_import_failed, ""))
+            val detail = parseResult.exceptionOrNull()?.localizedMessage
+                ?: getString(R.string.text_keyboard_layout_import_invalid_data)
+            toast(getString(R.string.text_keyboard_layout_import_failed, detail))
             return
         }
         val targetProfile = importedProfile ?: currentProfile
         val willCreateProfile = importedProfile != null &&
             importedProfile !in UserConfigFiles.listTextKeyboardLayoutProfiles().toSet()
         AlertDialog.Builder(this)
-            .setTitle(R.string.text_keyboard_layout_qr_import_confirm_title)
+            .setTitle(R.string.text_keyboard_layout_import_confirm_title)
             .setMessage(
                 getString(
-                    R.string.text_keyboard_layout_qr_import_confirm_message_with_profile,
+                    R.string.text_keyboard_layout_import_confirm_message_with_profile,
                     parsed.size,
                     displayProfile(targetProfile)
                 )
@@ -1447,9 +1869,9 @@ class TextKeyboardLayoutProfileManagerActivity : AppCompatActivity() {
                 val profileLabel = displayProfile(targetProfile)
                 toast(
                     if (willCreateProfile) {
-                        getString(R.string.text_keyboard_layout_qr_import_success_new_profile, profileLabel)
+                        getString(R.string.text_keyboard_layout_import_success_new_profile, profileLabel)
                     } else {
-                        getString(R.string.text_keyboard_layout_qr_import_success_profile, profileLabel)
+                        getString(R.string.text_keyboard_layout_import_success_profile, profileLabel)
                     }
                 )
             }
