@@ -4,6 +4,7 @@
  */
 package org.fxboomk.fcitx5.android.input.clipboard
 
+import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.RippleDrawable
 import android.widget.TextView
@@ -64,6 +65,20 @@ class ClipboardCategoryButtonsTest {
                 assertSame("background changed for $category", backgrounds.getValue(category), button.background)
             }
         }
+    }
+
+    @Test
+    fun searchSurfaceColorsBecomeFrostedOnlyForImageThemes() {
+        val translucentThemeColor = 0x80ff0000.toInt()
+        assertEquals(
+            translucentThemeColor,
+            clipboardSearchSurfaceColor(theme, translucentThemeColor)
+        )
+
+        val imageTheme = theme.copy(backgroundAssetPath = "unused-test-background.png")
+        val frostedColor = clipboardSearchSurfaceColor(imageTheme, translucentThemeColor)
+        assertTrue(Color.alpha(frostedColor) >= 230)
+        assertTrue(Color.red(frostedColor) > Color.blue(frostedColor))
     }
 
     private fun assertInitiallyUnselected(buttons: Collection<TextView>) {

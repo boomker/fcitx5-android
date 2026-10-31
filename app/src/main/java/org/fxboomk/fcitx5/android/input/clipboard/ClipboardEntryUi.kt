@@ -50,7 +50,13 @@ class ClipboardEntryUi(
         minimumHeight = dp(72)
         background = GradientDrawable().apply {
             cornerRadius = radius
-            setColor(theme.keyBackgroundColor)
+            setColor(
+                if (searchResultLayout) {
+                    clipboardSearchSurfaceColor(theme, theme.keyBackgroundColor)
+                } else {
+                    theme.keyBackgroundColor
+                }
+            )
         }
     }
 
@@ -61,7 +67,13 @@ class ClipboardEntryUi(
         setPaddingDp(16, 8, 16, 8)
         background = GradientDrawable().apply {
             cornerRadius = radius
-            setColor(theme.keyBackgroundColor)
+            setColor(
+                if (searchResultLayout) {
+                    clipboardSearchSurfaceColor(theme, theme.keyBackgroundColor)
+                } else {
+                    theme.keyBackgroundColor
+                }
+            )
         }
         imageDrawable = drawable(R.drawable.ic_baseline_image_24)?.apply {
             setTint(theme.altKeyTextColor)
@@ -115,7 +127,13 @@ class ClipboardEntryUi(
         )
         background = GradientDrawable().apply {
             cornerRadius = radius
-            setColor(theme.clipboardEntryColor)
+            setColor(
+                if (searchResultLayout) {
+                    clipboardSearchSurfaceColor(theme, theme.clipboardEntryColor)
+                } else {
+                    theme.clipboardEntryColor
+                }
+            )
         }
         add(layout, lParams(matchParent, matchParent))
     }

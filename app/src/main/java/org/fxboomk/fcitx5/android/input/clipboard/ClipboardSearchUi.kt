@@ -20,6 +20,7 @@ import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.core.graphics.ColorUtils
 import androidx.core.text.buildSpannedString
 import androidx.core.view.isVisible
 import org.fxboomk.fcitx5.android.R
@@ -130,7 +131,7 @@ class ClipboardSearchUi(override val ctx: Context, private val theme: Theme) : U
         setPaddingDp(4, 0, 4, 0)
         background = GradientDrawable().apply {
             cornerRadius = dp(6).toFloat()
-            setColor(theme.keyBackgroundColor)
+            setColor(clipboardSearchSurfaceColor(theme, theme.keyBackgroundColor))
         }
         add(searchIcon, lParams(dp(40), dp(40)))
         add(queryText, lParams(0, dp(44)) { weight = 1f })
@@ -140,7 +141,7 @@ class ClipboardSearchUi(override val ctx: Context, private val theme: Theme) : U
     val panel = verticalLayout {
         background = GradientDrawable().apply {
             cornerRadius = dp(14).toFloat()
-            setColor(theme.barColor)
+            setColor(clipboardSearchSurfaceColor(theme, theme.barColor))
         }
         clipToOutline = true
         elevation = dp(8).toFloat()
@@ -169,7 +170,7 @@ class ClipboardSearchUi(override val ctx: Context, private val theme: Theme) : U
     private fun createCategoryButton(textRes: Int): TextView {
         val fill = GradientDrawable().apply {
             cornerRadius = ctx.dp(16).toFloat()
-            setColor(theme.keyBackgroundColor)
+            setColor(clipboardSearchSurfaceColor(theme, theme.keyBackgroundColor))
         }
         return textView {
             gravity = gravityCenter
@@ -206,7 +207,10 @@ class ClipboardSearchUi(override val ctx: Context, private val theme: Theme) : U
             if (button.isSelected == selected) return@forEach
             button.isSelected = selected
             categoryButtonBackgrounds.getValue(button).setColor(
-                if (selected) theme.accentKeyBackgroundColor else theme.keyBackgroundColor
+                clipboardSearchSurfaceColor(
+                    theme,
+                    if (selected) theme.accentKeyBackgroundColor else theme.keyBackgroundColor
+                )
             )
             button.setTextColor(if (selected) theme.accentKeyTextColor else theme.keyTextColor)
         }
@@ -288,4 +292,14 @@ class ClipboardSearchUi(override val ctx: Context, private val theme: Theme) : U
         }
         queryText.requestFocus()
     }
+}
+
+/**
+ * Keep search surfaces readable over image themes while preserving the theme tint.
+ */
+internal fun clipboardSearchSurfaceColor(theme: Theme, color: Int): Int {
+    if (!theme.hasBackgroundImage) return color
+    val baseChannel = if (theme.isDark) 0 else 255
+    val frostedBase = Color.argb(0xE6, baseChannel, baseChannel, baseChannel)
+    return ColorUtils.compositeColors(color, frostedBase)
 }
