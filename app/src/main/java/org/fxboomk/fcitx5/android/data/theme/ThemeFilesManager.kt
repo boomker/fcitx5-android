@@ -43,6 +43,39 @@ object ThemeFilesManager {
         return croppedImageFile to srcImageFile
     }
 
+    fun duplicateBuiltinTheme(theme: Theme.Builtin, name: String): Theme.Custom {
+        val customTheme = theme.deriveCustomNoBackground(name)
+        val croppedAsset = theme.backgroundAssetPath ?: return customTheme
+        val sourceAsset = requireNotNull(theme.backgroundSourceAssetPath) {
+            "Bundled theme ${theme.name} is missing its source background image"
+        }
+        val (croppedFile, sourceFile) = newBackgroundImagesForTheme(name)
+        try {
+            copyThemeAsset(croppedAsset, croppedFile)
+            copyThemeAsset(sourceAsset, sourceFile)
+        } catch (error: Exception) {
+            croppedFile.delete()
+            sourceFile.delete()
+            throw error
+        }
+        return customTheme.copy(
+            backgroundImage = Theme.Custom.CustomBackground(
+                croppedFilePath = croppedFile.absolutePath,
+                srcFilePath = sourceFile.absolutePath,
+                brightness = theme.backgroundBrightness,
+                cropRect = theme.backgroundCropRect,
+                cropRotation = theme.backgroundCropRotation,
+                blurRadius = theme.backgroundBlurRadius
+            )
+        )
+    }
+
+    private fun copyThemeAsset(assetPath: String, target: File) {
+        appContext.assets.open(assetPath).use { input ->
+            target.outputStream().use { output -> input.copyTo(output) }
+        }
+    }
+
     fun alignBackgroundAssetsWithThemeName(theme: Theme.Custom): Theme.Custom {
         val bg = theme.backgroundImage ?: return theme
         val appFilesDir = appContext.getExternalFilesDir(null) ?: return theme
@@ -235,10 +268,8 @@ object ThemeFilesManager {
     fun listThemes(): MutableList<Theme.Custom> {
         imagesDir.mkdirs()
         runCatching {
-            BundledThemes.install(dir,
-                listAssets = { appContext.assets.list(it)?.toList().orEmpty() },
-                openAsset = { appContext.assets.open(it) })
-        }.onFailure { Timber.w(it, "Failed to install bundled themes") }
+            BundledThemes.removeLegacyInstalledThemes(dir)
+        }.onFailure { Timber.w(it, "Failed to remove legacy bundled themes") }
         val loadedNames = mutableSetOf<String>()
         return themeFiles()
             .sortedByDescending { file ->

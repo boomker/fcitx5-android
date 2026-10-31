@@ -895,7 +895,7 @@ data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjust
     }
 
     private fun resolvedBackgroundDrawable(theme: Theme): android.graphics.drawable.Drawable {
-        return if (theme is Theme.Custom && theme.shouldApplyBlur()) {
+        return if (theme.shouldApplyBlur()) {
             theme.blurredBackgroundDrawable(keyBorder, enableBlur = true)
         } else {
             theme.backgroundDrawable(keyBorder)

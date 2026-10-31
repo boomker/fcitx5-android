@@ -414,21 +414,19 @@ class KeyboardPreviewUi(
     }
 
     private fun applyBlurMaskFromTheme(theme: Theme) {
-        val custom = theme as? Theme.Custom
-        val bg = custom?.backgroundImage
-        if (bg == null || bg.blurRadius <= 0f) {
+        if (!theme.shouldApplyBlur()) {
             blurMaskView.setBlurBitmap(null)
             return
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !keyBorder) {
             blurMaskView.setBlurBitmap(
-                bitmap = bg.loadBitmapForRendering(),
-                brightness = bg.brightness,
-                blurRadius = bg.blurRadius,
+                bitmap = theme.loadBackgroundBitmap(),
+                brightness = theme.backgroundBrightness,
+                blurRadius = theme.backgroundBlurRadius,
                 useRenderEffect = true
             )
         } else {
-            blurMaskView.setBlurBitmap(bg.loadBlurredBitmapForRendering(), bg.brightness)
+            blurMaskView.setBlurBitmap(theme.loadBlurredBackgroundBitmap(), theme.backgroundBrightness)
         }
     }
 

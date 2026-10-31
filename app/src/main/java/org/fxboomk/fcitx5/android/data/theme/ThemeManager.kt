@@ -41,6 +41,9 @@ object ThemeManager {
         ThemePreset.DeepBlue,
         ThemePreset.Monokai,
         ThemePreset.AMOLEDBlack,
+    ) + BundledThemes.loadBuiltins(
+        listAssets = { appContext.assets.list(it)?.toList().orEmpty() },
+        openAsset = { appContext.assets.open(it) }
     )
 
     val DefaultTheme = ThemePreset.PixelDark

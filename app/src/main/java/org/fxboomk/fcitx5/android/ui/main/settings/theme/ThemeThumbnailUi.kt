@@ -197,15 +197,10 @@ class ThemeThumbnailUi(override val ctx: Context) : Ui {
         loadJob = scope.launch {
             try {
                 val drawable = withContext(Dispatchers.IO) {
-                    when (theme) {
-                        is Theme.Custom -> {
-                            if (theme.shouldApplyBlur()) {
-                                theme.blurredBackgroundDrawable(enableBlur = true, keyBorder = keyBorder)
-                            } else {
-                                theme.backgroundDrawable(keyBorder)
-                            }
-                        }
-                        else -> theme.backgroundDrawable(keyBorder)
+                    if (theme.shouldApplyBlur()) {
+                        theme.blurredBackgroundDrawable(enableBlur = true, keyBorder = keyBorder)
+                    } else {
+                        theme.backgroundDrawable(keyBorder)
                     }
                 }
                 if (generation != loadGeneration) return@launch

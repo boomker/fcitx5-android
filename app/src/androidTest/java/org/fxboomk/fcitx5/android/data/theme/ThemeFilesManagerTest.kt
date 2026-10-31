@@ -67,6 +67,39 @@ class ThemeFilesManagerTest {
     }
 
     @Test
+    fun duplicatingImageBuiltinCopiesBothImagesAndPreservesBackgroundSettings() {
+        val builtin = requireNotNull(ThemeManager.BuiltinThemes
+            .filterIsInstance<Theme.Builtin>()
+            .find { it.name == "指尖生花日间" })
+        val name = uniqueThemeName()
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val expectedCropped = context.assets.open(requireNotNull(builtin.backgroundAssetPath)).use { it.readBytes() }
+        val expectedSource = context.assets.open(requireNotNull(builtin.backgroundSourceAssetPath)).use { it.readBytes() }
+
+        try {
+            val duplicate = ThemeFilesManager.duplicateBuiltinTheme(builtin, name)
+            val background = requireNotNull(duplicate.backgroundImage)
+
+            assertBackgroundFiles(duplicate, expectedCropped, expectedSource)
+            assertEquals(builtin.backgroundBrightness, background.brightness)
+            assertEquals(builtin.backgroundCropRect, background.cropRect)
+            assertEquals(builtin.backgroundCropRotation, background.cropRotation)
+            assertEquals(builtin.backgroundBlurRadius, background.blurRadius)
+
+            ThemeFilesManager.saveThemeFiles(duplicate)
+            val reloaded = ThemeFilesManager.listThemes().single { it.name == name }
+            assertBackgroundFiles(reloaded, expectedCropped, expectedSource)
+            assertEquals(background.copy(
+                croppedFilePath = reloaded.backgroundImage!!.croppedFilePath,
+                srcFilePath = reloaded.backgroundImage.srcFilePath
+            ), reloaded.backgroundImage)
+        } finally {
+            removeTestOwnedFiles(name)
+            ThemeManager.refreshThemes()
+        }
+    }
+
+    @Test
     fun importingJsonRejectsNonCustomThemeNameCollisions() {
         ThemeManager.refreshThemes()
         val nonCustomThemes = buildList {

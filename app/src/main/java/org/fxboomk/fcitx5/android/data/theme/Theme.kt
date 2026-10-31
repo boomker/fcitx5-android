@@ -39,6 +39,22 @@ sealed class Theme : Parcelable {
         }
     }
 
+    private object BackgroundAssetBitmapCache {
+        private val cache = object : LruCache<String, android.graphics.Bitmap>(32 * 1024) {
+            override fun sizeOf(key: String, value: android.graphics.Bitmap): Int =
+                value.byteCount / 1024
+        }
+
+        fun getOrPut(key: String, producer: () -> android.graphics.Bitmap): android.graphics.Bitmap {
+            synchronized(cache) {
+                cache.get(key)?.let { return it }
+                val value = producer()
+                cache.put(key, value)
+                return value
+            }
+        }
+    }
+
     abstract val name: String
     abstract val isDark: Boolean
 
@@ -76,6 +92,21 @@ sealed class Theme : Parcelable {
     open fun backgroundDrawable(keyBorder: Boolean = false): Drawable {
         return ColorDrawable(if (keyBorder) backgroundColor else keyboardColor)
     }
+
+    open fun blurredBackgroundDrawable(keyBorder: Boolean, enableBlur: Boolean = false): Drawable =
+        backgroundDrawable(keyBorder)
+
+    open fun shouldApplyBlur(): Boolean = false
+
+    open val hasBackgroundImage: Boolean get() = false
+
+    open fun loadBackgroundBitmap(): android.graphics.Bitmap? = null
+
+    open fun loadBlurredBackgroundBitmap(): android.graphics.Bitmap? = loadBackgroundBitmap()
+
+    open val backgroundBrightness: Int get() = 100
+
+    open val backgroundBlurRadius: Float get() = 0f
 
     @Serializable
     @Parcelize
@@ -179,6 +210,20 @@ sealed class Theme : Parcelable {
             }
         }
 
+        override val backgroundBrightness: Int
+            get() = backgroundImage?.brightness ?: 100
+
+        override val hasBackgroundImage: Boolean get() = backgroundImage != null
+
+        override val backgroundBlurRadius: Float
+            get() = backgroundImage?.blurRadius ?: 0f
+
+        override fun loadBackgroundBitmap(): android.graphics.Bitmap? =
+            backgroundImage?.loadBitmapForRendering()
+
+        override fun loadBlurredBackgroundBitmap(): android.graphics.Bitmap? =
+            backgroundImage?.loadBlurredBitmapForRendering()
+
         override fun backgroundDrawable(keyBorder: Boolean): Drawable {
             return backgroundImage?.toDrawable() ?: super.backgroundDrawable(keyBorder)
         }
@@ -190,7 +235,7 @@ sealed class Theme : Parcelable {
          * 2. blurRadius > 0
          * 3. Key background color is semi-transparent
          */
-        fun blurredBackgroundDrawable(keyBorder: Boolean, enableBlur: Boolean = false): Drawable {
+        override fun blurredBackgroundDrawable(keyBorder: Boolean, enableBlur: Boolean): Drawable {
             if (!enableBlur) return backgroundDrawable(keyBorder)
             
             return backgroundImage?.toBlurredDrawable() ?: super.backgroundDrawable(keyBorder)
@@ -200,7 +245,7 @@ sealed class Theme : Parcelable {
          * Check if blur effect should be applied.
          * Returns true when background image exists and blurRadius > 0.
          */
-        fun shouldApplyBlur(): Boolean {
+        override fun shouldApplyBlur(): Boolean {
             val bg = backgroundImage ?: return false
             return bg.blurRadius > 0f
         }
@@ -231,8 +276,51 @@ sealed class Theme : Parcelable {
         override val dividerColor: Int,
         override val clipboardEntryColor: Int,
         override val genericActiveBackgroundColor: Int,
-        override val genericActiveForegroundColor: Int
+        override val genericActiveForegroundColor: Int,
+        val backgroundAssetPath: String? = null,
+        val backgroundSourceAssetPath: String? = null,
+        val backgroundCropRect: @Serializable(RectSerializer::class) Rect? = null,
+        val backgroundCropRotation: Int = 0,
+        override val backgroundBrightness: Int = 100,
+        override val backgroundBlurRadius: Float = 0f
     ) : Theme() {
+
+        override val hasBackgroundImage: Boolean get() = backgroundAssetPath != null
+
+        override fun loadBackgroundBitmap(): android.graphics.Bitmap? = backgroundAssetPath?.let { path ->
+            runCatching {
+                BackgroundAssetBitmapCache.getOrPut(path) {
+                    appContext.assets.open(path).use { stream ->
+                        requireNotNull(BitmapFactory.decodeStream(stream)) { "Cannot decode theme asset $path" }
+                    }
+                }
+            }.getOrNull()
+        }
+
+        override fun loadBlurredBackgroundBitmap(): android.graphics.Bitmap? {
+            val bitmap = loadBackgroundBitmap() ?: return null
+            if (backgroundBlurRadius <= 0f) return bitmap
+            return BackgroundBlurBitmapCache.getOrPut("asset:$backgroundAssetPath|$backgroundBlurRadius") {
+                BitmapBlurUtil.blur(bitmap, backgroundBlurRadius)
+            }
+        }
+
+        override fun shouldApplyBlur(): Boolean = backgroundAssetPath != null && backgroundBlurRadius > 0f
+
+        override fun backgroundDrawable(keyBorder: Boolean): Drawable {
+            val bitmap = loadBackgroundBitmap() ?: return super.backgroundDrawable(keyBorder)
+            return BitmapDrawable(appContext.resources, bitmap).apply {
+                colorFilter = DarkenColorFilter(100 - backgroundBrightness)
+            }
+        }
+
+        override fun blurredBackgroundDrawable(keyBorder: Boolean, enableBlur: Boolean): Drawable {
+            val bitmap = (if (enableBlur) loadBlurredBackgroundBitmap() else loadBackgroundBitmap())
+                ?: return super.backgroundDrawable(keyBorder)
+            return BitmapDrawable(appContext.resources, bitmap).apply {
+                colorFilter = DarkenColorFilter(100 - backgroundBrightness)
+            }
+        }
 
         // an alias to use 0xAARRGGBB color literal in code
         // because kotlin compiler treats `0xff000000` as Long, not Int

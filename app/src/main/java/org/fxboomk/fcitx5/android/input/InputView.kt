@@ -158,7 +158,7 @@ class InputView(
 
     private fun resolveKeyboardBackgroundDrawable(): Drawable {
         val baseDrawable = theme.backgroundDrawable(keyBorder)
-        if ((theme as? Theme.Custom)?.backgroundImage != null) {
+        if (theme.hasBackgroundImage) {
             return baseDrawable
         }
         val baseColor = if (keyBorder) theme.backgroundColor else theme.keyboardColor
@@ -460,34 +460,25 @@ class InputView(
         blurUpdateGeneration++
         val generation = blurUpdateGeneration
         blurUpdateJob?.cancel()
-        val customTheme = theme as? Theme.Custom ?: run {
-            keyBlurMaskView.setBlurBitmap(null)
-            return
-        }
-        val bg = customTheme.backgroundImage
-        if (bg == null || bg.blurRadius <= 0f) {
+        if (!theme.shouldApplyBlur()) {
             keyBlurMaskView.setBlurBitmap(null)
             return
         }
         val useGpuBlur = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !keyBorder
         blurUpdateJob = blurUpdateScope.launch {
             val bitmap = withContext(Dispatchers.Default) {
-                if (useGpuBlur) {
-                    bg.loadBitmapForRendering()
-                } else {
-                    bg.loadBlurredBitmapForRendering()
-                }
+                if (useGpuBlur) theme.loadBackgroundBitmap() else theme.loadBlurredBackgroundBitmap()
             }
             if (generation != blurUpdateGeneration) return@launch
             if (useGpuBlur) {
                 keyBlurMaskView.setBlurBitmap(
                     bitmap = bitmap,
-                    brightness = bg.brightness,
-                    blurRadius = bg.blurRadius,
+                    brightness = theme.backgroundBrightness,
+                    blurRadius = theme.backgroundBlurRadius,
                     useRenderEffect = true
                 )
             } else {
-                keyBlurMaskView.setBlurBitmap(bitmap, bg.brightness)
+                keyBlurMaskView.setBlurBitmap(bitmap, theme.backgroundBrightness)
             }
             refreshKeyboardBounds()
         }
@@ -2594,12 +2585,8 @@ class InputView(
         broadcaster.onImeUpdate(fcitx.runImmediately { inputMethodEntryCached })
 
         // Apply blur effect when theme has background image and blurRadius > 0
-        val hasBlur = theme is Theme.Custom && theme.shouldApplyBlur()
-        Timber.d("InputView init: theme=${theme.name}, isCustom=${theme is Theme.Custom}, enableBlur=$hasBlur")
-        if (theme is Theme.Custom) {
-            val bg = theme.backgroundImage
-            Timber.d("InputView: backgroundImage=${bg != null}, blurRadius=${bg?.blurRadius}")
-        }
+        val hasBlur = theme.shouldApplyBlur()
+        Timber.d("InputView init: theme=${theme.name}, hasBackground=${theme.hasBackgroundImage}, enableBlur=$hasBlur")
         customBackground.imageDrawable = theme.backgroundDrawable(keyBorder)
         updateBlurMaskThemeData()
 

@@ -291,14 +291,22 @@ class ThemeListFragment : Fragment() {
                             ThemeManager.BuiltinThemes + listOf(ThemeMonet.getLight(), ThemeMonet.getDark())
                         view.adapter = object : SimpleThemeListAdapter<Theme>(duplicableThemes) {
                             override fun onClick(theme: Theme) {
-                                val newTheme =
-                                    when (theme) {
-                                        is Theme.Builtin -> theme.deriveCustomNoBackground(UUID.randomUUID().toString())
-                                        is Theme.Monet -> theme.toCustom().copy(name = UUID.randomUUID().toString())
-                                        else -> return
+                                val newName = UUID.randomUUID().toString()
+                                lifecycleScope.launch {
+                                    try {
+                                        val newTheme = withContext(Dispatchers.IO) {
+                                            when (theme) {
+                                                is Theme.Builtin -> ThemeFilesManager.duplicateBuiltinTheme(theme, newName)
+                                                is Theme.Monet -> theme.toCustom().copy(name = newName)
+                                                else -> null
+                                            }
+                                        } ?: return@launch
+                                        ThemeManager.saveTheme(newTheme)
+                                        dialog.dismiss()
+                                    } catch (e: Exception) {
+                                        ctx.importErrorDialog(e)
                                     }
-                                ThemeManager.saveTheme(newTheme)
-                                dialog.dismiss()
+                                }
                             }
                         }
                         dialog.show()
