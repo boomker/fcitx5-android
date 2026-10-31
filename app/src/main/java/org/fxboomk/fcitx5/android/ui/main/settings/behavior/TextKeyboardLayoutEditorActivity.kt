@@ -74,6 +74,17 @@ import splitties.views.dsl.core.wrapContent
 import java.io.File
 import java.util.HashMap
 
+/** Return a fixed policy for special layouts; other IMEs use their reported submode support. */
+internal fun displayTextModeSupportOverride(layoutName: String, imeUniqueName: String?): Boolean? {
+    val uniqueName = imeUniqueName ?: layoutName
+    return when {
+        layoutName == ShuangpinLayoutKeys.BASE_LAYOUT_KEY -> true
+        layoutName == LayoutJsonUtils.DEFAULT_BASE_LAYOUT_KEY -> false
+        uniqueName == "keyboard-us" || ShuangpinLayoutKeys.isSchemeUniqueName(uniqueName) -> false
+        else -> null
+    }
+}
+
 class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
 
     private val toolbar by lazy {
@@ -1179,16 +1190,15 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         val keyData = keyIndex?.let { row[rowIndex][keyIndex] }?.toMap() ?: mutableMapOf()
         val isEditingSubModeLayout = showsSubModeTarget(layoutName, previewSubModeLabel)
 
-        // Check if the current IME supports multiple submodes
-        // Rime IME always supports multiple submodes (schemes)
-        // For other IMEs, check if Fcitx status area menu has multiple submode labels
-        val isRime = subModeManager.isCurrentLayoutRime(layoutName)
-        val hasMultiSubmodeSupport = if (isRime) {
-            true
-        } else {
-            val (currentIme, fcitxLabels) = subModeManager.fetchCurrentImeAndSubModeLabels(layoutName)
-            fcitxLabels.size > 1
-        }
+        val imeUniqueName = allImesFromJson.firstOrNull {
+            it.uniqueName == layoutName || it.displayName == layoutName
+        }?.uniqueName
+        val hasMultiSubmodeSupport = displayTextModeSupportOverride(layoutName, imeUniqueName)
+            ?: if (subModeManager.isCurrentLayoutRime(layoutName)) {
+                true
+            } else {
+                subModeManager.fetchCurrentImeAndSubModeLabels(layoutName).second.size > 1
+            }
 
         val launchIntent = Intent(this, KeyEditorActivity::class.java).apply {
             putExtra(KeyEditorActivity.EXTRA_KEY_DATA, KeyEditorActivity.toSerializableMap(keyData.toMutableMap()))

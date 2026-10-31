@@ -610,7 +610,7 @@ class KeyEditorActivity : AppCompatActivity() {
                     macroDisplayTextModeItems,
                     macroDisplayTextRowBindings,
                     isEditingSubModeLayout,
-                    hasMultiSubmodeSupport = !isEditingSubModeLayout,
+                    hasMultiSubmodeSupport = hasMultiSubmodeSupport,
                     callback = { modeSpecific, simpleValue, items, bindings, simpleTextEdit ->
                         macroDisplayTextModeSpecific = modeSpecific
                         macroDisplayTextSimpleValue = simpleValue

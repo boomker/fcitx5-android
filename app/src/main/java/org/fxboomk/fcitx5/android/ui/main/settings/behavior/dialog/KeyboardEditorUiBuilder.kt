@@ -265,6 +265,8 @@ class KeyboardEditorUiBuilder(private val activity: AppCompatActivity) {
             callback(modeSpecific, simpleValue, items, bindings, null)
         }
 
+        if (isEditingSubModeLayout || !hasMultiSubmodeSupport) return
+
         val addModeBtn = TextView(activity).apply {
             text = activity.getString(R.string.text_keyboard_layout_add_mode)
             textSize = 14f
