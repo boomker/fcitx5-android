@@ -208,7 +208,7 @@ class ThemeListFragment : Fragment() {
             override fun onExportTheme(theme: Theme.Custom) = exportTheme(theme)
             override fun onToggleThemePool(theme: Theme) {
                 ThemeManager.toggleThemePoolMembership(theme)
-                themeListAdapter.notifyDataSetChanged()
+                themeListAdapter.updatePoolMembership(theme.name)
                 updateSelectedThemes()
             }
         }

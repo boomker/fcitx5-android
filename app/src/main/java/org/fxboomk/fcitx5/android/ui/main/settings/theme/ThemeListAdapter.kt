@@ -26,6 +26,18 @@ abstract class ThemeListAdapter(
     private var lightName: String? = null
     private var darkName: String? = null
 
+    private fun selectionState(
+        themeName: String,
+        activeName: String? = this.activeName,
+        lightName: String? = this.lightName,
+        darkName: String? = this.darkName
+    ) = when (themeName) {
+        darkName -> ThemeThumbnailUi.State.DarkMode
+        lightName -> ThemeThumbnailUi.State.LightMode
+        activeName -> ThemeThumbnailUi.State.Selected
+        else -> ThemeThumbnailUi.State.Normal
+    }
+
     override fun onViewRecycled(holder: ViewHolder) {
         super.onViewRecycled(holder)
         if (holder.ui is ThemeThumbnailUi) {
@@ -50,15 +62,32 @@ abstract class ThemeListAdapter(
     }
 
     fun setSelectedThemes(active: Theme, light: Theme? = null, dark: Theme? = null) {
-        val affectedNames = setOf(activeName, lightName, darkName, active.name, light?.name, dark?.name)
+        val previousActiveName = activeName
+        val previousLightName = lightName
+        val previousDarkName = darkName
         activeName = active.name
         lightName = light?.name
         darkName = dark?.name
         items.forEachIndexed { position, item ->
-            if (item is ThemeListItem.Card && item.theme.name in affectedNames) {
-                notifyItemChanged(position)
+            if (item is ThemeListItem.Card) {
+                val previousState = selectionState(
+                    item.theme.name,
+                    previousActiveName,
+                    previousLightName,
+                    previousDarkName
+                )
+                if (previousState != selectionState(item.theme.name)) {
+                    notifyItemChanged(position, PAYLOAD_SELECTION_STATE)
+                }
             }
         }
+    }
+
+    fun updatePoolMembership(themeName: String) {
+        val position = items.indexOfFirst { item ->
+            item is ThemeListItem.Card && item.theme.name == themeName
+        }
+        if (position >= 0) notifyItemChanged(position, PAYLOAD_POOL_STATE)
     }
 
     fun prependTheme(theme: Theme) {
@@ -115,14 +144,7 @@ abstract class ThemeListAdapter(
                 poolBadge.setOnClickListener {
                     onToggleThemePool(theme)
                 }
-                setChecked(
-                    when (theme.name) {
-                        darkName -> ThemeThumbnailUi.State.DarkMode
-                        lightName -> ThemeThumbnailUi.State.LightMode
-                        activeName -> ThemeThumbnailUi.State.Selected
-                        else -> ThemeThumbnailUi.State.Normal
-                    }
-                )
+                setChecked(selectionState(theme.name))
                 root.setOnClickListener {
                     onSelectTheme(theme)
                 }
@@ -147,6 +169,24 @@ abstract class ThemeListAdapter(
         }
     }
 
+    override fun onBindViewHolder(holder: ViewHolder, position: Int, payloads: MutableList<Any>) {
+        if (payloads.contains(PAYLOAD_POOL_STATE) || payloads.contains(PAYLOAD_SELECTION_STATE)) {
+            val item = items.getOrNull(position)
+            val theme = (item as? ThemeListItem.Card)?.theme
+            val ui = holder.ui as? ThemeThumbnailUi
+            if (theme != null && ui != null) {
+                if (payloads.contains(PAYLOAD_POOL_STATE)) {
+                    ui.setPoolState(ThemeManager.isThemeInAnyPool(theme.name))
+                }
+                if (payloads.contains(PAYLOAD_SELECTION_STATE)) {
+                    ui.setChecked(selectionState(theme.name))
+                }
+                return
+            }
+        }
+        super.onBindViewHolder(holder, position, payloads)
+    }
+
     override fun getItemCount() = items.size
 
     override fun getItemViewType(position: Int) = when (items[position]) {
@@ -168,6 +208,9 @@ abstract class ThemeListAdapter(
     abstract fun onExportTheme(theme: Theme.Custom)
 
     companion object {
+        private const val PAYLOAD_POOL_STATE = "payload_pool_state"
+        private const val PAYLOAD_SELECTION_STATE = "payload_selection_state"
+
         const val ADD_THEME = 0
         const val THEME = 1
         const val HEADER = 2
