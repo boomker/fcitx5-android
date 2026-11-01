@@ -92,16 +92,15 @@ class FuzzyConfigTabFragment : FcitxPreferenceFragment() {
         } else {
             fcitx.getImConfig(uniqueName)
         }
-        val latestConfig = latest.findByName("cfg") ?: latest
-        val mergedConfig = mergeFuzzyOptions(
-            latestConfig,
+        val mergedConfig = mergeFuzzyConfigForSave(
+            latest,
             newConfig,
             AddonConfigLayouts.fuzzyOptions(mappings).toSet()
         )
         if (isAddon) {
-            fcitx.setAddonConfig(uniqueName, latest.withConfig(mergedConfig))
+            fcitx.setAddonConfig(uniqueName, mergedConfig)
         } else {
-            fcitx.setImConfig(uniqueName, latest.withConfig(mergedConfig))
+            fcitx.setImConfig(uniqueName, mergedConfig)
         }
     }
 
@@ -127,6 +126,20 @@ class FuzzyConfigTabFragment : FcitxPreferenceFragment() {
     }
 }
 
+/**
+ * Build the config payload for saving one fuzzy tab.
+ *
+ * The config returned by `getImConfig` / `getAddonConfig` wraps the option tree in a
+ * top-level `cfg` item next to `desc`, while `setImConfig` / `setAddonConfig` expect the
+ * option tree itself. Unwrap it before merging, otherwise fcitx sees no fuzzy options at all.
+ */
+internal fun mergeFuzzyConfigForSave(
+    latest: RawConfig,
+    editedConfig: RawConfig,
+    optionNames: Set<String>
+): RawConfig =
+    mergeFuzzyOptions(latest.findByName("cfg") ?: latest, editedConfig, optionNames)
+
 /** Merge only the options rendered by one fuzzy tab into the latest config snapshot. */
 internal fun mergeFuzzyOptions(
     latestConfig: RawConfig,
@@ -147,10 +160,3 @@ internal fun mergeFuzzyOptions(
         }?.toTypedArray()
     )
 }
-
-private fun RawConfig.withConfig(config: RawConfig): RawConfig =
-    copy(
-        subItems = subItems?.map { item ->
-            if (item.name == "cfg") config else item
-        }?.toTypedArray()
-    )

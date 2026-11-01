@@ -6,6 +6,7 @@ package org.fxboomk.fcitx5.android.ui.main.settings.addon
 
 import org.fxboomk.fcitx5.android.core.RawConfig
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class FuzzyConfigMergeTest {
@@ -19,6 +20,33 @@ class FuzzyConfigMergeTest {
 
         assertEquals("None", merged.findByName("Fuzzy")!!.findByName("Correction")!!.value)
         assertEquals("False", merged.findByName("Fuzzy")!!.findByName("AN_ANG")!!.value)
+    }
+
+    @Test
+    fun savesEveryOptionOfBothFuzzyTabsWithoutTheConfigWrapper() {
+        for (mapping in booleanArrayOf(false, true)) {
+            val options = AddonConfigLayouts.fuzzyOptions(mapping)
+            val latest = RawConfig(
+                "root",
+                subItems = arrayOf(
+                    fuzzyConfig(*(options.map { it to "False" }).toTypedArray()),
+                    RawConfig("desc", subItems = arrayOf(RawConfig("Fuzzy", "")))
+                )
+            )
+            val edited = fuzzyConfig(*(options.map { it to "True" }).toTypedArray())
+
+            val payload = mergeFuzzyConfigForSave(latest, edited, options.toSet())
+
+            assertNull(payload.findByName("cfg"))
+            assertNull(payload.findByName("desc"))
+            options.forEach { name ->
+                assertEquals(
+                    "mapping=$mapping lost $name",
+                    "True",
+                    payload.findByName("Fuzzy")!!.findByName(name)!!.value
+                )
+            }
+        }
     }
 
     @Test
