@@ -36,6 +36,7 @@ import org.fxboomk.fcitx5.android.input.wm.InputWindowManager
 import org.fxboomk.fcitx5.android.ui.main.settings.SettingsRoute
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.FontsetEditorActivity
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.TextKeyboardLayoutEditorActivity
+import org.fxboomk.fcitx5.android.ui.main.settings.behavior.TextKeyboardLayoutProfileManagerActivity
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.dialog.TextKeyboardLayoutProfilePickerActivity
 import org.fxboomk.fcitx5.android.utils.AppUtil
 import org.fxboomk.fcitx5.android.utils.buildDocumentsProviderIntent
@@ -149,6 +150,7 @@ sealed class ButtonAction {
                 SettingsLicenseAction,
                 EditTextKeyboardLayoutAction,
                 TextKeyboardLayoutFileSelectAction,
+                TextKeyboardLayoutManageAction,
                 EditFontsetAction,
             )
         }
@@ -184,6 +186,7 @@ sealed class ButtonAction {
                 SettingsLicenseAction,
                 EditTextKeyboardLayoutAction,
                 TextKeyboardLayoutFileSelectAction,
+                TextKeyboardLayoutManageAction,
                 EditFontsetAction
             )
         }
@@ -897,8 +900,7 @@ data object EditTextKeyboardLayoutAction : ButtonAction() {
 data object TextKeyboardLayoutFileSelectAction : ButtonAction() {
     override val id = "text_keyboard_layout_file_select"
     override val defaultIcon = R.drawable.ic_baseline_library_books_24
-    // 应用动作列表条目名沿用最新的「键盘布局管理」；点击仍打开快速切换弹窗。
-    override val defaultLabelRes = R.string.text_keyboard_layout_manage_title
+    override val defaultLabelRes = R.string.text_keyboard_layout_file_select_title
 
     override fun execute(
         context: Context,
@@ -909,6 +911,25 @@ data object TextKeyboardLayoutFileSelectAction : ButtonAction() {
         onActionComplete: (() -> Unit)?
     ) {
         context.startActivity(Intent(context, TextKeyboardLayoutProfilePickerActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        })
+    }
+}
+
+data object TextKeyboardLayoutManageAction : ButtonAction() {
+    override val id = "text_keyboard_layout_manage"
+    override val defaultIcon = R.drawable.ic_baseline_settings_24
+    override val defaultLabelRes = R.string.text_keyboard_layout_manage_title
+
+    override fun execute(
+        context: Context,
+        service: FcitxInputMethodService,
+        fcitx: FcitxConnection,
+        windowManager: InputWindowManager,
+        view: View?,
+        onActionComplete: (() -> Unit)?
+    ) {
+        context.startActivity(Intent(context, TextKeyboardLayoutProfileManagerActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         })
     }

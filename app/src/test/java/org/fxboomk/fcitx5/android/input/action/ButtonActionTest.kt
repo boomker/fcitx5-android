@@ -4,6 +4,7 @@
  */
 package org.fxboomk.fcitx5.android.input.action
 
+import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.input.config.ButtonsLayoutConfig
 import org.fxboomk.fcitx5.android.input.config.ConfigurableButton
 import org.junit.Assert.assertEquals
@@ -36,6 +37,23 @@ class ButtonActionTest {
         assertSame(AdjustKeyboardHeightAction, ButtonAction.fromId("adjust_keyboard_height"))
         assertTrue(ButtonAction.statusAreaActions.contains(AdjustKeyboardHeightAction))
         assertEquals("adjust_keyboard_height", config.statusAreaButtons.last().id)
+    }
+
+    @Test
+    fun keyboardLayoutListAndManagementAreSeparateMacroActions() {
+        assertSame(TextKeyboardLayoutFileSelectAction, ButtonAction.fromId("text_keyboard_layout_file_select"))
+        assertEquals(
+            R.string.text_keyboard_layout_file_select_title,
+            TextKeyboardLayoutFileSelectAction.defaultLabelRes
+        )
+
+        assertSame(TextKeyboardLayoutManageAction, ButtonAction.fromId("text_keyboard_layout_manage"))
+        assertEquals(
+            R.string.text_keyboard_layout_manage_title,
+            TextKeyboardLayoutManageAction.defaultLabelRes
+        )
+        assertTrue(ButtonAction.macroEditorActions.contains(TextKeyboardLayoutFileSelectAction))
+        assertTrue(ButtonAction.macroEditorActions.contains(TextKeyboardLayoutManageAction))
     }
 
     @Test
