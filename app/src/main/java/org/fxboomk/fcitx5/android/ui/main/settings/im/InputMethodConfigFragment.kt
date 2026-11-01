@@ -36,6 +36,8 @@ class InputMethodConfigFragment : FcitxPreferenceFragment() {
                 ?: return@let null
             if (AddonConfigLayouts.isFuzzySection(layout, sectionIndex)) {
                 SettingsRoute.FuzzyConfig(args.name, args.uniqueName, false, sectionTitle)
+            } else if (AddonConfigLayouts.isPinyinTextSection(layout, sectionIndex)) {
+                SettingsRoute.PinyinTextConfig(sectionTitle)
             } else SettingsRoute.ConfigSection(
                 args.name, args.uniqueName, false, sectionIndex, sectionTitle
             )

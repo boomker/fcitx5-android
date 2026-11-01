@@ -41,6 +41,8 @@ class AddonConfigFragment : FcitxPreferenceFragment() {
                 ?: return@let null
             if (AddonConfigLayouts.isFuzzySection(layout, sectionIndex)) {
                 SettingsRoute.FuzzyConfig(args.name, args.uniqueName, true, sectionTitle)
+            } else if (AddonConfigLayouts.isPinyinTextSection(layout, sectionIndex)) {
+                SettingsRoute.PinyinTextConfig(sectionTitle)
             } else SettingsRoute.ConfigSection(
                 args.name, args.uniqueName, true, sectionIndex, sectionTitle
             )

@@ -25,6 +25,7 @@ import org.fxboomk.fcitx5.android.ui.main.MainFragment
 import org.fxboomk.fcitx5.android.ui.main.PluginFragment
 import org.fxboomk.fcitx5.android.ui.main.settings.addon.AddonConfigFragment
 import org.fxboomk.fcitx5.android.ui.main.settings.addon.FuzzyConfigFragment
+import org.fxboomk.fcitx5.android.ui.main.settings.addon.PinyinTextConfigFragment
 import org.fxboomk.fcitx5.android.ui.main.settings.addon.AddonListFragment
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.AdvancedSettingsFragment
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.ClipboardSettingsFragment
@@ -96,6 +97,9 @@ sealed class SettingsRoute : Parcelable {
         val isAddon: Boolean,
         val sectionTitle: String
     ) : SettingsRoute()
+
+    @Serializable
+    data class PinyinTextConfig(val sectionTitle: String) : SettingsRoute()
 
     /* ========== Android ========== */
 
@@ -280,6 +284,7 @@ sealed class SettingsRoute : Parcelable {
             fragment<AddonConfigFragment, AddonConfig>()
             fragment<ConfigSectionFragment, ConfigSection>()
             fragment<FuzzyConfigFragment, FuzzyConfig>()
+            fragment<PinyinTextConfigFragment, PinyinTextConfig>()
 
             /* ========== Android ========== */
 

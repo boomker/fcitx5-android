@@ -43,6 +43,8 @@ class CustomShuangpinPreferencesFragment : FcitxPreferenceFragment() {
             SettingsRoute.FuzzyConfig(
                 getString(R.string.custom_shuangpin_tab_preferences), uniqueName, false, sectionTitle
             )
+        } else if (AddonConfigLayouts.isPinyinTextSection(layout, sectionIndex)) {
+            SettingsRoute.PinyinTextConfig(sectionTitle)
         } else SettingsRoute.ConfigSection(
             getString(R.string.custom_shuangpin_tab_preferences),
             uniqueName,

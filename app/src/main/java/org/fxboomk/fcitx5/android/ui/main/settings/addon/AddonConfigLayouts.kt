@@ -49,6 +49,10 @@ object AddonConfigLayouts {
     fun isFuzzySection(layout: ConfigLayout, index: Int): Boolean =
         layout.sections.getOrNull(index)?.options?.contains("Fuzzy") == true
 
+    fun isPinyinTextSection(layout: ConfigLayout, index: Int): Boolean =
+        layout.sections.getOrNull(index)?.options?.contains("Punctuation") == true &&
+            layout.sections.getOrNull(index)?.options?.contains("Chttrans") == true
+
     internal fun fuzzyMappingOptionOrder(): List<String> =
         PinyinConfigLayout.fuzzyMappingOptionOrder()
 

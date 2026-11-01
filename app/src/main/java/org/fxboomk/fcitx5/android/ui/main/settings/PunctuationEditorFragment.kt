@@ -5,6 +5,7 @@
 package org.fxboomk.fcitx5.android.ui.main.settings
 
 import android.app.AlertDialog
+import android.os.Bundle
 import android.view.View
 import androidx.lifecycle.Lifecycle
 import org.fxboomk.fcitx5.android.R
@@ -30,7 +31,22 @@ import splitties.views.setPaddingDp
 
 class PunctuationEditorFragment : ProgressFragment(), OnItemChangedListener<PunctuationMapEntry> {
 
-    private val args by lazyRoute<SettingsRoute.Punctuation>()
+    private val args by lazy {
+        if (arguments?.getBoolean(ARG_EMBEDDED) == true) {
+            null
+        } else {
+            lazyRoute<SettingsRoute.Punctuation>().value
+        }
+    }
+
+    private val pageTitle: String
+        get() = arguments?.getString(ARG_TITLE) ?: args?.title.orEmpty()
+
+    private val pageLang: String?
+        get() = arguments?.getString(ARG_LANG) ?: args?.lang
+
+    private val embedded: Boolean
+        get() = arguments?.getBoolean(ARG_EMBEDDED) == true
 
     private lateinit var lang: String
     private lateinit var keyDesc: String
@@ -66,7 +82,7 @@ class PunctuationEditorFragment : ProgressFragment(), OnItemChangedListener<Punc
     }
 
     override suspend fun initialize(): View {
-        lang = args.lang ?: DEFAULT_LANG
+        lang = pageLang ?: DEFAULT_LANG
         val raw = fcitx.runOnReady { getPunctuationConfig(lang) }
         findDesc(raw)
         val initialEntries = PunctuationManager.parseRawConfig(raw)
@@ -152,7 +168,7 @@ class PunctuationEditorFragment : ProgressFragment(), OnItemChangedListener<Punc
                 lifecycleOwner = viewLifecycleOwner,
             ),
             viewLifecycleOwner,
-            Lifecycle.State.STARTED
+            Lifecycle.State.RESUMED
         )
         return ui.root
     }
@@ -179,7 +195,7 @@ class PunctuationEditorFragment : ProgressFragment(), OnItemChangedListener<Punc
 
     override fun onStart() {
         super.onStart()
-        viewModel.setToolbarTitle(args.title)
+        if (!embedded) viewModel.setToolbarTitle(pageTitle)
     }
 
     override fun onStop() {
@@ -199,5 +215,17 @@ class PunctuationEditorFragment : ProgressFragment(), OnItemChangedListener<Punc
 
     companion object {
         const val DEFAULT_LANG = "zh_CN"
+
+        private const val ARG_TITLE = "embedded_title"
+        private const val ARG_LANG = "embedded_lang"
+        private const val ARG_EMBEDDED = "embedded"
+
+        fun newInstance(title: String, lang: String? = null) = PunctuationEditorFragment().apply {
+            arguments = Bundle().apply {
+                putString(ARG_TITLE, title)
+                putString(ARG_LANG, lang)
+                putBoolean(ARG_EMBEDDED, true)
+            }
+        }
     }
 }

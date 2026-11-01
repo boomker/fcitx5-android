@@ -22,6 +22,7 @@ import org.fxboomk.fcitx5.android.input.candidates.floating.FloatingCandidatesMo
 import org.fxboomk.fcitx5.android.input.predict.LlmPrefs
 import org.fxboomk.fcitx5.android.ui.main.settings.addon.AddonConfigLayouts
 import org.fxboomk.fcitx5.android.ui.main.settings.addon.AddonDisplayNames
+import org.fxboomk.fcitx5.android.ui.main.settings.addon.PinyinTextConfigFragment
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.KeyboardSettingsHomeFragment
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.KeyboardSettingsSupport
 import org.fxboomk.fcitx5.android.ui.main.settings.im.CustomShuangpinFragment
@@ -839,6 +840,11 @@ object SettingsSearchIndex {
                         isAddon = route is SettingsRoute.AddonConfig,
                         sectionTitle = sectionTitle
                     )
+                } else if (
+                    groupedLayout != null &&
+                    AddonConfigLayouts.isPinyinTextSection(groupedLayout, sectionIndex)
+                ) {
+                    SettingsRoute.PinyinTextConfig(sectionTitle)
                 } else SettingsRoute.ConfigSection(
                     pageTitle = path.first(),
                     uniqueName = when (route) {
@@ -855,10 +861,26 @@ object SettingsSearchIndex {
             } else {
                 route
             }
+            val itemPath = if (sectionTitle == null) {
+                path
+            } else {
+                val sectionPath = path + sectionTitle
+                if (destination is SettingsRoute.PinyinTextConfig) {
+                    sectionPath + context.getString(
+                        if (descriptor.name == "Punctuation") {
+                            R.string.pinyin_config_punctuation
+                        } else {
+                            R.string.pinyin_config_script_conversion
+                        }
+                    )
+                } else {
+                    sectionPath
+                }
+            }
             descriptorItems(
                 context,
                 destination,
-                if (sectionTitle != null) path + sectionTitle else path,
+                itemPath,
                 descriptor,
                 tab,
                 groupedLayout?.children?.get(descriptor.name) ?: layout
@@ -888,6 +910,11 @@ object SettingsSearchIndex {
                 descriptorItems(context, route, path + section, it, fuzzyTab, childLayout)
             }
         } else {
+            val descriptorTab = when (descriptor.name) {
+                "Punctuation", "Chttrans" ->
+                    PinyinTextConfigFragment.tabForOption(descriptor.name)
+                else -> tab
+            }
             listOf(
                 SettingsSearchResult(
                     title = layout?.titleOverride(context, descriptor.name)
@@ -897,7 +924,7 @@ object SettingsSearchIndex {
                     preferenceKey = descriptor.name,
                     summary = descriptor.tooltip,
                     keywords = listOf(descriptor.name, ConfigType.pretty(descriptor.ty)),
-                    tab = tab
+                    tab = descriptorTab
                 )
             )
         }
