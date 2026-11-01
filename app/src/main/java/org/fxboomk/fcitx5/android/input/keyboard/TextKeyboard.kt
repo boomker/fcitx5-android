@@ -6,9 +6,12 @@ package org.fxboomk.fcitx5.android.input.keyboard
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.view.View
 import androidx.annotation.Keep
 import androidx.core.view.allViews
+import java.io.File
 import java.lang.ref.WeakReference
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.core.InputMethodEntry
@@ -40,7 +43,9 @@ internal fun resolveCapsAwareAltText(
     val displayText = if (sourceFromAppearance) appearance.displayText else renderedText
 
     if (appearance.caseAwareCapsState) {
-        if (preserveConfiguredDisplayCase) return appearance.displayText
+        if (preserveConfiguredDisplayCase || appearance.preserveConfiguredDisplayCase) {
+            return appearance.displayText
+        }
         if (displayText.length != 1 || !displayText[0].isLetter()) return displayText
         if (appearance.displayText[0].isUpperCase()) return appearance.displayText
         return if (displayUppercase) displayText.uppercase() else displayText.lowercase()
@@ -91,8 +96,12 @@ class TextKeyboard private constructor(
     internal data class KeyDefLayoutCacheKey(
         val sourceKey: String,
         val subModeLabel: String,
+        val subModeName: String,
+        val subModeKey: String?,
         val showLangSwitch: Boolean,
         val theme: Theme,
+        val layoutFile: String?,
+        val layoutRevision: Long,
     )
 
     companion object {
@@ -139,9 +148,11 @@ class TextKeyboard private constructor(
 
         @Synchronized
         private fun onTextLayoutFileChanged() {
-            cachedRawLayoutJson = null
-            lastRawLayoutFile = null
-            lastRawModified = 0L
+            invalidateLayoutCache()
+            refreshAttachedKeyboards()
+        }
+
+        private fun refreshAttachedKeyboards() {
             val living = attachedKeyboards.mapNotNull { it.get() }
             attachedKeyboards.removeAll { it.get() == null }
             living.forEach { keyboard ->
@@ -176,9 +187,16 @@ class TextKeyboard private constructor(
         // Compatibility alias for cachedRawLayoutJson (used by SplitKeyboardCalibrationActivity)
         @JvmStatic
         var cachedLayoutJsonMap: JsonObject?
+            @Synchronized
             get() = cachedRawLayoutJson
             set(value) {
                 cachedRawLayoutJson = value
+                // A caller may install a freshly updated snapshot before the
+                // FileObserver event arrives. Reset the file identity and parsed
+                // layout cache together so a later read cannot resurrect stale data.
+                lastRawLayoutFile = null
+                lastRawModified = Long.MIN_VALUE
+                cachedKeyDefLayouts.clear()
             }
 
         // Cache for parsed KeyDef layouts to avoid recreating them on every reloadLayout()
@@ -191,6 +209,51 @@ class TextKeyboard private constructor(
         fun clearCachedKeyDefLayouts() {
             cachedKeyDefLayouts.clear()
             lastLayoutCacheInvalidated = 0L
+        }
+
+        /**
+         * Invalidate both the parsed layout cache and the raw JSON snapshot.
+         *
+         * The raw snapshot is normally invalidated by the file observer. A save
+         * can happen before that asynchronous event is delivered, though, and
+         * the file timestamp may still compare equal on filesystems with coarse
+         * timestamp resolution. Clear every layer explicitly so the next layout
+         * read always comes from the saved file.
+         */
+        @Synchronized
+        fun invalidateLayoutCache() {
+            cachedRawLayoutJson = null
+            lastRawLayoutFile = null
+            lastRawModified = 0L
+            clearCachedKeyDefLayouts()
+        }
+
+        /**
+         * Refresh attached keyboards immediately after the active layout file is
+         * saved. Other profile files must not disturb the currently displayed
+         * keyboard.
+         */
+        @Synchronized
+        fun refreshLayoutAfterSave(file: File) {
+            // Saving an inactive profile must still invalidate parsed entries; the
+            // next profile switch must not reuse a KeyDef built from the old file.
+            invalidateLayoutCache()
+            val activeFile = org.fxboomk.fcitx5.android.input.config.ConfigProviders.provider
+                .textKeyboardLayoutFile()
+                ?: return
+            val sameFile = runCatching {
+                activeFile.canonicalFile == file.canonicalFile
+            }.getOrDefault(activeFile.absoluteFile == file.absoluteFile)
+            if (!sameFile) return
+            if (Looper.myLooper() == Looper.getMainLooper()) {
+                refreshAttachedKeyboards()
+            } else {
+                Handler(Looper.getMainLooper()).post {
+                    synchronized(this) {
+                        refreshAttachedKeyboards()
+                    }
+                }
+            }
         }
 
         val textLayoutJson: JsonObject?
@@ -258,6 +321,7 @@ class TextKeyboard private constructor(
         ): List<List<KeyDef>> {
             val imeName = currentIme?.uniqueName
             val subModeLabel = layoutSubMode.label
+            val subModeName = layoutSubMode.name
             val showLangSwitch = AppPrefs.getInstance().keyboard.showLangSwitchKey.getValue()
             if (imeName != null) {
                 val json = textLayoutJson
@@ -267,14 +331,19 @@ class TextKeyboard private constructor(
                         uniqueName = imeName,
                         displayName = currentIme.displayName,
                         subModeLabel = subModeLabel,
+                        subModeName = subModeName,
                     )
                     val rows = resolution?.rows
                     if (rows != null) {
                         val cacheKey = KeyDefLayoutCacheKey(
                             sourceKey = resolution.sourceKey,
                             subModeLabel = subModeLabel,
+                            subModeName = subModeName,
+                            subModeKey = resolution.subModeKey,
                             showLangSwitch = showLangSwitch,
                             theme = theme,
+                            layoutFile = lastRawLayoutFile,
+                            layoutRevision = lastRawModified,
                         )
                         return cachedKeyDefLayouts.getOrPut(cacheKey) {
                             rows.map { rowElement ->
@@ -462,9 +531,9 @@ class TextKeyboard private constructor(
             parentKey != null && json?.containsKey(parentKey) == true -> "p:$parentKey"
             else -> "default"
         }
-        val subModeLabel = layoutState.layoutSubMode(ime)
-            .run { label.ifEmpty { name.ifEmpty { "" } } }
-        return "$layoutSource|$subModeLabel|$lastRawModified"
+        val subMode = layoutState.layoutSubMode(ime)
+        val subModeLabel = subMode.label.ifEmpty { subMode.name.ifEmpty { "" } }
+        return "$layoutSource|$subModeLabel|${subMode.name}|$lastRawModified"
     }
 
     override fun onAction(action: KeyAction, source: KeyActionListener.Source) {
@@ -767,18 +836,23 @@ class TextKeyboard private constructor(
             is PopupAction.PreviewAction -> action.copy(content = transformPopupPreview(action.content))
             is PopupAction.PreviewUpdateAction -> action.copy(content = transformPopupPreview(action.content))
             is PopupAction.ShowKeyboardAction -> {
-                when (action.keyboard) {
+                when (val keyboard = action.keyboard) {
                     is KeyDef.Popup.Keyboard.Preset -> {
-                        val label = action.keyboard.label
-                        if (label.length == 1 && label[0].isLetter()) {
+                        if (keyboard.transformCaseWithCaps &&
+                            keyboard.label.length == 1 &&
+                            keyboard.label[0].isLetter()
+                        ) {
                             action.copy(
-                                keyboard = action.keyboard.copy(label = transformAlphabet(label))
+                                keyboard = keyboard.copy(label = transformAlphabet(keyboard.label))
                             )
-                        } else action
+                        } else {
+                            action
+                        }
                     }
                     is KeyDef.Popup.Keyboard.Explicit -> action
                 }
             }
+            is PopupAction.ShowLongPressKeyboardAction -> action
             else -> action
         }
         super.onPopupAction(newAction)

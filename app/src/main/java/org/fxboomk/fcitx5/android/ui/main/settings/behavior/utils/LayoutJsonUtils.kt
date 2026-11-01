@@ -1048,7 +1048,11 @@ object LayoutJsonUtils {
                     backgroundColor = effectiveBackgroundColor,
                     backgroundColorMonet = effectiveBackgroundColorMonet,
                     shadowColor = key.shadowColor,
-                    shadowColorMonet = key.shadowColorMonet
+                    shadowColorMonet = key.shadowColorMonet,
+                    // A scalar or submode-specific displayText is an explicit label
+                    // chosen by the user. Preserve its case on the real keyboard;
+                    // only MacroKeys without displayText should follow Caps state.
+                    preserveConfiguredDisplayCase = key.displayText != null
                 )
             }
             else -> SpaceKey() // Fallback

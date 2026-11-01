@@ -148,13 +148,25 @@ class PopupComponent :
         showingEntryUi[viewId]?.setText(content)
     }
 
+    private fun popupPresetFor(label: String, fallbackLabel: String?): Array<String>? {
+        resolvePopupPresetCandidates(label, fallbackLabel, popupPresetJson)?.let { return it }
+        buildList {
+            add(label)
+            fallbackLabel?.takeIf { it.isNotBlank() && it != label }?.let(::add)
+        }.forEach { key ->
+            EmojiModifier.produceSkinTones(key, EmojiModifier.SkinTone.Default)
+                ?.takeIf { it.isNotEmpty() }
+                ?.let { return it }
+        }
+        return null
+    }
+
     private fun showKeyboard(viewId: Int, keyboard: KeyDef.Popup.Keyboard, bounds: Rect) {
         val keys: Array<String>
         val labels: Array<String>
         when (keyboard) {
             is KeyDef.Popup.Keyboard.Preset -> {
-                val preset = popupPresetJson?.get(keyboard.label)
-                    ?: PopupPreset[keyboard.label]
+                val preset = popupPresetFor(keyboard.label, keyboard.fallbackLabel)
                     ?: return
                 if (preset.isEmpty()) {
                     dismissPopup(viewId)
@@ -194,10 +206,8 @@ class PopupComponent :
     }
 
     private fun showLongPressKeyboard(viewId: Int, keyboard: KeyDef.Popup.LongPressKeyboard, bounds: Rect) {
-        // Get base candidates from PopupPreset using baseLabel
-        val baseKeys = popupPresetJson?.get(keyboard.baseLabel)
-            ?: PopupPreset[keyboard.baseLabel]
-            ?: EmojiModifier.produceSkinTones(keyboard.baseLabel, EmojiModifier.SkinTone.Default)
+        // Get base candidates from the visible label, then the emitted character.
+        val baseKeys = popupPresetFor(keyboard.baseLabel, keyboard.fallbackBaseLabel)
             ?: emptyArray()
 
         // Prepend the longPress macro as the first candidate

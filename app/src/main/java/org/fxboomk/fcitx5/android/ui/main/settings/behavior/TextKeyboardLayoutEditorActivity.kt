@@ -1272,6 +1272,12 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             showToast(getString(R.string.cannot_resolve_text_keyboard_layout))
             return false
         }
+        // Submode layouts without an existing dedicated entry are edited in
+        // currentRowsRef until the first real change. Materialize that buffer
+        // before checking hasChanges or serializing the manager entries; otherwise
+        // the editor can report a successful save while writing the old inherited
+        // layout back to disk.
+        syncBufferedLayout()
         if (!hasChanges() && file.exists() && file.length() > 0) {
             return true
         }

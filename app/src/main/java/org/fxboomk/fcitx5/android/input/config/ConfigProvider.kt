@@ -66,8 +66,23 @@ object ConfigProviders {
     @Volatile
     var provider: ConfigProvider = DefaultConfigProvider
         set(value) {
+            // Resolve the previous source from the watcher state when possible.
+            // The DefaultConfigProvider reads the active profile dynamically, so
+            // querying field.textKeyboardLayoutFile() here after the preference has
+            // changed would already return the *new* profile and hide the switch.
+            val oldFile = observedTextLayoutFilePath ?: field.textKeyboardLayoutFile()?.let { file ->
+                runCatching { file.canonicalPath }.getOrElse { file.absolutePath }
+            }
+            val oldMemoryLayout = observedTextLayoutUsesMemory || field.textKeyboardLayoutJson() != null
+            val newMemoryLayout = value.textKeyboardLayoutJson() != null
+            val newFile = value.textKeyboardLayoutFile()?.let { file ->
+                runCatching { file.canonicalPath }.getOrElse { file.absolutePath }
+            }
             field = value
             restartWatching()
+            if (!oldMemoryLayout && !newMemoryLayout && oldFile != null && newFile != null && oldFile != newFile) {
+                notifyListeners(textLayoutListeners)
+            }
         }
 
     @Volatile
@@ -96,6 +111,17 @@ object ConfigProviders {
     
     @Volatile
     private var watchedButtonsLayoutFileName: String? = null
+
+    /**
+     * Identity of the text layout source used by the last watcher setup.
+     * The active profile can change while [provider] remains the same object,
+     * so the file path must be tracked separately from the provider instance.
+     */
+    @Volatile
+    private var observedTextLayoutFilePath: String? = null
+
+    @Volatile
+    private var observedTextLayoutUsesMemory = false
 
     private val textLayoutListeners = linkedSetOf<() -> Unit>()
     private val popupPresetListeners = linkedSetOf<() -> Unit>()
@@ -160,6 +186,8 @@ object ConfigProviders {
         watchedPopupPresetFileName = null
         watchedSwipeSymbolMappingFileName = null
         watchedButtonsLayoutFileName = null
+        observedTextLayoutFilePath = null
+        observedTextLayoutUsesMemory = false
         watchedFontDir = null
         watchedFontsetFileName = null
         ensureWatching()
@@ -167,9 +195,27 @@ object ConfigProviders {
 
     @Synchronized
     fun ensureWatching() {
-        // Skip file watching when provider uses in-memory JSON (e.g., preview scenarios)
-        // This avoids null pointer exceptions and unnecessary file monitoring
-        if (provider.textKeyboardLayoutJson() != null) {
+        val memoryLayout = provider.textKeyboardLayoutJson() != null
+        val textLayoutPath = provider.textKeyboardLayoutFile()?.let { file ->
+            runCatching { file.canonicalPath }.getOrElse { file.absolutePath }
+        }
+        val sourceChanged = observedTextLayoutUsesMemory != memoryLayout ||
+            observedTextLayoutFilePath != textLayoutPath
+        val hadObservedSource = observedTextLayoutUsesMemory ||
+            observedTextLayoutFilePath != null
+        val wasMemoryLayout = observedTextLayoutUsesMemory
+        observedTextLayoutUsesMemory = memoryLayout
+        observedTextLayoutFilePath = textLayoutPath
+
+        // Preview providers are intentionally isolated from the attached keyboard.
+        // Notify only when a real file-backed layout source changes, for example when
+        // the active profile changes while the provider object stays the same.
+        if (sourceChanged && hadObservedSource && !memoryLayout && !wasMemoryLayout) {
+            notifyListeners(textLayoutListeners)
+        }
+
+        // Skip file watching when provider uses in-memory JSON (e.g. preview scenarios).
+        if (memoryLayout) {
             return
         }
 

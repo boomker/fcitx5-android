@@ -128,7 +128,9 @@ open class KeyDef(
             shadowColorMonet: String? = null,
             val followsCapsState: Boolean = true,
             /** Uppercase MacroKey letters stay fixed; lowercase letters follow Caps. */
-            val caseAwareCapsState: Boolean = false
+            val caseAwareCapsState: Boolean = false,
+            /** Keep an explicitly configured display label in its configured case. */
+            val preserveConfiguredDisplayCase: Boolean = false
         ) : Text(
             displayText,
             textSize,
@@ -315,7 +317,13 @@ open class KeyDef(
         ) : Preview(content)
 
         sealed class Keyboard : Popup() {
-            data class Preset(val label: String, val transformPunctuation: Boolean = true) :
+            data class Preset(
+                val label: String,
+                val transformPunctuation: Boolean = true,
+                val fallbackLabel: String? = null,
+                /** Whether the lookup key follows the keyboard Caps presentation. */
+                val transformCaseWithCaps: Boolean = true
+            ) :
                 Keyboard()
 
             class Explicit(val items: Array<String>) : Keyboard()
@@ -335,7 +343,8 @@ open class KeyDef(
         class LongPressKeyboard(
             val displayLabel: String,
             val action: KeyAction,
-            val baseLabel: String
+            val baseLabel: String,
+            val fallbackBaseLabel: String? = null
         ) : Popup()
     }
 }

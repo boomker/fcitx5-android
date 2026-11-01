@@ -99,6 +99,18 @@ class TextKeyboardCapsStateTest {
     }
 
     @Test
+    fun explicitlyConfiguredMacroDisplayTextKeepsItsCaseOnTheRealKeyboard() {
+        val appearance = (MacroKey(
+            label = "l",
+            character = "L",
+            tap = MacroAction(listOf(MacroStep.Text("L"))),
+            preserveConfiguredDisplayCase = true,
+        ).appearance as KeyDef.Appearance.AltText)
+
+        assertEquals("l", resolveCapsAwareAltText(appearance, "l", true, false))
+    }
+
+    @Test
     fun alphabetLabelsStillFollowCapsState() {
         val appearance = KeyDef.Appearance.AltText(
             displayText = "q",

@@ -24,6 +24,8 @@ internal data class TextKeyboardLayoutResolution(
     val layoutKey: String,
     val root: JsonElement,
     val subMode: JsonElement?,
+    /** The child key that matched the active sub-mode, when one exists. */
+    val subModeKey: String?,
     val subModeLabel: String,
     val globalDefault: JsonElement?,
     /** Key for [globalDefault] when it is eligible to provide the effective height. */
@@ -42,6 +44,7 @@ internal fun resolveTextKeyboardLayout(
     uniqueName: String,
     displayName: String,
     subModeLabel: String,
+    subModeName: String = "",
 ): TextKeyboardLayoutResolution? {
     val parentKey = ShuangpinLayoutKeys.parentBaseLayoutKey(uniqueName)
     val (matchedSourceKey, root) = when {
@@ -55,7 +58,15 @@ internal fun resolveTextKeyboardLayout(
         else -> return null
     }
     val layout = root as? JsonObject
-    val subMode = layout?.get(subModeLabel)
+    // Rime exposes a short display label (for example `朙`) alongside the
+    // schema name (`朙月拼音`). User layout files are keyed by either form,
+    // depending on when they were created. Prefer the visible label for
+    // backwards compatibility, then use the complete schema name.
+    val subModeCandidates = listOf(subModeLabel.trim(), subModeName.trim())
+        .filter { it.isNotEmpty() }
+        .distinct()
+    val matchedSubModeKey = subModeCandidates.firstOrNull { layout?.containsKey(it) == true }
+    val subMode = matchedSubModeKey?.let { layout?.get(it) }
     val isChildOnlyLayout = layout != null && layout["default"] == null && layout[""] == null
     // 兜底基准：双拼方案以"双拼"父级输入法布局为基准；其余输入法沿用全局 English 兜底
     // （英文键盘本身即 default，没有兜底）。
@@ -90,6 +101,7 @@ internal fun resolveTextKeyboardLayout(
         layoutKey = matchedSourceKey,
         root = root,
         subMode = subMode,
+        subModeKey = matchedSubModeKey,
         subModeLabel = subModeLabel,
         globalDefault = heightBaseline,
         globalDefaultKey = heightBaselineKey,
@@ -119,7 +131,7 @@ internal fun TextKeyboardLayoutResolution.keyboardHeightOverrideTarget(
 ): KeyboardHeightOverrideTarget? {
     val key = keyboardHeightPercentMetaKey(landscape)
     if (layoutHeightPercentFromMeta(subMode, key) != null) {
-        return KeyboardHeightOverrideTarget.SubMode(layoutKey, subModeLabel)
+        return KeyboardHeightOverrideTarget.SubMode(layoutKey, subModeKey ?: subModeLabel)
     }
     if (layoutHeightPercentFromMeta(root, key) != null) {
         return KeyboardHeightOverrideTarget.Layout(layoutKey)

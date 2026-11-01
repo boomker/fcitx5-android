@@ -106,18 +106,61 @@ class TextKeyboardLayoutResolverTest {
     }
 
     @Test
+    fun rimeSubModeResolvesByFullSchemaNameWhenOnlyShortLabelIsMissing() {
+        val json = Json.parseToJsonElement(
+            """
+            {
+              "rime": {
+                "default": [[{"type":"AlphabetKey","main":"d"}]],
+                "朙月拼音": {
+                  "__meta__": {"keyboard_height_percent": 41},
+                  "default": [[{"type":"AlphabetKey","main":"m"}]]
+                }
+              }
+            }
+            """.trimIndent()
+        ) as JsonObject
+
+        val resolution = requireNotNull(
+            resolveTextKeyboardLayout(
+                json = json,
+                uniqueName = "rime",
+                displayName = "Rime",
+                subModeLabel = "朙",
+                subModeName = "朙月拼音",
+            )
+        )
+
+        assertEquals("朙月拼音", resolution.subModeKey)
+        assertEquals("m", resolution.rows!!.firstKeyMain())
+        assertEquals(41, resolution.keyboardHeightPercentOverride(landscape = false))
+        assertEquals(
+            KeyboardHeightOverrideTarget.SubMode("rime", "朙月拼音"),
+            resolution.keyboardHeightOverrideTarget(landscape = false),
+        )
+    }
+
+    @Test
     fun keyDefLayoutCacheKey_changesWithThemeColors() {
         val lightKey = TextKeyboard.KeyDefLayoutCacheKey(
             sourceKey = "default",
             subModeLabel = "",
+            subModeName = "",
+            subModeKey = null,
             showLangSwitch = true,
             theme = ThemePreset.MaterialLight,
+            layoutFile = "/tmp/light.json",
+            layoutRevision = 1L,
         )
         val darkKey = TextKeyboard.KeyDefLayoutCacheKey(
             sourceKey = "default",
             subModeLabel = "",
+            subModeName = "",
+            subModeKey = null,
             showLangSwitch = true,
             theme = ThemePreset.MaterialDark,
+            layoutFile = "/tmp/light.json",
+            layoutRevision = 1L,
         )
 
         assertNotEquals(lightKey, darkKey)

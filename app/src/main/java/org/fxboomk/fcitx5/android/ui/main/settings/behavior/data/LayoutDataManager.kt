@@ -324,8 +324,10 @@ class LayoutDataManager(private val context: Context) {
             val compactJson = LayoutJsonUtils.formatJsonCompact(jsonElement)
             file.writeText(compactJson + "\n")
 
-            // 清除缓存
-            TextKeyboard.clearCachedKeyDefLayouts()
+            // Invalidate the active runtime snapshot and refresh attached keyboards
+            // immediately. FileObserver delivery is asynchronous and can arrive
+            // after the keyboard has already been rebuilt from the old snapshot.
+            TextKeyboard.refreshLayoutAfterSave(file)
 
             // 更新原始数据快照
             originalEntries = normalizedEntries()

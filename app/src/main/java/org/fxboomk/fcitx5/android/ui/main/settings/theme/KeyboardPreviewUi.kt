@@ -637,6 +637,7 @@ class KeyboardPreviewUi(
                     uniqueName = previewIme.uniqueName,
                     displayName = previewIme.displayName,
                     subModeLabel = previewIme.subMode.label,
+                    subModeName = previewIme.subMode.name,
                 )?.keyboardHeightPercentOverride(isLandscape)
             }
             ?: if (isLandscape) keyboardHeightPercentLandscape else keyboardHeightPercent

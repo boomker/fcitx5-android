@@ -694,13 +694,15 @@ class MacroKey(
     backgroundColor: Int? = null,
     backgroundColorMonet: String? = null,
     shadowColor: Int? = null,
-    shadowColorMonet: String? = null
+    shadowColorMonet: String? = null,
+    preserveConfiguredDisplayCase: Boolean = false
 ) : KeyDef(
     Appearance.AltText(
         displayText = label,
         altText = altLabel ?: "",
         altText1 = altLabel1,
         character = character,
+        preserveConfiguredDisplayCase = preserveConfiguredDisplayCase,
         followsCapsState = false,
         caseAwareCapsState = true,
         textSize = 23f,
@@ -716,7 +718,7 @@ class MacroKey(
         shadowColorMonet = shadowColorMonet
     ),
     buildBehaviors(tap, swipeUp, swipeDown, swipe, longPress, altLabel, altLabel1),
-    buildPopup(popup, tap, label, longPress, longPressLabel)
+    buildPopup(popup, tap, label, character, longPress, longPressLabel)
 ) {
     private companion object {
         private val FCITX_SYMBOL_LABELS = mapOf(
@@ -821,12 +823,14 @@ class MacroKey(
          * Build popup based on macro content
          * - If longPress macro is configured, it appears as the first candidate in the popup
          * - If tap macro has only one tap key, generate popup for that key
-         * - Otherwise, generate popup based on label (preview on press, menu on long press)
+         * - Otherwise, use the display label for previews and the logical character for
+         *   popup preset lookup
          */
         fun buildPopup(
             explicitPopup: Array<Popup>?,
             tap: MacroAction,
             label: String,
+            character: String,
             longPress: MacroAction? = null,
             longPressLabel: String? = null
         ): Array<Popup>? {
@@ -836,6 +840,13 @@ class MacroKey(
             }
 
             val popupList = mutableListOf<Popup>()
+            val popupCharacter = character.filterNot(::isPopupFormattingCharacter)
+                .ifBlank { character }
+            val popupLabel = label.filterNot(::isPopupFormattingCharacter).ifBlank { label }
+            // PopupPreset is keyed by the label the user sees. A MacroKey may emit a
+            // different logical character, so keep that character as a fallback for
+            // layouts that have no preset for the customized label.
+            val popupFallback = popupCharacter.takeIf { it.isNotBlank() && it != popupLabel }
 
             // Check if there's exactly one tap step with one key
             val singleTapKey = if (tap.steps.size == 1 && tap.steps[0] is MacroStep.Tap) {
@@ -853,13 +864,21 @@ class MacroKey(
                             val upper = display.uppercase()
                             arrayOf(
                                 Popup.AltPreview(display, upper),
-                                Popup.Keyboard.Preset(display)
+                                Popup.Keyboard.Preset(
+                                    popupLabel,
+                                    fallbackLabel = display,
+                                    transformCaseWithCaps = false,
+                                )
                             )
                         } else {
                             // Symbol/emoji/non-letter keys should still expose popup keyboard like SymbolKey.
                             arrayOf(
                                 Popup.Preview(display),
-                                Popup.Keyboard.Preset(display)
+                                Popup.Keyboard.Preset(
+                                    popupLabel,
+                                    fallbackLabel = display,
+                                    transformCaseWithCaps = false,
+                                )
                             )
                         }
                     }
@@ -875,13 +894,21 @@ class MacroKey(
                     val upper = label.uppercase()
                     arrayOf(
                         Popup.AltPreview(label, upper),
-                        Popup.Keyboard.Preset(label)
+                        Popup.Keyboard.Preset(
+                            popupLabel,
+                            fallbackLabel = popupFallback,
+                            transformCaseWithCaps = false,
+                        )
                     )
                 } else {
                     // Non-letter labels should still expose popup keyboard.
                     arrayOf(
                         Popup.Preview(label),
-                        Popup.Keyboard.Preset(label)
+                        Popup.Keyboard.Preset(
+                            popupLabel,
+                            fallbackLabel = popupFallback,
+                            transformCaseWithCaps = false,
+                        )
                     )
                 }
             }
@@ -892,9 +919,23 @@ class MacroKey(
             // The longPress macro still appears as the first candidate inside popup keyboard UI.
             if (longPress != null) {
                 val displayLabel = longPressLabel?.takeIf { it.isNotBlank() } ?: label
-                popupList.add(Popup.LongPressKeyboard(displayLabel, longPress, label))
+                // Use the visible label for the preset first. The logical character
+                // remains a fallback when a custom label has no preset entry.
+                popupList.add(
+                    Popup.LongPressKeyboard(
+                        displayLabel,
+                        longPress,
+                        popupLabel,
+                        popupFallback
+                    )
+                )
             }
             return popupList.toTypedArray()
+        }
+
+        private fun isPopupFormattingCharacter(ch: Char): Boolean = when (ch) {
+            '\u200B', '\u200C', '\u200D', '\uFEFF' -> true
+            else -> false
         }
     }
 }

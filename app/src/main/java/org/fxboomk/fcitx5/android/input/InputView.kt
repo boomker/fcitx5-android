@@ -1058,6 +1058,7 @@ class InputView(
             uniqueName = ime.uniqueName,
             displayName = ime.displayName,
             subModeLabel = TextKeyboard.layoutSubModeForIme(ime).label,
+            subModeName = TextKeyboard.layoutSubModeForIme(ime).name,
         )?.keyboardHeightPercentOverride(isLayoutLandscape)
             ?: json.fileLevelKeyboardHeightPercentOverride(isLayoutLandscape)
     }
@@ -1070,6 +1071,7 @@ class InputView(
             uniqueName = ime.uniqueName,
             displayName = ime.displayName,
             subModeLabel = TextKeyboard.layoutSubModeForIme(ime).label,
+            subModeName = TextKeyboard.layoutSubModeForIme(ime).name,
         )
         return resolution?.keyboardHeightOverrideTarget(landscape)
             ?: json.fileLevelKeyboardHeightPercentOverride(landscape)
@@ -1130,9 +1132,13 @@ class InputView(
             uniqueName = ime.uniqueName,
             displayName = ime.displayName,
             subModeLabel = TextKeyboard.layoutSubModeForIme(ime).label,
+            subModeName = TextKeyboard.layoutSubModeForIme(ime).name,
         ) ?: return null
         return if (resolution.subMode != null) {
-            KeyboardHeightOverrideTarget.SubMode(resolution.layoutKey, resolution.subModeLabel)
+            KeyboardHeightOverrideTarget.SubMode(
+                resolution.layoutKey,
+                resolution.subModeKey ?: resolution.subModeLabel,
+            )
         } else {
             KeyboardHeightOverrideTarget.Layout(resolution.layoutKey)
         }

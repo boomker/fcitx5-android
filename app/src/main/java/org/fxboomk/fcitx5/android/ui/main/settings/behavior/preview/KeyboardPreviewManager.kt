@@ -26,7 +26,6 @@ import org.fxboomk.fcitx5.android.data.pinyin.ShuangpinLayoutKeys
 import org.fxboomk.fcitx5.android.data.theme.ThemeManager
 import org.fxboomk.fcitx5.android.input.config.ConfigProvider
 import org.fxboomk.fcitx5.android.input.config.ConfigProviders
-import org.fxboomk.fcitx5.android.input.config.DefaultConfigProvider
 import org.fxboomk.fcitx5.android.input.config.MemoryConfigProvider
 import org.fxboomk.fcitx5.android.input.keyboard.TextKeyboard
 import org.fxboomk.fcitx5.android.ui.main.settings.preview.PreviewInputMethodEntry
@@ -202,8 +201,11 @@ class KeyboardPreviewManager(
             Timber.tag("KeyboardPreview").e(e, "Failed to create keyboard preview for layout: $layoutName, submode: $previewSubModeLabel")
             showError(e.message ?: "Unknown error")
         } finally {
-            // Restore the real layout provider after the preview has been built.
-            ConfigProviders.provider = DefaultConfigProvider
+            // Restore the provider that was active before this preview. The editor
+            // can be opened for a non-default profile, and replacing it with the
+            // default provider here makes subsequent saves/readbacks target the
+            // wrong layout source.
+            ConfigProviders.provider = provider
             TextKeyboard.clearCachedKeyDefLayouts()
         }
     }

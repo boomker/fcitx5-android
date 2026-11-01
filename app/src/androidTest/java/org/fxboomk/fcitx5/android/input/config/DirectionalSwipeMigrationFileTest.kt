@@ -12,6 +12,7 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import org.fxboomk.fcitx5.android.data.theme.ThemeManager
 import org.fxboomk.fcitx5.android.data.theme.ThemePrefs.PunctuationPosition
+import org.fxboomk.fcitx5.android.input.keyboard.TextKeyboard
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.data.LayoutDataManager
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -84,6 +85,40 @@ class DirectionalSwipeMigrationFileTest {
             assertFalse(returning.containsKey("swipeUpLabel"))
         } finally {
             instrumentation.runOnMainSync { ThemeManager.prefs.punctuationPosition.setValue(previousPosition) }
+        }
+    }
+
+    @Test
+    fun savingLayoutInvalidatesRuntimeSnapshotBeforeFileObserverDelivery() = withFile { file ->
+        file.writeText(
+            """
+            {"default":[[{"type":"AlphabetKey","main":"a","alt":"A","displayText":"A"}]]}
+            """.trimIndent()
+        )
+        val previousProvider = ConfigProviders.provider
+        try {
+            instrumentation.runOnMainSync {
+                ConfigProviders.provider = object : ConfigProvider by previousProvider {
+                    override fun textKeyboardLayoutFile(): File = file
+                    override fun textKeyboardLayoutJson(): JsonObject? = null
+                }
+            }
+
+            val beforeSave = checkNotNull(TextKeyboard.textLayoutJson)
+            assertEquals("A", firstKey(beforeSave)["displayText"]?.toString()?.trim('"'))
+
+            val manager = LayoutDataManager(context)
+            assertTrue(manager.loadFromFile(file))
+            manager.entries.getValue("default")[0][0]["displayText"] = "a"
+            assertTrue(manager.saveToFile(file))
+
+            val afterSave = checkNotNull(TextKeyboard.textLayoutJson)
+            assertEquals("a", firstKey(afterSave)["displayText"]?.toString()?.trim('"'))
+        } finally {
+            instrumentation.runOnMainSync {
+                ConfigProviders.provider = previousProvider
+                TextKeyboard.invalidateLayoutCache()
+            }
         }
     }
 
