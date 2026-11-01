@@ -1065,7 +1065,7 @@
     <string name="pinyin_config_fuzzy_common_typo_summary">Пытается сопоставить распространённые ошибки в пиньине.</string>
     <string name="pinyin_config_fuzzy_inner_summary">Позволяет разделить один слог пиньиня на два, например xian → xi’an.</string>
     <string name="pinyin_config_fuzzy_inner_short_summary">Позволяет разделять короткие слоги пиньиня, например qie → qi’e.</string>
-    <string name="pinyin_config_fuzzy_lowercase_summary">Считает одну строчную букву совпадением пиньиня.</string>
+    <string name="pinyin_config_fuzzy_lowercase_summary">Также сопоставляет одну строчную букву с соответствующей латинской буквой, например xguang → X光; если выключено, вводите Xguang.</string>
     <string name="pinyin_config_fuzzy_partial_final_summary">Позволяет короткому финалю совпадать с более длинными: e, en, eng или ei.</string>
     <string name="pinyin_config_fuzzy_partial_sp_summary">Разрешает частичное сопоставление shuangpin при вводе не менее 4 символов.</string>
     <string name="pinyin_config_commit_preedit">Зафиксировать предварительный ввод</string>

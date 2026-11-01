@@ -1063,7 +1063,7 @@
     <string name="pinyin_config_fuzzy_common_typo_summary">Versucht, häufige Pinyin-Fehlschreibungen abzugleichen.</string>
     <string name="pinyin_config_fuzzy_inner_summary">Erlaubt, eine Pinyin-Silbe in zwei zu teilen, z. B. xian → xi’an.</string>
     <string name="pinyin_config_fuzzy_inner_short_summary">Erlaubt Teilungen in kürzeren Pinyin-Silben, z. B. qie → qi’e.</string>
-    <string name="pinyin_config_fuzzy_lowercase_summary">Behandelt einen einzelnen Kleinbuchstaben als Pinyin-Übereinstimmung.</string>
+    <string name="pinyin_config_fuzzy_lowercase_summary">Ordnet einen einzelnen Kleinbuchstaben zusätzlich dem lateinischen Buchstaben zu, z. B. xguang → X光; deaktiviert Xguang eingeben.</string>
     <string name="pinyin_config_fuzzy_partial_final_summary">Erlaubt, dass ein Anfangsfinale mit längeren Finalen wie e, en, eng oder ei übereinstimmt.</string>
     <string name="pinyin_config_fuzzy_partial_sp_summary">Erlaubt teilweise Shuangpin-Übereinstimmung, wenn die Eingabe mindestens 4 Zeichen lang ist.</string>
     <string name="pinyin_config_commit_preedit">Vorbearbeitung übernehmen</string>

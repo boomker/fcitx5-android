@@ -1186,7 +1186,7 @@
     <string name="pinyin_config_fuzzy_common_typo_summary">Try matching common pinyin misspellings.</string>
     <string name="pinyin_config_fuzzy_inner_summary">Allow one pinyin syllable to split into two, such as xian → xi\'an.</string>
     <string name="pinyin_config_fuzzy_inner_short_summary">Allow splits in shorter pinyin, such as qie → qi\'e.</string>
-    <string name="pinyin_config_fuzzy_lowercase_summary">Treat a single lowercase letter as a pinyin match.</string>
+    <string name="pinyin_config_fuzzy_lowercase_summary">Also match a single lowercase letter as that Latin letter, e.g. xguang → X光; when off, type Xguang.</string>
     <string name="pinyin_config_fuzzy_partial_final_summary">Allow an initial final to match longer finals, e.g. e to en, eng, or ei.</string>
     <string name="pinyin_config_fuzzy_partial_sp_summary">Allow partial Shuangpin matching when the input is at least 4 characters long.</string>
     <string name="pinyin_config_commit_preedit">Commit preedit</string>

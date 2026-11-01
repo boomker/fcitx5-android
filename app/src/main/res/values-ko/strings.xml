@@ -1066,7 +1066,7 @@
     <string name="pinyin_config_fuzzy_common_typo_summary">일반적인 병음 오타와의 일치를 시도합니다.</string>
     <string name="pinyin_config_fuzzy_inner_summary">xian → xi’an처럼 한 병음 음절을 두 개로 나눌 수 있습니다.</string>
     <string name="pinyin_config_fuzzy_inner_short_summary">qie → qi’e처럼 짧은 병음도 나눌 수 있습니다.</string>
-    <string name="pinyin_config_fuzzy_lowercase_summary">소문자 한 글자를 병음 일치로 처리합니다.</string>
+    <string name="pinyin_config_fuzzy_lowercase_summary">소문자 한 글자도 해당 라틴 문자로 함께 일치시킵니다(예: xguang → X光). 끄면 Xguang을 입력합니다.</string>
     <string name="pinyin_config_fuzzy_partial_final_summary">e를 en, eng, ei처럼 더 긴 운모와 일치시킬 수 있습니다.</string>
     <string name="pinyin_config_fuzzy_partial_sp_summary">입력이 4자 이상이면 쌍핀 부분 일치를 허용합니다.</string>
     <string name="pinyin_config_commit_preedit">사전 편집 확정</string>

@@ -1065,7 +1065,7 @@
     <string name="pinyin_config_fuzzy_common_typo_summary">Intenta coincidir con errores ortográficos comunes de pinyin.</string>
     <string name="pinyin_config_fuzzy_inner_summary">Permite dividir una sílaba de pinyin en dos, como xian → xi’an.</string>
     <string name="pinyin_config_fuzzy_inner_short_summary">Permite dividir pinyin corto, como qie → qi’e.</string>
-    <string name="pinyin_config_fuzzy_lowercase_summary">Trata una sola letra minúscula como coincidencia de pinyin.</string>
+    <string name="pinyin_config_fuzzy_lowercase_summary">También trata una sola letra minúscula como la letra latina correspondiente, p. ej. xguang → X光; desactivado, escribe Xguang.</string>
     <string name="pinyin_config_fuzzy_partial_final_summary">Permite que un final inicial coincida con finales más largos, como e, en, eng o ei.</string>
     <string name="pinyin_config_fuzzy_partial_sp_summary">Permite coincidencias parciales de shuangpin cuando la entrada tiene al menos 4 caracteres.</string>
     <string name="pinyin_config_commit_preedit">Confirmar preedición</string>

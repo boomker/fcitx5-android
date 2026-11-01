@@ -1026,7 +1026,7 @@
     <string name="pinyin_config_fuzzy_common_typo_summary">嘗試匹配常見的拼音誤拼。</string>
     <string name="pinyin_config_fuzzy_inner_summary">允許將一個拼音拆分為兩個音節，例如 xian → xi\'an。</string>
     <string name="pinyin_config_fuzzy_inner_short_summary">允許較短拼音的音節內分割，例如 qie → qi\'e。</string>
-    <string name="pinyin_config_fuzzy_lowercase_summary">將單個小寫英文字母也納入拼音匹配。</string>
+    <string name="pinyin_config_fuzzy_lowercase_summary">將單個小寫英文字母也按字母本身匹配字母詞條，例如 xguang → X光；關閉後需輸入 Xguang。</string>
     <string name="pinyin_config_fuzzy_partial_final_summary">僅輸入韻母開頭時也嘗試補全，例如 e 可匹配 en、eng、ei。</string>
     <string name="pinyin_config_fuzzy_partial_sp_summary">輸入長度達到 4 個字元時，允許按部分雙拼編碼匹配。</string>
     <string name="pinyin_config_commit_preedit">提交預編輯</string>

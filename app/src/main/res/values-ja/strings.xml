@@ -1065,7 +1065,7 @@
     <string name="pinyin_config_fuzzy_common_typo_summary">よくあるピンインの誤入力との一致を試みます。</string>
     <string name="pinyin_config_fuzzy_inner_summary">xian → xi’an のように、1 つのピンイン音節を 2 つに分割できます。</string>
     <string name="pinyin_config_fuzzy_inner_short_summary">qie → qi’e のように、短いピンインでも分割できます。</string>
-    <string name="pinyin_config_fuzzy_lowercase_summary">1 つの小文字をピンインの一致として扱います。</string>
+    <string name="pinyin_config_fuzzy_lowercase_summary">1 つの小文字もその英字として照合します（例: xguang → X光）。オフの場合は Xguang と入力します。</string>
     <string name="pinyin_config_fuzzy_partial_final_summary">e から en、eng、ei のように、短い韻母を長い韻母に一致させます。</string>
     <string name="pinyin_config_fuzzy_partial_sp_summary">入力が 4 文字以上の場合に双拼の部分一致を許可します。</string>
     <string name="pinyin_config_commit_preedit">未確定入力を確定</string>
