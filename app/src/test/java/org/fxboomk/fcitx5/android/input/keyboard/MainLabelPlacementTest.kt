@@ -10,66 +10,59 @@ import org.junit.Test
 
 class MainLabelPlacementTest {
     @Test
-    fun singleEdgeCentersXHeightOnFaceInsteadOfBalancingInk() {
+    fun singleEdgeCentersVisibleInkOnFace() {
         val geometry = computeMainLabelGeometry(
             bandTop = 210f,
             bandBottom = 360f,
             faceCenter = 275f,
             inkTop = -60f,       // b: ascender
             inkBottom = 0f,
-            xHeightTop = -30f,   // z/x/c/v/n/m body
-            xHeightBottom = 0f,
             minGap = 5f,
-            centerOnFace = true,
         )
 
-        val xHeightCenter = geometry.baseline + (-30f + 0f) * geometry.scale / 2f
-        assertEquals(275f, xHeightCenter, 0.01f)
+        val inkCenter = geometry.baseline + (-60f + 0f) * geometry.scale / 2f
+        assertEquals(275f, inkCenter, 0.01f)
         assertTrue("letter must clear the top sublabel", geometry.baseline - 60f * geometry.scale >= 215f)
     }
 
     @Test
-    fun singleEdgeClampsToSubLabelClearance() {
+    fun singleEdgeKeepsTheAnchorWhenSubLabelClearanceRequiresShrinking() {
         val geometry = computeMainLabelGeometry(
             bandTop = 210f,
             bandBottom = 360f,
             faceCenter = 275f,
             inkTop = -200f,
             inkBottom = 0f,
-            xHeightTop = -30f,
-            xHeightBottom = 0f,
             minGap = 5f,
-            centerOnFace = true,
         )
 
-        assertEquals(215f, geometry.baseline + geometry.scale * -200f, 0.01f)
+        assertEquals(275f, geometry.baseline + geometry.scale * -100f, 0.01f)
+        assertEquals(0.6f, geometry.scale, 0.01f)
     }
 
     @Test
-    fun twoEdgeBandsKeepBalancingInk() {
+    fun twoEdgeBandsDoNotMoveTheMainLabelAwayFromTheKeyFace() {
         val geometry = computeMainLabelGeometry(
             bandTop = 220f,
             bandBottom = 340f,
             faceCenter = 275f,
             inkTop = -40f,
             inkBottom = 0f,
-            xHeightTop = -30f,
-            xHeightBottom = 0f,
             minGap = 5f,
-            centerOnFace = false,
         )
 
+        val inkCenter = geometry.baseline + (-40f + 0f) * geometry.scale / 2f
         val inkTop = geometry.baseline + geometry.scale * -40f
         val inkBottom = geometry.baseline
-        assertEquals(280f, (inkTop + inkBottom) / 2f, 0.01f)
-        assertEquals(260f, inkTop, 0.01f)
-        assertTrue("ink must clear the top sublabel", inkTop >= 220f + 5f)
+        assertEquals(275f, inkCenter, 0.01f)
+        assertTrue("ink must clear the top sublabel", inkTop >= 225f)
+        assertTrue("ink must clear the bottom sublabel", inkBottom <= 335f)
     }
 
     @Test
-    fun sharedInputsProduceOneBaseline() {
-        val first = computeMainLabelGeometry(210f, 360f, 275f, -60f, 0f, -30f, 0f, 5f, true)
-        val second = computeMainLabelGeometry(210f, 360f, 275f, -60f, 0f, -30f, 0f, 5f, true)
+    fun sharedInputsProduceTheSameGeometry() {
+        val first = computeMainLabelGeometry(210f, 360f, 275f, -60f, 0f, 5f)
+        val second = computeMainLabelGeometry(210f, 360f, 275f, -60f, 0f, 5f)
         assertEquals(first, second)
     }
 }

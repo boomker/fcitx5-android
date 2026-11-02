@@ -179,28 +179,6 @@ class AutoScaleTextView @JvmOverloads constructor(
         )
     }
 
-    /** Center the x-height on [faceCenter] while keeping the full ink in [top], [bottom]. */
-    internal fun centerGlyphsInBand(top: Int, bottom: Int, faceCenter: Float) {
-        if (width <= 0 || height <= 0) return
-        calculateTransform(width, height)
-        val ink = Rect().also { paint.getTextBounds(text, 0, text.length, it) }
-        val xHeight = Rect().also { paint.getTextBounds("x", 0, 1, it) }
-        val xCenter = (xHeight.top + xHeight.bottom) / 2f
-        var scale = textScaleY
-        val lower = top.toFloat()
-        val upper = bottom.toFloat()
-        val topDelta = ink.top - xCenter
-        if (topDelta < 0f) scale = min(scale, (faceCenter - lower) / -topDelta)
-        val bottomDelta = ink.bottom - xCenter
-        if (bottomDelta > 0f) scale = min(scale, (upper - faceCenter) / bottomDelta)
-        scale = scale.coerceIn(0.001f, textScaleY)
-        glyphPlacement = GlyphPlacement(
-            faceCenter - xCenter * scale,
-            scale,
-            glyphPlacement?.horizontalScale ?: textScaleX,
-        )
-    }
-
     override fun setText(charSequence: CharSequence?, bufferType: BufferType) {
         // setText can be called in super constructor
         if (!::text.isInitialized || charSequence == null || !text.contentEquals(charSequence)) {

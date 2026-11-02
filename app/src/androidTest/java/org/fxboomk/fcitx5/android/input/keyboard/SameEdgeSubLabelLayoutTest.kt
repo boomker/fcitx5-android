@@ -83,12 +83,9 @@ class SameEdgeSubLabelLayoutTest {
                                         val above = main.top - subBottom
                                         val below = key.getChildAt(0).height - key.vMargin - main.bottom
                                         val faceCenter = key.getChildAt(0).height / 2f
-                                        val xCenter = xHeightCenter(key.mainText)
-                                        val centered = kotlin.math.abs(xCenter - faceCenter) <= 2f
-                                        val clamped = above <= dp(2) - 1 + 2 || below <= dp(2) - 1 + 2
                                         assertTrue(
-                                            "$case: x-height centre=$xCenter face centre=$faceCenter gaps=$above/$below",
-                                            centered || clamped
+                                            "$case: glyph centre=${(main.top + main.bottom) / 2f} face centre=$faceCenter",
+                                            kotlin.math.abs((main.top + main.bottom) / 2f - faceCenter) <= 2f
                                         )
                                         // The clearance to the bottom margin is reserved
                                         // by the layout itself.
@@ -122,7 +119,7 @@ class SameEdgeSubLabelLayoutTest {
     }
 
     @Test
-    fun keyboardRowUsesOneBaselineAndRecomputesAfterTextAndFontChanges() {
+    fun keyboardRowCentersEachGlyphAndRecomputesAfterTextAndFontChanges() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val context = instrumentation.targetContext
         fun dp(value: Int) = (value * context.resources.displayMetrics.density).roundToInt()
@@ -158,28 +155,22 @@ class SameEdgeSubLabelLayoutTest {
                     val above = mainBounds.minOf { it.top } - subBottom
                     val below = keyBottom - mainBounds.maxOf { it.bottom }
                     val faceCenter = keys.first().getChildAt(0).height / 2f
-                    val xCenters = keys.map { xHeightCenter(it.mainText) }
-                    assertEquals(
-                        "Row x-height centre: $text / $font",
-                        faceCenter.toDouble(),
-                        xCenters.first().toDouble(),
-                        2.0
-                    )
-                    assertTrue("Row x-height centres must match: $text / $font",
-                        xCenters.max() - xCenters.min() <= 1f)
+                    val inkCenters = mainBounds.map { (it.top + it.bottom) / 2f }
+                    assertTrue("Row glyph centres must stay on the key face: $text / $font",
+                        inkCenters.all { kotlin.math.abs(it - faceCenter) <= 2f })
+                    assertTrue("Row glyph centres must match: $text / $font",
+                        inkCenters.max() - inkCenters.min() <= 1.5f)
                     assertTrue("Row glyphs must clear the top labels: $text / $font",
                         above >= dp(2) - 1)
                     assertTrue("Row glyphs must clear the bottom inset: $text / $font",
                         below >= dp(2) - 1)
-                    val baselines = keys.map { it.mainText.top + it.mainText.baseline }
-                    assertTrue("Letters must share a baseline", baselines.max() - baselines.min() <= 1)
                 }
             }
         }
     }
 
     @Test
-    fun topCornersBalanceVisibleGapsAndResetWhenHidden() {
+    fun topCornersKeepGlyphCenteredAndResetWhenHidden() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val context = instrumentation.targetContext
         val density = context.resources.displayMetrics.density
@@ -245,9 +236,9 @@ class SameEdgeSubLabelLayoutTest {
                             val gapAbove = main.top - subBottom
                             val gapBelow = key.getChildAt(0).height - key.vMargin - main.bottom
                             assertEquals(
-                                "$case: x-height must stay on the key-face centre",
+                                "$case: visible main glyph must stay on the key-face centre",
                                 (key.getChildAt(0).height / 2f).toDouble(),
-                                xHeightCenter(key.mainText).toDouble(),
+                                ((main.top + main.bottom) / 2f).toDouble(),
                                 2.0
                             )
                             assertTrue(case, gapAbove >= dp(2) - 1)
@@ -297,12 +288,8 @@ class SameEdgeSubLabelLayoutTest {
     private fun inkBounds(view: AutoScaleTextView): Rect =
         requireNotNull(inkBoundsOrNull(view)) { "No visible ink for '${view.text}'" }
 
-    private fun xHeightCenter(view: AutoScaleTextView): Float {
-        return view.top + view.renderedXHeightCenter()
-    }
-
     @Test
-    fun mainLetterScaleDoesNotDependOnSecondLabelEdge() {
+    fun mainLetterScaleIsUniformAcrossRowsAndKeyWidths() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val context = instrumentation.targetContext
         instrumentation.runOnMainSync {
@@ -335,7 +322,6 @@ class SameEdgeSubLabelLayoutTest {
                     KeyDef.Appearance.AltTextPosition.Top,
                     null
                 )
-                val width = (48 * context.resources.displayMetrics.density).roundToInt()
                 val uppercaseOnly = create(
                     KeyDef.Appearance.AltTextPosition.Top,
                     null
@@ -345,7 +331,9 @@ class SameEdgeSubLabelLayoutTest {
                 }
                 val keys = listOf(withSecondCornerLabel, withoutSecondLabel, uppercaseOnly)
                 keys.forEachIndexed { index, key ->
+                    val widthDp = listOf(48, 48, 10)[index]
                     val heightDp = listOf(38, 52, 64)[index]
+                    val width = (widthDp * context.resources.displayMetrics.density).roundToInt()
                     val height = (heightDp * context.resources.displayMetrics.density).roundToInt()
                     repeat(3) {
                         key.refreshLayout()
@@ -357,8 +345,20 @@ class SameEdgeSubLabelLayoutTest {
                     }
                 }
                 AltTextKeyView.alignRemainingSpaceMainLabels(keys)
-                val scales = keys.map { requireNotNull(it.mainText.glyphPlacement).scale }
-                assertTrue("Main letter scale must be shared across key rows and label layouts", scales.distinct().size == 1)
+                val narrowKey = keys.last()
+                val glyphBounds = Rect().also { narrowKey.mainText.paint.getTextBounds("g", 0, 1, it) }
+                val availableWidth = narrowKey.mainText.measuredWidth -
+                    narrowKey.mainText.paddingLeft - narrowKey.mainText.paddingRight
+                assertTrue("The narrow key should constrain its main glyph", availableWidth < glyphBounds.width())
+
+                val placements = keys.map { requireNotNull(it.mainText.glyphPlacement) }
+                val scales = placements.map { it.scale }
+                assertTrue("Main letter scale must be shared across keyboard rows", scales.max() - scales.min() <= 0.001f)
+                val horizontalScales = placements.map { it.horizontalScale ?: it.scale }
+                assertTrue(
+                    "Main letter width scale must match its height scale across keyboard rows",
+                    horizontalScales.max() - horizontalScales.min() <= 0.001f
+                )
                 val glyphHeights = keys.map { it.mainText.renderedGlyphBounds().height() }
                 assertTrue("Identical letters must render at the same height", glyphHeights.max() - glyphHeights.min() <= 1f)
             } finally {
@@ -368,7 +368,7 @@ class SameEdgeSubLabelLayoutTest {
     }
 
     @Test
-    fun composeStateNonLetterMacroDoesNotMoveLetterRowBaseline() {
+    fun composeStateNonLetterMacroDoesNotMoveLetterRowCenter() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val context = instrumentation.targetContext
         instrumentation.runOnMainSync {
@@ -414,26 +414,29 @@ class SameEdgeSubLabelLayoutTest {
 
             val lettersOnly = "ZXCVBNM".map { letterKey(it.toString()) }
             layout(lettersOnly)
-            val lettersOnlyBaselines = lettersOnly.map { it.mainText.top + it.mainText.baseline }
+            fun inkCenters(keys: List<AltTextKeyView>) = keys.map {
+                val ink = inkBounds(it.mainText)
+                (ink.top + ink.bottom) / 2f
+            }
+            val lettersOnlyCenters = inkCenters(lettersOnly)
 
             val withComposeCaps = listOf(composeCapsKey()) +
                 "ZXCVBNM".map { letterKey(it.toString()) }
             layout(withComposeCaps)
-            val withComposeCapsBaselines = withComposeCaps.drop(1)
-                .map { it.mainText.top + it.mainText.baseline }
+            val withComposeCapsCenters = inkCenters(withComposeCaps.drop(1))
 
             assertTrue(
-                "Zero-width formatted letter labels must keep a shared baseline",
-                lettersOnlyBaselines.max() - lettersOnlyBaselines.min() <= 1
+                "Zero-width formatted letter labels must stay centered",
+                lettersOnlyCenters.all { kotlin.math.abs(it - height / 2f) <= 1.5f }
             )
             assertTrue(
-                "A non-letter compose-state key must not move the letter row baseline",
-                lettersOnlyBaselines.zip(withComposeCapsBaselines)
+                "A non-letter compose-state key must not move the letter row",
+                lettersOnlyCenters.zip(withComposeCapsCenters)
                     .all { (before, after) -> kotlin.math.abs(before - after) <= 1 }
             )
             assertTrue(
-                "Letters must keep a shared baseline while a non-letter compose key is visible",
-                withComposeCapsBaselines.max() - withComposeCapsBaselines.min() <= 1
+                "Letters must stay centered while a non-letter compose key is visible",
+                withComposeCapsCenters.all { kotlin.math.abs(it - height / 2f) <= 1.5f }
             )
             val composeCaps = withComposeCaps.first()
             val composeCapsInk = inkBounds(composeCaps.mainText)

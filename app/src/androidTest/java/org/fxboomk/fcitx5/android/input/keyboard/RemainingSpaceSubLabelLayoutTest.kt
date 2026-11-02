@@ -40,12 +40,12 @@ class RemainingSpaceSubLabelLayoutTest {
     private val glyphs = listOf("g", "É", "主", "Shift")
 
     @Test
-    fun defaultThemePairsAndMixedEdgesBalanceVisibleInk() = withPreferences {
+    fun defaultThemePairsAndMixedEdgesKeepTheMainLabelCentered() = withPreferences {
         positions.forEachIndexed { index, position ->
             ThemeManager.prefs.punctuationPosition.setValue(position.punctuation())
             val key = createKey(appearance(main = glyphs[index]))
             layoutKey(key)
-            assertBalanced("theme pair $position", key, Edges(position.edge(), position.edge()))
+            assertCentered("theme pair $position", key, Edges(position.edge(), position.edge()))
         }
         // The default theme also has a genuine one-top/one-bottom case: the
         // punctuation owns TopRight while the uppercase hint owns Bottom.
@@ -53,13 +53,13 @@ class RemainingSpaceSubLabelLayoutTest {
         ThemeManager.prefs.uppercasePosition.setValue(UppercasePosition.Bottom)
         val mixed = createKey(appearance(secondary = null, uppercase = true))
         layoutKey(mixed)
-        assertBalanced("theme TopRight + UpperBottom", mixed, Edges(Edge.Top, secondary = Edge.Bottom))
+        assertCentered("theme TopRight + UpperBottom", mixed, Edges(Edge.Top, secondary = Edge.Bottom))
 
         // TopBottom is the legacy combined override, not an independent pair.
         ThemeManager.prefs.uppercasePosition.setValue(UppercasePosition.None)
         val key = createKey(appearance(primaryPosition = AltTextPosition.TopBottom))
         layoutKey(key)
-        assertBalanced("legacy TopBottom", key, Edges(Edge.Top, Edge.Bottom))
+        assertCentered("legacy TopBottom", key, Edges(Edge.Top, Edge.Bottom))
         val appearanceHeight = key.getChildAt(0).height
         assertEquals("Top sublabel must touch the top key inset", key.vMargin.toDouble(),
             inkBounds(key.altText).top.toDouble(), 1.0)
@@ -78,7 +78,7 @@ class RemainingSpaceSubLabelLayoutTest {
                     main = glyphs[index], primaryPosition = primary, secondaryPosition = secondary
                 ))
                 layoutKey(key)
-                assertBalanced("independent $primary/$secondary", key, Edges(primary.edge(), secondary.edge()))
+                assertCentered("independent $primary/$secondary", key, Edges(primary.edge(), secondary.edge()))
             }
         }
     }
@@ -94,7 +94,7 @@ class RemainingSpaceSubLabelLayoutTest {
                     secondary = null, primaryPosition = position.takeIf { override }
                 ))
                 layoutKey(key)
-                assertBalanced("single primary $position override=$override", key, Edges(primary = position.edge()))
+                assertCentered("single primary $position override=$override", key, Edges(primary = position.edge()))
             }
         }
     }
@@ -106,7 +106,7 @@ class RemainingSpaceSubLabelLayoutTest {
             for (primary in listOf("")) {
                 val key = createKey(appearance(primary = primary, secondaryPosition = position))
                 layoutKey(key)
-                assertBalanced(
+                assertCentered(
                     "secondary only $position primary='$primary'", key, Edges(secondary = position.edge())
                 )
             }
@@ -122,7 +122,7 @@ class RemainingSpaceSubLabelLayoutTest {
                 ThemeManager.prefs.punctuationPosition.setValue(position.punctuation())
                 val key = createKey(appearance(secondary = null, uppercase = true))
                 layoutKey(key)
-                assertBalanced(
+                assertCentered(
                     "theme punctuation=$position uppercase=$uppercase", key,
                     Edges(primary = position.edge(), secondary = upperEdge)
                 )
@@ -130,7 +130,7 @@ class RemainingSpaceSubLabelLayoutTest {
             ThemeManager.prefs.punctuationPosition.setValue(PunctuationPosition.None)
             val key = createKey(appearance(secondary = null, uppercase = true))
             layoutKey(key)
-            assertBalanced("theme uppercase only $uppercase", key, Edges(secondary = upperEdge))
+            assertCentered("theme uppercase only $uppercase", key, Edges(secondary = upperEdge))
         }
     }
 
@@ -146,7 +146,7 @@ class RemainingSpaceSubLabelLayoutTest {
                     primaryPosition = primary, secondaryPosition = upper
                 ))
                 layoutKey(key)
-                assertBalanced(
+                assertCentered(
                     "independent punctuation=$primary uppercase=$upper", key,
                     Edges(primary = primary.edge(), secondary = upper.edge())
                 )
@@ -157,7 +157,7 @@ class RemainingSpaceSubLabelLayoutTest {
                 primary = "", secondary = null, uppercase = true, secondaryPosition = upper
             ))
             layoutKey(key)
-            assertBalanced("independent uppercase only $upper", key, Edges(secondary = upper.edge()))
+            assertCentered("independent uppercase only $upper", key, Edges(secondary = upper.edge()))
         }
     }
 
@@ -167,7 +167,7 @@ class RemainingSpaceSubLabelLayoutTest {
         val key = createKey(definition)
         fun check(label: String, edges: Edges) {
             layoutKey(key)
-            assertBalanced(label, key, edges)
+            assertCentered(label, key, edges)
         }
         check("initial theme top corners", Edges(Edge.Top, Edge.Top))
         val initialInk = inkBounds(key.mainText)
@@ -213,7 +213,7 @@ class RemainingSpaceSubLabelLayoutTest {
         ThemeManager.prefs.uppercasePosition.setValue(UppercasePosition.Top)
         val upperKey = createKey(upperDefinition)
         layoutKey(upperKey)
-        assertBalanced("uppercase before hiding", upperKey, Edges(primary = Edge.Top, secondary = Edge.Top))
+        assertCentered("uppercase before hiding", upperKey, Edges(primary = Edge.Top, secondary = Edge.Top))
         upperDefinition.altText1PositionOverride = null
         ThemeManager.prefs.uppercasePosition.setValue(UppercasePosition.None)
         ThemeManager.prefs.punctuationPosition.setValue(PunctuationPosition.None)
@@ -221,11 +221,11 @@ class RemainingSpaceSubLabelLayoutTest {
         assertEquals("Hidden uppercase clears its old offset", hidden.main, readInk("uppercase hidden", upperKey, Edges()).main)
         ThemeManager.prefs.uppercasePosition.setValue(UppercasePosition.Bottom)
         layoutKey(upperKey)
-        assertBalanced("uppercase restored at bottom", upperKey, Edges(secondary = Edge.Bottom))
+        assertCentered("uppercase restored at bottom", upperKey, Edges(secondary = Edge.Bottom))
     }
 
     @Test
-    fun representativeShortRowsFontsGlyphsAndScalesRemainBalancedAfterResize() = withPreferences {
+    fun representativeShortRowsFontsGlyphsAndScalesRemainCenteredAfterResize() = withPreferences {
         // Deliberately sampled rather than a density x font x glyph x size product.
         val samples = listOf(
             Sample("g", Typeface.SANS_SERIF, 1.6f, 240, 1.3f, AltTextPosition.Top, AltTextPosition.TopRight),
@@ -257,7 +257,7 @@ class RemainingSpaceSubLabelLayoutTest {
                     key.altText.visibility == View.GONE &&
                     key.altText1.visibility == View.GONE
                 ) Edges() else edges
-                assertBalanced("$sample height=$height", key, effective, normalRow = normalRow)
+                assertCentered("$sample height=$height", key, effective, normalRow = normalRow)
             }
         }
     }
@@ -303,18 +303,19 @@ class RemainingSpaceSubLabelLayoutTest {
                 val (primary, secondary) = pairs[index / 2]
                 val label = "row key=$index $primary/$secondary changed=$changed"
                 val ink = readInk(label, key, Edges(primary.edge(), secondary.edge()))
-                // A shared row baseline can produce unequal ink gaps for different
-                // glyphs; each glyph must still remain inside its own label band.
+                // Each glyph stays centered on its key and clear of its own labels.
                 val above = ink.main.top - ink.top
                 val below = ink.bottom - ink.main.bottom
                 assertTrue("$label: gaps=$above/$below, minimum=$minimumInkGap",
                     above >= minimumInkGap && below >= minimumInkGap)
             }
-            // These six keys are one row in BaseKeyboard, so their different label
-            // placements participate in the same row-wide baseline calculation.
-            val baselines = keys.map { it.top + it.getChildAt(0).top + it.mainText.top + it.mainText.baseline }
-            assertTrue("Different label placements in one row must share a baseline: $baselines",
-                baselines.max() - baselines.min() <= 1)
+            val faceCenter = keys.first().getChildAt(0).height / 2f
+            val inkCenters = keys.map { key ->
+                val ink = inkBounds(key.mainText)
+                (ink.top + ink.bottom) / 2f
+            }
+            assertTrue("Main glyphs must stay centered across different label placements: $inkCenters",
+                inkCenters.all { kotlin.math.abs(it - faceCenter) <= 1.5f })
         }
     }
 
@@ -375,8 +376,6 @@ class RemainingSpaceSubLabelLayoutTest {
         val top: Int,
         val bottom: Int,
         val faceCenter: Float,
-        val xHeightCenter: Float,
-        val centerXHeightOnFace: Boolean
     )
     private data class Sample(
         val main: String, val font: Typeface, val scale: Float, val density: Int, val fontScale: Float,
@@ -438,9 +437,7 @@ class RemainingSpaceSubLabelLayoutTest {
         view.layout(0, 0, width, height)
     }
 
-    private fun assertBalanced(label: String, key: AltTextKeyView, edges: Edges, normalRow: Boolean = true) {
-        // 主字按 paint 字形界居中，实际绘制墨迹受字体回退与栅格化影响，
-        // 高密度大字号下垂直漂移可达 ~1.5dp；平衡容差随密度缩放
+    private fun assertCentered(label: String, key: AltTextKeyView, edges: Edges, normalRow: Boolean = true) {
         val tolerance = maxOf(2f, key.context.resources.displayMetrics.density * 1.5f)
         assertGaps(
             label,
@@ -477,19 +474,11 @@ class RemainingSpaceSubLabelLayoutTest {
         val main = inkBounds(key.mainText)
         assertTrue("$label: invalid main scale ${key.mainText.textScaleX}",
             key.mainText.textScaleX.isFinite() && key.mainText.textScaleX > 0f)
-        val topCount = listOfNotNull(edges.primary, edges.secondary).count { it == Edge.Top }
-        val bottomCount = listOfNotNull(edges.primary, edges.secondary).count { it == Edge.Bottom }
-        val singleEdge = (topCount == 0) != (bottomCount == 0)
-        val sameEdgePair = listOfNotNull(edges.primary, edges.secondary).size > 1 && singleEdge
         return Ink(
             main = main,
             top = top,
             bottom = bottom,
             faceCenter = appearance.height / 2f,
-            xHeightCenter = xHeightCenter(key.mainText),
-            // Multicharacter labels are explicitly placed by centerGlyphsInBand;
-            // same-edge pairs use the same face-centered x-height rule.
-            centerXHeightOnFace = key.mainText.text.length > 1 || sameEdgePair
         )
     }
 
@@ -502,20 +491,9 @@ class RemainingSpaceSubLabelLayoutTest {
         val above = ink.main.top - ink.top
         val below = ink.bottom - ink.main.bottom
         val message = "$label: main=${ink.main}, band=[${ink.top}, ${ink.bottom}], gaps=$above/$below"
-        if (ink.centerXHeightOnFace) {
-            // Multicharacter labels and two labels sharing one edge use the
-            // optical baseline: centre the main glyph's x-height on the key face.
-            assertEquals(message, ink.faceCenter.toDouble(), ink.xHeightCenter.toDouble(), tolerance.toDouble())
-        } else {
-            // A lone label leaves a one-sided free band, so balance the main
-            // glyph's visible ink inside that remaining space.
-            assertEquals(message, above.toFloat(), below.toFloat(), tolerance)
-        }
+        assertEquals(message, ink.faceCenter.toDouble(),
+            ((ink.main.top + ink.main.bottom) / 2f).toDouble(), tolerance.toDouble())
         assertTrue("$message, minimum=$minimum", above >= minimum && below >= minimum)
-    }
-
-    private fun xHeightCenter(view: AutoScaleTextView): Float {
-        return view.top + view.renderedXHeightCenter()
     }
 
     private fun inkBounds(view: AutoScaleTextView): Rect {
