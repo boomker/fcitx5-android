@@ -36,6 +36,7 @@ import org.fxboomk.fcitx5.android.ui.main.settings.behavior.KeyboardSettingsHome
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.KeyboardTouchAndSoundSettingsFragment
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.LlmAdvancedSettingsFragment
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.LlmSettingsFragment
+import org.fxboomk.fcitx5.android.ui.main.settings.behavior.SymbolSettingsFragment
 import org.fxboomk.fcitx5.android.ui.main.settings.global.GlobalConfigFragment
 import org.fxboomk.fcitx5.android.ui.main.settings.im.CustomShuangpinFragment
 import org.fxboomk.fcitx5.android.ui.main.settings.im.InputMethodConfigFragment
@@ -141,6 +142,9 @@ sealed class SettingsRoute : Parcelable {
 
     @Serializable
     data object VirtualKeyboardLayoutAndSplit : SettingsRoute()
+
+    @Serializable
+    data object Symbol : SettingsRoute()
 
     @Serializable
     data object Clipboard : SettingsRoute()
@@ -326,6 +330,9 @@ sealed class SettingsRoute : Parcelable {
             }
             fragment<KeyboardLayoutAndSplitSettingsFragment, VirtualKeyboardLayoutAndSplit> {
                 label = ctx.getString(R.string.keyboard_settings_layout_and_split)
+            }
+            fragment<SymbolSettingsFragment, Symbol> {
+                label = ctx.getString(R.string.emoji_and_symbols)
             }
             fragment<ClipboardSettingsFragment, Clipboard> {
                 label = ctx.getString(R.string.clipboard)

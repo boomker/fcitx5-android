@@ -1069,4 +1069,26 @@
     <string name="pinyin_config_commit_preedit">Vorbearbeitung übernehmen</string>
     <!-- Addon display names -->
     <string name="addon_unicode_name">Zeichensatzerweiterungen</string>
+    <string name="symbol_panel_style">Stil der Symboltafel</string>
+    <string name="symbol_panel_style_sidebar">Seitliche Gruppen (neue Version)</string>
+    <string name="symbol_panel_style_top_bar">Obere Gruppenleiste (alte Version)</string>
+    <string name="text_keyboard_layout_switch_target">Ziel</string>
+    <string name="text_keyboard_layout_switch_target_default">Standard (?123 / letztes Symbol-Layout)</string>
+    <string name="text_keyboard_layout_switch_target_text">Texttastatur</string>
+    <string name="text_keyboard_layout_switch_target_number">Zifferntastatur</string>
+    <string name="text_keyboard_layout_switch_target_symbol">Symbolauswahl</string>
+    <string name="text_keyboard_layout_switch_target_emoji">Emoji-Auswahl</string>
+    <string name="text_keyboard_layout_switch_target_kaomoji">Kaomoji-Auswahl</string>
+    <string name="symbol_panel_recent">Zuletzt verwendet</string>
+    <string name="symbol_catalog_symbols_title">Eigene Symboldaten</string>
+    <string name="symbol_catalog_emoji_title">Eigene Emoji-Daten</string>
+    <string name="symbol_catalog_kaomoji_title">Eigene Kaomoji-Daten</string>
+    <string name="symbol_catalog_builtin">Integriert</string>
+    <string name="symbol_catalog_summary_builtin">In der App enthaltene Daten</string>
+    <string name="symbol_catalog_summary_custom">Benutzerdefiniert: %1$s</string>
+    <string name="symbol_catalog_summary_missing">Eigene Datei fehlt, integrierte Daten werden verwendet: %1$s</string>
+    <string name="symbol_catalog_import">Importieren</string>
+    <string name="symbol_catalog_import_ok">Importiert und ausgewählt: %1$s</string>
+    <string name="symbol_catalog_import_failed">Import fehlgeschlagen: keine gültige Symboldatei</string>
+    <string name="symbol_catalog_dir_hint">Eigene Kataloge werden gespeichert unter:\n%1$s</string>
 </resources>

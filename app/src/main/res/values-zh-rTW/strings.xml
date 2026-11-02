@@ -1032,4 +1032,26 @@
     <string name="pinyin_config_commit_preedit">提交預編輯</string>
     <!-- 附加元件顯示名稱 -->
     <string name="addon_unicode_name">字元集擴充</string>
+    <string name="symbol_panel_style">符號面板風格</string>
+    <string name="symbol_panel_style_sidebar">左側分組欄（新版）</string>
+    <string name="symbol_panel_style_top_bar">頂部分組欄（舊版）</string>
+    <string name="text_keyboard_layout_switch_target">目標</string>
+    <string name="text_keyboard_layout_switch_target_default">預設（?123 / 上次符號佈局）</string>
+    <string name="text_keyboard_layout_switch_target_text">文字鍵盤</string>
+    <string name="text_keyboard_layout_switch_target_number">數字鍵盤</string>
+    <string name="text_keyboard_layout_switch_target_symbol">符號選擇器</string>
+    <string name="text_keyboard_layout_switch_target_emoji">表情選擇器</string>
+    <string name="text_keyboard_layout_switch_target_kaomoji">顏文字選擇器</string>
+    <string name="symbol_panel_recent">最近</string>
+    <string name="symbol_catalog_symbols_title">自訂符號資料</string>
+    <string name="symbol_catalog_emoji_title">自訂表情資料</string>
+    <string name="symbol_catalog_kaomoji_title">自訂顏文字資料</string>
+    <string name="symbol_catalog_builtin">內建資料</string>
+    <string name="symbol_catalog_summary_builtin">使用應用程式內建資料</string>
+    <string name="symbol_catalog_summary_custom">自訂：%1$s</string>
+    <string name="symbol_catalog_summary_missing">自訂檔案缺失，改用內建：%1$s</string>
+    <string name="symbol_catalog_import">匯入</string>
+    <string name="symbol_catalog_import_ok">已匯入並選用：%1$s</string>
+    <string name="symbol_catalog_import_failed">匯入失敗：不是有效的符號資料檔</string>
+    <string name="symbol_catalog_dir_hint">自訂資料檔存放目錄：\n%1$s</string>
 </resources>

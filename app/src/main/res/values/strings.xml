@@ -1192,4 +1192,26 @@
     <string name="pinyin_config_commit_preedit">Commit preedit</string>
     <!-- Addon display names -->
     <string name="addon_unicode_name">Character set extensions</string>
+    <string name="symbol_panel_style">Symbol panel style</string>
+    <string name="symbol_panel_style_sidebar">Sidebar groups (new version)</string>
+    <string name="symbol_panel_style_top_bar">Top group bar (old version)</string>
+    <string name="text_keyboard_layout_switch_target">Target</string>
+    <string name="text_keyboard_layout_switch_target_default">Default (?123 / last symbol layout)</string>
+    <string name="text_keyboard_layout_switch_target_text">Text keyboard</string>
+    <string name="text_keyboard_layout_switch_target_number">Number keyboard</string>
+    <string name="text_keyboard_layout_switch_target_symbol">Symbol picker</string>
+    <string name="text_keyboard_layout_switch_target_emoji">Emoji picker</string>
+    <string name="text_keyboard_layout_switch_target_kaomoji">Kaomoji picker</string>
+    <string name="symbol_panel_recent">Recent</string>
+    <string name="symbol_catalog_symbols_title">Custom symbol data</string>
+    <string name="symbol_catalog_emoji_title">Custom emoji data</string>
+    <string name="symbol_catalog_kaomoji_title">Custom kaomoji data</string>
+    <string name="symbol_catalog_builtin">Built-in</string>
+    <string name="symbol_catalog_summary_builtin">Built-in data from the app</string>
+    <string name="symbol_catalog_summary_custom">Custom: %1$s</string>
+    <string name="symbol_catalog_summary_missing">Custom file missing, using built-in instead: %1$s</string>
+    <string name="symbol_catalog_import">Import</string>
+    <string name="symbol_catalog_import_ok">Imported and selected: %1$s</string>
+    <string name="symbol_catalog_import_failed">Import failed: not a valid symbol catalog</string>
+    <string name="symbol_catalog_dir_hint">Custom catalogs are stored in:\n%1$s</string>
 </resources>

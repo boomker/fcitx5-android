@@ -90,6 +90,59 @@ class KeyboardEditorUiBuilder(private val activity: AppCompatActivity) {
         return typeSpinner
     }
 
+    data class SwitchTargetOption(val value: String, val label: String) {
+        override fun toString(): String = label
+    }
+
+    private fun switchTargetOptions(): List<SwitchTargetOption> = listOf(
+        SwitchTargetOption("", activity.getString(R.string.text_keyboard_layout_switch_target_default)),
+        SwitchTargetOption("Text", activity.getString(R.string.text_keyboard_layout_switch_target_text)),
+        SwitchTargetOption("Number", activity.getString(R.string.text_keyboard_layout_switch_target_number)),
+        SwitchTargetOption("Symbol", activity.getString(R.string.text_keyboard_layout_switch_target_symbol)),
+        // 目标名必须是 PickerWindow.Key 的枚举名，运行时由 Key.ofName 路由。
+        SwitchTargetOption("Emoji", activity.getString(R.string.text_keyboard_layout_switch_target_emoji)),
+        SwitchTargetOption("Kaomoji", activity.getString(R.string.text_keyboard_layout_switch_target_kaomoji))
+    )
+
+    /**
+     * Create a dropdown for a [LayoutSwitchKey]'s target, stored as the key's `subLabel`.
+     */
+    fun createSwitchTargetSpinner(container: LinearLayout, currentValue: String): Spinner {
+        val labelView = TextView(activity).apply {
+            text = activity.getString(R.string.text_keyboard_layout_switch_target)
+            textSize = DIALOG_LABEL_TEXT_SIZE_SP
+            setTextColor(activity.styledColor(android.R.attr.textColorSecondary))
+            layoutParams = LinearLayout.LayoutParams(activity.dp(96), LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                rightMargin = activity.dp(8)
+            }
+        }
+        val options = switchTargetOptions().toMutableList().apply {
+            if (none { it.value == currentValue }) {
+                add(SwitchTargetOption(currentValue, currentValue))
+            }
+        }
+        val spinner = Spinner(activity).apply {
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                weight = 1f
+            }
+            adapter = ArrayAdapter(
+                activity,
+                android.R.layout.simple_spinner_item,
+                options
+            ).apply { setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+            setSelection(options.indexOfFirst { it.value == currentValue }.coerceAtLeast(0))
+        }
+        val row = LinearLayout(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, activity.dp(4), 0, activity.dp(4))
+            addView(labelView)
+            addView(spinner)
+        }
+        container.addView(row)
+        return spinner
+    }
+
     /**
      * Create edit field
      *

@@ -1072,4 +1072,26 @@
     <string name="pinyin_config_commit_preedit">사전 편집 확정</string>
     <!-- Addon display names -->
     <string name="addon_unicode_name">문자 집합 확장</string>
+    <string name="symbol_panel_style">기호 패널 스타일</string>
+    <string name="symbol_panel_style_sidebar">측면 그룹 (새 버전)</string>
+    <string name="symbol_panel_style_top_bar">상단 그룹 표시줄 (이전 버전)</string>
+    <string name="text_keyboard_layout_switch_target">대상</string>
+    <string name="text_keyboard_layout_switch_target_default">기본 (?123 / 마지막 기호 레이아웃)</string>
+    <string name="text_keyboard_layout_switch_target_text">텍스트 키보드</string>
+    <string name="text_keyboard_layout_switch_target_number">숫자 키보드</string>
+    <string name="text_keyboard_layout_switch_target_symbol">기호 선택기</string>
+    <string name="text_keyboard_layout_switch_target_emoji">이모지 선택기</string>
+    <string name="text_keyboard_layout_switch_target_kaomoji">카오모지 선택기</string>
+    <string name="symbol_panel_recent">최근 사용</string>
+    <string name="symbol_catalog_symbols_title">사용자 지정 기호 데이터</string>
+    <string name="symbol_catalog_emoji_title">사용자 지정 이모지 데이터</string>
+    <string name="symbol_catalog_kaomoji_title">사용자 지정 카오모지 데이터</string>
+    <string name="symbol_catalog_builtin">내장</string>
+    <string name="symbol_catalog_summary_builtin">앱에 내장된 데이터</string>
+    <string name="symbol_catalog_summary_custom">사용자 지정: %1$s</string>
+    <string name="symbol_catalog_summary_missing">사용자 지정 파일이 없어 내장 데이터를 사용합니다: %1$s</string>
+    <string name="symbol_catalog_import">가져오기</string>
+    <string name="symbol_catalog_import_ok">가져와 선택함: %1$s</string>
+    <string name="symbol_catalog_import_failed">가져오기 실패: 올바른 기호 데이터 파일이 아닙니다</string>
+    <string name="symbol_catalog_dir_hint">사용자 지정 카탈로그 저장 위치:\n%1$s</string>
 </resources>

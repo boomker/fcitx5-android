@@ -170,4 +170,41 @@ object UserConfigFiles {
 
         return null
     }
+
+    /** 表示使用 APK 内置符号 catalog。 */
+    const val SYMBOL_CATALOG_BUILTIN = "__builtin__"
+
+    private const val SYMBOL_CATALOG_DIR_NAME = "symbol_catalogs"
+    private val SAFE_DIR_NAME = Regex("^(symbols|emoji|kaomoji)$")
+    private val SAFE_CATALOG_NAME = Regex("^[^/\\\\:*?\"<>|\\p{Cntrl}]{1,120}\\.json$")
+
+    fun symbolCatalogDir(subDir: String): File? {
+        if (!SAFE_DIR_NAME.matches(subDir)) return null
+        return configDir()?.let { File(File(it, SYMBOL_CATALOG_DIR_NAME), subDir) }
+    }
+
+    fun isValidCatalogName(name: String): Boolean = SAFE_CATALOG_NAME.matches(name)
+
+    fun symbolCatalogFile(subDir: String, name: String): File? {
+        val dir = symbolCatalogDir(subDir) ?: return null
+        if (!isValidCatalogName(name)) return null
+        val file = File(dir, name)
+        val basePath = dir.canonicalPath + File.separator
+        if (!file.canonicalPath.startsWith(basePath)) return null
+        return file
+    }
+
+    fun listSymbolCatalogFiles(subDir: String): List<String> {
+        val dir = symbolCatalogDir(subDir) ?: return emptyList()
+        val basePath = dir.canonicalPath + File.separator
+        return dir.listFiles()
+            ?.asSequence()
+            ?.filter { it.isFile }
+            ?.filter { isValidCatalogName(it.name) }
+            ?.filter { it.canonicalPath.startsWith(basePath) }
+            ?.map { it.name }
+            ?.sortedWith(String.CASE_INSENSITIVE_ORDER)
+            ?.toList()
+            .orEmpty()
+    }
 }

@@ -132,6 +132,7 @@ class KeyEditorActivity : AppCompatActivity() {
 
     private var layoutSwitchLabelEdit: EditText? = null
     private var layoutSwitchWeightEdit: EditText? = null
+    private var layoutSwitchTargetSpinner: Spinner? = null
 
     private var symbolLabelEdit: EditText? = null
     private var symbolWeightEdit: EditText? = null
@@ -415,6 +416,7 @@ class KeyEditorActivity : AppCompatActivity() {
         alphabetDisplayTextRowBindings.clear()
         layoutSwitchLabelEdit = null
         layoutSwitchWeightEdit = null
+        layoutSwitchTargetSpinner = null
         symbolLabelEdit = null
         symbolWeightEdit = null
         macroLabelEdit = null
@@ -537,6 +539,10 @@ class KeyEditorActivity : AppCompatActivity() {
                 )
                 layoutSwitchLabelEdit = labelEdit.second
                 fieldsContainer.addView(labelEdit.first)
+                layoutSwitchTargetSpinner = uiBuilder.createSwitchTargetSpinner(
+                    fieldsContainer,
+                    keyData["subLabel"] as? String ?: ""
+                )
                 if (!disableWeightEditing) {
                     val weightEdit = createWeightEditField()
                     fieldsContainer.addView(weightEdit.first)
@@ -1391,7 +1397,8 @@ class KeyEditorActivity : AppCompatActivity() {
             "LayoutSwitchKey" -> {
                 val label = layoutSwitchLabelEdit?.text?.toString()?.ifEmpty { "?123" }.orEmpty()
                 if (label.isNotEmpty()) draft["label"] = label
-                (keyData["subLabel"] as? String)
+                (layoutSwitchTargetSpinner?.selectedItem as? KeyboardEditorUiBuilder.SwitchTargetOption)
+                    ?.value
                     ?.takeIf { it.isNotEmpty() }
                     ?.let { draft["subLabel"] = it }
                 if (!disableWeightEditing) {
@@ -1851,7 +1858,8 @@ class KeyEditorActivity : AppCompatActivity() {
 
             "LayoutSwitchKey" -> {
                 newKey["label"] = layoutSwitchLabelEdit?.text?.toString()?.ifEmpty { "?123" }.orEmpty()
-                (keyData["subLabel"] as? String)
+                (layoutSwitchTargetSpinner?.selectedItem as? KeyboardEditorUiBuilder.SwitchTargetOption)
+                    ?.value
                     ?.takeIf { it.isNotEmpty() }
                     ?.let { newKey["subLabel"] = it }
                 if (!disableWeightEditing) {

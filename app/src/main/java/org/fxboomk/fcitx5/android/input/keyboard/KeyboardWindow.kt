@@ -233,10 +233,11 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
                     notifyBarLayoutChanged()
                 }
             } else {
+                val pickerKey = PickerWindow.Key.ofName(target) ?: PickerWindow.Key.Symbol
                 if (remember) {
-                    lastSymbolType = PickerWindow.Key.Symbol.name
+                    lastSymbolType = pickerKey.name
                 }
-                windowManager.attachWindow(PickerWindow.Key.Symbol)
+                windowManager.attachWindow(pickerKey)
             }
         }
     }

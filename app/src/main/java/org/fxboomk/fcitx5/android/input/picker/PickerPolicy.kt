@@ -52,9 +52,9 @@ class EmojiPickerPolicy : PickerPolicy {
         val defaultSkinTone: EmojiModifier.SkinTone
     )
 
-    private val advancedPrefs = AppPrefs.getInstance().advanced
-    private val hideUnsupportedEmojis by advancedPrefs.hideUnsupportedEmojis
-    private val defaultSkinTone by advancedPrefs.defaultEmojiSkinTone
+    private val symbolPrefs = AppPrefs.getInstance().symbols
+    private val hideUnsupportedEmojis by symbolPrefs.hideUnsupportedEmojis
+    private val defaultSkinTone by symbolPrefs.defaultEmojiSkinTone
 
     private val prefs get() = Prefs(hideUnsupportedEmojis, defaultSkinTone)
 

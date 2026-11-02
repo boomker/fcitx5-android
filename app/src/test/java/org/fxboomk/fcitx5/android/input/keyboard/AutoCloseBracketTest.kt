@@ -4,7 +4,7 @@
  */
 package org.fxboomk.fcitx5.android.input.keyboard
 
-import org.fxboomk.fcitx5.android.input.picker.PickerData
+import org.fxboomk.fcitx5.android.input.picker.SymbolCatalogs
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -59,14 +59,18 @@ class AutoCloseBracketTest {
     }
 
     /**
-     * 需求：输入法内置符号表（PickerData.Symbol 的「( )」括号类目）里的所有成对符号都要支持。
+     * 需求：输入法内置符号表 `bundled/symbols/symbols.json` 的 Brackets 类目里的所有成对符号都要支持。
      * 该类目的数组严格按「左, 右, 左, 右……」排列，这里逐对校验闭合映射存在且正确。
      */
     @Test
     fun everyPairInTheBuiltInBracketCategoryIsSupported() {
-        val bracketCategory = PickerData.Symbol
-            .first { it.first.label == "( )" }
-            .second
+        val asset = listOf(
+            java.io.File("src/main/assets/bundled/symbols/symbols.json"),
+            java.io.File("app/src/main/assets/bundled/symbols/symbols.json")
+        ).first { it.isFile }
+        val bracketCategory = SymbolCatalogs.parse(asset.readText(), "en")
+            .groups.first { it.name == "Brackets" }
+            .symbols
         assertTrue("bracket category should contain an even number of symbols", bracketCategory.size % 2 == 0)
         for (i in bracketCategory.indices step 2) {
             val opener = bracketCategory[i]

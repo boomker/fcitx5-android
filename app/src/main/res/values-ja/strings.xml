@@ -1071,4 +1071,26 @@
     <string name="pinyin_config_commit_preedit">未確定入力を確定</string>
     <!-- Addon display names -->
     <string name="addon_unicode_name">文字セット拡張</string>
+    <string name="symbol_panel_style">記号パネルのスタイル</string>
+    <string name="symbol_panel_style_sidebar">サイドグループ（新版）</string>
+    <string name="symbol_panel_style_top_bar">上部グループバー（旧版）</string>
+    <string name="text_keyboard_layout_switch_target">ターゲット</string>
+    <string name="text_keyboard_layout_switch_target_default">デフォルト（?123 / 前回の記号レイアウト）</string>
+    <string name="text_keyboard_layout_switch_target_text">テキストキーボード</string>
+    <string name="text_keyboard_layout_switch_target_number">数字キーボード</string>
+    <string name="text_keyboard_layout_switch_target_symbol">記号ピッカー</string>
+    <string name="text_keyboard_layout_switch_target_emoji">絵文字ピッカー</string>
+    <string name="text_keyboard_layout_switch_target_kaomoji">顔文字ピッカー</string>
+    <string name="symbol_panel_recent">最近使用</string>
+    <string name="symbol_catalog_symbols_title">カスタム記号データ</string>
+    <string name="symbol_catalog_emoji_title">カスタム絵文字データ</string>
+    <string name="symbol_catalog_kaomoji_title">カスタム顔文字データ</string>
+    <string name="symbol_catalog_builtin">内蔵</string>
+    <string name="symbol_catalog_summary_builtin">アプリ内蔵のデータ</string>
+    <string name="symbol_catalog_summary_custom">カスタム: %1$s</string>
+    <string name="symbol_catalog_summary_missing">カスタムファイルが見つからないため、内蔵データを使用します: %1$s</string>
+    <string name="symbol_catalog_import">インポート</string>
+    <string name="symbol_catalog_import_ok">インポートして選択しました: %1$s</string>
+    <string name="symbol_catalog_import_failed">インポートに失敗しました: 有効な記号データファイルではありません</string>
+    <string name="symbol_catalog_dir_hint">カスタムカタログの保存先:\n%1$s</string>
 </resources>

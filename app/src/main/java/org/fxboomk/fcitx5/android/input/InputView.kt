@@ -97,7 +97,7 @@ import org.fxboomk.fcitx5.android.input.keyboard.resolveTextKeyboardLayout
 import org.fxboomk.fcitx5.android.input.keyboard.withKeyboardHeightPercentOverride
 import org.fxboomk.fcitx5.android.input.picker.PickerWindow
 import org.fxboomk.fcitx5.android.input.picker.emojiPicker
-import org.fxboomk.fcitx5.android.input.picker.emoticonPicker
+import org.fxboomk.fcitx5.android.input.picker.kaomojiPicker
 import org.fxboomk.fcitx5.android.input.picker.symbolPicker
 import org.fxboomk.fcitx5.android.input.popup.PopupComponent
 import org.fxboomk.fcitx5.android.input.preedit.PreeditComponent
@@ -246,8 +246,8 @@ class InputView(
             }
 
             val currentWindow = windowManager.currentWindowOrNull()
-            if (currentWindow is PickerWindow && currentWindow.key == PickerWindow.Key.Emoji) {
-                // Emoji pager contains large non-key areas; use full-layer blur to avoid transparent gaps.
+            if (currentWindow is PickerWindow) {
+                // Picker panels contain large non-key areas; use full-layer blur to avoid transparent gaps.
                 canvas.drawBitmap(bitmap, srcRect, dstRect, paint)
                 redrawRetryCount = 0
                 return
@@ -1432,7 +1432,7 @@ class InputView(
     private val keyboardWindow = KeyboardWindow()
     private val symbolPicker = symbolPicker()
     private val emojiPicker = emojiPicker()
-    private val emoticonPicker = emoticonPicker()
+    private val kaomojiPicker = kaomojiPicker()
     private val buttonsAdjustingOverlayView by lazy {
         ButtonsAdjustingWindow.onCreateView().apply {
             visibility = GONE
@@ -2579,7 +2579,7 @@ class InputView(
         windowManager.addEssentialWindow(keyboardWindow, createView = true)
         windowManager.addEssentialWindow(symbolPicker)
         windowManager.addEssentialWindow(emojiPicker)
-        windowManager.addEssentialWindow(emoticonPicker)
+        windowManager.addEssentialWindow(kaomojiPicker)
         // show KeyboardWindow by default
         windowManager.attachWindow(KeyboardWindow)
         windowManager.onWindowChanged = {

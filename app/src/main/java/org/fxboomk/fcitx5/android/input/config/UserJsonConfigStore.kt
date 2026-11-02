@@ -33,6 +33,10 @@ object UserJsonConfigStore {
         return content.replace(Regex("//.*?\\n"), "")
     }
 
+    /** Remove `//` line comments from user-provided JSON before parsing. */
+    fun stripLineComments(content: String): String =
+        cleanJson(content, stripLineComments = true)
+
     inline fun <reified T> readJson(
         file: File?,
         stripLineComments: Boolean = false

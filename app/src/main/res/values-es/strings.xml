@@ -1071,4 +1071,26 @@
     <string name="pinyin_config_commit_preedit">Confirmar preedición</string>
     <!-- Addon display names -->
     <string name="addon_unicode_name">Extensiones de conjuntos de caracteres</string>
+    <string name="symbol_panel_style">Estilo del panel de símbolos</string>
+    <string name="symbol_panel_style_sidebar">Grupos laterales (nueva versión)</string>
+    <string name="symbol_panel_style_top_bar">Barra de grupos superior (versión anterior)</string>
+    <string name="text_keyboard_layout_switch_target">Destino</string>
+    <string name="text_keyboard_layout_switch_target_default">Predeterminado (?123 / último diseño de símbolos)</string>
+    <string name="text_keyboard_layout_switch_target_text">Teclado de texto</string>
+    <string name="text_keyboard_layout_switch_target_number">Teclado numérico</string>
+    <string name="text_keyboard_layout_switch_target_symbol">Selector de símbolos</string>
+    <string name="text_keyboard_layout_switch_target_emoji">Selector de emoji</string>
+    <string name="text_keyboard_layout_switch_target_kaomoji">Selector de kaomoji</string>
+    <string name="symbol_panel_recent">Recientes</string>
+    <string name="symbol_catalog_symbols_title">Datos de símbolos personalizados</string>
+    <string name="symbol_catalog_emoji_title">Datos de emoji personalizados</string>
+    <string name="symbol_catalog_kaomoji_title">Datos de kaomoji personalizados</string>
+    <string name="symbol_catalog_builtin">Integrado</string>
+    <string name="symbol_catalog_summary_builtin">Datos integrados en la aplicación</string>
+    <string name="symbol_catalog_summary_custom">Personalizado: %1$s</string>
+    <string name="symbol_catalog_summary_missing">Falta el archivo personalizado; se usan los datos integrados: %1$s</string>
+    <string name="symbol_catalog_import">Importar</string>
+    <string name="symbol_catalog_import_ok">Importado y seleccionado: %1$s</string>
+    <string name="symbol_catalog_import_failed">Error al importar: no es un archivo de símbolos válido</string>
+    <string name="symbol_catalog_dir_hint">Los catálogos personalizados se guardan en:\n%1$s</string>
 </resources>

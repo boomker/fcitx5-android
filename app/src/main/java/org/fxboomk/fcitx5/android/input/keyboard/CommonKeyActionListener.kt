@@ -443,7 +443,7 @@ class CommonKeyActionListener :
                 is PickerSwitchAction -> {
                     // update lastSymbolType only when specified explicitly
                     val key = action.key?.also { k -> lastPickerType = k.name }
-                        ?: runCatching { PickerWindow.Key.valueOf(lastPickerType) }.getOrNull()
+                        ?: PickerWindow.Key.ofName(lastPickerType)
                         ?: PickerWindow.Key.Emoji
                     ContextCompat.getMainExecutor(service).execute {
                         windowManager.attachWindow(key)

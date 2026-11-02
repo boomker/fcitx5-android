@@ -76,6 +76,7 @@ import org.fxboomk.fcitx5.android.input.editing.TextEditingWindow
 import org.fxboomk.fcitx5.android.input.keyboard.CommonKeyActionListener
 import org.fxboomk.fcitx5.android.input.keyboard.CustomGestureView
 import org.fxboomk.fcitx5.android.input.keyboard.KeyboardWindow
+import org.fxboomk.fcitx5.android.input.picker.PickerWindow
 import org.fxboomk.fcitx5.android.input.predict.AiSuggestionStripComponent
 import org.fxboomk.fcitx5.android.input.predict.LlmPrefs
 import org.fxboomk.fcitx5.android.input.predict.hasCompletedAiResult
@@ -459,6 +460,10 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
 
         ui.menuButton.setOnClickListener {
             restoreVirtualKeyboardMode()
+            if (windowManager.currentWindowOrNull() is PickerWindow) {
+                windowManager.attachWindow(KeyboardWindow)
+                return@setOnClickListener
+            }
             if (idleUi.currentState == IdleUi.State.Clipboard) {
                 clipboardTimeoutJob?.cancel()
                 clipboardTimeoutJob = null
@@ -902,6 +907,7 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
     }
 
     override fun onWindowAttached(window: InputWindow) {
+        idleUi.setBackToKeyboardMode(window is PickerWindow)
         when (window) {
             is InputWindow.ExtendedInputWindow<*> -> {
                 titleUi.setTitle(window.title)

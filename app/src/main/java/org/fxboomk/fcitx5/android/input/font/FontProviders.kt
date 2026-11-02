@@ -20,6 +20,14 @@ interface FontProviderApi {
 }
 
 object FontProviders {
+    /**
+     * Monotonically increasing generation of the loaded font configuration.
+     * UI that caches rendered text can compare this value to refresh only when fonts change.
+     */
+    @Volatile
+    var fontGeneration: Long = 0L
+        private set
+
     @Volatile
     var provider: FontProviderApi = DefaultFontProvider()
         set(value) {
@@ -27,11 +35,16 @@ object FontProviders {
             synchronized(fontSizeResultCache) {
                 fontSizeResultCache.clear()
             }
+            bumpFontGeneration()
         }
 
     @Volatile
     private var needsRefresh = false
     private val fontSizeResultCache = HashMap<String, Float>()
+
+    private fun bumpFontGeneration() {
+        fontGeneration++
+    }
 
     init {
         ensureListenerRegistered()
@@ -49,6 +62,7 @@ object FontProviders {
             fontSizeResultCache.clear()
         }
         needsRefresh = true
+        bumpFontGeneration()
     }
 
     /**
@@ -61,6 +75,7 @@ object FontProviders {
             fontSizeResultCache.clear()
         }
         needsRefresh = true
+        bumpFontGeneration()
     }
 
     /**
@@ -79,6 +94,7 @@ object FontProviders {
             fontSizeResultCache.clear()
         }
         needsRefresh = true
+        bumpFontGeneration()
     }
 
     val fontTypefaceMap: MutableMap<String, Typeface?>

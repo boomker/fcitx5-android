@@ -19,12 +19,14 @@ import org.fxboomk.fcitx5.android.data.pinyin.CustomShuangpinSchemeCodec
 import org.fxboomk.fcitx5.android.data.pinyin.CustomShuangpinSchemeStore
 import org.fxboomk.fcitx5.android.data.theme.ThemeManager
 import org.fxboomk.fcitx5.android.input.candidates.floating.FloatingCandidatesMode
+import org.fxboomk.fcitx5.android.input.picker.SymbolCatalogType
 import org.fxboomk.fcitx5.android.input.predict.LlmPrefs
 import org.fxboomk.fcitx5.android.ui.main.settings.addon.AddonConfigLayouts
 import org.fxboomk.fcitx5.android.ui.main.settings.addon.AddonDisplayNames
 import org.fxboomk.fcitx5.android.ui.main.settings.addon.PinyinTextConfigFragment
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.KeyboardSettingsHomeFragment
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.KeyboardSettingsSupport
+import org.fxboomk.fcitx5.android.ui.main.settings.behavior.SymbolSettingsFragment
 import org.fxboomk.fcitx5.android.ui.main.settings.im.CustomShuangpinFragment
 import org.fxboomk.fcitx5.android.ui.main.settings.im.CustomShuangpinMappingFragment
 import org.fxboomk.fcitx5.android.ui.main.settings.theme.ThemeAppearanceFragment
@@ -307,12 +309,15 @@ object SettingsSearchIndex {
             addPage(context, R.string.input_methods, SettingsRoute.InputMethodList)
             addPage(context, R.string.theme_appearance, SettingsRoute.Theme)
             addPage(context, R.string.virtual_keyboard, SettingsRoute.VirtualKeyboard)
+            addPage(context, R.string.emoji_and_symbols, SettingsRoute.Symbol)
             addPage(context, R.string.llm_settings_title, SettingsRoute.Llm)
             addPage(context, R.string.clipboard, SettingsRoute.Clipboard)
             addPage(context, R.string.plugins, SettingsRoute.Plugin)
             addPage(context, R.string.advanced, SettingsRoute.Advanced)
 
             addAll(keyboardItems(context, prefs.keyboard))
+            addAll(managedItems(context, prefs.symbols, SettingsRoute.Symbol, R.string.emoji_and_symbols))
+            addAll(symbolCatalogItems(context))
             addAll(themeItems(context))
             addAll(managedItems(context, prefs.clipboard, SettingsRoute.Clipboard, R.string.clipboard))
             addAll(
@@ -518,14 +523,6 @@ object SettingsSearchIndex {
             null,
             listOf(AppPrefs.CANDIDATE_DISPLAY_MODE_KEY)
         )
-        addThemeSection(
-            context,
-            prefs.advanced,
-            SettingsRoute.ThemeCandidateStyle,
-            candidatePath,
-            R.string.emoji_and_symbols,
-            ThemeSettingsSupport.candidateEmojiKeys
-        )
         when (prefs.candidates.mode.getValue()) {
             FloatingCandidatesMode.InputDevice -> {
                 addThemeSection(
@@ -727,6 +724,30 @@ object SettingsSearchIndex {
     ): List<SettingsSearchResult> {
         val path = listOf(context.getString(pageTitle))
         return provider.managedPreferencesUi.map { it.toSearchResult(context, route, path) }
+    }
+
+    /**
+     * The three catalog pickers are plain preferences created inside
+     * [SymbolSettingsFragment] rather than managed preferences, so they need
+     * their own search entries to be reachable from settings search.
+     */
+    private fun symbolCatalogItems(context: Context): List<SettingsSearchResult> {
+        val pageTitle = context.getString(R.string.emoji_and_symbols)
+        val path = listOf(pageTitle)
+        return SymbolCatalogType.entries.map { type ->
+            SettingsSearchResult(
+                title = context.getString(
+                    when (type) {
+                        SymbolCatalogType.Symbols -> R.string.symbol_catalog_symbols_title
+                        SymbolCatalogType.Emoji -> R.string.symbol_catalog_emoji_title
+                        SymbolCatalogType.Kaomoji -> R.string.symbol_catalog_kaomoji_title
+                    }
+                ),
+                path = path,
+                route = SettingsRoute.Symbol,
+                preferenceKey = SymbolSettingsFragment.catalogPreferenceKey(type)
+            )
+        }
     }
 
     private fun org.fxboomk.fcitx5.android.data.prefs.ManagedPreferenceUi<*>.toSearchResult(

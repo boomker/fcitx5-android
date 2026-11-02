@@ -66,6 +66,7 @@ class IdleUi(
     private val disableAnimation by AppPrefs.getInstance().advanced.disableAnimation
 
     private var inPrivate = false
+    private var backToKeyboardMode = false
 
     private val translateDirection by lazy {
         if (ctx.resources.configuration.layoutDirection == View.LAYOUT_DIRECTION_LTR) 1f else -1f
@@ -221,8 +222,16 @@ class IdleUi(
         updateMenuButtonContentDescription()
     }
 
+    fun setBackToKeyboardMode(active: Boolean) {
+        if (active == backToKeyboardMode) return
+        backToKeyboardMode = active
+        updateMenuButtonIcon()
+        updateMenuButtonContentDescription()
+    }
+
     private fun updateMenuButtonIcon() {
         when {
+            backToKeyboardMode -> menuButton.setIcon(R.drawable.ic_baseline_arrow_back_24)
             currentState == State.Clipboard ->
                 menuButton.setIcon(R.drawable.ic_baseline_arrow_back_24)
             inPrivate -> menuButton.setIcon(R.drawable.ic_view_private)
@@ -251,6 +260,7 @@ class IdleUi(
 
     private fun updateMenuButtonContentDescription() {
         menuButton.contentDescription = when {
+            backToKeyboardMode -> ctx.getString(R.string.back_to_keyboard)
             currentState == State.Clipboard -> ctx.getString(R.string.return_to_toolbar)
             inPrivate -> ctx.getString(R.string.private_mode)
             else -> ctx.getString(R.string.status_area)

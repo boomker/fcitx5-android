@@ -26,7 +26,10 @@ import org.fxboomk.fcitx5.android.input.keyboard.SpaceKeyLabelMode
 import org.fxboomk.fcitx5.android.input.keyboard.SpaceLongPressBehavior
 import org.fxboomk.fcitx5.android.input.keyboard.SpaceSwipeVerticalBehavior
 import org.fxboomk.fcitx5.android.input.keyboard.SwipeSymbolDirection
+import org.fxboomk.fcitx5.android.input.config.UserConfigFiles
 import org.fxboomk.fcitx5.android.input.picker.PickerWindow
+import org.fxboomk.fcitx5.android.input.picker.SymbolCatalogType
+import org.fxboomk.fcitx5.android.input.picker.SymbolPanelStyle
 import org.fxboomk.fcitx5.android.input.popup.EmojiModifier
 import org.fxboomk.fcitx5.android.input.preedit.CompositionAreaStyle
 import org.fxboomk.fcitx5.android.utils.DeviceUtil
@@ -96,18 +99,6 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
             "blocked_plugin_packages",
             emptySet()
         ).apply { register() }
-
-        val hideUnsupportedEmojis = switch(
-            R.string.hide_unsupported_emojis,
-            "hide_unsupported_emojis",
-            true
-        )
-
-        val defaultEmojiSkinTone = enumList(
-            R.string.default_emoji_skin_tone,
-            "default_emoji_skin_tone",
-            EmojiModifier.SkinTone.Default,
-        )
     }
 
     inner class Keyboard : ManagedPreferenceCategory(R.string.virtual_keyboard, sharedPreferences) {
@@ -636,6 +627,78 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
         ) { clipboardListening.getValue() }
     }
 
+    inner class Symbols : ManagedPreferenceCategory(R.string.emoji_and_symbols, sharedPreferences) {
+        val hideUnsupportedEmojis = switch(
+            R.string.hide_unsupported_emojis,
+            "hide_unsupported_emojis",
+            true
+        )
+
+        val defaultEmojiSkinTone = enumList(
+            R.string.default_emoji_skin_tone,
+            "default_emoji_skin_tone",
+            EmojiModifier.SkinTone.Default,
+        )
+
+        /**
+         * 符号 / 表情 / 颜文字面板的呈现风格，见 [SymbolPanelStyle]。
+         *
+         * 默认 [SymbolPanelStyle.Sidebar]（新版左侧分组栏）：沿用既有外观，老用户升级后
+         * 第一眼不变；想换旧版顶部分组栏的用户自己到「便捷功能 → 表情和符号」切。
+         *
+         * 这里不用 [enumList]：旧版本把 [SymbolPanelStyle.TopBar] 存成 `BottomBar`，
+         * 枚举改名后必须继续能解码，否则存量用户的偏好会被静默重置。
+         */
+        private val symbolPanelStyleCodec =
+            object : ManagedPreference.StringLikeCodec<SymbolPanelStyle> {
+                override fun decode(raw: String): SymbolPanelStyle =
+                    SymbolPanelStyle.fromStored(raw)
+            }
+
+        val symbolPanelStyle = ManagedPreference.PStringLike(
+            sharedPreferences,
+            "symbol_panel_style",
+            SymbolPanelStyle.Sidebar,
+            symbolPanelStyleCodec
+        ).apply {
+            register()
+            val ui = ManagedPreferenceUi.StringList(
+                R.string.symbol_panel_style,
+                "symbol_panel_style",
+                SymbolPanelStyle.Sidebar,
+                symbolPanelStyleCodec,
+                SymbolPanelStyle.entries,
+                SymbolPanelStyle.entries.map { it.stringRes }
+            )
+            ui.registerUi()
+        }
+
+        /**
+         * 三份符号 catalog 当前选中的文件；[UserConfigFiles.SYMBOL_CATALOG_BUILTIN]
+         * 表示使用 APK 内置数据，否则是用户自备 catalog 的文件名。
+         *
+         * 这里不注册 UI：选项来自目录扫描，用 [ManagedPreference.PString] + 自定义入口。
+         */
+        val symbolCatalogSymbols = ManagedPreference.PString(
+            sharedPreferences, "symbol_catalog_symbols", UserConfigFiles.SYMBOL_CATALOG_BUILTIN
+        ).apply { register() }
+
+        val symbolCatalogEmoji = ManagedPreference.PString(
+            sharedPreferences, "symbol_catalog_emoji", UserConfigFiles.SYMBOL_CATALOG_BUILTIN
+        ).apply { register() }
+
+        val symbolCatalogKaomoji = ManagedPreference.PString(
+            sharedPreferences, "symbol_catalog_kaomoji", UserConfigFiles.SYMBOL_CATALOG_BUILTIN
+        ).apply { register() }
+
+        /** 按 catalog 种类取对应的选择偏好。 */
+        fun catalogPreference(type: SymbolCatalogType): ManagedPreference.PString = when (type) {
+            SymbolCatalogType.Symbols -> symbolCatalogSymbols
+            SymbolCatalogType.Emoji -> symbolCatalogEmoji
+            SymbolCatalogType.Kaomoji -> symbolCatalogKaomoji
+        }
+    }
+
     private val providers = mutableListOf<ManagedPreferenceProvider>()
 
     fun <T : ManagedPreferenceProvider> registerProvider(
@@ -654,6 +717,7 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
     val keyboard = Keyboard().register()
     val candidates = Candidates().register()
     val clipboard = Clipboard().register()
+    val symbols = Symbols().register()
     val advanced = Advanced().register()
 
     @Keep

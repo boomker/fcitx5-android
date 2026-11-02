@@ -16,8 +16,8 @@ object AutoCloseBracket {
     /**
      * 左半边 -> 右半边。键与值均为单字符字符串。
      *
-     * 覆盖输入法内置符号表（见 PickerData.Symbol 的「( )」括号类目与「1?#」类目中的
-     * 引号 / 书名号）里的全部成对符号，另附白色方头括号 〖〗 作补充。
+     * 覆盖输入法内置符号表（见 `bundled/symbols/symbols.json` 的 Brackets 括号类目
+     * 与引号 / 书名号类目）里的全部成对符号，另附白色方头括号 〖〗 作补充。
      */
     val PAIRS: Map<String, String> = linkedMapOf(
         // 英文半角
@@ -32,6 +32,23 @@ object AutoCloseBracket {
         "（" to "）",
         "［" to "］",
         "｛" to "｝",
+        "＜" to "＞",
+        // 竖排 / 小型变体括号
+        "﹙" to "﹚",
+        "﹝" to "﹞",
+        // 数学与装饰性括号
+        "⦃" to "⦄",
+        "⦑" to "⦒",
+        "⦓" to "⦔",
+        "⦕" to "⦖",
+        "⦇" to "⦈",
+        "⁅" to "⁆",
+        "⸦" to "⸧",
+        "⸨" to "⸩",
+        "⎰" to "⎱",
+        "⊏" to "⊐",
+        "⊑" to "⊒",
+        "⟦" to "⟧",
         // CJK 括号 / 书名号 / 方头括号
         "〈" to "〉",
         "《" to "》",
