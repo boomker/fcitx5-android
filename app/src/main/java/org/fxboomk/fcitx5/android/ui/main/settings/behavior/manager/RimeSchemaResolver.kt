@@ -17,7 +17,8 @@ import java.io.File
 object RimeSchemaResolver {
 
     private val schemaEntryPattern = Regex("""^-\s*schema\s*:\s*(.+?)\s*$""")
-    private val schemaListPattern = Regex("""^schema_list\s*:\s*(?:#.*)?$""")
+    private val inlineSchemaEntryPattern = Regex("""^-\s*\{\s*schema\s*:\s*([^,}]+)(?:,[^}]*)?\}\s*$""")
+    private val schemaListPattern = Regex("""^(?:patch/)?schema_list\s*:\s*(?:#.*)?$""")
     private val schemaNamePattern = Regex("""^\s*name\s*:\s*(.+?)\s*$""", RegexOption.MULTILINE)
 
     /**
@@ -48,6 +49,19 @@ object RimeSchemaResolver {
         }.distinct()
     }
 
+    /** Read the user's configured selection before falling back to deployed defaults. */
+    fun readSelectedIds(rimeDataDir: File? = UserConfigFiles.rimeDataDir()): List<String> {
+        val dataDir = rimeDataDir ?: return emptyList()
+        return sequenceOf(
+            File(dataDir, "default.custom.yaml"),
+            File(dataDir, "default.yaml"),
+            File(dataDir, "build/default.yaml")
+        ).filter(File::isFile)
+            .mapNotNull { file -> runCatching { parseSchemaIds(file.readText()) }.getOrNull() }
+            .firstOrNull { it.isNotEmpty() }
+            .orEmpty()
+    }
+
     /** Parse schema IDs under a schema_list node, preserving source order. */
     internal fun parseSchemaIds(yaml: String): List<String> {
         var schemaListIndent: Int? = null
@@ -72,7 +86,8 @@ object RimeSchemaResolver {
                 return@forEach
             }
 
-            schemaEntryPattern.matchEntire(trimmed)?.groupValues?.get(1)
+            (schemaEntryPattern.matchEntire(trimmed)
+                ?: inlineSchemaEntryPattern.matchEntire(trimmed))?.groupValues?.get(1)
                 ?.let(::unquoteYamlScalar)
                 ?.takeIf { it.isNotEmpty() }
                 ?.let(ids::add)

@@ -55,6 +55,11 @@ class RimeSchemaResolverTest {
             )
             assertEquals(listOf("custom", "quoted"), RimeSchemaResolver.readLabels(root))
 
+            File(root, "default.custom.yaml").writeText(
+                "patch:\n  schema_list:\n    - {schema: custom}\n"
+            )
+            assertEquals(listOf("custom"), RimeSchemaResolver.readLabels(root))
+
             File(root, "default.custom.yaml").delete()
             File(root, "default.yaml").writeText("schema_list:\n  - schema: source\n")
             assertEquals(listOf("source"), RimeSchemaResolver.readLabels(root))
@@ -77,5 +82,33 @@ class RimeSchemaResolverTest {
 
         assertEquals(listOf("first", "second"), RimeSchemaResolver.parseSchemaIds(yaml))
         assertTrue(RimeSchemaResolver.parseSchemaIds("name: no-list").isEmpty())
+    }
+
+    @Test
+    fun `readSelectedIds prefers user customization and supports patch key`() {
+        val root = Files.createTempDirectory("rime-selected-test").toFile()
+        try {
+            val build = File(root, "build").apply { mkdirs() }
+            File(build, "default.yaml").writeText("schema_list:\n  - schema: deployed\n")
+            File(root, "default.yaml").writeText("schema_list:\n  - schema: source\n")
+            File(root, "default.custom.yaml").writeText(
+                "patch/schema_list:\n  - schema: first\n  - schema: second\n"
+            )
+
+            assertEquals(listOf("first", "second"), RimeSchemaResolver.readSelectedIds(root))
+
+            File(root, "default.custom.yaml").writeText(
+                "patch:\n  schema_list:\n    - {schema: luna_pinyin_simp}\n"
+            )
+            assertEquals(listOf("luna_pinyin_simp"), RimeSchemaResolver.readSelectedIds(root))
+
+            File(root, "default.custom.yaml").delete()
+            assertEquals(listOf("source"), RimeSchemaResolver.readSelectedIds(root))
+
+            File(root, "default.yaml").delete()
+            assertEquals(listOf("deployed"), RimeSchemaResolver.readSelectedIds(root))
+        } finally {
+            root.deleteRecursively()
+        }
     }
 }
