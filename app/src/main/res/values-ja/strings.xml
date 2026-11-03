@@ -755,7 +755,6 @@
     <string name="commit_first_candidate_character">先頭文字を確定</string>
     <string name="commit_last_candidate_character">末尾文字を確定</string>
     <string name="switch_to_voice_input">音声入力に切り替え</string>
-    <string name="toggle_number_keyboard">数字キーボードを切り替え</string>
     <string name="text_editing_button_radius">テキスト編集ボタンの角丸半径</string>
     <string name="text_keyboard_layout_file_delete_confirm">レイアウトファイル設定「%1$s」とそのバックアップを削除してもよろしいですか？</string>
     <string name="text_keyboard_layout_file_delete_failed">レイアウトファイルの削除に失敗しました</string>
@@ -856,6 +855,9 @@
     <string name="view_image">表示</string>
     <string name="open_link">開く</string>
     <string name="search">検索</string>
+    <string name="number_keyboard">数字キーボード</string>
+    <string name="symbol_keyboard">記号</string>
+    <string name="voice_input">音声入力</string>
     <string name="dial">発信</string>
     <string name="upload">アップロード</string>
     <string name="split_words">分かち書き</string>

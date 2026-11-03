@@ -755,7 +755,6 @@
     <string name="swipe_symbol_behavior">구두점 스와이프 방향</string>
     <string name="swipe_up">위로 스와이프</string>
     <string name="switch_to_voice_input">음성 입력으로 전환</string>
-    <string name="toggle_number_keyboard">숫자 키보드 전환</string>
     <string name="system_default">시스템 기본값</string>
     <string name="text_editing_button_radius">텍스트 편집 버튼 반경</string>
     <string name="text_keyboard_layout_file_delete_confirm">레이아웃 파일 프로필 "%1$s"와 백업을 삭제할까요?</string>
@@ -857,6 +856,9 @@
     <string name="view_image">보기</string>
     <string name="open_link">열기</string>
     <string name="search">검색</string>
+    <string name="number_keyboard">숫자 키보드</string>
+    <string name="symbol_keyboard">기호</string>
+    <string name="voice_input">음성 입력</string>
     <string name="dial">전화 걸기</string>
     <string name="upload">업로드</string>
     <string name="split_words">단어 분리</string>

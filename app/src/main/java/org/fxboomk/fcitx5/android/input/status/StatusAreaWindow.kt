@@ -375,7 +375,12 @@ class StatusAreaWindow : InputWindow.ExtendedInputWindow<StatusAreaWindow>(),
                         )
                         // Actions that open their own windows should not close Status Area
                         val opensOwnWindow = entry.buttonAction.id in
-                            listOf("cursor_move", "clipboard", ButtonsLayoutConfig.KEYBOARD_HEIGHT_ADJUST_ID)
+                            listOf(
+                                "cursor_move",
+                                "clipboard",
+                                "symbol_keyboard",
+                                ButtonsLayoutConfig.KEYBOARD_HEIGHT_ADJUST_ID
+                            )
                         // For non-floating-toggle and non-window-opening actions that should close the Status Area
                         if (entry.buttonAction.id != "floating_toggle" && !opensOwnWindow) {
                             windowManager.attachWindow(KeyboardWindow)

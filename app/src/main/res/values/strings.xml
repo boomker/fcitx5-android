@@ -757,7 +757,6 @@
     <string name="hide_candidates_list">Hide candidates list</string>
     <string name="switch_to_voice_input">Switch to voice input</string>
     <string name="hide_keyboard">Hide keyboard</string>
-    <string name="toggle_number_keyboard">Toggle number keyboard</string>
     <string name="private_mode">Private mode (tap to open status area)</string>
     <string name="return_to_toolbar">Return to toolbar</string>
     <string name="back_to_keyboard">Back to keyboard</string>
@@ -774,6 +773,9 @@
     <string name="view_image">View</string>
     <string name="open_link">Open</string>
     <string name="search">Search</string>
+    <string name="number_keyboard">Number keyboard</string>
+    <string name="symbol_keyboard">Symbols</string>
+    <string name="voice_input">Voice input</string>
     <string name="settings_search_hint">Search settings</string>
     <string name="settings_search_results">Search results</string>
     <string name="settings_search_no_results">No matching settings</string>

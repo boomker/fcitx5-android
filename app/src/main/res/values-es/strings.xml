@@ -761,7 +761,6 @@
     <string name="swipe_symbol_behavior">Dirección de deslizamiento para signos de puntuación</string>
     <string name="swipe_up">Deslizar hacia arriba</string>
     <string name="switch_to_voice_input">Cambiar a entrada de voz</string>
-    <string name="toggle_number_keyboard">Alternar teclado numérico</string>
     <string name="synced">¡Sincronizado!</string>
     <string name="text_editing">Edicion de texto</string>
     <string name="text_editing_button_radius">Radio de boton de edicion de texto</string>
@@ -856,6 +855,9 @@
     <string name="view_image">Ver</string>
     <string name="open_link">Abrir</string>
     <string name="search">Buscar</string>
+    <string name="number_keyboard">Teclado numérico</string>
+    <string name="symbol_keyboard">Símbolos</string>
+    <string name="voice_input">Entrada de voz</string>
     <string name="dial">Llamar</string>
     <string name="upload">Subir</string>
     <string name="split_words">Dividir palabras</string>

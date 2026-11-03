@@ -508,6 +508,7 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
                             // Refresh UI state after action completion
                             when (action.id) {
                                 "floating_toggle" -> evalIdleUiState()
+                                "voice_input" -> updateButtonsState()
                                 "one_handed_keyboard", "theme_toggle" -> {
                                     updateButtonsState()
                                     refreshHideKeyboardButtonState(ui)
@@ -853,7 +854,10 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         clipboardItemTimeout.registerOnChangeListener(onClipboardTimeoutUpdateListener)
         VoiceInputProviderManager.voiceErrorCallback = { message ->
             Toast.makeText(service, message, Toast.LENGTH_SHORT).show()
+            updateButtonsState()
         }
+        VoiceInputProviderManager.voiceReadyCallback = { updateButtonsState() }
+        VoiceInputProviderManager.voiceFinishedCallback = { updateButtonsState() }
     }
 
     override fun onStartInput(info: EditorInfo, capFlags: CapabilityFlags, restarting: Boolean) {

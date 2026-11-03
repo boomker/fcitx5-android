@@ -106,6 +106,9 @@
     <string name="clear">清除</string>
     <string name="copy" tools:override="true">複製</string>
     <string name="search">搜尋</string>
+    <string name="number_keyboard">數字鍵盤</string>
+    <string name="symbol_keyboard">符號</string>
+    <string name="voice_input">語音</string>
     <string name="export">匯出</string>
     <string name="app_crash">應用程式當機</string>
     <string name="app_crash_message">抱歉，但我們為您帶來了一些紀錄檔以供調查。</string>
@@ -478,7 +481,6 @@
     <string name="expand_candidates_list">展開選字列表</string>
     <string name="hide_candidates_list">隱藏選字列表</string>
     <string name="switch_to_voice_input">切換到語音輸入</string>
-    <string name="toggle_number_keyboard">切換數字鍵盤</string>
     <string name="hide_keyboard">隱藏鍵盤</string>
     <string name="private_mode">隱私模式（點擊開啟狀態區）</string>
     <string name="return_to_toolbar">返回工具列</string>

@@ -15,6 +15,8 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import org.fxboomk.fcitx5.android.R
+import org.fxboomk.fcitx5.android.core.CapabilityFlag
+import org.fxboomk.fcitx5.android.core.CapabilityFlags
 import org.fxboomk.fcitx5.android.core.SubtypeManager
 import org.fxboomk.fcitx5.android.daemon.FcitxConnection
 import org.fxboomk.fcitx5.android.daemon.launchOnReady
@@ -31,7 +33,9 @@ import org.fxboomk.fcitx5.android.input.bar.ui.ToolButton
 import org.fxboomk.fcitx5.android.input.keyboard.LangSwitchBehavior
 import org.fxboomk.fcitx5.android.input.keyboard.KeyboardWindow
 import org.fxboomk.fcitx5.android.input.keyboard.switchToEnglishInputMode
+import org.fxboomk.fcitx5.android.input.picker.PickerWindow
 import org.fxboomk.fcitx5.android.input.status.StatusAreaWindow
+import org.fxboomk.fcitx5.android.input.voice.VoiceInputProviderManager
 import org.fxboomk.fcitx5.android.input.wm.InputWindowManager
 import org.fxboomk.fcitx5.android.ui.main.settings.SettingsRoute
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.FontsetEditorActivity
@@ -39,6 +43,7 @@ import org.fxboomk.fcitx5.android.ui.main.settings.behavior.TextKeyboardLayoutEd
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.TextKeyboardLayoutProfileManagerActivity
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.dialog.TextKeyboardLayoutProfilePickerActivity
 import org.fxboomk.fcitx5.android.utils.AppUtil
+import org.fxboomk.fcitx5.android.utils.InputMethodUtil
 import org.fxboomk.fcitx5.android.utils.buildDocumentsProviderIntent
 import org.fxboomk.fcitx5.android.utils.switchToNextIME
 import org.fxboomk.fcitx5.android.utils.toast
@@ -127,6 +132,8 @@ sealed class ButtonAction {
                 ClipboardAction,
                 ThemeToggleAction,
                 NumberKeyboardAction,
+                SymbolKeyboardAction,
+                VoiceInputAction,
                 LanguageSwitchAction,
                 ThemeAction,
                 MoreAction,
@@ -204,6 +211,8 @@ sealed class ButtonAction {
                 ClipboardAction,
                 ThemeToggleAction,
                 NumberKeyboardAction,
+                SymbolKeyboardAction,
+                VoiceInputAction,
                 SearchAction
             )
         }
@@ -461,7 +470,7 @@ data object ThemeToggleAction : ButtonAction() {
 data object NumberKeyboardAction : ButtonAction() {
     override val id = "number_keyboard"
     override val defaultIcon = R.drawable.ic_number_pad
-    override val defaultLabelRes = R.string.toggle_number_keyboard
+    override val defaultLabelRes = R.string.number_keyboard
 
     override fun execute(
         context: Context,
@@ -476,6 +485,69 @@ data object NumberKeyboardAction : ButtonAction() {
             windowManager.attachWindow(KeyboardWindow)
             onActionComplete?.invoke()
         }
+    }
+}
+
+data object SymbolKeyboardAction : ButtonAction() {
+    override val id = "symbol_keyboard"
+    override val defaultIcon = R.drawable.ic_baseline_emoji_symbols_24
+    override val defaultLabelRes = R.string.symbol_keyboard
+
+    override fun execute(
+        context: Context,
+        service: FcitxInputMethodService,
+        fcitx: FcitxConnection,
+        windowManager: InputWindowManager,
+        view: View?,
+        onActionComplete: (() -> Unit)?
+    ) {
+        // Attach the symbol picker straight from the Kawaii Bar / status area.
+        windowManager.attachWindow(PickerWindow.Key.Symbol)
+        onActionComplete?.invoke()
+    }
+}
+
+data object VoiceInputAction : ButtonAction() {
+    override val id = "voice_input"
+    override val defaultIcon = R.drawable.ic_baseline_keyboard_voice_24
+    override val defaultLabelRes = R.string.voice_input
+
+    private fun resolveProviderId(service: FcitxInputMethodService): String? {
+        val preferred = AppPrefs.getInstance().keyboard.preferredVoiceInput.getValue()
+        return preferred.takeIf {
+            VoiceInputProviderManager.isProviderId(it) && VoiceInputProviderManager.hasProvider(it, service)
+        }
+    }
+
+    override fun isActive(service: FcitxInputMethodService): Boolean =
+        resolveProviderId(service) != null && VoiceInputProviderManager.isActive()
+
+    override fun execute(
+        context: Context,
+        service: FcitxInputMethodService,
+        fcitx: FcitxConnection,
+        windowManager: InputWindowManager,
+        view: View?,
+        onActionComplete: (() -> Unit)?
+    ) {
+        // Respect password fields the same way the space-key long press does.
+        val capFlags = service.currentInputEditorInfo?.let { CapabilityFlags.fromEditorInfo(it) }
+        if (capFlags?.has(CapabilityFlag.Password) == true) return
+        // In-app provider: toggle directly from the toolbar.
+        resolveProviderId(service)?.let { providerId ->
+            VoiceInputProviderManager.toggle(service, providerId)
+            onActionComplete?.invoke()
+            return
+        }
+        // Otherwise hand off to the preferred system voice input IME.
+        val (id, subtype) = InputMethodUtil
+            .findVoiceSubtype(AppPrefs.getInstance().keyboard.preferredVoiceInput.getValue())
+            ?: run {
+                context.toast(R.string.voice_error_not_available)
+                return
+            }
+        InputMethodUtil.switchInputMethod(service, id, subtype)
+        onActionComplete?.invoke()
     }
 }
 

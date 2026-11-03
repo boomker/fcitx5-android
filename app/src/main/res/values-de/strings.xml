@@ -760,7 +760,6 @@
     <string name="punctuation_swipe_raw">Originalzeichen einfügen</string>
     <string name="swipe_symbol_behavior">Wischrichtung für Satzzeichen</string>
     <string name="switch_to_voice_input">Zur Spracheingabe wechseln</string>
-    <string name="toggle_number_keyboard">Zifferntastatur umschalten</string>
     <string name="text_editing_button_radius">Eckradius der Textbearbeitungstasten</string>
     <string name="text_keyboard_layout_file_delete_confirm">Layout-Dateiprofil "%1$s" und dessen Sicherung wirklich löschen?</string>
     <string name="text_keyboard_layout_file_delete_failed">Löschen der Layout-Datei fehlgeschlagen</string>
@@ -854,6 +853,9 @@
     <string name="view_image">Anzeigen</string>
     <string name="open_link">Öffnen</string>
     <string name="search">Suchen</string>
+    <string name="number_keyboard">Zifferntastatur</string>
+    <string name="symbol_keyboard">Symbole</string>
+    <string name="voice_input">Spracheingabe</string>
     <string name="dial">Anrufen</string>
     <string name="upload">Hochladen</string>
     <string name="split_words">Wörter aufteilen</string>

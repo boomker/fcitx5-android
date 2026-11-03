@@ -341,7 +341,6 @@
     <string name="expand_candidates_list">Развернуть список кандидатов</string>
     <string name="hide_candidates_list">Скрыть список кандидатов</string>
     <string name="switch_to_voice_input">Переключиться на голосовой ввод</string>
-    <string name="toggle_number_keyboard">Переключить цифровую клавиатуру</string>
     <string name="hide_keyboard">Скрыть клавиатуру</string>
     <string name="private_mode">Приватный режим (нажмите, чтобы открыть область состояния)</string>
     <string name="return_to_toolbar">Вернуться на панель инструментов</string>
@@ -856,6 +855,9 @@
     <string name="view_image">Просмотр</string>
     <string name="open_link">Открыть</string>
     <string name="search">Поиск</string>
+    <string name="number_keyboard">Цифровая клавиатура</string>
+    <string name="symbol_keyboard">Символы</string>
+    <string name="voice_input">Голосовой ввод</string>
     <string name="dial">Позвонить</string>
     <string name="upload">Загрузить</string>
     <string name="split_words">Разделить на слова</string>

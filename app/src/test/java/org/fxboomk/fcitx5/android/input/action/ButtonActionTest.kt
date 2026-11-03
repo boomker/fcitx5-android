@@ -18,10 +18,23 @@ class ButtonActionTest {
     @Test
     fun numberKeyboardIsAvailableAsAnOptionalKawaiiBarAction() {
         assertSame(NumberKeyboardAction, ButtonAction.fromId("number_keyboard"))
+        assertEquals(R.string.number_keyboard, NumberKeyboardAction.defaultLabelRes)
         assertTrue(ButtonAction.kawaiiBarActions.contains(NumberKeyboardAction))
         assertFalse(
             ButtonsLayoutConfig.default().kawaiiBarButtons.any { it.id == NumberKeyboardAction.id }
         )
+    }
+
+    @Test
+    fun symbolAndVoiceButtonsAreAvailableAsOptionalActions() {
+        assertSame(SymbolKeyboardAction, ButtonAction.fromId("symbol_keyboard"))
+        assertSame(VoiceInputAction, ButtonAction.fromId("voice_input"))
+        assertEquals(R.string.symbol_keyboard, SymbolKeyboardAction.defaultLabelRes)
+        assertEquals(R.string.voice_input, VoiceInputAction.defaultLabelRes)
+        assertTrue(ButtonAction.kawaiiBarActions.contains(SymbolKeyboardAction))
+        assertTrue(ButtonAction.kawaiiBarActions.contains(VoiceInputAction))
+        assertTrue(ButtonAction.allConfigurableActions.contains(SymbolKeyboardAction))
+        assertTrue(ButtonAction.allConfigurableActions.contains(VoiceInputAction))
     }
 
     @Test

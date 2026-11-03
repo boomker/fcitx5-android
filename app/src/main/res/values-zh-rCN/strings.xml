@@ -585,7 +585,6 @@
     <string name="expand_candidates_list">展开候选词列表</string>
     <string name="hide_candidates_list">隐藏</string>
     <string name="switch_to_voice_input">切换到语音输入</string>
-    <string name="toggle_number_keyboard">切换数字键盘</string>
     <string name="hide_keyboard">隐藏键盘</string>
     <string name="private_mode">隐私模式（点击打开状态区域）</string>
     <string name="return_to_toolbar">返回工具栏</string>
@@ -604,6 +603,9 @@
     <string name="view_image">查看</string>
     <string name="open_link">打开</string>
     <string name="search">搜索</string>
+    <string name="number_keyboard">数字键盘</string>
+    <string name="symbol_keyboard">符号</string>
+    <string name="voice_input">语音</string>
     <string name="settings_search_hint">搜索设置项</string>
     <string name="settings_search_results">搜索结果</string>
     <string name="settings_search_no_results">没有匹配的设置项</string>
