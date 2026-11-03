@@ -5,6 +5,7 @@
 
 package org.fxboomk.fcitx5.android.input.picker
 
+import java.io.File
 import org.junit.Assert
 import org.junit.Test
 
@@ -104,5 +105,28 @@ class SymbolCatalogParseTest {
     @Test
     fun testResolveNameReturnsNullForEmptyMap() {
         Assert.assertNull(SymbolCatalogs.resolveName(emptyMap(), "zh-Hans"))
+    }
+
+    @Test
+    fun bundledWesternPunctuationPutsAsciiDigitsAtTheEnd() {
+        val catalog = bundledCatalog()
+        val western = catalog.groups.first { it.name == "英文标点" }
+        Assert.assertEquals(listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "0"), western.symbols.takeLast(10))
+    }
+
+    @Test
+    fun bundledEastAsianGroupsFollowExpectedOrder() {
+        val names = bundledCatalog().groups.map { it.name }
+        val chinese = names.indexOf("中文字符")
+        Assert.assertTrue(chinese >= 0)
+        Assert.assertEquals(
+            listOf("中文字符", "藏文符号", "日文符号", "韩文符号"),
+            names.subList(chinese, chinese + 4)
+        )
+    }
+
+    private fun bundledCatalog(): SymbolCatalog {
+        val path = File("src/main/assets/bundled/symbols/symbols.json")
+        return SymbolCatalogs.parse(path.readText(), "zh-Hans")
     }
 }
