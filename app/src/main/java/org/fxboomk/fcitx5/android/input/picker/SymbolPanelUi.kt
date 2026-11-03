@@ -136,7 +136,6 @@ class SymbolPanelUi(
 
         /** 与 Foxy 的 `ly.j` / `ly.k` 相同的字形。 */
         const val LABEL_BACK_TO_KEYBOARD = "⌨"
-        const val LABEL_BACKSPACE = "⌫"
 
         val DigitRange = '0'.code..'9'.code
         val FullWidthDigitRange = '０'.code..'９'.code
@@ -461,16 +460,19 @@ class SymbolPanelUi(
     // ⌫ 删除，长按连续删除 —— 与 Foxy 的 ly.k 对应
     private fun backspaceKey(): ImageKeyView {
         val appearance = KeyDef.Appearance.Image(
-            src = KeyIconThemeStore.resolveDrawable(
-                ctx,
-                KeyIconIds.BACKSPACE,
-                R.drawable.ic_baseline_backspace_24
-            ),
+            src = R.drawable.ic_baseline_backspace_24,
             variant = KeyDef.Appearance.Variant.Alternative,
             border = KeyDef.Appearance.Border.Default,
             viewId = View.generateViewId()
         )
         return ImageKeyView(ctx, theme, appearance).apply {
+            img.setImageDrawable(
+                KeyIconThemeStore.resolveDrawableObject(
+                    ctx,
+                    KeyIconIds.BACKSPACE,
+                    R.drawable.ic_baseline_backspace_24
+                )
+            )
             contentDescription = ctx.getString(R.string.backspace)
             swipeEnabled = false
             onGestureListener = null
