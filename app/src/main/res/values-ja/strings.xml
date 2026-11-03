@@ -219,10 +219,17 @@
     <string name="keyboard_settings_basic_behavior">基本動作</string>
     <string name="keyboard_settings_touch_and_sound">触覚とサウンド</string>
     <string name="keyboard_settings_key_and_gesture">キーとジェスチャー</string>
-    <string name="keyboard_settings_layout_and_split">レイアウトと分割キーボード</string>
+    <string name="keyboard_settings_layout_and_split">レイアウトと分割・フローティングキーボード</string>
+    <string name="keyboard_modes_category_split">分割キーボード</string>
+    <string name="keyboard_modes_category_floating">フローティングキーボード</string>
+    <string name="floating_keyboard_enabled">フローティングキーボードを有効にする</string>
+    <string name="floating_keyboard_enabled_summary">キーボードを画面下部から切り離し、自由にドラッグできます。</string>
+    <string name="auto_floating_landscape">横向きでフローティングキーボードを使用</string>
+    <string name="auto_floating_landscape_summary">横向きでは自動的にフローティングキーボードへ切り替え、縦向きでは固定キーボードに戻します。</string>
+    <string name="floating_move_handle_auto_hide">移動ハンドルを自動的に隠す</string>
+    <string name="floating_move_handle_auto_hide_summary">3秒間操作がないと移動ハンドルを隠します。サイズ変更ハンドルをダブルタップすると再表示されます。</string>
     <string name="keyboard_settings_candidates">候補表示</string>
     <string name="keyboard_settings_advanced_customization">高度なカスタマイズ</string>
-    <string name="keyboard_settings_split_tools_section">分割キーボードツール</string>
     <string name="focus_change_reset_enabled_summary">フォーカス変更時にキーボードへ戻る</string>
     <string name="focus_change_reset_disabled_summary">フォーカス変更時も現在のパネルを維持</string>
     <string name="inline_suggestions_enabled_summary">インライン自動入力候補を表示</string>
@@ -303,7 +310,6 @@
     <string name="save_icon_theme">アイコンテーマを保存</string>
     <string name="switch_icon_theme">アイコンテーマを切り替え</string>
     <string name="default_icon">デフォルト</string>
-    <string name="icon_resource_hint">Drawable リソース名</string>
     <string name="key_icon_code">アイコンコード</string>
     <string name="key_icon_code_hint">Glyph コードポイント、SVG、Drawable 名</string>
     <string name="key_icon_code_summary">Glyph Unicode コードポイント、SVG コード、Drawable リソース名に対応しています。編集時にアイコンをプレビューできます。空欄にすると既定のアイコンに戻ります。</string>
@@ -318,13 +324,7 @@
     <string name="theme_share_failed">テーマの共有に失敗しました: %1$s</string>
     <string name="save_toolbar_theme">ツールバーテーマを保存</string>
     <string name="switch_toolbar_theme">ツールバーテーマを切り替え</string>
-    <string name="export_toolbar_theme">ツールバーテーマをエクスポート</string>
-    <string name="import_toolbar_theme">ツールバーテーマをインポート</string>
-    <string name="export_icon_theme">アイコンテーマをエクスポート</string>
-    <string name="import_icon_theme">アイコンテーマをインポート</string>
-    <string name="theme_exported">テーマをエクスポートしました</string>
     <string name="theme_imported">テーマをインポートしました</string>
-    <string name="theme_export_failed">テーマのエクスポートに失敗しました：%1$s</string>
     <string name="theme_import_failed">テーマのインポートに失敗しました：%1$s</string>
     <string name="buttons_customizer_hint">表示中のボタンをタップするとアイコンのスタイルを編集できます。長押しして「利用可能なボタン」へドラッグすると非表示にでき、Kawaii Bar（上段）と Status Area（メニュー）間も移動できます。そこにあるボタンをタップして移動先を選択します。</string>
     <string name="kawaii_bar_section">Kawaii Bar（上段）</string>
@@ -647,7 +647,6 @@
     <string name="fontset_sample_candidate">候補の例</string>
     <string name="fontset_sample_popup">ポップアップキー</string>
     <string name="fontset_sample_preedit">プリエディットテキスト</string>
-    <string name="picker_category_fullwidth">全角</string>
     <string name="macro_editor_key_event_unmatched">キーイベントの不一致：%1$s の押下と解放の回数が一致しません</string>
     <string name="text_keyboard_layout_qr_import_scan">QRをスキャンしてインポート</string>
     <string name="text_keyboard_layout_qr_import_image">QR画像からインポート</string>
@@ -702,7 +701,7 @@
     <string name="candidates_window">候補ウィンドウ</string>
     <string name="candidate_display_mode">候補の表示方法</string>
     <string name="candidate_display_mode_horizontal">横型候補バー</string>
-    <string name="candidate_display_mode_floating">フローティングウィンドウ</string>
+    <string name="candidate_display_mode_floating">フローティング候補ウィンドウ</string>
     <string name="candidates_window_radius">候補ウィンドウの角丸半径</string>
     <string name="cannot_resolve_popup_preset">ポップアッププリセットファイルが見つかりません</string>
     <string name="clear_clp_db_confirm">クリップボードデータベースがピン留めされた項目を含めて完全に消去されます。続行しますか？</string>
@@ -1022,7 +1021,6 @@
     <string name="pinyin_config_cursor_at_start_summary">カーソルをインラインプレビュー（プリエディットまたは候補）の先頭に保ちます。</string>
     <string name="pinyin_config_full_pinyin">完全なピンインを表示</string>
     <string name="pinyin_config_show_shuangpin_mode">双拼モードを表示</string>
-    <string name="pinyin_config_preedit_mode">未確定入力モード</string>
     <string name="pinyin_config_shuangpin_profile">双拼プロファイル</string>
     <string name="pinyin_config_english_candidates">英語候補</string>
     <string name="pinyin_config_symbol_candidates">記号候補</string>

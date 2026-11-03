@@ -4,6 +4,8 @@
 
 package org.fxboomk.fcitx5.android.ui.main.settings.behavior
 
+import java.io.File
+import javax.xml.parsers.DocumentBuilderFactory
 import org.fxboomk.fcitx5.android.ui.main.settings.theme.ThemeSettingsSupport
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -98,6 +100,21 @@ class KeyboardCandidateSettingsOrganizationTest {
             "preferred_voice_input",
             KeyboardSettingsSupport.basicBehaviorKeys.last()
         )
+    }
+
+    @Test
+    fun floatingCandidateDisplayModeHasADedicatedLabel() {
+        val strings = DocumentBuilderFactory.newInstance().newDocumentBuilder()
+            .parse(File("src/main/res/values/strings.xml"))
+            .documentElement
+        val values = strings.getElementsByTagName("string")
+        fun value(name: String): String? = (0 until values.length)
+            .map { values.item(it) }
+            .firstOrNull { it.attributes.getNamedItem("name")?.nodeValue == name }
+            ?.textContent
+
+        assertEquals("Floating candidate window", value("candidate_display_mode_floating"))
+        assertEquals("独立悬浮窗", value("llm_prediction_display_mode_floating_window"))
     }
 
     @Test

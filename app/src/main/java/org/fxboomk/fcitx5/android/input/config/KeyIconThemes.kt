@@ -4,6 +4,7 @@
  */
 package org.fxboomk.fcitx5.android.input.config
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.drawable.Drawable
 import androidx.annotation.DrawableRes
@@ -196,6 +197,7 @@ object KeyIconThemeStore {
     fun previousIcon(themeName: String, id: String): String? =
         read().themes.firstOrNull { it.name == themeName }?.previousIcons?.get(id)
 
+    @SuppressLint("DiscouragedApi") // Drawable names come from user-editable icon themes.
     @DrawableRes fun resolveDrawable(context: Context, id: String, @DrawableRes fallback: Int): Int {
         val value = iconValue(id)?.trim().orEmpty()
         if (value.isEmpty()) return fallback
@@ -203,6 +205,7 @@ object KeyIconThemeStore {
             .takeIf { it != 0 } ?: fallback
     }
 
+    @SuppressLint("DiscouragedApi") // Drawable names come from user-editable icon themes.
     fun resolveDrawableObject(context: Context, id: String, @DrawableRes fallback: Int): Drawable? {
         val value = iconValue(id)?.trim().orEmpty()
         if (value.isEmpty()) return fallback.takeIf { it != 0 }?.let { AppCompatResources.getDrawable(context, it) }

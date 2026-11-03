@@ -176,10 +176,17 @@
     <string name="keyboard_settings_basic_behavior">Grundverhalten</string>
     <string name="keyboard_settings_touch_and_sound">Berührung und Ton</string>
     <string name="keyboard_settings_key_and_gesture">Tasten und Gesten</string>
-    <string name="keyboard_settings_layout_and_split">Layout und geteilte Tastatur</string>
+    <string name="keyboard_settings_layout_and_split">Layout und geteilte oder schwebende Tastatur</string>
+    <string name="keyboard_modes_category_split">Geteilte Tastatur</string>
+    <string name="keyboard_modes_category_floating">Schwebende Tastatur</string>
+    <string name="floating_keyboard_enabled">Schwebende Tastatur aktivieren</string>
+    <string name="floating_keyboard_enabled_summary">Löse die Tastatur vom unteren Bildschirmrand und ziehe sie frei.</string>
+    <string name="auto_floating_landscape">Schwebende Tastatur im Querformat verwenden</string>
+    <string name="auto_floating_landscape_summary">Im Querformat automatisch zur schwebenden Tastatur wechseln und im Hochformat zur angedockten Tastatur zurückkehren.</string>
+    <string name="floating_move_handle_auto_hide">Verschiebegriff automatisch ausblenden</string>
+    <string name="floating_move_handle_auto_hide_summary">Den Verschiebegriff nach 3 Sekunden Inaktivität ausblenden. Doppeltippe auf einen Größenänderungsgriff, um ihn wieder anzuzeigen.</string>
     <string name="keyboard_settings_candidates">Kandidatenanzeige</string>
     <string name="keyboard_settings_advanced_customization">Erweiterte Anpassung</string>
-    <string name="keyboard_settings_split_tools_section">Werkzeuge für geteilte Tastatur</string>
     <string name="focus_change_reset_enabled_summary">Bei Fokuswechsel zur Tastatur zurückkehren</string>
     <string name="focus_change_reset_disabled_summary">Aktuelles Panel bei Fokuswechsel beibehalten</string>
     <string name="inline_suggestions_enabled_summary">Inline-Autovervollständigung anzeigen</string>
@@ -209,7 +216,6 @@
     <string name="save_icon_theme">Symbolthema speichern</string>
     <string name="switch_icon_theme">Symbolthema wechseln</string>
     <string name="default_icon">Standard</string>
-    <string name="icon_resource_hint">Name der Drawable-Ressource</string>
     <string name="key_icon_code">Icon-Code</string>
     <string name="key_icon_code_hint">Glyph-Codepunkt, SVG oder Drawable-Name</string>
     <string name="key_icon_code_summary">Unterstützt Glyph-Unicode-Codepunkte, SVG-Code oder Drawable-Ressourcennamen. Das Icon wird beim Bearbeiten in der Vorschau angezeigt; leer lassen, um das Standard-Icon wiederherzustellen.</string>
@@ -224,13 +230,7 @@
     <string name="theme_share_failed">Design konnte nicht geteilt werden: %1$s</string>
     <string name="save_toolbar_theme">Werkzeugleisten-Thema speichern</string>
     <string name="switch_toolbar_theme">Werkzeugleisten-Thema wechseln</string>
-    <string name="export_toolbar_theme">Werkzeugleisten-Thema exportieren</string>
-    <string name="import_toolbar_theme">Werkzeugleisten-Thema importieren</string>
-    <string name="export_icon_theme">Symbolthema exportieren</string>
-    <string name="import_icon_theme">Symbolthema importieren</string>
-    <string name="theme_exported">Thema exportiert</string>
     <string name="theme_imported">Thema importiert</string>
-    <string name="theme_export_failed">Export des Themas fehlgeschlagen: %1$s</string>
     <string name="theme_import_failed">Import des Themas fehlgeschlagen: %1$s</string>
     <string name="buttons_customizer_hint">Tippen Sie auf eine sichtbare Schaltfläche, um ihren Symbolstil zu bearbeiten. Halten und ziehen Sie eine Schaltfläche zu „Verfügbare Schaltflächen“, um sie auszublenden, oder zwischen Kawaii Bar (obere Zeile) und Status Area (Menü). Tippen Sie dort auf eine Schaltfläche, um den Zielbereich auszuwählen.</string>
     <string name="kawaii_bar_section">Kawaii Bar (obere Zeile)</string>
@@ -542,7 +542,6 @@
     <string name="fontset_sample_candidate">Beispielkandidat</string>
     <string name="fontset_sample_popup">Popup-Taste</string>
     <string name="fontset_sample_preedit">VorEditText</string>
-    <string name="picker_category_fullwidth">Vollbreite</string>
     <string name="text_keyboard_layout_qr_import_scan">Per QR-Scan importieren</string>
     <string name="text_keyboard_layout_qr_import_image">Aus QR-Bild importieren</string>
     <string name="text_keyboard_layout_qr_share_title">Layout-QR-Bild teilen</string>
@@ -599,7 +598,7 @@
     <string name="candidates_window">Kandidatenfenster</string>
     <string name="candidate_display_mode">Kandidatenanzeige</string>
     <string name="candidate_display_mode_horizontal">Horizontale Kandidatenleiste</string>
-    <string name="candidate_display_mode_floating">Schwebendes Fenster</string>
+    <string name="candidate_display_mode_floating">Schwebendes Kandidatenfenster</string>
     <string name="candidates_window_radius">Eckradius des Kandidatenfensters</string>
     <string name="cannot_resolve_popup_preset">Popup-Voreinstellungsdatei kann nicht gefunden werden</string>
     <string name="capture_heap_dump">Heap-Dump erfassen</string>
@@ -1020,7 +1019,6 @@
     <string name="pinyin_config_cursor_at_start_summary">Cursor am Anfang der Inline-Vorschau (Eingabevorschau oder Kandidat) halten.</string>
     <string name="pinyin_config_full_pinyin">Vollständiges Pinyin</string>
     <string name="pinyin_config_show_shuangpin_mode">Shuangpin-Modus anzeigen</string>
-    <string name="pinyin_config_preedit_mode">Vorbearbeitungsmodus</string>
     <string name="pinyin_config_shuangpin_profile">Shuangpin-Profil</string>
     <string name="pinyin_config_english_candidates">Englische Kandidaten</string>
     <string name="pinyin_config_symbol_candidates">Symbolkandidaten</string>

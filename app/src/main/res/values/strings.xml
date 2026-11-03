@@ -275,7 +275,6 @@
     <string name="preedit_style_composing">Current composition string</string>
     <string name="preedit_style_commit_preview">Highlight candidate word</string>
     <string name="keyboard_settings_advanced_customization">Advanced customization</string>
-    <string name="keyboard_settings_split_tools_section">Split keyboard tools</string>
     <string name="focus_change_reset_enabled_summary">Return to keyboard when focus changes</string>
     <string name="focus_change_reset_disabled_summary">Keep the current panel on focus change</string>
     <string name="inline_suggestions_enabled_summary">Show inline autofill suggestions</string>
@@ -592,7 +591,6 @@
     <string name="save_icon_theme">Save icon theme</string>
     <string name="switch_icon_theme">Switch icon theme</string>
     <string name="default_icon">Default</string>
-    <string name="icon_resource_hint">Drawable resource name</string>
     <string name="key_icon_code">Icon code</string>
     <string name="key_icon_code_hint">Glyph code point, SVG, or drawable name</string>
     <string name="key_icon_code_summary">Supports Glyph Unicode code points, SVG code, or drawable resource names. The icon is previewed while editing; leave blank to restore the default icon.</string>
@@ -607,13 +605,7 @@
     <string name="theme_share_failed">Failed to share theme: %1$s</string>
     <string name="save_toolbar_theme">Save toolbar theme</string>
     <string name="switch_toolbar_theme">Switch toolbar theme</string>
-    <string name="export_toolbar_theme">Export toolbar theme</string>
-    <string name="import_toolbar_theme">Import toolbar theme</string>
-    <string name="export_icon_theme">Export icon theme</string>
-    <string name="import_icon_theme">Import icon theme</string>
-    <string name="theme_exported">Theme exported</string>
     <string name="theme_imported">Theme imported</string>
-    <string name="theme_export_failed">Theme export failed: %1$s</string>
     <string name="theme_import_failed">Theme import failed: %1$s</string>
     <string name="buttons_customizer_hint">Tap a button to edit its icon style. The Hide Keyboard button stays fixed at the end of Kawaii Bar (top row). Long press and drag other buttons into Available Buttons to hide them, or between Kawaii Bar and Status Area.</string>
     <string name="kawaii_bar_section">Kawaii Bar (Top Row)</string>
@@ -723,7 +715,7 @@
     <string name="candidates_window">Candidates Window</string>
     <string name="candidate_display_mode">Candidate display mode</string>
     <string name="candidate_display_mode_horizontal">Horizontal candidate bar</string>
-    <string name="candidate_display_mode_floating">Floating window</string>
+    <string name="candidate_display_mode_floating">Floating candidate window</string>
     <string name="candidates_window_radius">Candidates window radius</string>
     <string name="follow_input_device">Depends on input device</string>
     <string name="candidates_orientation">Candidates list orientation</string>
@@ -1024,7 +1016,6 @@
     <string name="fontset_sample_candidate">Candidate Example</string>
     <string name="fontset_sample_popup">Popup Key</string>
     <string name="fontset_sample_preedit">Preedit Text</string>
-    <string name="picker_category_fullwidth">Fullwidth</string>
     <string name="text_keyboard_layout_display_text_mode_invalid">Please fill in row %1$d before adding a new mode</string>
     <string name="text_keyboard_layout_display_text_mode_duplicate">Mode name "%1$s" is already in use</string>
     <string name="text_keyboard_layout_compose_override_not_configured">Use default key behavior while composing</string>
@@ -1151,7 +1142,6 @@
     <string name="pinyin_config_cursor_at_start_summary">Keep the cursor at the beginning of the inline preview (preedit or candidate).</string>
     <string name="pinyin_config_full_pinyin">Show full pinyin</string>
     <string name="pinyin_config_show_shuangpin_mode">Show shuangpin mode</string>
-    <string name="pinyin_config_preedit_mode">Preedit mode</string>
     <string name="pinyin_config_shuangpin_profile">Shuangpin profile</string>
     <string name="pinyin_config_english_candidates">English candidates</string>
     <string name="pinyin_config_symbol_candidates">Symbol candidates</string>

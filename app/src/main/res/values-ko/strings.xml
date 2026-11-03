@@ -122,7 +122,6 @@
     <string name="save_icon_theme">아이콘 테마 저장</string>
     <string name="switch_icon_theme">아이콘 테마 전환</string>
     <string name="default_icon">기본값</string>
-    <string name="icon_resource_hint">Drawable 리소스 이름</string>
     <string name="key_icon_code">아이콘 코드</string>
     <string name="key_icon_code_hint">Glyph 코드 포인트, SVG 또는 Drawable 이름</string>
     <string name="key_icon_code_summary">Glyph 유니코드 코드 포인트, SVG 코드 또는 Drawable 리소스 이름을 지원합니다. 편집하는 동안 아이콘이 미리 표시되며, 비워 두면 기본 아이콘으로 복원됩니다.</string>
@@ -137,13 +136,7 @@
     <string name="theme_share_failed">테마 공유 실패: %1$s</string>
     <string name="save_toolbar_theme">툴바 테마 저장</string>
     <string name="switch_toolbar_theme">툴바 테마 전환</string>
-    <string name="export_toolbar_theme">툴바 테마 내보내기</string>
-    <string name="import_toolbar_theme">툴바 테마 가져오기</string>
-    <string name="export_icon_theme">아이콘 테마 내보내기</string>
-    <string name="import_icon_theme">아이콘 테마 가져오기</string>
-    <string name="theme_exported">테마를 내보냈습니다</string>
     <string name="theme_imported">테마를 가져왔습니다</string>
-    <string name="theme_export_failed">테마 내보내기 실패: %1$s</string>
     <string name="theme_import_failed">테마 가져오기 실패: %1$s</string>
     <string name="buttons_customizer_hint">표시된 버튼을 탭하여 아이콘 스타일을 편집할 수 있습니다. 길게 누른 후 ‘사용 가능한 버튼’으로 드래그하면 숨길 수 있으며, Kawaii Bar(상단 행)와 Status Area(메뉴) 사이로 이동할 수도 있습니다. 해당 영역의 버튼을 탭하여 대상 섹션을 선택하세요.</string>
     <string name="kawaii_bar_section">Kawaii Bar (상단 행)</string>
@@ -467,7 +460,6 @@
     <string name="fontset_sample_candidate">후보 예시</string>
     <string name="fontset_sample_popup">팝업 키</string>
     <string name="fontset_sample_preedit">미리 편집 텍스트</string>
-    <string name="picker_category_fullwidth">전각</string>
     <string name="macro_editor_key_event_unmatched">키 이벤트 불일치: %1$s의 누름과 뗌 이벤트 수가 일치하지 않습니다</string>
     <string name="text_keyboard_layout_qr_import_scan">QR 스캔으로 가져오기</string>
     <string name="text_keyboard_layout_qr_import_image">QR 이미지에서 가져오기</string>
@@ -534,7 +526,7 @@
     <string name="candidates_window">후보 창</string>
     <string name="candidate_display_mode">후보 표시 방식</string>
     <string name="candidate_display_mode_horizontal">가로 후보 표시줄</string>
-    <string name="candidate_display_mode_floating">플로팅 창</string>
+    <string name="candidate_display_mode_floating">플로팅 후보 창</string>
     <string name="candidates_window_radius">후보 창 모서리 반경</string>
     <string name="cannot_resolve_popup_preset">팝업 프리셋 파일을 찾을 수 없습니다</string>
     <string name="capture_heap_dump">힙 덤프 캡처</string>
@@ -718,10 +710,17 @@
     <string name="keyboard_settings_basic_behavior">기본 동작</string>
     <string name="keyboard_settings_touch_and_sound">촉감 및 소리</string>
     <string name="keyboard_settings_key_and_gesture">키 및 제스처</string>
-    <string name="keyboard_settings_layout_and_split">레이아웃 및 분할 키보드</string>
+    <string name="keyboard_settings_layout_and_split">레이아웃 및 분할 또는 플로팅 키보드</string>
+    <string name="keyboard_modes_category_split">분할 키보드</string>
+    <string name="keyboard_modes_category_floating">플로팅 키보드</string>
+    <string name="floating_keyboard_enabled">플로팅 키보드 사용</string>
+    <string name="floating_keyboard_enabled_summary">키보드를 화면 하단에서 분리하고 자유롭게 드래그할 수 있습니다.</string>
+    <string name="auto_floating_landscape">가로 모드에서 플로팅 키보드 사용</string>
+    <string name="auto_floating_landscape_summary">가로 모드에서는 자동으로 플로팅 키보드로 전환하고, 세로 모드에서는 도킹된 키보드로 복원합니다.</string>
+    <string name="floating_move_handle_auto_hide">이동 핸들 자동 숨기기</string>
+    <string name="floating_move_handle_auto_hide_summary">3초 동안 조작하지 않으면 이동 핸들을 숨깁니다. 크기 조절 핸들을 두 번 탭하면 다시 표시됩니다.</string>
     <string name="keyboard_settings_candidates">후보 표시</string>
     <string name="keyboard_settings_advanced_customization">고급 사용자 지정</string>
-    <string name="keyboard_settings_split_tools_section">분할 키보드 도구</string>
     <string name="focus_change_reset_enabled_summary">포커스가 바뀌면 키보드로 돌아가기</string>
     <string name="focus_change_reset_disabled_summary">포커스가 바뀌어도 현재 패널 유지</string>
     <string name="inline_suggestions_enabled_summary">인라인 자동 완성 제안 표시</string>
@@ -1023,7 +1022,6 @@
     <string name="pinyin_config_cursor_at_start_summary">커서를 인라인 미리보기(프리 에디트 또는 후보)의 시작 부분에 유지합니다.</string>
     <string name="pinyin_config_full_pinyin">전체 병음 표시</string>
     <string name="pinyin_config_show_shuangpin_mode">쌍핀 모드 표시</string>
-    <string name="pinyin_config_preedit_mode">사전 편집 모드</string>
     <string name="pinyin_config_shuangpin_profile">쌍핀 프로필</string>
     <string name="pinyin_config_english_candidates">영어 후보</string>
     <string name="pinyin_config_symbol_candidates">기호 후보</string>

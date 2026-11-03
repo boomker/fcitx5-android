@@ -224,10 +224,17 @@
     <string name="keyboard_settings_basic_behavior">Основное поведение</string>
     <string name="keyboard_settings_touch_and_sound">Тактильная отдача и звук</string>
     <string name="keyboard_settings_key_and_gesture">Клавиши и жесты</string>
-    <string name="keyboard_settings_layout_and_split">Раскладка и разделенная клавиатура</string>
+    <string name="keyboard_settings_layout_and_split">Раскладка и разделенная или плавающая клавиатура</string>
+    <string name="keyboard_modes_category_split">Разделенная клавиатура</string>
+    <string name="keyboard_modes_category_floating">Плавающая клавиатура</string>
+    <string name="floating_keyboard_enabled">Включить плавающую клавиатуру</string>
+    <string name="floating_keyboard_enabled_summary">Отделите клавиатуру от нижнего края экрана и свободно перемещайте ее.</string>
+    <string name="auto_floating_landscape">Использовать плавающую клавиатуру в альбомной ориентации</string>
+    <string name="auto_floating_landscape_summary">Автоматически переключаться на плавающую клавиатуру в альбомной ориентации и возвращать закрепленную клавиатуру в портретной.</string>
+    <string name="floating_move_handle_auto_hide">Автоматически скрывать маркер перемещения</string>
+    <string name="floating_move_handle_auto_hide_summary">Скрывать маркер перемещения после 3 секунд бездействия. Дважды коснитесь маркера изменения размера, чтобы снова его показать.</string>
     <string name="keyboard_settings_candidates">Отображение кандидатов</string>
     <string name="keyboard_settings_advanced_customization">Расширенная настройка</string>
-    <string name="keyboard_settings_split_tools_section">Инструменты разделенной клавиатуры</string>
     <string name="focus_change_reset_enabled_summary">Возвращаться к клавиатуре при смене фокуса</string>
     <string name="focus_change_reset_disabled_summary">Сохранять текущую панель при смене фокуса</string>
     <string name="inline_suggestions_enabled_summary">Показывать встроенные подсказки автозаполнения</string>
@@ -305,7 +312,7 @@
     <string name="candidates_window">Окно кандидатов</string>
     <string name="candidate_display_mode">Способ отображения кандидатов</string>
     <string name="candidate_display_mode_horizontal">Горизонтальная панель кандидатов</string>
-    <string name="candidate_display_mode_floating">Плавающее окно</string>
+    <string name="candidate_display_mode_floating">Плавающее окно кандидатов</string>
     <string name="candidates_window_radius">Радиус окна кандидатов</string>
     <string name="follow_input_device">Зависит от устройства ввода</string>
     <string name="candidates_orientation">Ориентация списка кандидатов</string>
@@ -378,7 +385,6 @@
     <string name="save_icon_theme">Сохранить тему значков</string>
     <string name="switch_icon_theme">Сменить тему значков</string>
     <string name="default_icon">По умолчанию</string>
-    <string name="icon_resource_hint">Имя ресурса Drawable</string>
     <string name="key_icon_code">Код значка</string>
     <string name="key_icon_code_hint">Кодовая точка Glyph, SVG или имя Drawable</string>
     <string name="key_icon_code_summary">Поддерживаются кодовые точки Unicode Glyph, код SVG и имена ресурсов Drawable. Значок отображается в предпросмотре при редактировании; оставьте поле пустым, чтобы восстановить значок по умолчанию.</string>
@@ -393,13 +399,7 @@
     <string name="theme_share_failed">Не удалось поделиться темой: %1$s</string>
     <string name="save_toolbar_theme">Сохранить тему панели</string>
     <string name="switch_toolbar_theme">Сменить тему панели</string>
-    <string name="export_toolbar_theme">Экспортировать тему панели</string>
-    <string name="import_toolbar_theme">Импортировать тему панели</string>
-    <string name="export_icon_theme">Экспортировать тему значков</string>
-    <string name="import_icon_theme">Импортировать тему значков</string>
-    <string name="theme_exported">Тема экспортирована</string>
     <string name="theme_imported">Тема импортирована</string>
-    <string name="theme_export_failed">Не удалось экспортировать тему: %1$s</string>
     <string name="theme_import_failed">Не удалось импортировать тему: %1$s</string>
     <string name="buttons_customizer_hint">Нажмите видимую кнопку, чтобы изменить стиль значка. Удерживайте и перетащите кнопку в «Доступные кнопки», чтобы скрыть её, или переместите между Kawaii Bar (верхняя строка) и Status Area (меню). Нажмите кнопку в «Доступных кнопках», чтобы выбрать целевой раздел.</string>
     <string name="kawaii_bar_section">Kawaii Bar (верхняя строка)</string>
@@ -698,7 +698,6 @@
     <string name="fontset_sample_candidate">Пример кандидата</string>
     <string name="fontset_sample_popup">Всплывающая клавиша</string>
     <string name="fontset_sample_preedit">Текст предредактирования</string>
-    <string name="picker_category_fullwidth">Полноширинный</string>
     <string name="macro_editor_key_event_unmatched">Несоответствие событий клавиш: количество нажатий и отпусканий для %1$s не совпадает</string>
     <string name="text_keyboard_layout_qr_import_scan">Импорт сканированием QR</string>
     <string name="text_keyboard_layout_qr_import_image">Импорт из QR-изображения</string>
@@ -1022,7 +1021,6 @@
     <string name="pinyin_config_cursor_at_start_summary">Удерживать курсор в начале встроенного предпросмотра (предварительный ввод или кандидат).</string>
     <string name="pinyin_config_full_pinyin">Показывать полный пиньинь</string>
     <string name="pinyin_config_show_shuangpin_mode">Показывать режим shuangpin</string>
-    <string name="pinyin_config_preedit_mode">Режим предварительного ввода</string>
     <string name="pinyin_config_shuangpin_profile">Профиль shuangpin</string>
     <string name="pinyin_config_english_candidates">Английские кандидаты</string>
     <string name="pinyin_config_symbol_candidates">Кандидаты-символы</string>

@@ -10,7 +10,7 @@ import androidx.recyclerview.widget.RecyclerView
 import splitties.dimensions.dp
 import kotlin.math.max
 
-class ResponsiveThemeListView(
+class ResponsiveThemeListView @JvmOverloads constructor(
     context: Context,
     private val firstRowTopOffset: Int = -1
 ) : RecyclerView(context) {

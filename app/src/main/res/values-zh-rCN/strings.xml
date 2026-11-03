@@ -269,7 +269,6 @@
     <string name="preedit_style_composing">当前编码串</string>
     <string name="preedit_style_commit_preview">高亮候选词</string>
     <string name="keyboard_settings_advanced_customization">高级自定义</string>
-    <string name="keyboard_settings_split_tools_section">分体键盘工具</string>
     <string name="focus_change_reset_enabled_summary">焦点变化后恢复键盘</string>
     <string name="focus_change_reset_disabled_summary">焦点变化后保持当前面板</string>
     <string name="inline_suggestions_enabled_summary">显示内嵌自动填充建议</string>
@@ -425,7 +424,6 @@
     <string name="save_icon_theme">保存图标主题</string>
     <string name="switch_icon_theme">切换图标主题</string>
     <string name="default_icon">默认</string>
-    <string name="icon_resource_hint">Drawable 资源名</string>
     <string name="key_icon_code">图标代码</string>
     <string name="key_icon_code_hint">Glyph 码点、SVG 或 Drawable 名称</string>
     <string name="key_icon_code_summary">支持 Glyph Unicode 码点、SVG 代码或 Drawable 资源名，编辑时可实时预览；留空可恢复默认图标。</string>
@@ -440,13 +438,7 @@
     <string name="theme_share_failed">分享主题失败：%1$s</string>
     <string name="save_toolbar_theme">保存工具栏主题</string>
     <string name="switch_toolbar_theme">切换工具栏主题</string>
-    <string name="export_toolbar_theme">导出工具栏主题</string>
-    <string name="import_toolbar_theme">导入工具栏主题</string>
-    <string name="export_icon_theme">导出图标主题</string>
-    <string name="import_icon_theme">导入图标主题</string>
-    <string name="theme_exported">主题已导出</string>
     <string name="theme_imported">主题已导入</string>
-    <string name="theme_export_failed">主题导出失败：%1$s</string>
     <string name="theme_import_failed">主题导入失败：%1$s</string>
     <string name="buttons_customizer_hint">点击按钮可编辑图标样式。“隐藏键盘”按钮固定在 Kawaii Bar（顶行）末尾；其他按钮可长按拖动到“可添加按钮”以隐藏，也可在 Kawaii Bar 和 Status Area 之间移动。</string>
     <string name="kawaii_bar_section">Kawaii Bar（顶行）</string>
@@ -549,7 +541,7 @@
     <string name="candidates_window">候选窗口</string>
     <string name="candidate_display_mode">候选词显示方式</string>
     <string name="candidate_display_mode_horizontal">横向候选栏</string>
-    <string name="candidate_display_mode_floating">浮动窗口</string>
+    <string name="candidate_display_mode_floating">浮动候选窗</string>
     <string name="candidates_window_radius">候选窗口圆角半径</string>
     <string name="follow_input_device">根据输入设备而定</string>
     <string name="candidates_orientation">候选词列表方向</string>
@@ -856,7 +848,6 @@
     <string name="fontset_sample_candidate">候选词示例</string>
     <string name="fontset_sample_popup">弹出键</string>
     <string name="fontset_sample_preedit">预编辑文本</string>
-    <string name="picker_category_fullwidth">全角</string>
     <string name="text_keyboard_layout_display_text_mode_invalid">请先填写第 %1$d 行的模式名称和显示文本</string>
     <string name="text_keyboard_layout_display_text_mode_duplicate">模式名称 "%1$s" 已被使用</string>
     <string name="cannot_resolve_text_keyboard_layout">无法定位文本键盘布局文件</string>
@@ -1031,7 +1022,6 @@
     <string name="pinyin_config_cursor_at_start_summary">光标保持在行内预览项(预编码、候选项)的开头。</string>
     <string name="pinyin_config_full_pinyin">显示完整拼音</string>
     <string name="pinyin_config_show_shuangpin_mode">显示双拼状态</string>
-    <string name="pinyin_config_preedit_mode">预编辑模式</string>
     <string name="pinyin_config_shuangpin_profile">双拼方案</string>
     <string name="pinyin_config_english_candidates">英文候选</string>
     <string name="pinyin_config_symbol_candidates">符号候选</string>

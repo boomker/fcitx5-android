@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Build type aliases resolve these launcher resources indirectly through the manifest. -->
 <resources xmlns:tools="http://schemas.android.com/tools"
-    tools:keep="@mipmap/ic_launcher_debug,@mipmap/ic_launcher_round,@mipmap/ic_launcher_round_debug" />
+    tools:keep="@mipmap/ic_launcher_debug,@mipmap/ic_launcher_round,@mipmap/ic_launcher_round_debug,
+        @drawable/ic_baseline_access_time_24,@drawable/ic_baseline_cake_24,
+        @drawable/ic_baseline_directions_car_24,@drawable/ic_baseline_emoji_objects_24,
+        @drawable/ic_baseline_emoji_people_24,@drawable/ic_baseline_flag_24,
+        @drawable/ic_baseline_flower_24,@drawable/ic_baseline_qr_code_scanner_24,
+        @drawable/ic_baseline_sports_basketball_24,@drawable/symbol_arrow,
+        @drawable/symbol_bracket,@drawable/symbol_fullwidth,@drawable/symbol_math,
+        @drawable/symbol_number_punctuation,@drawable/symbol_ordinal,@drawable/symbol_other" />

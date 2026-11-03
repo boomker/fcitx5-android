@@ -289,7 +289,6 @@
     <string name="preedit_style_composing">目前編碼字串</string>
     <string name="preedit_style_commit_preview">高亮候選詞</string>
     <string name="keyboard_settings_advanced_customization">進階自訂</string>
-    <string name="keyboard_settings_split_tools_section">分體鍵盤工具</string>
     <string name="focus_change_reset_enabled_summary">焦點變化後恢復鍵盤</string>
     <string name="focus_change_reset_disabled_summary">焦點變化後保持目前面板</string>
     <string name="inline_suggestions_enabled_summary">顯示內嵌自動填充建議</string>
@@ -445,7 +444,7 @@
     <string name="candidates_window">候選詞視窗</string>
     <string name="candidate_display_mode">候選詞顯示方式</string>
     <string name="candidate_display_mode_horizontal">橫向候選欄</string>
-    <string name="candidate_display_mode_floating">浮動視窗</string>
+    <string name="candidate_display_mode_floating">浮動候選窗</string>
     <string name="candidates_window_radius">候選詞窗口半徑</string>
     <string name="follow_input_device">視輸入設備而定</string>
     <string name="candidates_orientation">候選詞列表方向</string>
@@ -784,7 +783,6 @@
     <string name="fontset_sample_candidate">候選詞範例</string>
     <string name="fontset_sample_popup">彈出鍵</string>
     <string name="fontset_sample_preedit">預編輯文字</string>
-    <string name="picker_category_fullwidth">全形</string>
     <string name="macro_editor_key_event_unmatched">按鍵事件不匹配：%1$s 的按下和釋放次數不等</string>
     <string name="text_keyboard_layout_qr_import_scan">掃碼匯入</string>
     <string name="text_keyboard_layout_qr_import_image">從二維碼圖片匯入</string>
@@ -991,7 +989,6 @@
     <string name="pinyin_config_cursor_at_start_summary">游標保持在行內預覽項(預編碼、候選項)的開頭。</string>
     <string name="pinyin_config_full_pinyin">顯示完整拼音</string>
     <string name="pinyin_config_show_shuangpin_mode">顯示雙拼狀態</string>
-    <string name="pinyin_config_preedit_mode">預編輯模式</string>
     <string name="pinyin_config_shuangpin_profile">雙拼方案</string>
     <string name="pinyin_config_english_candidates">英文候選</string>
     <string name="pinyin_config_symbol_candidates">符號候選</string>

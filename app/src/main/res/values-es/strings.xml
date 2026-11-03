@@ -144,7 +144,6 @@
     <string name="save_icon_theme">Guardar tema de iconos</string>
     <string name="switch_icon_theme">Cambiar tema de iconos</string>
     <string name="default_icon">Predeterminado</string>
-    <string name="icon_resource_hint">Nombre del recurso Drawable</string>
     <string name="key_icon_code">Código de icono</string>
     <string name="key_icon_code_hint">Punto de código glyph, SVG o nombre de drawable</string>
     <string name="key_icon_code_summary">Admite puntos de código Unicode glyph, código SVG o nombres de recursos drawable. El icono se previsualiza mientras editas; déjalo vacío para restaurar el icono predeterminado.</string>
@@ -159,13 +158,7 @@
     <string name="theme_share_failed">No se pudo compartir el tema: %1$s</string>
     <string name="save_toolbar_theme">Guardar tema de la barra</string>
     <string name="switch_toolbar_theme">Cambiar tema de la barra</string>
-    <string name="export_toolbar_theme">Exportar tema de la barra</string>
-    <string name="import_toolbar_theme">Importar tema de la barra</string>
-    <string name="export_icon_theme">Exportar tema de iconos</string>
-    <string name="import_icon_theme">Importar tema de iconos</string>
-    <string name="theme_exported">Tema exportado</string>
     <string name="theme_imported">Tema importado</string>
-    <string name="theme_export_failed">Error al exportar el tema: %1$s</string>
     <string name="theme_import_failed">Error al importar el tema: %1$s</string>
     <string name="buttons_customizer_hint">Toque un botón visible para editar el estilo de su icono. Manténgalo pulsado y arrástrelo a «Botones disponibles» para ocultarlo, o entre Kawaii Bar (fila superior) y el área de estado (menú). Toque allí un botón para elegir su sección de destino.</string>
     <string name="kawaii_bar_section">Kawaii Bar (fila superior)</string>
@@ -489,7 +482,6 @@
     <string name="fontset_sample_candidate">Ejemplo de candidato</string>
     <string name="fontset_sample_popup">Tecla emergente</string>
     <string name="fontset_sample_preedit">Texto de preedición</string>
-    <string name="picker_category_fullwidth">Ancho completo</string>
     <string name="macro_editor_key_event_unmatched">Inconsistencia de eventos de tecla: el número de eventos down y up para %1$s no coincide</string>
     <string name="text_keyboard_layout_qr_import_scan">Importar escaneando QR</string>
     <string name="text_keyboard_layout_qr_import_image">Importar desde imagen QR</string>
@@ -552,7 +544,7 @@
     <string name="candidates_window">Ventana de candidatos</string>
     <string name="candidate_display_mode">Modo de visualización de candidatos</string>
     <string name="candidate_display_mode_horizontal">Barra horizontal de candidatos</string>
-    <string name="candidate_display_mode_floating">Ventana flotante</string>
+    <string name="candidate_display_mode_floating">Ventana flotante de candidatos</string>
     <string name="candidates_window_radius">Radio de la ventana de candidatos</string>
     <string name="cannot_resolve_popup_preset">No se pudo resolver el archivo de preajustes emergentes</string>
     <string name="capture_heap_dump">Capturar volcado de memoria heap</string>
@@ -728,10 +720,17 @@
     <string name="keyboard_settings_basic_behavior">Comportamiento basico</string>
     <string name="keyboard_settings_touch_and_sound">Tacto y sonido</string>
     <string name="keyboard_settings_key_and_gesture">Teclas y gestos</string>
-    <string name="keyboard_settings_layout_and_split">Diseno y teclado dividido</string>
+    <string name="keyboard_settings_layout_and_split">Diseno y teclado dividido o flotante</string>
+    <string name="keyboard_modes_category_split">Teclado dividido</string>
+    <string name="keyboard_modes_category_floating">Teclado flotante</string>
+    <string name="floating_keyboard_enabled">Activar teclado flotante</string>
+    <string name="floating_keyboard_enabled_summary">Separa el teclado del borde inferior de la pantalla y arrastralo libremente.</string>
+    <string name="auto_floating_landscape">Usar teclado flotante en horizontal</string>
+    <string name="auto_floating_landscape_summary">Cambiar automaticamente al teclado flotante en horizontal y restaurar el teclado acoplado en vertical.</string>
+    <string name="floating_move_handle_auto_hide">Ocultar automaticamente el tirador de movimiento</string>
+    <string name="floating_move_handle_auto_hide_summary">Ocultar el tirador de movimiento tras 3 segundos de inactividad. Toca dos veces un tirador de redimensionamiento para volver a mostrarlo.</string>
     <string name="keyboard_settings_candidates">Visualizacion de candidatos</string>
     <string name="keyboard_settings_advanced_customization">Personalizacion avanzada</string>
-    <string name="keyboard_settings_split_tools_section">Herramientas de teclado dividido</string>
     <string name="focus_change_reset_enabled_summary">Volver al teclado al cambiar el foco</string>
     <string name="focus_change_reset_disabled_summary">Mantener el panel actual al cambiar el foco</string>
     <string name="inline_suggestions_enabled_summary">Mostrar sugerencias de autocompletado integradas</string>
@@ -1022,7 +1021,6 @@
     <string name="pinyin_config_cursor_at_start_summary">Mantener el cursor al inicio de la vista previa en línea (preedición o candidato).</string>
     <string name="pinyin_config_full_pinyin">Mostrar pinyin completo</string>
     <string name="pinyin_config_show_shuangpin_mode">Mostrar modo shuangpin</string>
-    <string name="pinyin_config_preedit_mode">Modo de preedición</string>
     <string name="pinyin_config_shuangpin_profile">Perfil de shuangpin</string>
     <string name="pinyin_config_english_candidates">Candidatos en inglés</string>
     <string name="pinyin_config_symbol_candidates">Candidatos de símbolos</string>
