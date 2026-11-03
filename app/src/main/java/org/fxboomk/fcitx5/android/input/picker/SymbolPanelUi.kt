@@ -30,11 +30,14 @@ import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.data.theme.Theme
 import org.fxboomk.fcitx5.android.data.theme.ThemeManager
 import org.fxboomk.fcitx5.android.input.AutoScaleTextView
+import org.fxboomk.fcitx5.android.input.config.KeyIconIds
+import org.fxboomk.fcitx5.android.input.config.KeyIconThemeStore
 import org.fxboomk.fcitx5.android.input.font.FontProviders
 import org.fxboomk.fcitx5.android.input.keyboard.KeyAction
 import org.fxboomk.fcitx5.android.input.keyboard.KeyAction.SymAction
 import org.fxboomk.fcitx5.android.input.keyboard.KeyActionListener
 import org.fxboomk.fcitx5.android.input.keyboard.KeyDef
+import org.fxboomk.fcitx5.android.input.keyboard.ImageKeyView
 import org.fxboomk.fcitx5.android.input.keyboard.TextKeyView
 import org.fxboomk.fcitx5.android.input.keyboard.TextKeyboard
 import org.fxboomk.fcitx5.android.input.keyboard.borderedKeyBackgroundDrawable
@@ -140,6 +143,8 @@ class SymbolPanelUi(
     }
 
     private val stylePref = AppPrefs.getInstance().symbols.symbolPanelStyle
+    private val onKeyIconThemeChanged: () -> Unit = { applyStyle() }
+    private var listeningForKeyIconTheme = false
 
     /** 当前已生效的风格；[applyStyle] 里从偏好重读。 */
     private var style: SymbolPanelStyle = stylePref.getValue()
@@ -368,6 +373,20 @@ class SymbolPanelUi(
     init {
         applyStyle()
         rebuild()
+        attach()
+    }
+
+    /** Register theme updates while this panel is attached; repeat calls are harmless. */
+    fun attach() {
+        if (listeningForKeyIconTheme) return
+        listeningForKeyIconTheme = true
+        KeyIconThemeStore.addOnChangedListener(onKeyIconThemeChanged)
+    }
+
+    fun detach() {
+        if (!listeningForKeyIconTheme) return
+        listeningForKeyIconTheme = false
+        KeyIconThemeStore.removeOnChangedListener(onKeyIconThemeChanged)
     }
 
     // ---- 视图结构（按风格） ----
@@ -440,12 +459,28 @@ class SymbolPanelUi(
     )
 
     // ⌫ 删除，长按连续删除 —— 与 Foxy 的 ly.k 对应
-    private fun backspaceKey() = createUtilityKey(
-        label = LABEL_BACKSPACE,
-        descriptionRes = R.string.backspace,
-        action = SymAction(KeySym(FcitxKeyMapping.FcitxKey_BackSpace)),
-        repeat = true
-    )
+    private fun backspaceKey(): ImageKeyView {
+        val appearance = KeyDef.Appearance.Image(
+            src = KeyIconThemeStore.resolveDrawable(
+                ctx,
+                KeyIconIds.BACKSPACE,
+                R.drawable.ic_baseline_backspace_24
+            ),
+            variant = KeyDef.Appearance.Variant.Alternative,
+            border = KeyDef.Appearance.Border.Default,
+            viewId = View.generateViewId()
+        )
+        return ImageKeyView(ctx, theme, appearance).apply {
+            contentDescription = ctx.getString(R.string.backspace)
+            swipeEnabled = false
+            onGestureListener = null
+            val action = SymAction(KeySym(FcitxKeyMapping.FcitxKey_BackSpace))
+            val fire = { keyActionListener.onKeyAction(action, KeyActionListener.Source.Keyboard) }
+            setOnClickListener { fire() }
+            repeatEnabled = true
+            onRepeatListener = { fire() }
+        }
+    }
 
     /** 左：分组栏（纵向）+ 底部两枚功能键（均分 84dp）；右：符号网格。 */
     private fun buildSidebarLayout(): View {

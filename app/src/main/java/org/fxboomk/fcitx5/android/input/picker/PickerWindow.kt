@@ -157,12 +157,14 @@ class PickerWindow(
     override fun onAttached() {
         pickerLayout.symbolPanel.apply {
             // 重建同时会按当前字体配置重新绑定可见项
+            attach()
             refresh()
             scrollToTop()
         }
     }
 
     override fun onDetached() {
+        pickerLayout.symbolPanel.detach()
         popup.dismissAll()
     }
 }
