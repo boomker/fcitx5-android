@@ -71,7 +71,6 @@ object ButtonsLayoutThemeStore {
         }
         val active = if (current.activeTheme == source) target else current.activeTheme
         write(current.copy(activeTheme = active, themes = themes))
-        Unit
     }
 
     @Synchronized
@@ -88,7 +87,6 @@ object ButtonsLayoutThemeStore {
             this[index] = previous
         }
         write(current.copy(themes = themes))
-        Unit
     }
 
     @Synchronized
@@ -121,36 +119,23 @@ object ButtonsLayoutThemeStore {
         val baseConfig = ConfigProviders.readButtonsLayoutConfig<ButtonsLayoutConfig>()?.value
             ?: ButtonsLayoutConfig.default()
         val builtins = BuiltinThemeCatalog.toolbarThemes(baseConfig)
-        val builtinByName = builtins.associateBy { it.name }
-        // Refresh bundled themes in place so installations upgraded from an
-        // older build also receive newly added icon mappings. Preserve the
-        // user's layout and labels while replacing only themed icon values.
-        val themes = value.themes.map { existing ->
-            val builtin = builtinByName[existing.name] ?: return@map existing
-            existing.copy(config = mergeThemedIcons(existing.config, builtin.config))
-        }.toMutableList().apply {
+        return seedBuiltinThemes(value, builtins)
+    }
+
+    /**
+     * Builtin themes only fill names that do not exist in the user's store.
+     * Existing themes are authoritative, so intentionally overwriting a
+     * builtin theme is not reverted on the next load/switch.
+     */
+    internal fun seedBuiltinThemes(
+        value: ButtonsLayoutThemes,
+        builtins: List<ButtonsLayoutTheme>
+    ): ButtonsLayoutThemes {
+        val themes = value.themes.toMutableList().apply {
             val existingNames = mapTo(hashSetOf()) { it.name }
             addAll(builtins.filter { it.name !in existingNames })
         }
         val active = themes.firstOrNull { it.name == value.activeTheme }?.name ?: themes.first().name
         return value.copy(activeTheme = active, themes = themes)
-    }
-
-    private fun mergeThemedIcons(
-        current: ButtonsLayoutConfig,
-        themed: ButtonsLayoutConfig
-    ): ButtonsLayoutConfig {
-        val themedById = (themed.kawaiiBarButtons + themed.statusAreaButtons + themed.optionalButtons)
-            .associateBy { it.id }
-        fun merge(button: ConfigurableButton): ConfigurableButton =
-            themedById[button.id]?.icon?.let { button.copy(icon = it) } ?: button
-        return current.copy(
-            kawaiiBarButtons = current.kawaiiBarButtons.map(::merge),
-            statusAreaButtons = current.statusAreaButtons.map(::merge),
-            optionalButtons = current.optionalButtons.map(::merge),
-            hideKeyboardButton = themed.hideKeyboardButton.icon?.let {
-                current.hideKeyboardButton.copy(icon = it)
-            } ?: current.hideKeyboardButton
-        )
     }
 }

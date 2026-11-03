@@ -3,10 +3,14 @@
  */
 package org.fxboomk.fcitx5.android.input.config
 
+import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class ThemeTransferTest {
+    private val json = Json { ignoreUnknownKeys = true }
+
     @Test
     fun toolbarThemeRoundTripsWithItsFormat() {
         val theme = ButtonsLayoutTheme("Compact", ButtonsLayoutConfig.default())
@@ -28,6 +32,31 @@ class ThemeTransferTest {
                 ButtonsLayoutTheme("Toolbar", ButtonsLayoutConfig.default())
             )
         )
+    }
+
+    @Test
+    fun oldButtonConfigWithoutActiveIconStillDeserializes() {
+        val decoded = json.decodeFromString<ButtonsLayoutConfig>(
+            """{"kawaiiBarButtons":[{"id":"voice_input"}],"statusAreaButtons":[]}"""
+        )
+        assertNull(decoded.kawaiiBarButtons.single().activeIcon)
+    }
+
+    @Test
+    fun toolbarThemePreservesVoiceActiveIcon() {
+        val button = ConfigurableButton(
+            id = "voice_input",
+            icon = "font:E141",
+            activeIcon = "font:E142"
+        )
+        val theme = ButtonsLayoutTheme(
+            "Voice",
+            ButtonsLayoutConfig.default().copy(kawaiiBarButtons = listOf(button))
+        )
+
+        val decoded = ThemeTransferCodec.decodeToolbar(ThemeTransferCodec.encodeToolbar(theme))
+
+        assertEquals(button.activeIcon, decoded.config.kawaiiBarButtons.single().activeIcon)
     }
 
     @Test
