@@ -145,6 +145,9 @@
     <string name="available_buttons_section">사용 가능한 버튼</string>
     <string name="button_icon_code">아이콘 코드 또는 SVG</string>
     <string name="button_icon_code_hint">Glyph 유니코드 코드 포인트 또는 &lt;svg&gt;&#8230;</string>
+    <string name="button_icon_idle">대기 아이콘</string>
+    <string name="button_icon_active">음성 입력 중 아이콘</string>
+    <string name="button_icon_voice_summary">평소에는 대기 아이콘을 표시하고 음성 입력 중에는 입력 중 아이콘으로 바뀝니다.</string>
     <string name="button_icon_code_summary">Iconfont glyph 코드 포인트 또는 SVG 코드를 입력하세요. 편집 중 SVG와 glyph를 모두 미리 볼 수 있으며, 비워 두면 기본 아이콘으로 복원됩니다.</string>
     <string name="button_icon_code_invalid">유효한 코드 포인트 또는 path가 포함된 SVG 코드를 입력하세요</string>
     <string name="language_switch">언어 전환</string>
@@ -734,7 +737,7 @@
     <string name="space_behavior_enumerate">입력기 순환</string>
     <string name="space_behavior_none">없음</string>
     <string name="space_behavior_repeat_space">공백 문자 반복 출력</string>
-    <string name="space_behavior_voice_input">음성 입력으로 전환</string>
+    <string name="space_behavior_voice_input">누르고 말하기</string>
     <string name="space_behavior_switch_to_english">중국어와 영어 입력 방식 간 전환</string>
     <string name="space_long_press_behavior">스페이스 키 길게 누르기 동작</string>
     <string name="split_keyboard_calibration_summary">실시간 미리보기와 자동 추천으로 분할 키보드 설정을 시각적으로 조정</string>
@@ -753,7 +756,6 @@
     <string name="punctuation_swipe_raw">원래 문자 입력</string>
     <string name="swipe_symbol_behavior">구두점 스와이프 방향</string>
     <string name="swipe_up">위로 스와이프</string>
-    <string name="switch_to_voice_input">음성 입력으로 전환</string>
     <string name="system_default">시스템 기본값</string>
     <string name="text_editing_button_radius">텍스트 편집 버튼 반경</string>
     <string name="text_keyboard_layout_file_delete_confirm">레이아웃 파일 프로필 "%1$s"와 백업을 삭제할까요?</string>

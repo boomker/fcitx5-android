@@ -100,6 +100,13 @@ object VoiceInputProviderManager {
     fun isActive(): Boolean =
         activeConnection != null || activeProvider != null || activeCapture != null || activeProviderId != null
 
+    /**
+     * A toolbar tap always means "toggle": while a session exists it must end
+     * the session rather than start a second request. Kept as a pure helper so
+     * the UI decision is testable without Android services.
+     */
+    fun shouldStopOnTap(isActive: Boolean): Boolean = isActive
+
     fun isProviderId(id: String) = id.startsWith(ID_PREFIX)
 
     fun hasProvider(id: String, context: Context = appContext): Boolean =
@@ -220,6 +227,7 @@ object VoiceInputProviderManager {
 
             override fun onSessionEnded() {
                 service.lifecycleScope.launch(Dispatchers.Main) {
+                    service.commitAndClearVoiceComposingText()
                     serviceFinished(service, onFinished)
                 }
             }
@@ -303,9 +311,23 @@ object VoiceInputProviderManager {
         }
     }
 
+    /**
+     * Explicit user stop. Unlike [finish], this must always terminate the
+     * session even if a provider fails to send `onSessionEnded()` after
+     * `endStream()`. The toolbar's second tap is an explicit cancel request.
+     */
     fun stop(context: Context = appContext) {
         pendingPermissionStart = null
-        finish(context)
+        val provider = activeProvider
+        if (provider != null) {
+            runCatching { provider.endStream() }
+                .onFailure { Timber.w(it, "Voice input endStream failed") }
+        }
+        if (context is FcitxInputMethodService) {
+            context.commitAndClearVoiceComposingText()
+        }
+        stopSession(context)
+        voiceFinishedCallback?.invoke()
     }
 
     fun onAudioPermissionResult(granted: Boolean) {

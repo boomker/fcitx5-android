@@ -9,6 +9,8 @@ import timber.log.Timber
 import android.os.FileObserver
 import android.os.Handler
 import android.os.Looper
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.data.theme.ThemeManager
@@ -349,6 +351,16 @@ object ConfigProviders {
      */
     inline fun <reified T> readButtonsLayoutConfig(): UserJsonConfigStore.JsonSnapshot<T>? =
         UserJsonConfigStore.readJson<T>(provider.buttonsLayoutConfigFile()).also { ensureWatching() }
+
+    /** Persist the unified toolbar layout and notify the attached input view. */
+    fun saveButtonsLayoutConfig(config: ButtonsLayoutConfig): Result<File> = runCatching {
+        val file = provider.buttonsLayoutConfigFile() ?: error("Cannot resolve buttons layout config path")
+        file.parentFile?.mkdirs()
+        val json = Json { prettyPrint = true; ignoreUnknownKeys = true }
+        file.writeText(json.encodeToString(config) + "\n")
+        notifyListeners(buttonsLayoutListeners)
+        file
+    }
 
     /**
      * @deprecated Use readButtonsLayoutConfig instead

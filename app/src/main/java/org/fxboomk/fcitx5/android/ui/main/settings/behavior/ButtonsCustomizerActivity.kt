@@ -39,6 +39,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.tabs.TabLayout
 import kotlinx.serialization.encodeToString
 import org.fxboomk.fcitx5.android.R
+import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.data.theme.Theme
 import org.fxboomk.fcitx5.android.data.theme.ThemeManager
 import org.fxboomk.fcitx5.android.input.AutoScaleTextView
@@ -49,7 +50,9 @@ import org.fxboomk.fcitx5.android.input.config.ButtonsLayoutThemeStore
 import org.fxboomk.fcitx5.android.input.config.ConfigProviders
 import org.fxboomk.fcitx5.android.input.config.ConfigProvider
 import org.fxboomk.fcitx5.android.input.config.ConfigurableButton
+import org.fxboomk.fcitx5.android.input.bar.ToolbarVoiceInputPolicy
 import org.fxboomk.fcitx5.android.input.config.KeyIconDefinition
+import org.fxboomk.fcitx5.android.input.config.KeyIconIds
 import org.fxboomk.fcitx5.android.input.config.KeyIconStore
 import org.fxboomk.fcitx5.android.input.config.KeyIconTheme
 import org.fxboomk.fcitx5.android.input.font.ButtonIconFont
@@ -166,6 +169,7 @@ class ButtonsCustomizerActivity : AppCompatActivity() {
     // Combined list: Section headers + buttons
     private val items = mutableListOf<ListItem>()
     private var originalItems = listOf<ListItem>()
+    private var originalVoiceInputButton = false
     private var saveMenuItem: MenuItem? = null
     private var switchThemeMenuItem: MenuItem? = null
     private var adapter: CombinedAdapter? = null
@@ -213,7 +217,7 @@ class ButtonsCustomizerActivity : AppCompatActivity() {
         ButtonDefinition("reload_config", R.drawable.ic_baseline_sync_24, R.string.reload_config),
         ButtonDefinition("virtual_keyboard", R.drawable.ic_baseline_keyboard_24, R.string.virtual_keyboard),
         ButtonDefinition("one_handed_keyboard", R.drawable.ic_baseline_keyboard_tab_24, R.string.one_handed_keyboard),
-        ButtonDefinition("adjust_keyboard_height", R.drawable.ic_baseline_tune_24, R.string.adjust_keyboard_height),
+        ButtonDefinition("adjust_keyboard_height", R.drawable.ic_keyboard_height_adjust_24, R.string.adjust_keyboard_height),
         ButtonDefinition("input_method_options", R.drawable.ic_baseline_language_24, R.string.input_method_options),
         ButtonDefinition("search", R.drawable.ic_baseline_search_24, R.string.search)
     )
@@ -327,6 +331,7 @@ class ButtonsCustomizerActivity : AppCompatActivity() {
         val snapshot = ConfigProviders.readButtonsLayoutConfig<ButtonsLayoutConfig>()
         val config = (snapshot?.value ?: ButtonsLayoutConfig.default()).withKeyboardHeightAdjustButton()
         hideKeyboardButton = config.resolvedHideKeyboardButton()
+        originalVoiceInputButton = ToolbarVoiceInputPolicy.syncedSwitchState(config.kawaiiBarButtons)
 
         // Build combined list
         items.clear()
@@ -888,83 +893,115 @@ class ButtonsCustomizerActivity : AppCompatActivity() {
         }
         dialogView.addView(infoText)
 
-        val iconLabel = TextView(this).apply {
-            setText(R.string.button_icon_code)
-            textSize = 13f
-            setPadding(0, dp(8), 0, 0)
-        }
-        dialogView.addView(iconLabel)
+        fun addIconEditor(
+            titleRes: Int,
+            initialValue: String?,
+            defaultFallbackRes: Int,
+            defaultGlyph: String?
+        ): EditText {
+            dialogView.addView(TextView(this).apply {
+                setText(titleRes)
+                textSize = 13f
+                setPadding(0, dp(8), 0, 0)
+            })
 
-        val iconInput = EditText(this).apply {
-            hint = getString(R.string.button_icon_code_hint)
-            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
-            minLines = 1
-            maxLines = 7
-            setText(
-                ButtonIconSpec.svg(button.icon)?.removePrefix("svg:")
-                    ?: ButtonIconSpec.codePoint(button.icon)?.let { "%04X".format(it) }.orEmpty()
+            val input = EditText(this).apply {
+                hint = getString(R.string.button_icon_code_hint)
+                inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
+                minLines = 1
+                maxLines = 7
+                setText(
+                    ButtonIconSpec.svg(initialValue)?.removePrefix("svg:")
+                        ?: ButtonIconSpec.codePoint(initialValue)?.let { "%04X".format(it) }.orEmpty()
+                )
+            }
+            dialogView.addView(input)
+
+            val previewContainer = android.widget.FrameLayout(this).apply { minimumHeight = dp(64) }
+            val iconPreview = TextView(this).apply {
+                textSize = 32f
+                gravity = android.view.Gravity.CENTER
+            }
+            val svgPreview = ImageView(this).apply {
+                scaleType = ImageView.ScaleType.CENTER_INSIDE
+                setPadding(dp(12), dp(12), dp(12), dp(12))
+            }
+            previewContainer.addView(iconPreview, android.widget.FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            ))
+            previewContainer.addView(svgPreview, android.widget.FrameLayout.LayoutParams(dp(64), dp(64), android.view.Gravity.CENTER))
+            dialogView.addView(previewContainer, LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dp(64)
+            ))
+
+            fun updateIconPreview() {
+                val value = input.text?.toString().orEmpty()
+                val glyph = ButtonIconSpec.glyph(value)
+                val svgValue = ButtonIconSpec.svgMarkup(value)?.let { "svg:${it.trim()}" }
+                val drawable = when {
+                    svgValue != null -> ButtonIconSpec.drawable(this, svgValue, 0)
+                    value.isBlank() -> {
+                        val themed = if (button.id == "voice_input" &&
+                            titleRes == R.string.button_icon_idle
+                        ) {
+                            KeyIconStore.resolveDrawableObject(this, KeyIconIds.VOICE_INPUT, defaultFallbackRes)
+                        } else {
+                            null
+                        }
+                        themed ?: ButtonIconSpec.drawable(this, null, defaultFallbackRes)
+                    }
+                    else -> null
+                }
+                val previewGlyph = glyph ?: if (value.isBlank()) defaultGlyph else null
+                iconPreview.typeface = if (previewGlyph == null) Typeface.DEFAULT else ButtonIconFont.typeface(this)
+                svgPreview.visibility = if (drawable == null) View.GONE else View.VISIBLE
+                iconPreview.visibility = if (drawable == null) View.VISIBLE else View.GONE
+                svgPreview.setImageDrawable(drawable)
+                drawable?.setTint(styledColor(android.R.attr.textColorPrimary))
+                iconPreview.text = when {
+                    previewGlyph != null -> previewGlyph
+                    value.isBlank() -> ""
+                    else -> "?"
+                }
+            }
+            input.addTextChangedListener(object : TextWatcher {
+                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+
+                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                    input.error = null
+                    updateIconPreview()
+                }
+
+                override fun afterTextChanged(s: Editable?) = Unit
+            })
+            updateIconPreview()
+            return input
+        }
+
+        val isVoiceButton = button.id == "voice_input"
+        val iconInput = addIconEditor(
+            if (isVoiceButton) R.string.button_icon_idle else R.string.button_icon_code,
+            button.icon,
+            defaultIconRes,
+            defaultIconGlyph
+        )
+        val activeIconInput = if (isVoiceButton) {
+            addIconEditor(
+                R.string.button_icon_active,
+                button.activeIcon,
+                R.drawable.ic_voice_input_active_24,
+                null
             )
+        } else {
+            null
         }
-        dialogView.addView(iconInput)
-
-        val previewContainer = android.widget.FrameLayout(this).apply { minimumHeight = dp(64) }
-        val iconPreview = TextView(this).apply {
-            textSize = 32f
-            gravity = android.view.Gravity.CENTER
-        }
-        val svgPreview = ImageView(this).apply {
-            scaleType = ImageView.ScaleType.CENTER_INSIDE
-            setPadding(dp(12), dp(12), dp(12), dp(12))
-        }
-        previewContainer.addView(iconPreview, android.widget.FrameLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.MATCH_PARENT
-        ))
-        previewContainer.addView(svgPreview, android.widget.FrameLayout.LayoutParams(dp(64), dp(64), android.view.Gravity.CENTER))
-        dialogView.addView(previewContainer, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            dp(64)
-        ))
-
-        val iconHint = TextView(this).apply {
-            setText(R.string.button_icon_code_summary)
+        dialogView.addView(TextView(this).apply {
+            setText(if (isVoiceButton) R.string.button_icon_voice_summary else R.string.button_icon_code_summary)
             textSize = 12f
             setTextColor(styledColor(android.R.attr.textColorSecondary))
-        }
-        dialogView.addView(iconHint)
-
-        fun updateIconPreview() {
-            val value = iconInput.text?.toString().orEmpty()
-            val glyph = ButtonIconSpec.glyph(value)
-            val svgValue = ButtonIconSpec.svgMarkup(value)?.let { "svg:${it.trim()}" }
-            val drawable = when {
-                svgValue != null -> ButtonIconSpec.drawable(this, svgValue, 0)
-                value.isBlank() -> ButtonIconSpec.drawable(this, null, defaultIconRes)
-                else -> null
-            }
-            val previewGlyph = glyph ?: if (value.isBlank()) defaultIconGlyph else null
-            iconPreview.typeface = if (previewGlyph == null) Typeface.DEFAULT else ButtonIconFont.typeface(this)
-            svgPreview.visibility = if (drawable == null) View.GONE else View.VISIBLE
-            iconPreview.visibility = if (drawable == null) View.VISIBLE else View.GONE
-            svgPreview.setImageDrawable(drawable)
-            drawable?.setTint(styledColor(android.R.attr.textColorPrimary))
-            iconPreview.text = when {
-                previewGlyph != null -> previewGlyph
-                value.isBlank() -> ""
-                else -> "?"
-            }
-        }
-        iconInput.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
-
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                iconInput.error = null
-                updateIconPreview()
-            }
-
-            override fun afterTextChanged(s: Editable?) = Unit
         })
-        updateIconPreview()
 
         // Custom label input (only for custom buttons, not built-in)
         var labelInput: EditText? = null
@@ -1015,6 +1052,8 @@ class ButtonsCustomizerActivity : AppCompatActivity() {
             dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
                 iconInput.text?.clear()
                 iconInput.error = null
+                activeIconInput?.text?.clear()
+                activeIconInput?.error = null
             }
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                 val iconValue = iconInput.text?.toString()?.trim().orEmpty()
@@ -1029,10 +1068,22 @@ class ButtonsCustomizerActivity : AppCompatActivity() {
                     return@setOnClickListener
                 }
 
+                val activeIconValue = activeIconInput?.text?.toString()?.trim().orEmpty()
+                val customActiveIcon = if (activeIconValue.isBlank()) {
+                    null
+                } else {
+                    ButtonIconSpec.svgMarkup(activeIconValue)?.let { ButtonIconSpec.canonicalSvg("svg:$it") }
+                        ?: ButtonIconSpec.canonicalCodePoint(activeIconValue)
+                }
+                if (activeIconValue.isNotBlank() && customActiveIcon == null) {
+                    activeIconInput?.error = getString(R.string.button_icon_code_invalid)
+                    return@setOnClickListener
+                }
                 val customLabel = if (isBuiltIn) null else labelInput?.text?.toString()?.trim()?.ifEmpty { null }
                 val updatedButton = ConfigurableButton(
                     id = button.id,
                     icon = customIcon,
+                    activeIcon = customActiveIcon,
                     label = customLabel,
                     longPressAction = button.longPressAction
                 )
@@ -1050,6 +1101,7 @@ class ButtonsCustomizerActivity : AppCompatActivity() {
 
     private fun saveConfig(themeName: String) {
         val config = currentButtonsLayoutConfig()
+        syncVoiceInputSwitch(config)
 
         // Save unified config
         provider.buttonsLayoutConfigFile()?.let { file ->
@@ -1066,6 +1118,14 @@ class ButtonsCustomizerActivity : AppCompatActivity() {
 
         originalItems = items.toList()
         updateSaveButtonState()
+    }
+
+    private fun syncVoiceInputSwitch(config: ButtonsLayoutConfig) {
+        val current = ToolbarVoiceInputPolicy.syncedSwitchState(config.kawaiiBarButtons)
+        if (current != originalVoiceInputButton) {
+            AppPrefs.getInstance().keyboard.showVoiceInputButton.setValue(current)
+            originalVoiceInputButton = current
+        }
     }
 
     private fun currentButtonsLayoutConfig(): ButtonsLayoutConfig {
@@ -1273,13 +1333,23 @@ class ButtonsCustomizerActivity : AppCompatActivity() {
                     } else {
                         buttonItem.button.icon
                     }
-                    val iconRes = ButtonIconSpec.drawableResource(
-                        this@ButtonsCustomizerActivity,
-                        effectiveIcon,
-                        buttonDef?.iconRes ?: 0
-                    )
+                    val fallbackIcon = buttonDef?.iconRes ?: 0
+                    val themedVoiceIcon = if (ToolbarVoiceInputPolicy.usesKeyIconTheme(buttonItem.button)) {
+                        KeyIconStore.resolveDrawableObject(
+                            this@ButtonsCustomizerActivity,
+                            KeyIconIds.VOICE_INPUT,
+                            fallbackIcon
+                        )
+                    } else {
+                        null
+                    }
+                    val iconRes = if (themedVoiceIcon != null) {
+                        fallbackIcon
+                    } else {
+                        ButtonIconSpec.drawableResource(this@ButtonsCustomizerActivity, effectiveIcon, fallbackIcon)
+                    }
                     val iconText = ButtonIconSpec.glyph(effectiveIcon)
-                    val iconDrawable = ButtonIconSpec.drawable(
+                    val iconDrawable = themedVoiceIcon ?: ButtonIconSpec.drawable(
                         this@ButtonsCustomizerActivity,
                         effectiveIcon,
                         buttonDef?.iconRes ?: 0

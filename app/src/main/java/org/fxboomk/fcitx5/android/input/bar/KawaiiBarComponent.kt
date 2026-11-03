@@ -14,7 +14,6 @@ import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InlineSuggestion
 import android.view.inputmethod.InlineSuggestionsResponse
-import android.view.inputmethod.InputMethodSubtype
 import android.widget.FrameLayout
 import android.widget.Toast
 import android.widget.ViewAnimator
@@ -163,7 +162,22 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
     private val compositionAreaStyle = prefs.keyboard.compositionAreaStyle
     private val toolbarNumRowOnPassword by prefs.keyboard.toolbarNumRowOnPassword
     private val showVoiceInputButton by prefs.keyboard.showVoiceInputButton
-    private val preferredVoiceInput by prefs.keyboard.preferredVoiceInput
+
+    @Keep
+    private val onVoiceInputSettingsChanged = ManagedPreference.OnChangeListener<Boolean> { _, enabled ->
+        val current = loadButtonsConfig()
+        val synced = if (enabled) {
+            ToolbarVoiceInputPolicy.enableVoiceButton(current)
+        } else {
+            ToolbarVoiceInputPolicy.disableVoiceButton(current)
+        }
+        if (synced != current) {
+            val layoutConfig = loadButtonsLayoutConfig()
+            ConfigProviders.saveButtonsLayoutConfig(
+                layoutConfig.copy(kawaiiBarButtons = synced)
+            )
+        }
+    }
 
     private var clipboardTimeoutJob: Job? = null
     private var clipboardPreviewJob: Job? = null
@@ -374,47 +388,14 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         } else false
     }
 
-    private var voiceInputSubtype: Pair<String, InputMethodSubtype>? = null
-    private var voiceInputProviderId: String? = null
-
-    private val switchToVoiceInputCallback = View.OnClickListener {
-        voiceInputProviderId?.let {
-            VoiceInputProviderManager.toggle(service, it)
-            return@OnClickListener
-        }
-        val (id, subtype) = voiceInputSubtype ?: return@OnClickListener
-        InputMethodUtil.switchInputMethod(service, id, subtype)
-    }
-
     private fun refreshHideKeyboardButtonState(
         ui: IdleUi = idleUi,
         capFlags: CapabilityFlags = CapabilityFlags.fromEditorInfo(service.currentInputEditorInfo)
     ) {
         isCapabilityFlagsPassword = toolbarNumRowOnPassword && capFlags.has(CapabilityFlag.Password)
-        voiceInputProviderId = preferredVoiceInput.takeIf {
-            VoiceInputProviderManager.isProviderId(it) && VoiceInputProviderManager.hasProvider(it, service)
-        }
-        voiceInputSubtype = InputMethodUtil.findVoiceSubtype(preferredVoiceInput)
-        val shouldShowVoiceInput =
-            showVoiceInputButton && !capFlags.has(CapabilityFlag.Password) &&
-                (voiceInputProviderId != null || voiceInputSubtype != null)
-        val hideKeyboardOrVoiceCallback = if (shouldShowVoiceInput) {
-            switchToVoiceInputCallback
-        } else {
-            hideKeyboardCallback
-        }
-        ui.setHideKeyboardIsVoiceInput(
-            shouldShowVoiceInput,
-            View.OnClickListener { view ->
-                // Restoring the virtual keyboard re-lays out InputView with the key rows
-                // and flashes them right before the IME hides; only the voice handoff
-                // needs the restore.
-                if (shouldShowVoiceInput) {
-                    service.restoreVirtualKeyboardForKawaiiBarAction()
-                }
-                hideKeyboardOrVoiceCallback.onClick(view)
-            }
-        )
+        // The pinned end button always hides the keyboard. Voice input is a
+        // regular toolbar button and therefore follows the user's order.
+        ui.setHideKeyboardClickListener(hideKeyboardCallback)
     }
 
     // Load buttons config from file or use default
@@ -638,6 +619,7 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
             // Update the existing IdleUi with new config
             _idleUi?.updateConfig(newConfig)
             _idleUi?.updateHideKeyboardConfig(loadButtonsLayoutConfig().resolvedHideKeyboardButton())
+            _idleUi?.let(::refreshHideKeyboardButtonState)
             updateButtonsState()
         }
     }
@@ -852,6 +834,7 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         ClipboardManager.addOnUpdateListener(onClipboardUpdateListener)
         clipboardSuggestion.registerOnChangeListener(onClipboardSuggestionUpdateListener)
         clipboardItemTimeout.registerOnChangeListener(onClipboardTimeoutUpdateListener)
+        prefs.keyboard.showVoiceInputButton.registerOnChangeListener(onVoiceInputSettingsChanged)
         VoiceInputProviderManager.voiceErrorCallback = { message ->
             Toast.makeText(service, message, Toast.LENGTH_SHORT).show()
             updateButtonsState()
@@ -869,30 +852,6 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             idleUi.inlineSuggestionsBar.clear()
         }
-        voiceInputProviderId = preferredVoiceInput.takeIf {
-            VoiceInputProviderManager.isProviderId(it) && VoiceInputProviderManager.hasProvider(it, service)
-        }
-        voiceInputSubtype = InputMethodUtil.findVoiceSubtype(preferredVoiceInput)
-        val shouldShowVoiceInput =
-            showVoiceInputButton && !capFlags.has(CapabilityFlag.Password) &&
-                (voiceInputProviderId != null || voiceInputSubtype != null)
-        val hideKeyboardOrVoiceCallback = if (shouldShowVoiceInput) {
-            switchToVoiceInputCallback
-        } else {
-            hideKeyboardCallback
-        }
-        idleUi.setHideKeyboardIsVoiceInput(
-            shouldShowVoiceInput,
-            View.OnClickListener { view ->
-                // Restoring the virtual keyboard re-lays out InputView with the key rows
-                // and flashes them right before the IME hides; only the voice handoff
-                // needs the restore.
-                if (shouldShowVoiceInput) {
-                    service.restoreVirtualKeyboardForKawaiiBarAction()
-                }
-                hideKeyboardOrVoiceCallback.onClick(view)
-            }
-        )
         evalIdleUiState()
     }
 
@@ -1025,6 +984,7 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
     }
 
     fun dispose() {
+        prefs.keyboard.showVoiceInputButton.unregisterOnChangeListener(onVoiceInputSettingsChanged)
         _idleUi?.dispose()
     }
 

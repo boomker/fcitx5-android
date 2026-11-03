@@ -339,7 +339,7 @@
     <string name="space_behavior_enumerate">Enumerate input methods</string>
     <string name="space_behavior_activate">Toggle input method activate state</string>
     <string name="space_behavior_repeat_space">Repeat space output</string>
-    <string name="space_behavior_voice_input">Switch to voice input</string>
+    <string name="space_behavior_voice_input">Hold to talk</string>
     <string name="space_behavior_switch_to_english">Switch between Chinese and English input methods</string>
     <string name="space_key_label_mode">Space key label style</string>
     <string name="space_key_label_mode_default">Default</string>
@@ -614,6 +614,9 @@
     <string name="available_buttons_section">Available Buttons</string>
     <string name="button_icon_code">Icon code or SVG</string>
     <string name="button_icon_code_hint">Glyph Unicode code point or &lt;svg&gt;&#8230;</string>
+    <string name="button_icon_idle">Idle icon</string>
+    <string name="button_icon_active">Listening icon</string>
+    <string name="button_icon_voice_summary">The idle icon is shown normally; the listening icon replaces it while voice input is active.</string>
     <string name="button_icon_code_summary">Enter an iconfont glyph code point or SVG code. Both SVG and glyph are previewed while editing; leave blank to restore the default icon.</string>
     <string name="button_icon_code_invalid">Enter a valid code point or SVG containing a path</string>
     <string name="language_switch">Language Switch</string>
@@ -747,7 +750,6 @@
     <string name="commit_last_candidate_character">Commit last character</string>
     <string name="expand_candidates_list">Expand candidates list</string>
     <string name="hide_candidates_list">Hide candidates list</string>
-    <string name="switch_to_voice_input">Switch to voice input</string>
     <string name="hide_keyboard">Hide keyboard</string>
     <string name="private_mode">Private mode (tap to open status area)</string>
     <string name="return_to_toolbar">Return to toolbar</string>

@@ -48,6 +48,7 @@ class ButtonActionTest {
         val config = ButtonsLayoutConfig.default()
 
         assertSame(AdjustKeyboardHeightAction, ButtonAction.fromId("adjust_keyboard_height"))
+        assertEquals(R.drawable.ic_keyboard_height_adjust_24, AdjustKeyboardHeightAction.defaultIcon)
         assertTrue(ButtonAction.statusAreaActions.contains(AdjustKeyboardHeightAction))
         assertEquals("adjust_keyboard_height", config.statusAreaButtons.last().id)
     }

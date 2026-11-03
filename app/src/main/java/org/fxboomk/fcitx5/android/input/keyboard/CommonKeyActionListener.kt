@@ -461,7 +461,7 @@ class CommonKeyActionListener :
                         SpaceLongPressBehavior.RepeatSpace -> {
                             // Handled by the repeat binding of the space key.
                         }
-                        SpaceLongPressBehavior.VoiceInput -> {
+                        SpaceLongPressBehavior.VoiceHold -> {
                             val started = switchToVoiceInput()
                             voiceHoldActive = started && preferredVoiceInputProviderAvailable()
                         }

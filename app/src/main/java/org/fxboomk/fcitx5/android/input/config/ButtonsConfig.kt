@@ -36,6 +36,13 @@ data class ConfigurableButton(
     val icon: String? = null,
 
     /**
+     * Optional icon shown while the action is active (for example, the
+     * voice-input listening icon). Null keeps the normal [icon] behavior.
+     */
+    @SerialName("activeIcon")
+    val activeIcon: String? = null,
+
+    /**
      * Optional: Custom label for accessibility/content description.
      * If null, uses default label for the action.
      */

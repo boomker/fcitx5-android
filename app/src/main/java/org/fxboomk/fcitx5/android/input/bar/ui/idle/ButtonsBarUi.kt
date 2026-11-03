@@ -10,17 +10,22 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import androidx.annotation.DrawableRes
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.flexbox.FlexboxLayoutManager
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.data.theme.Theme
 import org.fxboomk.fcitx5.android.input.FcitxInputMethodService
 import org.fxboomk.fcitx5.android.input.action.ButtonAction
+import org.fxboomk.fcitx5.android.input.voice.VoiceInputProviderManager
 import org.fxboomk.fcitx5.android.input.bar.KawaiiBarComponent
 import org.fxboomk.fcitx5.android.input.bar.ui.ToolButton
 import org.fxboomk.fcitx5.android.input.config.ButtonsLayoutConfig
 import org.fxboomk.fcitx5.android.input.config.ButtonIconSpec
 import org.fxboomk.fcitx5.android.input.config.ConfigurableButton
+import org.fxboomk.fcitx5.android.input.config.KeyIconIds
+import org.fxboomk.fcitx5.android.input.config.KeyIconThemeStore
+import org.fxboomk.fcitx5.android.input.bar.ToolbarVoiceInputPolicy
 import splitties.dimensions.dp
 import splitties.views.dsl.core.Ui
 import splitties.views.dsl.core.view
@@ -30,6 +35,10 @@ class ButtonsBarUi(
     private val theme: Theme,
     private var buttons: List<ConfigurableButton> = ButtonsLayoutConfig.default().kawaiiBarButtons
 ) : Ui {
+
+    private val onKeyIconThemeChanged: () -> Unit = {
+        root.post { buildButtons() }
+    }
 
     @DrawableRes
     private val floatingIcon = R.drawable.ic_floating_toggle_24
@@ -44,6 +53,21 @@ class ButtonsBarUi(
 
     // Map to store button references by ID
     private val buttonMap = mutableMapOf<String, ToolButton>()
+    private data class IconSpec(
+        @DrawableRes val resource: Int,
+        val glyph: String? = null,
+        val drawable: android.graphics.drawable.Drawable? = null
+    )
+
+    private val voiceButtonIcons = mutableMapOf<String, Pair<IconSpec, IconSpec>>()
+
+    private fun applyIcon(button: ToolButton, spec: IconSpec) {
+        when {
+            spec.drawable != null -> button.setIconDrawable(spec.drawable)
+            spec.glyph != null -> button.setIconText(spec.glyph)
+            else -> button.setIcon(spec.resource)
+        }
+    }
 
     // Click listeners for each button
     private val clickListeners = mutableMapOf<String, View.OnClickListener>()
@@ -51,10 +75,16 @@ class ButtonsBarUi(
 
     init {
         buildButtons()
+        KeyIconThemeStore.addOnChangedListener(onKeyIconThemeChanged)
+    }
+
+    fun dispose() {
+        KeyIconThemeStore.removeOnChangedListener(onKeyIconThemeChanged)
     }
 
     private fun buildButtons() {
         buttonMap.clear()
+        voiceButtonIcons.clear()
         val recyclerView = root
         // Recreate adapter to ensure clean state
         recyclerView.adapter = ButtonsBarAdapter()
@@ -92,7 +122,44 @@ class ButtonsBarUi(
     private fun getIconResForButton(buttonId: String, customIcon: String?): Int {
         val fallback = ButtonAction.fromId(buttonId)?.defaultIcon
             ?: R.drawable.ic_baseline_more_horiz_24
+        // Voice theme icons can be SVG/glyph values; rendering is handled by
+        // resolveDrawableObject() in onCreateViewHolder below.
+        if (ToolbarVoiceInputPolicy.usesKeyIconTheme(ConfigurableButton(buttonId, icon = customIcon))) {
+            return fallback
+        }
         return ButtonIconSpec.drawableResource(ctx, customIcon, fallback)
+    }
+
+    private fun resolveButtonIcon(config: ConfigurableButton, value: String?, fallback: Int): IconSpec {
+        if (ToolbarVoiceInputPolicy.usesKeyIconTheme(config)) {
+            return IconSpec(
+                resource = fallback,
+                drawable = KeyIconThemeStore.resolveDrawableObject(ctx, KeyIconIds.VOICE_INPUT, fallback)
+            )
+        }
+        val glyph = ButtonIconSpec.glyph(value)
+        if (glyph != null) return IconSpec(resource = fallback, glyph = glyph)
+        return IconSpec(
+            resource = ButtonIconSpec.drawableResource(ctx, value, fallback),
+            drawable = ButtonIconSpec.drawable(ctx, value, fallback)
+        )
+    }
+
+    private fun resolveVoiceListeningIcon(config: ConfigurableButton, fallback: Int): IconSpec {
+        val configured = config.activeIcon?.trim().orEmpty()
+        if (configured.isNotEmpty()) {
+            val glyph = ButtonIconSpec.glyph(configured)
+            if (glyph != null) return IconSpec(R.drawable.ic_voice_input_active_24, glyph = glyph)
+            return IconSpec(
+                resource = ButtonIconSpec.drawableResource(ctx, configured, R.drawable.ic_voice_input_active_24),
+                drawable = ButtonIconSpec.drawable(ctx, configured, R.drawable.ic_voice_input_active_24)
+            )
+        }
+        return IconSpec(
+            resource = R.drawable.ic_voice_input_active_24,
+            drawable = AppCompatResources.getDrawable(ctx, R.drawable.ic_voice_input_active_24)
+                ?: AppCompatResources.getDrawable(ctx, fallback)
+        )
     }
 
     private fun getDefaultLabel(buttonId: String): String {
@@ -120,7 +187,13 @@ class ButtonsBarUi(
      */
     fun updateButtonsState(service: FcitxInputMethodService) {
         ButtonAction.allConfigurableActions.forEach { action ->
-            buttonMap[action.id]?.setActive(action.isActive(service))
+            val button = buttonMap[action.id] ?: return@forEach
+            val active = action.isActive(service)
+            button.setActive(active)
+            if (action.id == ToolbarVoiceInputPolicy.VOICE_INPUT_ID) {
+                val (idle, listening) = voiceButtonIcons[action.id] ?: return@forEach
+                applyIcon(button, if (active) listening else idle)
+            }
         }
     }
 
@@ -133,11 +206,14 @@ class ButtonsBarUi(
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ButtonViewHolder {
             val config = buttons[viewType]
             val iconRes = getIconResForButton(config.id, config.icon)
+            val idleIcon = resolveButtonIcon(config, config.icon, iconRes)
+            val listeningIcon = if (config.id == ToolbarVoiceInputPolicy.VOICE_INPUT_ID) {
+                resolveVoiceListeningIcon(config, iconRes)
+            } else {
+                idleIcon
+            }
             val button = ToolButton(ctx, iconRes, theme).apply {
-                when {
-                    ButtonIconSpec.glyph(config.icon) != null -> setIconText(ButtonIconSpec.glyph(config.icon)!!)
-                    ButtonIconSpec.svg(config.icon) != null -> ButtonIconSpec.drawable(ctx, config.icon, iconRes)?.let(::setIconDrawable)
-                }
+                applyIcon(this, idleIcon)
                 contentDescription = config.label ?: getDefaultLabel(config.id)
                 tag = config.id
                 // Ensure button always fills KawaiiBar height
@@ -156,6 +232,13 @@ class ButtonsBarUi(
                 longClickListeners[config.id]?.let { setOnLongClickListener(it) }
             }
             buttonMap[config.id] = button
+            if (config.id == ToolbarVoiceInputPolicy.VOICE_INPUT_ID) {
+                voiceButtonIcons[config.id] = idleIcon to listeningIcon
+                if (VoiceInputProviderManager.isActive()) {
+                    applyIcon(button, listeningIcon)
+                    button.setActive(true)
+                }
+            }
             return ButtonViewHolder(button)
         }
 

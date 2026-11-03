@@ -245,7 +245,7 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
             R.string.preferred_voice_input, "preferred_voice_input", ""
         ) {
             showVoiceInputButton.getValue() ||
-            spaceKeyLongPressBehavior.getValue() == SpaceLongPressBehavior.VoiceInput
+            spaceKeyLongPressBehavior.getValue() == SpaceLongPressBehavior.VoiceHold
         }
 
         val expandKeypressArea =
@@ -270,23 +270,14 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
             10
         )
         val spaceKeyLongPressBehavior = run {
-            val entryValues = listOf(
-                SpaceLongPressBehavior.None,
-                SpaceLongPressBehavior.Enumerate,
-                SpaceLongPressBehavior.RepeatSpace,
-                SpaceLongPressBehavior.VoiceInput,
-                SpaceLongPressBehavior.SwitchToEnglish
-            )
+            val entryValues = SpaceLongPressBehavior.settingsEntries
             list(
                 R.string.space_long_press_behavior,
                 "space_long_press_behavior",
                 SpaceLongPressBehavior.None,
                 object : ManagedPreference.StringLikeCodec<SpaceLongPressBehavior> {
-                    override fun decode(raw: String): SpaceLongPressBehavior = when (raw) {
-                        SpaceLongPressBehavior.ToggleActivate.name -> SpaceLongPressBehavior.Enumerate
-                        "ShowPicker" -> SpaceLongPressBehavior.Enumerate
-                        else -> enumValueOf(raw)
-                    }
+                    override fun decode(raw: String): SpaceLongPressBehavior =
+                        SpaceLongPressBehavior.fromPersistedName(raw)
                 },
                 entryValues,
                 entryValues.map { it.stringRes }

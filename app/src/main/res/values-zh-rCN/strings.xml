@@ -333,7 +333,7 @@
     <string name="space_behavior_enumerate">轮换输入法</string>
     <string name="space_behavior_activate">在当前输入法和第一个输入法之间切换</string>
     <string name="space_behavior_repeat_space">重复输出空格</string>
-    <string name="space_behavior_voice_input">切换到语音输入</string>
+    <string name="space_behavior_voice_input">按住说话</string>
     <string name="space_behavior_switch_to_english">在中英输入法间切换</string>
     <string name="space_key_label_mode">空格键标签样式</string>
     <string name="space_key_label_mode_default">默认</string>
@@ -447,6 +447,9 @@
     <string name="available_buttons_section">可添加按钮</string>
     <string name="button_icon_code">图标代码或 SVG</string>
     <string name="button_icon_code_hint">Glyph Unicode 码点或 &lt;svg&gt;&#8230;</string>
+    <string name="button_icon_idle">静止态图标</string>
+    <string name="button_icon_active">语音中输入图标</string>
+    <string name="button_icon_voice_summary">静止态图标平时显示；语音输入过程中自动切换为“语音中输入图标”。</string>
     <string name="button_icon_code_summary">支持 Iconfont glyph 码点或 SVG 代码，编辑时均可实时预览；留空可恢复默认图标。</string>
     <string name="button_icon_code_invalid">请输入有效的码点，或包含 path 的 SVG 代码</string>
     <string name="language_switch">语言切换</string>
@@ -576,7 +579,6 @@
     <string name="commit_last_candidate_character">提交尾字</string>
     <string name="expand_candidates_list">展开候选词列表</string>
     <string name="hide_candidates_list">隐藏</string>
-    <string name="switch_to_voice_input">切换到语音输入</string>
     <string name="hide_keyboard">隐藏键盘</string>
     <string name="private_mode">隐私模式（点击打开状态区域）</string>
     <string name="return_to_toolbar">返回工具栏</string>

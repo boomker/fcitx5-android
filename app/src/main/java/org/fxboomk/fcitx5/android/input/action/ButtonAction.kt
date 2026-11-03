@@ -533,9 +533,13 @@ data object VoiceInputAction : ButtonAction() {
         // Respect password fields the same way the space-key long press does.
         val capFlags = service.currentInputEditorInfo?.let { CapabilityFlags.fromEditorInfo(it) }
         if (capFlags?.has(CapabilityFlag.Password) == true) return
-        // In-app provider: toggle directly from the toolbar.
+        // In-app provider: a second tap is an explicit stop/cancel request.
         resolveProviderId(service)?.let { providerId ->
-            VoiceInputProviderManager.toggle(service, providerId)
+            if (VoiceInputProviderManager.shouldStopOnTap(VoiceInputProviderManager.isActive())) {
+                VoiceInputProviderManager.stop(service)
+            } else {
+                VoiceInputProviderManager.toggle(service, providerId)
+            }
             onActionComplete?.invoke()
             return
         }
@@ -729,7 +733,7 @@ data object OneHandedKeyboardAction : ButtonAction() {
 
 data object AdjustKeyboardHeightAction : ButtonAction() {
     override val id = ButtonsLayoutConfig.KEYBOARD_HEIGHT_ADJUST_ID
-    override val defaultIcon = R.drawable.ic_baseline_tune_24
+    override val defaultIcon = R.drawable.ic_keyboard_height_adjust_24
     override val defaultLabelRes = R.string.adjust_keyboard_height
 
     override fun execute(

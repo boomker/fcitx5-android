@@ -218,7 +218,7 @@
     <string name="space_behavior_enumerate">Перечислить методы ввода</string>
     <string name="space_behavior_activate">Переключить состояние активации метода ввода</string>
     <string name="space_behavior_repeat_space">Повторять вывод пробела</string>
-    <string name="space_behavior_voice_input">Переключиться на голосовой ввод</string>
+    <string name="space_behavior_voice_input">Удерживайте, чтобы говорить</string>
     <string name="space_behavior_switch_to_english">Переключаться между китайским и английским методами ввода</string>
     <string name="show_lang_switch_key">Показывать клавишу переключения языка</string>
     <string name="keyboard_settings_basic_behavior">Основное поведение</string>
@@ -347,7 +347,6 @@
     <string name="commit_last_candidate_character">Ввести последний символ</string>
     <string name="expand_candidates_list">Развернуть список кандидатов</string>
     <string name="hide_candidates_list">Скрыть список кандидатов</string>
-    <string name="switch_to_voice_input">Переключиться на голосовой ввод</string>
     <string name="hide_keyboard">Скрыть клавиатуру</string>
     <string name="private_mode">Приватный режим (нажмите, чтобы открыть область состояния)</string>
     <string name="return_to_toolbar">Вернуться на панель инструментов</string>
@@ -408,6 +407,9 @@
     <string name="available_buttons_section">Доступные кнопки</string>
     <string name="button_icon_code">Код значка или SVG</string>
     <string name="button_icon_code_hint">Кодовая точка Unicode glyph или &lt;svg&gt;&#8230;</string>
+    <string name="button_icon_idle">Обычный значок</string>
+    <string name="button_icon_active">Значок записи</string>
+    <string name="button_icon_voice_summary">Обычно показывается обычный значок; во время голосового ввода он заменяется значком записи.</string>
     <string name="button_icon_code_summary">Введите кодовую точку glyph из Iconfont или код SVG. Во время редактирования доступен предварительный просмотр SVG и glyph; оставьте поле пустым, чтобы восстановить значок по умолчанию.</string>
     <string name="button_icon_code_invalid">Введите допустимую кодовую точку или код SVG с элементом path</string>
     <string name="language_switch">Смена языка</string>

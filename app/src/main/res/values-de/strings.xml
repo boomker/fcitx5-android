@@ -239,6 +239,9 @@
     <string name="available_buttons_section">Verfügbare Schaltflächen</string>
     <string name="button_icon_code">Symbolcode oder SVG</string>
     <string name="button_icon_code_hint">Glyph-Unicode-Codepunkt oder &lt;svg&gt;&#8230;</string>
+    <string name="button_icon_idle">Ruhe-Symbol</string>
+    <string name="button_icon_active">Sprachaufnahme-Symbol</string>
+    <string name="button_icon_voice_summary">Das Ruhe-Symbol wird normalerweise angezeigt; während der Sprachaufnahme ersetzt es das Aufnahme-Symbol.</string>
     <string name="button_icon_code_summary">Geben Sie einen Iconfont-Glyph-Codepunkt oder SVG-Code ein. SVG und Glyph werden während der Bearbeitung als Vorschau angezeigt; leer lassen, um das Standardsymbol wiederherzustellen.</string>
     <string name="button_icon_code_invalid">Geben Sie einen gültigen Codepunkt oder SVG-Code mit einem path-Element ein</string>
     <string name="language_switch">Sprache wechseln</string>
@@ -742,7 +745,7 @@
     <string name="share">Teilen</string>
     <string name="space_behavior_enumerate">Eingabemethoden zyklisch wechseln</string>
     <string name="space_behavior_repeat_space">Leerzeichen wiederholt ausgeben</string>
-    <string name="space_behavior_voice_input">Zur Spracheingabe wechseln</string>
+    <string name="space_behavior_voice_input">Zum Sprechen halten</string>
     <string name="space_behavior_switch_to_english">Zwischen chinesischer und englischer Eingabemethode wechseln</string>
     <string name="split_keyboard_calibration_summary">Geteilte-Tastatur-Einstellungen mit visueller Vorschau anpassen, inklusive automatischer Empfehlung und Foldable-Anpassung</string>
     <string name="split_keyboard_calibration_title">Kalibrierung der geteilten Tastatur</string>
@@ -758,7 +761,6 @@
     <string name="punctuation_swipe_follow_input_mode">Chinesischem/englischem Modus folgen</string>
     <string name="punctuation_swipe_raw">Originalzeichen einfügen</string>
     <string name="swipe_symbol_behavior">Wischrichtung für Satzzeichen</string>
-    <string name="switch_to_voice_input">Zur Spracheingabe wechseln</string>
     <string name="text_editing_button_radius">Eckradius der Textbearbeitungstasten</string>
     <string name="text_keyboard_layout_file_delete_confirm">Layout-Dateiprofil "%1$s" und dessen Sicherung wirklich löschen?</string>
     <string name="text_keyboard_layout_file_delete_failed">Löschen der Layout-Datei fehlgeschlagen</string>

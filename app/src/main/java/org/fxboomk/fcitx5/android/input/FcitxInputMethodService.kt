@@ -2538,6 +2538,21 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         ic.setComposingText("", 1)
     }
 
+    /**
+     * Finish the voice preview and turn it into ordinary committed text.
+     * This is used when a session ends normally or is stopped by the user;
+     * the text must not remain underlined as an inline composition.
+     */
+    fun commitAndClearVoiceComposingText() {
+        val ic = currentInputConnection
+        if (composing.isEmpty()) return
+        if (ic != null) {
+            selection.predict(composing.start + composingText.length)
+            ic.finishComposingText()
+        }
+        resetComposingState()
+    }
+
     fun commitVoiceText(text: String) {
         if (text.isBlank()) {
             clearVoiceComposingText()
