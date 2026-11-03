@@ -656,6 +656,37 @@ object SettingsSearchIndex {
                 context.getString(R.string.split_keyboard_calibration_summary)
             )
         )
+        val floatingPagePath = listOf(
+            context.getString(R.string.virtual_keyboard),
+            context.getString(R.string.keyboard_settings_layout_and_split)
+        )
+        listOf(
+            Triple(
+                R.string.floating_keyboard_enabled,
+                R.string.floating_keyboard_enabled_summary,
+                AppPrefs.getInstance().internal.floatingModeEnabled.key
+            ),
+            Triple(
+                R.string.auto_floating_landscape,
+                R.string.auto_floating_landscape_summary,
+                AppPrefs.getInstance().internal.autoFloatingLandscape.key
+            ),
+            Triple(
+                R.string.floating_move_handle_auto_hide,
+                R.string.floating_move_handle_auto_hide_summary,
+                AppPrefs.getInstance().internal.autoHideFloatingMoveHandle.key
+            )
+        ).forEach { (title, summary, key) ->
+            add(
+                SettingsSearchResult(
+                    context.getString(title),
+                    floatingPagePath,
+                    SettingsRoute.VirtualKeyboardLayoutAndSplit,
+                    key,
+                    context.getString(summary)
+                )
+            )
+        }
         addAdvancedKeyboardItem(
             context,
             R.string.edit_swipe_symbol_mapping,

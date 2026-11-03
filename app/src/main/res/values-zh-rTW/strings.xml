@@ -268,7 +268,15 @@
     <string name="keyboard_settings_basic_behavior">基礎行為</string>
     <string name="keyboard_settings_touch_and_sound">觸感與聲音</string>
     <string name="keyboard_settings_key_and_gesture">按鍵與手勢</string>
-    <string name="keyboard_settings_layout_and_split">佈局與分體</string>
+    <string name="keyboard_settings_layout_and_split">分體與浮動</string>
+    <string name="keyboard_modes_category_split">分體鍵盤</string>
+    <string name="keyboard_modes_category_floating">浮動鍵盤</string>
+    <string name="floating_keyboard_enabled">啟用浮動鍵盤</string>
+    <string name="floating_keyboard_enabled_summary">鍵盤脫離螢幕底部，位置可自由拖曳。</string>
+    <string name="auto_floating_landscape">橫屏時自動使用浮動鍵盤</string>
+    <string name="auto_floating_landscape_summary">開啟後，進入橫屏時自動切換為浮動鍵盤，直屏恢復為停靠鍵盤。</string>
+    <string name="floating_move_handle_auto_hide">自動隱藏移動把手</string>
+    <string name="floating_move_handle_auto_hide_summary">浮動鍵盤閒置 3 秒後隱藏移動把手；連按兩下橫向或縱向尺寸調節把手可重新顯示。</string>
     <string name="keyboard_settings_candidates">編碼與候選詞</string>
     <string name="preedit_style">預編碼樣式</string>
     <string name="preedit_style_group_no_preview">編輯框不預覽時</string>

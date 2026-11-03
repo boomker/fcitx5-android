@@ -80,12 +80,14 @@ internal object KeyboardSettingsSupport {
     fun ManagedPreferenceFragment.addKeyboardSection(
         screen: PreferenceScreen,
         @StringRes title: Int,
-        keys: List<String>
+        keys: List<String>,
+        extraPreference: Preference? = null
     ) {
         screen.addCategory(title) {
             keys.forEach { key ->
                 addManagedPreference(this, AppPrefs.getInstance().keyboard, key)
             }
+            extraPreference?.let(::addPreference)
         }
     }
 

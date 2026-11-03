@@ -257,7 +257,15 @@
     <string name="keyboard_settings_basic_behavior">Basic behavior</string>
     <string name="keyboard_settings_touch_and_sound">Touch and sound</string>
     <string name="keyboard_settings_key_and_gesture">Keys and gestures</string>
-    <string name="keyboard_settings_layout_and_split">Layout and split keyboard</string>
+    <string name="keyboard_settings_layout_and_split">Split and floating keyboard</string>
+    <string name="keyboard_modes_category_split">Split keyboard</string>
+    <string name="keyboard_modes_category_floating">Floating keyboard</string>
+    <string name="floating_keyboard_enabled">Enable floating keyboard</string>
+    <string name="floating_keyboard_enabled_summary">Detach the keyboard from the bottom of the screen and drag it freely.</string>
+    <string name="auto_floating_landscape">Use floating keyboard in landscape</string>
+    <string name="auto_floating_landscape_summary">Automatically switch to the floating keyboard in landscape and restore the docked keyboard in portrait.</string>
+    <string name="floating_move_handle_auto_hide">Auto-hide move handle</string>
+    <string name="floating_move_handle_auto_hide_summary">Hide the move handle after 3 seconds of inactivity. Double-tap a resize handle to show it again.</string>
     <string name="keyboard_settings_candidates">Composition and candidates</string>
     <string name="preedit_style">Preedit style</string>
     <string name="preedit_style_group_no_preview">When editor does not preview</string>

@@ -58,9 +58,21 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
         val pid = int("pid", 0)
         val editorInfoInspector = bool("editor_info_inspector", false)
         val needNotifications = bool("need_notifications", true)
-        val floatingKeyboardEnabled = bool("floating_keyboard_enabled", false)
-        val floatingKeyboardWidth = int("floating_keyboard_width", 0)
-        val floatingKeyboardHeight = int("floating_keyboard_height", 0)
+        val floatingModeEnabled = bool("floating_mode_enabled", false)
+        val autoHideFloatingMoveHandle = bool("auto_hide_floating_move_handle", false)
+        val autoFloatingLandscape = bool("auto_floating_landscape", false)
+        val floatingKeyboardWidthPortraitRatio = float("floating_keyboard_width_portrait_ratio", 0f)
+        val floatingKeyboardWidthLandscapeRatio = float("floating_keyboard_width_landscape_ratio", 0f)
+        val floatingKeyboardHeightPortraitRatio = float("floating_keyboard_height_portrait_ratio", 0f)
+        val floatingKeyboardHeightLandscapeRatio = float("floating_keyboard_height_landscape_ratio", 0f)
+        val floatingKeyboardWidthRatio = float("floating_keyboard_width_ratio", 0f)
+        val floatingKeyboardHeightRatio = float("floating_keyboard_height_ratio", 0f)
+        val floatingKeyboardWidthLegacy = int("floating_keyboard_width", 0)
+        val floatingKeyboardHeightLegacy = int("floating_keyboard_height", 0)
+        val floatingKeyboardXPortraitRatio = float("floating_keyboard_x_portrait_ratio", -1f)
+        val floatingKeyboardYPortraitRatio = float("floating_keyboard_y_portrait_ratio", -1f)
+        val floatingKeyboardXLandscapeRatio = float("floating_keyboard_x_landscape_ratio", -1f)
+        val floatingKeyboardYLandscapeRatio = float("floating_keyboard_y_landscape_ratio", -1f)
         val floatingKeyboardXPortrait = int("floating_keyboard_x_portrait", -1)
         val floatingKeyboardYPortrait = int("floating_keyboard_y_portrait", -1)
         val floatingKeyboardXLandscape = int("floating_keyboard_x_landscape", -1)
@@ -74,6 +86,22 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
         val lastShareReceiveDirectory = string("last_share_receive_directory", "")
         val lastShareReceiveDirectoryRemembered = bool("last_share_receive_directory_remembered", false)
         val preeditStyleScopes = stringSet("preedit_style_scopes", emptySet())
+
+        init {
+            // 旧版本只持久化 floating_keyboard_enabled；新版拆出浮动模式开关后，
+            // 首次升级时把旧值迁移到 floating_mode_enabled，避免用户的浮动状态被静默关闭。
+            if (!sharedPreferences.contains("floating_mode_enabled") &&
+                sharedPreferences.contains("floating_keyboard_enabled")
+            ) {
+                sharedPreferences.edit {
+                    putBoolean(
+                        "floating_mode_enabled",
+                        sharedPreferences.getBoolean("floating_keyboard_enabled", false)
+                    )
+                    remove("floating_keyboard_enabled")
+                }
+            }
+        }
     }
 
     inner class Advanced : ManagedPreferenceCategory(R.string.advanced, sharedPreferences) {
@@ -739,8 +767,21 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
                 advanced.ignoreSystemCursor,
                 advanced.disableAnimation,
                 advanced.vivoKeypressWorkaround,
-                internal.floatingKeyboardWidth,
-                internal.floatingKeyboardHeight,
+                internal.floatingModeEnabled,
+                internal.autoHideFloatingMoveHandle,
+                internal.autoFloatingLandscape,
+                internal.floatingKeyboardWidthPortraitRatio,
+                internal.floatingKeyboardWidthLandscapeRatio,
+                internal.floatingKeyboardHeightPortraitRatio,
+                internal.floatingKeyboardHeightLandscapeRatio,
+                internal.floatingKeyboardWidthRatio,
+                internal.floatingKeyboardHeightRatio,
+                internal.floatingKeyboardWidthLegacy,
+                internal.floatingKeyboardHeightLegacy,
+                internal.floatingKeyboardXPortraitRatio,
+                internal.floatingKeyboardYPortraitRatio,
+                internal.floatingKeyboardXLandscapeRatio,
+                internal.floatingKeyboardYLandscapeRatio,
                 internal.floatingKeyboardXPortrait,
                 internal.floatingKeyboardYPortrait,
                 internal.floatingKeyboardXLandscape,

@@ -344,6 +344,16 @@ data object FloatingToggleAction : ButtonAction() {
         onActionComplete?.invoke()
     }
 
+    override fun onLongPress(
+        context: Context,
+        service: FcitxInputMethodService,
+        fcitx: FcitxConnection,
+        windowManager: InputWindowManager,
+        view: View
+    ) {
+        service.inputView?.enterAdjustingMode()
+    }
+
 }
 
 data object ClipboardAction : ButtonAction() {

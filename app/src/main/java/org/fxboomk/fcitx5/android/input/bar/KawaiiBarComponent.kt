@@ -542,6 +542,18 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
                 }
             }
 
+            setOnLongClickListener("floating_toggle") {
+                restoreVirtualKeyboardMode()
+                ButtonAction.fromId("floating_toggle")?.onLongPress(
+                    context = context,
+                    service = service,
+                    fcitx = fcitx,
+                    windowManager = windowManager,
+                    view = ui.buttonsUi.root
+                )
+                true
+            }
+
             setOnLongClickListener("theme_toggle") {
                 ButtonAction.fromId("theme_toggle")?.onLongPress(
                     context = context,

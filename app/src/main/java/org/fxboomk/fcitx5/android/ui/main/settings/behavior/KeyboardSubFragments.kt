@@ -10,6 +10,7 @@ import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.data.prefs.ManagedPreferenceFragment
 import org.fxboomk.fcitx5.android.data.prefs.ManagedPreferenceProvider
+import org.fxboomk.fcitx5.android.ui.main.modified.MySwitchPreference
 import org.fxboomk.fcitx5.android.utils.addCategory
 import org.fxboomk.fcitx5.android.utils.addPreference
 
@@ -50,6 +51,9 @@ class KeyboardLayoutAndSplitSettingsFragment : KeyboardSectionFragment() {
 
     private var calibrationPreference: Preference? = null
     private var useLandscapePreference: Preference? = null
+    private var floatingModePreference: MySwitchPreference? = null
+    private var autoFloatingLandscapePreference: MySwitchPreference? = null
+    private var autoHideMoveHandlePreference: MySwitchPreference? = null
 
     private val onSplitEnabledChangeListener = ManagedPreferenceProvider.OnChangeListener { key ->
         if (key == KeyboardSettingsSupport.SPLIT_ENABLED_KEY) {
@@ -59,21 +63,79 @@ class KeyboardLayoutAndSplitSettingsFragment : KeyboardSectionFragment() {
         }
     }
 
-    override fun onBuildPreferenceScreen(screen: PreferenceScreen) {
-        KeyboardSettingsSupport.run {
-            addKeyboardSection(screen, R.string.keyboard_settings_layout_and_split, layoutKeys)
+    private val onFloatingPreferenceChangeListener = ManagedPreferenceProvider.OnChangeListener { key ->
+        val internal = AppPrefs.getInstance().internal
+        if (key == internal.floatingModeEnabled.key ||
+            key == internal.autoFloatingLandscape.key ||
+            key == internal.autoHideFloatingMoveHandle.key
+        ) {
+            syncFloatingSwitches()
         }
+    }
+
+    override fun onBuildPreferenceScreen(screen: PreferenceScreen) {
+        val prefs = AppPrefs.getInstance()
         calibrationPreference = KeyboardSettingsSupport.createSplitKeyboardCalibrationPreference(this)
-        screen.addCategory(R.string.keyboard_settings_split_tools_section) {
-            calibrationPreference?.let(::addPreference)
+        KeyboardSettingsSupport.run {
+            addKeyboardSection(
+                screen,
+                R.string.keyboard_modes_category_split,
+                KeyboardSettingsSupport.layoutKeys,
+                calibrationPreference
+            )
+        }
+        screen.addCategory(R.string.keyboard_modes_category_floating) {
+            addPreference(createFloatingSwitch(
+                R.string.floating_keyboard_enabled,
+                R.string.floating_keyboard_enabled_summary,
+                prefs.internal.floatingModeEnabled.key
+            ).also { floatingModePreference = it })
+            addPreference(createFloatingSwitch(
+                R.string.auto_floating_landscape,
+                R.string.auto_floating_landscape_summary,
+                prefs.internal.autoFloatingLandscape.key
+            ).also { autoFloatingLandscapePreference = it })
+            addPreference(createFloatingSwitch(
+                R.string.floating_move_handle_auto_hide,
+                R.string.floating_move_handle_auto_hide_summary,
+                prefs.internal.autoHideFloatingMoveHandle.key
+            ).also { autoHideMoveHandlePreference = it })
         }
         useLandscapePreference = screen.findPreference("split_keyboard_use_landscape_layout")
-        useLandscapePreference?.isEnabled = AppPrefs.getInstance().keyboard.splitKeyboardEnabled.getValue()
-        AppPrefs.getInstance().keyboard.registerOnChangeListener(onSplitEnabledChangeListener)
+        useLandscapePreference?.isEnabled = prefs.keyboard.splitKeyboardEnabled.getValue()
+        prefs.keyboard.registerOnChangeListener(onSplitEnabledChangeListener)
+        prefs.internal.registerOnChangeListener(onFloatingPreferenceChangeListener)
+        syncFloatingSwitches()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        syncFloatingSwitches()
+    }
+
+    private fun createFloatingSwitch(
+        titleRes: Int,
+        summaryRes: Int,
+        preferenceKey: String
+    ): MySwitchPreference = MySwitchPreference(requireContext()).apply {
+        key = preferenceKey
+        setTitle(titleRes)
+        setSummary(summaryRes)
+        isIconSpaceReserved = false
+        isSingleLineTitle = false
+    }
+
+    private fun syncFloatingSwitches() {
+        val internal = AppPrefs.getInstance().internal
+        floatingModePreference?.isChecked = internal.floatingModeEnabled.getValue()
+        autoFloatingLandscapePreference?.isChecked = internal.autoFloatingLandscape.getValue()
+        autoHideMoveHandlePreference?.isChecked = internal.autoHideFloatingMoveHandle.getValue()
     }
 
     override fun onDestroy() {
-        AppPrefs.getInstance().keyboard.unregisterOnChangeListener(onSplitEnabledChangeListener)
+        val prefs = AppPrefs.getInstance()
+        prefs.keyboard.unregisterOnChangeListener(onSplitEnabledChangeListener)
+        prefs.internal.unregisterOnChangeListener(onFloatingPreferenceChangeListener)
         super.onDestroy()
     }
 }
