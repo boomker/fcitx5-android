@@ -13,12 +13,15 @@ import android.view.Gravity
 import android.view.animation.AlphaAnimation
 import android.view.animation.AnimationSet
 import android.view.animation.TranslateAnimation
+import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.ViewAnimator
 import androidx.core.view.updateLayoutParams
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.data.theme.Theme
 import org.fxboomk.fcitx5.android.input.bar.KawaiiBarComponent
+import org.fxboomk.fcitx5.android.input.bar.ToolbarVoiceInputPolicy
 import org.fxboomk.fcitx5.android.input.bar.ui.idle.ButtonsBarUi
 import org.fxboomk.fcitx5.android.input.bar.ui.idle.ClipboardSuggestionUi
 import org.fxboomk.fcitx5.android.input.bar.ui.idle.InlineSuggestionsUi
@@ -39,11 +42,16 @@ import splitties.views.dsl.constraintlayout.matchConstraints
 import splitties.views.dsl.constraintlayout.startOfParent
 import splitties.views.dsl.core.Ui
 import splitties.views.dsl.core.add
-import splitties.views.dsl.core.lParams
 import splitties.views.dsl.core.frameLayout
+import splitties.views.dsl.core.horizontalLayout
+import splitties.views.dsl.core.lParams
 import splitties.views.dsl.core.matchParent
+import splitties.views.dsl.core.textView
+import splitties.views.dsl.core.wrapContent
 import splitties.views.imageResource
 import timber.log.Timber
+import kotlin.math.roundToInt
+import kotlin.math.sqrt
 
 class IdleUi(
     override val ctx: Context,
@@ -102,6 +110,61 @@ class IdleUi(
     }
 
     val inlineSuggestionsBar = InlineSuggestionsUi(ctx)
+
+    private val voiceStatusText: TextView = textView {
+        text = "Recording"
+        textSize = 14f
+        setTextColor(theme.keyTextColor)
+        isSingleLine = true
+    }
+
+    private val voiceBars = List(12) {
+        View(ctx).apply {
+            setBackgroundColor(theme.keyTextColor)
+            alpha = 0.35f
+        }
+    }
+
+    private var voiceWavePhase = 0
+    private var lastVoiceLevelAt = 0L
+
+    /**
+     * Stop control shown while a voice session owns the center strip.
+     *
+     * The configurable microphone button lives in [animator], which is hidden while
+     * recording, so the session's finish control is kept inside the visible voice
+     * status strip instead. Its click listener is installed by [KawaiiBarComponent].
+     */
+    val voiceInputFinishButton = ToolButton(ctx, ToolbarVoiceInputPolicy.finishButtonIcon(), theme).apply {
+        contentDescription = ctx.getString(R.string.voice_input_finish)
+    }
+
+    private val voiceStatusBar = horizontalLayout {
+        gravity = Gravity.CENTER_VERTICAL
+        visibility = View.GONE
+        setPadding(dp(8), 0, dp(8), 0)
+        add(voiceStatusText, lParams(0, wrapContent, weight = 1f))
+        voiceBars.forEach { bar ->
+            add(bar, LinearLayout.LayoutParams(dp(3), dp(8)).apply {
+                marginStart = dp(3)
+            })
+        }
+        add(
+            voiceInputFinishButton,
+            lParams(ctx.dp(KawaiiBarComponent.configuredHeightDp()), matchParent)
+        )
+    }
+
+    private val voiceWaveTicker = object : Runnable {
+        override fun run() {
+            if (voiceStatusBar.visibility != View.VISIBLE) return
+            val hasRecentLevel = System.currentTimeMillis() - lastVoiceLevelAt < 500L
+            if (!hasRecentLevel) {
+                updateVoiceBars(-1f)
+            }
+            voiceStatusBar.postDelayed(this, 120L)
+        }
+    }
 
     init {
         // Toolbar button icons are refreshed by ButtonsBarUi itself.
@@ -172,6 +235,11 @@ class IdleUi(
             before(hideKeyboardButton)
             centerVertically()
         })
+        add(voiceStatusBar, lParams(matchConstraints, matchParent) {
+            after(menuButton)
+            before(hideKeyboardButton)
+            centerVertically()
+        })
     }
 
     /**
@@ -188,6 +256,80 @@ class IdleUi(
             width = size
             height = size
         }
+        voiceInputFinishButton.updateLayoutParams {
+            width = size
+            height = size
+        }
+    }
+
+    fun showVoiceStatus(label: String = "Recording") {
+        voiceStatusText.text = label
+        voiceStatusBar.visibility = View.VISIBLE
+        // The center strip shows exactly one of the voice status or the animator;
+        // the fixed edge buttons stay visible throughout.
+        animator.visibility = View.GONE
+        idleBody.visibility = View.VISIBLE
+        numberRow.visibility = View.GONE
+        numberRow.keyActionListener = null
+        numberRow.popupActionListener = null
+        startVoiceWave()
+    }
+
+    fun updateVoiceLevel(rms: Int) {
+        if (voiceStatusBar.visibility != View.VISIBLE) return
+        lastVoiceLevelAt = System.currentTimeMillis()
+        val normalized = sqrt((rms / 3500f).coerceIn(0f, 1f))
+        updateVoiceBars(normalized)
+    }
+
+    private fun updateVoiceBars(normalized: Float) {
+        val animated = normalized < 0f
+        val active = if (animated) {
+            voiceWavePhase = (voiceWavePhase + 1) % voiceBars.size
+            voiceBars.size
+        } else {
+            (normalized * voiceBars.size).roundToInt().coerceIn(1, voiceBars.size)
+        }
+        voiceBars.forEachIndexed { index, bar ->
+            val waveDistance = kotlin.math.abs(index - voiceWavePhase).let {
+                minOf(it, voiceBars.size - it)
+            }
+            val animatedHeight = ctx.dp(5 + (4 - waveDistance.coerceAtMost(4)) * 4)
+            val levelHeight = ctx.dp(5 + ((index % 4) + 1) * 4)
+            val targetHeight = when {
+                animated -> animatedHeight
+                index < active -> levelHeight
+                else -> ctx.dp(5)
+            }
+            bar.layoutParams = bar.layoutParams.apply { this.height = targetHeight }
+            bar.alpha = when {
+                animated -> if (waveDistance <= 3) 0.9f else 0.3f
+                index < active -> 0.95f
+                else -> 0.25f
+            }
+        }
+    }
+
+    fun hideVoiceStatus() {
+        if (voiceStatusBar.visibility == View.GONE) return
+        stopVoiceWave()
+        voiceStatusBar.visibility = View.GONE
+        if (currentState == State.NumberRow) {
+            numberRow.keyActionListener = commonKeyActionListener.listener
+            numberRow.popupActionListener = popup.listener
+        }
+        // Re-derive the strip's normal contents for the state we were in.
+        updateState(currentState)
+    }
+
+    private fun startVoiceWave() {
+        voiceStatusBar.removeCallbacks(voiceWaveTicker)
+        voiceStatusBar.post(voiceWaveTicker)
+    }
+
+    private fun stopVoiceWave() {
+        voiceStatusBar.removeCallbacks(voiceWaveTicker)
+        lastVoiceLevelAt = 0L
     }
 
     override val root = frameLayout {
@@ -277,6 +419,17 @@ class IdleUi(
 
     fun updateState(state: State, fromUser: Boolean = false) {
         Timber.d("Switch idle ui to $state")
+        if (voiceStatusBar.visibility == View.VISIBLE) {
+            // A voice session owns the center strip; only remember the state so it
+            // can be restored when the session ends.
+            currentState = state
+            animator.visibility = View.GONE
+            idleBody.visibility = View.VISIBLE
+            numberRow.visibility = View.GONE
+            updateMenuButtonIcon()
+            updateMenuButtonContentDescription()
+            return
+        }
         if (
             !fromUser ||
             disableAnimation ||

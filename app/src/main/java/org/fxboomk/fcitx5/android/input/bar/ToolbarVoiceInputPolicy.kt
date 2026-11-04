@@ -38,4 +38,19 @@ internal object ToolbarVoiceInputPolicy {
      */
     fun usesKeyIconTheme(button: ConfigurableButton): Boolean =
         button.id == VOICE_INPUT_ID && button.icon.isNullOrBlank()
+
+    /** Long-press on the toolbar voice action opens the shared engine picker. */
+    fun longPressAction(): LongPressAction = LongPressAction.OpenPicker
+
+    /** The in-bar stop control mirrors the configured active voice icon. */
+    fun finishButtonIcon(): Int = org.fxboomk.fcitx5.android.R.drawable.ic_voice_input_active_24
+
+    /**
+     * A tap after speaking must flush the current utterance and wait for the final
+     * recognition result. Cancelling via `stop()` would discard it.
+     */
+    fun finishButtonAction(): FinishAction = FinishAction.FinishRecording
+
+    enum class FinishAction { FinishRecording, CancelSession }
+    enum class LongPressAction { OpenPicker, None }
 }

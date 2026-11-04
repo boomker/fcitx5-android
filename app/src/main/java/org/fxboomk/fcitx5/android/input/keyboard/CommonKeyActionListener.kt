@@ -472,7 +472,7 @@ class CommonKeyActionListener :
                 }
                 is VoiceInputHoldEnd -> {
                     if (voiceHoldActive) {
-                        VoiceInputProviderManager.stop(service)
+                        VoiceInputProviderManager.finish(service)
                         voiceHoldActive = false
                     }
                 }

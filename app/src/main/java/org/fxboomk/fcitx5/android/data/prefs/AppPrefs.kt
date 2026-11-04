@@ -241,12 +241,11 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
 
         val showVoiceInputButton =
             switch(R.string.show_voice_input_button, "show_voice_input_button", false)
+        // Long-press space also uses the preferred voice input, independent of the toolbar
+        // button, so this entry must stay editable even when the button is hidden.
         val preferredVoiceInput = voiceInputPreference(
             R.string.preferred_voice_input, "preferred_voice_input", ""
-        ) {
-            showVoiceInputButton.getValue() ||
-            spaceKeyLongPressBehavior.getValue() == SpaceLongPressBehavior.VoiceHold
-        }
+        )
 
         val expandKeypressArea =
             switch(R.string.expand_keypress_area, "expand_keypress_area", false)

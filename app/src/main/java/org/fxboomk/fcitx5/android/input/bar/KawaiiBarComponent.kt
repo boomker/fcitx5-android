@@ -71,6 +71,7 @@ import org.fxboomk.fcitx5.android.input.dependency.context
 import org.fxboomk.fcitx5.android.input.dependency.fcitx
 import org.fxboomk.fcitx5.android.input.dependency.inputMethodService
 import org.fxboomk.fcitx5.android.input.dependency.theme
+import org.fxboomk.fcitx5.android.input.dialog.VoiceInputPickerDialog
 import org.fxboomk.fcitx5.android.input.editing.TextEditingWindow
 import org.fxboomk.fcitx5.android.input.keyboard.CommonKeyActionListener
 import org.fxboomk.fcitx5.android.input.keyboard.CustomGestureView
@@ -320,6 +321,23 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         showToolbarImmediately()
     }
 
+    private fun showVoiceInputPicker() {
+        val capFlags = CapabilityFlags.fromEditorInfo(service.currentInputEditorInfo)
+        if (capFlags.has(CapabilityFlag.Password)) return
+        service.showDialog(VoiceInputPickerDialog.build(context) { _ ->
+            if (VoiceInputProviderManager.isActive()) {
+                VoiceInputProviderManager.stop(service)
+                service.clearVoiceComposingText()
+                idleUi.hideVoiceStatus()
+            }
+            updateButtonsState()
+        })
+    }
+
+    internal fun onVoiceInputButtonLongPress() {
+        showVoiceInputPicker()
+    }
+
     private fun showToolbarImmediately() {
         barStateMachine.setBooleanState(PreeditEmpty, true)
         barStateMachine.setBooleanState(CandidateEmpty, true)
@@ -547,6 +565,12 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
                 true
             }
 
+            setOnLongClickListener("voice_input") {
+                restoreVirtualKeyboardMode()
+                onVoiceInputButtonLongPress()
+                true
+            }
+
             // Keep language switch long-press behavior aligned with keyboard globe key.
             setOnLongClickListener("language_switch") {
                 restoreVirtualKeyboardMode()
@@ -607,6 +631,16 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
                     AppUtil.launchClipboardEdit(context, it.id, true)
                 }
                 true
+            }
+        }
+        ui.voiceInputFinishButton.setOnClickListener {
+            if (VoiceInputProviderManager.isActive() &&
+                ToolbarVoiceInputPolicy.finishButtonAction() == ToolbarVoiceInputPolicy.FinishAction.FinishRecording
+            ) {
+                ui.showVoiceStatus(service.getString(R.string.voice_status_recognizing))
+                VoiceInputProviderManager.finish(service)
+            } else {
+                ui.hideVoiceStatus()
             }
         }
     }
@@ -835,12 +869,28 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         clipboardSuggestion.registerOnChangeListener(onClipboardSuggestionUpdateListener)
         clipboardItemTimeout.registerOnChangeListener(onClipboardTimeoutUpdateListener)
         prefs.keyboard.showVoiceInputButton.registerOnChangeListener(onVoiceInputSettingsChanged)
-        VoiceInputProviderManager.voiceErrorCallback = { message ->
-            Toast.makeText(service, message, Toast.LENGTH_SHORT).show()
-            updateButtonsState()
-        }
-        VoiceInputProviderManager.voiceReadyCallback = { updateButtonsState() }
-        VoiceInputProviderManager.voiceFinishedCallback = { updateButtonsState() }
+        VoiceInputProviderManager.setUiCallbacks(
+            owner = this,
+            status = { message -> _idleUi?.showVoiceStatus(message) },
+            level = { rms -> _idleUi?.updateVoiceLevel(rms) },
+            ready = {
+                _idleUi?.showVoiceStatus(context.getString(R.string.voice_status_listening))
+                updateButtonsState()
+            },
+            finished = {
+                _idleUi?.hideVoiceStatus()
+                updateButtonsState()
+            },
+            error = { message ->
+                Toast.makeText(service, message, Toast.LENGTH_SHORT).show()
+                _idleUi?.hideVoiceStatus()
+                updateButtonsState()
+            },
+            floatingCommit = {
+                _idleUi?.showVoiceStatus(context.getString(R.string.voice_status_committed))
+                _idleUi?.hideVoiceStatus()
+            }
+        )
     }
 
     override fun onStartInput(info: EditorInfo, capFlags: CapabilityFlags, restarting: Boolean) {
@@ -985,6 +1035,7 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
 
     fun dispose() {
         prefs.keyboard.showVoiceInputButton.unregisterOnChangeListener(onVoiceInputSettingsChanged)
+        VoiceInputProviderManager.releaseUiCallbacks(this)
         _idleUi?.dispose()
     }
 

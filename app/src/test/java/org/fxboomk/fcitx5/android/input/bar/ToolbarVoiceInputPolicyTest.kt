@@ -4,6 +4,7 @@
  */
 package org.fxboomk.fcitx5.android.input.bar
 
+import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.input.config.ConfigurableButton
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -61,5 +62,18 @@ class ToolbarVoiceInputPolicyTest {
         assertTrue(ToolbarVoiceInputPolicy.usesKeyIconTheme(themed))
         assertFalse(ToolbarVoiceInputPolicy.usesKeyIconTheme(custom))
         assertFalse(ToolbarVoiceInputPolicy.usesKeyIconTheme(ConfigurableButton("undo")))
+    }
+}
+
+class ToolbarVoiceInputFinishPolicyTest {
+
+    @Test
+    fun finishButtonUsesActiveVoiceIconAndFinishesInsteadOfCancelling() {
+        assertEquals(ToolbarVoiceInputPolicy.LongPressAction.OpenPicker, ToolbarVoiceInputPolicy.longPressAction())
+        assertEquals(R.drawable.ic_voice_input_active_24, ToolbarVoiceInputPolicy.finishButtonIcon())
+        assertEquals(
+            ToolbarVoiceInputPolicy.FinishAction.FinishRecording,
+            ToolbarVoiceInputPolicy.finishButtonAction(),
+        )
     }
 }

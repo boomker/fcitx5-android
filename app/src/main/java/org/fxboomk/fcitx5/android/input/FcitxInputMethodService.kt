@@ -7,9 +7,12 @@ package org.fxboomk.fcitx5.android.input
 
 import android.annotation.SuppressLint
 import android.app.Dialog
+import android.content.BroadcastReceiver
 import android.content.ClipData
 import android.content.ClipDescription
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ActivityInfo
 import android.content.res.ColorStateList
 import android.content.res.Configuration
@@ -47,6 +50,7 @@ import androidx.autofill.inline.common.ImageViewStyle
 import androidx.autofill.inline.common.TextViewStyle
 import androidx.autofill.inline.common.ViewStyle
 import androidx.autofill.inline.v1.InlineSuggestionUi
+import androidx.core.content.ContextCompat
 import androidx.core.view.inputmethod.InputConnectionCompat
 import androidx.core.view.inputmethod.InputContentInfoCompat
 import androidx.core.view.updateLayoutParams
@@ -58,6 +62,8 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.fcitx.fcitx5.android.common.ipc.VoiceInputIpc
+import org.fxboomk.fcitx5.android.BuildConfig
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.core.CapabilityFlags
 import org.fxboomk.fcitx5.android.core.FcitxAPI
@@ -96,6 +102,7 @@ import org.fxboomk.fcitx5.android.input.keyboard.HardwarePredictionSession
 import org.fxboomk.fcitx5.android.input.keyboard.isHardwarePredictionDismissKey
 import org.fxboomk.fcitx5.android.input.keyboard.isHardwarePredictionSelectionKey
 import org.fxboomk.fcitx5.android.input.keyboard.shouldConsumeHardwarePredictionDismiss
+import org.fxboomk.fcitx5.android.input.voice.VoiceInputProviderManager
 import org.fxboomk.fcitx5.android.utils.InputMethodUtil
 import org.fxboomk.fcitx5.android.utils.ClipboardSharedContent
 import org.fxboomk.fcitx5.android.utils.ClipboardUriStore
@@ -144,6 +151,12 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     private var jobs = Channel<Job>(capacity = Channel.UNLIMITED)
     private var inputBindingGeneration = 0
     private var inputSessionGeneration = 0
+    internal val editorSession = EditorSessionTracker()
+
+    private fun endEditorWork() {
+        if (VoiceInputProviderManager.isActive()) VoiceInputProviderManager.stop(this)
+    }
+
     private var pendingCandidatePagingMode: Int? = null
     private var appliedCandidatePagingMode: Int? = null
     private var candidatePagingModeJob: Job? = null
@@ -391,6 +404,43 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         prefs.advanced.disableAnimation,
         prefs.advanced.ignoreSystemWindowInsets,
     )
+
+    /**
+     * Receives partial/final transcripts from a plugin's optional FloatingService.
+     *
+     * The AIDL provider path feeds text back over [org.fcitx.fcitx5.android.common.ipc.IVoiceInputCallback];
+     * the floating fallback used by plugins that only expose a FloatingService returns its
+     * results through this exported broadcast instead. The payload is only applied when the
+     * session token matches the currently active floating session
+     * (see [VoiceInputProviderManager.deliverFloatingResult]).
+     */
+    private val voiceInputCommitReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            val message = intent ?: return
+            val final = when (message.action) {
+                BuildConfig.APPLICATION_ID + VoiceInputIpc.PARTIAL_ACTION_SUFFIX -> false
+                BuildConfig.APPLICATION_ID + VoiceInputIpc.COMMIT_ACTION_SUFFIX -> true
+                else -> return
+            }
+            val payload = runCatching {
+                val token = message.getStringExtra(VoiceInputIpc.EXTRA_FLOATING_SESSION_TOKEN) ?: return
+                val text = message.getStringExtra(
+                    if (final) VoiceInputIpc.EXTRA_COMMIT_TEXT else VoiceInputIpc.EXTRA_PARTIAL_TEXT
+                )?.takeIf { it.isNotBlank() } ?: return
+                token to text
+            }.getOrNull() ?: return
+            VoiceInputProviderManager.deliverFloatingResult(payload.first, final) {
+                val text = payload.second
+                Timber.i("floating voice result accepted final=$final len=${text.length}")
+                if (final) {
+                    commitVoiceText(text)
+                    VoiceInputProviderManager.floatingCommitListener?.invoke(text)
+                } else {
+                    updateVoiceComposingText(text)
+                }
+            }
+        }
+    }
 
     private fun replaceInputView(theme: Theme): InputView {
         val newInputView = InputView(this, fcitx, theme)
@@ -958,6 +1008,15 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         // Register listener for floating mode changes to reset state when switching away from "Always" mode
         prefs.candidates.mode.registerOnChangeListener(onFloatingModeChangeListener)
         ThemeManager.addOnChangedListener(onThemeChangeListener)
+        val voiceIntentFilter = IntentFilter().apply {
+            addAction(BuildConfig.APPLICATION_ID + VoiceInputIpc.COMMIT_ACTION_SUFFIX)
+            addAction(BuildConfig.APPLICATION_ID + VoiceInputIpc.PARTIAL_ACTION_SUFFIX)
+        }
+        ContextCompat.registerReceiver(
+            this, voiceInputCommitReceiver, voiceIntentFilter,
+            BuildConfig.APPLICATION_ID + ".permission.PLUGIN", null,
+            ContextCompat.RECEIVER_EXPORTED
+        )
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             postFcitxJob {
                 SubtypeManager.syncWith(enabledIme())
@@ -2233,6 +2292,18 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     }
 
     override fun onStartInput(attribute: EditorInfo, restarting: Boolean) {
+        if (editorSession.start(
+                EditorSessionTracker.Editor(
+                    attribute.packageName,
+                    attribute.fieldId,
+                    attribute.inputType,
+                    attribute.imeOptions,
+                ),
+                restarting,
+            )
+        ) {
+            endEditorWork()
+        }
         isInInputLifecycleCriticalPhase = true
         try {
             if (!restarting) hardwarePredictionSession.reset()
@@ -2666,6 +2737,8 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
 
     override fun onFinishInput() {
         Timber.d("onFinishInput")
+        editorSession.end()
+        endEditorWork()
         val inputSessionGeneration = this.inputSessionGeneration
         postFcitxSessionJob(inputSessionGeneration) {
             focus(false)
@@ -2674,6 +2747,8 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     }
 
     override fun onUnbindInput() {
+        editorSession.end()
+        endEditorWork()
         cachedKeyEvents.evictAll()
         cachedKeyEventIndex = 0
         cursorUpdateIndex = 0
@@ -2688,12 +2763,16 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     }
 
     override fun onDestroy() {
+        editorSession.end()
+        endEditorWork()
         recreateInputViewPrefs.forEach {
             it.unregisterOnChangeListener(recreateInputViewListener)
         }
         prefs.candidates.unregisterOnChangeListener(recreateCandidatesViewListener)
         prefs.candidates.mode.unregisterOnChangeListener(onFloatingModeChangeListener)
         ThemeManager.removeOnChangedListener(onThemeChangeListener)
+        runCatching { unregisterReceiver(voiceInputCommitReceiver) }
+            .onFailure { Timber.w(it, "unregister voice receiver") }
         super.onDestroy()
         // Fcitx might be used in super.onDestroy()
         FcitxDaemon.disconnect(javaClass.name)

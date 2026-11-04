@@ -78,8 +78,7 @@ internal object ThemeSettingsSupport {
     val toolbarStyleKeyboardSwitchKeys = listOf(
         "toolbar_dynamic_height",
         "toolbar_num_row_on_password",
-        "physical_keyboard_horizontal_candidate_bar",
-        "show_voice_input_button"
+        "physical_keyboard_horizontal_candidate_bar"
     )
 
     val toolbarStyleThemeKeys = toolbarStyleThemeSwitchKeys + toolbarStyleThemeNonSwitchKeys

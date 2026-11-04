@@ -165,6 +165,8 @@ dependencies {
     implementation(libs.zxing.embedded)
     implementation(libs.xz)
     implementation(libs.pictureselector)
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation(libs.quickjs.kt)
     testImplementation(libs.junit)
     testImplementation(libs.org.json)
     androidTestImplementation(libs.androidx.test.runner)
@@ -180,5 +182,15 @@ configurations {
         // remove unwanted splitties libraries...
         exclude(group = "com.louiscad.splitties", module = "splitties-appctx")
         exclude(group = "com.louiscad.splitties", module = "splitties-systemservices")
+    }
+}
+
+// The Android QuickJS artifact only ships a .so, so JVM unit tests need the desktop artifact.
+configurations.matching {
+    it.name.endsWith("UnitTestRuntimeClasspath") || it.name.endsWith("UnitTestCompileClasspath")
+}.configureEach {
+    resolutionStrategy.dependencySubstitution {
+        substitute(module("io.github.dokar3:quickjs-kt"))
+            .using(module("io.github.dokar3:quickjs-kt-jvm:" + libs.versions.quickjs.kt.get()))
     }
 }

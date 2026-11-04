@@ -626,6 +626,13 @@ object SettingsSearchIndex {
         addKeyboardSection(
             context,
             keyboardPrefs,
+            R.string.keyboard_category_voice,
+            SettingsRoute.VirtualKeyboardVoice,
+            listOf("show_voice_input_button", "preferred_voice_input")
+        )
+        addKeyboardSection(
+            context,
+            keyboardPrefs,
             R.string.keyboard_settings_touch_and_sound,
             SettingsRoute.VirtualKeyboardTouchAndSound,
             KeyboardSettingsSupport.touchAndSoundKeys

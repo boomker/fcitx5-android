@@ -4,15 +4,19 @@
  */
 package org.fxboomk.fcitx5.android.ui.main.settings.behavior
 
+import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceScreen
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.data.prefs.ManagedPreferenceFragment
 import org.fxboomk.fcitx5.android.data.prefs.ManagedPreferenceProvider
+import org.fxboomk.fcitx5.android.data.prefs.ManagedPreferenceUi
 import org.fxboomk.fcitx5.android.ui.main.modified.MySwitchPreference
+import org.fxboomk.fcitx5.android.ui.main.settings.voice.JsVoicePluginsActivity
 import org.fxboomk.fcitx5.android.utils.addCategory
 import org.fxboomk.fcitx5.android.utils.addPreference
+import org.fxboomk.fcitx5.android.utils.setup
 
 abstract class KeyboardSectionFragment : ManagedPreferenceFragment(AppPrefs.getInstance().keyboard) {
     final override fun onPreferenceUiCreated(screen: PreferenceScreen) {
@@ -27,6 +31,41 @@ class KeyboardBasicSettingsFragment : KeyboardSectionFragment() {
     override fun onBuildPreferenceScreen(screen: PreferenceScreen) {
         KeyboardSettingsSupport.run {
             addKeyboardSection(screen, R.string.keyboard_settings_basic_behavior, basicBehaviorKeys)
+        }
+    }
+}
+
+class KeyboardVoiceSettingsFragment : KeyboardSectionFragment() {
+    override fun onBuildPreferenceScreen(screen: PreferenceScreen) {
+        KeyboardSettingsSupport.run {
+            addKeyboardSection(
+                screen,
+                R.string.keyboard_category_voice,
+                listOf("show_voice_input_button", "preferred_voice_input"),
+            )
+        }
+        screen.addPreference(
+            Preference(requireContext()).apply {
+                key = "tool_js_voice_plugins"
+                isPersistent = false
+                isIconSpaceReserved = false
+                isSingleLineTitle = false
+                setup(
+                    context.getString(R.string.js_voice_plugins_title),
+                    context.getString(R.string.js_voice_plugins_summary),
+                ) {
+                    startActivity(JsVoicePluginsActivity.intent(requireContext()))
+                }
+            }
+        )
+    }
+
+    override fun onResume() {
+        super.onResume()
+        findPreference<ListPreference>("preferred_voice_input")?.let { preference ->
+            ManagedPreferenceUi.VoiceInputList.refreshEntries(preference)
+            // Re-resolve the summary after plugins were imported or removed.
+            preference.value = preference.value
         }
     }
 }

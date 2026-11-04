@@ -14,6 +14,7 @@ zxingEmbedded = "4.3.0"
 xz = "1.10"
 pictureselector = "kotlin-v1.0.0-beta"
 orgJson = "20260814"
+quickjs-kt = "1.0.15"
 
 [libraries]
 android-gradlePlugin = { group = "com.android.tools.build", name = "gradle", version.ref = "androidGradlePlugin" }
@@ -74,6 +75,7 @@ zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
 zxing-embedded = { module = "com.journeyapps:zxing-android-embedded", version.ref = "zxingEmbedded" }
 xz = { module = "org.tukaani:xz", version.ref = "xz" }
 pictureselector = { module = "io.github.lucksiege:pictureselector", version.ref = "pictureselector" }
+quickjs-kt = { module = "io.github.dokar3:quickjs-kt", version.ref = "quickjs-kt" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }

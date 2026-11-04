@@ -42,14 +42,19 @@ object UserDataManager {
         return packageName == allowedPackageNamePrefix || packageName.startsWith("$allowedPackageNamePrefix.")
     }
 
-    private fun writeFileTree(srcDir: File, destPrefix: String, dest: ZipOutputStream) {
+    private fun writeFileTree(
+        srcDir: File,
+        destPrefix: String,
+        dest: ZipOutputStream,
+        skip: (File) -> Boolean = { false },
+    ) {
         dest.putNextEntry(ZipEntry("$destPrefix/"))
         srcDir.walkTopDown().forEach { f ->
             val related = f.relativeTo(srcDir)
             if (related.path != "") {
                 if (f.isDirectory) {
                     dest.putNextEntry(ZipEntry("$destPrefix/${related.path}/"))
-                } else if (f.isFile) {
+                } else if (f.isFile && !skip(f)) {
                     dest.putNextEntry(ZipEntry("$destPrefix/${related.path}"))
                     f.inputStream().use { it.copyTo(dest) }
                 }
@@ -65,8 +70,11 @@ object UserDataManager {
     @OptIn(ExperimentalSerializationApi::class)
     fun export(dest: OutputStream, timestamp: Long = System.currentTimeMillis()) = runCatching {
         ZipOutputStream(dest.buffered()).use { zipStream ->
-            // shared_prefs
-            writeFileTree(sharedPrefsDir, "shared_prefs", zipStream)
+            // shared_prefs + imported JS voice plugins
+            org.fxboomk.fcitx5.android.input.voice.js.JsVoicePluginStore.withSnapshot { scripts ->
+                writeFileTree(sharedPrefsDir, "shared_prefs", zipStream)
+                writeFileTree(scripts, "js-voice", zipStream) { !it.name.endsWith(".js") }
+            }
             // databases
             writeFileTree(dataBasesDir, "databases", zipStream)
             // external
@@ -136,8 +144,10 @@ object UserDataManager {
                 if (!isAllowedPackageName(metadata.packageName)) {
                     errorRuntime(R.string.exception_user_data_package_name_mismatch, metadata.packageName)
                 }
+                org.fxboomk.fcitx5.android.input.voice.js.JsVoicePluginStore.validateBackup(tempDir)
                 // Copy shared_prefs with package name renaming
                 copySharedPrefs(File(tempDir, "shared_prefs"), sharedPrefsDir, metadata.packageName)
+                copyDir(File(tempDir, "js-voice"), File(appContext.filesDir, "js-voice"))
                 copyDir(File(tempDir, "databases"), dataBasesDir)
                 copyDir(File(tempDir, "external"), externalDir)
                 // keep importing recently_used for backwords compatibility
