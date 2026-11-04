@@ -1,8 +1,13 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later */
 package org.fxboomk.fcitx5.android.input.voice
 
+import org.fxboomk.fcitx5.android.input.voice.js.JsVoiceField
+import org.fxboomk.fcitx5.android.input.voice.js.JsVoiceFieldOption
+import org.fxboomk.fcitx5.android.input.voice.js.JsVoiceFields
 import org.fxboomk.fcitx5.android.input.voice.js.JsVoiceProviders
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import java.io.File
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -49,5 +54,40 @@ class VoiceInputChoicesTest {
             ),
             VoiceInputChoices.sortedForDisplay(input).map { it.label },
         )
+    }
+
+    @Test
+    fun bundledPluginsUseCanonicalApiWithLegacyAlias() {
+        val prelude = File("src/main/java/org/fxboomk/fcitx5/android/input/voice/js/JsVoicePrelude.kt").readText()
+        assertEquals(true, prelude.contains("var swan = {"))
+        assertEquals(true, prelude.contains("var foxy = swan;"))
+
+        val scripts = File("src/main/assets/bundled/js-voice").listFiles()
+            ?.filter { it.extension == "js" }
+            .orEmpty()
+        assertEquals(4, scripts.size)
+        scripts.forEach { script ->
+            val source = script.readText()
+            assertEquals(false, source.contains("foxy."))
+            assertEquals(true, source.contains("swan."))
+        }
+    }
+
+    @Test
+    fun selectSummaryUsesLocalizedOptionLabelInsteadOfStoredValue() {
+        val output = JsVoiceField(
+            kind = JsVoiceField.KIND_SELECT,
+            key = "output",
+            label = "上屏文本",
+            description = "选择输入法插入译文还是识别原文。",
+            defaultValue = "target",
+            options = listOf(
+                JsVoiceFieldOption("译文", "target"),
+                JsVoiceFieldOption("原文", "source"),
+            ),
+        )
+        assertEquals("译文", JsVoiceFields.displayValue(output, "target"))
+        assertEquals("原文", JsVoiceFields.displayValue(output, "source"))
+        assertEquals("legacy", JsVoiceFields.displayValue(output, "legacy"))
     }
 }

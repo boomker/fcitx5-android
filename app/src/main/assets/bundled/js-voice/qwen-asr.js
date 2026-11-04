@@ -35,7 +35,7 @@ const STRINGS = {
   en: {
     name: "Qwen ASR",
     apiKey: "Platform API key",
-    apiKeyDescription: "Stored securely by Foxy; never exposed to the plugin script.",
+    apiKeyDescription: "Stored securely by the input method app; never exposed to the plugin script.",
     platform: "Platform",
     bailian: "Bailian / DashScope",
     qwenAi: "Qwen AI",
@@ -61,7 +61,7 @@ const STRINGS = {
   "zh-CN": {
     name: "通义千问语音识别",
     apiKey: "平台 API 密钥",
-    apiKeyDescription: "由 Foxy 加密保存，不会传给插件脚本。",
+    apiKeyDescription: "由输入法程序加密保存，不会传给插件脚本。",
     platform: "平台",
     bailian: "百炼 / DashScope",
     qwenAi: "通义千问 AI",
@@ -87,7 +87,7 @@ const STRINGS = {
   "zh-TW": {
     name: "通義千問語音辨識",
     apiKey: "平台 API 金鑰",
-    apiKeyDescription: "由 Foxy 加密儲存，不會傳給外掛指令碼。",
+    apiKeyDescription: "由輸入法程式加密儲存，不會傳給外掛指令碼。",
     platform: "平台",
     bailian: "百煉 / DashScope",
     qwenAi: "通義千問 AI",
@@ -169,12 +169,12 @@ function parseTranscript(body) {
   return parts.join("\n");
 }
 
-foxy.plugin.register({
+swan.plugin.register({
   id: "qwen-asr",
-  name: stringsFor(foxy.locale).name,
+  name: stringsFor(swan.locale).name,
   version: "1.6.3",
   hosts: ["dashscope.aliyuncs.com", "maas.qianwenaiapi.com", "cn-beijing.maas.qianwenaiapi.com"],
-  features: [{type: "voice.asr", id: "qwen-asr", label: stringsFor(foxy.locale).name, sampleRate: 16000}],
+  features: [{type: "voice.asr", id: "qwen-asr", label: stringsFor(swan.locale).name, sampleRate: 16000}],
   configure(ui, locale) {
     const t = stringsFor(locale);
     ui.secret("apiKey", t.apiKey, {
@@ -234,14 +234,14 @@ foxy.plugin.register({
       stripChars: context.stripCharacters != null ? String(context.stripCharacters) : DEFAULT_STRIP_CHARACTERS
     };
     if (state.mode === "flash") {
-      foxy.voice.ready();
+      swan.voice.ready();
       return "flash";
     }
 
     const endpoint = resolve(context, "streamEndpoint");
     const model = resolve(context, "streamModel");
-    const socket = foxy.websocket.connect(endpoint, "apiKey");
-    await foxy.websocket.waitOpen(socket);
+    const socket = swan.websocket.connect(endpoint, "apiKey");
+    await swan.websocket.waitOpen(socket);
     const parameters = {
       sample_rate: context.sampleRate,
       format: "pcm",
@@ -250,7 +250,7 @@ foxy.plugin.register({
     if (model.toLowerCase().includes("message")) {
       parameters.intermediate_result_enabled = true;
     }
-    await foxy.websocket.send(socket, JSON.stringify({
+    await swan.websocket.send(socket, JSON.stringify({
       header: {action: "run-task", task_id: context.taskId, streaming: "duplex"},
       payload: {
         task_group: "audio",
@@ -265,18 +265,18 @@ foxy.plugin.register({
   },
   async audio(context) {
     if (state.mode === "flash") {
-      const chunkBytes = foxy.binary.byteLength(context.pcm);
+      const chunkBytes = swan.binary.byteLength(context.pcm);
       const limit = Math.max(1, Number(context.sampleRate) || 16000) * 2 * MAX_FLASH_AUDIO_SECONDS;
       if (state.bytes + chunkBytes > limit) throw new Error("Flash recognition is limited to 30 seconds of audio");
       state.bytes += chunkBytes;
       state.chunks.push(context.pcm);
       return;
     }
-    await foxy.websocket.sendBinary(context.socket, context.pcm);
+    await swan.websocket.sendBinary(context.socket, context.pcm);
   },
   async stop(context) {
     if (state.mode === "flash") {
-      const pcm = foxy.binary.concatBase64(state.chunks);
+      const pcm = swan.binary.concatBase64(state.chunks);
       const stripPunctuation = state.stripPunctuation;
       const stripChars = state.stripChars;
       state = {mode: "streaming", chunks: [], bytes: 0, stripPunctuation: false, stripChars: ""};
@@ -285,7 +285,7 @@ foxy.plugin.register({
       const endpoint = resolve(context, "flashEndpoint");
       const model = resolve(context, "flashModel");
       const selected = platform(context);
-      const wav = foxy.audio.wavBase64(pcm, context.sampleRate);
+      const wav = swan.audio.wavBase64(pcm, context.sampleRate);
       const dataUrl = "data:audio/wav;base64," + wav;
       const audioContent = selected === "qwen-ai"
         ? {audio: dataUrl}
@@ -293,7 +293,7 @@ foxy.plugin.register({
       const parameters = selected === "qwen-ai"
         ? {result_format: "message", asr_options: {enable_itn: context.itn === "true"}}
         : {format: "wav", sample_rate: String(context.sampleRate)};
-      const body = await foxy.http.post(endpoint, "apiKey", JSON.stringify({
+      const body = await swan.http.post(endpoint, "apiKey", JSON.stringify({
         model: model,
         input: {
           messages: [{
@@ -307,7 +307,7 @@ foxy.plugin.register({
       return text ? {final: text, ended: true} : {ended: true};
     }
 
-    await foxy.websocket.send(context.socket, JSON.stringify({
+    await swan.websocket.send(context.socket, JSON.stringify({
       header: {action: "finish-task", task_id: context.taskId, streaming: "duplex"},
       payload: {input: {}}
     }));

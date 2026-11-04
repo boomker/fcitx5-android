@@ -1268,7 +1268,7 @@
     <string name="js_voice_import_success">Imported %1$s</string>
     <string name="js_voice_import_failed_too_large">Script is too large (limit 256 KiB)</string>
     <string name="js_voice_import_failed_load">Could not run the script: %1$s</string>
-    <string name="js_voice_import_failed_no_plugin">No foxy.plugin.register() call found</string>
+    <string name="js_voice_import_failed_no_plugin">No swan.plugin.register() call found</string>
     <string name="js_voice_import_failed_no_asr">Script does not declare a voice.asr feature</string>
     <string name="js_voice_import_failed_invalid_id">Plugin ID %1$s is not a valid ID</string>
     <string name="js_voice_import_failed_reserved_id">Plugin ID %1$s is reserved by a built-in plugin</string>

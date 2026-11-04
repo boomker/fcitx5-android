@@ -58,7 +58,7 @@ internal object JsVoiceProviders {
             .followRedirects(false)
             .followSslRedirects(false)
             // flash 模式把整段音频 POST 上去等文本，默认 10s 读超时会在云端慢的时候先失败，
-            // 而 Foxy 给 stop 回调的预算是 35s。
+            // 而输入法程序给 stop 回调的预算是 35s。
             .readTimeout(40, TimeUnit.SECONDS)
             .writeTimeout(20, TimeUnit.SECONDS)
             .build()

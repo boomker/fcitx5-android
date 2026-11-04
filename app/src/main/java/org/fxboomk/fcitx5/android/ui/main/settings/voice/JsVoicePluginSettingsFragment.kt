@@ -388,7 +388,7 @@ class JsVoicePluginSettingsFragment : PaddingPreferenceFragment() {
     }
 
     private fun describe(field: JsVoiceField, value: String?): String {
-        val shown = value.orEmpty()
+        val shown = JsVoiceFields.displayValue(field, value)
         return if (field.description.isBlank()) shown else field.description + " · " + shown
     }
 

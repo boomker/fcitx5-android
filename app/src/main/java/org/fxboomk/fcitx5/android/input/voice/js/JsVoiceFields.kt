@@ -81,6 +81,18 @@ internal object JsVoiceFields {
         )
     }
 
+    /**
+     * Resolve the display label for a select value.
+     *
+     * Summaries must show the localized option label (e.g. 译文), never the persisted
+     * machine value (`target`). Unknown values fall back to the raw value so old or
+     * custom settings remain visible instead of disappearing.
+     */
+    fun displayValue(field: JsVoiceField, value: String?): String {
+        val raw = value.orEmpty()
+        return field.options.firstOrNull { it.value == raw }?.label ?: raw
+    }
+
     /** 递归判断 `visibleWhen`：`{key,value}` 与 `{all:[...]}` 两种形态。 */
     fun isVisible(field: JsVoiceField, values: Map<String, String>): Boolean =
         matches(field.visibleWhen, values)
@@ -103,7 +115,7 @@ internal object JsVoiceFields {
      * 把已保存的值与声明默认值合并成「当前值」视图。
      *
      * 只收普通项：密钥绝不进入这份 map，也就绝不会被塞进 `start(context)`——
-     * 插件拿到的只有 `foxy.websocket.connect(url, "apiKey")` 里的**字段名**，
+     * 插件拿到的只有 `swan.websocket.connect(url, "apiKey")` 里的**字段名**，
      * 值由宿主在建立连接时注入。
      */
     fun currentValues(fields: List<JsVoiceField>, stored: Map<String, String>): Map<String, String> {

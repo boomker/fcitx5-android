@@ -66,7 +66,7 @@ internal sealed interface JsVoiceCommand {
 }
 
 /**
- * Runs a Foxy-style JavaScript voice.asr plugin in QuickJS and exposes it as an in-process
+ * Runs an input-method-style JavaScript voice.asr plugin in QuickJS and exposes it as an in-process
  * [IVoiceInputProvider].
  *
  * 这条路径刻意与 AIDL 插件同构：对外仍然是 [IVoiceInputProvider]，因此
@@ -311,7 +311,7 @@ internal class JsVoiceInputProvider(
          * 收尾看门狗预算，宿主 [VoiceInputProviderManager][org.fxboomk.fcitx5.android.input.voice.VoiceInputProviderManager]
          * 用它代替 IPC 插件的 3s。
          *
-         * 为什么必须更长：flash 模式把整段音频 POST 到云端再取回文本，Foxy 给 stop 回调的预算
+         * 为什么必须更长：flash 模式把整段音频 POST 到云端再取回文本，输入法程序给 stop 回调的预算
          * 就是 35s；按 3s 收尾会在识别结果回来之前拆掉会话，而那时文本还在 HTTP 响应里。
          */
         const val FINISH_WATCHDOG_MS = 40_000L

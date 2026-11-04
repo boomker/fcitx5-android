@@ -35,8 +35,8 @@ internal object JsVoiceHeaders {
     /**
      * @param secretField 插件声明要用的密钥字段，空串表示本次连接不需要认证
      * @param secret 宿主已解密出的密钥值
-     * @param authHeader 认证头名，空串按 Foxy 约定回落为 `Authorization`
-     * @param authPrefix 认证头前缀，空串按 Foxy 约定回落为 `Bearer `
+     * @param authHeader 认证头名，空串按输入法程序约定回落为 `Authorization`
+     * @param authPrefix 认证头前缀，空串按输入法程序约定回落为 `Bearer `
      * @param headersJson 插件给的额外头（JSON 对象）
      */
     fun build(

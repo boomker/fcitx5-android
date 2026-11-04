@@ -37,7 +37,7 @@ const STRINGS = {
     secretIdDescription: "From Console > API Key Management. It is part of the request signature.",
     secretIdRequired: "Tencent Cloud ASR: SecretId is required",
     secretKey: "SecretKey",
-    secretKeyDescription: "Stored by Foxy; the plugin can only ask Foxy to sign with it.",
+    secretKeyDescription: "Stored by the input method app; the plugin can only ask the input method app to sign with it.",
     engine: "Recognition engine",
     engineDescription: "16 kHz standard engines. Specialty engines may be billed differently.",
     needVad: "Voice activity detection",
@@ -53,7 +53,7 @@ const STRINGS = {
     filterModal: "Filler word filter",
     filterPartial: "Partial",
     filterStrict: "Strict",
-    convertNum: "Smart number conversion",
+    convertNum: "Number conversion strategy",
     convertNumbersNever: "Keep Chinese numerals",
     convertNumbersSmart: "Smart conversion",
     convertNumbersMath: "Math-aware conversion",
@@ -71,7 +71,7 @@ const STRINGS = {
     secretIdDescription: "在控制台「API 密钥管理」页面查看，参与请求签名。",
     secretIdRequired: "腾讯云语音识别：请填写 SecretId",
     secretKey: "SecretKey",
-    secretKeyDescription: "由 Foxy 加密保存，插件只能请求 Foxy 代为签名。",
+    secretKeyDescription: "由输入法程序加密保存，插件只能请求输入法程序代为签名。",
     engine: "识别引擎",
     engineDescription: "均为 16k 普通版引擎；专业领域引擎的计费可能不同。",
     needVad: "人声检测切分",
@@ -87,7 +87,7 @@ const STRINGS = {
     filterModal: "语气词过滤",
     filterPartial: "部分过滤",
     filterStrict: "严格过滤",
-    convertNum: "数字智能转换",
+    convertNum: "数字转换策略",
     convertNumbersNever: "保留中文数字",
     convertNumbersSmart: "智能转换",
     convertNumbersMath: "数学相关转换",
@@ -105,7 +105,7 @@ const STRINGS = {
     secretIdDescription: "在主控台「API 金鑰管理」頁面查看，參與請求簽名。",
     secretIdRequired: "騰訊雲語音辨識：請填寫 SecretId",
     secretKey: "SecretKey",
-    secretKeyDescription: "由 Foxy 加密儲存，外掛只能請求 Foxy 代為簽名。",
+    secretKeyDescription: "由輸入法程式加密儲存，外掛只能請求輸入法程式代為簽名。",
     engine: "辨識引擎",
     engineDescription: "均為 16k 普通版引擎；專業領域引擎的計費可能不同。",
     needVad: "人聲偵測切分",
@@ -121,7 +121,7 @@ const STRINGS = {
     filterModal: "語氣詞過濾",
     filterPartial: "部分過濾",
     filterStrict: "嚴格過濾",
-    convertNum: "數字智慧轉換",
+    convertNum: "數字轉換策略",
     convertNumbersNever: "保留中文數字",
     convertNumbersSmart: "智慧轉換",
     convertNumbersMath: "數學相關轉換",
@@ -350,22 +350,22 @@ async function flushPending(socket, budget) {
     const size = base64Bytes(chunk);
     state.pendingBytes = Math.max(0, state.pendingBytes - size);
     budget -= size;
-    await foxy.websocket.sendBinary(socket, chunk);
+    await swan.websocket.sendBinary(socket, chunk);
   }
 }
 
 function sendEnd(socket) {
   if (state.endSent) return Promise.resolve();
   state.endSent = true;
-  return foxy.websocket.send(socket, JSON.stringify({type: "end"}));
+  return swan.websocket.send(socket, JSON.stringify({type: "end"}));
 }
 
-foxy.plugin.register({
+swan.plugin.register({
   id: "tencent-asr",
-  name: stringsFor(foxy.locale).name,
+  name: stringsFor(swan.locale).name,
   version: "1.0.7",
   hosts: [HOST],
-  features: [{type: "voice.asr", id: "tencent-asr", label: stringsFor(foxy.locale).name, sampleRate: 16000}],
+  features: [{type: "voice.asr", id: "tencent-asr", label: stringsFor(swan.locale).name, sampleRate: 16000}],
   configure(ui, locale) {
     const t = stringsFor(locale);
     ui.text("appId", t.appId, "", {description: t.appIdDescription});
@@ -386,8 +386,8 @@ foxy.plugin.register({
       {label: t.filterStrict, value: "2"}
     ], "0");
     ui.select("convertNum", t.convertNum, [
-      {label: t.convertNumbersNever, value: "0"},
       {label: t.convertNumbersSmart, value: "1"},
+      {label: t.convertNumbersNever, value: "0"},
       {label: t.convertNumbersMath, value: "3"}
     ], "1");
     ui.switch("stripPunctuation", t.stripPunctuation, true);
@@ -398,7 +398,7 @@ foxy.plugin.register({
   },
   async start(context) {
     state = newSessionState();
-    const t = stringsFor(foxy.locale);
+    const t = stringsFor(swan.locale);
     const appId = setting(context, "appId");
     const secretId = setting(context, "secretId");
     if (!appId) throw new Error(t.appIdRequired);
@@ -412,9 +412,9 @@ foxy.plugin.register({
       : DEFAULT_STRIP_CHARACTERS;
 
     const params = buildParams(context, selectedEngine(context));
-    const signature = foxy.crypto.hmacSha1Base64("secretKey", signSource(appId, params));
-    const socket = foxy.websocket.connect(buildUrl(appId, params, signature), "");
-    await foxy.websocket.waitOpen(socket);
+    const signature = swan.crypto.hmacSha1Base64("secretKey", signSource(appId, params));
+    const socket = swan.websocket.connect(buildUrl(appId, params, signature), "");
+    await swan.websocket.waitOpen(socket);
     return socket;
   },
   async audio(context) {

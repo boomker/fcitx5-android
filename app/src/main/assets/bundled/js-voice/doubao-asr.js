@@ -1,4 +1,4 @@
-// Doubao (Volcengine) bigmodel ASR plugin for Foxy — mirrors the qwen-asr.js voice.asr contract.
+// Doubao (Volcengine) bigmodel ASR plugin for the input method app — mirrors the qwen-asr.js voice.asr contract.
 //
 // Protocol: Volcengine bigmodel WebSocket binary framing (docs/6561/1354869).
 //   Frame = [Header 4B][Sequence 4B?][PayloadSize 4B][Payload]
@@ -7,8 +7,8 @@
 //                    server 0x91/0x93 response, 0xF0 error
 //            byte2 = (serialization<<4)|compression: 0x11 JSON+Gzip, 0x01 raw+Gzip
 //   Host API used:
-//     foxy.websocket.connect(endpoint, secretKeyName, authHeaderName, authPrefix, extraHeadersJson)
-//     foxy.websocket.sendGzipFrame(socket, prefixBase64, payloadBase64)
+//     swan.websocket.connect(endpoint, secretKeyName, authHeaderName, authPrefix, extraHeadersJson)
+//     swan.websocket.sendGzipFrame(socket, prefixBase64, payloadBase64)
 //       -> host gzips payload and sends prefix || be32(gzipLen) || gzip(payload)
 //     binary frames arrive on onMessage as message.binaryBase64
 //
@@ -38,7 +38,7 @@ const STRINGS = {
   en: {
     name: "Doubao ASR",
     apiKey: "Volcengine API key",
-    apiKeyDescription: "Stored securely by Foxy; never exposed to the plugin script.",
+    apiKeyDescription: "Stored securely by the input method app; never exposed to the plugin script.",
     authMode: "Auth mode",
     apiKeyMode: "X-Api-Key (new console)",
     legacyAuthMode: "App ID + Access Token (legacy console)",
@@ -78,7 +78,7 @@ const STRINGS = {
   "zh-CN": {
     name: "豆包语音识别",
     apiKey: "火山引擎 API Key",
-    apiKeyDescription: "由 Foxy 加密保存，不会传给插件脚本。",
+    apiKeyDescription: "由输入法程序加密保存，不会传给插件脚本。",
     authMode: "鉴权方式",
     apiKeyMode: "X-Api-Key（新版控制台）",
     legacyAuthMode: "App ID + Access Token（旧版控制台）",
@@ -118,7 +118,7 @@ const STRINGS = {
   "zh-TW": {
     name: "豆包語音辨識",
     apiKey: "火山引擎 API Key",
-    apiKeyDescription: "由 Foxy 加密儲存，不會傳給外掛指令碼。",
+    apiKeyDescription: "由輸入法程式加密儲存，不會傳給外掛指令碼。",
     authMode: "鑑權方式",
     apiKeyMode: "X-Api-Key（新版控制台）",
     legacyAuthMode: "App ID + Access Token（舊版控制台）",
@@ -223,17 +223,17 @@ function stripTrailingPunc(text, chars) {
 
 // Full client request: type=1, flags=0 (no sequence), JSON, Gzip. Host appends be32(gzipLen)+gzip(json).
 function sendFullRequest(socket, payload) {
-  return foxy.websocket.sendGzipFrame(
+  return swan.websocket.sendGzipFrame(
     socket,
     volcPrefix(0x01, 0x00, 0x01, 0x01),
-    foxy.binary.utf8Base64(JSON.stringify(payload))
+    swan.binary.utf8Base64(JSON.stringify(payload))
   );
 }
 
 // Audio-only packet: type=2, flags=0 (more coming) or 0x02 (last packet), raw, Gzip.
 // pcmBase64 is the raw PCM bytes already base64-encoded; the host gzips them.
 function sendAudioPacket(socket, pcmBase64, isLast) {
-  return foxy.websocket.sendGzipFrame(
+  return swan.websocket.sendGzipFrame(
     socket,
     volcPrefix(0x02, isLast ? 0x02 : 0x00, 0x00, 0x01),
     pcmBase64 || ""
@@ -273,10 +273,10 @@ function connectVolc(endpoint, context) {
   if (context.authMode === "legacy") {
     if (context.appId) extras["X-Api-App-Key"] = String(context.appId);
     // Access Token is the secret: injected as X-Api-Access-Key by the host.
-    return foxy.websocket.connect(endpoint, "accessToken", "X-Api-Access-Key", "", JSON.stringify(extras));
+    return swan.websocket.connect(endpoint, "accessToken", "X-Api-Access-Key", "", JSON.stringify(extras));
   }
   // New console: secret injected as X-Api-Key (empty prefix).
-  return foxy.websocket.connect(endpoint, "apiKey", "X-Api-Key", "", JSON.stringify(extras));
+  return swan.websocket.connect(endpoint, "apiKey", "X-Api-Key", "", JSON.stringify(extras));
 }
 
 // Parse one server binary frame from message.binaryBase64 (fallback message.message).
@@ -287,11 +287,11 @@ let settings = { stripTrailingPunc: false, stripChars: DEFAULT_STRIP_CHARACTERS 
 function parseVolcFrame(message) {
   const raw = message.binaryBase64 || message.message;
   if (!raw) return {};
-  const total = foxy.binary.byteLength(raw);
+  const total = swan.binary.byteLength(raw);
   if (!total || total < 4) return {};
 
-  const b1 = foxy.binary.readUInt8(raw, 1);
-  const b2 = foxy.binary.readUInt8(raw, 2);
+  const b1 = swan.binary.readUInt8(raw, 1);
+  const b2 = swan.binary.readUInt8(raw, 2);
   const messageType = (b1 >> 4) & 0x0f;
   const flags = b1 & 0x0f;
   const compression = b2 & 0x0f;
@@ -302,10 +302,10 @@ function parseVolcFrame(message) {
     let detail = "Volc ASR error";
     let code = 0;
     if (total >= 12) {
-      code = foxy.binary.readInt32BE(raw, 4);
-      const msgSize = foxy.binary.readInt32BE(raw, 8);
+      code = swan.binary.readInt32BE(raw, 4);
+      const msgSize = swan.binary.readInt32BE(raw, 8);
       if (msgSize > 0 && 12 + msgSize <= total) {
-        detail = foxy.binary.base64Utf8(foxy.binary.sliceBase64(raw, 12, msgSize)) || detail;
+        detail = swan.binary.base64Utf8(swan.binary.sliceBase64(raw, 12, msgSize)) || detail;
       }
     }
     return { error: (code ? code + ": " : "") + detail };
@@ -316,13 +316,13 @@ function parseVolcFrame(message) {
   const seqBytes = (flags & 0x01) !== 0 ? 4 : 0;
   const sizeOffset = 4 + seqBytes;
   if (total < sizeOffset + 4) return isFinal ? { ended: true } : {};
-  const payloadSize = foxy.binary.readInt32BE(raw, sizeOffset);
+  const payloadSize = swan.binary.readInt32BE(raw, sizeOffset);
   if (payloadSize <= 0 || sizeOffset + 4 + payloadSize > total) return isFinal ? { ended: true } : {};
 
-  const payload = foxy.binary.sliceBase64(raw, sizeOffset + 4, payloadSize);
+  const payload = swan.binary.sliceBase64(raw, sizeOffset + 4, payloadSize);
   let text;
   try {
-    text = compression === 0x01 ? foxy.binary.gunzipUtf8(payload) : foxy.binary.base64Utf8(payload);
+    text = compression === 0x01 ? swan.binary.gunzipUtf8(payload) : swan.binary.base64Utf8(payload);
   } catch (e) {
     return { error: "Failed to decode Volc ASR response" };
   }
@@ -344,9 +344,9 @@ function parseVolcFrame(message) {
   return isFinal ? { final: transcript, ended: true } : { partial: transcript };
 }
 
-foxy.plugin.register({
+swan.plugin.register({
   id: "doubao-asr",
-  name: stringsFor(foxy.locale).name,
+  name: stringsFor(swan.locale).name,
   version: "1.2.0",
   hosts: ["openspeech.bytedance.com"],
   features: [{ type: "voice.asr", id: "doubao-asr", label: "Doubao ASR", sampleRate: 16000 }],
@@ -418,7 +418,7 @@ foxy.plugin.register({
     });
   },
   async start(context) {
-    const t = stringsFor(foxy.locale);
+    const t = stringsFor(swan.locale);
     const isFlash = context.mode === "flash";
     settings.stripTrailingPunc = boolOf(context.stripTrailingPunc, false);
     settings.stripChars = context.stripTrailingPuncChars != null
@@ -435,9 +435,9 @@ foxy.plugin.register({
       : (context.streamModel || "bigmodel");
 
     const socket = connectVolc(endpoint, context);
-    await foxy.websocket.waitOpen(socket);
+    await swan.websocket.waitOpen(socket);
     await sendFullRequest(socket, buildRequestPayload(context, model));
-    foxy.voice.ready();
+    swan.voice.ready();
     return socket;
   },
   async audio(context) {

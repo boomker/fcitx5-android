@@ -2,11 +2,11 @@
 package org.fxboomk.fcitx5.android.input.voice.js
 
 /**
- * Foxy-compatible global API evaluated before a plugin script.
+ * Swan-compatible global API evaluated before a plugin script.
  *
  * Two host entry points live here, and both exist for the same reason — the plugin script and the
  * host must not disagree about what a plugin declared:
- * - [`foxy`] mirrors the Foxy plugin API surface used by the bundled plugins.
+ * - [`swan`] is the canonical plugin API surface; [`foxy`] stays as a compatibility alias.
  * - [`__run`] invokes one plugin lifecycle callback and returns its emitted events.
  * - [`__describe`] runs `configure(ui, locale)` and returns the declared settings as JSON, so the
  *   settings screen and the session both read the *same* declaration instead of duplicating it.
@@ -30,7 +30,7 @@ var __native = {
   hmacSha1Base64: __n_hmacSha1Base64
 };
 function __str(value) { return value === undefined || value === null ? "" : String(value); }
-var foxy = {
+var swan = {
   locale: __native.locale(),
   plugin: {
     register: function (p) { __plugin = p; return p; }
@@ -83,6 +83,8 @@ var foxy = {
     gunzipUtf8: function (b64) { return __native.gunzipUtf8(__str(b64)); }
   }
 };
+// Compatibility alias for plugins written against the upstream Foxy API.
+var foxy = swan;
 
 function __field(kind, key, label, defaultValue, settings, options) {
   var s = settings || {};

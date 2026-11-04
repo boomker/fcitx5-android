@@ -1148,7 +1148,7 @@
     <string name="js_voice_import_success">已导入 %1$s</string>
     <string name="js_voice_import_failed_too_large">脚本过大（上限 256 KiB）</string>
     <string name="js_voice_import_failed_load">脚本无法运行：%1$s</string>
-    <string name="js_voice_import_failed_no_plugin">没有找到 foxy.plugin.register() 调用</string>
+    <string name="js_voice_import_failed_no_plugin">没有找到 swan.plugin.register() 调用</string>
     <string name="js_voice_import_failed_no_asr">脚本没有声明 voice.asr 能力</string>
     <string name="js_voice_import_failed_invalid_id">插件 ID %1$s 不是合法 ID</string>
     <string name="js_voice_import_failed_reserved_id">插件 ID %1$s 已被内置插件占用</string>

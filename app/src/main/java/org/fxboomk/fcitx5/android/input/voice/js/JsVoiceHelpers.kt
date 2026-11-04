@@ -72,7 +72,7 @@ internal object JsVoiceHelpers {
             output.toByteArray()
         }
 
-    /** prefix + 4-byte big-endian compressed length + compressed payload (foxy.websocket.sendGzipFrame). */
+    /** prefix + 4-byte big-endian compressed length + compressed payload (swan.websocket.sendGzipFrame). */
     fun gzipFrame(prefix: ByteArray, payload: ByteArray): ByteArray {
         val compressed = gzip(payload)
         return ByteBuffer.allocate(prefix.size + 4 + compressed.size)

@@ -16,7 +16,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 
 /**
- * 插件在 `foxy.plugin.register({...})` 里自报的元信息。
+ * 插件在 `swan.plugin.register({...})` 里自报的元信息。
  *
  * 这是**外来代码的自述**，不是宿主保证：id/名称/域名/字段全都由脚本说了算，所以每一项都要在
  * [JsVoiceImportPolicy] 里过一遍再落盘。宿主只做三件事——校验形状、把声明摆给用户确认、
@@ -47,7 +47,7 @@ internal data class JsVoicePluginMeta(
         const val DEFAULT_SAMPLE_RATE = 16000
 
         /**
-         * Foxy 的插件源码上限（256 KiB）。这既是 QuickJS 求值预算，也是「用户导入一个文件」的
+         * 输入法程序的插件源码上限（256 KiB）。这既是 QuickJS 求值预算，也是「用户导入一个文件」的
          * 合理体积上限——超过它更可能是选错了文件（APK、压缩包），早点拒绝比求值崩掉好解释。
          */
         const val MAX_SCRIPT_BYTES = 256 * 1024
