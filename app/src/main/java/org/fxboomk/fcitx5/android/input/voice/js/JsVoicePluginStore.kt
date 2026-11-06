@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later */
 package org.fxboomk.fcitx5.android.input.voice.js
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.SharedPreferences
 import org.fxboomk.fcitx5.android.utils.appContext
@@ -131,7 +132,7 @@ internal object JsVoicePluginStore {
             records += record
         }
         if (stale.isNotEmpty()) {
-            prefs().edit().apply { stale.forEach { remove(it) } }.commit()
+            prefs().edit().apply { stale.forEach { remove(it) } }.apply()
         }
         return records.sortedBy { it.importedAt }
     }
@@ -147,6 +148,7 @@ internal object JsVoicePluginStore {
         prefs().getStringSet(KEY_DISABLED_BUILTINS, emptySet()).orEmpty().toSet()
 
     /** One-time migration from the former imported LLM Assistant entry to the bundled AI Assistant. */
+    @SuppressLint("ApplySharedPref")
     @Synchronized
     fun migrateLegacyAssistantState(hasSupersededImport: Boolean): Boolean {
         val preferences = prefs()
@@ -196,6 +198,7 @@ internal object JsVoicePluginStore {
     fun tags(id: String, defaults: Set<String>): Set<String> =
         prefs().getStringSet(KEY_TAGS_PREFIX + id, null)?.toSet() ?: defaults
 
+    @SuppressLint("ApplySharedPref")
     @Synchronized
     fun saveTags(id: String, tags: Set<String>): Boolean {
         if (!JsVoicePluginMeta.isValidId(id)) return false
@@ -221,6 +224,7 @@ internal object JsVoicePluginStore {
      * 覆盖时**只替换脚本与元信息**，不动 [JsVoiceSettingsStore] 里已经存下的设置与密钥：
      * 那是按 provider id 分键的，同名插件升级后用户不必重新填一遍 key。
      */
+    @SuppressLint("ApplySharedPref")
     @Synchronized
     fun save(record: JsVoicePluginRecord, script: String): Boolean {
         val id = record.meta.id
@@ -267,6 +271,7 @@ internal object JsVoicePluginStore {
      * Removing a bundled plugin writes a tombstone so app upgrades do not put it back.
      * Importing its ID later clears the tombstone and installs the user-managed script.
      */
+    @SuppressLint("ApplySharedPref")
     @Synchronized
     fun uninstall(id: String, builtInIds: Set<String>): Boolean {
         require(JsVoicePluginMeta.isValidId(id))

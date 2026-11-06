@@ -1113,6 +1113,7 @@
     <string name="background_blur_radius">Background Blur Radius</string>
     <string name="no_blur">No Blur</string>
     <string name="voice_status_connecting">Connecting…</string>
+    <string name="voice_status_recording">Recording</string>
     <string name="voice_status_loading">Loading…</string>
     <string name="voice_error_no_permission">RECORD_AUDIO permission not granted</string>
     <string name="voice_error_failed">Voice input failed</string>
@@ -1123,7 +1124,6 @@
     <string name="voice_error_cannot_bind">Cannot bind voice input provider</string>
     <string name="voice_error_bind_timeout">Voice input provider bind timed out</string>
     <string name="voice_error_call_failed">Voice input provider call failed</string>
-    <string name="voice_error_invalid_audio_config">Voice input provider requested an unsupported audio format</string>
     <string name="voice_error_audio_minbuf">AudioRecord.getMinBufferSize=%d</string>
     <string name="voice_error_audio_construct">AudioRecord construct denied: %s</string>
     <string name="voice_error_audio_not_init">AudioRecord not initialized</string>
@@ -1235,8 +1235,6 @@
     <string name="symbol_catalog_import_ok">Imported and selected: %1$s</string>
     <string name="symbol_catalog_import_failed">Import failed: not a valid symbol catalog</string>
     <string name="symbol_catalog_dir_hint">Custom catalogs are stored in:\n%1$s</string>
-    <string name="space_behavior_voice_input_hold">Voice input (hold to talk)</string>
-    <string name="switch_to_voice_input">Switch to voice input</string>
     <string name="voice_status_opening">Opening…</string>
     <string name="voice_status_floating_ready">Ready</string>
     <string name="choose_voice_engine">Choose voice engine</string>
@@ -1245,14 +1243,11 @@
     <string name="voice_status_listening">Listening</string>
     <string name="voice_status_committed">Done</string>
 
-    <string name="settings_group_input">Input &amp; candidates</string>
-    <string name="settings_group_input_summary">Rime settings, candidate bar and candidate window</string>
     <string name="keyboard_category_voice">Voice input</string>
     <string name="js_voice_provider_qwen_asr">Qwen ASR</string>
     <string name="js_voice_provider_doubao_asr">Doubao ASR</string>
     <string name="js_voice_provider_tencent_asr">Tencent Cloud ASR</string>
     <string name="js_voice_settings_title">Voice plugin settings</string>
-    <string name="js_voice_settings_summary">API key and recognition options for built-in JS voice plugins</string>
     <string name="js_voice_settings_loading">Reading plugin settings…</string>
     <string name="js_voice_settings_failed">Failed to read plugin settings: %1$s</string>
     <string name="js_voice_settings_empty">This plugin declares no settings.</string>
@@ -1273,8 +1268,6 @@
     <string name="js_plugin_override">Customized built-in</string>
     <string name="js_plugins_uninstall_failed">Could not uninstall these JS plugins:\n%1$s</string>
     <string name="js_voice_add">JS plugins</string>
-    <string name="js_plugin">JS plugin</string>
-    <string name="js_plugin_details">Plugin details</string>
     <string name="js_plugin_name">Name</string>
     <string name="js_plugin_version">Version</string>
     <string name="js_plugin_source">Source</string>
@@ -1299,22 +1292,13 @@
     <string name="js_plugin_upgrade_wrong_id">Choose a script for plugin %1$s.</string>
     <string name="js_plugins_uninstall_message">The selected JS plugins will be uninstalled:\n\n%1$s</string>
     <string name="plugin_manage_select_one_kind">Select either Android plugins or JS plugins for this action.</string>
-    <string name="js_voice_plugins_summary">Manage built-in and imported voice recognition plugins</string>
     <string name="js_voice_plugins_entry_summary">v%1$s · %2$s</string>
     <string name="js_voice_plugins_delete_title">Uninstall plugin?</string>
-    <string name="js_voice_plugins_delete_message">%1$s will be uninstalled. Saved settings and keys are kept.</string>
     <string name="js_voice_plugins_delete_confirm">Uninstall</string>
-    <string name="js_voice_plugins_deleted">Uninstalled %1$s</string>
-    <string name="js_voice_plugins_preferred_reset">It was your preferred voice input; that selection was cleared</string>
-    <string name="js_voice_import">Import plugin…</string>
-    <string name="js_voice_import_summary">Pick a .js file that registers a voice plugin</string>
     <string name="js_voice_import_loading">Checking plugin…</string>
-    <string name="js_voice_import_dialog_title">Import plugin</string>
-    <string name="js_voice_import_dialog_confirm">Import</string>
     <string name="js_voice_import_dialog_name">Name: %1$s</string>
     <string name="js_voice_import_dialog_version">Version: %1$s</string>
     <string name="js_voice_import_dialog_id">ID: %1$s</string>
-    <string name="js_voice_import_dialog_hosts">Connects to: %1$s</string>
     <string name="js_voice_import_dialog_fields">Settings: %1$d items</string>
     <string name="js_voice_import_dialog_rejected_hosts">Ignored invalid hosts: %1$s</string>
     <string name="js_voice_import_dialog_replace">A plugin with the same ID already exists; it will be replaced and its saved settings kept.</string>

@@ -419,7 +419,7 @@ object SyncClient {
                 throw IOException("Failed to load OneClip current item: ${response.code} ${response.message}")
             }
 
-            val item = json.decodeFromString<ClipboardData>(response.body?.string().orEmpty())
+            val item = json.decodeFromString<ClipboardData>(response.body.string())
             if (item.id.isBlank()) {
                 return fetchResult(null, lastRevision)
             }
@@ -591,7 +591,7 @@ object SyncClient {
             }
 
             val newEtag = response.header("ETag")
-            var bodyString = response.body?.string() ?: ""
+            var bodyString = response.body.string()
             if (bodyString.startsWith("\uFEFF")) {
                 bodyString = bodyString.substring(1)
             }
@@ -626,7 +626,7 @@ object SyncClient {
 
         client.newCall(fileReq).execute().use { response ->
             if (!response.isSuccessful) throw IOException("Failed to download file: $response")
-            val bytes = response.body?.bytes() ?: ByteArray(0)
+            val bytes = response.body.bytes()
 
             if (data.hash.isNotEmpty()) {
                 val calculatedHash = if (data.type.equals("Text", ignoreCase = true)) {
@@ -646,7 +646,7 @@ object SyncClient {
                     mimeType = "text/plain"
                 )
             } else if (downloadDirUri != null) {
-                val mimeType = response.body?.contentType()?.toString().orEmpty()
+                val mimeType = response.body.contentType()?.toString().orEmpty()
                 val savedUri = saveFile(
                     context = context,
                     dirUri = downloadDirUri,
@@ -697,7 +697,7 @@ object SyncClient {
                 throw IOException("OneClip text upload failed: ${response.code} ${response.message}")
             }
 
-            val resultBody = response.body?.string().orEmpty()
+            val resultBody = response.body.string()
             val result = runCatching { json.decodeFromString<OneClipUploadResponse>(resultBody) }.getOrNull()
             if (result != null && !result.status.equals("success", ignoreCase = true)) {
                 throw IOException(result.message.ifBlank { "OneClip text upload failed" })
@@ -719,7 +719,7 @@ object SyncClient {
                 throw IOException("OneClip image upload failed: ${response.code} ${response.message}")
             }
 
-            val resultBody = response.body?.string().orEmpty()
+            val resultBody = response.body.string()
             val result = runCatching { json.decodeFromString<OneClipUploadResponse>(resultBody) }.getOrNull()
             if (result != null && !result.status.equals("success", ignoreCase = true)) {
                 throw IOException(result.message.ifBlank { "OneClip image upload failed" })
@@ -765,8 +765,8 @@ object SyncClient {
                 throw IOException("Failed to download OneClip image: ${response.code} ${response.message}")
             }
 
-            val mimeType = response.body?.contentType()?.toString().orEmpty().ifBlank { "image/png" }
-            val bytes = response.body?.bytes() ?: ByteArray(0)
+            val mimeType = response.body.contentType()?.toString().orEmpty().ifBlank { "image/png" }
+            val bytes = response.body.bytes()
             val fileName = buildOneClipImageFileName(itemId, timestamp, mimeType)
             val savedUri = saveFile(
                 context = context,
@@ -841,8 +841,8 @@ object SyncClient {
                 throw IOException("Failed to download OneClip file: ${response.code} ${response.message}")
             }
 
-            val mimeType = response.body?.contentType()?.toString().orEmpty().ifBlank { "application/octet-stream" }
-            val bytes = response.body?.bytes() ?: ByteArray(0)
+            val mimeType = response.body.contentType()?.toString().orEmpty().ifBlank { "application/octet-stream" }
+            val bytes = response.body.bytes()
             val fileName = extractOneClipFileName(
                 contentDisposition = response.header("Content-Disposition"),
                 item = item,
@@ -1173,7 +1173,7 @@ object SyncClient {
                 throw IOException("Failed to query SyncClipboard history: ${response.code} ${response.message}")
             }
 
-            val body = response.body?.string().orEmpty()
+            val body = response.body.string()
             return json.decodeFromString(body)
         }
     }
@@ -1306,8 +1306,8 @@ object SyncClient {
                 throw IOException("Failed to download SyncClipboard history data: ${response.code} ${response.message}")
             }
 
-            val mimeType = response.body?.contentType()?.toString().orEmpty().ifBlank { "application/octet-stream" }
-            val bytes = response.body?.bytes() ?: ByteArray(0)
+            val mimeType = response.body.contentType()?.toString().orEmpty().ifBlank { "application/octet-stream" }
+            val bytes = response.body.bytes()
             val fileName = extractSyncClipboardHistoryFileName(
                 response.header("Content-Disposition"),
                 record,

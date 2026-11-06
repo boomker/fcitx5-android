@@ -89,8 +89,7 @@ class OneClipEventClient(serverUrl: String, private val accessToken: String = ""
                         connectSignal.complete(Unit)
                     }
 
-                    val source = response.body?.source()
-                        ?: throw IOException("OneClip SSE body is empty")
+                    val source = response.body.source()
                     val dataLines = mutableListOf<String>()
 
                     while (!closeRequested.get()) {

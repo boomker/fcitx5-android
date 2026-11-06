@@ -53,11 +53,9 @@ internal class JsAppHttp(
                 override fun onResponse(call: Call, response: Response) {
                     val result = runCatching {
                         response.use {
-                            val source = it.body?.source()
-                            if (source != null) {
-                                source.request(JsVoiceRuntime.RESPONSE_BYTES.toLong() + 1)
-                                require(source.buffer.size <= JsVoiceRuntime.RESPONSE_BYTES) { "Response is too large" }
-                            }
+                            val source = it.body.source()
+                            source.request(JsVoiceRuntime.RESPONSE_BYTES.toLong() + 1)
+                            require(source.buffer.size <= JsVoiceRuntime.RESPONSE_BYTES) { "Response is too large" }
                             buildJsonObject {
                                 put("status", it.code)
                                 put("ok", it.isSuccessful)
@@ -68,7 +66,7 @@ internal class JsAppHttp(
                                             put(name, it.header(name).orEmpty())
                                     }
                                 })
-                                put("body", source?.readUtf8().orEmpty())
+                                put("body", source.readUtf8())
                             }.toString()
                         }
                     }

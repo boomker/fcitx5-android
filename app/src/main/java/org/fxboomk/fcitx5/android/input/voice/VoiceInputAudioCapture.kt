@@ -10,7 +10,6 @@ import android.content.pm.PackageManager
 import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
-import android.util.Log
 import androidx.core.content.ContextCompat
 import timber.log.Timber
 import kotlin.concurrent.thread
@@ -18,12 +17,13 @@ import kotlin.concurrent.thread
 // Mic capture for the IME's voice-input AIDL bridge.
 // onPcm is invoked on the recording thread. Implementations must not block.
 class VoiceInputAudioCapture(
-    private val context: Context,
+    context: Context,
     private val config: Config = Config(),
     private val onPcm: (ByteArray, Int, Int, Long) -> Unit,
     private val onLevel: ((Int) -> Unit)? = null,
     private val onError: (String) -> Unit,
 ) {
+    private val context = context.applicationContext
     data class Config(
         val sampleRate: Int = DEFAULT_SAMPLE_RATE,
         val bitsPerSample: Int = DEFAULT_BITS_PER_SAMPLE,
@@ -31,7 +31,6 @@ class VoiceInputAudioCapture(
     )
 
     companion object {
-        private const val TAG = "FcitxVoiceInput"
         const val DEFAULT_SAMPLE_RATE = 16000
         const val DEFAULT_BITS_PER_SAMPLE = 16
         const val DEFAULT_CHANNELS = 1
@@ -118,7 +117,7 @@ class VoiceInputAudioCapture(
                     val rms = rmsOf(buf, read)
                     if (pts - lastLevelLogAt >= 1000L) {
                         lastLevelLogAt = pts
-                        Log.i(TAG, "capture level rms=$rms read=$read pts=$pts")
+                        Timber.i("capture level rms=$rms read=$read pts=$pts")
                     }
                     onLevel?.invoke(rms)
                 }

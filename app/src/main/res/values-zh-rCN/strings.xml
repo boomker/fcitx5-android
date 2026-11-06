@@ -959,6 +959,7 @@
     <string name="llm_model_status_remote_unavailable">状态：远端模型不可用</string>
     <string name="llm_model_status_remote_missing_name">状态：未填写模型名称</string>
     <string name="voice_status_connecting">正在连接…</string>
+    <string name="voice_status_recording">正在录音</string>
     <string name="voice_status_loading">正在加载…</string>
     <string name="voice_error_no_permission">未授予 RECORD_AUDIO 权限</string>
     <string name="voice_error_failed">语音输入失败</string>
@@ -969,7 +970,6 @@
     <string name="voice_error_cannot_bind">无法绑定语音输入提供方</string>
     <string name="voice_error_bind_timeout">绑定语音输入提供方超时</string>
     <string name="voice_error_call_failed">调用语音输入提供方失败</string>
-    <string name="voice_error_invalid_audio_config">语音输入提供方请求了不支持的音频格式</string>
     <string name="voice_error_audio_minbuf">AudioRecord.getMinBufferSize=%d</string>
     <string name="voice_error_audio_construct">AudioRecord 创建被拒绝：%s</string>
     <string name="voice_error_audio_not_init">AudioRecord 未初始化</string>
@@ -1115,8 +1115,6 @@
     <string name="symbol_catalog_import_ok">已导入并选用：%1$s</string>
     <string name="symbol_catalog_import_failed">导入失败：不是有效的符号数据文件</string>
     <string name="symbol_catalog_dir_hint">自定义数据文件存放目录：\n%1$s</string>
-    <string name="space_behavior_voice_input_hold">按住说话</string>
-    <string name="switch_to_voice_input">切换到语音输入</string>
     <string name="voice_status_opening">启动中…</string>
     <string name="voice_status_floating_ready">就绪</string>
     <string name="choose_voice_engine">选择语音引擎</string>
@@ -1125,14 +1123,11 @@
     <string name="voice_status_listening">聆听中</string>
     <string name="voice_status_committed">完成</string>
 
-    <string name="settings_group_input">输入与候选</string>
-    <string name="settings_group_input_summary">中州韵设置、候选栏和候选窗口</string>
     <string name="keyboard_category_voice">语音输入</string>
     <string name="js_voice_provider_qwen_asr">通义千问语音</string>
     <string name="js_voice_provider_doubao_asr">豆包语音</string>
     <string name="js_voice_provider_tencent_asr">腾讯云语音</string>
     <string name="js_voice_settings_title">语音插件设置</string>
-    <string name="js_voice_settings_summary">内置 JS 语音插件的密钥与识别选项</string>
     <string name="js_voice_settings_loading">正在读取插件设置…</string>
     <string name="js_voice_settings_failed">读取插件设置失败：%1$s</string>
     <string name="js_voice_settings_empty">该插件没有可配置项</string>
@@ -1153,8 +1148,6 @@
     <string name="js_plugin_override">已自定义内置插件</string>
     <string name="js_plugins_uninstall_failed">以下 JS 插件卸载失败：\n%1$s</string>
     <string name="js_voice_add">JS 插件</string>
-    <string name="js_plugin">JS 插件</string>
-    <string name="js_plugin_details">插件信息</string>
     <string name="js_plugin_name">插件名称</string>
     <string name="js_plugin_version">插件版本</string>
     <string name="js_plugin_source">插件来源</string>
@@ -1179,22 +1172,13 @@
     <string name="js_plugin_upgrade_wrong_id">请选择插件 %1$s 对应的脚本</string>
     <string name="js_plugins_uninstall_message">将卸载以下 JS 插件：\n\n%1$s</string>
     <string name="plugin_manage_select_one_kind">请只选择 Android 插件或 JS 插件执行此操作</string>
-    <string name="js_voice_plugins_summary">管理内置与导入的语音识别插件</string>
     <string name="js_voice_plugins_entry_summary">v%1$s · %2$s</string>
     <string name="js_voice_plugins_delete_title">卸载插件？</string>
-    <string name="js_voice_plugins_delete_message">将卸载 %1$s。已保存的设置与密钥会保留。</string>
     <string name="js_voice_plugins_delete_confirm">卸载</string>
-    <string name="js_voice_plugins_deleted">已卸载 %1$s</string>
-    <string name="js_voice_plugins_preferred_reset">它原是首选语音输入，该选项已被清空</string>
-    <string name="js_voice_import">导入插件…</string>
-    <string name="js_voice_import_summary">选择一个注册了语音插件的 .js 文件</string>
     <string name="js_voice_import_loading">正在识别插件…</string>
-    <string name="js_voice_import_dialog_title">导入插件</string>
-    <string name="js_voice_import_dialog_confirm">导入</string>
     <string name="js_voice_import_dialog_name">名称：%1$s</string>
     <string name="js_voice_import_dialog_version">版本：%1$s</string>
     <string name="js_voice_import_dialog_id">ID：%1$s</string>
-    <string name="js_voice_import_dialog_hosts">会连接：%1$s</string>
     <string name="js_voice_import_dialog_fields">设置项：%1$d 项</string>
     <string name="js_voice_import_dialog_rejected_hosts">已忽略的非法域名：%1$s</string>
     <string name="js_voice_import_dialog_replace">已有同 ID 插件；导入会覆盖它，并保留已保存的设置。</string>

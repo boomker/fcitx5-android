@@ -8,12 +8,12 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
+import android.annotation.SuppressLint
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
 import android.os.RemoteException
 import android.os.SystemClock
-import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
@@ -46,7 +46,6 @@ data class VoiceInputProviderInfo(
 
 object VoiceInputProviderManager {
     const val ID_PREFIX = "plugin:"
-    private const val TAG = "FcitxVoiceInput"
 
     // 3-second post-speech silence ⇒ provider emits a final segment.
     private const val DEFAULT_SILENCE_MS = 3000L
@@ -172,6 +171,8 @@ object VoiceInputProviderManager {
             if (final) stopFloatingFallback(appContext, token)
             deliver()
         }
+    // The capture object retains only applicationContext, not the IME service.
+    @SuppressLint("StaticFieldLeak")
     private var activeCapture: VoiceInputAudioCapture? = null
     private var activeAudioFeedJob: Job? = null
     @Volatile private var activeAudioFeedQueue: Channel<QueuedAudio>? = null
@@ -301,15 +302,15 @@ object VoiceInputProviderManager {
     // in release, so user-reported issues remain debuggable via the file log.
     // R8 folds away the call in release builds where BuildConfig.DEBUG is false.
     private fun logI(msg: String) {
-        if (BuildConfig.DEBUG) android.util.Log.i(TAG, msg)
+        if (BuildConfig.DEBUG) Timber.i(msg)
     }
 
     private fun logW(msg: String) {
-        if (BuildConfig.DEBUG) android.util.Log.w(TAG, msg)
+        if (BuildConfig.DEBUG) Timber.w(msg)
     }
 
     private fun logW(msg: String, e: Throwable) {
-        if (BuildConfig.DEBUG) android.util.Log.w(TAG, msg, e)
+        if (BuildConfig.DEBUG) Timber.w(e, msg)
     }
 
     // Timber.i is verbose tracing of normal flow; gate it like logI so release

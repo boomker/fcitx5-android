@@ -960,6 +960,7 @@
     <string name="llm_model_status_remote_unavailable">狀態：遠端模型不可用</string>
     <string name="llm_model_status_remote_missing_name">狀態：未填寫模型名稱</string>
     <string name="voice_status_connecting">正在連線…</string>
+    <string name="voice_status_recording">正在錄音</string>
     <string name="voice_status_loading">正在載入…</string>
     <string name="voice_error_no_permission">未授予 RECORD_AUDIO 權限</string>
     <string name="voice_error_failed">語音輸入失敗</string>
@@ -970,7 +971,6 @@
     <string name="voice_error_cannot_bind">無法繫結語音輸入提供者</string>
     <string name="voice_error_bind_timeout">繫結語音輸入提供者逾時</string>
     <string name="voice_error_call_failed">呼叫語音輸入提供者失敗</string>
-    <string name="voice_error_invalid_audio_config">語音輸入提供者要求了不支援的音訊格式</string>
     <string name="voice_error_audio_minbuf">AudioRecord.getMinBufferSize=%d</string>
     <string name="voice_error_audio_construct">AudioRecord 建立被拒絕：%s</string>
     <string name="voice_error_audio_not_init">AudioRecord 尚未初始化</string>
@@ -1082,8 +1082,6 @@
     <string name="symbol_catalog_import_ok">已匯入並選用：%1$s</string>
     <string name="symbol_catalog_import_failed">匯入失敗：不是有效的符號資料檔</string>
     <string name="symbol_catalog_dir_hint">自訂資料檔存放目錄：\n%1$s</string>
-    <string name="space_behavior_voice_input_hold">按住說話</string>
-    <string name="switch_to_voice_input">切換到語音輸入</string>
     <string name="voice_status_opening">啟動中…</string>
     <string name="voice_status_floating_ready">就緒</string>
     <string name="choose_voice_engine">選擇語音引擎</string>
@@ -1092,14 +1090,11 @@
     <string name="voice_status_listening">聆聽中</string>
     <string name="voice_status_committed">完成</string>
 
-    <string name="settings_group_input">輸入與候選</string>
-    <string name="settings_group_input_summary">中州韻設定、候選列和候選視窗</string>
     <string name="keyboard_category_voice">語音輸入</string>
     <string name="js_voice_provider_qwen_asr">通義千問語音</string>
     <string name="js_voice_provider_doubao_asr">豆包語音</string>
     <string name="js_voice_provider_tencent_asr">騰訊雲語音</string>
     <string name="js_voice_settings_title">語音外掛設定</string>
-    <string name="js_voice_settings_summary">內建 JS 語音外掛的金鑰與辨識選項</string>
     <string name="js_voice_settings_loading">正在讀取外掛設定…</string>
     <string name="js_voice_settings_failed">讀取外掛設定失敗：%1$s</string>
     <string name="js_voice_settings_empty">此外掛沒有可設定項</string>
@@ -1112,22 +1107,13 @@
 
     <string name="js_voice_plugins_current">%1$s · 目前使用</string>
     <string name="js_voice_plugins_title">JS 語音外掛</string>
-    <string name="js_voice_plugins_summary">管理內建與匯入的語音辨識外掛</string>
     <string name="js_voice_plugins_entry_summary">v%1$s · %2$s</string>
     <string name="js_voice_plugins_delete_title">移除外掛？</string>
-    <string name="js_voice_plugins_delete_message">將移除 %1$s。已儲存的設定與金鑰會保留。</string>
     <string name="js_voice_plugins_delete_confirm">移除</string>
-    <string name="js_voice_plugins_deleted">已移除 %1$s</string>
-    <string name="js_voice_plugins_preferred_reset">它原是首選語音輸入，該選項已被清空</string>
-    <string name="js_voice_import">匯入外掛…</string>
-    <string name="js_voice_import_summary">選擇一個註冊了語音外掛的 .js 檔案</string>
     <string name="js_voice_import_loading">正在辨識外掛…</string>
-    <string name="js_voice_import_dialog_title">匯入外掛</string>
-    <string name="js_voice_import_dialog_confirm">匯入</string>
     <string name="js_voice_import_dialog_name">名稱：%1$s</string>
     <string name="js_voice_import_dialog_version">版本：%1$s</string>
     <string name="js_voice_import_dialog_id">ID：%1$s</string>
-    <string name="js_voice_import_dialog_hosts">會連線：%1$s</string>
     <string name="js_voice_import_dialog_fields">設定項：%1$d 項</string>
     <string name="js_voice_import_dialog_rejected_hosts">已忽略的非法網域：%1$s</string>
     <string name="js_voice_import_dialog_replace">已有同 ID 外掛；匯入會覆蓋它，並保留已儲存的設定。</string>
@@ -1149,12 +1135,10 @@
     <string name="js_plugin_override">已自訂內建外掛</string>
     <string name="js_plugins_uninstall_failed">以下 JS 外掛無法解除安裝：\n%1$s</string>
     <string name="js_voice_add">JS 外掛</string>
-    <string name="js_plugin">JS 外掛</string>
     <string name="js_plugin_upgrade_select_one">每次只能選取一個 JS 外掛進行升級</string>
     <string name="js_plugin_upgrade_wrong_id">請選取外掛 %1$s 對應的指令碼</string>
     <string name="js_plugins_uninstall_message">將解除安裝以下 JS 外掛：\n\n%1$s</string>
     <string name="plugin_manage_select_one_kind">請只選取 Android 外掛或 JS 外掛執行此操作</string>
-    <string name="js_plugin_details">外掛資訊</string>
     <string name="js_plugin_name">外掛名稱</string>
     <string name="js_plugin_version">外掛版本</string>
     <string name="js_plugin_source">外掛來源</string>

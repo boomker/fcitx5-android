@@ -165,7 +165,7 @@ dependencies {
     implementation(libs.zxing.embedded)
     implementation(libs.xz)
     implementation(libs.pictureselector)
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation(libs.okhttp)
     implementation(libs.quickjs.kt)
     testImplementation(libs.junit)
     testImplementation(libs.org.json)

@@ -2,6 +2,7 @@
 package org.fxboomk.fcitx5.android.input.voice.js
 
 import android.content.Context
+import android.annotation.SuppressLint
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
@@ -9,10 +10,12 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
 import android.widget.FrameLayout
+import androidx.appcompat.widget.AppCompatTextView
 import android.widget.TextView
 import kotlin.math.hypot
 
 /** Drag the title/empty space, while edits, selection menus and buttons keep their gestures. */
+@SuppressLint("ViewConstructor")
 internal class JsAppPanelLayout(context: Context, private val moveBy: (Float, Float) -> Unit) : FrameLayout(context) {
     var maximumHeight = Int.MAX_VALUE
         set(value) { if (field != value) { field = value; requestLayout() } }
@@ -89,4 +92,4 @@ internal class JsAppPanelLayout(context: Context, private val moveBy: (Float, Fl
 }
 
 /** Only the heading starts a drag; body text must allow the scroll view to handle swipes. */
-internal class JsAppPanelTitle(context: Context) : TextView(context)
+internal class JsAppPanelTitle(context: Context) : AppCompatTextView(context)

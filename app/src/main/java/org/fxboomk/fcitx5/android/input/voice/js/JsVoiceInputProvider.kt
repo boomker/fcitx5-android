@@ -567,8 +567,8 @@ internal class JsVoiceNet(
                         val result = runCatching {
                             response.use {
                                 if (!it.isSuccessful) throw IOException("HTTP " + it.code)
-                                it.body?.byteStream()?.readBounded(JsVoiceRuntime.RESPONSE_BYTES)
-                                    ?.toString(Charsets.UTF_8).orEmpty()
+                                it.body.byteStream().readBounded(JsVoiceRuntime.RESPONSE_BYTES)
+                                    .toString(Charsets.UTF_8)
                             }
                         }
                         if (continuation.isActive) result.fold(continuation::resume, continuation::resumeWithException)

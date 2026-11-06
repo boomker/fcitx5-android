@@ -2,6 +2,7 @@
 package org.fxboomk.fcitx5.android.input.voice.js
 
 import android.app.Dialog
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.Color
@@ -18,6 +19,7 @@ import android.view.Window
 import android.view.WindowManager
 import android.view.ViewTreeObserver
 import android.widget.*
+import android.os.Build
 import androidx.core.graphics.ColorUtils
 import androidx.core.view.WindowInsetsCompat
 import kotlin.math.roundToInt
@@ -275,12 +277,15 @@ internal class JsAppDialog(
                                 if (readOnly) blockTyping() else bindEditor(this)
                             }
                         }
-                        setOnTouchListener { _, _ ->
+                        // Returning false leaves click and accessibility handling to EditText.
+                        @SuppressLint("ClickableViewAccessibility")
+                        val editorTouchListener = View.OnTouchListener { _, _ ->
                             if (isEnabled && !dismissed) {
                                 if (readOnly) blockTyping() else bindEditor(this)
                             }
                             false
                         }
+                        setOnTouchListener(editorTouchListener)
                     }
                     editors[id] = edit
                     field(obj, fieldBox(edit), defaultHeight = if ((obj["multiline"] as? JsonPrimitive)?.booleanOrNull == true) 64 else 40)
@@ -362,7 +367,9 @@ internal class JsAppDialog(
     private fun fieldBox(input: EditText) = TextInputLayout(uiContext).apply {
         boxBackgroundMode = TextInputLayout.BOX_BACKGROUND_OUTLINE
         boxBackgroundColor = surfaceColor
-        cursorColor = ColorStateList.valueOf(accentColor)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            cursorColor = ColorStateList.valueOf(accentColor)
+        }
         isHintEnabled = false
         setBoxCornerRadii(dp(4).toFloat(), dp(4).toFloat(), dp(4).toFloat(), dp(4).toFloat())
         boxStrokeWidth = dp(1); boxStrokeWidthFocused = dp(1)
@@ -528,6 +535,7 @@ private class BoundedScrollView(context: Context) : ScrollView(context) {
 }
 
 /** A focusable popup would end the original app's IME session and cancel pending generation. */
+@SuppressLint("ViewConstructor")
 private class EditorPreservingSelect(context: Context, private val availableArea: () -> Rect,
     private val closed: () -> Unit) : MaterialAutoCompleteTextView(context) {
     private var popup: ListPopupWindow? = null

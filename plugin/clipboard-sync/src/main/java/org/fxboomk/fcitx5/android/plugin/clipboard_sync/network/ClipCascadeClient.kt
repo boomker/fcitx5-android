@@ -169,7 +169,7 @@ class ClipCascadeClient(
             if (!response.isSuccessful) {
                 throw IOException("ClipCascade session validation failed: ${response.code} ${response.message}")
             }
-            val body = response.body?.string().orEmpty()
+            val body = response.body.string()
             val validation = json.decodeFromString<ClipCascadeSessionValidationResponse>(body)
             if (!validation.valid) {
                 throw IOException("ClipCascade session is not valid")
@@ -187,7 +187,7 @@ class ClipCascadeClient(
             if (!response.isSuccessful) {
                 throw IOException("ClipCascade user-info failed: ${response.code} ${response.message}")
             }
-            val body = response.body?.string().orEmpty()
+            val body = response.body.string()
             val userInfo = json.decodeFromString<ClipCascadeUserInfoResponse>(body)
             encryptionKey = deriveKey(
                 password = password,

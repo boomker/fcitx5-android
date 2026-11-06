@@ -112,7 +112,7 @@ class IdleUi(
     val inlineSuggestionsBar = InlineSuggestionsUi(ctx)
 
     private val voiceStatusText: TextView = textView {
-        text = "Recording"
+        text = ctx.getString(R.string.voice_status_recording)
         textSize = 14f
         setTextColor(theme.keyTextColor)
         isSingleLine = true
@@ -262,7 +262,7 @@ class IdleUi(
         }
     }
 
-    fun showVoiceStatus(label: String = "Recording") {
+    fun showVoiceStatus(label: String = ctx.getString(R.string.voice_status_recording)) {
         voiceStatusText.text = label
         voiceStatusBar.visibility = View.VISIBLE
         // The center strip shows exactly one of the voice status or the animator;
