@@ -22,7 +22,9 @@ import android.provider.Settings
 import android.text.InputType
 import android.util.TypedValue
 import android.view.ContextThemeWrapper
+import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
@@ -39,6 +41,7 @@ import androidx.preference.PreferenceViewHolder
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.google.android.material.shape.ShapeAppearanceModel
+import com.google.android.material.tabs.TabLayout
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -66,6 +69,8 @@ import java.io.File
 import java.util.ArrayDeque
 
 class PluginFragment : PaddingPreferenceFragment() {
+
+    private var selectedTab = TAB_FCITX
 
     private class UndividedPreferenceCategory(context: Context) : PreferenceCategory(context) {
         override fun onBindViewHolder(holder: PreferenceViewHolder) {
@@ -130,10 +135,53 @@ class PluginFragment : PaddingPreferenceFragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        selectedTab = savedInstanceState?.getInt(STATE_SELECTED_TAB, TAB_FCITX)
+            ?.takeIf { it in TAB_FCITX..TAB_JS } ?: TAB_FCITX
         pendingJsExportId = savedInstanceState?.getString(STATE_PENDING_JS_EXPORT_ID)
     }
 
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        val preferenceView = super.onCreateView(inflater, container, savedInstanceState)
+        val tabs = TabLayout(requireContext()).apply {
+            tabMode = TabLayout.MODE_FIXED
+            addTab(newTab().setText(R.string.fcitx_plugins))
+            addTab(newTab().setText(R.string.js_plugins))
+            addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+                override fun onTabSelected(tab: TabLayout.Tab) {
+                    if (selectedTab == tab.position) return
+                    selectedTab = tab.position
+                    updateJsPluginFabVisibility()
+                    if (::synced.isInitialized) {
+                        preferenceScreen = createPreferenceScreen()
+                    }
+                }
+
+                override fun onTabUnselected(tab: TabLayout.Tab) = Unit
+
+                override fun onTabReselected(tab: TabLayout.Tab) = Unit
+            })
+            getTabAt(selectedTab)?.select()
+        }
+        return LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(tabs)
+            addView(
+                preferenceView,
+                LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    0,
+                    1f,
+                ),
+            )
+        }
+    }
+
     override fun onSaveInstanceState(outState: Bundle) {
+        outState.putInt(STATE_SELECTED_TAB, selectedTab)
         pendingJsExportId?.let { outState.putString(STATE_PENDING_JS_EXPORT_ID, it) }
         super.onSaveInstanceState(outState)
     }
@@ -173,10 +221,11 @@ class PluginFragment : PaddingPreferenceFragment() {
 
     override fun onResume() {
         super.onResume()
-        (requireActivity() as MainActivity).findViewById<com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton>(R.id.js_voice_add_fab)
+        (requireActivity() as MainActivity).findViewById<com.google.android.material.floatingactionbutton.FloatingActionButton>(R.id.js_voice_add_fab)
             .setOnClickListener {
                 startActivity(JsVoicePluginsActivity.intent(requireContext()))
             }
+        updateJsPluginFabVisibility()
         requireContext().registerReceiver(packageChangeReceiver, IntentFilter().apply {
             addAction(Intent.ACTION_PACKAGE_ADDED)
             addAction(Intent.ACTION_PACKAGE_REMOVED)
@@ -221,13 +270,19 @@ class PluginFragment : PaddingPreferenceFragment() {
     override fun onPause() {
         super.onPause()
         requireContext().unregisterReceiver(packageChangeReceiver)
+        (requireActivity() as MainActivity).viewModel.setPluginJsTabVisible(false)
         // Disable plugin menu button in toolbar
         (requireActivity() as MainActivity).viewModel.disablePluginMenu()
     }
 
+    private fun updateJsPluginFabVisibility() {
+        if (!isAdded) return
+        (requireActivity() as MainActivity).viewModel.setPluginJsTabVisible(selectedTab == TAB_JS)
+    }
+
     private fun createPreferenceScreen(): PreferenceScreen =
         preferenceManager.createPreferenceScreen(requireContext()).apply {
-            if (synced != detected) {
+            if (selectedTab == TAB_FCITX && synced != detected) {
                 addPreference(R.string.plugin_needs_reload, icon = R.drawable.ic_baseline_info_24) {
                     DataManager.addOnNextSyncedCallback {
                         synced = DataManager.getSyncedPluginSet()
@@ -360,12 +415,18 @@ class PluginFragment : PaddingPreferenceFragment() {
                     }
                 }
             }
+            if (selectedTab == TAB_JS) {
+                removePreference(fcitxPluginsCategory)
+            } else {
+                removePreference(jsPluginsCategory)
+            }
         }
 
     private fun showManagePluginsDialog() {
+        val showJsPlugins = selectedTab == TAB_JS
         val blockedPackages = AppPrefs.getInstance().advanced.blockedPluginPackages.getValue()
         val loadedPackages = synced.loaded.mapTo(mutableSetOf()) { it.packageName }
-        val manageablePlugins = DataManager.getManageablePlugins()
+        val manageablePlugins = (if (showJsPlugins) emptyList() else DataManager.getManageablePlugins())
             .sortedBy { it.name }
             .map {
                 ManageablePlugin(
@@ -379,9 +440,11 @@ class PluginFragment : PaddingPreferenceFragment() {
                 if (it.id == JsVoiceProviders.DOUBAO_ASR_ID) 0 else 1
             }.thenBy { it.label }
         )
-        val manageableJsPlugins = allJsPlugins
-        if (manageablePlugins.isEmpty() && allJsPlugins.isEmpty()) {
-            requireContext().toast(R.string.no_plugins)
+        val manageableJsPlugins = if (showJsPlugins) allJsPlugins else emptyList()
+        if (manageablePlugins.isEmpty() && manageableJsPlugins.isEmpty()) {
+            requireContext().toast(
+                if (showJsPlugins) R.string.no_installed_js_plugins else R.string.no_plugins
+            )
             return
         }
         val ctx = requireContext()
@@ -426,40 +489,50 @@ class PluginFragment : PaddingPreferenceFragment() {
                         })
                     }
 
-                    addSectionTitle(R.string.js_plugins)
-                    if (manageableJsPlugins.isEmpty()) {
-                        addView(TextView(ctx).apply {
-                            setText(R.string.no_installed_js_plugins)
-                            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
-                            setPadding(0, 0, 0, actionGap)
-                        })
-                    }
-                    manageableJsPlugins.forEachIndexed { index, plugin ->
-                        addView(CheckBox(ctx).apply {
-                            val kind = when {
-                                plugin.id !in JsVoiceProviders.builtInIds() ->
-                                    getString(R.string.js_plugin_imported)
-                                plugin.builtIn -> getString(R.string.js_plugin_builtin)
-                                else -> getString(R.string.js_plugin_override)
-                            }
-                            text = "${plugin.label} · $kind · ${plugin.version}"
-                            isSingleLine = false
-                            setPadding(0, actionGap, 0, actionGap)
-                            setOnCheckedChangeListener { _, isChecked ->
-                                selections[manageablePlugins.size + index] = isChecked
-                            }
-                        })
-                    }
-                    addSectionTitle(R.string.fcitx_plugins)
-                    manageablePlugins.forEachIndexed { index, plugin ->
-                        addView(CheckBox(ctx).apply {
-                            text = "${plugin.descriptor.name}\n${statusText(plugin)}"
-                            isSingleLine = false
-                            setPadding(0, actionGap, 0, actionGap)
-                            setOnCheckedChangeListener { _, isChecked ->
-                                selections[index] = isChecked
-                            }
-                        })
+                    if (showJsPlugins) {
+                        addSectionTitle(R.string.js_plugins)
+                        if (manageableJsPlugins.isEmpty()) {
+                            addView(TextView(ctx).apply {
+                                setText(R.string.no_installed_js_plugins)
+                                setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+                                setPadding(0, 0, 0, actionGap)
+                            })
+                        }
+                        manageableJsPlugins.forEachIndexed { index, plugin ->
+                            addView(CheckBox(ctx).apply {
+                                val kind = when {
+                                    plugin.id !in JsVoiceProviders.builtInIds() ->
+                                        getString(R.string.js_plugin_imported)
+                                    plugin.builtIn -> getString(R.string.js_plugin_builtin)
+                                    else -> getString(R.string.js_plugin_override)
+                                }
+                                text = "${plugin.label} · $kind · ${plugin.version}"
+                                isSingleLine = false
+                                setPadding(0, actionGap, 0, actionGap)
+                                setOnCheckedChangeListener { _, isChecked ->
+                                    selections[index] = isChecked
+                                }
+                            })
+                        }
+                    } else {
+                        addSectionTitle(R.string.fcitx_plugins)
+                        if (manageablePlugins.isEmpty()) {
+                            addView(TextView(ctx).apply {
+                                setText(R.string.no_plugins)
+                                setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+                                setPadding(0, 0, 0, actionGap)
+                            })
+                        }
+                        manageablePlugins.forEachIndexed { index, plugin ->
+                            addView(CheckBox(ctx).apply {
+                                text = "${plugin.descriptor.name}\n${statusText(plugin)}"
+                                isSingleLine = false
+                                setPadding(0, actionGap, 0, actionGap)
+                                setOnCheckedChangeListener { _, isChecked ->
+                                    selections[index] = isChecked
+                                }
+                            })
+                        }
                     }
                 })
             })
@@ -854,6 +927,9 @@ class PluginFragment : PaddingPreferenceFragment() {
 
     companion object {
         private const val STATE_PENDING_JS_EXPORT_ID = "pending_js_export_id"
+        private const val STATE_SELECTED_TAB = "selected_plugin_tab"
+        private const val TAB_FCITX = 0
+        private const val TAB_JS = 1
     }
 
     private fun confirmBatchUninstall(targets: List<UninstallTarget>) {

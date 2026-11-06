@@ -26,6 +26,7 @@ class MainViewModel : ViewModel() {
     val toolbarButton = MutableLiveData(ButtonMode.NONE)
 
     val pluginMenuVisible = MutableLiveData(false)
+    val pluginJsTabVisible = MutableLiveData(false)
     val pluginMenuTrigger = MutableLiveData<Unit?>()
 
     private var pendingPreferenceScrollKey: String? = null
@@ -64,6 +65,10 @@ class MainViewModel : ViewModel() {
 
     fun disablePluginMenu() {
         pluginMenuVisible.value = false
+    }
+
+    fun setPluginJsTabVisible(visible: Boolean) {
+        pluginJsTabVisible.value = visible
     }
 
     fun triggerPluginMenu() {

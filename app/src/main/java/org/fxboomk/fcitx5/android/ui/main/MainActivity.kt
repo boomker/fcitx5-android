@@ -151,8 +151,17 @@ class MainActivity : AppCompatActivity() {
             }
             viewModel.pluginMenuVisible.observe(this@MainActivity) {
                 invalidateMenu()
-                binding.jsVoiceAddFab.visibility = if (it) View.VISIBLE else View.GONE
+                updateJsVoiceAddFabVisibility()
             }
+            viewModel.pluginJsTabVisible.observe(this@MainActivity) {
+                updateJsVoiceAddFabVisibility()
+            }
+        }
+
+        private fun updateJsVoiceAddFabVisibility() {
+            binding.jsVoiceAddFab.visibility = if (
+                viewModel.pluginMenuVisible.value == true && viewModel.pluginJsTabVisible.value == true
+            ) View.VISIBLE else View.GONE
         }
 
         override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
