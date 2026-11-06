@@ -24,6 +24,9 @@ internal object JsVoicePluginStore {
 
     private const val PREFS_NAME = "js_voice_imported_plugins"
     private const val KEY_PREFIX = "p:"
+    private const val KEY_NAME_PREFIX = "n:"
+    private const val KEY_TAGS_PREFIX = "t:"
+    private const val KEY_DISABLED_BUILTINS = "disabled_builtin_ids"
     private const val DIR_NAME = "js-voice"
 
     private fun prefs(): SharedPreferences =
@@ -115,6 +118,33 @@ internal object JsVoicePluginStore {
     fun importedIds(): Set<String> = list().map { it.meta.id }.toSet()
 
     @Synchronized
+    fun disabledBuiltInIds(): Set<String> =
+        prefs().getStringSet(KEY_DISABLED_BUILTINS, emptySet()).orEmpty().toSet()
+
+    @Synchronized
+    fun displayName(id: String, fallback: String): String =
+        prefs().getString(KEY_NAME_PREFIX + id, null)?.takeIf(String::isNotBlank) ?: fallback
+
+    @Synchronized
+    fun tags(id: String, defaults: Set<String>): Set<String> =
+        prefs().getStringSet(KEY_TAGS_PREFIX + id, null)?.toSet() ?: defaults
+
+    @Synchronized
+    fun saveTags(id: String, tags: Set<String>): Boolean {
+        if (!JsVoicePluginMeta.isValidId(id)) return false
+        if (tags.any { it.isBlank() || it.length > 32 }) return false
+        val preferences = prefs()
+        val previousTags = preferences.getStringSet(KEY_TAGS_PREFIX + id, null)?.toSet()
+        val editor = preferences.edit().putStringSet(KEY_TAGS_PREFIX + id, tags.toSet())
+        if (editor.commit()) return true
+        preferences.edit().apply {
+            if (previousTags == null) remove(KEY_TAGS_PREFIX + id)
+            else putStringSet(KEY_TAGS_PREFIX + id, previousTags)
+        }.commit()
+        return false
+    }
+
+    @Synchronized
     fun readScript(id: String): String? =
         scriptFile(id).takeIf { it.isFile }?.let { runCatching { it.readText() }.getOrNull() }
 
@@ -131,6 +161,7 @@ internal object JsVoicePluginStore {
         val bytes = script.toByteArray(Charsets.UTF_8)
         if (bytes.size > JsVoicePluginMeta.MAX_SCRIPT_BYTES) return false
         val previous = prefs().getString(KEY_PREFIX + id, null)
+        val disabledBefore = disabledBuiltInIds()
         val previousFile = scriptFile(id)
         val stored = record.copy(scriptDigest = digest(bytes))
         val file = File(directory(), fileName(id, stored.scriptDigest))
@@ -142,9 +173,21 @@ internal object JsVoicePluginStore {
             } finally {
                 staged.delete()
             }
-            if (!prefs().edit().putString(KEY_PREFIX + id, stored.encode()).commit()) {
+            val disabledAfter = disabledBefore - id
+            val editor = prefs().edit().putString(KEY_PREFIX + id, stored.encode())
+            if (disabledAfter.isEmpty()) {
+                editor.remove(KEY_DISABLED_BUILTINS)
+            } else if (disabledAfter != disabledBefore) {
+                editor.putStringSet(KEY_DISABLED_BUILTINS, disabledAfter)
+            }
+            if (!editor.commit()) {
                 // SharedPreferences changes memory even if its disk commit fails.
-                prefs().edit().putString(KEY_PREFIX + id, previous).commit()
+                prefs().edit().apply {
+                    if (previous == null) remove(KEY_PREFIX + id)
+                    else putString(KEY_PREFIX + id, previous)
+                    if (disabledBefore.isEmpty()) remove(KEY_DISABLED_BUILTINS)
+                    else putStringSet(KEY_DISABLED_BUILTINS, disabledBefore)
+                }.commit()
                 false
             } else {
                 if (previousFile != file) previousFile.delete()
@@ -153,13 +196,34 @@ internal object JsVoicePluginStore {
         }.getOrDefault(false)
     }
 
-    /** Settings and secrets survive removal so reinstalling the same plugin can reuse them. */
+    /**
+     * Removing a bundled plugin writes a tombstone so app upgrades do not put it back.
+     * Importing its ID later clears the tombstone and installs the user-managed script.
+     */
     @Synchronized
-    fun delete(id: String) {
+    fun uninstall(id: String, builtInIds: Set<String>): Boolean {
+        require(JsVoicePluginMeta.isValidId(id))
         JsVoiceHostPermissions.revoke(JsVoicePluginMeta.PROVIDER_ID_PREFIX + id)
         val file = scriptFile(id)
-        val previous = prefs().getString(KEY_PREFIX + id, null)
-        if (prefs().edit().remove(KEY_PREFIX + id).commit()) file.delete()
-        else prefs().edit().putString(KEY_PREFIX + id, previous).commit()
+        val key = KEY_PREFIX + id
+        val previous = prefs().getString(key, null)
+        val disabledBefore = disabledBuiltInIds()
+        val disabledAfter = if (id in builtInIds) disabledBefore + id else disabledBefore
+        val editor = prefs().edit().remove(key)
+        if (disabledAfter.isEmpty()) {
+            editor.remove(KEY_DISABLED_BUILTINS)
+        } else if (disabledAfter != disabledBefore) {
+            editor.putStringSet(KEY_DISABLED_BUILTINS, disabledAfter)
+        }
+        if (!editor.commit()) {
+            prefs().edit().apply {
+                if (previous == null) remove(key) else putString(key, previous)
+                if (disabledBefore.isEmpty()) remove(KEY_DISABLED_BUILTINS)
+                else putStringSet(KEY_DISABLED_BUILTINS, disabledBefore)
+            }.commit()
+            return false
+        }
+        file.delete()
+        return true
     }
 }

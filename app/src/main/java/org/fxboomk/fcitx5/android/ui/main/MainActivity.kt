@@ -12,6 +12,7 @@ import android.os.Bundle
 import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
+import android.view.View
 import android.view.ViewGroup
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
@@ -58,6 +59,9 @@ class MainActivity : AppCompatActivity() {
             binding.root.updateLayoutParams<ViewGroup.MarginLayoutParams> {
                 leftMargin = navBars.left
                 rightMargin = navBars.right
+            }
+            binding.jsVoiceAddFab.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                bottomMargin = dp(20f).toInt() + navBars.bottom
             }
             binding.toolbar.topPadding = statusBars.top
             windowInsets
@@ -147,6 +151,7 @@ class MainActivity : AppCompatActivity() {
             }
             viewModel.pluginMenuVisible.observe(this@MainActivity) {
                 invalidateMenu()
+                binding.jsVoiceAddFab.visibility = if (it) View.VISIBLE else View.GONE
             }
         }
 

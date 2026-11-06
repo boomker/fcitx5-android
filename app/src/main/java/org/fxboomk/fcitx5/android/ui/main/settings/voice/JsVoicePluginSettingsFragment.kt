@@ -4,7 +4,6 @@ package org.fxboomk.fcitx5.android.ui.main.settings.voice
 import android.os.Bundle
 import android.text.InputType
 import android.widget.Toast
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.EditTextPreference
 import androidx.preference.ListPreference
@@ -15,12 +14,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.fxboomk.fcitx5.android.R
-import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.input.voice.js.JsVoiceField
 import org.fxboomk.fcitx5.android.input.voice.js.JsVoiceFields
 import org.fxboomk.fcitx5.android.input.voice.js.JsVoiceHostPermissions
-import org.fxboomk.fcitx5.android.input.voice.js.JsVoicePluginMeta
-import org.fxboomk.fcitx5.android.input.voice.js.JsVoicePluginStore
 import org.fxboomk.fcitx5.android.input.voice.js.JsVoiceProviders
 import org.fxboomk.fcitx5.android.input.voice.js.JsVoiceSettingsStore
 import org.fxboomk.fcitx5.android.ui.common.PaddingPreferenceFragment
@@ -97,7 +93,6 @@ class JsVoicePluginSettingsFragment : PaddingPreferenceFragment() {
         if (fields.isEmpty()) {
             showPlaceholder(getString(R.string.js_voice_settings_empty))
             appendHostPermissionEntry()
-            appendRemoveEntry()
             return
         }
         val values = LinkedHashMap(
@@ -131,7 +126,6 @@ class JsVoicePluginSettingsFragment : PaddingPreferenceFragment() {
         }
         refreshVisibility(rendered, values)
         appendHostPermissionEntry()
-        appendRemoveEntry()
     }
 
     private fun appendHostPermissionEntry() {
@@ -158,64 +152,6 @@ class JsVoicePluginSettingsFragment : PaddingPreferenceFragment() {
             true
         }
         preferenceScreen.addPreference(preference)
-    }
-
-    /**
-     * 已导入插件在页面底部带一条「移除」：移除是插件级动作，放在插件自己的设置页里才有上下文，
-     * 不用在列表里为每行再挤一个按钮。内置插件不显示这条——它们随 APK 走，删不掉。
-     */
-    private fun appendRemoveEntry() {
-        val screen = preferenceScreen ?: return
-        val spec = JsVoiceProviders.specOf(pluginId) ?: return
-        if (spec.builtIn) return
-        if (screen.findPreference<Preference>(KEY_REMOVE) != null) return
-        screen.addPreference(Preference(requireContext()).apply {
-            key = KEY_REMOVE
-            isPersistent = false
-            isIconSpaceReserved = false
-            isSingleLineTitle = false
-            order = 10_000
-            title = getString(R.string.js_voice_plugins_delete_entry)
-            summary = getString(R.string.js_voice_plugins_delete_entry_summary, spec.originName)
-            setOnPreferenceClickListener {
-                confirmRemove(spec.id, spec.label)
-                true
-            }
-        })
-    }
-
-    private fun confirmRemove(pluginId: String, label: String) {
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.js_voice_plugins_delete_title)
-            .setMessage(getString(R.string.js_voice_plugins_delete_message, label))
-            .setNegativeButton(android.R.string.cancel, null)
-            .setPositiveButton(R.string.js_voice_plugins_delete_confirm) { _, _ -> remove(pluginId, label) }
-            .show()
-    }
-
-    private fun remove(pluginId: String, label: String) {
-        viewLifecycleOwner.lifecycleScope.launch {
-            withContext(Dispatchers.IO) {
-                JsVoicePluginStore.delete(pluginId.removePrefix(JsVoicePluginMeta.PROVIDER_ID_PREFIX))
-                JsVoiceProviders.reload()
-            }
-            if (!isAdded) return@launch
-            // 插件没了，首选语音里那一项就成了永远识别不了的死选项，这里顺手清掉。
-            val preferred = AppPrefs.getInstance().keyboard.preferredVoiceInput
-            val preferredWasRemoved = preferred.getValue() == pluginId
-            if (preferredWasRemoved) preferred.setValue("")
-            Toast.makeText(
-                requireContext(),
-                if (preferredWasRemoved) {
-                    getString(R.string.js_voice_plugins_deleted, label) + "\n" +
-                        getString(R.string.js_voice_plugins_preferred_reset)
-                } else {
-                    getString(R.string.js_voice_plugins_deleted, label)
-                },
-                Toast.LENGTH_LONG
-            ).show()
-            requireActivity().finish()
-        }
     }
 
     private fun refreshVisibility(
@@ -395,7 +331,6 @@ class JsVoicePluginSettingsFragment : PaddingPreferenceFragment() {
     companion object {
         private const val ARG_PLUGIN_ID = "plugin_id"
         private const val KEY_PLACEHOLDER = "js_voice_placeholder"
-        private const val KEY_REMOVE = "js_voice_remove_plugin"
 
         fun newInstance(pluginId: String): JsVoicePluginSettingsFragment =
             JsVoicePluginSettingsFragment().apply {

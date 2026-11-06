@@ -22,6 +22,8 @@ import java.util.concurrent.TimeUnit
  */
 internal object JsVoiceProviders {
 
+    const val VOICE_TAG = "voice"
+
     const val QWEN_ASR_ID = "js:qwen-asr"
     const val DOUBAO_ASR_ID = "js:doubao-asr"
     const val TENCENT_ASR_ID = "js:tencent-asr"
@@ -43,6 +45,7 @@ internal object JsVoiceProviders {
         val builtIn: Boolean,
         /** 界面展示的来源：内置是 asset 名，导入是用户选中的文件名。 */
         val originName: String,
+        val tags: Set<String>,
     )
 
     private val lock = Any()
@@ -67,7 +70,9 @@ internal object JsVoiceProviders {
     private fun builtInSpecs(): List<Spec> = listOf(
         Spec(
             id = QWEN_ASR_ID,
-            label = appContext.getString(R.string.js_voice_provider_qwen_asr),
+            label = JsVoicePluginStore.displayName(
+                "qwen-asr", appContext.getString(R.string.js_voice_provider_qwen_asr)
+            ),
             version = "1.6.3",
             hosts = setOf(
                 "dashscope.aliyuncs.com",
@@ -78,10 +83,13 @@ internal object JsVoiceProviders {
             source = Source.Asset("bundled/js-voice/qwen-asr.js"),
             builtIn = true,
             originName = "qwen-asr.js",
+            tags = JsVoicePluginStore.tags("qwen-asr", setOf(VOICE_TAG)),
         ),
         Spec(
             id = DOUBAO_ASR_ID,
-            label = appContext.getString(R.string.js_voice_provider_doubao_asr),
+            label = JsVoicePluginStore.displayName(
+                "doubao-asr", appContext.getString(R.string.js_voice_provider_doubao_asr)
+            ),
             version = "1.2.0",
             // 火山引擎语音识别只开这两个口子：bigmodel_async（流式）与 bigmodel_nostream（单次）。
             hosts = setOf("openspeech.bytedance.com"),
@@ -89,49 +97,89 @@ internal object JsVoiceProviders {
             source = Source.Asset("bundled/js-voice/doubao-asr.js"),
             builtIn = true,
             originName = "doubao-asr.js",
+            tags = JsVoicePluginStore.tags("doubao-asr", setOf(VOICE_TAG)),
         ),
         Spec(
             id = TENCENT_ASR_ID,
-            label = appContext.getString(R.string.js_voice_provider_tencent_asr),
+            label = JsVoicePluginStore.displayName(
+                "tencent-asr", appContext.getString(R.string.js_voice_provider_tencent_asr)
+            ),
             version = "1.0.7",
             hosts = setOf("asr.cloud.tencent.com"),
             sampleRate = 16000,
             source = Source.Asset("bundled/js-voice/tencent-asr.js"),
             builtIn = true,
             originName = "tencent-asr.js",
+            tags = JsVoicePluginStore.tags("tencent-asr", setOf(VOICE_TAG)),
         ),
         Spec(
             id = TENCENT_TRANSLATE_ID,
-            label = appContext.getString(R.string.js_voice_provider_tencent_translate),
+            label = JsVoicePluginStore.displayName(
+                "tencent-translate", appContext.getString(R.string.js_voice_provider_tencent_translate)
+            ),
             version = "1.0.0",
             hosts = setOf("asr.cloud.tencent.com"),
             sampleRate = 16000,
             source = Source.Asset("bundled/js-voice/tencent-translate.js"),
             builtIn = true,
             originName = "tencent-translate.js",
+            tags = JsVoicePluginStore.tags("tencent-translate", setOf(VOICE_TAG)),
         ),
     )
 
     private fun importedSpecs(): List<Spec> = JsVoicePluginStore.list().map { record ->
         Spec(
             id = record.meta.providerId,
-            label = record.meta.displayName,
+            label = JsVoicePluginStore.displayName(record.meta.id, record.meta.displayName),
             version = record.meta.version,
             hosts = record.meta.hosts.toSet(),
             sampleRate = record.meta.sampleRate,
             source = Source.Imported(JsVoicePluginStore.scriptFile(record.meta.id)),
             builtIn = false,
             originName = record.sourceName,
+            tags = JsVoicePluginStore.tags(record.meta.id, setOf(VOICE_TAG)),
         )
     }
 
-    // A previously imported plugin can become bundled. Prefer the bundled implementation while
-    // retaining the imported file and the settings/secrets under the same provider ID.
-    private fun buildSpecs(): List<Spec> = (builtInSpecs() + importedSpecs()).distinctBy { it.id }
+    // Imported scripts can replace bundled plugins. Uninstalled bundled IDs stay hidden across
+    // app upgrades until the user imports that ID again.
+    private fun buildSpecs(): List<Spec> {
+        val imported = importedSpecs()
+        return activeSpecs(
+            builtInSpecs = builtInSpecs(),
+            importedSpecs = imported,
+            disabledBuiltInIds = JsVoicePluginStore.disabledBuiltInIds(),
+        )
+    }
+
+    internal fun activeSpecs(
+        builtInSpecs: List<Spec>,
+        importedSpecs: List<Spec>,
+        disabledBuiltInIds: Set<String>,
+    ): List<Spec> {
+        val importedIds = importedSpecs.mapTo(mutableSetOf()) { it.id }
+        val builtIn = builtInSpecs.filter {
+            it.id !in importedIds && it.id.removePrefix("js:") !in disabledBuiltInIds
+        }
+        return importedSpecs + builtIn
+    }
 
     fun all(): List<Spec> = synchronized(lock) { cached ?: buildSpecs().also { cached = it; cachedById = it.associateBy(Spec::id) } }
 
     fun builtInIds(): Set<String> = builtInSpecs().map { it.id }.toSet()
+
+    fun voiceInputSpecs(): List<Spec> = voiceInputSpecs(all())
+
+    internal fun voiceInputSpecs(specs: List<Spec>): List<Spec> =
+        specs.filter { VOICE_TAG in it.tags }
+
+    internal fun importableBuiltInIds(
+        builtInIds: Set<String>,
+        disabledBuiltInIds: Set<String>,
+        upgradingPluginId: String? = null,
+    ): Set<String> = builtInIds.filterTo(mutableSetOf()) {
+        it != upgradingPluginId && it.removePrefix("js:") !in disabledBuiltInIds
+    }
 
     fun specOf(pluginId: String): Spec? = synchronized(lock) {
         all()
@@ -157,7 +205,7 @@ internal object JsVoiceProviders {
     @Synchronized
     fun install() {
         if (installedRevision == VoiceInputProviderRegistry.revision) return
-        val specs = all()
+        val specs = voiceInputSpecs()
         val ids = specs.map { it.id }.toSet()
         if (registeredIds.any { it !in ids }) {
             (registeredIds - ids).forEach { VoiceInputProviderRegistry.unregister(it) }

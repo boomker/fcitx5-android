@@ -12,11 +12,11 @@ import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.data.prefs.ManagedPreferenceFragment
 import org.fxboomk.fcitx5.android.data.prefs.ManagedPreferenceProvider
 import org.fxboomk.fcitx5.android.data.prefs.ManagedPreferenceUi
+import org.fxboomk.fcitx5.android.input.voice.js.JsVoiceProviders
 import org.fxboomk.fcitx5.android.ui.main.modified.MySwitchPreference
-import org.fxboomk.fcitx5.android.ui.main.settings.voice.JsVoicePluginsActivity
+import org.fxboomk.fcitx5.android.ui.main.settings.voice.JsVoicePluginSettingsActivity
 import org.fxboomk.fcitx5.android.utils.addCategory
 import org.fxboomk.fcitx5.android.utils.addPreference
-import org.fxboomk.fcitx5.android.utils.setup
 
 abstract class KeyboardSectionFragment : ManagedPreferenceFragment(AppPrefs.getInstance().keyboard) {
     final override fun onPreferenceUiCreated(screen: PreferenceScreen) {
@@ -44,29 +44,50 @@ class KeyboardVoiceSettingsFragment : KeyboardSectionFragment() {
                 listOf("show_voice_input_button", "preferred_voice_input"),
             )
         }
-        screen.addPreference(
-            Preference(requireContext()).apply {
-                key = "tool_js_voice_plugins"
-                isPersistent = false
-                isIconSpaceReserved = false
-                isSingleLineTitle = false
-                setup(
-                    context.getString(R.string.js_voice_plugins_title),
-                    context.getString(R.string.js_voice_plugins_summary),
-                ) {
-                    startActivity(JsVoicePluginsActivity.intent(requireContext()))
+        screen.addCategory(R.string.js_voice_plugins_title) {
+            key = JS_VOICE_PLUGINS_CATEGORY
+            addJsVoicePlugins(this)
+        }
+    }
+
+    private fun addJsVoicePlugins(category: androidx.preference.PreferenceCategory) {
+        val builtInIds = JsVoiceProviders.builtInIds()
+        category.removeAll()
+        JsVoiceProviders.voiceInputSpecs().filter { it.id in builtInIds }.sortedWith(
+            compareBy<JsVoiceProviders.Spec> {
+                if (it.id == JsVoiceProviders.DOUBAO_ASR_ID) 0 else 1
+            }.thenBy { it.label }
+        ).forEach { spec ->
+            val detail = getString(
+                R.string.js_voice_plugins_entry_summary, spec.version, spec.originName
+            )
+            category.addPreference(
+                spec.label,
+                if (spec.id == AppPrefs.getInstance().keyboard.preferredVoiceInput.getValue()) {
+                    getString(R.string.js_voice_plugins_current, detail)
+                } else {
+                    detail
                 }
+            ) {
+                startActivity(JsVoicePluginSettingsActivity.intent(requireContext(), spec.id))
             }
-        )
+        }
     }
 
     override fun onResume() {
         super.onResume()
+        findPreference<androidx.preference.PreferenceCategory>(JS_VOICE_PLUGINS_CATEGORY)?.let {
+            addJsVoicePlugins(it)
+        }
         findPreference<ListPreference>("preferred_voice_input")?.let { preference ->
             ManagedPreferenceUi.VoiceInputList.refreshEntries(preference)
             // Re-resolve the summary after plugins were imported or removed.
             preference.value = preference.value
         }
+    }
+
+    companion object {
+        private const val JS_VOICE_PLUGINS_CATEGORY = "js_voice_plugins_category"
     }
 }
 

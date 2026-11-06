@@ -13,12 +13,7 @@ import androidx.core.view.updatePadding
 import com.google.android.material.appbar.MaterialToolbar
 import org.fxboomk.fcitx5.android.R
 
-/**
- * JS 语音插件管理页：内置插件、已导入插件、导入入口都在这一处。
- *
- * 之所以单开一页而不是把每个插件摊进「键盘」分组：插件数量由用户决定，分组页放不下；
- * 而且「导入」是个会改变列表的动作，和静态开关混排会让分组页每次改动都要重建。
- */
+/** Handles the file picker flow for importing or upgrading an imported JS voice plugin. */
 class JsVoicePluginsActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -47,7 +42,15 @@ class JsVoicePluginsActivity : AppCompatActivity() {
 
         if (savedInstanceState == null) {
             supportFragmentManager.beginTransaction()
-                .replace(R.id.settings_container, JsVoicePluginsFragment())
+                .replace(
+                    R.id.settings_container,
+                    JsVoicePluginsFragment().apply {
+                        arguments = Bundle().apply {
+                            putString(EXTRA_UPGRADE_PLUGIN_ID, intent.getStringExtra(EXTRA_UPGRADE_PLUGIN_ID))
+                            putBoolean(ARG_LAUNCH_IMPORT, true)
+                        }
+                    }
+                )
                 .commit()
         }
     }
@@ -58,6 +61,11 @@ class JsVoicePluginsActivity : AppCompatActivity() {
     }
 
     companion object {
-        fun intent(context: Context): Intent = Intent(context, JsVoicePluginsActivity::class.java)
+        fun intent(context: Context, upgradePluginId: String? = null): Intent =
+            Intent(context, JsVoicePluginsActivity::class.java)
+                .putExtra(EXTRA_UPGRADE_PLUGIN_ID, upgradePluginId)
+
+        const val EXTRA_UPGRADE_PLUGIN_ID = "upgrade_plugin_id"
+        const val ARG_LAUNCH_IMPORT = "launch_import"
     }
 }

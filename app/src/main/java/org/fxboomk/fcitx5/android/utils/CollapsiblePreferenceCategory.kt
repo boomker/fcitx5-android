@@ -7,6 +7,7 @@ package org.fxboomk.fcitx5.android.utils
 import android.content.Context
 import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
+import androidx.preference.PreferenceViewHolder
 
 /**
  * A preference group whose header can be clicked to collapse or expand its
@@ -16,7 +17,9 @@ import androidx.preference.PreferenceCategory
 class CollapsiblePreferenceCategory(
     context: Context,
     private val stateKey: String,
-    initiallyCollapsed: Boolean = false
+    initiallyCollapsed: Boolean = false,
+    private val suppressDividerAbove: Boolean = false,
+    private val suppressDividerBelow: Boolean = false,
 ) : PreferenceCategory(context) {
     private val preferences = context.applicationContext
         .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -40,6 +43,12 @@ class CollapsiblePreferenceCategory(
     // PreferenceCategory is disabled by default so headers do not react to
     // clicks. A collapsible header must be enabled for performClick() to fire.
     override fun isEnabled(): Boolean = true
+
+    override fun onBindViewHolder(holder: PreferenceViewHolder) {
+        super.onBindViewHolder(holder)
+        if (suppressDividerAbove) holder.setDividerAllowedAbove(false)
+        if (suppressDividerBelow) holder.setDividerAllowedBelow(false)
+    }
 
     fun setCollapsibleTitle(title: CharSequence?) {
         baseTitle = title
