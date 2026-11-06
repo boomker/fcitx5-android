@@ -22,6 +22,7 @@ import android.widget.ArrayAdapter
 import androidx.fragment.app.activityViewModels
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.input.predict.LlmPrefs
+import org.fxboomk.fcitx5.android.input.voice.js.JsApps
 import org.fxboomk.fcitx5.android.ui.common.PaddingPreferenceFragment
 import org.fxboomk.fcitx5.android.ui.main.MainViewModel
 import org.fxboomk.fcitx5.android.ui.main.settings.DialogSeekBarPreference
@@ -47,6 +48,7 @@ class LlmAdvancedSettingsFragment : PaddingPreferenceFragment() {
             addPreference(sampleCountPreference())
             addPreference(maxContextCharsPreference())
             addPreference(maxOutputTokensPreference())
+            addPreference(jsAppsCategory())
         }
         refreshPersonaOptions()
         syncPersonaPreferenceState()
@@ -62,6 +64,7 @@ class LlmAdvancedSettingsFragment : PaddingPreferenceFragment() {
         super.onResume()
         preferenceManager.sharedPreferences?.registerOnSharedPreferenceChangeListener(prefsChangeListener)
         syncEditablePreferenceState()
+        refreshJsApps()
         PreferenceScrollHelper.scrollToPendingPreference(this, viewModel)
     }
 
@@ -174,6 +177,52 @@ class LlmAdvancedSettingsFragment : PaddingPreferenceFragment() {
         }
     }
 
+    private fun jsAppsCategory() = androidx.preference.PreferenceCategory(requireContext()).apply {
+        key = "js_app_plugins"
+        setTitle(R.string.js_app_plugins)
+        isIconSpaceReserved = false
+    }
+
+    private fun refreshJsApps() {
+        val category = findPreference<androidx.preference.PreferenceCategory>("js_app_plugins") ?: return
+        val installed = JsApps.installedApps().associateBy { (spec, app) -> "js_app_${spec.id}_${app.id}" }
+        val existing = (0 until category.preferenceCount).map { category.getPreference(it) }
+        existing.filter { it.key !in installed && it.key != JS_APPS_EMPTY_KEY }
+            .forEach(category::removePreference)
+
+        if (installed.isEmpty()) {
+            if (category.findPreference<Preference>(JS_APPS_EMPTY_KEY) == null) {
+                category.addPreference(Preference(requireContext()).apply {
+                    key = JS_APPS_EMPTY_KEY
+                    setTitle(R.string.js_app_plugins_empty)
+                    isSelectable = false
+                    isIconSpaceReserved = false
+                })
+            }
+            return
+        }
+
+        category.findPreference<Preference>(JS_APPS_EMPTY_KEY)?.let(category::removePreference)
+        installed.forEach { (key, pair) ->
+            val (spec, app) = pair
+            val preference = category.findPreference<Preference>(key) ?: Preference(requireContext()).apply {
+                this.key = key
+                isIconSpaceReserved = false
+                setOnPreferenceClickListener {
+                    JsApps.configure(requireContext(), spec.id)
+                    true
+                }
+                category.addPreference(this)
+            }
+            preference.title = app.label
+            preference.summary = getString(R.string.js_app_plugin_summary, spec.version)
+        }
+    }
+
+    private companion object {
+        const val JS_APPS_EMPTY_KEY = "js_app_plugins_empty"
+    }
+
     private fun syncPersonaPreferenceState(preset: LlmPrefs.PersonaPreset? = null) {
         val ctx = requireContext()
         val prefs = preferenceManager.sharedPreferences ?: return
@@ -201,7 +250,8 @@ class LlmAdvancedSettingsFragment : PaddingPreferenceFragment() {
     private fun syncEditablePreferenceState() {
         val enabled = preferenceManager.sharedPreferences?.let(LlmPrefs::isEnabled) == true
         for (index in 0 until preferenceScreen.preferenceCount) {
-            preferenceScreen.getPreference(index).isEnabled = enabled
+            val preference = preferenceScreen.getPreference(index)
+            if (preference.key != "js_app_plugins") preference.isEnabled = enabled
         }
     }
 

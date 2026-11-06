@@ -38,6 +38,7 @@ import androidx.preference.PreferenceScreen
 import androidx.preference.PreferenceViewHolder
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
+import com.google.android.material.shape.ShapeAppearanceModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -607,7 +608,9 @@ class PluginFragment : PaddingPreferenceFragment() {
                 isCheckable = true
                 isChecked = enabled
                 isCheckedIconVisible = false
-                chipCornerRadius = 16 * density
+                shapeAppearanceModel = ShapeAppearanceModel.builder()
+                    .setAllCornerSizes(16 * density)
+                    .build()
                 chipStrokeWidth = density
                 chipBackgroundColor = ColorStateList(
                     arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf()),

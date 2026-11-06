@@ -103,6 +103,7 @@ import org.fxboomk.fcitx5.android.input.keyboard.isHardwarePredictionDismissKey
 import org.fxboomk.fcitx5.android.input.keyboard.isHardwarePredictionSelectionKey
 import org.fxboomk.fcitx5.android.input.keyboard.shouldConsumeHardwarePredictionDismiss
 import org.fxboomk.fcitx5.android.input.voice.VoiceInputProviderManager
+import org.fxboomk.fcitx5.android.input.voice.js.JsAppInputConnection
 import org.fxboomk.fcitx5.android.utils.InputMethodUtil
 import org.fxboomk.fcitx5.android.utils.ClipboardSharedContent
 import org.fxboomk.fcitx5.android.utils.ClipboardUriStore
@@ -155,6 +156,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
 
     private fun endEditorWork() {
         if (VoiceInputProviderManager.isActive()) VoiceInputProviderManager.stop(this)
+        jsAppDismiss?.invoke()
     }
 
     private var pendingCandidatePagingMode: Int? = null
@@ -361,7 +363,9 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     private val selection = CursorTracker()
 
     val currentInputSelection: CursorRange
-        get() = selection.latest
+        get() = if (jsAppInputConnection != null)
+            (jsAppInputConnection as? JsAppInputConnection)?.selection ?: CursorRange()
+        else selection.latest
 
     sealed interface AiCommitUndoSnapshot {
         data class Insertion(
@@ -1176,6 +1180,10 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     }
 
     fun handleBackspaceDirectly() {
+        if (jsAppInputConnection != null) {
+            sendDownUpKeyEvents(KeyEvent.KEYCODE_DEL)
+            return
+        }
         clearCalculatorSuggestion()
         val ic = currentInputConnection ?: return
         // 自动补全成对符号：删除「左半边」时，若其右侧紧邻对应的「右半边」，一并删除。
@@ -1259,6 +1267,10 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     }
 
     private fun handleReturnKey() {
+        if (jsAppInputConnection != null) {
+            sendDownUpKeyEvents(KeyEvent.KEYCODE_ENTER)
+            return
+        }
         clearCalculatorSuggestion()
         val ic = currentInputConnection ?: run {
             sendDownUpKeyEvents(KeyEvent.KEYCODE_ENTER)
@@ -1286,6 +1298,10 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     }
 
     private fun handleArrowKey(keyCode: Int) {
+        if (jsAppInputConnection != null) {
+            sendDownUpKeyEvents(keyCode)
+            return
+        }
         if (handleVisibleCandidateArrowKey(keyCode)) return
         val ic = currentInputConnection ?: run {
             sendDownUpKeyEvents(keyCode)
@@ -1378,6 +1394,10 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     }
 
     fun commitText(text: String, cursor: Int = -1) {
+        jsAppInputConnection?.let {
+            it.commitText(text, 1)
+            return
+        }
         val ic = currentInputConnection ?: return
         if (keepPendingAiCommitUndoForNextCommit) {
             keepPendingAiCommitUndoForNextCommit = false
@@ -1684,6 +1704,10 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     }
 
     fun deleteSelection() {
+        if (jsAppInputConnection != null) {
+            (jsAppInputConnection as? JsAppInputConnection)?.deleteSelection()
+            return
+        }
         val lastSelection = selection.latest
         if (lastSelection.isEmpty()) return
         clearCalculatorSuggestion()
@@ -1715,6 +1739,10 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     }
 
     fun applySelectionOffset(offsetStart: Int, offsetEnd: Int = 0) {
+        if (jsAppInputConnection != null) {
+            (jsAppInputConnection as? JsAppInputConnection)?.offsetSelection(offsetStart, offsetEnd)
+            return
+        }
         val lastSelection = selection.latest
         currentInputConnection?.also {
             val start = max(lastSelection.start + offsetStart, 0)
@@ -1726,6 +1754,10 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     }
 
     fun cancelSelection() {
+        if (jsAppInputConnection != null) {
+            (jsAppInputConnection as? JsAppInputConnection)?.cancelSelection()
+            return
+        }
         val lastSelection = selection.latest
         if (lastSelection.isEmpty()) return
         val end = lastSelection.end
@@ -2292,6 +2324,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     }
 
     override fun onStartInput(attribute: EditorInfo, restarting: Boolean) {
+        jsAppDismiss?.invoke()
         if (editorSession.start(
                 EditorSessionTracker.Editor(
                     attribute.packageName,
@@ -2381,6 +2414,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         candidatesStart: Int,
         candidatesEnd: Int
     ) {
+        if (jsAppInputConnection != null) return
         // onUpdateSelection can left behind when user types quickly enough, eg. long press backspace
         cursorUpdateIndex += 1
         val selfPredicted = handleCursorUpdate(
@@ -2537,6 +2571,10 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     // because of https://android.googlesource.com/platform/frameworks/base.git/+/refs/tags/android-11.0.0_r45/core/java/android/view/inputmethod/BaseInputConnection.java#851
     // it's not possible to set cursor inside composing text
     private fun updateComposingText(text: FormattedText) {
+        jsAppInputConnection?.let {
+            (it as? JsAppInputConnection)?.updateComposition(text.toSpannedString(highlightColor), text.cursor)
+            return
+        }
         val ic = currentInputConnection ?: return
         val lastSelection = selection.latest
         if (composingText.spanEquals(text)) {
@@ -2645,6 +2683,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
      * Also updates internal composing state of [FcitxInputMethodService].
      */
     fun finishComposing() {
+        jsAppInputConnection?.let { it.finishComposingText(); return }
         val ic = currentInputConnection ?: return
         if (composing.isEmpty()) return
         val committed = composingText.toString()
@@ -2719,6 +2758,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     }
 
     override fun onFinishInputView(finishingInput: Boolean) {
+        jsAppDismiss?.invoke()
         Timber.d("onFinishInputView: finishingInput=$finishingInput")
         decorLocationUpdated = false
         inputDeviceManager.onFinishInputView()
@@ -2776,6 +2816,28 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         super.onDestroy()
         // Fcitx might be used in super.onDestroy()
         FcitxDaemon.disconnect(javaClass.name)
+    }
+
+    internal var jsAppInputConnection: InputConnection? = null
+    internal var jsAppDismiss: (() -> Unit)? = null
+    internal val applicationInputConnection: InputConnection?
+        get() = super.getCurrentInputConnection()
+
+    override fun getCurrentInputConnection(): InputConnection? =
+        jsAppInputConnection ?: super.getCurrentInputConnection()
+
+    internal fun resetJsAppEditorState() {
+        resetComposingState()
+        val extracted = applicationInputConnection?.getExtractedText(
+            android.view.inputmethod.ExtractedTextRequest(), 0
+        )
+        if (extracted != null) {
+            selection.resetTo(
+                extracted.startOffset + extracted.selectionStart,
+                extracted.startOffset + extracted.selectionEnd,
+            )
+        }
+        postFcitxSessionJob(inputSessionGeneration) { reset() }
     }
 
     private var showingDialog: Dialog? = null

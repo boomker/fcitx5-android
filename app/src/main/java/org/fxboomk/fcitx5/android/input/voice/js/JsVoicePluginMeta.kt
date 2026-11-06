@@ -31,6 +31,7 @@ internal data class JsVoicePluginMeta(
     /** 脚本声明里被判为非法的域名，仅用于向用户解释「为什么域名列表比脚本里写的少」。 */
     val rejectedHosts: List<String>,
     val features: List<JsVoicePluginFeature>,
+    val apps: List<JsPluginApp> = emptyList(),
 ) {
     val voiceAsr: JsVoicePluginFeature? get() = features.firstOrNull { it.type == FEATURE_VOICE_ASR }
 
@@ -107,6 +108,19 @@ internal data class JsVoicePluginMeta(
                 hosts = normalized.toList(),
                 rejectedHosts = rejected,
                 features = features,
+                apps = (obj["apps"] as? JsonArray).orEmpty().map { element ->
+                    val app = element.jsonObject
+                    val appId = app["id"]?.jsonPrimitive?.content.orEmpty()
+                    require(isValidId(appId)) { "Invalid app ID" }
+                    val permissions = (app["permissions"] as? JsonArray)
+                        .orEmpty().map { it.jsonPrimitive.content }.toSet()
+                    require(permissions.all { it in JsPluginApp.PERMISSIONS }) { "Unsupported app permission" }
+                    JsPluginApp(
+                        id = appId,
+                        label = app["label"]?.jsonPrimitive?.content.orEmpty().ifBlank { appId },
+                        permissions = permissions,
+                    )
+                }.also { require(it.map(JsPluginApp::id).distinct().size == it.size) },
             )
         }
     }
@@ -138,6 +152,7 @@ internal data class JsVoicePluginRecord(
         put("id", meta.id)
         put("name", meta.name)
         put("version", meta.version)
+        put("apps", buildJsonArray { meta.apps.forEach { add(it.toJson()) } })
         put("source", sourceName)
         put("importedAt", importedAt)
         scriptDigest?.let { put("scriptDigest", it) }
@@ -175,5 +190,32 @@ internal data class JsVoicePluginRecord(
                 importedAt = obj["importedAt"]?.jsonPrimitive?.contentOrNull?.toLongOrNull() ?: 0L,
             )
         }
+    }
+}
+
+internal data class JsPluginApp(
+    val id: String,
+    val label: String,
+    val permissions: Set<String>,
+) {
+    val command: String get() = "js.$id"
+
+    fun toJson() = buildJsonObject {
+        put("id", id)
+        put("label", label)
+        put("permissions", buildJsonArray {
+            permissions.sorted().forEach { add(JsonPrimitive(it)) }
+        })
+    }
+
+    companion object {
+        val PERMISSIONS = setOf(
+            "editor.read_selection",
+            "editor.read_text",
+            "editor.composition",
+            "editor.commit",
+            "network.request",
+            "credentials.list",
+        )
     }
 }

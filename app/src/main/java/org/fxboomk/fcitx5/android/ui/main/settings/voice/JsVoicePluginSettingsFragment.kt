@@ -16,6 +16,7 @@ import kotlinx.coroutines.withContext
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.input.voice.js.JsVoiceField
 import org.fxboomk.fcitx5.android.input.voice.js.JsVoiceFields
+import org.fxboomk.fcitx5.android.input.voice.js.JsVoiceHelpers
 import org.fxboomk.fcitx5.android.input.voice.js.JsVoiceHostPermissions
 import org.fxboomk.fcitx5.android.input.voice.js.JsVoiceProviders
 import org.fxboomk.fcitx5.android.input.voice.js.JsVoiceSettingsStore
@@ -35,6 +36,7 @@ class JsVoicePluginSettingsFragment : PaddingPreferenceFragment() {
     private var pluginId: String = JsVoiceProviders.QWEN_ASR_ID
     private var loaded = false
     private val secretStates = mutableMapOf<String, JsVoiceSettingsStore.SecretState>()
+    private var refreshHostPermissionEntry: (() -> Unit)? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -90,9 +92,10 @@ class JsVoicePluginSettingsFragment : PaddingPreferenceFragment() {
     private fun render(fields: List<JsVoiceField>) {
         val screen = preferenceScreen ?: return
         screen.removeAll()
+        refreshHostPermissionEntry = null
         if (fields.isEmpty()) {
             showPlaceholder(getString(R.string.js_voice_settings_empty))
-            appendHostPermissionEntry()
+            appendHostPermissionEntry(fields)
             return
         }
         val values = LinkedHashMap(
@@ -117,6 +120,7 @@ class JsVoicePluginSettingsFragment : PaddingPreferenceFragment() {
                     }
                 }
                 refreshVisibility(rendered, values)
+                refreshHostPermissionEntry?.invoke()
             }
             preference.isIconSpaceReserved = false
             preference.isSingleLineTitle = false
@@ -125,11 +129,16 @@ class JsVoicePluginSettingsFragment : PaddingPreferenceFragment() {
             rendered += field to preference
         }
         refreshVisibility(rendered, values)
-        appendHostPermissionEntry()
+        appendHostPermissionEntry(fields)
     }
 
-    private fun appendHostPermissionEntry() {
+    private fun appendHostPermissionEntry(fields: List<JsVoiceField>) {
         val spec = JsVoiceProviders.specOf(pluginId) ?: return
+        fun candidateHosts(): Set<String> = JsVoiceHelpers.configuredHttpsHosts(
+            declaredHosts = spec.hosts,
+            fields = fields,
+            values = JsVoiceFields.currentValues(fields, JsVoiceSettingsStore.values(spec.id)),
+        )
         val preference = Preference(requireContext()).apply {
             key = "js_voice_network_permission"
             isPersistent = false
@@ -139,16 +148,25 @@ class JsVoicePluginSettingsFragment : PaddingPreferenceFragment() {
             title = getString(R.string.js_voice_network_entry)
         }
         fun refresh() {
+            val hosts = candidateHosts()
+            preference.isEnabled = hosts.isNotEmpty()
+            if (hosts.isEmpty()) {
+                preference.summary = getString(R.string.js_app_network_endpoint_not_configured)
+                return
+            }
             preference.summary = getString(
-                if (JsVoiceHostPermissions.isApproved(spec.id, spec.hosts)) {
+                if (JsVoiceHostPermissions.isApproved(spec.id, hosts)) {
                     R.string.js_voice_network_granted
                 } else R.string.js_voice_network_pending,
-                spec.hosts.sorted().joinToString("\n"),
+                hosts.sorted().joinToString("\n"),
             )
         }
         refresh()
+        refreshHostPermissionEntry = ::refresh
         preference.setOnPreferenceClickListener {
-            JsVoiceHostPermissionDialog.build(requireContext(), spec, ::refresh).show()
+            val hosts = candidateHosts()
+            if (hosts.isEmpty()) return@setOnPreferenceClickListener true
+            JsVoiceHostPermissionDialog.build(requireContext(), spec, hosts, ::refresh).show()
             true
         }
         preferenceScreen.addPreference(preference)

@@ -1,5 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="ai_assistant">AI 助手</string>
+    <string name="js_app_none">请先导入应用插件，并添加 AI 或 LLM 用途标签。</string>
+    <string name="js_app_password">密码输入框中不可使用 AI 助手。</string>
+    <string name="js_app_permission_message">是否允许此插件使用以下能力？\n\n%1$s</string>
+    <string name="js_app_allow">允许</string>
+    <string name="js_app_read_selection">读取选中文本</string>
+    <string name="js_app_read_text">读取编辑器文本</string>
+    <string name="js_app_composition">在编辑器中预览临时文本</string>
+    <string name="js_app_commit">插入确认的文本</string>
+    <string name="js_app_network">向已授权域名发送请求</string>
+    <string name="js_app_credentials">查看已配置密钥的名称（不读取密钥内容）</string>
+    <string name="js_app_endpoint_message">是否允许此插件连接 %1$s？\n\n文本和配置的 API 密钥将发送到此域名，不会跟随重定向。</string>
+    <string name="js_app_plugins">JS 应用插件</string>
+    <string name="js_app_plugins_empty">暂无 JS 应用插件</string>
+    <string name="js_app_plugin_summary">版本 %1$s</string>
+    <string name="js_app_import_summary">应用：%1$s（%2$s）\n请求能力：%3$s</string>
+    <string name="js_app_dynamic_network_message">此插件使用设置中配置的 API 地址。输入法会在发送请求前单独询问主机授权。</string>
+    <string name="js_app_network_hosts_message">%1$s 可能会向以下主机发送文本和已配置的 API 凭据：\n\n%2$s\n\n只批准你信任的主机。</string>
+    <string name="js_app_network_endpoint_not_configured">请先在插件设置中配置 HTTPS API 地址，再批准主机。</string>
     <string name="app_name">天鹅输入法</string>
     <string name="app_name_release">天鹅输入法</string>
     <string name="app_name_debug">天鹅输入法 (调试)</string>

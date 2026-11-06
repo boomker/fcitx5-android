@@ -1,5 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="PluralsCandidate">
+    <string name="ai_assistant">AI assistant</string>
+    <string name="js_app_none">Import an app plugin and add an AI or LLM tag first.</string>
+    <string name="js_app_password">AI assistant is unavailable in password fields.</string>
+    <string name="js_app_permission_message">Allow this plugin to use the following capabilities?\n\n%1$s</string>
+    <string name="js_app_allow">Allow</string>
+    <string name="js_app_read_selection">Read selected text</string>
+    <string name="js_app_read_text">Read editor text</string>
+    <string name="js_app_composition">Preview temporary text in the editor</string>
+    <string name="js_app_commit">Insert confirmed text</string>
+    <string name="js_app_network">Send requests to approved hosts</string>
+    <string name="js_app_credentials">Check which API keys are configured (without reading keys)</string>
+    <string name="js_app_endpoint_message">Allow this plugin to connect to %1$s?\n\nText and the configured API key will be sent to this host. Redirects are disabled.</string>
+    <string name="js_app_plugins">JavaScript app plugins</string>
+    <string name="js_app_plugins_empty">No JavaScript app plugins</string>
+    <string name="js_app_plugin_summary">Version %1$s</string>
+    <string name="js_app_import_summary">Application: %1$s (%2$s)\nRequested capabilities: %3$s</string>
+    <string name="js_app_dynamic_network_message">This plugin uses API endpoints configured in its settings. The input method will require host approval before sending a request.</string>
+    <string name="js_app_network_hosts_message">%1$s may send text and configured API credentials to these hosts:\n\n%2$s\n\nOnly approve hosts you trust.</string>
+    <string name="js_app_network_endpoint_not_configured">Configure an HTTPS API address in the plugin settings before approving hosts.</string>
     <string name="app_name">Swan Input Method</string>
     <string name="app_name_release">Swan Input Method</string>
     <string name="app_name_debug">Swan Input Method (Debug)</string>

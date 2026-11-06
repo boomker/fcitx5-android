@@ -518,6 +518,11 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
                 }
             }
 
+            setOnLongClickListener("ai_assistant") {
+                org.fxboomk.fcitx5.android.input.voice.js.JsApps.configure(context)
+                true
+            }
+
             // Special handling for 'more' button
             setOnClickListener("more") {
                 restoreVirtualKeyboardMode()

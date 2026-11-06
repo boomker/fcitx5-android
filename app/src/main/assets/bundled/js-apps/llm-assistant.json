@@ -1,0 +1,20 @@
+{
+  "id": "llm-assistant",
+  "name": "AI 助手",
+  "version": "1.23.5",
+  "hosts": [],
+  "features": [],
+  "apps": [
+    {
+      "id": "llm_assistant",
+      "label": "AI 助手",
+      "permissions": [
+        "editor.read_selection",
+        "editor.composition",
+        "editor.commit",
+        "network.request",
+        "credentials.list"
+      ]
+    }
+  ]
+}

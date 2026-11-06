@@ -360,7 +360,7 @@ object VoiceInputProviderManager {
         if (spec != null && !JsVoiceHostPermissions.isApproved(id, spec.hosts)) {
             // Consent never starts recording. A hold key may already have been released
             // while the dialog was open; the next explicit press starts the session.
-            service.showDialog(JsVoiceHostPermissionDialog.build(service, spec) {
+            service.showDialog(JsVoiceHostPermissionDialog.build(service, spec, spec.hosts) {
                 android.widget.Toast.makeText(service, org.fxboomk.fcitx5.android.R.string.js_voice_network_approved_hint,
                     android.widget.Toast.LENGTH_SHORT).show()
             })

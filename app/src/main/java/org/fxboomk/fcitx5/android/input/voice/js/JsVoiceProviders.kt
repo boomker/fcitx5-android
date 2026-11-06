@@ -28,6 +28,7 @@ internal object JsVoiceProviders {
     const val DOUBAO_ASR_ID = "js:doubao-asr"
     const val TENCENT_ASR_ID = "js:tencent-asr"
     const val TENCENT_TRANSLATE_ID = "js:tencent-translate"
+    const val LLM_ASSISTANT_ID = "js:llm-assistant"
 
     /** 脚本正文的来源。内置读 asset，用户导入的读私有目录文件。 */
     internal sealed interface Source {
@@ -46,6 +47,8 @@ internal object JsVoiceProviders {
         /** 界面展示的来源：内置是 asset 名，导入是用户选中的文件名。 */
         val originName: String,
         val tags: Set<String>,
+        val hasVoice: Boolean = true,
+        val apps: List<JsPluginApp> = emptyList(),
     )
 
     private val lock = Any()
@@ -127,6 +130,28 @@ internal object JsVoiceProviders {
         ),
     )
 
+    private fun builtInAppSpecs(): List<Spec> {
+        val meta = appContext.assets.open("bundled/js-apps/llm-assistant.json").bufferedReader().use {
+            requireNotNull(JsVoicePluginMeta.parse(it.readText()))
+        }
+        require(meta.apps.isNotEmpty()) { "Bundled JS app plugin has no apps" }
+        return listOf(
+            Spec(
+                id = meta.providerId,
+                label = JsVoicePluginStore.displayName(meta.id, appContext.getString(R.string.ai_assistant)),
+                version = meta.version,
+                hosts = meta.hosts.toSet(),
+                sampleRate = meta.sampleRate,
+                source = Source.Asset("bundled/js-apps/llm-assistant.js"),
+                builtIn = true,
+                originName = "llm-assistant.js",
+                tags = JsVoicePluginStore.tags(meta.id, setOf("AI")),
+                hasVoice = meta.voiceAsr != null,
+                apps = meta.apps,
+            ),
+        )
+    }
+
     private fun importedSpecs(): List<Spec> = JsVoicePluginStore.list().map { record ->
         Spec(
             id = record.meta.providerId,
@@ -137,7 +162,12 @@ internal object JsVoiceProviders {
             source = Source.Imported(JsVoicePluginStore.scriptFile(record.meta.id)),
             builtIn = false,
             originName = record.sourceName,
-            tags = JsVoicePluginStore.tags(record.meta.id, setOf(VOICE_TAG)),
+            tags = JsVoicePluginStore.tags(
+                record.meta.id,
+                if (record.meta.voiceAsr != null) setOf(VOICE_TAG) else emptySet(),
+            ),
+            hasVoice = record.meta.voiceAsr != null,
+            apps = record.meta.apps,
         )
     }
 
@@ -145,8 +175,17 @@ internal object JsVoiceProviders {
     // app upgrades until the user imports that ID again.
     private fun buildSpecs(): List<Spec> {
         val imported = importedSpecs()
+        val builtInApps = builtInAppSpecs()
+        val bundledAssistant = builtInApps.firstOrNull { it.id == LLM_ASSISTANT_ID }
+        val hasSupersededAssistantImport = bundledAssistant != null && imported.any {
+            it.id == bundledAssistant.id && !isNewerVersion(it.version, bundledAssistant.version)
+        }
+        val migratedLegacyAssistant = JsVoicePluginStore.migrateLegacyAssistantState(
+            hasSupersededImport = hasSupersededAssistantImport,
+        )
+        val effectiveBuiltInApps = if (migratedLegacyAssistant) builtInAppSpecs() else builtInApps
         return activeSpecs(
-            builtInSpecs = builtInSpecs(),
+            builtInSpecs = builtInSpecs() + effectiveBuiltInApps,
             importedSpecs = imported,
             disabledBuiltInIds = JsVoicePluginStore.disabledBuiltInIds(),
         )
@@ -157,21 +196,53 @@ internal object JsVoiceProviders {
         importedSpecs: List<Spec>,
         disabledBuiltInIds: Set<String>,
     ): List<Spec> {
-        val importedIds = importedSpecs.mapTo(mutableSetOf()) { it.id }
+        val builtInById = builtInSpecs.associateBy { it.id }
+        val activeImported = importedSpecs.filter { imported ->
+            val bundled = builtInById[imported.id]
+            bundled == null || bundled.apps.isEmpty() || isNewerVersion(imported.version, bundled.version)
+        }
+        val importedIds = activeImported.mapTo(mutableSetOf()) { it.id }
         val builtIn = builtInSpecs.filter {
             it.id !in importedIds && it.id.removePrefix("js:") !in disabledBuiltInIds
         }
-        return importedSpecs + builtIn
+        return activeImported + builtIn
+    }
+
+    internal fun isNewerVersion(candidate: String, current: String): Boolean {
+        fun parts(value: String): List<Long>? {
+            val numeric = Regex("^v?(\\d+(?:\\.\\d+)*)(?:[-+].*)?$", RegexOption.IGNORE_CASE)
+                .matchEntire(value.trim())?.groupValues?.get(1) ?: return null
+            return numeric.split('.').map { it.toLongOrNull() ?: return null }
+        }
+        val candidateParts = parts(candidate) ?: return false
+        val currentParts = parts(current) ?: return false
+        for (index in 0 until maxOf(candidateParts.size, currentParts.size)) {
+            val newer = candidateParts.getOrElse(index) { 0L }
+            val older = currentParts.getOrElse(index) { 0L }
+            if (newer != older) return newer > older
+        }
+        return false
     }
 
     fun all(): List<Spec> = synchronized(lock) { cached ?: buildSpecs().also { cached = it; cachedById = it.associateBy(Spec::id) } }
 
-    fun builtInIds(): Set<String> = builtInSpecs().map { it.id }.toSet()
+    fun builtInIds(): Set<String> = (builtInSpecs() + builtInAppSpecs()).map { it.id }.toSet()
 
     fun voiceInputSpecs(): List<Spec> = voiceInputSpecs(all())
 
     internal fun voiceInputSpecs(specs: List<Spec>): List<Spec> =
-        specs.filter { VOICE_TAG in it.tags }
+        specs.filter { it.hasVoice && VOICE_TAG in it.tags }
+
+    internal fun hasAiAssistantTag(tags: Set<String>): Boolean = tags.any { tag ->
+        when (tag.trim().lowercase(Locale.ROOT).filter(Char::isLetterOrDigit)) {
+            "ai", "llm", "aillm", "ai助手", "llm助手", "aiassistant", "llmassistant",
+            "人工智能", "大模型", "智能助手" -> true
+            else -> false
+        }
+    }
+
+    internal fun aiAssistantSpecs(specs: List<Spec>): List<Spec> =
+        specs.filter { it.apps.isNotEmpty() && hasAiAssistantTag(it.tags) }
 
     internal fun importableBuiltInIds(
         builtInIds: Set<String>,

@@ -20,6 +20,7 @@ internal object JsVoicePrelude {
 var __events = [];
 var __fields = [];
 var __plugin = null;
+var __apps = {};
 var __pending = null;
 var __native = {
   locale: __n_locale, wsConnect: __n_wsConnect, wsWaitOpen: __n_wsWaitOpen, wsSend: __n_wsSend,
@@ -35,6 +36,31 @@ var swan = {
   plugin: {
     register: function (p) { __plugin = p; return p; }
   },
+  app: {
+    sleep: function (milliseconds) { return __n_appSleep(Number(milliseconds)); },
+    register: function (app) {
+      if (!app || !/^[a-z0-9][a-z0-9._-]{0,63}$/.test(app.id) ||
+          typeof app.onOpen !== "function" || __apps[app.id]) throw new Error("Invalid or duplicate app ID");
+      __apps[app.id] = app;
+    }
+  },
+  editor: {
+    getSelection: function () { return __n_appEditor("getSelection", ""); },
+    getText: function () { return __n_appEditor("getText", ""); },
+    setComposition: function (text) { return __n_appEditor("setComposition", __str(text)); },
+    clearComposition: function () { return __n_appEditor("clearComposition", ""); },
+    commit: function (text) { return __n_appEditor("commit", __str(text)); }
+  },
+  credentials: { list: function () { return JSON.parse(__n_appCredentials()); } },
+  ui: { dialog: {
+    show: function (spec) { return spec; },
+    update: function (spec) { return __n_appUi("update", JSON.stringify(spec)); },
+    setValue: function (id, value) { return __n_appUi("setValue", JSON.stringify({id: id, value: value})); },
+    setEnabled: function (id, enabled) { return __n_appUi("setEnabled", JSON.stringify({id: id, enabled: enabled})); },
+    setLoading: function (loading) { return __n_appUi("setLoading", JSON.stringify({loading: loading})); },
+    setError: function (message) { return __n_appUi("setError", JSON.stringify({message: message})); },
+    close: function () { return __n_appUi("close", "{}"); }
+  } },
   voice: {
     ready: function () { __events.push({ ready: true }); },
     partial: function (text) { __events.push({ partial: String(text) }); },
@@ -56,6 +82,8 @@ var swan = {
     close: function (socket) { return __native.wsClose(__str(socket)); }
   },
   http: {
+    supportsConfiguredEndpoints: true,
+    request: function (options) { return __n_appHttp(JSON.stringify(options)); },
     post: function (url, secretField, jsonBody, headersJson) {
       return __native.httpPost(__str(url), __str(secretField), String(jsonBody), __str(headersJson));
     }
@@ -153,13 +181,17 @@ function __describe(locale) {
 // 并把脚本自报的 id / 名称 / 版本 / 域名摆给用户确认——域名白名单是外部脚本唯一的真实边界，
 // 不能让用户看不见。
 function __meta() {
-  var out = { id: "", name: "", version: "", hosts: [], features: [] };
+  var out = { id: "", name: "", version: "", hosts: [], features: [], apps: [] };
   try {
     var p = __plugin;
     if (!p) return JSON.stringify(out);
     out.id = __str(p.id);
     out.name = __str(p.name);
     out.version = __str(p.version);
+    Object.keys(__apps).forEach(function (id) {
+      var app = __apps[id];
+      out.apps.push({id: id, label: __str(app.label), permissions: app.permissions || []});
+    });
     var hosts = p.hosts;
     if (hosts) for (var i = 0; i < hosts.length; i++) out.hosts.push(__str(hosts[i]));
     var features = p.features;
@@ -191,6 +223,7 @@ function __errorText(e) {
   return __str(e.message !== undefined ? e.message : e);
 }
 function __invoke(name, ctx) {
+  if (name === "app") return __apps[ctx.appId].onOpen(ctx);
   if (name === "start") return __plugin.start(ctx);
   if (name === "audio") return __plugin.audio(ctx);
   if (name === "stop") return __plugin.stop(ctx);

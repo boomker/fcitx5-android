@@ -51,10 +51,10 @@ internal object JsVoiceImportPolicy {
         if (meta.providerId in builtInIds) {
             return JsVoiceImportResult.Failure.Reason.RESERVED_ID
         }
-        if (meta.voiceAsr == null) {
+        if (meta.voiceAsr == null && meta.apps.isEmpty()) {
             return JsVoiceImportResult.Failure.Reason.NO_VOICE_FEATURE
         }
-        if (meta.hosts.isEmpty()) {
+        if (meta.hosts.isEmpty() && meta.voiceAsr != null) {
             return JsVoiceImportResult.Failure.Reason.NO_HOSTS
         }
         return null

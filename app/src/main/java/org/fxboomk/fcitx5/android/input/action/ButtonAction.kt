@@ -194,7 +194,8 @@ sealed class ButtonAction {
                 EditTextKeyboardLayoutAction,
                 TextKeyboardLayoutFileSelectAction,
                 TextKeyboardLayoutManageAction,
-                EditFontsetAction
+                EditFontsetAction,
+                AiAssistantAction
             )
         }
 
@@ -213,6 +214,7 @@ sealed class ButtonAction {
                 NumberKeyboardAction,
                 SymbolKeyboardAction,
                 VoiceInputAction,
+                AiAssistantAction,
                 SearchAction
             )
         }
@@ -431,7 +433,7 @@ data object AiCandidatesAction : ButtonAction() {
         windowManager: InputWindowManager,
         view: View
     ) {
-        AppUtil.launchMainToRoute(context, SettingsRoute.Llm)
+        org.fxboomk.fcitx5.android.input.voice.js.JsApps.open(service)
     }
 }
 
@@ -1037,5 +1039,20 @@ data object EditFontsetAction : ButtonAction() {
         context.startActivity(Intent(context, FontsetEditorActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         })
+    }
+}
+
+data object AiAssistantAction : ButtonAction() {
+    override val id = "ai_assistant"
+    override val defaultIcon = R.drawable.ic_baseline_auto_awesome_24
+    override val defaultLabelRes = R.string.ai_assistant
+    override fun execute(context: Context, service: FcitxInputMethodService, fcitx: FcitxConnection,
+        windowManager: InputWindowManager, view: View?, onActionComplete: (() -> Unit)?) {
+        org.fxboomk.fcitx5.android.input.voice.js.JsApps.open(service)
+    }
+
+    override fun onLongPress(context: Context, service: FcitxInputMethodService, fcitx: FcitxConnection,
+        windowManager: InputWindowManager, view: View) {
+        org.fxboomk.fcitx5.android.input.voice.js.JsApps.configure(context)
     }
 }

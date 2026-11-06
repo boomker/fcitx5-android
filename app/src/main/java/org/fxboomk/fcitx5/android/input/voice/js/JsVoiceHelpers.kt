@@ -53,6 +53,21 @@ internal object JsVoiceHelpers {
         return parsed.takeIf { it.username.isEmpty() && it.password.isEmpty() }
     }
 
+    /** Configured HTTPS endpoints are explicit host-approval candidates for app plugins. */
+    fun configuredHttpsHosts(
+        declaredHosts: Set<String>,
+        fields: List<JsVoiceField>,
+        values: Map<String, String>,
+    ): Set<String> = buildSet {
+        addAll(declaredHosts)
+        fields.asSequence()
+            .filter { it.key.endsWith("url", ignoreCase = true) }
+            .mapNotNull { values[it.key]?.trim() }
+            .filter { it.startsWith("https://", ignoreCase = true) }
+            .mapNotNull(::secureUrl)
+            .forEach { add(it.host.trimEnd('.')) }
+    }
+
     fun gzip(data: ByteArray): ByteArray {
         val bytes = ByteArrayOutputStream()
         GZIPOutputStream(bytes).use { it.write(data) }

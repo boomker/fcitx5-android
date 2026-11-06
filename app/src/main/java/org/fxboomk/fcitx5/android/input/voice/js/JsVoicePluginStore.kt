@@ -27,7 +27,32 @@ internal object JsVoicePluginStore {
     private const val KEY_NAME_PREFIX = "n:"
     private const val KEY_TAGS_PREFIX = "t:"
     private const val KEY_DISABLED_BUILTINS = "disabled_builtin_ids"
+    private const val KEY_MIGRATED_LEGACY_ASSISTANT = "migration:bundled_ai_assistant_v1"
     private const val DIR_NAME = "js-voice"
+    private const val LEGACY_ASSISTANT_ID = "llm-assistant"
+    private const val AI_TAG = "AI"
+
+    internal data class LegacyAssistantMigrationState(
+        val tags: Set<String>,
+        val disabledBuiltInIds: Set<String>,
+    )
+
+    internal fun legacyAssistantMigrationState(
+        currentTags: Set<String>?,
+        disabledBuiltInIds: Set<String>,
+        hasSupersededImport: Boolean,
+        migrationCompleted: Boolean,
+    ): LegacyAssistantMigrationState? {
+        val hasLegacyAssistantTombstone = LEGACY_ASSISTANT_ID in disabledBuiltInIds
+        val hasEmptyLegacyAssistantTags = currentTags?.isEmpty() == true
+        val hasLegacyState = hasSupersededImport ||
+            (hasLegacyAssistantTombstone && hasEmptyLegacyAssistantTags)
+        if (migrationCompleted || !hasLegacyState) return null
+        return LegacyAssistantMigrationState(
+            tags = currentTags.orEmpty() + AI_TAG,
+            disabledBuiltInIds = disabledBuiltInIds - LEGACY_ASSISTANT_ID,
+        )
+    }
 
     private fun prefs(): SharedPreferences =
         appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -121,6 +146,48 @@ internal object JsVoicePluginStore {
     fun disabledBuiltInIds(): Set<String> =
         prefs().getStringSet(KEY_DISABLED_BUILTINS, emptySet()).orEmpty().toSet()
 
+    /** One-time migration from the former imported LLM Assistant entry to the bundled AI Assistant. */
+    @Synchronized
+    fun migrateLegacyAssistantState(hasSupersededImport: Boolean): Boolean {
+        val preferences = prefs()
+        val previousTags = preferences.getStringSet(KEY_TAGS_PREFIX + LEGACY_ASSISTANT_ID, null)?.toSet()
+        val previousDisabled = disabledBuiltInIds()
+        val previousMigrationCompleted = preferences.getBoolean(KEY_MIGRATED_LEGACY_ASSISTANT, false)
+        val migrated = legacyAssistantMigrationState(
+            currentTags = previousTags,
+            disabledBuiltInIds = previousDisabled,
+            hasSupersededImport = hasSupersededImport,
+            migrationCompleted = previousMigrationCompleted,
+        )
+        if (migrated == null) {
+            if (!previousMigrationCompleted && preferences.edit()
+                    .putBoolean(KEY_MIGRATED_LEGACY_ASSISTANT, true)
+                    .commit()
+            ) return true
+            return false
+        }
+
+        val editor = preferences.edit()
+            .putStringSet(KEY_TAGS_PREFIX + LEGACY_ASSISTANT_ID, migrated.tags)
+            .putBoolean(KEY_MIGRATED_LEGACY_ASSISTANT, true)
+        if (migrated.disabledBuiltInIds.isEmpty()) {
+            editor.remove(KEY_DISABLED_BUILTINS)
+        } else {
+            editor.putStringSet(KEY_DISABLED_BUILTINS, migrated.disabledBuiltInIds)
+        }
+        if (editor.commit()) return true
+
+        preferences.edit().apply {
+            if (previousTags == null) remove(KEY_TAGS_PREFIX + LEGACY_ASSISTANT_ID)
+            else putStringSet(KEY_TAGS_PREFIX + LEGACY_ASSISTANT_ID, previousTags)
+            if (previousDisabled.isEmpty()) remove(KEY_DISABLED_BUILTINS)
+            else putStringSet(KEY_DISABLED_BUILTINS, previousDisabled)
+            if (previousMigrationCompleted) putBoolean(KEY_MIGRATED_LEGACY_ASSISTANT, true)
+            else remove(KEY_MIGRATED_LEGACY_ASSISTANT)
+        }.commit()
+        return false
+    }
+
     @Synchronized
     fun displayName(id: String, fallback: String): String =
         prefs().getString(KEY_NAME_PREFIX + id, null)?.takeIf(String::isNotBlank) ?: fallback
@@ -203,7 +270,7 @@ internal object JsVoicePluginStore {
     @Synchronized
     fun uninstall(id: String, builtInIds: Set<String>): Boolean {
         require(JsVoicePluginMeta.isValidId(id))
-        JsVoiceHostPermissions.revoke(JsVoicePluginMeta.PROVIDER_ID_PREFIX + id)
+        val pluginId = JsVoicePluginMeta.PROVIDER_ID_PREFIX + id
         val file = scriptFile(id)
         val key = KEY_PREFIX + id
         val previous = prefs().getString(key, null)
@@ -223,6 +290,8 @@ internal object JsVoicePluginStore {
             }.commit()
             return false
         }
+        JsVoiceHostPermissions.revoke(pluginId)
+        JsAppPermissions.revoke(pluginId)
         file.delete()
         return true
     }
