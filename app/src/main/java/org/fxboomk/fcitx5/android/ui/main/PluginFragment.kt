@@ -5,7 +5,6 @@
 @file:Suppress("SetTextI18n")
 package org.fxboomk.fcitx5.android.ui.main
 
-import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
@@ -35,9 +34,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.core.view.setPadding
 import androidx.lifecycle.lifecycleScope
-import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceScreen
-import androidx.preference.PreferenceViewHolder
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.google.android.material.shape.ShapeAppearanceModel
@@ -59,7 +56,6 @@ import org.fxboomk.fcitx5.android.input.voice.js.JsVoicePluginStore
 import org.fxboomk.fcitx5.android.ui.common.PaddingPreferenceFragment
 import org.fxboomk.fcitx5.android.ui.common.withDeterminateProgressDialog
 import org.fxboomk.fcitx5.android.ui.main.settings.voice.JsVoicePluginsActivity
-import org.fxboomk.fcitx5.android.utils.CollapsiblePreferenceCategory
 import org.fxboomk.fcitx5.android.utils.LongClickPreference
 import org.fxboomk.fcitx5.android.utils.addCategory
 import org.fxboomk.fcitx5.android.utils.addPreference
@@ -71,14 +67,6 @@ import java.util.ArrayDeque
 class PluginFragment : PaddingPreferenceFragment() {
 
     private var selectedTab = TAB_FCITX
-
-    private class UndividedPreferenceCategory(context: Context) : PreferenceCategory(context) {
-        override fun onBindViewHolder(holder: PreferenceViewHolder) {
-            super.onBindViewHolder(holder)
-            holder.setDividerAllowedAbove(false)
-            holder.setDividerAllowedBelow(false)
-        }
-    }
 
     private data class UninstallTarget(
         val name: String,
@@ -282,72 +270,43 @@ class PluginFragment : PaddingPreferenceFragment() {
 
     private fun createPreferenceScreen(): PreferenceScreen =
         preferenceManager.createPreferenceScreen(requireContext()).apply {
-            if (selectedTab == TAB_FCITX && synced != detected) {
-                addPreference(R.string.plugin_needs_reload, icon = R.drawable.ic_baseline_info_24) {
-                    DataManager.addOnNextSyncedCallback {
-                        synced = DataManager.getSyncedPluginSet()
-                        detected = DataManager.detectPlugins()
-                        preferenceScreen = createPreferenceScreen()
+            if (selectedTab == TAB_JS) {
+                JsVoiceProviders.all().sortedWith(
+                    compareBy<JsVoiceProviders.Spec> {
+                        if (it.id == JsVoiceProviders.DOUBAO_ASR_ID) 0 else 1
+                    }.thenBy { it.label }
+                ).forEach { spec ->
+                    addPreference(
+                        title = spec.label,
+                        summary = getString(
+                            R.string.js_plugin_row_summary,
+                            spec.version,
+                            sourceLabel(spec),
+                            displayTags(spec.tags),
+                        ),
+                    ) {
+                        showJsPluginDetailsDialog(spec)
                     }
-                    // DataManager.sync and and restart fcitx
-                    FcitxDaemon.restartFcitx()
                 }
-            }
-            val jsPluginsCategory = CollapsiblePreferenceCategory(
-                requireContext(),
-                stateKey = "js_plugins_category",
-            ).apply {
-                key = "js_plugins_category"
-                setCollapsibleTitle(getString(R.string.js_plugins))
-            }
-            addPreference(jsPluginsCategory)
-            JsVoiceProviders.all().sortedWith(
-                compareBy<JsVoiceProviders.Spec> {
-                    if (it.id == JsVoiceProviders.DOUBAO_ASR_ID) 0 else 1
-                }.thenBy { it.label }
-            ).forEach { spec ->
-                jsPluginsCategory.addPreference(
-                    title = spec.label,
-                    summary = getString(
-                        R.string.js_plugin_row_summary,
-                        spec.version,
-                        sourceLabel(spec),
-                        displayTags(spec.tags),
-                    ),
-                ) {
-                    showJsPluginDetailsDialog(spec)
-                }
-            }
-            val fcitxPluginsCategory = CollapsiblePreferenceCategory(
-                requireContext(),
-                stateKey = "fcitx_plugins_category",
-                suppressDividerAbove = true,
-                suppressDividerBelow = true,
-            ).apply {
-                key = "fcitx_plugins_category"
-                setCollapsibleTitle(getString(R.string.fcitx_plugins))
-            }
-            addPreference(fcitxPluginsCategory)
-            val (loaded, failed) = synced
-            if (loaded.isEmpty() && failed.isEmpty()) {
-                fcitxPluginsCategory.addPreference(UndividedPreferenceCategory(context).apply {
-                    setTitle(R.string.no_plugins)
-                    isIconSpaceReserved = false
-                    @SuppressLint("PrivateResource")
-                    // we can't hide PreferenceCategory's title,
-                    // but we can make it looks like a normal preference
-                    layoutResource = androidx.preference.R.layout.preference_material
-                })
             } else {
-                if (loaded.isNotEmpty()) {
-                    val loadedCategory = UndividedPreferenceCategory(context).apply {
-                        setTitle(R.string.plugins_loaded)
-                        isIconSpaceReserved = false
+                if (synced != detected) {
+                    addPreference(R.string.plugin_needs_reload, icon = R.drawable.ic_baseline_info_24) {
+                        DataManager.addOnNextSyncedCallback {
+                            synced = DataManager.getSyncedPluginSet()
+                            detected = DataManager.detectPlugins()
+                            preferenceScreen = createPreferenceScreen()
+                        }
+                        // DataManager.sync and and restart fcitx
+                        FcitxDaemon.restartFcitx()
                     }
-                    fcitxPluginsCategory.addPreference(loadedCategory)
+                }
+                val (loaded, failed) = synced
+                if (loaded.isEmpty() && failed.isEmpty()) {
+                    addPreference(getString(R.string.no_plugins))
+                } else {
                     loaded.forEach {
                         val pkgName = it.packageName
-                        loadedCategory.addPreference(LongClickPreference(context).apply {
+                        addPreference(LongClickPreference(context).apply {
                             isSingleLineTitle = false
                             setTitle(it.name)
                             setSummary("${it.versionName}\n${it.description}")
@@ -360,13 +319,6 @@ class PluginFragment : PaddingPreferenceFragment() {
                             }
                         })
                     }
-                }
-                if (failed.isNotEmpty()) {
-                    val failedCategory = UndividedPreferenceCategory(context).apply {
-                        setTitle(R.string.plugins_failed)
-                        isIconSpaceReserved = false
-                    }
-                    fcitxPluginsCategory.addPreference(failedCategory)
                     failed.forEach { (packageName, reason) ->
                         val summary = when (reason) {
                             is PluginLoadFailed.DataDescriptorParseError -> {
@@ -409,16 +361,11 @@ class PluginFragment : PaddingPreferenceFragment() {
                             is PluginLoadFailed.ManuallyBlocked -> reason.plugin.packageName
                             else -> packageName
                         }
-                        failedCategory.addPreference(title, summary) {
+                        addPreference(title, summary) {
                             startPluginAboutActivity(targetPackage)
                         }
                     }
                 }
-            }
-            if (selectedTab == TAB_JS) {
-                removePreference(fcitxPluginsCategory)
-            } else {
-                removePreference(jsPluginsCategory)
             }
         }
 
