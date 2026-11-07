@@ -1,10 +1,10 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later */
 package org.fxboomk.fcitx5.android.input.voice
 
-import org.fxboomk.fcitx5.android.input.voice.js.JsVoiceField
-import org.fxboomk.fcitx5.android.input.voice.js.JsVoiceFieldOption
-import org.fxboomk.fcitx5.android.input.voice.js.JsVoiceFields
-import org.fxboomk.fcitx5.android.input.voice.js.JsVoiceProviders
+import org.fxboomk.fcitx5.android.input.plugin.js.JsPluginField
+import org.fxboomk.fcitx5.android.input.plugin.js.JsPluginFieldOption
+import org.fxboomk.fcitx5.android.input.plugin.js.JsPluginFields
+import org.fxboomk.fcitx5.android.input.plugin.js.JsPluginCatalog
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import java.io.File
@@ -36,7 +36,7 @@ class VoiceInputChoicesTest {
         val unrelatedAfter = entry("plugin:example", "Tencent ASR")
         val input = listOf(
             unrelatedBefore,
-            entry(JsVoiceProviders.DOUBAO_ASR_ID, "豆包语音 (JS)"),
+            entry(JsPluginCatalog.DOUBAO_ASR_ID, "豆包语音 (JS)"),
             entry("plugin:shuodian", VoiceInputChoices.shuoDianLabel(background = true)),
             unrelatedAfter,
             entry("ime:shuodian", VoiceInputChoices.shuoDianLabel(background = false)),
@@ -58,7 +58,7 @@ class VoiceInputChoicesTest {
 
     @Test
     fun bundledPluginsUseCanonicalApiWithLegacyAlias() {
-        val prelude = File("src/main/java/org/fxboomk/fcitx5/android/input/voice/js/JsVoicePrelude.kt").readText()
+        val prelude = File("src/main/java/org/fxboomk/fcitx5/android/input/plugin/js/JsPrelude.kt").readText()
         assertEquals(true, prelude.contains("var swan = {"))
         assertEquals(true, prelude.contains("var foxy = swan;"))
 
@@ -75,19 +75,19 @@ class VoiceInputChoicesTest {
 
     @Test
     fun selectSummaryUsesLocalizedOptionLabelInsteadOfStoredValue() {
-        val output = JsVoiceField(
-            kind = JsVoiceField.KIND_SELECT,
+        val output = JsPluginField(
+            kind = JsPluginField.KIND_SELECT,
             key = "output",
             label = "上屏文本",
             description = "选择输入法插入译文还是识别原文。",
             defaultValue = "target",
             options = listOf(
-                JsVoiceFieldOption("译文", "target"),
-                JsVoiceFieldOption("原文", "source"),
+                JsPluginFieldOption("译文", "target"),
+                JsPluginFieldOption("原文", "source"),
             ),
         )
-        assertEquals("译文", JsVoiceFields.displayValue(output, "target"))
-        assertEquals("原文", JsVoiceFields.displayValue(output, "source"))
-        assertEquals("legacy", JsVoiceFields.displayValue(output, "legacy"))
+        assertEquals("译文", JsPluginFields.displayValue(output, "target"))
+        assertEquals("原文", JsPluginFields.displayValue(output, "source"))
+        assertEquals("legacy", JsPluginFields.displayValue(output, "legacy"))
     }
 }

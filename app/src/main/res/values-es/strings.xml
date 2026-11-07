@@ -1128,7 +1128,7 @@
     <string name="voice_engine_system">Entrada de voz del sistema</string>
     <string name="voice_engine_javascript">Complemento JavaScript</string>
     <string name="voice_engine_plugin">Complemento del servicio de voz</string>
-    <string name="js_voice_settings_title">Ajustes del complemento de voz</string>
+    <string name="js_voice_settings_title">Ajustes del complemento</string>
     <string name="js_voice_settings_loading">Cargando los ajustes del complemento…</string>
     <string name="js_voice_settings_failed">No se pudieron leer los ajustes del complemento: %1$s</string>
     <string name="js_voice_settings_empty">Este complemento no declara ajustes.</string>
@@ -1138,7 +1138,7 @@
     <string name="js_voice_secret_save_failed">No se pudo cifrar la clave API en este dispositivo. Se conserva el valor anterior.</string>
     <string name="js_voice_undeclared_host">El complemento intenta conectarse a un host no autorizado: %1$s</string>
     <string name="js_voice_plugins_current">%1$s · En uso</string>
-    <string name="js_voice_plugins_title">Complementos de voz JS</string>
+    <string name="js_voice_plugins_title">Complementos JS</string>
     <string name="js_plugins">Complementos JS</string>
     <string name="fcitx_plugins">Complementos de Fcitx</string>
     <string name="no_installed_js_plugins">No hay complementos JS instalados</string>

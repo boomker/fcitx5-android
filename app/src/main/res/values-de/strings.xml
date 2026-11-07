@@ -1126,7 +1126,7 @@
     <string name="voice_engine_system">System-Spracheingabe</string>
     <string name="voice_engine_javascript">JavaScript-Plugin</string>
     <string name="voice_engine_plugin">Spracheingabe-Plugin</string>
-    <string name="js_voice_settings_title">Einstellungen des Sprach-Plugins</string>
+    <string name="js_voice_settings_title">Plugin-Einstellungen</string>
     <string name="js_voice_settings_loading">Plugin-Einstellungen werden geladen…</string>
     <string name="js_voice_settings_failed">Plugin-Einstellungen konnten nicht geladen werden: %1$s</string>
     <string name="js_voice_settings_empty">Dieses Plugin enthält keine Einstellungen.</string>
@@ -1136,7 +1136,7 @@
     <string name="js_voice_secret_save_failed">Der API-Schlüssel konnte auf diesem Gerät nicht verschlüsselt werden. Der vorherige Wert bleibt erhalten.</string>
     <string name="js_voice_undeclared_host">Das Plugin möchte eine nicht erlaubte Adresse aufrufen: %1$s</string>
     <string name="js_voice_plugins_current">%1$s · Wird verwendet</string>
-    <string name="js_voice_plugins_title">JS-Sprach-Plugins</string>
+    <string name="js_voice_plugins_title">JS-Plugins</string>
     <string name="js_plugins">JS-Plugins</string>
     <string name="fcitx_plugins">Fcitx-Plugins</string>
     <string name="no_installed_js_plugins">Keine JS-Plugins installiert</string>

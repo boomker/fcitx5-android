@@ -1,6 +1,17 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later */
 package org.fxboomk.fcitx5.android.input.voice.js
 
+import org.fxboomk.fcitx5.android.input.plugin.js.JsBinary
+import org.fxboomk.fcitx5.android.input.plugin.js.JsCrypto
+import org.fxboomk.fcitx5.android.input.plugin.js.JsHeaders
+import org.fxboomk.fcitx5.android.input.plugin.js.JsHostHelpers
+import org.fxboomk.fcitx5.android.input.plugin.js.JsInvoker
+import org.fxboomk.fcitx5.android.input.plugin.js.JsPluginField
+import org.fxboomk.fcitx5.android.input.plugin.js.JsPluginFields
+import org.fxboomk.fcitx5.android.input.plugin.js.JsPluginNetworkPolicy
+import org.fxboomk.fcitx5.android.input.plugin.js.JsPluginSettingsStore
+import org.fxboomk.fcitx5.android.input.plugin.js.JsPrelude
+import org.fxboomk.fcitx5.android.input.plugin.js.JsRuntime
 import android.os.Bundle
 import android.util.Base64
 import com.dokar.quickjs.QuickJs
@@ -97,8 +108,8 @@ internal class JsVoiceInputProvider(
         val queue = JsVoiceCommandQueue(rate)
         private val ended = AtomicBoolean(false)
         var worker: Job? = null
-        val policy = JsVoiceNetworkPolicy(pluginId, declaredHosts)
-        val net = JsVoiceNet(http, policy, ::offer) { field -> JsVoiceSettingsStore.secret(pluginId, field) }
+        val policy = JsPluginNetworkPolicy(pluginId, declaredHosts)
+        val net = JsVoiceNet(http, policy, ::offer) { field -> JsPluginSettingsStore.secret(pluginId, field) }
         val current get() = !ended.get() && activeSession === this
         val callback = object : IVoiceInputCallback.Stub() {
             override fun onReady() { if (current) target.onReady() }
@@ -179,9 +190,9 @@ internal class JsVoiceInputProvider(
         try {
             // Check before executing top-level script code, including native calls.
             session.policy.requireApproval()
-            val js = JsVoiceRuntime.create().also { runtime = it }
+            val js = JsRuntime.create().also { runtime = it }
             net.install(js, locale)
-            JsVoiceRuntime.initialize(js, JsVoicePrelude.SOURCE + "\n" + scriptSource())
+            JsRuntime.initialize(js, JsPrelude.SOURCE + "\n" + scriptSource())
             val undeclared = undeclaredHosts(js)
             if (undeclared.isNotEmpty()) {
                 // 脚本要连的域名不在清单里：连接会在 net 层被拒，不在这里说清楚就只能看到
@@ -193,11 +204,11 @@ internal class JsVoiceInputProvider(
                 return
             }
             val fields = describeFields(js, locale)
-            val values = JsVoiceFields.currentValues(fields, JsVoiceSettingsStore.values(pluginId))
+            val values = JsPluginFields.currentValues(fields, JsPluginSettingsStore.values(pluginId))
             // 只要求**当前可见**的密钥。豆包插件按 authMode 在 apiKey 与 accessToken 之间二选一，
             // 若把 hide 着的那一个也算成必填，用户永远启动不了会话。
             val missing = fields.firstOrNull {
-                it.isSecret && JsVoiceFields.isVisible(it, values) && !JsVoiceSettingsStore.hasSecret(pluginId, it.key)
+                it.isSecret && JsPluginFields.isVisible(it, values) && !JsPluginSettingsStore.hasSecret(pluginId, it.key)
             }
             if (missing != null) {
                 cb.onError(
@@ -269,7 +280,7 @@ internal class JsVoiceInputProvider(
      */
     private suspend fun call(js: QuickJs, name: String, arg: JsonObject, timeoutMs: Long): CallResult {
         js.evaluationTimeoutMillis = timeoutMs
-        val outcome = JsVoiceInvoker.call({ code -> js.evaluate<String>(code) }, name, arg.toString(), timeoutMs)
+        val outcome = JsInvoker.call({ code -> js.evaluate<String>(code) }, name, arg.toString(), timeoutMs)
         outcome.error?.let { error(it) }
         val actions = outcome.actions.toMutableList()
         (outcome.result as? JsonObject)?.let { actions += it }
@@ -284,9 +295,9 @@ internal class JsVoiceInputProvider(
             .filterNot { it in declaredHosts }
 
     /** Reads the settings the plugin declared in `configure(ui, locale)`. */
-    private suspend fun describeFields(js: QuickJs, locale: String): List<JsVoiceField> {
+    private suspend fun describeFields(js: QuickJs, locale: String): List<JsPluginField> {
         val raw = js.evaluate<String>("__describe(" + JsonPrimitive(locale) + ")")
-        return JsVoiceFields.parse(raw)
+        return JsPluginFields.parse(raw)
     }
 
     /** Maps action objects to callback events. Returns true when the session is over. */
@@ -324,71 +335,13 @@ internal class JsVoiceInputProvider(
 }
 
 /**
- * 只给设置页用的占位原生实现：没有任何网络与音频能力。
- *
- * 为什么必须有：前奏里的 __native 对象在求值那一刻就把 __n_locale、__n_wsConnect 等名字全部
- * 解引用了一遍，缺一个就是 ReferenceError（真机上的表现是「读取插件设置失败」）。
- */
-internal object JsVoiceStubNatives {
-    fun install(js: QuickJs, locale: String) {
-        val binary = JsVoiceBinary()
-        fun decode(value: String) = binary.decode(value)
-        js.function("__n_locale") { locale }
-        js.function("__n_wsConnect") { throw IllegalStateException("network is not available here") }
-        js.function("__n_wsWaitOpen") { null }
-        js.function("__n_wsSend") { null }
-        js.function("__n_wsSendBinary") { null }
-        js.function("__n_wsSendGzipFrame") { null }
-        js.function("__n_wsClose") { null }
-        js.function("__n_httpPost") { throw IllegalStateException("network is not available here") }
-        js.function("__n_hmacSha1Base64") { throw IllegalStateException("signing is not available here") }
-        js.function("__n_concatBase64") { args -> binary.concatenate(text(args, 0)) }
-        js.function("__n_wavBase64") { args ->
-            encode(JsVoiceHelpers.wavBytes(decode(text(args, 0)), text(args, 1).toInt()))
-        }
-        js.function("__n_utf8Base64") { args -> binary.encodeUtf8(text(args, 0)) }
-        js.function("__n_base64Utf8") { args -> String(decode(text(args, 0)), Charsets.UTF_8) }
-        js.function("__n_byteLength") { args -> decode(text(args, 0)).size }
-        js.function("__n_sliceBase64") { args ->
-            val data = decode(text(args, 0))
-            val offset = text(args, 1).toInt().coerceIn(0, data.size)
-            val length = text(args, 2).toInt().coerceIn(0, data.size - offset)
-            encode(data.copyOfRange(offset, offset + length))
-        }
-        js.function("__n_readUInt8") { args -> decode(text(args, 0))[text(args, 1).toInt()].toInt() and 0xff }
-        js.function("__n_readInt32BE") { args ->
-            JsVoiceHelpers.readInt32BE(decode(text(args, 0)), text(args, 1).toInt())
-        }
-        js.function("__n_gunzipUtf8") { args -> String(JsVoiceHelpers.gunzip(decode(text(args, 0))), Charsets.UTF_8) }
-    }
-
-    private fun text(args: Array<Any?>, index: Int): String = args.getOrNull(index)?.toString().orEmpty()
-
-    private fun encode(data: ByteArray): String = Base64.encodeToString(data, Base64.NO_WRAP)
-}
-
-/** Loads a plugin script in a throwaway QuickJS instance, e.g. to render its settings screen. */
-internal object JsVoiceScript {
-    suspend fun describe(script: String, locale: String): List<JsVoiceField> {
-        val js = JsVoiceRuntime.create()
-        return try {
-            JsVoiceStubNatives.install(js, locale)
-            JsVoiceRuntime.initialize(js, JsVoicePrelude.SOURCE + "\n" + script)
-            JsVoiceFields.parse(js.evaluate<String>("__describe(" + JsonPrimitive(locale) + ")"))
-        } finally {
-            runCatching { js.close() }
-        }
-    }
-}
-
-/**
  * Owns the QuickJS bindings for one session. Each native is a global "__n_<name>", which the
  * prelude exposes as __native.<name>. Network waits use cancellable Promise bindings;
  * byte operations remain synchronous and bounded.
  */
 internal class JsVoiceNet(
     http: OkHttpClient,
-    private val policy: JsVoiceNetworkPolicy,
+    private val policy: JsPluginNetworkPolicy,
     private val receive: (JsVoiceCommand) -> Unit,
     private val secretFor: (String) -> String?,
 ) {
@@ -396,9 +349,9 @@ internal class JsVoiceNet(
     private val http = http.newBuilder().followRedirects(false).followSslRedirects(false).build()
     private val closed = AtomicBoolean(false)
     private val calls: MutableSet<Call> = ConcurrentHashMap.newKeySet()
-    private val binary = JsVoiceBinary()
+    private val binary = JsBinary()
     private val socketHttp by lazy {
-        BoundedWebSocketTransport.client(http, secure = true, maxMessage = JsVoiceRuntime.WEBSOCKET_BYTES)
+        BoundedWebSocketTransport.client(http, secure = true, maxMessage = JsRuntime.WEBSOCKET_BYTES)
     }
     private val sockets = ConcurrentHashMap<String, WebSocket>()
     private val opened = ConcurrentHashMap<String, CompletableDeferred<Unit>>()
@@ -408,7 +361,7 @@ internal class JsVoiceNet(
         js.function("__n_locale") { _ -> locale }
         js.function("__n_hmacSha1Base64") { args ->
             policy.requireApproval()
-            encode(JsVoiceCrypto.hmacSha1(text(args, 0), text(args, 1), secretFor))
+            encode(JsCrypto.hmacSha1(text(args, 0), text(args, 1), secretFor))
         }
         js.function("__n_wsConnect") { args ->
             connect(
@@ -424,7 +377,7 @@ internal class JsVoiceNet(
             policy.requireApproval()
             val socket = sockets[text(args, 0)] ?: error("socket closed")
             val message = text(args, 1)
-            require(message.utf8Size() <= JsVoiceRuntime.WEBSOCKET_BYTES) { "WebSocket message exceeds its limit" }
+            require(message.utf8Size() <= JsRuntime.WEBSOCKET_BYTES) { "WebSocket message exceeds its limit" }
             check(socket.send(message)) { "WebSocket send failed" }
             null
         }
@@ -437,7 +390,7 @@ internal class JsVoiceNet(
         js.function("__n_wsSendGzipFrame") { args ->
             policy.requireApproval()
             val socket = sockets[text(args, 0)] ?: error("socket closed")
-            check(socket.send(ByteString.of(*JsVoiceHelpers.gzipFrame(bytes(args, 1), bytes(args, 2))))) { "WebSocket send failed" }
+            check(socket.send(ByteString.of(*JsHostHelpers.gzipFrame(bytes(args, 1), bytes(args, 2))))) { "WebSocket send failed" }
             null
         }
         js.function("__n_wsClose") { args ->
@@ -454,7 +407,7 @@ internal class JsVoiceNet(
         }
         js.function("__n_concatBase64") { args -> binary.concatenate(text(args, 0)) }
         js.function("__n_wavBase64") { args ->
-            encode(JsVoiceHelpers.wavBytes(bytes(args, 0), text(args, 1).toInt()))
+            encode(JsHostHelpers.wavBytes(bytes(args, 0), text(args, 1).toInt()))
         }
         js.function("__n_utf8Base64") { args -> binary.encodeUtf8(text(args, 0)) }
         js.function("__n_base64Utf8") { args -> String(bytes(args, 0), Charsets.UTF_8) }
@@ -466,8 +419,8 @@ internal class JsVoiceNet(
             encode(data.copyOfRange(offset, offset + length))
         }
         js.function("__n_readUInt8") { args -> bytes(args, 0)[text(args, 1).toInt()].toInt() and 0xff }
-        js.function("__n_readInt32BE") { args -> JsVoiceHelpers.readInt32BE(bytes(args, 0), text(args, 1).toInt()) }
-        js.function("__n_gunzipUtf8") { args -> String(JsVoiceHelpers.gunzip(bytes(args, 0)), Charsets.UTF_8) }
+        js.function("__n_readInt32BE") { args -> JsHostHelpers.readInt32BE(bytes(args, 0), text(args, 1).toInt()) }
+        js.function("__n_gunzipUtf8") { args -> String(JsHostHelpers.gunzip(bytes(args, 0)), Charsets.UTF_8) }
     }
 
     private fun connect(
@@ -478,7 +431,7 @@ internal class JsVoiceNet(
         headersJson: String,
     ): String {
         val destination = policy.checkUrl(url)
-        val headers = JsVoiceHeaders.build(
+        val headers = JsHeaders.build(
             secretField = secretField,
             secret = secretField.takeIf { it.isNotBlank() }?.let(secretFor),
             authHeader = authHeader,
@@ -536,14 +489,14 @@ internal class JsVoiceNet(
 
     private suspend fun post(url: String, secretField: String, body: String, headersJson: String): String {
         val destination = policy.checkUrl(url)
-        val headers = JsVoiceHeaders.build(
+        val headers = JsHeaders.build(
             secretField = secretField,
             secret = secretField.takeIf { it.isNotBlank() }?.let(secretFor),
             authHeader = "",
             authPrefix = "",
             headersJson = headersJson,
         )
-        require(body.utf8Size() <= JsVoiceRuntime.REQUEST_BYTES) { "HTTP request exceeds its limit" }
+        require(body.utf8Size() <= JsRuntime.REQUEST_BYTES) { "HTTP request exceeds its limit" }
         val builder = Request.Builder()
             .url(destination)
             .post(body.toRequestBody("application/json".toMediaType()))
@@ -567,7 +520,7 @@ internal class JsVoiceNet(
                         val result = runCatching {
                             response.use {
                                 if (!it.isSuccessful) throw IOException("HTTP " + it.code)
-                                it.body.byteStream().readBounded(JsVoiceRuntime.RESPONSE_BYTES)
+                                it.body.byteStream().readBounded(JsRuntime.RESPONSE_BYTES)
                                     .toString(Charsets.UTF_8)
                             }
                         }

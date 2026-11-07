@@ -1247,7 +1247,7 @@
     <string name="js_voice_provider_qwen_asr">Qwen ASR</string>
     <string name="js_voice_provider_doubao_asr">Doubao ASR</string>
     <string name="js_voice_provider_tencent_asr">Tencent Cloud ASR</string>
-    <string name="js_voice_settings_title">Voice plugin settings</string>
+    <string name="js_voice_settings_title">Plugin settings</string>
     <string name="js_voice_settings_loading">Reading plugin settings…</string>
     <string name="js_voice_settings_failed">Failed to read plugin settings: %1$s</string>
     <string name="js_voice_settings_empty">This plugin declares no settings.</string>
@@ -1259,7 +1259,7 @@
 
 
     <string name="js_voice_plugins_current">%1$s · In use</string>
-    <string name="js_voice_plugins_title">JS voice plugins</string>
+    <string name="js_voice_plugins_title">JS plugins</string>
     <string name="js_plugins">JS plugins</string>
     <string name="fcitx_plugins">Fcitx plugins</string>
     <string name="no_installed_js_plugins">No JS plugins are installed</string>

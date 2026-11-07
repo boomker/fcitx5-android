@@ -103,7 +103,7 @@ import org.fxboomk.fcitx5.android.input.keyboard.isHardwarePredictionDismissKey
 import org.fxboomk.fcitx5.android.input.keyboard.isHardwarePredictionSelectionKey
 import org.fxboomk.fcitx5.android.input.keyboard.shouldConsumeHardwarePredictionDismiss
 import org.fxboomk.fcitx5.android.input.voice.VoiceInputProviderManager
-import org.fxboomk.fcitx5.android.input.voice.js.JsAppInputConnection
+import org.fxboomk.fcitx5.android.input.plugin.js.app.JsAppInputConnection
 import org.fxboomk.fcitx5.android.utils.InputMethodUtil
 import org.fxboomk.fcitx5.android.utils.ClipboardSharedContent
 import org.fxboomk.fcitx5.android.utils.ClipboardUriStore

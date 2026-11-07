@@ -19,8 +19,8 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.input.voice.VoiceInputChoices
-import org.fxboomk.fcitx5.android.input.voice.js.JsVoiceProviders
-import org.fxboomk.fcitx5.android.ui.main.settings.voice.JsVoicePluginSettingsActivity
+import org.fxboomk.fcitx5.android.input.plugin.js.JsPluginCatalog
+import org.fxboomk.fcitx5.android.ui.main.settings.plugin.js.JsPluginSettingsActivity
 import org.fxboomk.fcitx5.android.utils.styledColorOrDefault
 import android.graphics.Color
 import android.content.res.ColorStateList
@@ -96,8 +96,8 @@ internal object VoiceInputPickerDialog {
             }
             .setNeutralButton(R.string.js_voice_plugins_settings) { dialog, _ ->
                 dialog.dismiss()
-                val plugin = JsVoiceProviders.specOf(current) ?: return@setNeutralButton
-                context.startActivity(JsVoicePluginSettingsActivity.intent(context, plugin.id).apply {
+                val plugin = JsPluginCatalog.specOf(current) ?: return@setNeutralButton
+                context.startActivity(JsPluginSettingsActivity.intent(context, plugin.id).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 })
             }

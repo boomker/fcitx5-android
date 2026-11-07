@@ -4,6 +4,7 @@
  */
 package org.fxboomk.fcitx5.android.input.bar
 
+import org.fxboomk.fcitx5.android.input.assistant.AiAssistant
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Build
@@ -519,7 +520,7 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
             }
 
             setOnLongClickListener("ai_assistant") {
-                org.fxboomk.fcitx5.android.input.voice.js.JsApps.configure(context)
+                AiAssistant.configure(context)
                 true
             }
 

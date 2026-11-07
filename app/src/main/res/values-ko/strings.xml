@@ -1126,7 +1126,7 @@
     <string name="js_voice_provider_qwen_asr">Qwen 음성 인식</string>
     <string name="js_voice_provider_doubao_asr">Doubao 음성 인식</string>
     <string name="js_voice_provider_tencent_asr">Tencent Cloud 음성 인식</string>
-    <string name="js_voice_settings_title">음성 플러그인 설정</string>
+    <string name="js_voice_settings_title">플러그인 설정</string>
     <string name="js_voice_settings_loading">플러그인 설정을 읽는 중…</string>
     <string name="js_voice_settings_failed">플러그인 설정을 읽지 못했습니다: %1$s</string>
     <string name="js_voice_settings_empty">이 플러그인에는 설정 항목이 없습니다.</string>
@@ -1139,7 +1139,7 @@
     <string name="js_voice_secret_save_failed">이 기기에서 API 키를 암호화하지 못했습니다. 이전 값은 그대로 유지됩니다.</string>
     <string name="js_voice_undeclared_host">플러그인이 허용되지 않은 호스트에 연결하려고 합니다: %1$s</string>
     <string name="js_voice_plugins_current">%1$s · 사용 중</string>
-    <string name="js_voice_plugins_title">JS 음성 플러그인</string>
+    <string name="js_voice_plugins_title">JS 플러그인</string>
     <string name="js_plugins">JS 플러그인</string>
     <string name="fcitx_plugins">Fcitx 플러그인</string>
     <string name="no_installed_js_plugins">설치된 JS 플러그인이 없습니다</string>

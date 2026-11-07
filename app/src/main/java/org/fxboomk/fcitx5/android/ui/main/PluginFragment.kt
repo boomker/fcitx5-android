@@ -5,6 +5,7 @@
 @file:Suppress("SetTextI18n")
 package org.fxboomk.fcitx5.android.ui.main
 
+import org.fxboomk.fcitx5.android.input.voice.js.JsVoiceProviders
 import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
@@ -51,11 +52,11 @@ import org.fxboomk.fcitx5.android.core.data.PluginDescriptor
 import org.fxboomk.fcitx5.android.core.data.PluginLoadFailed
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.daemon.FcitxDaemon
-import org.fxboomk.fcitx5.android.input.voice.js.JsVoiceProviders
-import org.fxboomk.fcitx5.android.input.voice.js.JsVoicePluginStore
+import org.fxboomk.fcitx5.android.input.plugin.js.JsPluginCatalog
+import org.fxboomk.fcitx5.android.input.plugin.js.JsPluginStore
 import org.fxboomk.fcitx5.android.ui.common.PaddingPreferenceFragment
 import org.fxboomk.fcitx5.android.ui.common.withDeterminateProgressDialog
-import org.fxboomk.fcitx5.android.ui.main.settings.voice.JsVoicePluginsActivity
+import org.fxboomk.fcitx5.android.ui.main.settings.plugin.js.JsPluginsActivity
 import org.fxboomk.fcitx5.android.utils.LongClickPreference
 import org.fxboomk.fcitx5.android.utils.addCategory
 import org.fxboomk.fcitx5.android.utils.addPreference
@@ -91,12 +92,12 @@ class PluginFragment : PaddingPreferenceFragment() {
     ) { uri ->
         val pluginId = pendingJsExportId.also { pendingJsExportId = null } ?: return@registerForActivityResult
         if (uri == null) return@registerForActivityResult
-        val spec = JsVoiceProviders.specOf(pluginId) ?: return@registerForActivityResult
+        val spec = JsPluginCatalog.specOf(pluginId) ?: return@registerForActivityResult
         val context = requireContext()
         lifecycleScope.launch {
             val result = withContext(Dispatchers.IO) {
                 runCatching {
-                    val script = JsVoiceProviders.readScript(spec)
+                    val script = JsPluginCatalog.readScript(spec)
                     check(script.isNotEmpty()) { "Plugin source is empty" }
                     context.contentResolver.openOutputStream(uri)?.use {
                         it.write(script.toByteArray(Charsets.UTF_8))
@@ -211,7 +212,7 @@ class PluginFragment : PaddingPreferenceFragment() {
         super.onResume()
         (requireActivity() as MainActivity).findViewById<com.google.android.material.floatingactionbutton.FloatingActionButton>(R.id.js_voice_add_fab)
             .setOnClickListener {
-                startActivity(JsVoicePluginsActivity.intent(requireContext()))
+                startActivity(JsPluginsActivity.intent(requireContext()))
             }
         updateJsPluginFabVisibility()
         requireContext().registerReceiver(packageChangeReceiver, IntentFilter().apply {
@@ -271,9 +272,9 @@ class PluginFragment : PaddingPreferenceFragment() {
     private fun createPreferenceScreen(): PreferenceScreen =
         preferenceManager.createPreferenceScreen(requireContext()).apply {
             if (selectedTab == TAB_JS) {
-                JsVoiceProviders.all().sortedWith(
-                    compareBy<JsVoiceProviders.Spec> {
-                        if (it.id == JsVoiceProviders.DOUBAO_ASR_ID) 0 else 1
+                JsPluginCatalog.all().sortedWith(
+                    compareBy<JsPluginCatalog.Spec> {
+                        if (it.id == JsPluginCatalog.DOUBAO_ASR_ID) 0 else 1
                     }.thenBy { it.label }
                 ).forEach { spec ->
                     addPreference(
@@ -382,9 +383,9 @@ class PluginFragment : PaddingPreferenceFragment() {
                     isBlocked = it.packageName in blockedPackages
                 )
             }
-        val allJsPlugins = JsVoiceProviders.all().sortedWith(
-            compareBy<JsVoiceProviders.Spec> {
-                if (it.id == JsVoiceProviders.DOUBAO_ASR_ID) 0 else 1
+        val allJsPlugins = JsPluginCatalog.all().sortedWith(
+            compareBy<JsPluginCatalog.Spec> {
+                if (it.id == JsPluginCatalog.DOUBAO_ASR_ID) 0 else 1
             }.thenBy { it.label }
         )
         val manageableJsPlugins = if (showJsPlugins) allJsPlugins else emptyList()
@@ -448,7 +449,7 @@ class PluginFragment : PaddingPreferenceFragment() {
                         manageableJsPlugins.forEachIndexed { index, plugin ->
                             addView(CheckBox(ctx).apply {
                                 val kind = when {
-                                    plugin.id !in JsVoiceProviders.builtInIds() ->
+                                    plugin.id !in JsPluginCatalog.builtInIds() ->
                                         getString(R.string.js_plugin_imported)
                                     plugin.builtIn -> getString(R.string.js_plugin_builtin)
                                     else -> getString(R.string.js_plugin_override)
@@ -557,7 +558,7 @@ class PluginFragment : PaddingPreferenceFragment() {
                         } else if (jsSelected.size == 1 && androidSelected.isEmpty()) {
                             manageDialog.dismiss()
                             startActivity(
-                                JsVoicePluginsActivity.intent(
+                                JsPluginsActivity.intent(
                                     requireContext(), manageableJsPlugins[jsSelected.single()].id
                                 )
                             )
@@ -582,7 +583,7 @@ class PluginFragment : PaddingPreferenceFragment() {
             .show()
     }
 
-    private fun showJsPluginDetailsDialog(spec: JsVoiceProviders.Spec) {
+    private fun showJsPluginDetailsDialog(spec: JsPluginCatalog.Spec) {
         val context = requireContext()
         val density = resources.displayMetrics.density
         val rowGap = (8 * density).toInt()
@@ -621,7 +622,7 @@ class PluginFragment : PaddingPreferenceFragment() {
         }
 
         fun addTagChip(tag: String, enabled: Boolean = true) {
-            val displayName = if (tag == JsVoiceProviders.VOICE_TAG) voiceTagLabel else tag
+            val displayName = if (tag == JsPluginCatalog.VOICE_TAG) voiceTagLabel else tag
             chipGroup.addView(Chip(context).apply {
                 this.tag = tag
                 text = displayName
@@ -748,17 +749,22 @@ class PluginFragment : PaddingPreferenceFragment() {
                 }
             }
             val saved = withContext(Dispatchers.IO) {
-                JsVoicePluginStore.saveTags(
+                JsPluginStore.saveTags(
                     id = spec.id.removePrefix("js:"),
                     tags = tags,
-                ).also { if (it) JsVoiceProviders.reload() }
+                ).also {
+                    if (it) {
+                        JsPluginCatalog.invalidate()
+                        JsVoiceProviders.reload()
+                    }
+                }
             }
             if (!saved) {
                 requireContext().toast(R.string.js_plugin_details_save_failed)
                 return false
             }
             if (AppPrefs.getInstance().keyboard.preferredVoiceInput.getValue() == spec.id &&
-                JsVoiceProviders.VOICE_TAG !in tags
+                JsPluginCatalog.VOICE_TAG !in tags
             ) {
                 AppPrefs.getInstance().keyboard.preferredVoiceInput.setValue("")
             }
@@ -770,7 +776,7 @@ class PluginFragment : PaddingPreferenceFragment() {
             lifecycleScope.launch {
                 if (!saveTags()) return@launch
                 dialog.dismiss()
-                startActivity(JsVoicePluginsActivity.intent(requireContext(), spec.id))
+                startActivity(JsPluginsActivity.intent(requireContext(), spec.id))
             }
         }
         exportSourceButton.setOnClickListener {
@@ -788,14 +794,14 @@ class PluginFragment : PaddingPreferenceFragment() {
         dialog.show()
     }
 
-    private fun sourceLabel(spec: JsVoiceProviders.Spec): String = getString(
+    private fun sourceLabel(spec: JsPluginCatalog.Spec): String = getString(
         if (spec.builtIn) R.string.js_plugin_source_builtin else R.string.js_plugin_source_imported
     )
 
     private fun displayTags(tags: Set<String>): String = tags
         .takeIf { it.isNotEmpty() }
         ?.joinToString(", ") {
-            if (it == JsVoiceProviders.VOICE_TAG) getString(R.string.js_plugin_tag_voice) else it
+            if (it == JsPluginCatalog.VOICE_TAG) getString(R.string.js_plugin_tag_voice) else it
         }
         ?: getString(R.string.js_plugin_tags_none)
 
@@ -805,19 +811,19 @@ class PluginFragment : PaddingPreferenceFragment() {
             .filter(String::isNotEmpty)
             .map {
                 if (it.equals(voiceTagLabel, ignoreCase = true) ||
-                    it.equals(JsVoiceProviders.VOICE_TAG, ignoreCase = true) || it == "语音"
-                ) JsVoiceProviders.VOICE_TAG else it
+                    it.equals(JsPluginCatalog.VOICE_TAG, ignoreCase = true) || it == "语音"
+                ) JsPluginCatalog.VOICE_TAG else it
             }
             .toSet()
 
-    private fun exportFileName(spec: JsVoiceProviders.Spec): String {
+    private fun exportFileName(spec: JsPluginCatalog.Spec): String {
         val suggested = spec.originName.substringAfterLast('/').substringAfterLast('\\')
             .replace(Regex("[^A-Za-z0-9._-]"), "_")
             .ifBlank { spec.id.removePrefix("js:") + ".js" }
         return if (suggested.endsWith(".js", ignoreCase = true)) suggested else "$suggested.js"
     }
 
-    private fun confirmJsPluginUninstall(plugins: List<JsVoiceProviders.Spec>) {
+    private fun confirmJsPluginUninstall(plugins: List<JsPluginCatalog.Spec>) {
         val names = plugins.joinToString("\n") { it.label }
         AlertDialog.Builder(requireContext())
             .setTitle(R.string.js_voice_plugins_delete_title)
@@ -827,17 +833,18 @@ class PluginFragment : PaddingPreferenceFragment() {
                     val (removedIds, failedLabels) = withContext(Dispatchers.IO) {
                         val removed = mutableListOf<String>()
                         val failed = mutableListOf<String>()
-                        val builtInIds = JsVoiceProviders.builtInIds()
+                        val builtInIds = JsPluginCatalog.builtInIds()
                             .mapTo(mutableSetOf()) { it.removePrefix("js:") }
                         plugins.forEach { plugin ->
                             val success = runCatching {
-                                JsVoicePluginStore.uninstall(
+                                JsPluginStore.uninstall(
                                     id = plugin.id.removePrefix("js:"),
                                     builtInIds = builtInIds,
                                 )
                             }.getOrDefault(false)
                             if (success) removed += plugin.id else failed += plugin.label
                         }
+                        JsPluginCatalog.invalidate()
                         JsVoiceProviders.reload()
                         removed to failed
                     }

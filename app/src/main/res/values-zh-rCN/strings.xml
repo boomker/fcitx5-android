@@ -1127,7 +1127,7 @@
     <string name="js_voice_provider_qwen_asr">通义千问语音</string>
     <string name="js_voice_provider_doubao_asr">豆包语音</string>
     <string name="js_voice_provider_tencent_asr">腾讯云语音</string>
-    <string name="js_voice_settings_title">语音插件设置</string>
+    <string name="js_voice_settings_title">插件设置</string>
     <string name="js_voice_settings_loading">正在读取插件设置…</string>
     <string name="js_voice_settings_failed">读取插件设置失败：%1$s</string>
     <string name="js_voice_settings_empty">该插件没有可配置项</string>
@@ -1139,7 +1139,7 @@
 
 
     <string name="js_voice_plugins_current">%1$s · 当前使用</string>
-    <string name="js_voice_plugins_title">JS 语音插件</string>
+    <string name="js_voice_plugins_title">JS 插件</string>
     <string name="js_plugins">JS 插件</string>
     <string name="fcitx_plugins">Fcitx 插件</string>
     <string name="no_installed_js_plugins">当前没有已安装的 JS 插件</string>

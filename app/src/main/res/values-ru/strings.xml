@@ -1125,7 +1125,7 @@
     <string name="js_voice_provider_qwen_asr">Распознавание речи Qwen</string>
     <string name="js_voice_provider_doubao_asr">Распознавание речи Doubao</string>
     <string name="js_voice_provider_tencent_asr">Распознавание речи Tencent Cloud</string>
-    <string name="js_voice_settings_title">Настройки голосового плагина</string>
+    <string name="js_voice_settings_title">Настройки плагина</string>
     <string name="js_voice_settings_loading">Загрузка настроек плагина…</string>
     <string name="js_voice_settings_failed">Не удалось прочитать настройки плагина: %1$s</string>
     <string name="js_voice_settings_empty">Плагин не объявляет параметры настройки.</string>
@@ -1138,7 +1138,7 @@
     <string name="js_voice_secret_save_failed">Не удалось зашифровать API-ключ на этом устройстве. Предыдущее значение сохранено.</string>
     <string name="js_voice_undeclared_host">Плагин пытается подключиться к неразрешённому хосту: %1$s</string>
     <string name="js_voice_plugins_current">%1$s · Используется</string>
-    <string name="js_voice_plugins_title">Голосовые JS-плагины</string>
+    <string name="js_voice_plugins_title">JS-плагины</string>
     <string name="js_plugins">JS-плагины</string>
     <string name="fcitx_plugins">Плагины Fcitx</string>
     <string name="no_installed_js_plugins">Установленных JS-плагинов нет</string>

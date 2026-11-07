@@ -4,6 +4,7 @@
  */
 package org.fxboomk.fcitx5.android.ui.main.settings.behavior
 
+import org.fxboomk.fcitx5.android.input.voice.js.JsVoiceProviders
 import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceScreen
@@ -12,9 +13,9 @@ import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.data.prefs.ManagedPreferenceFragment
 import org.fxboomk.fcitx5.android.data.prefs.ManagedPreferenceProvider
 import org.fxboomk.fcitx5.android.data.prefs.ManagedPreferenceUi
-import org.fxboomk.fcitx5.android.input.voice.js.JsVoiceProviders
+import org.fxboomk.fcitx5.android.input.plugin.js.JsPluginCatalog
 import org.fxboomk.fcitx5.android.ui.main.modified.MySwitchPreference
-import org.fxboomk.fcitx5.android.ui.main.settings.voice.JsVoicePluginSettingsActivity
+import org.fxboomk.fcitx5.android.ui.main.settings.plugin.js.JsPluginSettingsActivity
 import org.fxboomk.fcitx5.android.utils.addCategory
 import org.fxboomk.fcitx5.android.utils.addPreference
 
@@ -51,11 +52,11 @@ class KeyboardVoiceSettingsFragment : KeyboardSectionFragment() {
     }
 
     private fun addJsVoicePlugins(category: androidx.preference.PreferenceCategory) {
-        val builtInIds = JsVoiceProviders.builtInIds()
+        val builtInIds = JsPluginCatalog.builtInIds()
         category.removeAll()
         JsVoiceProviders.voiceInputSpecs().filter { it.id in builtInIds }.sortedWith(
-            compareBy<JsVoiceProviders.Spec> {
-                if (it.id == JsVoiceProviders.DOUBAO_ASR_ID) 0 else 1
+            compareBy<JsPluginCatalog.Spec> {
+                if (it.id == JsPluginCatalog.DOUBAO_ASR_ID) 0 else 1
             }.thenBy { it.label }
         ).forEach { spec ->
             val detail = getString(
@@ -69,7 +70,7 @@ class KeyboardVoiceSettingsFragment : KeyboardSectionFragment() {
                     detail
                 }
             ) {
-                startActivity(JsVoicePluginSettingsActivity.intent(requireContext(), spec.id))
+                startActivity(JsPluginSettingsActivity.intent(requireContext(), spec.id))
             }
         }
     }

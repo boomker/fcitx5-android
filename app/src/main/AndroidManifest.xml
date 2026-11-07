@@ -174,11 +174,11 @@
             android:exported="false"
             android:label="@string/split_keyboard_calibration_title" />
         <activity
-            android:name=".ui.main.settings.voice.JsVoicePluginsActivity"
+            android:name=".ui.main.settings.plugin.js.JsPluginsActivity"
             android:exported="false"
             android:label="@string/js_voice_plugins_title" />
         <activity
-            android:name=".ui.main.settings.voice.JsVoicePluginSettingsActivity"
+            android:name=".ui.main.settings.plugin.js.JsPluginSettingsActivity"
             android:exported="false"
             android:label="@string/js_voice_settings_title" />
         <activity

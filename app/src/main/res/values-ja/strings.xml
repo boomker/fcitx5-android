@@ -1124,7 +1124,7 @@
     <string name="js_voice_provider_qwen_asr">Qwen 音声認識</string>
     <string name="js_voice_provider_doubao_asr">Doubao 音声認識</string>
     <string name="js_voice_provider_tencent_asr">Tencent Cloud 音声認識</string>
-    <string name="js_voice_settings_title">音声プラグイン設定</string>
+    <string name="js_voice_settings_title">プラグイン設定</string>
     <string name="js_voice_settings_loading">プラグイン設定を読み込み中…</string>
     <string name="js_voice_settings_failed">プラグイン設定を読み込めませんでした: %1$s</string>
     <string name="js_voice_settings_empty">このプラグインに設定項目はありません。</string>
@@ -1134,7 +1134,7 @@
     <string name="js_voice_secret_save_failed">この端末で API キーを暗号化できませんでした。以前の値は変更されていません。</string>
     <string name="js_voice_undeclared_host">プラグインが許可されていないホストに接続しようとしています: %1$s</string>
     <string name="js_voice_plugins_current">%1$s · 使用中</string>
-    <string name="js_voice_plugins_title">JS 音声プラグイン</string>
+    <string name="js_voice_plugins_title">JS プラグイン</string>
     <string name="js_plugins">JS プラグイン</string>
     <string name="fcitx_plugins">Fcitx プラグイン</string>
     <string name="no_installed_js_plugins">インストール済みの JS プラグインはありません</string>

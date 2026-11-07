@@ -3,6 +3,7 @@
  */
 package org.fxboomk.fcitx5.android.ui.main.settings.behavior
 
+import org.fxboomk.fcitx5.android.input.assistant.AiAssistant
 import android.content.SharedPreferences
 import android.os.Bundle
 import android.text.InputType
@@ -22,7 +23,7 @@ import android.widget.ArrayAdapter
 import androidx.fragment.app.activityViewModels
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.input.predict.LlmPrefs
-import org.fxboomk.fcitx5.android.input.voice.js.JsApps
+import org.fxboomk.fcitx5.android.input.plugin.js.app.JsAppHost
 import org.fxboomk.fcitx5.android.ui.common.PaddingPreferenceFragment
 import org.fxboomk.fcitx5.android.ui.main.MainViewModel
 import org.fxboomk.fcitx5.android.ui.main.settings.DialogSeekBarPreference
@@ -185,7 +186,7 @@ class LlmAdvancedSettingsFragment : PaddingPreferenceFragment() {
 
     private fun refreshJsApps() {
         val category = findPreference<androidx.preference.PreferenceCategory>("js_app_plugins") ?: return
-        val installed = JsApps.installedApps().associateBy { (spec, app) -> "js_app_${spec.id}_${app.id}" }
+        val installed = AiAssistant.installedApps().associateBy { (spec, app) -> "js_app_${spec.id}_${app.id}" }
         val existing = (0 until category.preferenceCount).map { category.getPreference(it) }
         existing.filter { it.key !in installed && it.key != JS_APPS_EMPTY_KEY }
             .forEach(category::removePreference)
@@ -209,7 +210,7 @@ class LlmAdvancedSettingsFragment : PaddingPreferenceFragment() {
                 this.key = key
                 isIconSpaceReserved = false
                 setOnPreferenceClickListener {
-                    JsApps.configure(requireContext(), spec.id)
+                    JsAppHost.configure(requireContext(), spec.id)
                     true
                 }
                 category.addPreference(this)

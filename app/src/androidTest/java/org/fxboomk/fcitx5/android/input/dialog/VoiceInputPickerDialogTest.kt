@@ -1,24 +1,40 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later */
 package org.fxboomk.fcitx5.android.input.dialog
 
+import org.fxboomk.fcitx5.android.input.voice.js.JsVoiceProviders
+import android.content.ComponentName
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
 import androidx.appcompat.app.AlertDialog
 import androidx.test.platform.app.InstrumentationRegistry
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
-import org.fxboomk.fcitx5.android.input.voice.js.JsVoicePluginStore
-import org.fxboomk.fcitx5.android.input.voice.js.JsVoiceProviders
-import org.fxboomk.fcitx5.android.ui.main.settings.voice.JsVoicePluginSettingsActivity
+import org.fxboomk.fcitx5.android.input.plugin.js.JsPluginStore
+import org.fxboomk.fcitx5.android.input.plugin.js.JsPluginCatalog
+import org.fxboomk.fcitx5.android.ui.main.settings.plugin.js.JsPluginSettingsActivity
+import org.fxboomk.fcitx5.android.ui.main.settings.plugin.js.JsPluginsActivity
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class VoiceInputPickerDialogTest {
 
     @Test
+    @Suppress("DEPRECATION")
+    fun migratedJsPluginActivitiesAreDeclaredInTheInstalledManifest() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        for (activity in listOf(JsPluginsActivity::class.java, JsPluginSettingsActivity::class.java)) {
+            val info = context.packageManager.getActivityInfo(ComponentName(context, activity), 0)
+            assertEquals(activity.name, info.name)
+            assertEquals(context.packageName, info.packageName)
+            assertFalse(info.exported)
+        }
+    }
+
+    @Test
     fun doubaoSettingsButtonOpensTheSelectedPluginConfiguration() {
-        assertPluginConfiguration(JsVoiceProviders.DOUBAO_ASR_ID)
+        assertPluginConfiguration(JsPluginCatalog.DOUBAO_ASR_ID)
     }
 
     @Test
@@ -39,7 +55,7 @@ class VoiceInputPickerDialogTest {
     @Test
     fun settingsButtonDoesNothingForAnUnavailableJsPlugin() {
         val unavailableIds = setOf("js:missing-plugin") +
-            JsVoicePluginStore.disabledBuiltInIds().map { "js:$it" }
+            JsPluginStore.disabledBuiltInIds().map { "js:$it" }
         unavailableIds.forEach { providerId ->
             assertTrue("Unexpected activity for unavailable $providerId", clickSettings(providerId).isEmpty())
         }
@@ -49,8 +65,8 @@ class VoiceInputPickerDialogTest {
         val started = clickSettings(pluginId)
         assertEquals("Expected one configuration activity for $pluginId", 1, started.size)
         val intent = started.single()
-        assertEquals(JsVoicePluginSettingsActivity::class.java.name, intent.component?.className)
-        assertEquals(pluginId, intent.getStringExtra(JsVoicePluginSettingsActivity.EXTRA_PLUGIN_ID))
+        assertEquals(JsPluginSettingsActivity::class.java.name, intent.component?.className)
+        assertEquals(pluginId, intent.getStringExtra(JsPluginSettingsActivity.EXTRA_PLUGIN_ID))
         assertTrue(intent.flags and Intent.FLAG_ACTIVITY_NEW_TASK != 0)
     }
 

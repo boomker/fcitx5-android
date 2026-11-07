@@ -4,6 +4,7 @@
  */
 package org.fxboomk.fcitx5.android.input.action
 
+import org.fxboomk.fcitx5.android.input.assistant.AiAssistant
 import android.content.Intent
 import android.content.Context
 import android.app.SearchManager
@@ -433,7 +434,7 @@ data object AiCandidatesAction : ButtonAction() {
         windowManager: InputWindowManager,
         view: View
     ) {
-        org.fxboomk.fcitx5.android.input.voice.js.JsApps.open(service)
+        AiAssistant.open(service)
     }
 }
 
@@ -1048,11 +1049,11 @@ data object AiAssistantAction : ButtonAction() {
     override val defaultLabelRes = R.string.ai_assistant
     override fun execute(context: Context, service: FcitxInputMethodService, fcitx: FcitxConnection,
         windowManager: InputWindowManager, view: View?, onActionComplete: (() -> Unit)?) {
-        org.fxboomk.fcitx5.android.input.voice.js.JsApps.open(service)
+        AiAssistant.open(service)
     }
 
     override fun onLongPress(context: Context, service: FcitxInputMethodService, fcitx: FcitxConnection,
         windowManager: InputWindowManager, view: View) {
-        org.fxboomk.fcitx5.android.input.voice.js.JsApps.configure(context)
+        AiAssistant.configure(context)
     }
 }

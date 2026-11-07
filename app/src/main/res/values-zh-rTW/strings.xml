@@ -1094,7 +1094,7 @@
     <string name="js_voice_provider_qwen_asr">通義千問語音</string>
     <string name="js_voice_provider_doubao_asr">豆包語音</string>
     <string name="js_voice_provider_tencent_asr">騰訊雲語音</string>
-    <string name="js_voice_settings_title">語音外掛設定</string>
+    <string name="js_voice_settings_title">外掛設定</string>
     <string name="js_voice_settings_loading">正在讀取外掛設定…</string>
     <string name="js_voice_settings_failed">讀取外掛設定失敗：%1$s</string>
     <string name="js_voice_settings_empty">此外掛沒有可設定項</string>
@@ -1106,7 +1106,7 @@
 
 
     <string name="js_voice_plugins_current">%1$s · 目前使用</string>
-    <string name="js_voice_plugins_title">JS 語音外掛</string>
+    <string name="js_voice_plugins_title">JS 外掛</string>
     <string name="js_voice_plugins_entry_summary">v%1$s · %2$s</string>
     <string name="js_voice_plugins_delete_title">移除外掛？</string>
     <string name="js_voice_plugins_delete_confirm">移除</string>

@@ -4,6 +4,7 @@
  */
 package org.fxboomk.fcitx5.android.data
 
+import org.fxboomk.fcitx5.android.input.plugin.js.JsPluginStore
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -70,8 +71,8 @@ object UserDataManager {
     @OptIn(ExperimentalSerializationApi::class)
     fun export(dest: OutputStream, timestamp: Long = System.currentTimeMillis()) = runCatching {
         ZipOutputStream(dest.buffered()).use { zipStream ->
-            // shared_prefs + imported JS voice plugins
-            org.fxboomk.fcitx5.android.input.voice.js.JsVoicePluginStore.withSnapshot { scripts ->
+            // shared_prefs + imported JS plugins
+            JsPluginStore.withSnapshot { scripts ->
                 writeFileTree(sharedPrefsDir, "shared_prefs", zipStream)
                 writeFileTree(scripts, "js-voice", zipStream) { !it.name.endsWith(".js") }
             }
@@ -144,7 +145,7 @@ object UserDataManager {
                 if (!isAllowedPackageName(metadata.packageName)) {
                     errorRuntime(R.string.exception_user_data_package_name_mismatch, metadata.packageName)
                 }
-                org.fxboomk.fcitx5.android.input.voice.js.JsVoicePluginStore.validateBackup(tempDir)
+                JsPluginStore.validateBackup(tempDir)
                 // Copy shared_prefs with package name renaming
                 copySharedPrefs(File(tempDir, "shared_prefs"), sharedPrefsDir, metadata.packageName)
                 copyDir(File(tempDir, "js-voice"), File(appContext.filesDir, "js-voice"))

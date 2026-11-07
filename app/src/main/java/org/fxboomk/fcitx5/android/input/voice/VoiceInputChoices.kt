@@ -3,7 +3,7 @@ package org.fxboomk.fcitx5.android.input.voice
 
 import android.content.Context
 import org.fxboomk.fcitx5.android.R
-import org.fxboomk.fcitx5.android.input.voice.js.JsVoiceProviders
+import org.fxboomk.fcitx5.android.input.plugin.js.JsPluginCatalog
 import org.fxboomk.fcitx5.android.utils.InputMethodUtil
 
 /** The settings list and toolbar picker must offer the same provider IDs. */
@@ -30,7 +30,7 @@ internal object VoiceInputChoices {
         entry.id.isEmpty() -> 0
         entry.label == shuoDianLabel(background = false) -> 1
         entry.label == shuoDianLabel(background = true) -> 2
-        entry.id == JsVoiceProviders.DOUBAO_ASR_ID -> 3
+        entry.id == JsPluginCatalog.DOUBAO_ASR_ID -> 3
         else -> 4
     }
 
@@ -49,7 +49,7 @@ internal object VoiceInputChoices {
                 it.id,
                 if (isShuoDian(label)) shuoDianLabel(background = true) else label.toString(),
                 context.getString(
-                    if (JsVoiceProviders.specOf(it.id) != null) R.string.voice_engine_javascript else R.string.voice_engine_plugin,
+                    if (JsPluginCatalog.specOf(it.id) != null) R.string.voice_engine_javascript else R.string.voice_engine_plugin,
                 ),
             )
         }

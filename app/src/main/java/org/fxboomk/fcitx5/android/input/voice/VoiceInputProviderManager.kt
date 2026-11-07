@@ -4,6 +4,7 @@
  */
 package org.fxboomk.fcitx5.android.input.voice
 
+import org.fxboomk.fcitx5.android.input.voice.js.JsVoiceProviders
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -29,9 +30,9 @@ import org.fcitx.fcitx5.android.common.ipc.IVoiceInputProvider
 import org.fcitx.fcitx5.android.common.ipc.VoiceInputIpc
 import org.fxboomk.fcitx5.android.input.FcitxInputMethodService
 import org.fxboomk.fcitx5.android.input.EditorSessionTracker
-import org.fxboomk.fcitx5.android.input.voice.js.JsVoiceProviders
-import org.fxboomk.fcitx5.android.input.voice.js.JsVoiceHostPermissions
-import org.fxboomk.fcitx5.android.ui.main.settings.voice.JsVoiceHostPermissionDialog
+import org.fxboomk.fcitx5.android.input.plugin.js.JsPluginCatalog
+import org.fxboomk.fcitx5.android.input.plugin.js.JsHostPermissions
+import org.fxboomk.fcitx5.android.ui.main.settings.plugin.js.JsHostPermissionDialog
 import org.fxboomk.fcitx5.android.utils.appContext
 import timber.log.Timber
 import java.util.concurrent.atomic.AtomicInteger
@@ -357,11 +358,11 @@ object VoiceInputProviderManager {
             finish(service)
             return false
         }
-        val spec = JsVoiceProviders.specOf(id)
-        if (spec != null && !JsVoiceHostPermissions.isApproved(id, spec.hosts)) {
+        val spec = JsPluginCatalog.specOf(id)
+        if (spec != null && !JsHostPermissions.isApproved(id, spec.hosts)) {
             // Consent never starts recording. A hold key may already have been released
             // while the dialog was open; the next explicit press starts the session.
-            service.showDialog(JsVoiceHostPermissionDialog.build(service, spec, spec.hosts) {
+            service.showDialog(JsHostPermissionDialog.build(service, spec, spec.hosts) {
                 android.widget.Toast.makeText(service, org.fxboomk.fcitx5.android.R.string.js_voice_network_approved_hint,
                     android.widget.Toast.LENGTH_SHORT).show()
             })
