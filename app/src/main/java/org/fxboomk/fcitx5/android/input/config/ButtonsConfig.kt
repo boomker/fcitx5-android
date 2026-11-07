@@ -178,7 +178,10 @@ data class ButtonsLayoutConfig(
                 ConfigurableButton("one_handed_keyboard"),
                 ConfigurableButton("adjust_keyboard_height")
             ),
-            optionalButtons = listOf(ConfigurableButton("search")),
+            optionalButtons = listOf(
+                ConfigurableButton("search"),
+                ConfigurableButton("ai_assistant")
+            ),
             hideKeyboardButton = defaultHideKeyboardButton()
         )
     }

@@ -38,6 +38,24 @@ class ButtonActionTest {
     }
 
     @Test
+    fun aiAssistantIsRegisteredAsAConfigurableAction() {
+        assertSame(AiAssistantAction, ButtonAction.fromId("ai_assistant"))
+        assertEquals(R.string.ai_assistant, AiAssistantAction.defaultLabelRes)
+        assertTrue(ButtonAction.kawaiiBarActions.contains(AiAssistantAction))
+        assertTrue(ButtonAction.allConfigurableActions.contains(AiAssistantAction))
+        assertFalse(AiAssistantAction.defaultIcon == AiCandidatesAction.defaultIcon)
+    }
+
+    @Test
+    fun aiAssistantIsHiddenByDefault() {
+        val config = ButtonsLayoutConfig.default()
+
+        assertEquals(1, config.optionalButtons.count { it.id == AiAssistantAction.id })
+        assertFalse(config.kawaiiBarButtons.any { it.id == AiAssistantAction.id })
+        assertFalse(config.statusAreaButtons.any { it.id == AiAssistantAction.id })
+    }
+
+    @Test
     fun moreButtonIsTheFixedFirstKawaiiBarButton() {
         assertEquals("more", ButtonsLayoutConfig.default().kawaiiBarButtons.first().id)
         assertEquals("font:E141", ButtonsLayoutConfig.default().kawaiiBarButtons.first().icon)

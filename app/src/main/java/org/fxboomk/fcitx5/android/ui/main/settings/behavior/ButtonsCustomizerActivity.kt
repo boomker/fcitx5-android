@@ -207,6 +207,7 @@ class ButtonsCustomizerActivity : AppCompatActivity() {
         ButtonDefinition("cursor_move", R.drawable.ic_cursor_move, R.string.text_editing),
         ButtonDefinition("floating_toggle", R.drawable.ic_floating_toggle_24, R.string.floating_keyboard),
         ButtonDefinition("ai_candidates", R.drawable.ic_baseline_auto_awesome_24, R.string.ai_clip_title),
+        ButtonDefinition("ai_assistant", R.drawable.ic_flash_auto_24, R.string.ai_assistant),
         ButtonDefinition("clipboard", R.drawable.ic_clipboard, R.string.clipboard),
         ButtonDefinition("theme_toggle", R.drawable.ic_theme_light_dark_24, R.string.toggle_day_night_theme),
         ButtonDefinition("number_keyboard", R.drawable.ic_number_pad, R.string.number_keyboard),

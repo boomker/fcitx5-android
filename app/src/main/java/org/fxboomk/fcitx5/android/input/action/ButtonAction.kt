@@ -130,6 +130,7 @@ sealed class ButtonAction {
                 CursorMoveAction,
                 FloatingToggleAction,
                 AiCandidatesAction,
+                AiAssistantAction,
                 ClipboardAction,
                 ThemeToggleAction,
                 NumberKeyboardAction,
@@ -425,16 +426,6 @@ data object AiCandidatesAction : ButtonAction() {
             ?.start()
         service.inputView?.openAiSuggestionPanel()
         onActionComplete?.invoke()
-    }
-
-    override fun onLongPress(
-        context: Context,
-        service: FcitxInputMethodService,
-        fcitx: FcitxConnection,
-        windowManager: InputWindowManager,
-        view: View
-    ) {
-        AiAssistant.open(service)
     }
 }
 
@@ -1045,7 +1036,7 @@ data object EditFontsetAction : ButtonAction() {
 
 data object AiAssistantAction : ButtonAction() {
     override val id = "ai_assistant"
-    override val defaultIcon = R.drawable.ic_baseline_auto_awesome_24
+    override val defaultIcon = R.drawable.ic_flash_auto_24
     override val defaultLabelRes = R.string.ai_assistant
     override fun execute(context: Context, service: FcitxInputMethodService, fcitx: FcitxConnection,
         windowManager: InputWindowManager, view: View?, onActionComplete: (() -> Unit)?) {
