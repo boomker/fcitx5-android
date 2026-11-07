@@ -698,7 +698,7 @@ data object ButtonsAdjustingWindow : InputWindow.SimpleInputWindow<ButtonsAdjust
 
     private fun loadState() {
         val config = (ConfigProviders.readButtonsLayoutConfig<ButtonsLayoutConfig>()?.value
-            ?: ButtonsLayoutConfig.default()).withKeyboardHeightAdjustButton()
+            ?: ButtonsLayoutConfig.default()).withKeyboardHeightAdjustButton().withToolbarCustomizeButton()
         moreButtonConfig = ButtonsLayoutConfig.moreButtonOrDefault(config.kawaiiBarButtons)
         inputMethodOptionsConfig = config.statusAreaButtons
             .firstOrNull { it.id == "input_method_options" }

@@ -8,11 +8,9 @@ package org.fxboomk.fcitx5.android.input.bar.ui.idle
 import android.content.Context
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
 import androidx.annotation.DrawableRes
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.recyclerview.widget.RecyclerView
-import com.google.android.flexbox.FlexboxLayoutManager
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.data.theme.Theme
 import org.fxboomk.fcitx5.android.input.FcitxInputMethodService
@@ -33,8 +31,10 @@ import splitties.views.dsl.core.view
 class ButtonsBarUi(
     override val ctx: Context,
     private val theme: Theme,
-    private var buttons: List<ConfigurableButton> = ButtonsLayoutConfig.default().kawaiiBarButtons
+    buttons: List<ConfigurableButton> = ButtonsLayoutConfig.default().kawaiiBarButtons
 ) : Ui {
+
+    private var buttons = buttons.filter { it.id != "more" && it.id != "hide_keyboard" }
 
     private val onKeyIconThemeChanged: () -> Unit = {
         root.post { buildButtons() }
@@ -53,6 +53,7 @@ class ButtonsBarUi(
 
     // Map to store button references by ID
     private val buttonMap = mutableMapOf<String, ToolButton>()
+    private val buttonActiveStates = mutableMapOf<String, Boolean>()
     private data class IconSpec(
         @DrawableRes val resource: Int,
         val glyph: String? = null,
@@ -85,15 +86,18 @@ class ButtonsBarUi(
     private fun buildButtons() {
         buttonMap.clear()
         voiceButtonIcons.clear()
+        buttonActiveStates.keys.retainAll(buttons.map { it.id }.toSet())
         val recyclerView = root
         // Recreate adapter to ensure clean state
+        recyclerView.stopScroll()
         recyclerView.adapter = ButtonsBarAdapter()
+        (recyclerView.layoutManager as KawaiiBarLayout).scrollToPositionWithOffset(0, 0)
         // Update layout mode immediately (width should be available from previous layout)
         recyclerView.updateLayoutMode()
     }
 
     fun updateConfig(newButtons: List<ConfigurableButton>) {
-        val filteredButtons = newButtons.filter { it.id != "more" }
+        val filteredButtons = newButtons.filter { it.id != "more" && it.id != "hide_keyboard" }
         if (filteredButtons != buttons) {
             buttons = filteredButtons
             buildButtons()
@@ -175,10 +179,12 @@ class ButtonsBarUi(
     fun getButton(buttonId: String): ToolButton? = buttonMap[buttonId]
 
     fun setFloatingState(isFloating: Boolean) {
+        buttonActiveStates["floating_toggle"] = isFloating
         buttonMap["floating_toggle"]?.setActive(isFloating)
     }
 
     fun setOneHandKeyboardState(isOneHanded: Boolean) {
+        buttonActiveStates["one_handed_keyboard"] = isOneHanded
         buttonMap["one_handed_keyboard"]?.setActive(isOneHanded)
     }
 
@@ -187,8 +193,10 @@ class ButtonsBarUi(
      */
     fun updateButtonsState(service: FcitxInputMethodService) {
         ButtonAction.allConfigurableActions.forEach { action ->
-            val button = buttonMap[action.id] ?: return@forEach
+            if (buttons.none { it.id == action.id }) return@forEach
             val active = action.isActive(service)
+            buttonActiveStates[action.id] = active
+            val button = buttonMap[action.id] ?: return@forEach
             button.setActive(active)
             if (action.id == ToolbarVoiceInputPolicy.VOICE_INPUT_ID) {
                 val (idle, listening) = voiceButtonIcons[action.id] ?: return@forEach
@@ -218,7 +226,7 @@ class ButtonsBarUi(
                 tag = config.id
                 // Ensure button always fills KawaiiBar height
                 minimumHeight = ctx.dp(KawaiiBarComponent.configuredHeightDp())
-                layoutParams = FlexboxLayoutManager.LayoutParams(
+                layoutParams = RecyclerView.LayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT,
                     ViewGroup.LayoutParams.MATCH_PARENT
                 ).apply {
@@ -245,54 +253,20 @@ class ButtonsBarUi(
         override fun onBindViewHolder(holder: ButtonViewHolder, position: Int) {
             val recyclerView = root
             val kawaiiBarLayout = recyclerView.layoutManager as KawaiiBarLayout
-            val parentWidth = recyclerView.width
-            val childCount = itemCount
-            val button = holder.button
+            val parentWidth = recyclerView.width - recyclerView.paddingLeft - recyclerView.paddingRight
+            val params = holder.button.layoutParams as RecyclerView.LayoutParams
+            params.width = kawaiiBarLayout.calculateEvenDistributedWidth(itemCount, parentWidth)
+                .coerceAtLeast(kawaiiBarLayout.minButtonWidth)
 
-            val params = holder.button.layoutParams as FlexboxLayoutManager.LayoutParams
-
-            // Calculate ideal width for even distribution
-            if (parentWidth > 0 && childCount > 0) {
-                val idealWidth = kawaiiBarLayout.calculateEvenDistributedWidth(childCount, parentWidth)
-
-                // Switch to scroll mode if ideal width is less than minimum
-                if (idealWidth < kawaiiBarLayout.minButtonWidth) {
-                    if (kawaiiBarLayout.isEvenDistributionMode) {
-                        kawaiiBarLayout.setScrollMode()
-                        recyclerView.isHorizontalScrollBarEnabled = true
-                        // Request relayout on next frame
-                        if (position == 0) {
-                            recyclerView.post {
-                                notifyDataSetChanged()
-                            }
-                            return
-                        }
-                    }
-                    // Scroll mode: WRAP_CONTENT with minimum width ensures buttons don't shrink
-                    params.width = ViewGroup.LayoutParams.WRAP_CONTENT
-                    params.minWidth = kawaiiBarLayout.minButtonWidth
-                    button.image.scaleType = ImageView.ScaleType.CENTER_INSIDE
-                } else {
-                    // Switch to even distribution mode if not already
-                    if (!kawaiiBarLayout.isEvenDistributionMode) {
-                        kawaiiBarLayout.setEvenDistributionMode()
-                        recyclerView.isHorizontalScrollBarEnabled = false
-                        if (position == 0) {
-                            recyclerView.post {
-                                notifyDataSetChanged()
-                            }
-                            return
-                        }
-                    }
-                    // Even distribution mode: Set fixed width for each button
-                    params.width = idealWidth
-                    params.minWidth = 0
-                    button.image.scaleType = ImageView.ScaleType.CENTER_INSIDE
-                }
+            val buttonId = buttons[position].id
+            val active = if (buttonId == ToolbarVoiceInputPolicy.VOICE_INPUT_ID) {
+                VoiceInputProviderManager.isActive()
             } else {
-                // Fallback to scroll mode
-                params.width = ViewGroup.LayoutParams.WRAP_CONTENT
-                params.minWidth = kawaiiBarLayout.minButtonWidth
+                buttonActiveStates[buttonId] ?: false
+            }
+            holder.button.setActive(active)
+            voiceButtonIcons[buttonId]?.let { (idle, listening) ->
+                applyIcon(holder.button, if (active) listening else idle)
             }
         }
 

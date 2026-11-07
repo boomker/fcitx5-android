@@ -393,6 +393,7 @@
     <string name="key_border_stroke">Включить обводку для границы клавиши</string>
     <string name="edit_popup_preset">Сопоставление клавиш всплывающих окон</string>
     <string name="edit_popup_preset_summary">Редактировать сопоставление клавиш всплывающих окон (клавиша -&gt; кандидаты всплывающих окон)</string>
+    <string name="toolbar_customize">Настроить панель</string>
     <string name="edit_buttons">Кнопки и значки</string>
     <string name="edit_buttons_summary">Тема кнопок: %1$s ・ Тема значков: %2$s</string>
     <string name="toolbar_buttons_tab">Кнопки панели</string>

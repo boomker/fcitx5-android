@@ -6,33 +6,23 @@ package org.fxboomk.fcitx5.android.input.bar.ui.idle
 
 import android.content.Context
 import android.view.View
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.google.android.flexbox.AlignItems
-import com.google.android.flexbox.FlexDirection
-import com.google.android.flexbox.FlexWrap
-import com.google.android.flexbox.FlexboxLayoutManager
-import com.google.android.flexbox.JustifyContent
 import splitties.dimensions.dp
 
 /**
  * A custom layout manager for Kawaii Bar that supports:
- * 1. Even distribution (SPACE_AROUND-like) when buttons have enough space
- * 2. Horizontal scrolling when buttons are compressed below minimum width (40dp)
+ * 1. Even distribution when buttons have enough space
+ * 2. Horizontal scrolling while preserving a minimum button width (40dp)
  */
-class KawaiiBarLayout(context: Context) : FlexboxLayoutManager(context, FlexDirection.ROW) {
+class KawaiiBarLayout(context: Context) : LinearLayoutManager(context, HORIZONTAL, false) {
 
     // Minimum button width: 40dp to match icon size
     val minButtonWidth: Int = context.dp(40)
-    private val buttonSpacing: Int = context.dp(4) // 2dp margin on each side
+    private val buttonSpacing: Int = context.dp(2) * 2 // Match each margin's pixel rounding.
 
     var isEvenDistributionMode = false
         private set
-
-    init {
-        alignItems = AlignItems.CENTER
-        justifyContent = JustifyContent.FLEX_START
-        flexWrap = FlexWrap.NOWRAP
-    }
 
     /**
      * Calculate if buttons should be evenly distributed or scrollable
@@ -56,7 +46,6 @@ class KawaiiBarLayout(context: Context) : FlexboxLayoutManager(context, FlexDire
      * Configure the layout for even distribution mode
      */
     fun setEvenDistributionMode() {
-        justifyContent = JustifyContent.SPACE_AROUND
         isEvenDistributionMode = true
     }
 
@@ -64,7 +53,6 @@ class KawaiiBarLayout(context: Context) : FlexboxLayoutManager(context, FlexDire
      * Configure the layout for scroll mode
      */
     fun setScrollMode() {
-        justifyContent = JustifyContent.FLEX_START
         isEvenDistributionMode = false
     }
 
@@ -87,10 +75,6 @@ class KawaiiBarLayout(context: Context) : FlexboxLayoutManager(context, FlexDire
 
         // Divide evenly among buttons
         return availableWidth / childCount
-    }
-
-    override fun onLayoutChildren(recycler: RecyclerView.Recycler?, state: RecyclerView.State?) {
-        super.onLayoutChildren(recycler, state)
     }
 }
 
@@ -119,29 +103,22 @@ class KawaiiBarRecyclerView(context: Context) : RecyclerView(context) {
      * Update the layout mode based on current button count and available space
      */
     internal fun updateLayoutMode() {
-        val adapter = adapter ?: return
-        val childCount = adapter.itemCount
-
-        // Post to ensure layout measurement is complete
+        // Rebind after measurement so existing children also receive new widths.
         post {
-            val parentWidth = width
-            if (parentWidth <= 0 || childCount == 0) return@post
-
-            // Calculate ideal width for even distribution
-            val idealWidth = kawaiiBarLayout.calculateEvenDistributedWidth(childCount, parentWidth)
-
-            // If ideal width is less than minimum button width, use scroll mode
-            val shouldDistribute = idealWidth >= kawaiiBarLayout.minButtonWidth
+            val currentAdapter = adapter ?: return@post
+            val parentWidth = width - paddingLeft - paddingRight
+            if (parentWidth <= 0) return@post
+            val shouldDistribute = kawaiiBarLayout.shouldDistributeEvenly(currentAdapter.itemCount, parentWidth)
 
             if (shouldDistribute) {
                 kawaiiBarLayout.setEvenDistributionMode()
-                // Disable horizontal scrolling when in even distribution mode
-                isHorizontalScrollBarEnabled = false
+                kawaiiBarLayout.scrollToPositionWithOffset(0, 0)
             } else {
                 kawaiiBarLayout.setScrollMode()
-                // Enable horizontal scrolling when buttons need more space
-                isHorizontalScrollBarEnabled = true
             }
+            isHorizontalScrollBarEnabled = !shouldDistribute
+            // All widths changed; a payload lets RecyclerView reuse the existing holders.
+            currentAdapter.notifyItemRangeChanged(0, currentAdapter.itemCount, Unit)
         }
     }
 

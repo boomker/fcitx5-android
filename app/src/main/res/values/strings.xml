@@ -601,6 +601,7 @@
     <string name="cannot_resolve_swipe_symbol_mapping">Cannot resolve the symbol swipe mapping file path</string>
     <string name="swipe_symbol_picker_title">Pick from symbol swipe mapping</string>
     <string name="swipe_symbol_picker_empty">The symbol swipe mapping is empty</string>
+    <string name="toolbar_customize">Customize toolbar</string>
     <string name="edit_buttons">Buttons &amp; Icons</string>
     <string name="edit_buttons_summary">Button theme: %1$s ・ Icon theme: %2$s</string>
     <string name="toolbar_buttons_tab">Toolbar Buttons</string>

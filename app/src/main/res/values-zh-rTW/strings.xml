@@ -364,6 +364,7 @@
     <string name="cannot_resolve_swipe_symbol_mapping">無法解析符號劃動對應檔案路徑</string>
     <string name="swipe_symbol_picker_title">從符號劃動對應選擇</string>
     <string name="swipe_symbol_picker_empty">符號劃動對應為空</string>
+    <string name="toolbar_customize">工具列自訂</string>
     <string name="edit_buttons">按鈕與圖示</string>
     <string name="edit_buttons_summary">按鈕主題：%1$s ・圖示主題：%2$s</string>
     <string name="buttons_customizer_hint">點按可見按鈕可編輯圖示樣式；長按並拖動按鈕到「可新增按鈕」即可隱藏，也可在 Kawaii Bar（頂行）和 Status Area（選單）之間移動。點按「可新增按鈕」中的按鈕可選擇目標分組。</string>

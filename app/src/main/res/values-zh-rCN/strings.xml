@@ -433,6 +433,7 @@
     <string name="cannot_resolve_swipe_symbol_mapping">无法解析符号划动映射文件路径</string>
     <string name="swipe_symbol_picker_title">从符号划动映射选择</string>
     <string name="swipe_symbol_picker_empty">符号划动映射为空</string>
+    <string name="toolbar_customize">工具栏定制</string>
     <string name="edit_buttons">按钮与图标</string>
     <string name="edit_buttons_summary">按钮主题：%1$s ・图标主题：%2$s</string>
     <string name="toolbar_buttons_tab">工具栏按钮</string>

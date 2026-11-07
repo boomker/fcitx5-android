@@ -139,6 +139,7 @@ data class ButtonsLayoutConfig(
 ) {
     companion object {
         const val KEYBOARD_HEIGHT_ADJUST_ID = "adjust_keyboard_height"
+        const val TOOLBAR_CUSTOMIZE_ID = "toolbar_customize"
         private const val DEFAULT_MORE_ICON = "font:E141"
         private const val DEFAULT_HIDE_KEYBOARD_ICON = "ic_keyboard_hide_24"
 
@@ -173,6 +174,7 @@ data class ButtonsLayoutConfig(
             // Note: input_method_options is always added automatically at the end of Status Area
             statusAreaButtons = listOf(
                 ConfigurableButton("theme"),
+                ConfigurableButton(TOOLBAR_CUSTOMIZE_ID),
                 ConfigurableButton("reload_config"),
                 ConfigurableButton("virtual_keyboard"),
                 ConfigurableButton("one_handed_keyboard"),
@@ -204,6 +206,20 @@ data class ButtonsLayoutConfig(
         val insertAt = buttons.indexOfFirst { it.id == "input_method_options" }
             .takeIf { it >= 0 } ?: buttons.size
         buttons.add(insertAt, ConfigurableButton(KEYBOARD_HEIGHT_ADJUST_ID))
+        return copy(statusAreaButtons = buttons)
+    }
+
+    /** Add the new shortcut to old layouts while preserving an explicit placement or hiding. */
+    fun withToolbarCustomizeButton(): ButtonsLayoutConfig {
+        val allIds = (kawaiiBarButtons + statusAreaButtons + optionalButtons).mapTo(mutableSetOf()) { it.id }
+        if (TOOLBAR_CUSTOMIZE_ID in allIds) return this
+        val buttons = statusAreaButtons.toMutableList()
+        val themeIndex = buttons.indexOfFirst { it.id == "theme" }
+        val insertAt = if (themeIndex >= 0) themeIndex + 1 else {
+            buttons.indexOfFirst { it.id == "input_method_options" }
+                .takeIf { it >= 0 } ?: buttons.size
+        }
+        buttons.add(insertAt, ConfigurableButton(TOOLBAR_CUSTOMIZE_ID))
         return copy(statusAreaButtons = buttons)
     }
 }

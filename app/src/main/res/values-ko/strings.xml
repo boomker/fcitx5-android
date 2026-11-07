@@ -131,6 +131,7 @@
     <string name="redo">다시 실행</string>
     <string name="edit_popup_preset">팝업 키 매핑</string>
     <string name="edit_popup_preset_summary">팝업 키 매핑 편집 (키 -&gt; 팝업 후보)</string>
+    <string name="toolbar_customize">툴바 맞춤설정</string>
     <string name="edit_buttons">버튼 및 아이콘</string>
     <string name="edit_buttons_summary">버튼 테마: %1$s ・ 아이콘 테마: %2$s</string>
     <string name="toolbar_buttons_tab">툴바 버튼</string>

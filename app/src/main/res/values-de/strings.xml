@@ -225,6 +225,7 @@
     <string name="button_sound_volume">Ton Tastendruck Lautstärke</string>
     <string name="edit_popup_preset">Popup-Tastenzuordnung</string>
     <string name="edit_popup_preset_summary">Popup-Tastenzuordnung bearbeiten (Taste -&gt; Popup-Kandidaten)</string>
+    <string name="toolbar_customize">Werkzeugleiste anpassen</string>
     <string name="edit_buttons">Schaltflächen &amp; Symbole</string>
     <string name="edit_buttons_summary">Button-Design: %1$s ・ Icon-Design: %2$s</string>
     <string name="toolbar_buttons_tab">Werkzeugleisten-Schaltflächen</string>

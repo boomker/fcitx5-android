@@ -73,7 +73,7 @@ class StatusAreaWindow : InputWindow.ExtendedInputWindow<StatusAreaWindow>(),
         return try {
             val snapshot = ConfigProviders.readButtonsLayoutConfig<ButtonsLayoutConfig>()
             val config = snapshot?.value ?: ButtonsLayoutConfig.default()
-            config.withKeyboardHeightAdjustButton().statusAreaButtons
+            config.withKeyboardHeightAdjustButton().withToolbarCustomizeButton().statusAreaButtons
         } catch (e: Exception) {
             ButtonsLayoutConfig.default().statusAreaButtons
         }

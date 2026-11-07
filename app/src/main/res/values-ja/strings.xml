@@ -319,6 +319,7 @@
     <string name="crop">切り取り</string>
     <string name="edit_popup_preset">ポップアップキーマッピング</string>
     <string name="edit_popup_preset_summary">ポップアップキーマッピングを編集 (キー -&gt; ポップアップ候補)</string>
+    <string name="toolbar_customize">ツールバーをカスタマイズ</string>
     <string name="edit_buttons">ボタンとアイコン</string>
     <string name="edit_buttons_summary">ボタンテーマ：%1$s ・ アイコンテーマ：%2$s</string>
     <string name="toolbar_buttons_tab">ツールバーボタン</string>

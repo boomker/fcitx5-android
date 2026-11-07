@@ -39,6 +39,7 @@ import org.fxboomk.fcitx5.android.input.status.StatusAreaWindow
 import org.fxboomk.fcitx5.android.input.voice.VoiceInputProviderManager
 import org.fxboomk.fcitx5.android.input.wm.InputWindowManager
 import org.fxboomk.fcitx5.android.ui.main.settings.SettingsRoute
+import org.fxboomk.fcitx5.android.ui.main.settings.behavior.ButtonsCustomizerActivity
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.FontsetEditorActivity
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.TextKeyboardLayoutEditorActivity
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.TextKeyboardLayoutProfileManagerActivity
@@ -138,6 +139,7 @@ sealed class ButtonAction {
                 VoiceInputAction,
                 LanguageSwitchAction,
                 ThemeAction,
+                ToolbarCustomizeAction,
                 MoreAction,
                 InputMethodOptionsAction,
                 ReloadConfigAction,
@@ -228,6 +230,7 @@ sealed class ButtonAction {
             listOf(
                 LanguageSwitchAction,
                 ThemeAction,
+                ToolbarCustomizeAction,
                 InputMethodOptionsAction,
                 ReloadConfigAction,
                 VirtualKeyboardAction,
@@ -578,6 +581,25 @@ data object MoreAction : ButtonAction() {
 }
 
 // Status Area Actions
+
+data object ToolbarCustomizeAction : ButtonAction() {
+    override val id = ButtonsLayoutConfig.TOOLBAR_CUSTOMIZE_ID
+    override val defaultIcon = R.drawable.ic_baseline_tune_24
+    override val defaultLabelRes = R.string.toolbar_customize
+
+    override fun execute(
+        context: Context,
+        service: FcitxInputMethodService,
+        fcitx: FcitxConnection,
+        windowManager: InputWindowManager,
+        view: View?,
+        onActionComplete: (() -> Unit)?
+    ) {
+        context.startActivity(Intent(context, ButtonsCustomizerActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        })
+    }
+}
 
 data object LanguageSwitchAction : ButtonAction() {
     override val id = "language_switch"
