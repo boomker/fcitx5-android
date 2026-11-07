@@ -202,6 +202,7 @@ class AiSuggestionStripComponent(
     private var panelDisplayedText = ""
     private var taskMode = LlmTaskMode.Completion
     private var longFormEnabled = false
+    private var briefAnswerEnabled = false
     private var pseudoStreamToken = 0L
     private var pseudoStreamRunnable: Runnable? = null
     private var startInputPredictionGeneration = 0
@@ -358,6 +359,7 @@ class AiSuggestionStripComponent(
     }
 
     fun toggleQuestionAnswerMode(): Boolean {
+        briefAnswerEnabled = false
         taskMode = if (taskMode == LlmTaskMode.QuestionAnswer) {
             LlmTaskMode.Completion
         } else {
@@ -371,6 +373,7 @@ class AiSuggestionStripComponent(
     }
 
     fun toggleTranslateMode(): Boolean {
+        briefAnswerEnabled = false
         taskMode = if (taskMode == LlmTaskMode.Translate) {
             LlmTaskMode.Completion
         } else {
@@ -383,6 +386,7 @@ class AiSuggestionStripComponent(
     }
 
     fun toggleLongFormMode(): Boolean {
+        briefAnswerEnabled = false
         longFormEnabled = !longFormEnabled
         if (longFormEnabled) {
             taskMode = LlmTaskMode.Completion
@@ -390,6 +394,32 @@ class AiSuggestionStripComponent(
         persistRememberedUiMode()
         refreshPredictionsForModeToggle()
         return longFormEnabled
+    }
+
+    internal fun requestAction(action: AiCandidateAction): Boolean {
+        if (action == AiCandidateAction.Settings) return false
+        val config = LlmPrefs.read(service.applicationContext)
+        val flags = CapabilityFlags.fromEditorInfo(service.currentInputEditorInfo)
+        if (!config.enabled || flags.has(CapabilityFlag.PasswordOrSensitive) ||
+            hasClientPreedit || hasInputPanelPreedit || !selectionCollapsed ||
+            service.hardwarePredictionSession.isSuppressed
+        ) return false
+        taskMode = when (action) {
+            AiCandidateAction.Polish -> LlmTaskMode.Completion
+            AiCandidateAction.Translate -> LlmTaskMode.Translate
+            AiCandidateAction.Reply -> LlmTaskMode.QuestionAnswer
+            AiCandidateAction.Settings -> return false
+        }
+        longFormEnabled = action == AiCandidateAction.Polish
+        briefAnswerEnabled = action == AiCandidateAction.Reply
+        persistRememberedUiMode()
+        if (predictorCreated) predictor.cancel()
+        cancelPseudoStreaming()
+        lastRequestedBeforeCursor = ""
+        activeSuggestions = emptyList()
+        errorMessage = null
+        resetPanelContentState()
+        return requestPanelTextContent(configOverride = config, trigger = PredictionTrigger.Explicit)
     }
 
     private fun exitTranslateMode() {
@@ -970,6 +1000,7 @@ class AiSuggestionStripComponent(
     }
 
     private fun restoreRememberedMode(config: LlmPrefs.Config) {
+        briefAnswerEnabled = false
         val remembered = LlmPrefs.readRememberedUiMode(
             prefs = PreferenceManager.getDefaultSharedPreferences(service.applicationContext),
             defaultThinkingEnabled = config.isLocalOnDevice,
@@ -1072,7 +1103,11 @@ class AiSuggestionStripComponent(
     }
 
     private fun currentPanelOutputMode(): LlmOutputMode {
-        return if (longFormEnabled) LlmOutputMode.LongForm else LlmOutputMode.Suggestions
+        return when {
+            briefAnswerEnabled -> LlmOutputMode.BriefAnswer
+            longFormEnabled -> LlmOutputMode.LongForm
+            else -> LlmOutputMode.Suggestions
+        }
     }
 
     private fun requestPanelTextContent(
@@ -1089,9 +1124,9 @@ class AiSuggestionStripComponent(
             return requestTranslateContent(config, trigger)
         }
         val beforeCursor = beforeCursorOverride
-            ?.takeIf { !longFormEnabled }
+            ?.takeIf { !longFormEnabled && !briefAnswerEnabled }
             ?.let { it.takeLast(config.maxContextChars) }
-            ?: if (longFormEnabled) {
+            ?: if (longFormEnabled || briefAnswerEnabled) {
                 fetchEntireInputText(config).beforeCursor
             } else {
                 fetchBeforeCursor(config).takeLast(config.maxContextChars)
@@ -1230,7 +1265,9 @@ class AiSuggestionStripComponent(
             request = request,
             onPartial = { partial ->
                 if (trigger == PredictionTrigger.Automatic && predictionSuppressed) return@request
-                val latestBeforeCursor = fetchBeforeCursor(config).takeLast(config.maxContextChars)
+                val latestBeforeCursor = if (request.outputMode == LlmOutputMode.BriefAnswer) {
+                    fetchEntireInputText(config).beforeCursor
+                } else fetchBeforeCursor(config).takeLast(config.maxContextChars)
                 if (latestBeforeCursor != beforeCursor) return@request
                 val streamed = sanitizeSingleCandidate(
                     candidate = partial,
@@ -1251,7 +1288,9 @@ class AiSuggestionStripComponent(
             },
             onResult = { suggestions ->
                 if (trigger == PredictionTrigger.Automatic && predictionSuppressed) return@request
-                val latestBeforeCursor = fetchBeforeCursor(config).takeLast(config.maxContextChars)
+                val latestBeforeCursor = if (request.outputMode == LlmOutputMode.BriefAnswer) {
+                    fetchEntireInputText(config).beforeCursor
+                } else fetchBeforeCursor(config).takeLast(config.maxContextChars)
                 if (latestBeforeCursor != beforeCursor) return@request
                 errorMessage = null
                 val answer = suggestions.firstOrNull()

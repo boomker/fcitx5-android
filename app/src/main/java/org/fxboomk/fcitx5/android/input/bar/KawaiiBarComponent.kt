@@ -589,13 +589,13 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
                 )
                 true
             }
-            setOnLongClickListener("ai_candidates") {
+            setOnLongClickListener("ai_candidates") { button ->
                 ButtonAction.fromId("ai_candidates")?.onLongPress(
                     context = context,
                     service = service,
                     fcitx = fcitx,
                     windowManager = windowManager,
-                    view = ui.buttonsUi.root
+                    view = button
                 )
                 true
             }

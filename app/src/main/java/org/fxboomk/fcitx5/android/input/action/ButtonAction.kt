@@ -29,7 +29,6 @@ import org.fxboomk.fcitx5.android.input.clipboard.ClipboardWindow
 import org.fxboomk.fcitx5.android.input.config.ButtonsLayoutConfig
 import org.fxboomk.fcitx5.android.input.dialog.AddMoreInputMethodsPrompt
 import org.fxboomk.fcitx5.android.input.dialog.InputMethodPickerDialog
-import org.fxboomk.fcitx5.android.input.dialog.LlmQuickSettingsDialog
 import org.fxboomk.fcitx5.android.input.editing.TextEditingWindow
 import org.fxboomk.fcitx5.android.input.bar.ui.ToolButton
 import org.fxboomk.fcitx5.android.input.keyboard.LangSwitchBehavior
@@ -436,9 +435,7 @@ data object AiCandidatesAction : ButtonAction() {
         windowManager: InputWindowManager,
         view: View
     ) {
-        service.showDialog(
-            LlmQuickSettingsDialog(context, service.lifecycleScope).build()
-        )
+        service.inputView?.showAiCandidateActionMenu(view)
     }
 }
 

@@ -83,6 +83,9 @@ import org.fxboomk.fcitx5.android.input.candidates.expanded.window.GridExpandedC
 import org.fxboomk.fcitx5.android.input.predict.AiSuggestionOverlay
 import org.fxboomk.fcitx5.android.input.candidates.isCandidateVisibleToUser
 import org.fxboomk.fcitx5.android.input.predict.AiSuggestionStripComponent
+import org.fxboomk.fcitx5.android.input.predict.AiCandidateAction
+import org.fxboomk.fcitx5.android.input.bar.ui.ToolButton
+import org.fxboomk.fcitx5.android.input.dialog.LlmQuickSettingsDialog
 import org.fxboomk.fcitx5.android.input.predict.hasInteractiveAiContent
 import org.fxboomk.fcitx5.android.input.predict.LlmPrefs
 import org.fxboomk.fcitx5.android.input.keyboard.CommonKeyActionListener
@@ -3512,6 +3515,22 @@ class InputView(
     internal fun openAiSuggestionPanel(): Boolean {
         val opened = aiSuggestionStrip.openSuggestionTable()
         if (!opened) return false
+        showAiResultPanel()
+        return true
+    }
+
+    internal fun showAiCandidateActionMenu(anchor: View) {
+        val button = anchor as? ToolButton ?: return
+        popup.showActionMenu(button) { action ->
+            if (action == AiCandidateAction.Settings) {
+                service.showDialog(LlmQuickSettingsDialog(themedContext, service.lifecycleScope).build())
+            } else if (aiSuggestionStrip.requestAction(action)) {
+                showAiResultPanel()
+            }
+        }
+    }
+
+    private fun showAiResultPanel() {
         val prefs = PreferenceManager.getDefaultSharedPreferences(context)
         if (LlmPrefs.currentPredictionDisplayMode(prefs) ==
             LlmPrefs.PredictionDisplayMode.CandidateExpanded
@@ -3531,7 +3550,6 @@ class InputView(
                 )
             }, AI_CANDIDATE_EXPAND_DELAY_MS)
         }
-        return true
     }
 
     internal fun isAiSuggestionPanelVisible(): Boolean = aiSuggestionStrip.isPanelVisible()

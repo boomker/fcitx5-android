@@ -11,6 +11,109 @@ import org.junit.Test
 class LlmPromptTest {
 
     @Test
+    fun briefAnswerChatPromptsAskForOneToThreeSentencesInBothLanguages() {
+        for (input in listOf("今晚吃什么？", "What should we eat tonight?")) {
+            val system = LlmPrompt.systemPrompt(
+                maxPredictionCandidates = 5,
+                beforeCursor = input,
+                outputMode = LlmOutputMode.BriefAnswer,
+                taskMode = LlmTaskMode.QuestionAnswer,
+            )
+            val user = LlmPrompt.userPrompt(
+                beforeCursor = input,
+                outputMode = LlmOutputMode.BriefAnswer,
+                taskMode = LlmTaskMode.QuestionAnswer,
+            )
+
+            assertBriefAnswerPrompt(system, input)
+            assertBriefAnswerPrompt(user, input)
+            assertTrue(user.endsWith("$input\n</instruction>"))
+            assertTrue(!system.contains("{\"suggestions\":"))
+        }
+    }
+
+    @Test
+    fun briefAnswerCompletionPromptUsesConciseInstructionsWithoutPrefillingTheQuestion() {
+        for (input in listOf("今晚吃什么？", "What should we eat tonight?")) {
+            val prompt = LlmPrompt.completionPrompt(
+                beforeCursor = input,
+                recentCommittedText = "",
+                historyText = "",
+                useRecentCommitBias = false,
+                maxPredictionCandidates = 5,
+                outputMode = LlmOutputMode.BriefAnswer,
+                taskMode = LlmTaskMode.QuestionAnswer,
+            )
+
+            assertBriefAnswerPrompt(prompt, input)
+            assertTrue(prompt.contains("$input\n</instruction>"))
+            assertTrue(!prompt.endsWith(input))
+            assertTrue(!prompt.contains("{\"suggestions\":"))
+        }
+    }
+
+    @Test
+    fun briefAnswerLocalPromptKeepsConciseContractWhenPersonaRequestsDetail() {
+        for (input in listOf("今晚吃什么？", "What should we eat tonight?")) {
+            val prompt = LlmPrompt.localOnDevicePrompt(
+                beforeCursor = input,
+                recentCommittedText = "",
+                historyText = "",
+                maxPredictionCandidates = 5,
+                outputMode = LlmOutputMode.BriefAnswer,
+                taskMode = LlmTaskMode.QuestionAnswer,
+                customPersona = "Explain every detail in a long reply.",
+            )
+
+            assertBriefAnswerPrompt(prompt, input)
+            assertTrue(prompt.contains("Explain every detail in a long reply."))
+            assertTrue(prompt.endsWith(input))
+            assertTrue(!prompt.contains("<|im_start|>assistant"))
+        }
+    }
+
+    @Test
+    fun regularAnswerModesKeepTheirOriginalDetailGuidance() {
+        for (input in listOf("今晚吃什么？", "What should we eat tonight?")) {
+            for (mode in listOf(LlmOutputMode.Suggestions, LlmOutputMode.LongForm)) {
+                val prompts = listOf(
+                    LlmPrompt.systemPrompt(5, input, mode, LlmTaskMode.QuestionAnswer),
+                    LlmPrompt.completionSystemPrompt(5, input, mode, LlmTaskMode.QuestionAnswer),
+                    LlmPrompt.localOnDevicePrompt(input, "", "", 5, mode, LlmTaskMode.QuestionAnswer),
+                )
+
+                for (prompt in prompts) {
+                    assertTrue(!prompt.contains("1-3"))
+                    if (input.startsWith("今晚")) {
+                        assertTrue(prompt.contains(if (mode == LlmOutputMode.LongForm) "尽量完整回答" else "不要为了简短而省略关键信息"))
+                    } else {
+                        assertTrue(prompt.contains("detail"))
+                    }
+                }
+            }
+        }
+    }
+
+    private fun assertBriefAnswerPrompt(prompt: String, input: String) {
+        assertTrue(prompt.contains("1-3"))
+        if (input.startsWith("今晚")) {
+            assertTrue(prompt.contains("只输出 1 条"))
+            assertTrue(prompt.contains("可直接发送的简短回答"))
+            assertTrue(prompt.contains("直答重点"))
+            assertTrue(prompt.contains("保留必要的核心信息"))
+            assertTrue(prompt.contains("不得覆盖简短回答要求"))
+            assertTrue(!prompt.contains("不要为了简短而省略关键信息"))
+        } else {
+            assertTrue(prompt.contains("Output only one"))
+            assertTrue(prompt.contains("concise answer ready to send"))
+            assertTrue(prompt.contains("retain essential information"))
+            assertTrue(prompt.contains("must not override the concise answer requirement"))
+            assertTrue(!prompt.contains("do not omit important detail just to stay brief"))
+            assertTrue(!prompt.contains("do not cut the answer short"))
+        }
+    }
+
+    @Test
     fun translationCorrectionInstructionRejectsSourceEcho() {
         val prompt = LlmPrompt.translationCorrectionInstruction()
 

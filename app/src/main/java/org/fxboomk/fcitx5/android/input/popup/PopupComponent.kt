@@ -20,6 +20,8 @@ import org.fxboomk.fcitx5.android.input.dependency.inputMethodService
 import org.fxboomk.fcitx5.android.input.dependency.theme
 import org.fxboomk.fcitx5.android.input.keyboard.KeyAction
 import org.fxboomk.fcitx5.android.input.keyboard.KeyDef
+import org.fxboomk.fcitx5.android.input.bar.ui.ToolButton
+import org.fxboomk.fcitx5.android.input.predict.AiCandidateAction
 import org.mechdancer.dependency.Dependent
 import org.mechdancer.dependency.UniqueComponent
 import org.mechdancer.dependency.manager.ManagedHandler
@@ -51,6 +53,12 @@ class PopupComponent :
     private val freeEntryUi = LinkedList<PopupEntryUi>()
 
     private val showingContainerUi = HashMap<Int, PopupContainerUi>()
+    private var actionMenu: SlideActionMenu? = null
+
+    internal fun showActionMenu(anchor: ToolButton, onSelected: (AiCandidateAction) -> Unit) {
+        dismissAll()
+        actionMenu = SlideActionMenu(anchor, root, theme, onSelected).also { it.show() }
+    }
 
     private val keyBottomMargin by lazy {
         context.dp(ThemeManager.prefs.keyVerticalMargin.getValue())
@@ -345,6 +353,8 @@ class PopupComponent :
     }
 
     fun dismissAll() {
+        actionMenu?.dismiss()
+        actionMenu = null
         // avoid modifying collection while iterating
         dismissJobs.forEach { (_, job) ->
             job.cancel()

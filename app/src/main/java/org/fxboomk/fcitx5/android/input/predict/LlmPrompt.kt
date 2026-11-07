@@ -11,6 +11,14 @@ internal object LlmPrompt {
     private const val STYLE_POLISHER_EN = "a natural, context-aware IME text polishing assistant"
 
     private const val EMPTY_CONTEXT = "无"
+
+    private fun briefAnswerInstruction(language: LlmLanguage): String = when (language) {
+        LlmLanguage.Chinese ->
+            "只输出 1 条自然、可直接发送的简短回答，通常 1-3 句。直答重点，保留必要的核心信息，不展开长篇，不解释、不输出 JSON 或标签。人设与口吻偏好只影响表达，不得覆盖简短回答要求。"
+        LlmLanguage.English ->
+            "Output only one natural, concise answer ready to send, usually 1-3 sentences. Answer the main point directly, retain essential information, and do not expand into a long reply. Do not explain or output JSON or labels. Persona and tone preferences may shape the wording but must not override the concise answer requirement."
+    }
+
     private enum class RemotePromptTransport {
         Chat,
         Completion,
@@ -65,6 +73,8 @@ The previous output exactly repeated INSTRUCTION and was invalid. Translate agai
         append(
             when (language) {
                 LlmLanguage.Chinese -> when {
+                    outputMode == LlmOutputMode.BriefAnswer && taskMode == LlmTaskMode.QuestionAnswer ->
+                        "请把下面输入当作用户刚提出的问题或请求，不要续写前缀本身。${briefAnswerInstruction(language)}\n"
                     outputMode == LlmOutputMode.LongForm && taskMode == LlmTaskMode.QuestionAnswer ->
                         "请把下面输入当作用户刚提出的问题或请求，给出一条自然、完整、可直接发送的更展开回答。不要续写前缀本身：\n"
                     taskMode == LlmTaskMode.Translate ->
@@ -78,6 +88,8 @@ The previous output exactly repeated INSTRUCTION and was invalid. Translate agai
                 }
 
                 LlmLanguage.English -> when {
+                    outputMode == LlmOutputMode.BriefAnswer && taskMode == LlmTaskMode.QuestionAnswer ->
+                        "Treat the text below as the user's latest question or request, not as a prefix to continue. ${briefAnswerInstruction(language)}\n"
                     outputMode == LlmOutputMode.LongForm && taskMode == LlmTaskMode.QuestionAnswer ->
                         "Treat the text below as the user's latest question or request and answer with one natural, fuller reply. Do not continue the prefix itself, and do not cut the answer short if more detail is needed:\n"
                     taskMode == LlmTaskMode.Translate ->
@@ -261,6 +273,9 @@ The previous output exactly repeated INSTRUCTION and was invalid. Translate agai
                 taskMode == LlmTaskMode.Translate ->
                     "你是输入法翻译助手。请先识别完整输入的语言，再执行翻译：只有确认整段输入是简体中文时才翻译成自然英文；任何非简体中文语言，包括繁体中文、日文、韩文、英文及其他语言，都翻译成自然简体中文。判定示例：繁体中文 `臨時切換` 应译为简体中文 `临时切换`，不得原样返回。不要因为包含相似汉字就把繁体中文或日文误判为简体中文。只输出最终译文，不解释或复述判定过程。"
 
+                taskMode == LlmTaskMode.QuestionAnswer && outputMode == LlmOutputMode.BriefAnswer ->
+                    "你是输入法应答助手。把输入当作问题或请求，默认用中文回答。${briefAnswerInstruction(language)}"
+
                 taskMode == LlmTaskMode.QuestionAnswer && outputMode == LlmOutputMode.LongForm ->
                     "你是输入法应答助手。把输入当作问题或请求，输出 1 条自然、完整、可直接发送的中文回答；如果问题需要展开说明，就尽量完整回答，不解释。"
 
@@ -277,6 +292,9 @@ The previous output exactly repeated INSTRUCTION and was invalid. Translate agai
             LlmLanguage.English -> when {
                 taskMode == LlmTaskMode.Translate ->
                     "You are an IME translator. First identify the language of the complete input, then translate it. Translate to natural English only when the complete input is Simplified Chinese; translate every other language, including Traditional Chinese, Japanese, Korean, English, and other languages, into natural Simplified Chinese (简体中文). Classification example: Traditional Chinese `臨時切換` must become Simplified Chinese `临时切换`, never be returned unchanged. Do not mistake Traditional Chinese or Japanese for Simplified Chinese just because they contain similar Han characters. If the input is a single English word or a very short phrase, output one plain-text line using the literal separator `[[BR]]` in this fixed order: `释义：...[[BR]]音标：...[[BR]]n. ...[[BR]]v. ...[[BR]]adj. ...[[BR]]adv. ...[[BR]]prep. ...[[BR]]phr. ...`. Skip unavailable items but do not reorder. Do not use real line breaks inside that glossary-style result. For longer text, output only the final translation itself without describing the classification step."
+
+                taskMode == LlmTaskMode.QuestionAnswer && outputMode == LlmOutputMode.BriefAnswer ->
+                    "You are an IME reply assistant. Treat the input as a question or request. ${briefAnswerInstruction(language)}"
 
                 taskMode == LlmTaskMode.QuestionAnswer && outputMode == LlmOutputMode.LongForm ->
                     "You are an IME reply assistant. Treat the input as a request and output one natural, fuller reply without cutting important detail short."
@@ -356,6 +374,8 @@ The previous output exactly repeated INSTRUCTION and was invalid. Translate agai
         taskMode: LlmTaskMode,
     ): String = when (language) {
         LlmLanguage.Chinese -> when {
+            outputMode == LlmOutputMode.BriefAnswer && taskMode == LlmTaskMode.QuestionAnswer ->
+                "简短问答回复"
             outputMode == LlmOutputMode.LongForm && taskMode == LlmTaskMode.QuestionAnswer ->
                 "问答短文回复"
             taskMode == LlmTaskMode.Translate -> "整段文本翻译"
@@ -365,6 +385,8 @@ The previous output exactly repeated INSTRUCTION and was invalid. Translate agai
         }
 
         LlmLanguage.English -> when {
+            outputMode == LlmOutputMode.BriefAnswer && taskMode == LlmTaskMode.QuestionAnswer ->
+                "concise direct answer"
             outputMode == LlmOutputMode.LongForm && taskMode == LlmTaskMode.QuestionAnswer ->
                 "slightly longer direct answer"
             taskMode == LlmTaskMode.Translate -> "full-text translation"
@@ -405,6 +427,11 @@ INSTRUCTION = the current input text to process
 顶层格式必须且只能是 {"suggestions":["候选1","候选2"]}。
 尽量给满 $candidateLimit 个候选；如果确实无法给满，再输出更少的候选。
 如果无法预测，也输出空数组：{"suggestions":[]}
+""".trim()
+
+            outputMode == LlmOutputMode.BriefAnswer && taskMode == LlmTaskMode.QuestionAnswer -> """
+将 INSTRUCTION 视为完整的问题或请求，不要把它当成待续写前缀。
+${briefAnswerInstruction(language)}
 """.trim()
 
             outputMode == LlmOutputMode.LongForm && taskMode == LlmTaskMode.QuestionAnswer -> """
@@ -459,6 +486,11 @@ Output JSON only.
 The top-level format must be exactly {"suggestions":["candidate 1","candidate 2"]}.
 Try to provide all $candidateLimit candidates; return fewer only when necessary.
 If you cannot predict anything, output {"suggestions":[]}.
+""".trim()
+
+            outputMode == LlmOutputMode.BriefAnswer && taskMode == LlmTaskMode.QuestionAnswer -> """
+Treat INSTRUCTION as a complete question or request, not as a prefix to continue.
+${briefAnswerInstruction(language)}
 """.trim()
 
             outputMode == LlmOutputMode.LongForm && taskMode == LlmTaskMode.QuestionAnswer -> """

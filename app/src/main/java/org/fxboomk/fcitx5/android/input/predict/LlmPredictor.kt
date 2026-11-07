@@ -16,6 +16,7 @@ private const val TAG = "LlmPredictor"
 internal enum class LlmOutputMode {
     Suggestions,
     LongForm,
+    BriefAnswer,
 }
 
 internal enum class LlmTaskMode {

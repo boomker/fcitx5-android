@@ -5,8 +5,10 @@
 package org.fxboomk.fcitx5.android.input.bar.ui
 
 import android.content.Context
+import android.annotation.SuppressLint
 import android.content.res.ColorStateList
 import android.view.ViewPropertyAnimator
+import android.view.MotionEvent
 import android.widget.ImageView
 import android.graphics.drawable.Drawable
 import androidx.annotation.ColorInt
@@ -28,6 +30,36 @@ import splitties.views.imageResource
 import splitties.views.padding
 
 class ToolButton(context: Context) : CustomGestureView(context) {
+
+    private var heldGestureConsumed = false
+    internal var onHeldTouchEvent: ((MotionEvent) -> Boolean)? = null
+        set(value) {
+            field = value
+            if (value != null) heldGestureConsumed = true
+        }
+
+    // Normal taps reach CustomGestureView, which dispatches performClick itself.
+    @SuppressLint("ClickableViewAccessibility")
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        if (event.actionMasked == MotionEvent.ACTION_DOWN && onHeldTouchEvent == null) {
+            heldGestureConsumed = false
+        }
+        if (event.actionMasked == MotionEvent.ACTION_POINTER_DOWN || event.pointerCount > 1) {
+            heldGestureConsumed = true
+            cancelGestures()
+            onHeldTouchEvent?.invoke(event)
+            return true
+        }
+        if (heldGestureConsumed) {
+            onHeldTouchEvent?.invoke(event)
+            if (event.actionMasked == MotionEvent.ACTION_UP || event.actionMasked == MotionEvent.ACTION_CANCEL) {
+                heldGestureConsumed = false
+                cancelGestures()
+            }
+            return true
+        }
+        return super.onTouchEvent(event)
+    }
 
     companion object {
         val disableAnimation by AppPrefs.getInstance().advanced.disableAnimation
