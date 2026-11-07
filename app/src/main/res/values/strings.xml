@@ -518,6 +518,7 @@
     <string name="llm_prediction_display_mode_floating_window">独立悬浮窗</string>
     <string name="llm_prediction_display_mode_candidate_expanded">候选展开区</string>
     <string name="llm_thinking_effort" translatable="false">思考档位</string>
+    <string name="llm_quick_settings" translatable="false">AI 候选快捷设置</string>
     <string name="llm_thinking_effort_off" translatable="false">无</string>
     <string name="llm_thinking_effort_low" translatable="false">低</string>
     <string name="llm_thinking_effort_medium" translatable="false">中</string>
