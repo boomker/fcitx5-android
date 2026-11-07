@@ -476,6 +476,9 @@ internal class JsAppDialog(
             return false
         }
         setPanelVisible(true)
+        // Keyboard composition/commit requests new layouts in a different ViewRoot.
+        // Wait for it only on first reveal; later layouts must not hide or stall this window.
+        root.viewTreeObserver.removeOnPreDrawListener(firstDrawListener)
         return true
     }
 

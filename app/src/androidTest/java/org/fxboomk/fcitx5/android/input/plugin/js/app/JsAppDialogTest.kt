@@ -9,6 +9,8 @@ import android.content.ContextWrapper
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager
+import android.view.inputmethod.BaseInputConnection
 import android.widget.Button
 import android.widget.AutoCompleteTextView
 import android.widget.EditText
@@ -30,6 +32,74 @@ import org.junit.Test
 
 class JsAppDialogTest {
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
+
+    @Test
+    fun keyboardLayoutRequestsDoNotHideAnAlreadyRevealedPanel() = instrumentation.runOnMainSync {
+        val service = service()
+        val pendingKeyboard = View(service).apply { requestLayout() }
+        var keyboard: View? = pendingKeyboard
+        val dialog = JsAppDialog(service, { _, _ -> }, {}, keyboardView = { keyboard })
+        try {
+            val window = requireNotNull(dialog.window)
+            assertEquals(0f, window.attributes.alpha, 0f)
+            dialog.render(editorDialog())
+            val panel = panel(dialog)
+            panel.layout(0, 0, panel.measuredWidth, panel.measuredHeight)
+            assertFalse(panel.viewTreeObserver.dispatchOnPreDraw())
+            assertEquals("The first frame must wait for the keyboard", 0f, window.attributes.alpha, 0f)
+
+            keyboard = null
+            assertFalse(panel.viewTreeObserver.dispatchOnPreDraw())
+            assertPanelVisible(dialog)
+
+            keyboard = pendingKeyboard
+            assertTrue(pendingKeyboard.isLayoutRequested)
+            repeat(3) {
+                assertFalse("Keyboard layout must not cancel panel drawing",
+                    panel.viewTreeObserver.dispatchOnPreDraw())
+                assertPanelVisible(dialog)
+            }
+        } finally {
+            dialog.dismiss()
+            service.jsAppInputConnection = null
+        }
+    }
+
+    @Test
+    fun compositionAndCandidateCommitKeepTheRevealedPanelVisible() = instrumentation.runOnMainSync {
+        val service = service()
+        var keyboard: View? = null
+        val dialog = JsAppDialog(service, { _, _ -> }, {}, keyboardView = { keyboard })
+        try {
+            dialog.render(editorDialog())
+            val panel = panel(dialog)
+            panel.layout(0, 0, panel.measuredWidth, panel.measuredHeight)
+            assertFalse(panel.viewTreeObserver.dispatchOnPreDraw())
+            assertPanelVisible(dialog)
+            val editor = descendants(panel).filterIsInstance<EditText>().single()
+            val connection = JsAppInputConnection(editor)
+            keyboard = View(service).apply { requestLayout() }
+
+            connection.updateComposition("ni", 2)
+            assertEquals("ni", editor.text.toString())
+            assertEquals(0, BaseInputConnection.getComposingSpanStart(editor.text))
+            editor.requestLayout()
+            assertTrue(editor.isLayoutRequested)
+            assertFalse(panel.viewTreeObserver.dispatchOnPreDraw())
+            assertPanelVisible(dialog)
+
+            // Space commits the selected candidate through this local input connection.
+            assertTrue(connection.commitText("你", 1))
+            assertEquals("你", editor.text.toString())
+            assertEquals(-1, BaseInputConnection.getComposingSpanStart(editor.text))
+            editor.requestLayout()
+            assertFalse(panel.viewTreeObserver.dispatchOnPreDraw())
+            assertPanelVisible(dialog)
+        } finally {
+            dialog.dismiss()
+            service.jsAppInputConnection = null
+        }
+    }
 
     @Test
     fun assistantDropdownOptionsHaveCompactRowsWithoutClippingText() {
@@ -181,6 +251,20 @@ class JsAppDialogTest {
             dialog.dismiss()
             service.jsAppInputConnection = null
         }
+    }
+
+    private fun editorDialog() = Json.parseToJsonElement("""{
+        "layout":{"type":"input","id":"text","multiline":true}
+    }""").jsonObject
+
+    private fun panel(dialog: JsAppDialog): View = requireNotNull(dialog.window).decorView
+        .findViewById<ViewGroup>(android.R.id.content).getChildAt(0)
+
+    private fun assertPanelVisible(dialog: JsAppDialog) {
+        val attributes = requireNotNull(dialog.window).attributes
+        assertEquals("The panel must remain opaque", 1f, attributes.alpha, 0f)
+        assertEquals("The panel must remain touchable", 0,
+            attributes.flags and WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
     }
 
     private fun bundledAssistantDialog(result: String = ""): JsonObject = runBlocking {
