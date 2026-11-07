@@ -64,8 +64,8 @@ const STRINGS = {
     qwenShort: "Qwen",
     defaultPurposeLabel: "Default task",
     defaultPurposeDescription: "The assistant starts with this task on open; temporary choices in its dialog do not change this setting.",
-    baseUrl: "Base URL",
-    baseUrlDescription: "Enter a base URL (including /v1 if required) or a complete endpoint. The path follows the selected protocol.",
+    baseUrl: "API URL",
+    baseUrlDescription: "Enter an API URL (including /v1 if required) or a complete endpoint. The path follows the selected protocol.",
     protocol: "API protocol",
     protocolDescription: "Choose the protocol supported by this endpoint. It controls the path, authentication and request format.",
     maxTokens: "Maximum output tokens",
@@ -75,11 +75,20 @@ const STRINGS = {
     invalidTokenLimit: "Maximum output tokens must be an integer from 1 to 131072",
     incompleteResult: "The response is incomplete; increase the output limit or retry",
     refusedResult: "The model declined this request",
-    customUrlDescription: "Enter the relay base URL or full endpoint, then select its API protocol. This input method asks for host authorization on first use; editing JS is unnecessary.",
+    customUrlDescription: "Enter the relay API URL or full endpoint, then select its API protocol. This input method asks for host authorization on first use; editing JS is unnecessary.",
     model: "Model",
+    modelValue: "Model: %1",
     modelDescription: "Any model name that endpoint accepts.",
     apiKey: "API key",
     apiKeyDescription: "Encrypted by the input method; the plugin never receives the key.",
+    reasoning: "Thinking level",
+    reasoningAuto: "Default",
+    reasoningOff: "Off",
+    reasoningLow: "Low",
+    reasoningMedium: "Medium",
+    reasoningHigh: "High",
+    unsupportedReasoning: "This model or protocol does not support the selected thinking level. Choose Default or another model.",
+    insufficientThinkingTokens: "Extended thinking requires an output limit greater than 1024 tokens",
     purpose: "Task",
     inputLabel: "Text",
     inputPlaceholder: "Enter the text to process",
@@ -131,8 +140,8 @@ const STRINGS = {
     qwenShort: "通义千问",
     defaultPurposeLabel: "默认用途",
     defaultPurposeDescription: "每次打开助手使用此默认用途；窗口里的临时选择不会覆盖此设置。",
-    baseUrl: "基础地址",
-    baseUrlDescription: "填写基础地址（需要时含 /v1）或完整接口地址，接口路径随所选协议调整。",
+    baseUrl: "API 地址",
+    baseUrlDescription: "填写 API 地址（需要时含 /v1）或完整接口地址，接口路径随所选协议调整。",
     protocol: "API 协议",
     protocolDescription: "选择此端点支持的协议，决定接口路径、认证方式和请求格式。",
     maxTokens: "最大输出 Token 数",
@@ -142,11 +151,20 @@ const STRINGS = {
     invalidTokenLimit: "最大输出 Token 数须为 1–131072 之间的整数",
     incompleteResult: "响应未完整生成，请提高输出上限或重试",
     refusedResult: "模型拒绝了此请求",
-    customUrlDescription: "填写中转站基础地址或完整接口地址，再选择对应 API 协议。本输入法首次访问时会请求域名授权，无需编辑 JS。",
+    customUrlDescription: "填写中转站 API 地址或完整接口地址，再选择对应 API 协议。本输入法首次访问时会请求域名授权，无需编辑 JS。",
     model: "模型",
+    modelValue: "模型：%1",
     modelDescription: "填对方支持的任意模型名。",
     apiKey: "API 密钥",
     apiKeyDescription: "由输入法 App 加密保存，插件不会拿到密钥内容。",
+    reasoning: "思考档位",
+    reasoningAuto: "默认",
+    reasoningOff: "关闭",
+    reasoningLow: "低",
+    reasoningMedium: "中",
+    reasoningHigh: "高",
+    unsupportedReasoning: "此模型或协议不支持所选思考档位，请选择默认或更换模型。",
+    insufficientThinkingTokens: "扩展思考需要大于 1024 的输出 Token 上限",
     purpose: "用途",
     inputLabel: "文本",
     inputPlaceholder: "输入要处理的内容",
@@ -198,8 +216,8 @@ const STRINGS = {
     qwenShort: "通義千問",
     defaultPurposeLabel: "預設用途",
     defaultPurposeDescription: "每次開啟助手使用此預設用途；視窗裡的暫時選擇不會覆蓋此設定。",
-    baseUrl: "基礎位址",
-    baseUrlDescription: "填寫基礎位址（需要時含 /v1）或完整介面位址，介面路徑隨所選協定調整。",
+    baseUrl: "API 位址",
+    baseUrlDescription: "填寫 API 位址（需要時含 /v1）或完整介面位址，介面路徑隨所選協定調整。",
     protocol: "API 協定",
     protocolDescription: "選擇此端點支援的協定，決定介面路徑、驗證方式和請求格式。",
     maxTokens: "最大輸出 Token 數",
@@ -209,11 +227,20 @@ const STRINGS = {
     invalidTokenLimit: "最大輸出 Token 數須為 1–131072 之間的整數",
     incompleteResult: "回應未完整產生，請提高輸出上限或重試",
     refusedResult: "模型拒絕了此請求",
-    customUrlDescription: "填寫中轉站基礎位址或完整介面位址，再選擇對應 API 協定。本輸入法首次存取時會請求網域授權，無需編輯 JS。",
+    customUrlDescription: "填寫中轉站 API 位址或完整介面位址，再選擇對應 API 協定。本輸入法首次存取時會請求網域授權，無需編輯 JS。",
     model: "模型",
+    modelValue: "模型：%1",
     modelDescription: "填對方支援的任意模型名稱。",
     apiKey: "API 金鑰",
     apiKeyDescription: "由輸入法 App 加密儲存，外掛不會取得金鑰內容。",
+    reasoning: "思考檔位",
+    reasoningAuto: "預設",
+    reasoningOff: "關閉",
+    reasoningLow: "低",
+    reasoningMedium: "中",
+    reasoningHigh: "高",
+    unsupportedReasoning: "此模型或協定不支援所選思考檔位，請選擇預設或更換模型。",
+    insufficientThinkingTokens: "延伸思考需要大於 1024 的輸出 Token 上限",
     purpose: "用途",
     inputLabel: "文字",
     inputPlaceholder: "輸入要處理的內容",
@@ -395,6 +422,78 @@ function outputTokenLimit(provider, settings, t) {
   return value;
 }
 
+const REASONING_LEVELS = ["auto", "none", "low", "medium", "high"];
+
+function normalizeReasoning(value) {
+  return REASONING_LEVELS.includes(value) ? value : "auto";
+}
+
+function reasoningOptions(t) {
+  return REASONING_LEVELS.map((value, index) => ({
+    value,
+    label: [t.reasoningAuto, t.reasoningOff, t.reasoningLow, t.reasoningMedium, t.reasoningHigh][index]
+  }));
+}
+
+// Default keeps the endpoint's existing behavior. Explicit levels use that API's wire format.
+function applyReasoning(body, provider, settings, model, protocol, level, t) {
+  const effort = normalizeReasoning(level);
+  if (effort === "auto") return;
+  const enabled = effort !== "none";
+  const name = String(model || "").toLowerCase();
+  const deepseek = provider.value === "deepseek" || name.startsWith("deepseek-");
+  if (deepseek) {
+    // DeepSeek accepts medium as a compatibility alias for high.
+    const mapped = effort === "medium" ? "high" : effort;
+    if (protocol === "responses") body.reasoning = {effort: mapped};
+    else {
+      body.thinking = {type: enabled ? "enabled" : "disabled"};
+      if (enabled) {
+        if (protocol === "anthropic") body.output_config = {effort: mapped};
+        else body.reasoning_effort = mapped;
+      }
+    }
+    return;
+  }
+  if (protocol === "anthropic") {
+    if (!enabled) {
+      body.thinking = {type: "disabled"};
+      return;
+    }
+    if (!name.startsWith("claude-")) throw new Error(t.unsupportedReasoning);
+    if (/^claude-(?:sonnet|opus)-(?:4-[6-9]|[5-9])(?:-|$)/.test(name)) {
+      body.thinking = {type: "adaptive"};
+      body.output_config = {effort};
+    } else {
+      if (!/^claude-(?:3-7-sonnet|(?:sonnet|opus|haiku)-4(?:-|$))/.test(name)) {
+        throw new Error(t.unsupportedReasoning);
+      }
+      const maximum = outputTokenLimit(provider, settings, t);
+      if (maximum <= 1024) throw new Error(t.insufficientThinkingTokens);
+      const budget = {low: 1024, medium: 2048, high: 4096}[effort];
+      body.thinking = {type: "enabled", budget_tokens: Math.min(budget, maximum - 1)};
+    }
+    return;
+  }
+  if (provider.value === "qwen" || name.startsWith("qwen")) {
+    if (protocol !== "chat" || !/^qwen(?:-plus|-flash|3)/.test(name)) {
+      throw new Error(t.unsupportedReasoning);
+    }
+    body.enable_thinking = enabled;
+    if (enabled) body.thinking_budget = {low: 1024, medium: 2048, high: 4096}[effort];
+    return;
+  }
+  if (!/^(?:gpt-[5-9](?:\.|-|$)|o[1-9](?:-|$))/.test(name)) {
+    throw new Error(t.unsupportedReasoning);
+  }
+  // Older o-series and GPT-5 models cannot disable reasoning completely.
+  if (!enabled && (/^o[1-9](?:-|$)/.test(name) || /^gpt-5(?:-|$)/.test(name))) {
+    throw new Error(t.unsupportedReasoning);
+  }
+  if (protocol === "responses") body.reasoning = {effort};
+  else body.reasoning_effort = effort;
+}
+
 // A credential alias is passed to the host; the script never handles the key itself.
 function protocolTransport(protocol, provider, settings) {
   if (protocol === "anthropic") {
@@ -412,7 +511,7 @@ function protocolTransport(protocol, provider, settings) {
     headers: {"Accept": "application/json"}};
 }
 
-function textRequest(provider, settings, model, purpose, input, t) {
+function textRequest(provider, settings, model, purpose, input, t, reasoning = "auto") {
   const protocol = providerProtocol(provider, settings);
   const prompt = purpose.prefix + input;
   const body = {model, stream: false};
@@ -428,6 +527,7 @@ function textRequest(provider, settings, model, purpose, input, t) {
   } else {
     body.messages = [{role: "system", content: t.systemRole}, {role: "user", content: prompt}];
   }
+  applyReasoning(body, provider, settings, model, protocol, reasoning, t);
   const transport = protocolTransport(protocol, provider, settings);
   return {
     url: endpointUrl(settings[provider.value + "Url"] || provider.url, protocol),
@@ -648,6 +748,7 @@ let lastPurposeId = "";
 let lastProvider = "";
 let activeSettings = {};
 let activeSecrets = [];
+let currentReasoning = "auto";
 
 // 把 http(s):// 去掉，标题栏里省地方。
 function briefUrl(url) {
@@ -693,7 +794,6 @@ function endpointSummary(provider, settings, secrets) {
 
 function dialogSpec(t, title, purposeId, input, messageTone = "") {
   const endpoint = providerEndpoint(findProvider(currentProvider), activeSettings);
-  const compactEndpoint = endpoint.url ? [hostOf(endpoint.url), endpoint.model].filter(Boolean).join(" · ") : t.notSet;
   return {
     maxWidth: 360,
     maxHeight: 460,
@@ -735,12 +835,12 @@ function dialogSpec(t, title, purposeId, input, messageTone = "") {
           ]
         },
         {
-          type: "text",
-          text: compactEndpoint,
-          description: endpointSummary(findProvider(currentProvider), activeSettings, activeSecrets),
-          size: 12,
-          muted: true,
-          maxLines: 1
+          type: "slider",
+          id: "reasoning",
+          leadingText: format(t.modelValue, endpoint.model || t.notSet),
+          label: t.reasoning,
+          options: reasoningOptions(t),
+          value: currentReasoning
         },
         {
           type: "input",
@@ -750,11 +850,11 @@ function dialogSpec(t, title, purposeId, input, messageTone = "") {
           multiline: true,
           value: input,
           placeholder: t.inputPlaceholder,
-          height: lastResult ? 56 : 88
+          lines: 2
         },
         ...(lastResult ? [{
           type: "input", id: "result", label: t.outputLabel, labelPlacement: "top",
-          multiline: true, readOnly: true, value: lastResult, height: 96
+          multiline: true, readOnly: true, value: lastResult, autoHeight: true, maxHeight: 96
         }] : []),
         {
           type: "actions",
@@ -774,7 +874,7 @@ function dialogSpec(t, title, purposeId, input, messageTone = "") {
 foxy.plugin.register({
   id: "llm-assistant",
   name: stringsFor(foxy.locale).name,
-  version: "1.23.5",
+  version: "1.23.6",
   hosts: [],
   features: [],
   configure(ui, locale) {
@@ -793,10 +893,11 @@ foxy.plugin.register({
       ui.text(provider.value + "Url", t.baseUrl, provider.url, urlSettings);
       ui.secret(provider.value + "Key", t.apiKey, {
         visibleWhen: when,
-        description: t.apiKeyDescription
+        description: t.apiKeyDescription,
+        resettable: false
       });
       ui.select(provider.value + "Protocol", t.protocol, PROTOCOLS.map(({value, label}) => ({value, label})),
-        provider.protocol || "chat", {visibleWhen: when, description: t.protocolDescription});
+        provider.protocol || "chat", {visibleWhen: when, description: t.protocolDescription, resetValue: "chat"});
       // Keep each provider's existing Url/Model/Key field IDs and values intact.
       ui.number(provider.value + "MaxTokens", t.maxTokens, "4096", {
         visibleWhen: when,
@@ -807,8 +908,8 @@ foxy.plugin.register({
         description: t.apiVersionDescription
       });
       ui.text(provider.value + "Model", t.model, provider.model, custom
-        ? {visibleWhen: when, description: t.modelDescription}
-        : {visibleWhen: when});
+        ? {visibleWhen: when, description: t.modelDescription, resettable: false}
+        : {visibleWhen: when, resettable: false});
     });
   }
 });
@@ -844,8 +945,8 @@ foxy.app.register({
   }
 });
 
-function resultRequestKey(input, provider, purpose, settings) {
-  return JSON.stringify([input, provider.value, purpose.id, settings]);
+function resultRequestKey(input, provider, purpose, settings, reasoning = "auto") {
+  return JSON.stringify([input, provider.value, purpose.id, settings, reasoning]);
 }
 
 async function clearResult() {
@@ -870,6 +971,7 @@ async function handleOpen(context) {
       lastResult = "";
       lastResultRequest = "";
       if (!lastPurposeId) lastPurposeId = findPurpose(settings.defaultPurpose, t).id;
+      currentReasoning = "auto";
       currentProvider = pickProvider(settings, configuredSecrets).value;
       lastProvider = currentProvider;
       const selected = await foxy.editor.getSelection();
@@ -880,14 +982,14 @@ async function handleOpen(context) {
     const purpose = findPurpose(values.purpose, t);
     const provider = findProvider(values.provider);
     const input = String(values.input || "");
-    const requestKey = resultRequestKey(input, provider, purpose, settings);
+    currentReasoning = normalizeReasoning(values.reasoning === undefined ? currentReasoning : values.reasoning);
+    const requestKey = resultRequestKey(input, provider, purpose, settings, currentReasoning);
     if (lastResult && lastResultRequest !== requestKey) await clearResult();
     currentProvider = provider.value;
     lastPurposeId = purpose.id;
     lastProvider = provider.value;
 
-    // 宿主把下拉的 id 当作事件名回传；切换用途/服务商时重画对话框，
-    // 让下面那行 “POST 地址 · 模型 · 密钥” 实时跟着变。
+    // 下拉事件重画用途、服务商和模型；思考档位作为本次会话的临时选择保留。
     if (context.event === "purpose" || context.event === "provider") {
       return foxy.ui.dialog.show(dialogSpec(t, t.assistantTitle, purpose.id, values.input || ""));
     }
@@ -944,7 +1046,7 @@ async function handleOpen(context) {
       ));
     }
 
-    const requestOptions = usedModel => textRequest(provider, settings, usedModel, purpose, values.input || "", t);
+    const requestOptions = usedModel => textRequest(provider, settings, usedModel, purpose, values.input || "", t, currentReasoning);
 
     let usedModel = model;
     let fixedNote = "";
@@ -984,7 +1086,7 @@ async function handleOpen(context) {
       lastResult = "";
       lastResultRequest = "";
       const note = (error && error.attempts > 1 ? format(t.retriedNote, error.attempts - 1) : "") + fixedNote;
-      const trace = format(t.sentAs, "POST " + url + " · model=" + JSON.stringify(usedModel));
+      const trace = format(t.sentAs, "model=" + JSON.stringify(usedModel));
       return foxy.ui.dialog.show(dialogSpec(
         t,
         format(t.requestFailed, String(error.message || error)) + note + trace,

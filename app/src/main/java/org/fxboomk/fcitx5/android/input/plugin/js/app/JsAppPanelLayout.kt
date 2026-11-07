@@ -12,6 +12,7 @@ import android.widget.EditText
 import android.widget.FrameLayout
 import androidx.appcompat.widget.AppCompatTextView
 import android.widget.TextView
+import com.google.android.material.slider.Slider
 import kotlin.math.hypot
 
 /** Drag the title/empty space, while edits, selection menus and buttons keep their gestures. */
@@ -77,7 +78,7 @@ internal class JsAppPanelLayout(context: Context, private val moveBy: (Float, Fl
     override fun performClick(): Boolean { super.performClick(); return true }
 
     private fun interactiveAt(view: View, x: Float, y: Float): Boolean {
-        if (view !== this && (view is EditText || view is Button || view.isClickable ||
+        if (view !== this && (view is EditText || view is Button || view is Slider || view.isClickable ||
                 (view is TextView && view !is JsAppPanelTitle))) return true
         if (view is ViewGroup) for (index in view.childCount - 1 downTo 0) {
             val child = view.getChildAt(index)

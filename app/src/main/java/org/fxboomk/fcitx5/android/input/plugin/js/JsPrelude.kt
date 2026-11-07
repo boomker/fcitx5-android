@@ -125,7 +125,9 @@ function __field(kind, key, label, defaultValue, settings, options) {
     options: options || [],
     allowCustom: s.allowCustom === true,
     visibleWhen: s.visibleWhen || null,
-    defaultWhen: s.defaultWhen || null
+    defaultWhen: s.defaultWhen || null,
+    resettable: s.resettable !== false,
+    resetValue: s.resetValue === undefined || s.resetValue === null ? null : __str(s.resetValue)
   };
 }
 function __options(list) {

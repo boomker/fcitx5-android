@@ -29,6 +29,9 @@ internal data class JsPluginField(
     val visibleWhen: JsonObject? = null,
     /** Default chosen by another ordinary setting: {key: "authMode", values: {apiKey: "..."}}. */
     val defaultWhen: JsonObject? = null,
+    val resettable: Boolean = true,
+    /** Optional reset value when it differs from the initial value. */
+    val resetValue: String? = null,
 ) {
     val isSecret: Boolean get() = kind == KIND_SECRET
 
@@ -78,6 +81,8 @@ internal object JsPluginFields {
             allowCustom = obj["allowCustom"]?.jsonPrimitive?.booleanOrNull == true,
             visibleWhen = obj["visibleWhen"] as? JsonObject,
             defaultWhen = obj["defaultWhen"] as? JsonObject,
+            resettable = obj["resettable"]?.jsonPrimitive?.booleanOrNull != false,
+            resetValue = obj["resetValue"]?.jsonPrimitive?.contentOrNull,
         )
     }
 
@@ -91,6 +96,16 @@ internal object JsPluginFields {
     fun displayValue(field: JsPluginField, value: String?): String {
         val raw = value.orEmpty()
         return field.options.firstOrNull { it.value == raw }?.label ?: raw
+    }
+
+    /** Null means the setting has no default action; empty strings remain valid defaults. */
+    fun resetValue(field: JsPluginField, values: Map<String, String>): String? {
+        if (field.isSecret || !field.resettable) return null
+        val value = field.resetValue ?: dependentDefault(field, values) ?: field.defaultValue
+        return if (field.kind == JsPluginField.KIND_SELECT && !field.allowCustom) {
+            value.takeIf { candidate -> field.options.any { it.value == candidate } }
+                ?: field.options.firstOrNull()?.value
+        } else value
     }
 
     /** 递归判断 `visibleWhen`：`{key,value}` 与 `{all:[...]}` 两种形态。 */

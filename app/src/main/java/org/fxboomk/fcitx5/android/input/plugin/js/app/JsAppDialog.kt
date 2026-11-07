@@ -11,8 +11,10 @@ import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.text.InputFilter
 import android.text.InputType
+import android.text.TextUtils
 import android.view.ContextThemeWrapper
 import android.view.Gravity
+import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.Window
@@ -24,10 +26,13 @@ import androidx.core.graphics.ColorUtils
 import androidx.core.view.WindowInsetsCompat
 import kotlin.math.roundToInt
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.slider.LabelFormatter
+import com.google.android.material.slider.Slider
 import com.google.android.material.textfield.MaterialAutoCompleteTextView
 import com.google.android.material.textfield.TextInputLayout
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.serialization.json.*
+import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.data.theme.ThemeManager
 import org.fxboomk.fcitx5.android.input.FcitxInputMethodService
 import org.fxboomk.fcitx5.android.utils.toast
@@ -51,8 +56,10 @@ internal class JsAppDialog(
     private val accentColor = theme.accentKeyBackgroundColor
     private val controls = linkedMapOf<String, View>()
     private val editors = linkedMapOf<String, EditText>()
+    private val autoHeightEditors = mutableSetOf<String>()
     private val selections = linkedMapOf<String, String>()
     private val selectors = linkedMapOf<String, Pair<MaterialAutoCompleteTextView, List<Pair<String, String>>>>()
+    private val sliders = linkedMapOf<String, Pair<Slider, List<Pair<String, String>>>>()
     private val enabled = mutableMapOf<String, Boolean>()
     private val content = LinearLayout(uiContext).apply { orientation = LinearLayout.VERTICAL }
     private val body = LinearLayout(uiContext).apply { orientation = LinearLayout.VERTICAL; addView(content) }
@@ -183,11 +190,16 @@ internal class JsAppDialog(
 
     fun setValue(id: String, value: String) {
         editors[id]?.let { it.setText(value.take(65536)); it.setSelection(it.text.length) }
+        if (id in autoHeightEditors) applyBounds()
         selectors[id]?.let { (view, options) ->
             options.firstOrNull { it.second == value }?.let { (label, selected) ->
                 selections[id] = selected
                 view.setText(label, false)
             }
+        }
+        sliders[id]?.let { (view, options) ->
+            val index = options.indexOfFirst { it.second == value }
+            if (index >= 0) view.value = index.toFloat()
         }
     }
 
@@ -225,7 +237,7 @@ internal class JsAppDialog(
 
     fun render(spec: JsonObject) {
         selectors.values.forEach { it.first.dismissDropDown() }
-        controls.clear(); editors.clear(); selections.clear(); selectors.clear(); enabled.clear()
+        controls.clear(); editors.clear(); autoHeightEditors.clear(); selections.clear(); selectors.clear(); sliders.clear(); enabled.clear()
         blockTyping()
         content.removeAllViews()
         status.text = ""
@@ -261,6 +273,8 @@ internal class JsAppDialog(
                     (obj["size"] as? JsonPrimitive)?.floatOrNull?.coerceIn(10f, 24f) ?: 14f,
                     (obj["muted"] as? JsonPrimitive)?.booleanOrNull == true, draggable = !hasTitle).also { hasTitle = true }
                 "input" -> {
+                    val autoHeight = (obj["autoHeight"] as? JsonPrimitive)?.booleanOrNull == true &&
+                        (obj["multiline"] as? JsonPrimitive)?.booleanOrNull == true
                     val edit = EditText(uiContext).apply {
                         setTextColor(textColor); setHintTextColor(mutedColor)
                         textSize = 14f
@@ -271,6 +285,15 @@ internal class JsAppDialog(
                         inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES or
                             if (multiline) InputType.TYPE_TEXT_FLAG_MULTI_LINE else 0
                         setSingleLine(!multiline)
+                        if (multiline) (obj["lines"] as? JsonPrimitive)?.intOrNull?.coerceIn(1, 8)?.let {
+                            setLines(it)
+                            isVerticalScrollBarEnabled = true
+                        }
+                        if (autoHeight) {
+                            minLines = 1
+                            maxHeight = dp((obj["maxHeight"] as? JsonPrimitive)?.intOrNull?.coerceIn(30, 320) ?: 96)
+                            isVerticalScrollBarEnabled = true
+                        }
                         gravity = if (multiline) Gravity.TOP or Gravity.START else Gravity.CENTER_VERTICAL
                         showSoftInputOnFocus = false
                         filters = arrayOf(InputFilter.LengthFilter(65536))
@@ -297,7 +320,16 @@ internal class JsAppDialog(
                         setOnTouchListener(editorTouchListener)
                     }
                     editors[id] = edit
-                    field(obj, fieldBox(edit), defaultHeight = if ((obj["multiline"] as? JsonPrimitive)?.booleanOrNull == true) 64 else 40)
+                    if (autoHeight) autoHeightEditors += id
+                    val lines = (obj["lines"] as? JsonPrimitive)?.intOrNull?.coerceIn(1, 8)
+                        ?.takeIf { (obj["multiline"] as? JsonPrimitive)?.booleanOrNull == true }
+                    val height = if (autoHeight) ViewGroup.LayoutParams.WRAP_CONTENT else lines?.let {
+                        val metrics = edit.paint.fontMetricsInt
+                        metrics.bottom - metrics.top + edit.lineHeight * (it - 1) +
+                            edit.compoundPaddingTop + edit.compoundPaddingBottom
+                    }
+                    field(obj, fieldBox(edit, autoHeight), defaultHeight = if ((obj["multiline"] as? JsonPrimitive)?.booleanOrNull == true) 64 else 40,
+                        heightPixels = height)
                 }
                 "select" -> {
                     val options = (obj["options"] as? JsonArray).orEmpty().take(128).map { option ->
@@ -348,6 +380,65 @@ internal class JsAppDialog(
                     }
                     field(obj, box, defaultHeight = 40)
                 }
+                "slider" -> {
+                    val options = (obj["options"] as? JsonArray).orEmpty().take(16).map { option ->
+                        option.jsonObject.let { it.text("label").take(100) to it.text("value") }
+                    }
+                    require(options.size >= 2 && options.map { it.second }.distinct().size == options.size) {
+                        "Slider must declare distinct options"
+                    }
+                    val selected = options.indexOfFirst { it.second == obj.text("value") }.coerceAtLeast(0)
+                    val caption = obj.text("label").take(100)
+                    val heading = label(listOf(caption, options[selected].first).joinToString(" · "), size = 11f, muted = true).apply {
+                        maxLines = 1
+                    }
+                    val slider = (LayoutInflater.from(uiContext).inflate(R.layout.js_app_slider, null) as Slider).apply {
+                        valueFrom = 0f
+                        valueTo = (options.size - 1).toFloat()
+                        stepSize = 1f
+                        value = selected.toFloat()
+                        labelBehavior = LabelFormatter.LABEL_GONE
+                        thumbWidth = dp(4)
+                        thumbHeight = dp(20)
+                        trackHeight = dp(4)
+                        thumbTrackGapSize = dp(3)
+                        trackStopIndicatorSize = dp(2)
+                        thumbTintList = ColorStateList.valueOf(accentColor)
+                        trackActiveTintList = ColorStateList.valueOf(accentColor)
+                        trackInactiveTintList = ColorStateList.valueOf(outlineColor)
+                        tickActiveTintList = ColorStateList.valueOf(surfaceColor)
+                        tickInactiveTintList = ColorStateList.valueOf(mutedColor)
+                        contentDescription = heading.text
+                        setLabelFormatter { options[it.roundToInt()].first }
+                        addOnChangeListener { _, value, _ ->
+                            val option = options[value.roundToInt()]
+                            selections[id] = option.second
+                            heading.text = listOf(caption, option.first).joinToString(" · ")
+                            contentDescription = heading.text
+                        }
+                    }
+                    selections[id] = options[selected].second
+                    sliders[id] = slider to options
+                    LinearLayout(uiContext).apply {
+                        orientation = LinearLayout.VERTICAL
+                        if (obj.text("leadingText").isBlank()) addView(heading, LinearLayout.LayoutParams(-1, -2))
+                        else addView(LinearLayout(uiContext).apply {
+                            orientation = LinearLayout.HORIZONTAL
+                            gravity = Gravity.CENTER_VERTICAL
+                            addView(label(obj.text("leadingText").take(400), size = 11f, muted = true).apply {
+                                maxLines = 1
+                                maxWidth = dp(180)
+                                ellipsize = TextUtils.TruncateAt.END
+                            }, LinearLayout.LayoutParams(-2, -2).apply { marginEnd = dp(8) })
+                            addView(heading, LinearLayout.LayoutParams(-2, -2))
+                        }, LinearLayout.LayoutParams(-1, -2))
+                        // Material enforces a 48dp internal height; the centered viewport keeps
+                        // drawing, hit testing and the thumb's 40dp target inside this row.
+                        addView(FrameLayout(uiContext).apply {
+                            addView(slider, FrameLayout.LayoutParams(-1, -2, Gravity.CENTER_VERTICAL))
+                        }, LinearLayout.LayoutParams(-1, dp(40)))
+                    }
+                }
                 "button" -> button(obj.text("label").take(80), filled = obj.text("style") == "filled") {
                     if (!busy || id in setOf("close", "cancel")) {
                         service.jsAppInputConnection?.finishComposingText()
@@ -361,11 +452,11 @@ internal class JsAppDialog(
             }
             if (id.isNotBlank()) {
                 require(id !in controls) { "Duplicate control ID" }
-                controls[id] = if (id in editors || id in selectors) {
+                controls[id] = sliders[id]?.first ?: if (id in editors || id in selectors) {
                     // Enable/disable the whole Material box, including its dropdown icon.
                     (view as ViewGroup).getChildAt(view.childCount - 1)
                 } else view
-            } else require(obj.text("type") !in setOf("input", "select", "button")) { "Invalid control ID" }
+            } else require(obj.text("type") !in setOf("input", "select", "slider", "button")) { "Invalid control ID" }
             return view
         }
         val layout = spec["layout"] as? JsonObject ?: error("Dialog must declare a layout")
@@ -376,7 +467,7 @@ internal class JsAppDialog(
         setBusy(busy)
     }
 
-    private fun fieldBox(input: EditText) = TextInputLayout(uiContext).apply {
+    private fun fieldBox(input: EditText, wrapContent: Boolean = false) = TextInputLayout(uiContext).apply {
         boxBackgroundMode = TextInputLayout.BOX_BACKGROUND_OUTLINE
         boxBackgroundColor = surfaceColor
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -389,11 +480,11 @@ internal class JsAppDialog(
             intArrayOf(-android.R.attr.state_enabled), intArrayOf(android.R.attr.state_focused),
             intArrayOf(android.R.attr.state_hovered), intArrayOf()),
             intArrayOf(outlineColor, accentColor, mutedColor, outlineColor)))
-        addView(input, LinearLayout.LayoutParams(-1, -1))
+        addView(input, LinearLayout.LayoutParams(-1, if (wrapContent) -2 else -1))
     }
 
-    private fun field(spec: JsonObject, box: TextInputLayout, defaultHeight: Int): View {
-        val height = dp((spec["height"] as? JsonPrimitive)?.intOrNull?.coerceIn(30, 320) ?: defaultHeight)
+    private fun field(spec: JsonObject, box: TextInputLayout, defaultHeight: Int, heightPixels: Int? = null): View {
+        val height = heightPixels ?: dp((spec["height"] as? JsonPrimitive)?.intOrNull?.coerceIn(30, 320) ?: defaultHeight)
         val top = spec.text("labelPlacement") == "top"
         return LinearLayout(uiContext).apply {
             orientation = if (top) LinearLayout.VERTICAL else LinearLayout.HORIZONTAL

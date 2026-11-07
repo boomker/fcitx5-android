@@ -239,7 +239,7 @@ class JsPluginCatalogTest {
 
         val success = result as JsPluginImportResult.Success
         assertEquals("llm-assistant", success.meta.id)
-        assertEquals("1.23.5", success.meta.version)
+        assertEquals("1.23.6", success.meta.version)
         assertEquals("AI 助手", success.meta.name)
         assertEquals(emptyList<String>(), success.meta.hosts)
         assertEquals(null, success.meta.voiceAsr)
@@ -260,6 +260,8 @@ class JsPluginCatalogTest {
         )
         assertEquals("https://api.anthropic.com/v1", fields.single { it.key == "anthropicUrl" }.defaultValue)
         assertEquals("", fields.single { it.key == "customUrl" }.defaultValue)
+        assertEquals("short", fields.single { it.key == "defaultPurpose" }.defaultValue)
+        assertEquals("deepseek", fields.single { it.key == "defaultProvider" }.defaultValue)
 
         val keys = fields.map(JsPluginField::key)
         assertTrue(keys.indexOf("defaultPurpose") < keys.indexOf("defaultProvider"))
@@ -268,6 +270,11 @@ class JsPluginCatalogTest {
             val secret = keys.indexOf("${provider}Key")
             val protocol = keys.indexOf("${provider}Protocol")
             assertTrue("$provider URL must precede its key and protocol", url >= 0 && secret > url && protocol > secret)
+            assertEquals("API 地址", fields.single { it.key == "${provider}Url" }.label)
+            assertEquals("4096", fields.single { it.key == "${provider}MaxTokens" }.defaultValue)
+            assertEquals(false, fields.single { it.key == "${provider}Key" }.resettable)
+            assertEquals(false, fields.single { it.key == "${provider}Model" }.resettable)
+            assertEquals("chat", fields.single { it.key == "${provider}Protocol" }.resetValue)
         }
     }
 

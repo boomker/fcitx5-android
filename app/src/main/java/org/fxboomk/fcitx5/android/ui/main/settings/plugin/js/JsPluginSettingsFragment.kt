@@ -37,6 +37,7 @@ class JsPluginSettingsFragment : PaddingPreferenceFragment() {
     private var loaded = false
     private val secretStates = mutableMapOf<String, JsPluginSettingsStore.SecretState>()
     private var refreshHostPermissionEntry: (() -> Unit)? = null
+    private var fields: List<JsPluginField> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,6 +46,22 @@ class JsPluginSettingsFragment : PaddingPreferenceFragment() {
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         preferenceScreen = preferenceManager.createPreferenceScreen(requireContext())
+    }
+
+    @Suppress("DEPRECATION")
+    override fun onDisplayPreferenceDialog(preference: Preference) {
+        val field = fields.firstOrNull { it.key == preference.key }
+            ?: return super.onDisplayPreferenceDialog(preference)
+        if (parentFragmentManager.findFragmentByTag(javaClass.name) != null) return
+        val resetValue = JsPluginFields.resetValue(field,
+            JsPluginFields.currentValues(fields, JsPluginSettingsStore.values(pluginId)))
+        val dialog = when (preference) {
+            is EditTextPreference -> JsPluginEditTextPreferenceDialogFragment.newInstance(preference.key, resetValue)
+            is ListPreference -> JsPluginListPreferenceDialogFragment.newInstance(preference.key, resetValue)
+            else -> return super.onDisplayPreferenceDialog(preference)
+        }
+        dialog.setTargetFragment(this, 0)
+        dialog.show(parentFragmentManager, javaClass.name)
     }
 
     override fun onViewCreated(view: android.view.View, savedInstanceState: Bundle?) {
@@ -90,6 +107,7 @@ class JsPluginSettingsFragment : PaddingPreferenceFragment() {
     }
 
     private fun render(fields: List<JsPluginField>) {
+        this.fields = fields
         val screen = preferenceScreen ?: return
         screen.removeAll()
         refreshHostPermissionEntry = null
@@ -299,12 +317,15 @@ class JsPluginSettingsFragment : PaddingPreferenceFragment() {
     }
 
     /**
-     * 密钥项：从不回填，摘要区分可用、未设置与需要重新输入。KeyStore 操作在 IO 线程执行。
+     * 密钥项：用固定遮罩表示已设置，摘要区分可用、未设置与需要重新输入。
+     * 原密钥不回填；KeyStore 操作在 IO 线程执行。
      *
      * 清空输入框即清除密钥；返回值固定 false，避免 EditTextPreference 把明文留在控件里。
      */
     private fun secretPreference(field: JsPluginField): EditTextPreference =
-        EditTextPreference(requireContext()).apply {
+        JsPluginSecretPreference(requireContext()) {
+            secretStates[field.key] == JsPluginSettingsStore.SecretState.READY
+        }.apply {
             key = field.key
             title = field.label
             isPersistent = false
@@ -312,9 +333,6 @@ class JsPluginSettingsFragment : PaddingPreferenceFragment() {
             isSingleLineTitle = false
             text = ""
             summary = secretSummary(field)
-            setOnBindEditTextListener {
-                it.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
-            }
             setOnPreferenceChangeListener { preference, newValue ->
                 val value = (newValue as? String).orEmpty()
                 preference.isEnabled = false
