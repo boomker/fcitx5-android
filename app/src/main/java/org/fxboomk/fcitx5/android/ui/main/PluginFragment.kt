@@ -274,7 +274,11 @@ class PluginFragment : PaddingPreferenceFragment() {
             if (selectedTab == TAB_JS) {
                 JsPluginCatalog.all().sortedWith(
                     compareBy<JsPluginCatalog.Spec> {
-                        if (it.id == JsPluginCatalog.DOUBAO_ASR_ID) 0 else 1
+                        when (it.id) {
+                            JsPluginCatalog.LLM_ASSISTANT_ID -> 0
+                            JsPluginCatalog.DOUBAO_ASR_ID -> 1
+                            else -> 2
+                        }
                     }.thenBy { it.label }
                 ).forEach { spec ->
                     addPreference(
@@ -385,7 +389,11 @@ class PluginFragment : PaddingPreferenceFragment() {
             }
         val allJsPlugins = JsPluginCatalog.all().sortedWith(
             compareBy<JsPluginCatalog.Spec> {
-                if (it.id == JsPluginCatalog.DOUBAO_ASR_ID) 0 else 1
+                when (it.id) {
+                    JsPluginCatalog.LLM_ASSISTANT_ID -> 0
+                    JsPluginCatalog.DOUBAO_ASR_ID -> 1
+                    else -> 2
+                }
             }.thenBy { it.label }
         )
         val manageableJsPlugins = if (showJsPlugins) allJsPlugins else emptyList()
