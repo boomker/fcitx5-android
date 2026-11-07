@@ -6,17 +6,11 @@
 const PROVIDERS = [
   {
     value: "deepseek",
-    label: "DeepSeek",
+    label: "深度求索",
+    aliases: ["DeepSeek"],
     url: "https://api.deepseek.com",
     model: "deepseek-flash",
     credential: "deepseekKey"
-  },
-  {
-    value: "openai",
-    label: "OpenAI",
-    url: "https://api.openai.com/v1",
-    model: "gpt-4o-mini",
-    credential: "openaiKey"
   },
   {
     value: "qwen",
@@ -25,6 +19,13 @@ const PROVIDERS = [
     url: "https://dashscope.aliyuncs.com/compatible-mode/v1",
     model: "qwen-plus",
     credential: "qwenKey"
+  },
+  {
+    value: "openai",
+    label: "OpenAI / ChatGPT",
+    url: "https://api.openai.com/v1",
+    model: "gpt-4o-mini",
+    credential: "openaiKey"
   },
   {
     value: "anthropic",
@@ -302,7 +303,7 @@ function providerLabel(provider, t) {
 // 宿主可能回传 select 的 value，也可能回传显示文本（本地化名称，甚至带“· 域名 · 状态”后缀），
 // 这里全部兼容；实在认不出来时保留上一次的选择，绝不静默跳回第一家。
 function providerNames(provider) {
-  const names = [provider.value, provider.label];
+  const names = [provider.value, provider.label, provider.label.split("/")[0].trim(), ...(provider.aliases || [])];
   [provider.labelKey, provider.shortKey].forEach(key => {
     if (!key) return;
     Object.keys(STRINGS).forEach(locale => {
@@ -315,8 +316,10 @@ function providerNames(provider) {
 
 // 对话框下拉用短名，避免在窄列里被截成“自定义（”。
 function providerShortLabel(provider, t) {
+  const label = providerLabel(provider, t);
+  if (label.includes("/")) return label.split("/")[0].trim();
   if (provider.shortKey && t[provider.shortKey]) return t[provider.shortKey];
-  return providerLabel(provider, t);
+  return label;
 }
 
 function dialogProviderOptions() {

@@ -30,6 +30,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.serialization.json.*
 import org.fxboomk.fcitx5.android.data.theme.ThemeManager
 import org.fxboomk.fcitx5.android.input.FcitxInputMethodService
+import org.fxboomk.fcitx5.android.utils.toast
 
 /** Attached window; typing stays in the local editor while host APIs retain the app connection. */
 internal class JsAppDialog(
@@ -168,6 +169,13 @@ internal class JsAppDialog(
     }
 
     fun showError(message: String) {
+        if (dismissed) return
+        // A failed initial render has no close control; release the editor instead of leaving a bare error panel.
+        if (message.isNotBlank() && content.childCount == 0 && prompt == null) {
+            service.toast(message.take(500))
+            dismiss()
+            return
+        }
         status.text = message.take(500)
         status.visibility = if (message.isBlank()) View.GONE else View.VISIBLE
         applyBounds()
@@ -228,10 +236,11 @@ internal class JsAppDialog(
             require(depth <= 12 && ++nodes <= 128) { "Dialog layout is too large" }
             val id = obj.text("id")
             val view: View = when (obj.text("type")) {
-                "column", "row" -> LinearLayout(uiContext).apply {
-                    orientation = if (obj.text("type") == "row") LinearLayout.HORIZONTAL else LinearLayout.VERTICAL
+                "column", "row", "header", "actions" -> LinearLayout(uiContext).apply {
+                    orientation = if (obj.text("type") == "column") LinearLayout.VERTICAL else LinearLayout.HORIZONTAL
                     gravity = Gravity.CENTER_VERTICAL or when (obj.text("align")) {
-                        "end" -> Gravity.END; "center" -> Gravity.CENTER_HORIZONTAL; else -> Gravity.START
+                        "end" -> Gravity.END; "center" -> Gravity.CENTER_HORIZONTAL
+                        else -> if (obj.text("type") == "actions") Gravity.END else Gravity.START
                     }
                     val gap = dp((obj["gap"] as? JsonPrimitive)?.intOrNull?.coerceIn(0, 32) ?: 6)
                     (obj["children"] as? JsonArray).orEmpty().forEachIndexed { index, child ->
@@ -311,7 +320,10 @@ internal class JsAppDialog(
                             override fun getView(position: Int, convertView: View?, parent: ViewGroup): View =
                                 (super.getView(position, convertView, parent) as TextView).apply {
                                     setTextColor(textColor); textSize = 14f
-                                    minHeight = dp(40); setPadding(dp(12), dp(8), dp(12), dp(8))
+                                    // Override the system template's fixed listPreferredItemHeight.
+                                    layoutParams.height = dp(40)
+                                    minHeight = 0; minimumHeight = 0
+                                    setPadding(dp(12), dp(4), dp(12), dp(4))
                                 }
                         })
                         setText(selected?.first.orEmpty(), false)
