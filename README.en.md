@@ -12,57 +12,56 @@ This fork mainly strengthens two areas:
 
 ## Recent Updates
 
-The following summarizes recent major commits, grouped by theme (merge commits excluded):
+The following summarizes the 87 commits from October 23 through November 8, 2026, grouped by theme (merge commits excluded):
 
-- Smart prediction and AI interaction:
-  - The "Model name and effort" setting now shows a three-line summary for the model, thinking effort, and model/API availability. The model editor lets you choose an effort level from Off, Low, Medium, High, and Max.
-  - The Thinking action in the floating panel and expanded candidate area is now Persona. Pick a built-in or custom persona to regenerate immediately with it.
-  - Long-form mode is now Polish: rewrite the text before the cursor according to the active persona, and tap the result to replace the original text.
-  - Committing a Q&A result from the expanded candidate area inserts a newline before the answer; Return in that area now commits the same way as tapping the content.
-  - The candidate-bar overlay display mode was removed, and Floating window was renamed Standalone floating window.
-  - Fixed missing spaces between English words in streamed responses from some remote providers.
-  - Physical-keyboard digits and Space only commit candidates that are actually visible. Space also commits the arrow-highlighted item while composing, and choose-character-from-phrase and reset-frequency shortcuts now act on the highlighted item; Rime candidates can be navigated with the arrow keys.
-  - Reworked backspace behavior during prediction: "Clear prediction candidates" is the new default fallback, with a new "Clear prediction and delete text" option. Built-in Pinyin/Shuangpin prefer the engine's own setting, and an expanded AI window is always closed first.
-  - The Space long-press picker is replaced by repeated spaces. Del/Esc cancel an in-flight prediction and suppress hidden candidates, and IME-window key events no longer flip the keyboard mode by mistake.
-- Candidate window and physical-keyboard integration:
-  - The floating candidate window gains a "Smart" position that chooses where to appear based on the cursor area, and a vertical window can flip above the cursor.
-  - When a physical keyboard drives the candidate bar, items show 1-9 selection-key hints; physical digits commit the numbered AI prediction or calculator result.
-  - Calculator results now also appear in the floating candidate window. The toolbar can dock alongside the floating window, and paged floating candidates use a more stable Flexbox layout.
-  - Space can commit the highlighted candidate while composing; choose-character-from-phrase and reset-frequency work on the current highlight from both physical and virtual keyboards.
-  - Fixed NaN cursor anchors, hide-keyboard behavior, candidate-bar paging refresh, and main-label jitter during candidate transitions.
-- Swipe gestures, key behavior, and keyboard layouts:
-  - MacroKey swipe macros can be configured per input state, resolved by "exact state > has code > All". Timing editing now uses cards with a bottom-right FAB, card-header retiming, delete confirmation, and an explicitly empty action that blocks fallback.
-  - A new "Symbol swipe mapping" configures half-width symbols, their Chinese full-width forms, and Caps uppercase forms separately; when Caps is on, key faces show the uppercase swipe symbols.
-  - New "Auto-close paired symbols" and "Insert space between Chinese and English" toggles were added. Paired symbols support caret placement and paired backspace, hardware backspace also triggers paired deletion, and the spacing option covers preedits committed with Return.
-  - Fixed paired-symbol completion when the engine commits punctuation, including digit-key punctuation selection and unfinished preedits.
-  - The layout editor marks real alt/alt1 changes as customized, and supports moving a complete row upward, per-key width overrides, legacy weight migration, and uppercase key hints.
-  - Punctuation-swipe behavior, language-key long-press dialogs, font scaling during candidate transitions, and key sublabel rendering were refined.
-- Shuangpin schemes and keyboard layout management:
-  - Added editable custom Shuangpin schemes with independent mapping editing, explicit syllable overrides, and collapsible preference groups.
-  - Custom Shuangpin `uniqueName` is editable and can be renamed directly from the input-method list, migrating the input-method config, user-level input-method entry, and layout file.
-  - Shuangpin schemes are managed as children of a "Shuangpin" parent layout, with a separate layout file per scheme. A full copy is materialized on first edit, so later parent changes do not affect customized children.
-  - The layout manager can collapse the "Rime" and "Shuangpin" parent nodes and shows "profile - Shuangpin - scheme" in the active layout chain.
-  - Each Shuangpin scheme has independent input-method settings; fixed stale space-key labels after scheme changes and engine-state desync after rename.
-  - Added ordered Shuangpin add-dialog entries, migration from the legacy single-Shuangpin profile, and a factory 26-key fallback for uncustomized input methods.
-- Settings, search, and UI:
-  - Settings search now indexes the custom Shuangpin page and preference tabs, expands collapsed groups, and navigates across pages. The highlight is outline-only so it no longer covers the target row.
-  - Search-result navigation continues after the page resumes and retries while an asynchronous list is rebuilt; fixed highlights that were missing or only partially drawn.
-  - "Keys and gestures" was regrouped to keep only gesture-related items, and the Rime scheme picker became a radio-button list with the active engine's scheme checked.
-  - The popup and symbol-swipe mapping editors use a bottom-right circular FAB, and key/row/macro editor dialogs preserve unsaved edits across rotation.
-  - Layout, key, font, and popup editors use state-aware save icons; Rime radio outlines, candidate-bar labels, and input-bar icons were refined.
-  - Clipboard category switching and search refresh are more stable with fewer stale results; missing translations and AI action labels were completed.
-- Chinese engines, build, and maintenance:
-  - The built-in zh_CN KenLM was upgraded to 8-bit quantization, reducing quantization error and prediction-table entry loss. Table-based input methods are now narrowed down to Wubi alone.
-  - Build tasks are compatible with the Gradle 10 task DSL; native install tasks sharing a CMake build tree are serialized to avoid concurrent regeneration races with the configuration cache; the fx flavor was removed.
-  - Fixed instrumentation-test hangs and two device-test assumptions, and added tests for Shuangpin child layouts, settings search, and save-icon tinting.
-  - Synced upstream and submodules, updated prebuilt models, adjusted CI for third-party artifacts, and maintained the Chinese and English READMEs.
-- Wubi input method:
-  - The table engine is restored and Wubi (wbx) is bundled. A grouped Wubi settings page organizes options into Input & commit, Candidates & sorting, Dictionary & phrases, Code hints, and Keys & symbols, and global table options are reachable from the addon page.
-  - The config UI can now reorder enum entries for presentation: Shuangpin schemes inside Wubi are sorted as "disabled → common schemes → custom", the "Zhongwenzhixing" Shuangpin scheme was removed, and legacy configs fall back to Ziranma.
-  - The status bar and input-method list show a Wubi icon, and the table addon sits right after Pinyin in the addon list.
-- Build and fixes:
-  - The onnxruntime-genai AAR is now rebuilt from source with the NDK after download so the telemetry library is 16 KB page aligned (zipalign only fixes archive offsets, not ELF LOAD segments); CI and the release workflow install NDK 28.0.13004108 explicitly.
-  - Fixed mis-measurement of the JS plugin slider caused by inflating it without a parent.
+- Themes, key appearance, and keyboard geometry:
+  - Added button and icon theme infrastructure: toolbar and key icons can use separate icon themes, and the theme editor offers icon previews, palette tuning, and button styling; toolbar icons in runtime windows refresh as soon as the theme changes.
+  - Bundled themes are now loaded read-only from assets, supporting asset background images, blur radius, and background brightness; upgrades clean up leftover copies of bundled themes while keeping user themes, and duplicating a bundled theme copies its background assets too.
+  - Theme and appearance settings were split into new pages with dynamic summaries; candidate padding and highlight corners moved into the candidate-item and horizontal-bar groups respectively, and clipboard search over image themes now uses a frosted surface so text stays readable.
+  - Key main labels are centered on visible ink, alphabet label scaling is unified, the uppercase hint moved into the secondary sublabel slot, row-level sublabels align with key edges, and uppercase hints in tall keys no longer drift.
+  - Added a keyboard height adjustment overlay for on-the-fly resizing; the height controls are now part of the status-menu configuration, and custom heights no longer fail in some cases.
+  - Fixed macro keys losing Caps state while typing, user-defined labels being case-folded by Caps, text-editing and symbol-pad icons not following the key icon theme, and unstable labels in the Rime ASCII layout.
+
+- Settings reorganization:
+  - Theme appearance is split into Theme and Configure sub-pages, and behavior/appearance grouping was refined: font settings live under theme appearance, candidate orientation under candidate items, the empty toolbar page is gone, and switch preferences are clustered at the top of the key and toolbar style groups.
+  - Pinyin addon settings were regrouped into input, candidates, prediction, keys, dictionaries, text conversion, cloud, and fuzzy Pinyin, backed by a reusable grouped config layout; the Pinyin assistant switch and its plugin state sync were restored, and fixes cover synthetic configs leaking back into Fcitx, fuzzy-Pinyin tabs overwriting each other, and the "Other" group being unreachable.
+  - Pinyin punctuation and text conversion now use tabs; preedit style gained a grouped selector and is stored per input method, so Pinyin, Rime, and the app-level inline style no longer interfere.
+  - The Rime scheme picker persists user-defined order and selection, writing back to the config only when the selection actually changes to avoid unnecessary deployments.
+  - Clarified the lowercase-letter option in fuzzy matching.
+
+- Layout management and sharing:
+  - Layout list management and editing actions are separated, leaving the manager focused on ordering, collapsing, adding/removing, and deep links.
+  - Layout import now accepts QR scans, QR images, JSON files, and ZIP archives; the config name can be derived from the file name, and a ZIP can import several profiles at once.
+  - Sharing became an export dialog: select multiple profiles and choose QR, JSON, or ZIP output, with archive size and entry-count guards.
+  - The multi-mode entry for text keys follows input-method capabilities, so English layouts and single Shuangpin schemes no longer offer it, while the Shuangpin parent layout always exposes its child schemes.
+  - Fixed custom layouts and macro popup presets not refreshing, and overly deep Shuangpin layout nesting in the editor.
+
+- Symbol panel, floating keyboard, and toolbar:
+  - The symbol panel was rewritten in a Foxy style with custom catalogs and two layouts; its backspace key follows the dynamic key icon theme, and a Korean character set was added with reordered groups and ASCII digits moved to the end.
+  - The toolbar gained symbol-panel and voice-input shortcuts; voice input is a regular button with an active icon that follows the key theme.
+  - "Layout and split" was renamed to "Split and floating", with the full floating-keyboard implementation migrated and its strings completed.
+  - Added a toolbar customization key that opens the button and icon customizer, and legacy configs get the key inserted automatically.
+  - KawaiiBar moved from FlexboxLayoutManager to LinearLayoutManager with unified equal-width math, preserved minimum widths, and active states retained across holder reuse.
+  - The theme list now refreshes selection changes per payload instead of redrawing the whole list.
+
+- JS plugins, voice input, and the AI assistant:
+  - Voice input was migrated with AIDL providers, the JS voice plugin host, plugin settings, and backup support, plus provider ordering by preference; fixed a dialog theme crash on long-pressing the toolbar voice button and "hold to talk" not sending endStream on release.
+  - The voice plugin list was reworked: bundled plugins can be uninstalled (recorded as a tombstone so upgrades do not bring them back), importing the same ID upgrades or overrides, and plugins can be renamed and grouped by voice tags.
+  - Added the bundled AI Assistant JS app plugin and the JsApp host API: dialogs, editors, HTTP, panel layout, input connections, and per-plugin capability grants; the IME service can forward backspace, enter, arrows, selection edits, and composing text.
+  - The plugin subsystem converged on a generic plugin + assistant architecture; the plugins page is split into Fcitx and JS tabs, the JS add button only shows on the JS tab, and the category grouping was simplified.
+  - The AI assistant is a configurable key (hidden by default): tap to invoke, long-press for quick provider/model/effort settings, or swipe up for Polish / Translate / Ask / Settings, with a new brief-answer output mode.
+  - JS apps gained a slider control, input line count with auto height, and resettable settings; secret fields use a fixed mask and leave the stored key untouched unless edited.
+  - Upgraded to OkHttp 5, moved recording and provider logs to Timber, removed stale strings and resources, and added tests for the voice picker, JsAppDialog, toolbar customization, and scrolling.
+
+- Wubi and Chinese engines:
+  - Built-in Chinese input now includes Wubi (wbx) with a grouped settings page (Input & commit / Candidates & sorting / Dictionary & phrases / Code hints / Keys & symbols), global table options are reachable from the addon page, and the status bar and input-method list gained a Wubi icon.
+  - The config UI can reorder enum entries for display; the Zhongwenzhixing Shuangpin scheme was removed and legacy configs fall back to Ziranma.
+  - Table-based input methods are narrowed down to Wubi alone; the other code tables and their data are still not packaged.
+
+- Build and dependencies:
+  - ONNX Runtime GenAI Android was upgraded to 0.17.0; because the upstream AAR ships a telemetry library that is not 16 KB page aligned, it is now recompiled with the NDK and reinjected, and the artifact is versioned 0.17.0-f5a.1.
+  - CI, pull requests, and releases install NDK 28.0.13004108 and the matching CMake explicitly; libime, fcitx5-rime, and other submodules were synced along with their prebuilt artifacts.
+  - Fixed mis-measurement of the JS plugin slider caused by inflating it without a parent, and cleaned up Kotlin compatibility warnings plus Android resource and settings lint issues.
 
 ## Highlights
 
@@ -159,6 +158,8 @@ If your workflow is “copy on desktop, input on phone” or “copy on phone, r
 - Toolbar and keyboard buttons can be configured to toggle the number keyboard.
 - Custom keyboard keys can show configurable uppercase hints, and modified keys are marked with a distinct editor border.
 - Popup preset editing can restore default candidate content and continues to support QR import/export.
+- Layout list management is separated from editing actions: the manager focuses on ordering, collapsing, adding/removing, and deep links, and custom layouts plus macro popup presets refresh promptly.
+- Layout profiles support JSON / ZIP import and multi-profile export: import from a QR code, QR image, JSON file, or ZIP archive (a ZIP can carry several profiles at once), and export by selecting multiple profiles in QR, JSON, or ZIP format.
 
 ### 5. Toolbar and UI customization
 
@@ -174,6 +175,8 @@ If your workflow is “copy on desktop, input on phone” or “copy on phone, r
 - The input bar includes a more semantic hide-keyboard icon for better visual clarity.
 - With a Rime engine active, the status area offers default and Rime tab pages, switchable by tapping or swiping, with the active tab highlighted.
 - UI details such as the input method picker, keyboard adjustment overlay, and floating-keyboard state persistence continue to be refined, and layout refresh is more stable when themes change.
+- A toolbar customization key opens the button and icon customizer directly; KawaiiBar now uses LinearLayoutManager, keeping buttons equally wide and active states intact after holder reuse.
+- A keyboard height adjustment overlay lets you drag the key height in place, and the height controls are part of the status-menu configuration.
 
 ### 6. In-app updates and version retrieval
 
@@ -190,12 +193,31 @@ If your workflow is “copy on desktop, input on phone” or “copy on phone, r
 - Theme editing provides explicit save, share, and import actions, while previews stay aligned with current keyboard behavior.
 - Theme import tolerates unknown fields in foreign fork theme JSON, so third-party themes import smoothly.
 - Theme previews support a horizontal theme-pool carousel; the theme list can toggle pool membership directly and smart-collapse groups, while duplicate cards and stale files left after deletion are cleaned up.
+- Bundled themes load read-only from assets with background images, blur radius, and brightness; duplicating a bundled theme copies its background assets, and upgrades keep user-created themes.
+- Button and icon themes are configurable separately: toolbar and key icons can use independent icon themes, the theme editor offers icon previews and palette tuning, and runtime windows refresh immediately.
+- Clipboard search over image themes uses a frosted surface, and the theme list refreshes selection changes per payload instead of redrawing the whole list.
 
 ### 8. Preserving the Fcitx5 plugin architecture
 
 - The main app still loads additional input engines or feature plugins through the plugin mechanism.
 - Beyond the main app, this repository also includes plugins/components such as RIME, Anthy, UniKey, Thai, Hangul, Chewing, Sayura, Jyutping, and clipboard filtering/synchronization.
 - Compatibility with external plugin installation and integration scenarios is preserved.
+- The JS plugin subsystem is unified on a plugin + assistant architecture, with the plugins page split into Fcitx and JS tabs; the built-in AI Assistant runs as a JS app plugin, and voice plugins support uninstall, override upgrades, and custom tags.
+
+### 9. JS plugins and the AI assistant
+
+- The built-in AI Assistant runs as a JS app plugin and uses the JsApp host API for dialogs, editors, HTTP requests, panel layout, and input connections, with per-plugin grants such as network access.
+- The AI assistant is a configurable key (hidden by default): tap to invoke, long-press for quick provider/model/effort settings, or swipe up for Polish / Translate / Ask / Settings.
+- A brief-answer output mode was added; answers can be committed from the floating window or the expanded candidate area, and JS apps support sliders, auto-height multiline input, and resettable settings.
+- Voice input supports both AIDL providers and JS voice plugins, ordered by preference; releasing hold-to-talk now finishes the session correctly and waits for the final recognition result.
+- The plugin list shows bundled and imported plugins with renaming, voice-tag grouping, uninstalling bundled plugins (they stay gone across upgrades), and override upgrades when importing the same ID.
+
+### 10. Symbol panel and floating keyboard
+
+- The symbol panel was rewritten in a Foxy style with custom catalogs and two layouts; its backspace key follows the key icon theme, and a Korean character set plus reordered groups were added.
+- The toolbar gained symbol-panel and voice-input shortcuts, with voice input as a regular button that supports active icons and the key theme.
+- "Layout and split" was renamed to "Split and floating", and the complete floating-keyboard implementation is migrated and configurable separately from the split keyboard.
+- Theme switching and state persistence for the floating keyboard, input method picker, and keyboard adjustment overlay continue to be refined.
 
 ## Supported input methods
 
