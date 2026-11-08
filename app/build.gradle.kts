@@ -101,7 +101,10 @@ fcitxComponent {
     // Code tables shipped prebuilt (see f5a-prebuilder Rules/LibIME.hs)
     val tableDicts = listOf("db", "wbpy", "wbx", "zrm")
     // exclude (delete immediately after install)
-    excludeFiles = listOf("usr/share/fcitx5/addon/table.conf") +
+    excludeFiles = listOf(
+        "usr/share/fcitx5/addon/table.conf",
+        "usr/share/fcitx5/inputmethod/shuangpin-zhongwenzhixing.conf"
+    ) +
         tableInputMethods.map { "usr/share/fcitx5/inputmethod/$it.conf" } +
         tableDicts.map { "usr/share/fcitx5/table/$it.main.dict" }
     installPrebuiltAssets = true

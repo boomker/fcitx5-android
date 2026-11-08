@@ -249,8 +249,7 @@ class InputMethodListFragment : ProgressFragment(), OnItemChangedListener<InputM
             "shuangpin-gb",
             "shuangpin-ziranma",
             "shuangpin-abc",
-            "shuangpin-pinyinjiajia",
-            "shuangpin-zhongwenzhixing"
+            "shuangpin-pinyinjiajia"
         )
 
         /** 自定义双拼方案的排序权重：介于 shuangpin-gb(8) 与 shuangpin-ziranma(10) 之间。 */

@@ -17,10 +17,6 @@ class ShuangpinSchemeMigrationTest {
         assertEquals("shuangpin-ziranma", ShuangpinSchemeMigration.targetForLegacyProfile("Ziranma"))
         assertEquals("shuangpin-abc", ShuangpinSchemeMigration.targetForLegacyProfile("ABC"))
         assertEquals(
-            "shuangpin-zhongwenzhixing",
-            ShuangpinSchemeMigration.targetForLegacyProfile("Zhongwenzhixing")
-        )
-        assertEquals(
             "shuangpin-pinyinjiajia",
             ShuangpinSchemeMigration.targetForLegacyProfile("PinyinJiajia")
         )
@@ -34,5 +30,13 @@ class ShuangpinSchemeMigrationTest {
     fun missingOrUnknownProfileFallsBackToZiranma() {
         assertEquals("shuangpin-ziranma", ShuangpinSchemeMigration.targetForLegacyProfile(null))
         assertEquals("shuangpin-ziranma", ShuangpinSchemeMigration.targetForLegacyProfile("Unknown"))
+    }
+
+    @Test
+    fun removedZhongwenzhixingProfileFallsBackToZiranma() {
+        assertEquals(
+            "shuangpin-ziranma",
+            ShuangpinSchemeMigration.targetForLegacyProfile("Zhongwenzhixing")
+        )
     }
 }

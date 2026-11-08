@@ -19,7 +19,6 @@ object ShuangpinSchemeMigration {
         "GB Standard", "GB" -> "shuangpin-gb"
         "Ziranma" -> "shuangpin-ziranma"
         "ABC" -> "shuangpin-abc"
-        "Zhongwenzhixing" -> "shuangpin-zhongwenzhixing"
         "PinyinJiajia" -> "shuangpin-pinyinjiajia"
         // The custom scheme may since have been renamed; the caller resolves the
         // actual entry (CustomShuangpinSchemeStore.currentUniqueName()) for this case.
