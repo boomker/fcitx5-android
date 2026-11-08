@@ -392,7 +392,8 @@ internal class JsAppDialog(
                     val heading = label(listOf(caption, options[selected].first).joinToString(" · "), size = 11f, muted = true).apply {
                         maxLines = 1
                     }
-                    val slider = (LayoutInflater.from(uiContext).inflate(R.layout.js_app_slider, null) as Slider).apply {
+                    val sliderViewport = FrameLayout(uiContext)
+                    val slider = (LayoutInflater.from(uiContext).inflate(R.layout.js_app_slider, sliderViewport, false) as Slider).apply {
                         valueFrom = 0f
                         valueTo = (options.size - 1).toFloat()
                         stepSize = 1f
@@ -434,7 +435,7 @@ internal class JsAppDialog(
                         }, LinearLayout.LayoutParams(-1, -2))
                         // Material enforces a 48dp internal height; the centered viewport keeps
                         // drawing, hit testing and the thumb's 40dp target inside this row.
-                        addView(FrameLayout(uiContext).apply {
+                        addView(sliderViewport.apply {
                             addView(slider, FrameLayout.LayoutParams(-1, -2, Gravity.CENTER_VERTICAL))
                         }, LinearLayout.LayoutParams(-1, dp(40)))
                     }
