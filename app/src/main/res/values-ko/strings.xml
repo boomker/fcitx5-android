@@ -1206,4 +1206,40 @@
     <string name="js_voice_network_not_approved">플러그인의 네트워크 접근이 승인되지 않았습니다. JS 음성 플러그인 설정에서 호스트를 검토하세요.</string>
     <string name="js_voice_network_approved_hint">승인되었습니다. 음성 버튼을 다시 눌러 시작하세요.</string>
     <string name="js_voice_secret_unavailable">이 기기에서 복호화할 수 없습니다. 키를 다시 입력하세요.</string>
+
+    <!-- Wubi config -->
+    <string name="wubi_config_section_input">입력 및 확정</string>
+    <string name="wubi_config_section_candidates">후보 및 정렬</string>
+    <string name="wubi_config_section_lexicon">사전 및 구문 학습</string>
+    <string name="wubi_config_section_hints">코드 힌트</string>
+    <string name="wubi_config_section_keys">키 및 기호</string>
+    <string name="wubi_config_commit_after_select">선택 후 확정</string>
+    <string name="wubi_config_commit_after_select_summary">자동 선택된 후보를 즉시 확정합니다.</string>
+    <string name="wubi_config_commit_when_deactivate">비활성화 시 확정</string>
+    <string name="wubi_config_commit_when_deactivate_summary">우비를 비활성화할 때 현재 입력을 확정합니다.</string>
+    <string name="wubi_config_commit_invalid_segment">잘못된 코드 확정</string>
+    <string name="wubi_config_first_candidate_preedit">첫 후보를 사전 편집으로</string>
+    <string name="wubi_config_quickphrase_text">빠른 구문 실행 문자</string>
+    <string name="wubi_config_no_sort_input_length">고정 정렬 코드 길이</string>
+    <string name="wubi_config_no_sort_input_length_summary">코드 길이가 이 값 이하이면 코드표의 원래 순서를 유지합니다.</string>
+    <string name="wubi_config_sort_by_code_length">코드 길이로 정렬</string>
+    <string name="wubi_config_system_language_model">시스템 언어 모델</string>
+    <string name="wubi_config_context_order">문맥에 따라 정렬</string>
+    <string name="wubi_config_matching_key">와일드카드 키</string>
+    <string name="wubi_config_pinyin_key">병음 시작 키</string>
+    <string name="wubi_config_auto_select">자동 선택</string>
+    <string name="wubi_config_auto_select_length">단독 후보 코드 길이</string>
+    <string name="wubi_config_auto_select_regex">단독 후보 정규식</string>
+    <string name="wubi_config_no_match_auto_select_length">불일치 시 확정 코드 길이</string>
+    <string name="wubi_config_no_match_auto_select_regex">불일치 시 확정 정규식</string>
+    <string name="wubi_config_auto_phrase_length">자동 구문 길이</string>
+    <string name="wubi_config_auto_phrase_with_phrase">구문에서 새 구문 학습</string>
+    <string name="wubi_config_auto_phrase_marker">자동 구문 표시</string>
+    <string name="wubi_config_save_auto_phrase_after">구문 저장 기준 횟수</string>
+    <string name="wubi_config_hint">코드 힌트 표시</string>
+    <string name="wubi_config_custom_hint">사용자 지정 힌트</string>
+    <string name="wubi_config_hint_separator">힌트 구분자</string>
+    <string name="wubi_config_space_before_hint">힌트 앞에 공백</string>
+    <string name="wubi_config_candidate_direction">후보 표시 방향</string>
+    <string name="wubi_config_keypad_input">숫자 키패드 입력</string>
 </resources>

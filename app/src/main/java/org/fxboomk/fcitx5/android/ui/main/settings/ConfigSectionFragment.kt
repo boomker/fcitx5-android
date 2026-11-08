@@ -10,7 +10,7 @@ import org.fxboomk.fcitx5.android.core.RawConfig
 import org.fxboomk.fcitx5.android.ui.main.settings.addon.AddonConfigLayouts
 import org.fxboomk.fcitx5.android.utils.lazyRoute
 
-/** Displays a single group from a pinyin addon or custom shuangpin config. */
+/** Displays a single group from an addon or input-method config. */
 class ConfigSectionFragment : FcitxPreferenceFragment() {
     private val args by lazyRoute<SettingsRoute.ConfigSection>()
 

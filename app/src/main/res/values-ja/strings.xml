@@ -1205,4 +1205,40 @@
     <string name="js_voice_network_not_approved">プラグインのネットワークアクセスが許可されていません。JS 音声プラグイン設定でホストを確認してください。</string>
     <string name="js_voice_network_approved_hint">許可しました。もう一度音声ボタンを押すと開始します。</string>
     <string name="js_voice_secret_unavailable">この端末では復号できません。キーを再入力してください。</string>
+
+    <!-- Wubi config -->
+    <string name="wubi_config_section_input">入力と確定</string>
+    <string name="wubi_config_section_candidates">候補と並び順</string>
+    <string name="wubi_config_section_lexicon">辞書と語句学習</string>
+    <string name="wubi_config_section_hints">コードのヒント</string>
+    <string name="wubi_config_section_keys">キーと記号</string>
+    <string name="wubi_config_commit_after_select">選択後に確定</string>
+    <string name="wubi_config_commit_after_select_summary">自動選択された候補をすぐに確定します。</string>
+    <string name="wubi_config_commit_when_deactivate">無効化時に確定</string>
+    <string name="wubi_config_commit_when_deactivate_summary">五筆の無効化時に現在の入力を確定します。</string>
+    <string name="wubi_config_commit_invalid_segment">無効なコードを確定</string>
+    <string name="wubi_config_first_candidate_preedit">先頭候補をプリエディットに</string>
+    <string name="wubi_config_quickphrase_text">フレーズの起動文字</string>
+    <string name="wubi_config_no_sort_input_length">並び順固定のコード長</string>
+    <string name="wubi_config_no_sort_input_length_summary">コード長がこの値以下の場合、コード表の元の順序を保ちます。</string>
+    <string name="wubi_config_sort_by_code_length">コード長で並べ替え</string>
+    <string name="wubi_config_system_language_model">システム言語モデル</string>
+    <string name="wubi_config_context_order">文脈に応じた並び順</string>
+    <string name="wubi_config_matching_key">ワイルドカードキー</string>
+    <string name="wubi_config_pinyin_key">ピンインの開始キー</string>
+    <string name="wubi_config_auto_select">自動選択</string>
+    <string name="wubi_config_auto_select_length">単一候補のコード長</string>
+    <string name="wubi_config_auto_select_regex">単一候補の正規表現</string>
+    <string name="wubi_config_no_match_auto_select_length">不一致時の確定コード長</string>
+    <string name="wubi_config_no_match_auto_select_regex">不一致時の確定正規表現</string>
+    <string name="wubi_config_auto_phrase_length">自動学習する語句の長さ</string>
+    <string name="wubi_config_auto_phrase_with_phrase">語句から語句を学習</string>
+    <string name="wubi_config_auto_phrase_marker">自動学習した語句の印</string>
+    <string name="wubi_config_save_auto_phrase_after">語句を保存する入力回数</string>
+    <string name="wubi_config_hint">コードのヒントを表示</string>
+    <string name="wubi_config_custom_hint">カスタムヒント</string>
+    <string name="wubi_config_hint_separator">ヒントの区切り文字</string>
+    <string name="wubi_config_space_before_hint">ヒントの前に空白</string>
+    <string name="wubi_config_candidate_direction">候補の表示方向</string>
+    <string name="wubi_config_keypad_input">テンキー入力</string>
 </resources>

@@ -19,6 +19,7 @@ set(CMAKE_MODULE_PATH ${LIBIME_CMAKE_MODULES} ${CMAKE_MODULE_PATH})
 
 find_package(LibIMECore MODULE)
 find_package(LibIMEPinyin MODULE)
+find_package(LibIMETable MODULE)
 
 find_package(fcitx5-lua REQUIRED CONFIG)
 find_package(fcitx5-chinese-addons REQUIRED CONFIG)
@@ -58,6 +59,7 @@ target_link_libraries(native-lib
         Boost::headers
         Boost::iostreams
         LibIME::Pinyin
+        LibIME::Table
         pinyin-customphrase
         )
 
@@ -71,6 +73,7 @@ add_custom_target(copy-fcitx5-modules
         $<TARGET_PROPERTY:fcitx5::unicode,IMPORTED_LOCATION>
         $<TARGET_PROPERTY:fcitx5-lua::luaaddonloader,IMPORTED_LOCATION>
         $<TARGET_PROPERTY:fcitx5-chinese-addons::pinyin,IMPORTED_LOCATION>
+        $<TARGET_PROPERTY:fcitx5-chinese-addons::table,IMPORTED_LOCATION>
         $<TARGET_PROPERTY:fcitx5-chinese-addons::scel2org5,IMPORTED_LOCATION>
         $<TARGET_PROPERTY:fcitx5-chinese-addons::chttrans,IMPORTED_LOCATION>
         $<TARGET_PROPERTY:fcitx5-chinese-addons::fullwidth,IMPORTED_LOCATION>

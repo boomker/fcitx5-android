@@ -17,6 +17,7 @@ android {
                     // fcitx5-chinese-addons
                     "pinyin",
                     "scel2org5",
+                    "table",
                     "chttrans",
                     "fullwidth",
                     "pinyinhelper",
@@ -33,6 +34,10 @@ android {
         }
         create("pinyin") {
             libraryName = "libpinyin"
+            // no headers
+        }
+        create("table") {
+            libraryName = "libtable"
             // no headers
         }
         create("scel2org5") {

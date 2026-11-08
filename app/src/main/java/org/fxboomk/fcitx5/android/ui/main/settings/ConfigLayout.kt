@@ -36,6 +36,8 @@ data class ConfigLayout(
      * by the raw enum value.
      */
     val entryTitleOverrides: Map<String, Map<String, Int>> = emptyMap(),
+    /** Presentation transforms over pairs of raw enum values and localized labels. */
+    val enumEntryTransforms: Map<String, (List<Pair<String, String>>) -> List<Pair<String, String>>> = emptyMap(),
     /**
      * Enum options that should be presented as a two-state switch, keyed by
      * fcitx option name.

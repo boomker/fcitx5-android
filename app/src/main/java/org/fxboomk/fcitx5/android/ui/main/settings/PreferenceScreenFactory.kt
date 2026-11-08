@@ -436,14 +436,15 @@ object PreferenceScreenFactory {
                         setDefaultValue(descriptor.defaultValue == enumSwitch.onValue)
                     }
                 } else {
+                    val labeledEntries = descriptor.entries.mapIndexed { index, value ->
+                        value to (layout?.entryTitleOverride(context, descriptor.name, value)
+                            ?: descriptor.entriesI18n?.getOrNull(index) ?: value)
+                    }
+                    val displayedEntries = layout?.enumEntryTransforms?.get(descriptor.name)
+                        ?.invoke(labeledEntries) ?: labeledEntries
                     ListPreference(context).apply {
-                        entries = (descriptor.entriesI18n ?: descriptor.entries)
-                            .mapIndexed { index, label ->
-                                val value = descriptor.entries.getOrNull(index) ?: label
-                                layout?.entryTitleOverride(context, descriptor.name, value)
-                                    ?: label
-                            }.toTypedArray()
-                        entryValues = descriptor.entries.toTypedArray()
+                        entries = displayedEntries.map { it.second }.toTypedArray()
+                        entryValues = displayedEntries.map { it.first }.toTypedArray()
                         summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
                         setDefaultValue(descriptor.defaultValue)
                     }
@@ -459,6 +460,7 @@ object PreferenceScreenFactory {
                 )
                 ConfigExternal.ETy.QuickPhrase -> quickPhraseEditor()
                 ConfigExternal.ETy.Chttrans -> addonConfigPreference(titleText, "chttrans")
+                ConfigExternal.ETy.TableGlobal -> addonConfigPreference(titleText, "table")
                 ConfigExternal.ETy.PinyinCustomPhrase -> pinyinCustomPhrase()
                 ConfigExternal.ETy.MultiSelect -> Preference(context).apply {
                     setOnPreferenceClickListener {

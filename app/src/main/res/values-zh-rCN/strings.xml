@@ -1209,4 +1209,40 @@
     <string name="js_voice_network_not_approved">插件尚未获准访问网络，请在 JS 语音插件设置中查看并批准主机。</string>
     <string name="js_voice_network_approved_hint">已批准，再次点按语音按钮即可开始。</string>
     <string name="js_voice_secret_unavailable">本机无法解密，请重新填写密钥</string>
+
+    <!-- Wubi config -->
+    <string name="wubi_config_section_input">输入与上屏</string>
+    <string name="wubi_config_section_candidates">候选与排序</string>
+    <string name="wubi_config_section_lexicon">词库与组词</string>
+    <string name="wubi_config_section_hints">编码提示</string>
+    <string name="wubi_config_section_keys">按键与符号</string>
+    <string name="wubi_config_commit_after_select">选词后上屏</string>
+    <string name="wubi_config_commit_after_select_summary">自动选中候选后立即上屏。</string>
+    <string name="wubi_config_commit_when_deactivate">停用时上屏</string>
+    <string name="wubi_config_commit_when_deactivate_summary">停用五笔时提交当前输入。</string>
+    <string name="wubi_config_commit_invalid_segment">上屏无效编码</string>
+    <string name="wubi_config_first_candidate_preedit">首选作为预编辑</string>
+    <string name="wubi_config_quickphrase_text">短语触发字符</string>
+    <string name="wubi_config_no_sort_input_length">固定排序码长</string>
+    <string name="wubi_config_no_sort_input_length_summary">编码不超过此长度时，保持码表原有顺序。</string>
+    <string name="wubi_config_sort_by_code_length">按码长排序</string>
+    <string name="wubi_config_system_language_model">系统语言模型</string>
+    <string name="wubi_config_context_order">按上下文排序</string>
+    <string name="wubi_config_matching_key">通配匹配键</string>
+    <string name="wubi_config_pinyin_key">拼音引导键</string>
+    <string name="wubi_config_auto_select">自动选词</string>
+    <string name="wubi_config_auto_select_length">唯一候选码长</string>
+    <string name="wubi_config_auto_select_regex">唯一候选规则</string>
+    <string name="wubi_config_no_match_auto_select_length">空码顶屏码长</string>
+    <string name="wubi_config_no_match_auto_select_regex">空码顶屏规则</string>
+    <string name="wubi_config_auto_phrase_length">自动组词长度</string>
+    <string name="wubi_config_auto_phrase_with_phrase">使用词语组词</string>
+    <string name="wubi_config_auto_phrase_marker">组词标记</string>
+    <string name="wubi_config_save_auto_phrase_after">组词保存次数</string>
+    <string name="wubi_config_hint">显示编码提示</string>
+    <string name="wubi_config_custom_hint">自定义提示</string>
+    <string name="wubi_config_hint_separator">提示分隔符</string>
+    <string name="wubi_config_space_before_hint">提示前加空格</string>
+    <string name="wubi_config_candidate_direction">候选方向</string>
+    <string name="wubi_config_keypad_input">小键盘输入</string>
 </resources>

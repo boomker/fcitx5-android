@@ -1205,4 +1205,40 @@
     <string name="js_voice_network_not_approved">Доступ плагина к сети не разрешён. Проверьте хосты в настройках голосовых JS-плагинов.</string>
     <string name="js_voice_network_approved_hint">Разрешено. Нажмите кнопку голосового ввода ещё раз, чтобы начать.</string>
     <string name="js_voice_secret_unavailable">Не удалось расшифровать на этом устройстве. Введите ключ ещё раз.</string>
+
+    <!-- Wubi config -->
+    <string name="wubi_config_section_input">Ввод и подтверждение</string>
+    <string name="wubi_config_section_candidates">Кандидаты и сортировка</string>
+    <string name="wubi_config_section_lexicon">Словарь и фразы</string>
+    <string name="wubi_config_section_hints">Подсказки кодов</string>
+    <string name="wubi_config_section_keys">Клавиши и символы</string>
+    <string name="wubi_config_commit_after_select">Подтверждать после выбора</string>
+    <string name="wubi_config_commit_after_select_summary">Сразу подтверждать автоматически выбранного кандидата.</string>
+    <string name="wubi_config_commit_when_deactivate">Подтверждать при отключении</string>
+    <string name="wubi_config_commit_when_deactivate_summary">Подтверждать текущий ввод при отключении Wubi.</string>
+    <string name="wubi_config_commit_invalid_segment">Подтверждать неверный код</string>
+    <string name="wubi_config_first_candidate_preedit">Первый кандидат в предвводе</string>
+    <string name="wubi_config_quickphrase_text">Символы вызова быстрых фраз</string>
+    <string name="wubi_config_no_sort_input_length">Длина без пересортировки</string>
+    <string name="wubi_config_no_sort_input_length_summary">Сохранять исходный порядок таблицы для кодов не длиннее этого значения.</string>
+    <string name="wubi_config_sort_by_code_length">Сортировать по длине кода</string>
+    <string name="wubi_config_system_language_model">Системная языковая модель</string>
+    <string name="wubi_config_context_order">Сортировать по контексту</string>
+    <string name="wubi_config_matching_key">Клавиша подстановки</string>
+    <string name="wubi_config_pinyin_key">Клавиша префикса пиньиня</string>
+    <string name="wubi_config_auto_select">Автовыбор</string>
+    <string name="wubi_config_auto_select_length">Длина кода одного кандидата</string>
+    <string name="wubi_config_auto_select_regex">Regex для одного кандидата</string>
+    <string name="wubi_config_no_match_auto_select_length">Длина кода без совпадений</string>
+    <string name="wubi_config_no_match_auto_select_regex">Regex без совпадений</string>
+    <string name="wubi_config_auto_phrase_length">Длина автофразы</string>
+    <string name="wubi_config_auto_phrase_with_phrase">Учить фразы из других фраз</string>
+    <string name="wubi_config_auto_phrase_marker">Метка автофразы</string>
+    <string name="wubi_config_save_auto_phrase_after">Число вводов для сохранения</string>
+    <string name="wubi_config_hint">Показывать подсказки кодов</string>
+    <string name="wubi_config_custom_hint">Свои подсказки</string>
+    <string name="wubi_config_hint_separator">Разделитель подсказок</string>
+    <string name="wubi_config_space_before_hint">Пробел перед подсказками</string>
+    <string name="wubi_config_candidate_direction">Ориентация кандидатов</string>
+    <string name="wubi_config_keypad_input">Ввод с цифровой клавиатуры</string>
 </resources>

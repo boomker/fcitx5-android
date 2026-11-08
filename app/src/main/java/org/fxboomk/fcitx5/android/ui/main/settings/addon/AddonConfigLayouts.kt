@@ -25,6 +25,7 @@ object AddonConfigLayouts {
     fun get(context: Context, uniqueName: String): ConfigLayout? = when (uniqueName) {
         "pinyin" -> PinyinConfigLayout.get(context)
         "rime" -> RimeConfigLayout.get()
+        "table" -> WubiConfigLayout.getGlobal()
         else -> null
     }
 
@@ -38,13 +39,15 @@ object AddonConfigLayouts {
         else -> null
     }
 
-    /** Layout for pinyin, shuangpin and rime input-method configs. */
-    fun getForInputMethod(context: Context, uniqueName: String): ConfigLayout? =
-        when (engineAddonForInputMethod(uniqueName)) {
+    /** Presentation layout for input-method configs. */
+    fun getForInputMethod(context: Context, uniqueName: String): ConfigLayout? {
+        if (uniqueName == "wbx") return WubiConfigLayout.get()
+        return when (engineAddonForInputMethod(uniqueName)) {
             "pinyin" -> PinyinConfigLayout.get(context)
             "rime" -> RimeConfigLayout.get()
             else -> null
         }
+    }
 
     fun isFuzzySection(layout: ConfigLayout, index: Int): Boolean =
         layout.sections.getOrNull(index)?.options?.contains("Fuzzy") == true

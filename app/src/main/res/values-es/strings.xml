@@ -1205,4 +1205,40 @@
     <string name="js_voice_network_not_approved">El acceso a la red del complemento no está aprobado. Revisa los hosts en los ajustes de complementos de voz JS.</string>
     <string name="js_voice_network_approved_hint">Aprobado. Pulsa de nuevo el botón de voz para empezar.</string>
     <string name="js_voice_secret_unavailable">No se puede descifrar en este dispositivo; vuelve a introducir la clave.</string>
+
+    <!-- Wubi config -->
+    <string name="wubi_config_section_input">Entrada y confirmación</string>
+    <string name="wubi_config_section_candidates">Candidatos y orden</string>
+    <string name="wubi_config_section_lexicon">Diccionario y frases</string>
+    <string name="wubi_config_section_hints">Pistas de código</string>
+    <string name="wubi_config_section_keys">Teclas y símbolos</string>
+    <string name="wubi_config_commit_after_select">Confirmar tras seleccionar</string>
+    <string name="wubi_config_commit_after_select_summary">Confirmar de inmediato el candidato seleccionado automáticamente.</string>
+    <string name="wubi_config_commit_when_deactivate">Confirmar al desactivar</string>
+    <string name="wubi_config_commit_when_deactivate_summary">Confirmar la entrada actual al desactivar Wubi.</string>
+    <string name="wubi_config_commit_invalid_segment">Confirmar código no válido</string>
+    <string name="wubi_config_first_candidate_preedit">Primer candidato en preedición</string>
+    <string name="wubi_config_quickphrase_text">Texto para frases rápidas</string>
+    <string name="wubi_config_no_sort_input_length">Longitud sin reordenar</string>
+    <string name="wubi_config_no_sort_input_length_summary">Mantener el orden de la tabla para códigos de esta longitud o más cortos.</string>
+    <string name="wubi_config_sort_by_code_length">Ordenar por longitud de código</string>
+    <string name="wubi_config_system_language_model">Modelo de idioma del sistema</string>
+    <string name="wubi_config_context_order">Ordenar según el contexto</string>
+    <string name="wubi_config_matching_key">Tecla de comodín</string>
+    <string name="wubi_config_pinyin_key">Tecla de prefijo pinyin</string>
+    <string name="wubi_config_auto_select">Selección automática</string>
+    <string name="wubi_config_auto_select_length">Longitud con candidato único</string>
+    <string name="wubi_config_auto_select_regex">Regex con candidato único</string>
+    <string name="wubi_config_no_match_auto_select_length">Longitud sin coincidencias</string>
+    <string name="wubi_config_no_match_auto_select_regex">Regex sin coincidencias</string>
+    <string name="wubi_config_auto_phrase_length">Longitud de frases automáticas</string>
+    <string name="wubi_config_auto_phrase_with_phrase">Aprender frases de otras frases</string>
+    <string name="wubi_config_auto_phrase_marker">Marca de frases automáticas</string>
+    <string name="wubi_config_save_auto_phrase_after">Umbral para guardar frases</string>
+    <string name="wubi_config_hint">Mostrar pistas de código</string>
+    <string name="wubi_config_custom_hint">Pistas personalizadas</string>
+    <string name="wubi_config_hint_separator">Separador de pistas</string>
+    <string name="wubi_config_space_before_hint">Espacio antes de las pistas</string>
+    <string name="wubi_config_candidate_direction">Orientación de candidatos</string>
+    <string name="wubi_config_keypad_input">Entrada con teclado numérico</string>
 </resources>

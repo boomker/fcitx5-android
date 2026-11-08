@@ -29,6 +29,7 @@ class AddonListFragment : ProgressFragment(), OnItemChangedListener<AddonInfo> {
     companion object {
         private val preferredOrder = listOf(
             "pinyin",
+            "table",
             "spell",
             "punctuation",
             "rime",

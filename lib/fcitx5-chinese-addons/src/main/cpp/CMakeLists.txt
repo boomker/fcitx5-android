@@ -20,9 +20,6 @@ set(CMAKE_MODULE_PATH ${LIBIME_CMAKE_MODULES} ${CMAKE_MODULE_PATH})
 
 find_package(LibIMECore MODULE)
 find_package(LibIMEPinyin MODULE)
-# Still needed: the upstream fcitx5-chinese-addons submodule itself does
-# `find_package(LibIMETable ... REQUIRED)` and links LibIME::Table unconditionally.
-# libIMETable.so is kept out of the APK instead (see app/build.gradle.kts packaging).
 find_package(LibIMETable MODULE)
 
 find_package(fcitx5-lua REQUIRED CONFIG)

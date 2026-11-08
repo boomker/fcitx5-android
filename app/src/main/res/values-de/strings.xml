@@ -1203,4 +1203,40 @@
     <string name="js_voice_network_not_approved">Der Netzwerkzugriff des Plugins ist nicht freigegeben. Prüfen Sie die Adressen in den Einstellungen der JS-Sprach-Plugins.</string>
     <string name="js_voice_network_approved_hint">Freigegeben. Tippen Sie erneut auf die Sprachtaste, um zu starten.</string>
     <string name="js_voice_secret_unavailable">Auf diesem Gerät nicht entschlüsselbar. Geben Sie den Schlüssel erneut ein.</string>
+
+    <!-- Wubi config -->
+    <string name="wubi_config_section_input">Eingabe &amp; Übernahme</string>
+    <string name="wubi_config_section_candidates">Kandidaten &amp; Sortierung</string>
+    <string name="wubi_config_section_lexicon">Wörterbuch &amp; Phrasen</string>
+    <string name="wubi_config_section_hints">Codehinweise</string>
+    <string name="wubi_config_section_keys">Tasten &amp; Symbole</string>
+    <string name="wubi_config_commit_after_select">Nach Auswahl übernehmen</string>
+    <string name="wubi_config_commit_after_select_summary">Automatisch ausgewählte Kandidaten sofort übernehmen.</string>
+    <string name="wubi_config_commit_when_deactivate">Beim Deaktivieren übernehmen</string>
+    <string name="wubi_config_commit_when_deactivate_summary">Aktuelle Eingabe beim Deaktivieren von Wubi übernehmen.</string>
+    <string name="wubi_config_commit_invalid_segment">Ungültigen Code übernehmen</string>
+    <string name="wubi_config_first_candidate_preedit">Erster Kandidat als Vorschau</string>
+    <string name="wubi_config_quickphrase_text">Schnellphrasen-Auslöser</string>
+    <string name="wubi_config_no_sort_input_length">Grenze für feste Reihenfolge</string>
+    <string name="wubi_config_no_sort_input_length_summary">Bei Codes bis zu dieser Länge die ursprüngliche Tabellenreihenfolge beibehalten.</string>
+    <string name="wubi_config_sort_by_code_length">Nach Codelänge sortieren</string>
+    <string name="wubi_config_system_language_model">System-Sprachmodell</string>
+    <string name="wubi_config_context_order">Nach Kontext sortieren</string>
+    <string name="wubi_config_matching_key">Platzhaltertaste</string>
+    <string name="wubi_config_pinyin_key">Pinyin-Präfixtaste</string>
+    <string name="wubi_config_auto_select">Automatisch auswählen</string>
+    <string name="wubi_config_auto_select_length">Codelänge bei Einzelkandidat</string>
+    <string name="wubi_config_auto_select_regex">Regex bei Einzelkandidat</string>
+    <string name="wubi_config_no_match_auto_select_length">Codelänge bei Nichttreffer</string>
+    <string name="wubi_config_no_match_auto_select_regex">Regex bei Nichttreffer</string>
+    <string name="wubi_config_auto_phrase_length">Länge automatischer Phrasen</string>
+    <string name="wubi_config_auto_phrase_with_phrase">Aus Phrasen lernen</string>
+    <string name="wubi_config_auto_phrase_marker">Markierung neuer Phrasen</string>
+    <string name="wubi_config_save_auto_phrase_after">Speicherschwelle für Phrasen</string>
+    <string name="wubi_config_hint">Codehinweise anzeigen</string>
+    <string name="wubi_config_custom_hint">Eigene Hinweise</string>
+    <string name="wubi_config_hint_separator">Hinweis-Trennzeichen</string>
+    <string name="wubi_config_space_before_hint">Leerzeichen vor Hinweisen</string>
+    <string name="wubi_config_candidate_direction">Kandidatenrichtung</string>
+    <string name="wubi_config_keypad_input">Ziffernblock-Eingabe</string>
 </resources>

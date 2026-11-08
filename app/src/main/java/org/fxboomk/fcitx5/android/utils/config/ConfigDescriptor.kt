@@ -181,6 +181,7 @@ sealed class ConfigDescriptor<T, U> : Parcelable {
             Punctuation,
             QuickPhrase,
             Chttrans,
+            TableGlobal,
             PinyinCustomPhrase,
             RimeUserDataDir,
             MultiSelect
@@ -322,6 +323,7 @@ sealed class ConfigDescriptor<T, U> : Parcelable {
                                 "Punctuation" -> ConfigExternal.ETy.Punctuation
                                 "QuickPhrase", "Editor" -> ConfigExternal.ETy.QuickPhrase
                                 "Chttrans" -> ConfigExternal.ETy.Chttrans
+                                "TableGlobal" -> ConfigExternal.ETy.TableGlobal
                                 "CustomPhrase" -> ConfigExternal.ETy.PinyinCustomPhrase
                                 "UserDataDir" -> ConfigExternal.ETy.RimeUserDataDir
                                 "MultiSelect" -> ConfigExternal.ETy.MultiSelect

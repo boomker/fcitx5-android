@@ -1330,4 +1330,40 @@
     <string name="js_voice_network_not_approved">Plugin network access is not approved. Review the hosts in JS voice plugin settings.</string>
     <string name="js_voice_network_approved_hint">Approved. Press the voice button again to start.</string>
     <string name="js_voice_secret_unavailable">Cannot decrypt on this device; enter the key again</string>
+
+    <!-- Wubi config -->
+    <string name="wubi_config_section_input">Input &amp; commit</string>
+    <string name="wubi_config_section_candidates">Candidates &amp; sorting</string>
+    <string name="wubi_config_section_lexicon">Dictionary &amp; phrases</string>
+    <string name="wubi_config_section_hints">Code hints</string>
+    <string name="wubi_config_section_keys">Keys &amp; symbols</string>
+    <string name="wubi_config_commit_after_select">Commit after selection</string>
+    <string name="wubi_config_commit_after_select_summary">Commit immediately after a candidate is selected automatically.</string>
+    <string name="wubi_config_commit_when_deactivate">Commit on deactivation</string>
+    <string name="wubi_config_commit_when_deactivate_summary">Commit the current input when Wubi is deactivated.</string>
+    <string name="wubi_config_commit_invalid_segment">Commit invalid code</string>
+    <string name="wubi_config_first_candidate_preedit">First candidate as preedit</string>
+    <string name="wubi_config_quickphrase_text">Quick phrase trigger text</string>
+    <string name="wubi_config_no_sort_input_length">Fixed-order code length</string>
+    <string name="wubi_config_no_sort_input_length_summary">Keep the table order for codes at or below this length.</string>
+    <string name="wubi_config_sort_by_code_length">Sort by code length</string>
+    <string name="wubi_config_system_language_model">System language model</string>
+    <string name="wubi_config_context_order">Context-based sorting</string>
+    <string name="wubi_config_matching_key">Wildcard key</string>
+    <string name="wubi_config_pinyin_key">Pinyin prefix key</string>
+    <string name="wubi_config_auto_select">Auto select</string>
+    <string name="wubi_config_auto_select_length">Single-candidate code length</string>
+    <string name="wubi_config_auto_select_regex">Single-candidate regex</string>
+    <string name="wubi_config_no_match_auto_select_length">No-match commit length</string>
+    <string name="wubi_config_no_match_auto_select_regex">No-match commit regex</string>
+    <string name="wubi_config_auto_phrase_length">Auto phrase length</string>
+    <string name="wubi_config_auto_phrase_with_phrase">Learn phrases from phrases</string>
+    <string name="wubi_config_auto_phrase_marker">Auto phrase marker</string>
+    <string name="wubi_config_save_auto_phrase_after">Phrase save threshold</string>
+    <string name="wubi_config_hint">Show code hints</string>
+    <string name="wubi_config_custom_hint">Custom hints</string>
+    <string name="wubi_config_hint_separator">Hint separator</string>
+    <string name="wubi_config_space_before_hint">Space before hints</string>
+    <string name="wubi_config_candidate_direction">Candidate orientation</string>
+    <string name="wubi_config_keypad_input">Keypad input</string>
 </resources>

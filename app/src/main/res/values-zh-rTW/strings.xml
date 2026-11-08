@@ -1176,4 +1176,40 @@
     <string name="js_voice_network_not_approved">外掛尚未獲准存取網路，請在 JS 語音外掛設定中檢視並批准主機。</string>
     <string name="js_voice_network_approved_hint">已批准，再次點按語音按鈕即可開始。</string>
     <string name="js_voice_secret_unavailable">本機無法解密，請重新填寫金鑰</string>
+
+    <!-- Wubi config -->
+    <string name="wubi_config_section_input">輸入與上屏</string>
+    <string name="wubi_config_section_candidates">候選與排序</string>
+    <string name="wubi_config_section_lexicon">詞庫與組詞</string>
+    <string name="wubi_config_section_hints">編碼提示</string>
+    <string name="wubi_config_section_keys">按鍵與符號</string>
+    <string name="wubi_config_commit_after_select">選詞後上屏</string>
+    <string name="wubi_config_commit_after_select_summary">自動選中候選後立即上屏。</string>
+    <string name="wubi_config_commit_when_deactivate">停用時上屏</string>
+    <string name="wubi_config_commit_when_deactivate_summary">停用五筆時提交目前輸入。</string>
+    <string name="wubi_config_commit_invalid_segment">上屏無效編碼</string>
+    <string name="wubi_config_first_candidate_preedit">首選作為預編輯</string>
+    <string name="wubi_config_quickphrase_text">短語觸發字元</string>
+    <string name="wubi_config_no_sort_input_length">固定排序碼長</string>
+    <string name="wubi_config_no_sort_input_length_summary">編碼不超過此長度時，保持碼表原有順序。</string>
+    <string name="wubi_config_sort_by_code_length">按碼長排序</string>
+    <string name="wubi_config_system_language_model">系統語言模型</string>
+    <string name="wubi_config_context_order">按上下文排序</string>
+    <string name="wubi_config_matching_key">萬用字元鍵</string>
+    <string name="wubi_config_pinyin_key">拼音引導鍵</string>
+    <string name="wubi_config_auto_select">自動選詞</string>
+    <string name="wubi_config_auto_select_length">唯一候選碼長</string>
+    <string name="wubi_config_auto_select_regex">唯一候選規則</string>
+    <string name="wubi_config_no_match_auto_select_length">空碼頂屏碼長</string>
+    <string name="wubi_config_no_match_auto_select_regex">空碼頂屏規則</string>
+    <string name="wubi_config_auto_phrase_length">自動組詞長度</string>
+    <string name="wubi_config_auto_phrase_with_phrase">使用詞語組詞</string>
+    <string name="wubi_config_auto_phrase_marker">組詞標記</string>
+    <string name="wubi_config_save_auto_phrase_after">組詞儲存次數</string>
+    <string name="wubi_config_hint">顯示編碼提示</string>
+    <string name="wubi_config_custom_hint">自訂提示</string>
+    <string name="wubi_config_hint_separator">提示分隔符</string>
+    <string name="wubi_config_space_before_hint">提示前加空格</string>
+    <string name="wubi_config_candidate_direction">候選方向</string>
+    <string name="wubi_config_keypad_input">數字鍵盤輸入</string>
 </resources>

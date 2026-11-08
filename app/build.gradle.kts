@@ -58,15 +58,6 @@ android {
         resValues = true
     }
 
-    packaging {
-        jniLibs {
-            // The table addon is no longer built, and libIMETable.so is only needed at CMake
-            // configure time by the unmodified fcitx5-chinese-addons submodule. Keep both out
-            // of the APK.
-            excludes += setOf("**/libtable.so", "**/libIMETable.so")
-        }
-    }
-
     buildTypes {
         release {
             manifestPlaceholders["appLabel"] = appLabelRelease
@@ -95,16 +86,12 @@ fcitxComponent {
         "libime",
         "fcitx5-chinese-addons"
     )
-    // The table (码表) engine is dropped from the product entirely: no addon, no table-based
-    // input methods, no code tables. Only pinyin / shuangpin remain.
-    val tableInputMethods = listOf("cangjie", "db", "erbi", "qxm", "wanfeng", "wbpy", "wbx", "zrm")
+    // Keep only Wubi (wbx) from the table-based input methods.
+    val tableInputMethods = listOf("cangjie", "db", "erbi", "qxm", "wanfeng", "wbpy", "zrm")
     // Code tables shipped prebuilt (see f5a-prebuilder Rules/LibIME.hs)
-    val tableDicts = listOf("db", "wbpy", "wbx", "zrm")
+    val tableDicts = listOf("db", "wbpy", "zrm")
     // exclude (delete immediately after install)
-    excludeFiles = listOf(
-        "usr/share/fcitx5/addon/table.conf",
-        "usr/share/fcitx5/inputmethod/shuangpin-zhongwenzhixing.conf"
-    ) +
+    excludeFiles = listOf("usr/share/fcitx5/inputmethod/shuangpin-zhongwenzhixing.conf") +
         tableInputMethods.map { "usr/share/fcitx5/inputmethod/$it.conf" } +
         tableDicts.map { "usr/share/fcitx5/table/$it.main.dict" }
     installPrebuiltAssets = true
