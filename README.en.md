@@ -12,7 +12,7 @@ This fork mainly strengthens two areas:
 
 ## Recent Updates
 
-The following summarizes the 77 commits from October 6 through October 22, 2026, grouped by theme (merge commits excluded):
+The following summarizes recent major commits, grouped by theme (merge commits excluded):
 
 - Smart prediction and AI interaction:
   - The "Model name and effort" setting now shows a three-line summary for the model, thinking effort, and model/API availability. The model editor lets you choose an effort level from Off, Low, Medium, High, and Max.
@@ -52,10 +52,17 @@ The following summarizes the 77 commits from October 6 through October 22, 2026,
   - Layout, key, font, and popup editors use state-aware save icons; Rime radio outlines, candidate-bar labels, and input-bar icons were refined.
   - Clipboard category switching and search refresh are more stable with fewer stale results; missing translations and AI action labels were completed.
 - Chinese engines, build, and maintenance:
-  - The built-in zh_CN KenLM was upgraded to 8-bit quantization, reducing quantization error and prediction-table entry loss. The table engine, its data, and related settings were removed entirely; built-in Chinese input keeps only Pinyin and Shuangpin.
+  - The built-in zh_CN KenLM was upgraded to 8-bit quantization, reducing quantization error and prediction-table entry loss. Table-based input methods are now narrowed down to Wubi alone.
   - Build tasks are compatible with the Gradle 10 task DSL; native install tasks sharing a CMake build tree are serialized to avoid concurrent regeneration races with the configuration cache; the fx flavor was removed.
   - Fixed instrumentation-test hangs and two device-test assumptions, and added tests for Shuangpin child layouts, settings search, and save-icon tinting.
   - Synced upstream and submodules, updated prebuilt models, adjusted CI for third-party artifacts, and maintained the Chinese and English READMEs.
+- Wubi input method:
+  - The table engine is restored and Wubi (wbx) is bundled. A grouped Wubi settings page organizes options into Input & commit, Candidates & sorting, Dictionary & phrases, Code hints, and Keys & symbols, and global table options are reachable from the addon page.
+  - The config UI can now reorder enum entries for presentation: Shuangpin schemes inside Wubi are sorted as "disabled → common schemes → custom", the "Zhongwenzhixing" Shuangpin scheme was removed, and legacy configs fall back to Ziranma.
+  - The status bar and input-method list show a Wubi icon, and the table addon sits right after Pinyin in the addon list.
+- Build and fixes:
+  - The onnxruntime-genai AAR is now rebuilt from source with the NDK after download so the telemetry library is 16 KB page aligned (zipalign only fixes archive offsets, not ELF LOAD segments); CI and the release workflow install NDK 28.0.13004108 explicitly.
+  - Fixed mis-measurement of the JS plugin slider caused by inflating it without a parent.
 
 ## Highlights
 
@@ -104,8 +111,9 @@ If your workflow is “copy on desktop, input on phone” or “copy on phone, r
 ### 3. Prediction and input-method extensibility
 
 - Keeps the original Fcitx5 multi-language input framework.
-- Built-in Chinese input keeps only Pinyin and Shuangpin; table-based input methods, their code tables, and the table addon have been removed from this fork.
-- Editable custom Shuangpin schemes support independent mapping editing, explicit syllable overrides, renaming, and separate input-method settings and layouts per scheme.
+- Built-in Chinese input supports Pinyin, Shuangpin, and Wubi; Wubi is the only bundled table-based input method.
+- Wubi has its own settings page with grouped options for commit behavior, candidate sorting, phrase learning, code hints, and keys/symbols.
+- Editable custom Shuangpin schemes support independent mapping editing, explicit syllable overrides, renaming, and separate input-method settings and layouts per scheme; "Zhongwenzhixing" is no longer listed and legacy configs migrate to Ziranma.
 - RIME plugin support remains available for custom schemas, dictionaries, and advanced configuration.
 - Prediction, suggestion, and language-model related capabilities from libime and the Chinese plugin stack are preserved.
 - The built-in zh_CN KenLM has been upgraded from 4-bit to 8-bit quantization, reducing quantization error and prediction-table entry loss; `scripts/libime-lm` provides reproducible model build and verification scripts.
@@ -193,7 +201,7 @@ If your workflow is “copy on desktop, input on phone” or “copy on phone, r
 
 - English
 - Chinese
-  - Pinyin / Shuangpin
+  - Pinyin / Shuangpin / Wubi
   - Zhuyin / Bopomofo
   - Jyutping
   - Chewing
