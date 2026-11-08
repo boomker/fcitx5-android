@@ -1,0 +1,25 @@
+cmake_minimum_required(VERSION 3.22)
+project(fcitx5_mat_alignment LANGUAGES C CXX)
+
+# Match ONNX Runtime GenAI v0.17.0/cmake/telemetry.cmake.
+set(BUILD_SHARED_LIBS ON CACHE BOOL "" FORCE)
+set(BUILD_VERSION "3.10.267.1")
+foreach(option BUILD_TEST_TOOL BUILD_UNIT_TESTS BUILD_FUNC_TESTS BUILD_PRIVACYGUARD
+    BUILD_CDS BUILD_LIVEEVENTINSPECTOR BUILD_SIGNALS BUILD_SANITIZER BUILD_AZMON
+    BUILD_OBJC_WRAPPER BUILD_SWIFT_WRAPPER BUILD_JNI_WRAPPER BUILD_PACKAGE BUILD_APPLE_HTTP)
+  set(MATSDK_${option} OFF CACHE BOOL "" FORCE)
+endforeach()
+set(MATSDK_BUILD_HEADERS ON CACHE BOOL "" FORCE)
+set(MATSDK_BUILD_LIBRARY ON CACHE BOOL "" FORCE)
+set(MATSDK_ANDROID_HTTP_CLIENT JAVA CACHE STRING "" FORCE)
+set(MATSDK_CURL_PROVIDER SYSTEM CACHE STRING "" FORCE)
+set(MATSDK_CURL_TLS_BACKEND MBEDTLS CACHE STRING "" FORCE)
+set(MATSDK_SQLITE_PROVIDER MINIMAL CACHE STRING "" FORCE)
+set(MATSDK_ZLIB_PROVIDER VENDORED CACHE STRING "" FORCE)
+
+add_subdirectory("${MATSDK_SOURCE_DIR}" matsdk)
+target_sources(mat PRIVATE android_telemetry_bridge.cpp)
+target_compile_definitions(mat PRIVATE MATSDK_DISABLE_LOGGING ANDROID_SUPPRESS_LOGCAT)
+target_compile_options(mat PRIVATE -fno-finite-math-only -Wno-unused-const-variable -Wno-reorder-ctor)
+# GenAI's flag is set after its telemetry target is created, so mat needs it explicitly.
+target_link_options(mat PRIVATE "LINKER:-z,max-page-size=16384")

@@ -50,6 +50,9 @@ jobs:
         with:
           packages: cmake;3.31.6
 
+      - name: Install Android NDK
+        run: sdkmanager --install "ndk;28.0.13004108"
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
         with:

@@ -9,7 +9,7 @@ plugins {
 }
 
 group = "org.fxboomk.fcitx5.android.thirdparty"
-version = "0.17.0"
+version = "0.17.0-f5a.1"
 
 fun Project.githubPackagesRepositoryUrl(): String {
     val explicit = providers.gradleProperty("githubPackagesRepository").orNull?.trim().orEmpty()
@@ -38,12 +38,15 @@ fun Project.githubPackagesToken(): String =
 fun isFileBackedRepository(url: String): Boolean = url.startsWith("file:", ignoreCase = true)
 
 val artifactName = "onnxruntime-genai-android"
+val upstreamVersion = "0.17.0"
+val upstreamArtifactFileName = "$artifactName-$upstreamVersion.aar"
 val artifactFileName = "$artifactName-$version.aar"
 val artifactSha256 = "f8b28a9ce448d97e0d5ab9614eae018a4d994d739de84e9fc5f9ff3b6673dd50"
 val artifactUrl =
-    "https://github.com/microsoft/onnxruntime-genai/releases/download/v$version/$artifactFileName"
-val rawDownloadedArtifact = layout.buildDirectory.file("downloads/raw/$artifactFileName")
+    "https://github.com/microsoft/onnxruntime-genai/releases/download/v$upstreamVersion/$upstreamArtifactFileName"
+val rawDownloadedArtifact = layout.buildDirectory.file("downloads/raw/$upstreamArtifactFileName")
 val downloadedArtifact = layout.buildDirectory.file("downloads/$artifactFileName")
+val alignmentMarker = layout.buildDirectory.file("downloads/$artifactFileName.alignment.json")
 
 fun sha256(file: File): String {
     val digest = MessageDigest.getInstance("SHA-256")
@@ -61,11 +64,11 @@ fun sha256(file: File): String {
 fun requireExpectedSha256(file: File) {
     val actual = sha256(file)
     check(actual == artifactSha256) {
-        "Unexpected SHA-256 for $artifactFileName: expected $artifactSha256, got $actual"
+        "Unexpected SHA-256 for $upstreamArtifactFileName: expected $artifactSha256, got $actual"
     }
 }
 
-fun zipAlignExecutable(): File {
+fun androidSdkDirectory(): File {
     val sdk = providers.environmentVariable("ANDROID_HOME").orNull?.trim().orEmpty()
         .ifBlank { providers.environmentVariable("ANDROID_SDK_ROOT").orNull?.trim().orEmpty() }
         .ifBlank {
@@ -78,7 +81,12 @@ fun zipAlignExecutable(): File {
                 .orEmpty()
         }
     check(sdk.isNotEmpty()) { "Android SDK path is required to align the ONNX Runtime AAR" }
-    val buildToolsDir = File(sdk, "build-tools")
+    return File(sdk)
+}
+
+fun zipAlignExecutable(): File {
+    val sdk = androidSdkDirectory()
+    val buildToolsDir = sdk.resolve("build-tools")
         .listFiles()
         ?.filter { it.isDirectory }
         ?.maxByOrNull { it.name }
@@ -89,16 +97,21 @@ fun zipAlignExecutable(): File {
 }
 
 val downloadOrtGenAiAar = tasks.register("downloadOrtGenAiAar") {
-    outputs.file(downloadedArtifact)
+    inputs.file("rebuild_mat.py")
+    inputs.dir("mat-native")
+    val ndkVersion = providers.environmentVariable("NDK_VERSION")
+        .orElse(providers.gradleProperty("ndkVersion")).orElse("28.0.13004108")
+    val cmakeVersion = providers.environmentVariable("CMAKE_VERSION")
+        .orElse(providers.gradleProperty("cmakeVersion")).orElse("3.31.6")
+    inputs.property("ndkVersion", ndkVersion)
+    inputs.property("cmakeVersion", cmakeVersion)
+    outputs.files(downloadedArtifact, alignmentMarker)
     notCompatibleWithConfigurationCache(
         "This publishing-only task performs an HTTP download from a Gradle script action."
     )
     doLast {
         val target = downloadedArtifact.get().asFile
         val raw = rawDownloadedArtifact.get().asFile
-        if (target.exists() && target.length() > 0L) {
-            return@doLast
-        }
         raw.parentFile.mkdirs()
         if (raw.exists() && raw.length() > 0L) {
             runCatching { requireExpectedSha256(raw) }.onFailure { raw.delete() }
@@ -125,17 +138,17 @@ val downloadOrtGenAiAar = tasks.register("downloadOrtGenAiAar") {
         }
         requireExpectedSha256(raw)
         target.parentFile.mkdirs()
-        val aligned = File.createTempFile("$artifactName-", ".aar", target.parentFile)
-        try {
-            val result = ProcessBuilder(
-                zipAlignExecutable().absolutePath,
-                "-f", "-P", "16", "4", raw.absolutePath, aligned.absolutePath
-            ).inheritIO().start().waitFor()
-            check(result == 0) { "zipalign failed for $artifactFileName (exit code $result)" }
-            aligned.renameTo(target).also { check(it) { "Cannot install aligned artifact at ${target.absolutePath}" } }
-        } finally {
-            aligned.delete()
-        }
+        // zipalign handles archive offsets; rebuilding mat also fixes its ELF LOAD segments.
+        val python = providers.gradleProperty("pythonExecutable").orNull
+            ?: if (System.getProperty("os.name").startsWith("Windows")) "python" else "python3"
+        val result = ProcessBuilder(
+            python, projectDir.resolve("rebuild_mat.py").absolutePath,
+            "--input", raw.absolutePath, "--output", target.absolutePath,
+            "--sdk", androidSdkDirectory().absolutePath,
+            "--ndk-version", ndkVersion.get(), "--cmake-version", cmakeVersion.get(),
+            "--zipalign", zipAlignExecutable().absolutePath
+        ).inheritIO().start().waitFor()
+        check(result == 0) { "Telemetry rebuild failed for $artifactFileName (exit code $result)" }
     }
 }
 
