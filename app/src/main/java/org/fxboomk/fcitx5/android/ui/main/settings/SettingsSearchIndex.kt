@@ -212,30 +212,43 @@ data class ToolbarMenuSearchSpec(
 
 object SettingsSearchIndex {
     val toolbarMenuSearchSpecs = listOf(
-        ToolbarMenuSearchSpec(R.string.faq, externalUri = Const.faqUrl),
-        ToolbarMenuSearchSpec(R.string.developer, SettingsRoute.Developer),
+        ToolbarMenuSearchSpec(R.string.faq, parent = R.string.about, externalUri = Const.faqUrl),
+        ToolbarMenuSearchSpec(R.string.developer, SettingsRoute.Developer, R.string.advanced),
         ToolbarMenuSearchSpec(R.string.about, SettingsRoute.About),
-        ToolbarMenuSearchSpec(R.string.real_time_logs, SettingsRoute.Developer, R.string.developer),
-        ToolbarMenuSearchSpec(R.string.verbose_log, SettingsRoute.Developer, R.string.developer),
+        ToolbarMenuSearchSpec(
+            R.string.real_time_logs,
+            SettingsRoute.Developer,
+            R.string.advanced,
+            R.string.developer
+        ),
+        ToolbarMenuSearchSpec(R.string.verbose_log, SettingsRoute.Advanced, R.string.advanced),
         ToolbarMenuSearchSpec(
             R.string.editor_info_inspector,
             SettingsRoute.Developer,
+            R.string.advanced,
             R.string.developer
         ),
         ToolbarMenuSearchSpec(
             R.string.restart_fcitx_instance,
             SettingsRoute.Developer,
+            R.string.advanced,
             R.string.developer,
             summary = R.string.restart_fcitx_instance_confirm
         ),
         ToolbarMenuSearchSpec(
             R.string.delete_and_sync_data,
             SettingsRoute.Developer,
+            R.string.advanced,
             R.string.developer,
             summary = R.string.delete_and_sync_data_message
         ),
-        ToolbarMenuSearchSpec(R.string.clear_clb_db, SettingsRoute.Developer, R.string.developer),
-        ToolbarMenuSearchSpec(R.string.capture_heap_dump, SettingsRoute.Developer, R.string.developer),
+        ToolbarMenuSearchSpec(R.string.clear_clb_db, SettingsRoute.Clipboard, R.string.clipboard),
+        ToolbarMenuSearchSpec(
+            R.string.capture_heap_dump,
+            SettingsRoute.Developer,
+            R.string.advanced,
+            R.string.developer
+        ),
         ToolbarMenuSearchSpec(R.string.privacy_policy, SettingsRoute.About, R.string.about),
         ToolbarMenuSearchSpec(
             R.string.open_source_licenses,

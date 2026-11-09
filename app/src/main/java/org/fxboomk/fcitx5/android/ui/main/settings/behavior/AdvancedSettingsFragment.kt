@@ -24,6 +24,8 @@ import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.data.prefs.ManagedPreferenceFragment
 import org.fxboomk.fcitx5.android.ui.common.withLoadingDialog
 import org.fxboomk.fcitx5.android.ui.main.MainViewModel
+import org.fxboomk.fcitx5.android.ui.main.modified.MySwitchPreference
+import org.fxboomk.fcitx5.android.ui.main.settings.SettingsRoute
 import org.fxboomk.fcitx5.android.ui.main.settings.theme.ThemeSettingsSupport
 import org.fxboomk.fcitx5.android.utils.AppUtil
 import org.fxboomk.fcitx5.android.utils.addPreference
@@ -32,8 +34,11 @@ import org.fxboomk.fcitx5.android.utils.buildPrimaryStorageIntent
 import org.fxboomk.fcitx5.android.utils.formatDateTime
 import org.fxboomk.fcitx5.android.utils.importErrorDialog
 import org.fxboomk.fcitx5.android.utils.iso8601UTCDateTime
+import org.fxboomk.fcitx5.android.utils.navigateWithAnim
 import org.fxboomk.fcitx5.android.utils.queryFileName
+import org.fxboomk.fcitx5.android.utils.setupForest
 import org.fxboomk.fcitx5.android.utils.toast
+import timber.log.Timber
 
 class AdvancedSettingsFragment : ManagedPreferenceFragment(AppPrefs.getInstance().advanced) {
 
@@ -107,6 +112,21 @@ class AdvancedSettingsFragment : ManagedPreferenceFragment(AppPrefs.getInstance(
         screen.findPreference<Preference>(AppPrefs.getInstance().advanced.allowOriginalPlugins.key)
             ?.let { screen.removePreference(it) }
 
+        screen.addPreference(MySwitchPreference(ctx).apply {
+            key = AppPrefs.getInstance().internal.verboseLog.key
+            setTitle(R.string.verbose_log)
+            setDefaultValue(false)
+            isIconSpaceReserved = false
+            isSingleLineTitle = false
+            setOnPreferenceChangeListener { _, newValue ->
+                val verbose = (newValue as? Boolean) == true
+                Timber.setupForest(verbose)
+                FcitxDaemon.getFirstConnectionOrNull()?.runIfReady {
+                    setLogRule(verbose)
+                }
+                true
+            }
+        })
         screen.addPreference(
             R.string.browse_user_data_dir,
             onClick = {
@@ -143,6 +163,9 @@ class AdvancedSettingsFragment : ManagedPreferenceFragment(AppPrefs.getInstance(
                 }
                 .setNegativeButton(android.R.string.cancel, null)
                 .show()
+        }
+        screen.addPreference(R.string.developer) {
+            navigateWithAnim(SettingsRoute.Developer)
         }
     }
 }

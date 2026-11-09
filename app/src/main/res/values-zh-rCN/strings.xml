@@ -140,7 +140,7 @@
     <string name="app_crash">应用崩溃</string>
     <string name="app_crash_message">抱歉，但我们提供了日志以供调查。</string>
     <string name="crash_logs">崩溃日志</string>
-    <string name="verbose_log">详细记录日志</string>
+    <string name="verbose_log">记录详细日志</string>
     <string name="removed_x">已移除 %1$s</string>
     <string name="added_x">已添加 %1$s</string>
     <string name="edited_x">已编辑 %1$s</string>
@@ -336,7 +336,7 @@
     <string name="swipe_up">上划</string>
     <string name="disabled">禁用</string>
     <string name="system_default">系统默认</string>
-    <string name="editor_info_inspector">编辑器信息 (EditorInfo) 检查器</string>
+    <string name="editor_info_inspector">编辑器信息检查器</string>
     <string name="default_">默认</string>
     <string name="saving">保存中</string>
     <string name="delete_all_pinned_items">要删除所有置顶条目吗？</string>

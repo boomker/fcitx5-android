@@ -120,7 +120,7 @@
     <string name="app_crash">В работе приложения произошёл сбой</string>
     <string name="app_crash_message">Извините, но мы предоставляем вам несколько журналов для изучения.</string>
     <string name="crash_logs">Журналы сбоев</string>
-    <string name="verbose_log">Подробное ведение журнала</string>
+    <string name="verbose_log">Вести подробный журнал</string>
     <string name="removed_x">Удалено %1$s</string>
     <string name="added_x">Добавлено %1$s</string>
     <string name="edited_x">Отредактировано %1$s</string>
@@ -221,7 +221,7 @@
     <string name="swipe_up">Провести вверх</string>
     <string name="disabled">Отключено</string>
     <string name="system_default">Системные установки по умолчанию</string>
-    <string name="editor_info_inspector">Инспектор EditorInfo</string>
+    <string name="editor_info_inspector">Инспектор сведений о редакторе</string>
     <string name="default_">По умолчанию</string>
     <string name="saving">Сохранение</string>
     <string name="delete_all_pinned_items">Удалить все закрепленные элементы?</string>

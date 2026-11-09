@@ -142,7 +142,7 @@
     <string name="app_crash">Application crashed</string>
     <string name="app_crash_message">Sorry, but we bring you some logs to investigate.</string>
     <string name="crash_logs">Crash logs</string>
-    <string name="verbose_log">Verbose logging</string>
+    <string name="verbose_log">Record detailed logs</string>
     <string name="removed_x">Removed %1$s</string>
     <string name="added_x">Added %1$s</string>
     <string name="edited_x">Edited %1$s</string>
@@ -342,7 +342,7 @@
     <string name="swipe_up">Swipe up</string>
     <string name="disabled">Disabled</string>
     <string name="system_default">System default</string>
-    <string name="editor_info_inspector">EditorInfo Inspector</string>
+    <string name="editor_info_inspector">Editor information inspector</string>
     <string name="default_">Default</string>
     <string name="saving">Saving</string>
     <string name="delete_all_pinned_items">Delete all pinned items?</string>

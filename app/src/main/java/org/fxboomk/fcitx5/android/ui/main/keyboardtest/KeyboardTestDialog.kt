@@ -37,6 +37,7 @@ internal class KeyboardTestDialog(context: Context) : BottomSheetDialog(context)
                     context.styledColor(com.google.android.material.R.attr.colorSurface)
                 )
             behavior.state = BottomSheetBehavior.STATE_EXPANDED
+            @Suppress("DEPRECATION") // Keep IME resizing compatible with Android 10 and earlier.
             window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
             panel.input.requestFocus()
             panel.input.post {

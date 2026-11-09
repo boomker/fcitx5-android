@@ -17,16 +17,13 @@ import kotlinx.coroutines.withContext
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.core.data.DataManager
 import org.fxboomk.fcitx5.android.daemon.FcitxDaemon
-import org.fxboomk.fcitx5.android.data.clipboard.ClipboardManager
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.ui.common.PaddingPreferenceFragment
 import org.fxboomk.fcitx5.android.ui.main.modified.MySwitchPreference
 import org.fxboomk.fcitx5.android.utils.addPreference
 import org.fxboomk.fcitx5.android.utils.iso8601UTCDateTime
-import org.fxboomk.fcitx5.android.utils.setupForest
 import org.fxboomk.fcitx5.android.utils.startActivity
 import org.fxboomk.fcitx5.android.utils.toast
-import timber.log.Timber
 import java.io.File
 
 class DeveloperFragment : PaddingPreferenceFragment() {
@@ -68,40 +65,12 @@ class DeveloperFragment : PaddingPreferenceFragment() {
                 startActivity<LogActivity>()
             }
             addPreference(MySwitchPreference(context).apply {
-                key = AppPrefs.getInstance().internal.verboseLog.key
-                setTitle(R.string.verbose_log)
-                setDefaultValue(false)
-                isIconSpaceReserved = false
-                isSingleLineTitle = false
-                setOnPreferenceChangeListener { _, newValue ->
-                    val verbose = (newValue as? Boolean) == true
-                    Timber.setupForest(verbose)
-                    FcitxDaemon.getFirstConnectionOrNull()?.runIfReady {
-                        setLogRule(verbose)
-                    }
-                    true
-                }
-            })
-            addPreference(MySwitchPreference(context).apply {
                 key = AppPrefs.getInstance().internal.editorInfoInspector.key
                 setTitle(R.string.editor_info_inspector)
                 setDefaultValue(false)
                 isIconSpaceReserved = false
                 isSingleLineTitle = false
             })
-            addPreference(R.string.restart_fcitx_instance) {
-                AlertDialog.Builder(context)
-                    .setTitle(R.string.restart_fcitx_instance)
-                    .setMessage(R.string.restart_fcitx_instance_confirm)
-                    .setNegativeButton(android.R.string.cancel, null)
-                    .setPositiveButton(android.R.string.ok) { _, _ ->
-                        lifecycleScope.launch {
-                            FcitxDaemon.restartFcitx()
-                            context.toast(R.string.done)
-                        }
-                    }
-                    .show()
-            }
             addPreference(R.string.delete_and_sync_data) {
                 AlertDialog.Builder(context)
                     .setTitle(R.string.delete_and_sync_data)
@@ -117,27 +86,25 @@ class DeveloperFragment : PaddingPreferenceFragment() {
                     .setNegativeButton(android.R.string.cancel, null)
                     .show()
             }
-            addPreference(R.string.clear_clb_db) {
-                AlertDialog.Builder(context)
-                    .setTitle(R.string.clear_clb_db)
-                    .setMessage(R.string.clear_clp_db_confirm)
-                    .setPositiveButton(android.R.string.ok) { _, _ ->
-                        lifecycleScope.launch {
-                            withContext(Dispatchers.IO) {
-                                ClipboardManager.nukeTable()
-                            }
-                            context.toast(R.string.done)
-                        }
-                    }
-                    .setNegativeButton(android.R.string.cancel, null)
-                    .show()
-            }
             addPreference(R.string.capture_heap_dump) {
                 val fileName = "${context.packageName}_${iso8601UTCDateTime()}.hprof"
                 hprofFile = context.cacheDir.resolve(fileName)
                 System.gc()
                 Debug.dumpHprofData(hprofFile.absolutePath)
                 launcher.launch(fileName)
+            }
+            addPreference(R.string.restart_fcitx_instance) {
+                AlertDialog.Builder(context)
+                    .setTitle(R.string.restart_fcitx_instance)
+                    .setMessage(R.string.restart_fcitx_instance_confirm)
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .setPositiveButton(android.R.string.ok) { _, _ ->
+                        lifecycleScope.launch {
+                            FcitxDaemon.restartFcitx()
+                            context.toast(R.string.done)
+                        }
+                    }
+                    .show()
             }
         }
     }

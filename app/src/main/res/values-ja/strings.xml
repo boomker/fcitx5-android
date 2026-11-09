@@ -119,7 +119,7 @@
     <string name="app_crash">アプリケーションがクラッシュしました</string>
     <string name="app_crash_message">申し訳ありませんが、調査のためにいくつかのログをお届けします。</string>
     <string name="crash_logs">クラッシュログ</string>
-    <string name="verbose_log">詳細な記録</string>
+    <string name="verbose_log">詳細なログを記録</string>
     <string name="removed_x">%1$s を削除しました</string>
     <string name="added_x">%1$s を追加しました</string>
     <string name="edited_x">%1$s を編集しました</string>
@@ -216,7 +216,7 @@
     <string name="swipe_up">上にスワイプ</string>
     <string name="disabled">無効</string>
     <string name="system_default">システムのデフォルト</string>
-    <string name="editor_info_inspector">エディター情報の調査</string>
+    <string name="editor_info_inspector">エディター情報インスペクター</string>
     <string name="default_">デフォルト</string>
     <string name="saving">保存する</string>
     <string name="delete_all_pinned_items">固定されたすべてのアイテムを削除しますか？</string>

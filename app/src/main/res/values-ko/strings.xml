@@ -114,7 +114,7 @@
     <string name="app_crash">응용프로그램 충돌함</string>
     <string name="app_crash_message">죄송합니다. 조사를 위해 몇 가지 로그를 가져왔습니다.</string>
     <string name="crash_logs">충돌 로그</string>
-    <string name="verbose_log">자세한 로깅</string>
+    <string name="verbose_log">자세한 로그 기록</string>
     <string name="removed_x">%1$s 제거됨</string>
     <string name="added_x">%1$s 추가됨</string>
     <string name="edited_x">%1$s 편집됨</string>
@@ -593,7 +593,7 @@
     <string name="fontset_font_not_set">설정 안 됨</string>
     <string name="edit_text_keyboard_layout_summary">범용 키보드 레이아웃 편집 (GeneralKeyboardLayout.json)</string>
     <string name="edit_theme">테마 편집</string>
-    <string name="editor_info_inspector">EditorInfo 검사기</string>
+    <string name="editor_info_inspector">편집기 정보 검사기</string>
     <string name="emoji_and_symbols">이모지 및 기호</string>
     <string name="emoji_skin_tone_none">수정자 없음</string>
     <string name="emoji_skin_tone_type_1_2">🏻 타입 1–2</string>

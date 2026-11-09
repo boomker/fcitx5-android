@@ -112,7 +112,7 @@
     <string name="app_crash">Anwendung abgestürzt</string>
     <string name="app_crash_message">Entschuldigung, bitte untersuche die Logs</string>
     <string name="crash_logs">Absturzprotokolle</string>
-    <string name="verbose_log">Ausführliche Protokollierung</string>
+    <string name="verbose_log">Detaillierte Protokolle aufzeichnen</string>
     <string name="removed_x">%1$s entfernt</string>
     <string name="added_x">%1$s hinzugefügt</string>
     <string name="edited_x">%1$s bearbeitet</string>
@@ -650,7 +650,7 @@
     <string name="fontset_font_not_set">Nicht festgelegt</string>
     <string name="edit_text_keyboard_layout_summary">Allgemeines Tastaturlayout bearbeiten (GeneralKeyboardLayout.json)</string>
     <string name="edit_theme">Theme bearbeiten</string>
-    <string name="editor_info_inspector">EditorInfo-Inspektor</string>
+    <string name="editor_info_inspector">Inspektor für Editorinformationen</string>
     <string name="emoji_and_symbols">Emojis und Symbole</string>
     <string name="emoji_skin_tone_none">Keine</string>
     <string name="emoji_skin_tone_type_1_2">🏻 Helle Hautfarbe (Typ 1–2)</string>

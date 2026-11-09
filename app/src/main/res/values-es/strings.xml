@@ -76,7 +76,7 @@
     <string name="export">Exportar</string>
     <string name="app_crash">La aplicación se cerró inesperadamente</string>
     <string name="crash_logs">Registros de cierres inesperados</string>
-    <string name="verbose_log">Registro a detalle</string>
+    <string name="verbose_log">Registrar logs detallados</string>
     <string name="invalid_value">Valor no válido</string>
     <string name="quickphrase_editor">Editor de frases rápidas</string>
     <string name="quickphrase_already_exists">La frase rápida ya existe</string>
@@ -601,7 +601,7 @@
     <string name="fontset_font_not_set">No establecida</string>
     <string name="edit_text_keyboard_layout_summary">Editar distribución general del teclado (GeneralKeyboardLayout.json)</string>
     <string name="edited_x">Se edito %1$s</string>
-    <string name="editor_info_inspector">Inspector de EditorInfo</string>
+    <string name="editor_info_inspector">Inspector de información del editor</string>
     <string name="emoji_and_symbols">Emoji y simbolos</string>
     <string name="emoji_skin_tone_none">Sin modificador</string>
     <string name="emoji_skin_tone_type_1_2">🏻 Tipo 1–2</string>

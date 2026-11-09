@@ -132,7 +132,7 @@
     <string name="app_crash">應用程式當機</string>
     <string name="app_crash_message">抱歉，但我們為您帶來了一些紀錄檔以供調查。</string>
     <string name="crash_logs">當機紀錄檔</string>
-    <string name="verbose_log">詳細記錄</string>
+    <string name="verbose_log">記錄詳細日誌</string>
     <string name="removed_x">已移除 %1$s</string>
     <string name="added_x">已新增%1$s</string>
     <string name="edited_x">已編輯%1$s</string>
@@ -254,7 +254,7 @@
     <string name="swipe_up">上划</string>
     <string name="disabled">已停用</string>
     <string name="system_default">系統預設</string>
-    <string name="editor_info_inspector">EditorInfo 檢查器</string>
+    <string name="editor_info_inspector">編輯器資訊檢查器</string>
     <string name="default_">預設</string>
     <string name="saving">正在儲存</string>
     <string name="delete_all_pinned_items">要删除所有置頂項目吗？</string>
