@@ -447,10 +447,6 @@ data object ThemeToggleAction : ButtonAction() {
     override val defaultIcon = R.drawable.ic_theme_light_dark_24
     override val defaultLabelRes = R.string.toggle_day_night_theme
 
-    override fun isActive(service: FcitxInputMethodService): Boolean {
-        return ThemeManager.isUsingConfiguredDarkTheme()
-    }
-
     override fun execute(
         context: Context,
         service: FcitxInputMethodService,
