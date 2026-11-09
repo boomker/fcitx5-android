@@ -328,7 +328,7 @@
     <string name="keyboard_icons_summary">各画像キーのアイコンを選択し、アイコンテーマを保存します。</string>
     <string name="hide_keyboard_button_section">上段末尾のボタン</string>
     <string name="save_icon_theme">アイコンテーマを保存</string>
-    <string name="switch_icon_theme">アイコンテーマを切り替え</string>
+    <string name="switch_icon_theme">テーマ切り替え</string>
     <string name="default_icon">デフォルト</string>
     <string name="key_icon_code">アイコンコード</string>
     <string name="key_icon_code_hint">Glyph コードポイント、SVG、Drawable 名</string>
@@ -343,7 +343,7 @@
     <string name="theme_manager_hint">テーマ名をタップすると有効になります。グループ見出しをタップすると折りたたみ／展開できます。</string>
     <string name="theme_share_failed">テーマの共有に失敗しました: %1$s</string>
     <string name="save_toolbar_theme">ツールバーテーマを保存</string>
-    <string name="switch_toolbar_theme">ツールバーテーマを切り替え</string>
+    <string name="switch_toolbar_theme">テーマ切り替え</string>
     <string name="theme_imported">テーマをインポートしました</string>
     <string name="theme_import_failed">テーマのインポートに失敗しました：%1$s</string>
     <string name="buttons_customizer_hint">表示中のボタンをタップするとアイコンのスタイルを編集できます。長押しして「利用可能なボタン」へドラッグすると非表示にでき、Kawaii Bar（上段）と Status Area（メニュー）間も移動できます。そこにあるボタンをタップして移動先を選択します。</string>

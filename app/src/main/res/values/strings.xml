@@ -610,7 +610,7 @@
     <string name="keyboard_icons_summary">Choose an icon for each image key and save icon themes.</string>
     <string name="hide_keyboard_button_section">Top row end button</string>
     <string name="save_icon_theme">Save icon theme</string>
-    <string name="switch_icon_theme">Switch icon theme</string>
+    <string name="switch_icon_theme">Theme switch</string>
     <string name="default_icon">Default</string>
     <string name="key_icon_code">Icon code</string>
     <string name="key_icon_code_hint">Glyph code point, SVG, or drawable name</string>
@@ -625,7 +625,7 @@
     <string name="theme_manager_hint">Tap a theme name to activate it. Tap a group header to collapse or expand it.</string>
     <string name="theme_share_failed">Failed to share theme: %1$s</string>
     <string name="save_toolbar_theme">Save toolbar theme</string>
-    <string name="switch_toolbar_theme">Switch toolbar theme</string>
+    <string name="switch_toolbar_theme">Theme switch</string>
     <string name="theme_imported">Theme imported</string>
     <string name="theme_import_failed">Theme import failed: %1$s</string>
     <string name="buttons_customizer_hint">Tap a button to edit its icon style. The Hide Keyboard button stays fixed at the end of Kawaii Bar (top row). Long press and drag other buttons into Available Buttons to hide them, or between Kawaii Bar and Status Area.</string>

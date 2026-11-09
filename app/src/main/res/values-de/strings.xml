@@ -234,7 +234,7 @@
     <string name="keyboard_icons_summary">Symbol für jede Bildtaste auswählen und Symbolthemen speichern.</string>
     <string name="hide_keyboard_button_section">Schaltfläche am Ende der oberen Zeile</string>
     <string name="save_icon_theme">Symbolthema speichern</string>
-    <string name="switch_icon_theme">Symbolthema wechseln</string>
+    <string name="switch_icon_theme">Thema wechseln</string>
     <string name="default_icon">Standard</string>
     <string name="key_icon_code">Icon-Code</string>
     <string name="key_icon_code_hint">Glyph-Codepunkt, SVG oder Drawable-Name</string>
@@ -249,7 +249,7 @@
     <string name="theme_manager_hint">Tippe auf einen Designnamen, um ihn zu aktivieren. Tippe auf eine Gruppenüberschrift, um sie ein- oder auszuklappen.</string>
     <string name="theme_share_failed">Design konnte nicht geteilt werden: %1$s</string>
     <string name="save_toolbar_theme">Werkzeugleisten-Thema speichern</string>
-    <string name="switch_toolbar_theme">Werkzeugleisten-Thema wechseln</string>
+    <string name="switch_toolbar_theme">Thema wechseln</string>
     <string name="theme_imported">Thema importiert</string>
     <string name="theme_import_failed">Import des Themas fehlgeschlagen: %1$s</string>
     <string name="buttons_customizer_hint">Tippen Sie auf eine sichtbare Schaltfläche, um ihren Symbolstil zu bearbeiten. Halten und ziehen Sie eine Schaltfläche zu „Verfügbare Schaltflächen“, um sie auszublenden, oder zwischen Kawaii Bar (obere Zeile) und Status Area (Menü). Tippen Sie dort auf eine Schaltfläche, um den Zielbereich auszuwählen.</string>

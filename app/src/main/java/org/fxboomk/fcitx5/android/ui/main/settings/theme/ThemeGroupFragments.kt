@@ -5,6 +5,8 @@
 package org.fxboomk.fcitx5.android.ui.main.settings.theme
 
 import android.os.Build
+import android.os.Bundle
+import android.view.View
 import androidx.preference.PreferenceCategory
 import androidx.preference.Preference
 import androidx.preference.PreferenceScreen
@@ -15,6 +17,7 @@ import org.fxboomk.fcitx5.android.data.prefs.ManagedPreferenceFragment
 import org.fxboomk.fcitx5.android.data.prefs.ManagedPreferenceProvider
 import org.fxboomk.fcitx5.android.data.theme.ThemeManager
 import org.fxboomk.fcitx5.android.input.candidates.floating.FloatingCandidatesMode
+import org.fxboomk.fcitx5.android.ui.main.keyboardtest.installKeyboardTestMenu
 import org.fxboomk.fcitx5.android.ui.main.settings.theme.ThemeSettingsSupport.addManagedPreference
 import org.fxboomk.fcitx5.android.ui.main.settings.theme.ThemeSettingsSupport.addThemePreferences
 import org.fxboomk.fcitx5.android.utils.addCategory
@@ -22,6 +25,11 @@ import org.fxboomk.fcitx5.android.utils.addCategory
 abstract class ThemeGroupFragment(
     provider: ManagedPreferenceProvider
 ) : ManagedPreferenceFragment(provider) {
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        installKeyboardTestMenu()
+    }
 
     final override fun onPreferenceUiCreated(screen: PreferenceScreen) {
         screen.removeAll()

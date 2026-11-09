@@ -28,6 +28,7 @@ import kotlinx.coroutines.launch
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.data.theme.Theme
 import org.fxboomk.fcitx5.android.data.theme.ThemeManager
+import org.fxboomk.fcitx5.android.ui.main.keyboardtest.installKeyboardTestMenu
 import org.fxboomk.fcitx5.android.utils.alpha
 import org.fxboomk.fcitx5.android.utils.isDarkMode
 import splitties.dimensions.dp
@@ -368,6 +369,11 @@ class ThemeFragment : Fragment() {
         }
 
         root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        installKeyboardTestMenu()
     }
 
     override fun onStart() {

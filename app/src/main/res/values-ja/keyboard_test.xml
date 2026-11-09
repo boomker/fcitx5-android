@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="keyboard_test_title">キーボードテスト</string>
+    <string name="keyboard_test_hint">入力の種類を切り替えてキーボードをテストします。パネルを閉じると内容が消去されます。</string>
+    <string name="keyboard_test_text">テキスト</string>
+    <string name="keyboard_test_number">数字</string>
+    <string name="keyboard_test_password">パスワード</string>
+    <string name="keyboard_test_pin">PIN</string>
+    <string name="keyboard_test_text_hint">テスト文字を入力</string>
+    <string name="keyboard_test_number_hint">テスト数字を入力</string>
+    <string name="keyboard_test_password_hint">パスワード入力をテスト</string>
+    <string name="keyboard_test_pin_hint">数字の PIN 入力をテスト</string>
+    <string name="keyboard_test_clear">テスト入力を消去</string>
+    <string name="keyboard_test_close">キーボードテストを閉じる</string>
+    <string name="appearance_more">その他</string>
+</resources>

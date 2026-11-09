@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item type="id" name="keyboard_test_entry" />
+    <item type="id" name="keyboard_test_input" />
+    <string name="keyboard_test_title">Keyboard test</string>
+    <string name="keyboard_test_hint">Switch input types to try the keyboard. Closing this panel clears its contents.</string>
+    <string name="keyboard_test_text">Text</string>
+    <string name="keyboard_test_number">Number</string>
+    <string name="keyboard_test_password">Password</string>
+    <string name="keyboard_test_pin">PIN</string>
+    <string name="keyboard_test_text_hint">Enter text</string>
+    <string name="keyboard_test_number_hint">Enter numbers</string>
+    <string name="keyboard_test_password_hint">Test password input</string>
+    <string name="keyboard_test_pin_hint">Test numeric PIN input</string>
+    <string name="keyboard_test_clear">Clear test input</string>
+    <string name="keyboard_test_close">Close keyboard test</string>
+    <string name="appearance_more">More</string>
+</resources>

@@ -442,7 +442,7 @@
     <string name="keyboard_icons_summary">为每个图像按键选择图标并保存图标主题。</string>
     <string name="hide_keyboard_button_section">顶行末尾按钮</string>
     <string name="save_icon_theme">保存图标主题</string>
-    <string name="switch_icon_theme">切换图标主题</string>
+    <string name="switch_icon_theme">主题切换</string>
     <string name="default_icon">默认</string>
     <string name="key_icon_code">图标代码</string>
     <string name="key_icon_code_hint">Glyph 码点、SVG 或 Drawable 名称</string>
@@ -457,7 +457,7 @@
     <string name="theme_manager_hint">点击主题名称可启用该主题；点击分组标题可折叠或展开分组。</string>
     <string name="theme_share_failed">分享主题失败：%1$s</string>
     <string name="save_toolbar_theme">保存工具栏主题</string>
-    <string name="switch_toolbar_theme">切换工具栏主题</string>
+    <string name="switch_toolbar_theme">主题切换</string>
     <string name="theme_imported">主题已导入</string>
     <string name="theme_import_failed">主题导入失败：%1$s</string>
     <string name="buttons_customizer_hint">点击按钮可编辑图标样式。“隐藏键盘”按钮固定在 Kawaii Bar（顶行）末尾；其他按钮可长按拖动到“可添加按钮”以隐藏，也可在 Kawaii Bar 和 Status Area 之间移动。</string>

@@ -1212,4 +1212,6 @@
     <string name="wubi_config_space_before_hint">提示前加空格</string>
     <string name="wubi_config_candidate_direction">候選方向</string>
     <string name="wubi_config_keypad_input">數字鍵盤輸入</string>
+    <string name="switch_toolbar_theme">主題切換</string>
+    <string name="switch_icon_theme">主題切換</string>
 </resources>

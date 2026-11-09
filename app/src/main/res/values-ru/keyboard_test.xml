@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="keyboard_test_title">Проверка клавиатуры</string>
+    <string name="keyboard_test_hint">Переключайте тип ввода для проверки клавиатуры. При закрытии панели её содержимое очищается.</string>
+    <string name="keyboard_test_text">Текст</string>
+    <string name="keyboard_test_number">Число</string>
+    <string name="keyboard_test_password">Пароль</string>
+    <string name="keyboard_test_pin">PIN</string>
+    <string name="keyboard_test_text_hint">Введите текст</string>
+    <string name="keyboard_test_number_hint">Введите числа</string>
+    <string name="keyboard_test_password_hint">Проверка ввода пароля</string>
+    <string name="keyboard_test_pin_hint">Проверка ввода цифрового PIN</string>
+    <string name="keyboard_test_clear">Очистить тестовый ввод</string>
+    <string name="keyboard_test_close">Закрыть проверку клавиатуры</string>
+    <string name="appearance_more">Ещё</string>
+</resources>

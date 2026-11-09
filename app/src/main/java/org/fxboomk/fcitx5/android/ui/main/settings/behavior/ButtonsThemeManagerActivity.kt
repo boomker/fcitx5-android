@@ -35,6 +35,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.fxboomk.fcitx5.android.BuildConfig
 import org.fxboomk.fcitx5.android.R
+import org.fxboomk.fcitx5.android.ui.main.keyboardtest.KeyboardTestMenu
 import org.fxboomk.fcitx5.android.input.config.ButtonsLayoutConfig
 import org.fxboomk.fcitx5.android.input.config.ButtonsLayoutThemeStore
 import org.fxboomk.fcitx5.android.input.config.ConfigProviders
@@ -134,6 +135,7 @@ class ButtonsThemeManagerActivity : AppCompatActivity() {
         setSupportActionBar(toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.title = getString(R.string.theme_manager_title)
+        KeyboardTestMenu(this, this)
 
         savedInstanceState?.getStringArrayList(STATE_COLLAPSED_GROUPS)?.forEach { name ->
             runCatching { ThemeGroup.valueOf(name) }.getOrNull()?.let(collapsedGroups::add)

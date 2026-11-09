@@ -34,6 +34,7 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import org.fxboomk.fcitx5.android.R
+import org.fxboomk.fcitx5.android.ui.main.keyboardtest.KeyboardTestMenu
 import org.fxboomk.fcitx5.android.input.AutoScaleTextView
 import org.fxboomk.fcitx5.android.input.font.FontProviders
 import splitties.dimensions.dp
@@ -148,6 +149,7 @@ class FontsetEditorActivity : AppCompatActivity() {
         setSupportActionBar(toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.setTitle(R.string.edit_fontset)
+        KeyboardTestMenu(this, this)
 
         val toolbarBaseTopPadding = toolbar.paddingTop
         ViewCompat.setOnApplyWindowInsetsListener(toolbar) { view, insets ->

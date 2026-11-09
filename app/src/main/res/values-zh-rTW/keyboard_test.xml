@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="keyboard_test_title">鍵盤測試</string>
+    <string name="keyboard_test_hint">切換輸入類型以測試鍵盤。關閉面板後清空內容。</string>
+    <string name="keyboard_test_text">文字</string>
+    <string name="keyboard_test_number">數字</string>
+    <string name="keyboard_test_password">密碼</string>
+    <string name="keyboard_test_pin">PIN</string>
+    <string name="keyboard_test_text_hint">輸入測試文字</string>
+    <string name="keyboard_test_number_hint">輸入測試數字</string>
+    <string name="keyboard_test_password_hint">測試密碼輸入</string>
+    <string name="keyboard_test_pin_hint">測試數字 PIN 輸入</string>
+    <string name="keyboard_test_clear">清空測試內容</string>
+    <string name="keyboard_test_close">關閉鍵盤測試</string>
+    <string name="appearance_more">更多</string>
+</resources>

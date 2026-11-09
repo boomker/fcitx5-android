@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="keyboard_test_title">Prueba del teclado</string>
+    <string name="keyboard_test_hint">Cambia el tipo de entrada para probar el teclado. Al cerrar el panel se borra el contenido.</string>
+    <string name="keyboard_test_text">Texto</string>
+    <string name="keyboard_test_number">Número</string>
+    <string name="keyboard_test_password">Contraseña</string>
+    <string name="keyboard_test_pin">PIN</string>
+    <string name="keyboard_test_text_hint">Introduce texto</string>
+    <string name="keyboard_test_number_hint">Introduce números</string>
+    <string name="keyboard_test_password_hint">Probar entrada de contraseña</string>
+    <string name="keyboard_test_pin_hint">Probar entrada de PIN numérico</string>
+    <string name="keyboard_test_clear">Borrar la entrada de prueba</string>
+    <string name="keyboard_test_close">Cerrar la prueba del teclado</string>
+    <string name="appearance_more">Más</string>
+</resources>

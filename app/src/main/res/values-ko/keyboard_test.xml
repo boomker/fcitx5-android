@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="keyboard_test_title">키보드 테스트</string>
+    <string name="keyboard_test_hint">입력 유형을 전환하여 키보드를 테스트하세요. 패널을 닫으면 내용이 지워집니다.</string>
+    <string name="keyboard_test_text">텍스트</string>
+    <string name="keyboard_test_number">숫자</string>
+    <string name="keyboard_test_password">비밀번호</string>
+    <string name="keyboard_test_pin">PIN</string>
+    <string name="keyboard_test_text_hint">테스트 텍스트 입력</string>
+    <string name="keyboard_test_number_hint">테스트 숫자 입력</string>
+    <string name="keyboard_test_password_hint">비밀번호 입력 테스트</string>
+    <string name="keyboard_test_pin_hint">숫자 PIN 입력 테스트</string>
+    <string name="keyboard_test_clear">테스트 입력 지우기</string>
+    <string name="keyboard_test_close">키보드 테스트 닫기</string>
+    <string name="appearance_more">더보기</string>
+</resources>

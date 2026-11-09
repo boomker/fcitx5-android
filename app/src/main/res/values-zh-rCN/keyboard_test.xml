@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="keyboard_test_title">键盘测试</string>
+    <string name="keyboard_test_hint">切换输入类型以测试键盘。关闭面板后清空内容。</string>
+    <string name="keyboard_test_text">文本</string>
+    <string name="keyboard_test_number">数字</string>
+    <string name="keyboard_test_password">密码</string>
+    <string name="keyboard_test_pin">PIN</string>
+    <string name="keyboard_test_text_hint">输入测试文本</string>
+    <string name="keyboard_test_number_hint">输入测试数字</string>
+    <string name="keyboard_test_password_hint">测试密码输入</string>
+    <string name="keyboard_test_pin_hint">测试数字 PIN 输入</string>
+    <string name="keyboard_test_clear">清空测试内容</string>
+    <string name="keyboard_test_close">关闭键盘测试</string>
+    <string name="appearance_more">更多</string>
+</resources>

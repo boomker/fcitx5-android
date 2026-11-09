@@ -162,7 +162,7 @@
     <string name="keyboard_icons_summary">Elige un icono para cada tecla con imagen y guarda temas de iconos.</string>
     <string name="hide_keyboard_button_section">Botón final de la fila superior</string>
     <string name="save_icon_theme">Guardar tema de iconos</string>
-    <string name="switch_icon_theme">Cambiar tema de iconos</string>
+    <string name="switch_icon_theme">Cambiar tema</string>
     <string name="default_icon">Predeterminado</string>
     <string name="key_icon_code">Código de icono</string>
     <string name="key_icon_code_hint">Punto de código glyph, SVG o nombre de drawable</string>
@@ -177,7 +177,7 @@
     <string name="theme_manager_hint">Toca el nombre de un tema para activarlo. Toca el encabezado de un grupo para contraerlo o expandirlo.</string>
     <string name="theme_share_failed">No se pudo compartir el tema: %1$s</string>
     <string name="save_toolbar_theme">Guardar tema de la barra</string>
-    <string name="switch_toolbar_theme">Cambiar tema de la barra</string>
+    <string name="switch_toolbar_theme">Cambiar tema</string>
     <string name="theme_imported">Tema importado</string>
     <string name="theme_import_failed">Error al importar el tema: %1$s</string>
     <string name="buttons_customizer_hint">Toque un botón visible para editar el estilo de su icono. Manténgalo pulsado y arrástrelo a «Botones disponibles» para ocultarlo, o entre Kawaii Bar (fila superior) y el área de estado (menú). Toque allí un botón para elegir su sección de destino.</string>

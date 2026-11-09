@@ -402,7 +402,7 @@
     <string name="keyboard_icons_summary">Выберите значок для каждой графической клавиши и сохраните темы значков.</string>
     <string name="hide_keyboard_button_section">Кнопка в конце верхней строки</string>
     <string name="save_icon_theme">Сохранить тему значков</string>
-    <string name="switch_icon_theme">Сменить тему значков</string>
+    <string name="switch_icon_theme">Смена темы</string>
     <string name="default_icon">По умолчанию</string>
     <string name="key_icon_code">Код значка</string>
     <string name="key_icon_code_hint">Кодовая точка Glyph, SVG или имя Drawable</string>
@@ -417,7 +417,7 @@
     <string name="theme_manager_hint">Нажмите на название темы, чтобы активировать её. Нажмите на заголовок группы, чтобы свернуть или развернуть её.</string>
     <string name="theme_share_failed">Не удалось поделиться темой: %1$s</string>
     <string name="save_toolbar_theme">Сохранить тему панели</string>
-    <string name="switch_toolbar_theme">Сменить тему панели</string>
+    <string name="switch_toolbar_theme">Смена темы</string>
     <string name="theme_imported">Тема импортирована</string>
     <string name="theme_import_failed">Не удалось импортировать тему: %1$s</string>
     <string name="buttons_customizer_hint">Нажмите видимую кнопку, чтобы изменить стиль значка. Удерживайте и перетащите кнопку в «Доступные кнопки», чтобы скрыть её, или переместите между Kawaii Bar (верхняя строка) и Status Area (меню). Нажмите кнопку в «Доступных кнопках», чтобы выбрать целевой раздел.</string>

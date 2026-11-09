@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="keyboard_test_title">Tastaturtest</string>
+    <string name="keyboard_test_hint">Eingabetyp wechseln, um die Tastatur zu testen. Beim Schließen wird der Inhalt gelöscht.</string>
+    <string name="keyboard_test_text">Text</string>
+    <string name="keyboard_test_number">Zahl</string>
+    <string name="keyboard_test_password">Passwort</string>
+    <string name="keyboard_test_pin">PIN</string>
+    <string name="keyboard_test_text_hint">Text eingeben</string>
+    <string name="keyboard_test_number_hint">Zahlen eingeben</string>
+    <string name="keyboard_test_password_hint">Passworteingabe testen</string>
+    <string name="keyboard_test_pin_hint">Numerische PIN-Eingabe testen</string>
+    <string name="keyboard_test_clear">Testeingabe löschen</string>
+    <string name="keyboard_test_close">Tastaturtest schließen</string>
+    <string name="appearance_more">Mehr</string>
+</resources>

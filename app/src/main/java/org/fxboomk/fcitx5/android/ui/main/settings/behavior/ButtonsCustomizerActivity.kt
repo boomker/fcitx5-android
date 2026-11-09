@@ -39,6 +39,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.tabs.TabLayout
 import kotlinx.serialization.encodeToString
 import org.fxboomk.fcitx5.android.R
+import org.fxboomk.fcitx5.android.ui.main.keyboardtest.KeyboardTestMenu
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.data.theme.Theme
 import org.fxboomk.fcitx5.android.data.theme.ThemeManager
@@ -258,6 +259,7 @@ class ButtonsCustomizerActivity : AppCompatActivity() {
         setSupportActionBar(toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.setTitle(R.string.edit_buttons)
+        KeyboardTestMenu(this, this)
         tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab) {
                 if (tab.position == 1) {
@@ -289,14 +291,16 @@ class ButtonsCustomizerActivity : AppCompatActivity() {
         saveMenuItem = menu.add(Menu.NONE, MENU_SAVE_ID, Menu.NONE, "${getString(R.string.save)}")
         saveMenuItem?.setIcon(R.drawable.ic_baseline_save_24)
         saveMenuItem?.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
-        switchThemeMenuItem = menu.add(Menu.NONE, MENU_SWITCH_THEME_ID, Menu.NONE, R.string.switch_toolbar_theme)
+        val more = menu.addSubMenu(Menu.NONE, MENU_MORE_ID, 200, R.string.appearance_more)
+        more.item.setIcon(R.drawable.ic_baseline_more_horiz_24)
+        more.item.icon?.mutate()?.setTint(styledColor(android.R.attr.colorControlNormal))
+        more.item.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
+        switchThemeMenuItem = more.add(Menu.NONE, MENU_SWITCH_THEME_ID, Menu.NONE, R.string.switch_toolbar_theme)
         switchThemeMenuItem?.setIcon(R.drawable.ic_baseline_sync_24)
         switchThemeMenuItem?.icon?.mutate()?.setTint(styledColor(android.R.attr.colorControlNormal))
-        switchThemeMenuItem?.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
-        val manageThemes = menu.add(Menu.NONE, MENU_MANAGE_THEMES_ID, Menu.NONE, R.string.theme_manager_title)
+        val manageThemes = more.add(Menu.NONE, MENU_MANAGE_THEMES_ID, Menu.NONE, R.string.theme_manager_title)
         manageThemes.setIcon(R.drawable.ic_baseline_palette_24)
         manageThemes.icon?.mutate()?.setTint(styledColor(android.R.attr.colorControlNormal))
-        manageThemes.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
         updateSwitchThemeMenu()
         updateSaveButtonState()
         return true
@@ -1553,3 +1557,4 @@ class ButtonEntryUi(
 private const val MENU_SAVE_ID = 3001
 private const val MENU_SWITCH_THEME_ID = 3003
 private const val MENU_MANAGE_THEMES_ID = 3004
+private const val MENU_MORE_ID = 3005
