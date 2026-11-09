@@ -16,48 +16,51 @@ class ChineseEnglishSpacingTest {
     @Test
     fun prependsSpaceWhenChinesePrecedesAsciiLetterCommit() {
         val result = pad("app", previous = '好'.code)
-        // Chinese before an ASCII word: pad on both sides.
-        assertEquals(" app ", result.text)
+        assertEquals(" app", result.text)
     }
 
     @Test
-    fun appendsSpaceAfterAsciiWordWithoutChinesePrefix() {
+    fun doesNotAppendSpaceAfterAsciiWordWithoutChinesePrefix() {
         val result = pad("app", previous = ' '.code)
-        assertEquals("app ", result.text)
+        assertEquals("app", result.text)
     }
 
     @Test
-    fun doesNotTouchChineseCommit() {
+    fun prependsSpaceWhenEnglishPrecedesChineseCommit() {
         val result = pad("你好", previous = 'a'.code)
-        assertEquals("你好", result.text)
+        assertEquals(" 你好", result.text)
     }
 
     @Test
-    fun doesNotPrependWhenPrecedingCharIsAscii() {
+    fun prependsSpaceBetweenEnglishCommits() {
         val result = pad("hello", previous = 'x'.code)
-        // No Chinese neighbour, but it is still an ASCII word → trailing pad only.
-        assertEquals("hello ", result.text)
+        assertEquals(" hello", result.text)
     }
 
     @Test
-    fun doesNotDoublePadWhenWordAlreadyEndsWithSpace() {
+    fun doesNotInsertSpaceBetweenChineseCommits() {
+        val result = pad("世界", previous = '好'.code)
+        assertEquals("世界", result.text)
+    }
+
+    @Test
+    fun preservesExistingTrailingSpace() {
         val result = pad("app ", previous = '好'.code)
         assertEquals(" app ", result.text)
     }
 
     @Test
     fun prependsForLetterLedCommitButNeverAppendsForMixedCommit() {
-        // "a1" is not a pure ASCII word, so it is not padded on the right, but it
-        // still starts with a letter, so a Chinese neighbour triggers a prepend.
+        // A Chinese neighbour triggers a prepend even for a mixed commit.
         assertEquals(" a1", pad("a1", previous = '好'.code).text)
-        // Punctuation neither starts with a letter nor is an ASCII word.
+        // Punctuation does not start with a letter.
         assertEquals("，", pad("，", previous = 'a'.code).text)
     }
 
     @Test
     fun treatsNullPrecedingCharAsNoPrepend() {
         val result = pad("word", previous = null)
-        assertEquals("word ", result.text)
+        assertEquals("word", result.text)
     }
 
     @Test
@@ -65,7 +68,25 @@ class ChineseEnglishSpacingTest {
         // U+20000, a CJK Extension B ideograph, as a surrogate pair.
         val supplementary = 0x20000
         val result = pad("app", previous = supplementary)
-        assertEquals(" app ", result.text)
+        assertEquals(" app", result.text)
+    }
+
+    @Test
+    fun prependsSpaceWhenEnglishPrecedesSupplementaryChineseCommit() {
+        val text = String(Character.toChars(0x20000))
+        val result = pad(text, cursor = text.length, previous = 'a'.code)
+        assertEquals(" $text", result.text)
+        assertEquals(text.length + 1, result.cursor)
+    }
+
+    @Test
+    fun separatesSuccessiveEnglishAndChineseCommitsWithoutTrailingSpace() {
+        var committed = ""
+        for (text in listOf("hello", "世界", "app", "word")) {
+            val previous = if (committed.isEmpty()) null else committed.codePointBefore(committed.length)
+            committed += pad(text, previous = previous).text
+        }
+        assertEquals("hello 世界 app word", committed)
     }
 
     @Test
@@ -74,19 +95,46 @@ class ChineseEnglishSpacingTest {
     }
 
     @Test
-    fun shiftsCursorPastPrependedAndAppendedSpaces() {
-        // cursor at end of a 3-char word, Chinese before → +1 (prepend) +1 (append).
+    fun shiftsEndCursorOnlyForPrependedSpace() {
         val result = pad("app", cursor = 3, previous = '好'.code)
-        assertEquals(" app ", result.text)
-        assertEquals(5, result.cursor)
+        assertEquals(" app", result.text)
+        assertEquals(4, result.cursor)
     }
 
     @Test
     fun shiftsCursorForPrependOnlyWhenCursorNotAtWordEnd() {
-        // Mid-word cursor: prepend adds 1; append does not move an interior cursor.
         val result = pad("app", cursor = 1, previous = '好'.code)
-        assertEquals(" app ", result.text)
+        assertEquals(" app", result.text)
         assertEquals(2, result.cursor)
+    }
+
+    @Test
+    fun keepsExplicitCursorWhenNoSpaceIsPrepended() {
+        for (cursor in listOf(0, 1, 3)) {
+            val result = pad("app", cursor = cursor, previous = ' '.code)
+            assertEquals("app", result.text)
+            assertEquals(cursor, result.cursor)
+        }
+    }
+
+    @Test
+    fun shiftsCursorOnlyForPrependedSpaceAfterEnglishCommit() {
+        for (text in listOf("world", "世界")) {
+            for (cursor in listOf(-1, 0, 1, text.length)) {
+                val result = pad(text, cursor = cursor, previous = 'o'.code)
+                assertEquals(" $text", result.text)
+                assertEquals(if (cursor == -1) -1 else cursor + 1, result.cursor)
+            }
+        }
+    }
+
+    @Test
+    fun preservesExistingLeadingSpace() {
+        for (previous in listOf('好'.code, 'o'.code)) {
+            val result = pad(" app", cursor = 4, previous = previous)
+            assertEquals(" app", result.text)
+            assertEquals(4, result.cursor)
+        }
     }
 
     @Test

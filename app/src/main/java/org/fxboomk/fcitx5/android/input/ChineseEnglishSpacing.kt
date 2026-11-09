@@ -5,8 +5,9 @@
 package org.fxboomk.fcitx5.android.input
 
 /**
- * Pads a commit coming out of fcitx with spaces where Chinese meets Latin
- * letters, for the "insert space between Chinese and English" preference.
+ * Prepends a space between Chinese and English text or between English words,
+ * for the "insert space between Chinese and English" preference.
+ * Never adds a trailing space.
  *
  * Applies to text committed out of the composition: picking a candidate, or a
  * key such as Return (also with Ctrl / Shift) committing the preedit as is.
@@ -25,45 +26,23 @@ internal object ChineseEnglishSpacing {
         if (text.isEmpty()) {
             return PaddedCommit(text, cursor)
         }
-        val prependSpace = previousCodePoint != null &&
-            isChineseCodePoint(previousCodePoint) &&
-            isAsciiLetter(text.codePointAt(0))
-        val appendSpace = isAsciiWord(text) && !text.endsWith(' ')
-        if (!prependSpace && !appendSpace) {
+        val firstCodePoint = text.codePointAt(0)
+        val prependSpace = when {
+            previousCodePoint == null -> false
+            isAsciiLetter(previousCodePoint) ->
+                isAsciiLetter(firstCodePoint) || isChineseCodePoint(firstCodePoint)
+            else -> isChineseCodePoint(previousCodePoint) && isAsciiLetter(firstCodePoint)
+        }
+        if (!prependSpace) {
             return PaddedCommit(text, cursor)
         }
-        val paddedText = buildString(text.length + 2) {
-            if (prependSpace) {
-                append(' ')
-            }
-            append(text)
-            if (appendSpace) {
-                append(' ')
-            }
-        }
-        val cursorOffset = (if (prependSpace) 1 else 0) +
-            (if (appendSpace && cursor == text.length) 1 else 0)
+        val paddedText = " $text"
         val paddedCursor = if (cursor == -1) {
             -1
         } else {
-            cursor + cursorOffset
+            cursor + 1
         }
         return PaddedCommit(paddedText, paddedCursor)
-    }
-
-    fun isAsciiWord(text: String): Boolean {
-        if (text.isEmpty()) {
-            return false
-        }
-        var offset = 0
-        while (offset < text.length) {
-            val codePoint = text.codePointAt(offset)
-            if (!isAsciiLetter(codePoint)) {
-                return false
-            }
-            offset += Character.charCount(codePoint)
-        }
-        return true
     }
 
     fun isAsciiLetter(codePoint: Int): Boolean =
