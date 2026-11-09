@@ -1738,6 +1738,16 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         if (alt) sendUpKeyEvent(eventTime, KeyEvent.KEYCODE_ALT_LEFT)
     }
 
+    /** Move the editor directly, even if predictions arrive while the touchpad is open. */
+    fun sendGestureEditingDirection(keyEventCode: Int, selecting: Boolean) {
+        val eventTime = SystemClock.uptimeMillis()
+        val metaState = if (selecting) KeyEvent.META_SHIFT_ON or KeyEvent.META_SHIFT_LEFT_ON else 0
+        if (selecting) sendDownKeyEvent(eventTime, KeyEvent.KEYCODE_SHIFT_LEFT)
+        sendDownKeyEvent(eventTime, keyEventCode, metaState)
+        sendUpKeyEvent(eventTime, keyEventCode, metaState)
+        if (selecting) sendUpKeyEvent(eventTime, KeyEvent.KEYCODE_SHIFT_LEFT)
+    }
+
     fun applySelectionOffset(offsetStart: Int, offsetEnd: Int = 0) {
         if (jsAppInputConnection != null) {
             (jsAppInputConnection as? JsAppInputConnection)?.offsetSelection(offsetStart, offsetEnd)

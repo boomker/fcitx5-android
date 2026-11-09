@@ -27,6 +27,8 @@ import org.fxboomk.fcitx5.android.input.dependency.fcitx
 import org.fxboomk.fcitx5.android.input.dependency.inputMethodService
 import org.fxboomk.fcitx5.android.input.dialog.AddMoreInputMethodsPrompt
 import org.fxboomk.fcitx5.android.input.dialog.InputMethodPickerDialog
+import org.fxboomk.fcitx5.android.input.editing.GestureEditingMode
+import org.fxboomk.fcitx5.android.input.editing.GestureEditingWindow
 import org.fxboomk.fcitx5.android.input.keyboard.CommonKeyActionListener.BackspaceSwipeState.Reset
 import org.fxboomk.fcitx5.android.input.keyboard.CommonKeyActionListener.BackspaceSwipeState.Selection
 import org.fxboomk.fcitx5.android.input.keyboard.CommonKeyActionListener.BackspaceSwipeState.Stopped
@@ -82,6 +84,7 @@ class CommonKeyActionListener :
     private val preferredVoiceInput by kbdPrefs.preferredVoiceInput
     private val floatingCandidatesMode by AppPrefs.getInstance().candidates.mode
     private val spaceSwipeVerticalBehavior by kbdPrefs.spaceSwipeVerticalBehavior
+    private val spaceSwipeIdleBehavior by kbdPrefs.spaceSwipeIdleBehavior
 
     private var backspaceSwipeState = Stopped
     private var voiceHoldActive = false
@@ -193,7 +196,7 @@ class CommonKeyActionListener :
     }
 
     val listener by lazy {
-        KeyActionListener { action, _ ->
+        KeyActionListener { action, source ->
             when (action) {
                 is FcitxKeyAction -> {
                     val delta = action.verticalArrowDelta()
@@ -402,23 +405,19 @@ class CommonKeyActionListener :
                     }
                     backspaceSwipeState = Stopped
                 }
-                is SpaceSwipeVerticalAction -> when (spaceSwipeVerticalBehavior) {
-                    SpaceSwipeVerticalBehavior.ArrowKeys -> {
-                        if (!preeditState.isEmpty || service.hasVisibleCandidates()) {
-                            moveVisibleCandidateHighlight(action.delta)
-                        } else {
-                            service.postFcitxJob {
-                                val sym = if (action.delta > 0) {
-                                    FcitxKeyMapping.FcitxKey_Down
-                                } else {
-                                    FcitxKeyMapping.FcitxKey_Up
-                                }
-                                sendKey(KeySym(sym), KeyStates.Virtual)
-                            }
-                        }
-                    }
-                    SpaceSwipeVerticalBehavior.CandidateRows -> {
-                        if (!preeditState.isEmpty || service.hasVisibleCandidates()) {
+                is SpaceSwipeVerticalAction -> {
+                    when (spaceSwipeVerticalAction(
+                        delta = action.delta,
+                        hasPreedit = !preeditState.isEmpty,
+                        hasCandidates = service.hasVisibleCandidates(),
+                        composingBehavior = spaceSwipeVerticalBehavior,
+                        idleBehaviors = spaceSwipeIdleBehavior,
+                        isMainKeyboard = source == KeyActionListener.Source.Keyboard &&
+                            windowManager.currentWindowOrNull() is KeyboardWindow,
+                        hasVisibleAiSuggestions = service.inputView?.hasVisibleAiSuggestions() == true,
+                    )) {
+                        SpaceSwipeVerticalActionType.CandidateHighlight -> moveVisibleCandidateHighlight(action.delta)
+                        SpaceSwipeVerticalActionType.CandidateRows -> {
                             if (floatingCandidatesMode == FloatingCandidatesMode.Always &&
                                 service.hasVisibleCandidates()
                             ) {
@@ -428,14 +427,26 @@ class CommonKeyActionListener :
                                     horizontalCandidate.shiftDisplayedCandidateRow(action.delta)
                                 }
                             }
-                        } else {
-                            service.postFcitxJob {
-                                val sym = if (action.delta > 0) {
-                                    FcitxKeyMapping.FcitxKey_Down
-                                } else {
-                                    FcitxKeyMapping.FcitxKey_Up
+                        }
+                        SpaceSwipeVerticalActionType.ArrowKey -> service.postFcitxJob {
+                            val sym = if (action.delta > 0) {
+                                FcitxKeyMapping.FcitxKey_Down
+                            } else {
+                                FcitxKeyMapping.FcitxKey_Up
+                            }
+                            sendKey(KeySym(sym), KeyStates.Virtual)
+                        }
+                        SpaceSwipeVerticalActionType.TextSelection,
+                        SpaceSwipeVerticalActionType.CursorMovement -> {
+                            val mode = if (action.delta < 0) GestureEditingMode.Selection else GestureEditingMode.Cursor
+                            // Finish dispatching the entry swipe before detaching its keyboard.
+                            service.inputView?.post {
+                                if (windowManager.currentWindowOrNull() is KeyboardWindow &&
+                                    preeditState.isEmpty && !service.hasVisibleCandidates() &&
+                                    service.inputView?.hasVisibleAiSuggestions() != true
+                                ) {
+                                    windowManager.attachWindow(GestureEditingWindow(mode))
                                 }
-                                sendKey(KeySym(sym), KeyStates.Virtual)
                             }
                         }
                     }

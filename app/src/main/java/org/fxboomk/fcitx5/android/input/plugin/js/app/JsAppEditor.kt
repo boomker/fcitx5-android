@@ -9,14 +9,47 @@ internal class JsAppEditor(
     private val connection: InputConnection,
     private val isCurrent: () -> Boolean,
     private val requirePermission: (String) -> Unit,
+    expectedSelection: String? = null,
 ) {
     private var preview = false
     private var originalSelection = ""
     private var originalStart = -1
     private var originalEnd = -1
+    private var selectionGuard = expectedSelection?.let {
+        require(it.length <= 65536) { "Selection is too long" }
+        captureSelection().also { snapshot -> check(snapshot.selectedText == it) { "Selected text changed" } }
+    }
+
+    private data class SelectionSnapshot(
+        val selectedText: String,
+        val start: Int?,
+        val end: Int?,
+        val before: String,
+        val after: String,
+    )
+
+    private fun captureSelection(): SelectionSnapshot {
+        val extracted = connection.getExtractedText(ExtractedTextRequest(), 0)
+        return SelectionSnapshot(
+            selectedText = connection.getSelectedText(0)?.toString().orEmpty(),
+            start = extracted?.let { it.startOffset + it.selectionStart },
+            end = extracted?.let { it.startOffset + it.selectionEnd },
+            before = connection.getTextBeforeCursor(256, 0)?.toString().orEmpty(),
+            after = connection.getTextAfterCursor(256, 0)?.toString().orEmpty(),
+        )
+    }
+
+    private fun checkSelection() {
+        check(selectionGuard == null || selectionGuard == captureSelection()) { "Selected text changed" }
+    }
+
+    private fun updateSelectionGuard() {
+        if (selectionGuard != null) selectionGuard = captureSelection()
+    }
 
     fun call(method: String, text: String): String? {
         check(isCurrent()) { "Editor session ended" }
+        checkSelection()
         require(text.length <= 65536) { "Text is too long" }
         when (method) {
             "getSelection" -> {
@@ -40,6 +73,7 @@ internal class JsAppEditor(
                 }
                 check(connection.setComposingText(text, 1)) { "Editor rejected preview" }
                 preview = true
+                updateSelectionGuard()
             }
             "clearComposition" -> { requirePermission("editor.composition"); clearPreview() }
             "commit" -> {
@@ -47,6 +81,7 @@ internal class JsAppEditor(
                 check(connection.commitText(text, 1)) { "Editor rejected text" }
                 connection.finishComposingText()
                 preview = false
+                updateSelectionGuard()
             }
             else -> error("Unsupported editor operation")
         }
@@ -56,9 +91,14 @@ internal class JsAppEditor(
     fun clearPreview() {
         if (!preview) return
         if (isCurrent()) {
-            connection.setComposingText(originalSelection, 1)
+            val restoreSelection = selectionGuard == null || selectionGuard == captureSelection()
+            if (restoreSelection) connection.setComposingText(originalSelection, 1)
+            // A moved selection invalidates restoration, but this session still owns the old span.
             connection.finishComposingText()
-            if (originalStart >= 0 && originalEnd >= 0) connection.setSelection(originalStart, originalEnd)
+            if (restoreSelection) {
+                if (originalStart >= 0 && originalEnd >= 0) connection.setSelection(originalStart, originalEnd)
+                updateSelectionGuard()
+            }
         }
         preview = false
     }

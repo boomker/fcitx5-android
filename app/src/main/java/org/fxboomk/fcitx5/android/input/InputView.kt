@@ -51,6 +51,7 @@ import androidx.core.view.updateLayoutParams
 import androidx.lifecycle.lifecycleScope
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.core.CapabilityFlags
+import org.fxboomk.fcitx5.android.core.CapabilityFlag
 import org.fxboomk.fcitx5.android.core.FcitxEvent
 import org.fxboomk.fcitx5.android.core.FcitxKeyMapping
 import org.fxboomk.fcitx5.android.daemon.FcitxConnection
@@ -94,6 +95,9 @@ import org.fxboomk.fcitx5.android.input.keyboard.BaseKeyboard
 import org.fxboomk.fcitx5.android.input.keyboard.KeyView
 import org.fxboomk.fcitx5.android.input.keyboard.KeyAction
 import org.fxboomk.fcitx5.android.input.keyboard.KeyboardWindow
+import org.fxboomk.fcitx5.android.input.editing.GestureEditingWindow
+import org.fxboomk.fcitx5.android.input.editing.SelectedTextAiAction
+import org.fxboomk.fcitx5.android.input.assistant.AiAssistant
 import org.fxboomk.fcitx5.android.input.keyboard.KeyboardHeightOverrideTarget
 import org.fxboomk.fcitx5.android.input.keyboard.TextKeyboard
 import org.fxboomk.fcitx5.android.input.keyboard.fileLevelKeyboardHeightPercentOverride
@@ -3359,7 +3363,7 @@ class InputView(
         }
         broadcaster.onStartInput(info, capFlags, restarting)
         returnKeyDrawable.updateDrawableOnEditorInfo(info)
-        if (focusChangeResetKeyboard || !restarting) {
+        if (focusChangeResetKeyboard || !restarting || windowManager.currentWindowOrNull() is GestureEditingWindow) {
             windowManager.attachWindow(KeyboardWindow)
         }
     }
@@ -3528,6 +3532,22 @@ class InputView(
                 showAiResultPanel()
             }
         }
+    }
+
+    internal fun requestSelectedTextAiAction(action: SelectedTextAiAction, selectedText: String): Boolean {
+        val editorInfo = service.currentInputEditorInfo ?: return false
+        if (selectedText.isBlank() || CapabilityFlags.fromEditorInfo(editorInfo).has(CapabilityFlag.PasswordOrSensitive) ||
+            service.applicationInputConnection?.getSelectedText(0)?.toString() != selectedText
+        ) return false
+        if (LlmPrefs.read(service.applicationContext).enabled) {
+            if (!aiSuggestionStrip.requestSelectionAction(action.candidateAction, selectedText)) {
+                android.widget.Toast.makeText(service, R.string.ai_clip_error_generic, android.widget.Toast.LENGTH_SHORT).show()
+                return false
+            }
+            showAiResultPanel()
+            return true
+        }
+        return AiAssistant.openSelectedText(service, action.assistantPurpose, selectedText)
     }
 
     private fun showAiResultPanel() {

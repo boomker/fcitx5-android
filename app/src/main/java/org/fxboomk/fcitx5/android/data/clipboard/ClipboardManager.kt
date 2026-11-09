@@ -281,6 +281,28 @@ object ClipboardManager : ClipboardManager.OnPrimaryClipChangedListener,
 
     suspend fun pin(id: Int) = clbDao.updatePinStatus(id, true)
 
+    /** Save an explicit text selection as a local favorite without replacing the system clipboard. */
+    suspend fun addFavoriteText(text: String): ClipboardEntry? {
+        if (text.isBlank()) return null
+        return mutex.withLock {
+            val entry = clbDb.withTransaction {
+                val timestamp = System.currentTimeMillis()
+                val existing = clbDao.find(text, sensitive = false, source = ClipboardEntry.SOURCE_LOCAL)
+                if (existing != null) {
+                    clbDao.updatePinStatus(existing.id, true)
+                    clbDao.updateTime(existing.id, timestamp)
+                    existing.copy(pinned = true, timestamp = timestamp)
+                } else {
+                    // Pin at insertion so a zero local-history limit cannot trim the selection.
+                    val rowId = clbDao.insert(ClipboardEntry(text = text, pinned = true, timestamp = timestamp))
+                    checkNotNull(clbDao.get(rowId))
+                }
+            }
+            updateItemCount()
+            entry
+        }
+    }
+
     suspend fun unpin(id: Int) {
         mutex.withLock {
             clbDb.withTransaction {

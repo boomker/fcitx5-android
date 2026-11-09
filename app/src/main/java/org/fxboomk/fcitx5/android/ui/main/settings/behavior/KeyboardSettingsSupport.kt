@@ -68,6 +68,9 @@ internal object KeyboardSettingsSupport {
         provider: ManagedPreferenceProvider,
         key: String
     ): Preference? {
+        if (key == "space_swipe_vertical_behavior") {
+            return SpaceSwipeVerticalPreference(parent.context).also { parent.addPreference(it) }
+        }
         val ui = provider.managedPreferencesUi.firstOrNull { it.key == key } ?: return null
         val preference = ui.createUi(parent.context).apply {
             isEnabled = ui.isEnabled()

@@ -51,15 +51,27 @@ internal object JsAppHost {
         return true
     }
 
-    fun open(service: FcitxInputMethodService, spec: JsPluginCatalog.Spec, app: JsPluginApp) {
+    fun open(
+        service: FcitxInputMethodService,
+        spec: JsPluginCatalog.Spec,
+        app: JsPluginApp,
+        initialValues: JsonObject = JsonObject(emptyMap()),
+    ) {
         if (!canOpen(service)) return
-        Session(service, spec, app).start()
+        try {
+            Session(service, spec, app, initialValues).start()
+        } catch (error: IllegalArgumentException) {
+            service.toast(error.message.orEmpty())
+        } catch (error: IllegalStateException) {
+            service.toast(error.message.orEmpty())
+        }
     }
 
     private class Session(
         val service: FcitxInputMethodService,
         val spec: JsPluginCatalog.Spec,
         val app: JsPluginApp,
+        val initialValues: JsonObject,
     ) {
         val token = service.editorSession.capture()
         val connection = service.applicationInputConnection
@@ -70,7 +82,7 @@ internal object JsAppHost {
         var working = false
         val editor = connection?.let { JsAppEditor(it, {
             !closed && token?.isCurrent() == true && service.applicationInputConnection === connection
-        }, ::requirePermission) }
+        }, ::requirePermission, expectedSelection = initialValues["input"]?.jsonPrimitive?.content) }
         var fields = emptyList<JsPluginField>()
         var settings = emptyMap<String, String>()
         var configuredSecrets = emptyList<String>()
@@ -95,7 +107,7 @@ internal object JsAppHost {
                         JsAppPermissions.grant(spec.id, app.id, app.permissions)
                     }
                     initialize()
-                    event("open", JsonObject(emptyMap()))
+                    event("open", initialValues)
                 } catch (error: CancellationException) { throw error }
                 catch (error: Exception) { dialog.showError(error.message.orEmpty()) }
             }

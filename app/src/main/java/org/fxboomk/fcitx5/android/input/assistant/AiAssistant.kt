@@ -9,6 +9,8 @@ import org.fxboomk.fcitx5.android.input.plugin.js.JsPluginCatalog
 import org.fxboomk.fcitx5.android.input.plugin.js.app.JsAppHost
 import org.fxboomk.fcitx5.android.input.voice.VoiceInputProviderManager
 import org.fxboomk.fcitx5.android.utils.toast
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import java.util.Locale
 
 /** Selects assistant apps and coordinates their entry from the keyboard. */
@@ -44,5 +46,23 @@ internal object AiAssistant {
         service.jsAppDismiss?.invoke()
         val (spec, app) = preferred() ?: run { service.toast(R.string.js_app_none); return }
         JsAppHost.open(service, spec, app)
+    }
+
+    fun openSelectedText(service: FcitxInputMethodService, purpose: String, selectedText: String): Boolean {
+        if (!JsAppHost.canOpen(service) || selectedText.isBlank()) return false
+        val spec = JsPluginCatalog.specOf(JsPluginCatalog.LLM_ASSISTANT_ID)
+        val app = spec?.apps?.firstOrNull { it.id == "llm_assistant" }
+        if (spec == null || app == null) {
+            service.toast(R.string.js_app_none)
+            return false
+        }
+        if (VoiceInputProviderManager.isActive()) VoiceInputProviderManager.stop(service)
+        service.jsAppDismiss?.invoke()
+        JsAppHost.open(service, spec, app, initialValues = buildJsonObject {
+            put("purpose", purpose)
+            put("input", selectedText)
+            put("autoSend", true)
+        })
+        return true
     }
 }

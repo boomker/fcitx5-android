@@ -1,7 +1,7 @@
 {
   "id": "llm-assistant",
   "name": "AI 助手",
-  "version": "1.23.6",
+  "version": "1.23.7",
   "hosts": [],
   "features": [],
   "apps": [

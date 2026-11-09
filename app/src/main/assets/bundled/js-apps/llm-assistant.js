@@ -52,7 +52,7 @@ const PROTOCOLS = [
   {value: "responses", label: "OpenAI Responses", path: "/responses"}
 ];
 
-const PURPOSE_IDS = ["short", "polish", "proofread", "tone", "idiom", "classical", "toEnglish", "martian"];
+const PURPOSE_IDS = ["short", "polish", "translate", "proofread", "tone", "idiom", "classical", "toEnglish", "martian"];
 
 const STRINGS = {
   en: {
@@ -103,10 +103,12 @@ const STRINGS = {
     resultTitle: "Result · %1 · confirm to insert or clear",
     purposeShort: "Answer",
     purposePolish: "Polish",
+    purposeTranslate: "Translate",
     purposeProofread: "Proofread",
     purposeTone: "Change tone",
     prefixShort: "Answer the following briefly and accurately. Return only the answer:\n",
     prefixPolish: "Polish the following text while keeping its meaning. Return only the rewritten text:\n",
+    prefixTranslate: "Identify the language of the complete text below. Translate to natural English only when the complete text is Simplified Chinese. Translate every other language, including Traditional Chinese, Japanese, Korean and English, into natural Simplified Chinese. Do not mistake Traditional Chinese or Japanese for Simplified Chinese because they contain similar Han characters. Return only the translation, without explanations or labels:\n",
     prefixProofread: "Fix only the typos and obvious grammar issues in the following text. Return only the corrected text:\n",
     prefixTone: "Rewrite the following text in a more natural and polite tone. Return only the rewritten text:\n",
     purposeIdiom: "Idiom chain",
@@ -179,10 +181,12 @@ const STRINGS = {
     resultTitle: "结果 · %1 · 确认上屏或清空",
     purposeShort: "简答",
     purposePolish: "润色",
+    purposeTranslate: "翻译",
     purposeProofread: "纠正错别字",
     purposeTone: "调整语气",
     prefixShort: "请简洁准确地回答下面的内容，只返回答案：\n",
     prefixPolish: "请润色下面的文本，保留原意，只返回改写后的文本：\n",
+    prefixTranslate: "先判断下面整段文本的语言。只有确认整段是简体中文时才翻译成自然的英文；其他任何语言，包括繁体中文、日文、韩文和英文，都翻译成自然的简体中文。不要因包含相似汉字就把繁体中文或日文误判为简体中文。只返回译文，不要解释或标签：\n",
     prefixProofread: "请只纠正下面文本中的错别字和明显语病，保留原意，只返回修正后的文本：\n",
     prefixTone: "请将下面的文本调整为更自然、礼貌的语气，只返回改写后的文本：\n",
     purposeIdiom: "成语接龙",
@@ -255,10 +259,12 @@ const STRINGS = {
     resultTitle: "結果 · %1 · 確認送出或清除",
     purposeShort: "簡答",
     purposePolish: "潤色",
+    purposeTranslate: "翻譯",
     purposeProofread: "校正錯別字",
     purposeTone: "調整語氣",
     prefixShort: "請簡潔準確地回答下列內容，只回傳答案：\n",
     prefixPolish: "請潤色下列文字，保留原意，只回傳改寫後的文字：\n",
+    prefixTranslate: "先判斷下面整段文字的語言。只有確認整段是簡體中文時才翻譯成自然的英文；其他任何語言，包括繁體中文、日文、韓文和英文，都翻譯成自然的簡體中文。不要因包含相似漢字就把繁體中文或日文誤判為簡體中文。只回傳譯文，不要解釋或標籤：\n",
     prefixProofread: "請只校正下列文字中的錯別字和明顯語病，保留原意，只回傳修正後的文字：\n",
     prefixTone: "請將下列文字調整為更自然、禮貌的語氣，只回傳改寫後的文字：\n",
     purposeIdiom: "成語接龍",
@@ -305,6 +311,7 @@ function format(template, ...values) {
 const PURPOSE_KEYS = {
   short: {label: "purposeShort", prefix: "prefixShort"},
   polish: {label: "purposePolish", prefix: "prefixPolish"},
+  translate: {label: "purposeTranslate", prefix: "prefixTranslate"},
   proofread: {label: "purposeProofread", prefix: "prefixProofread"},
   tone: {label: "purposeTone", prefix: "prefixTone"},
   idiom: {label: "purposeIdiom", prefix: "prefixIdiom"},
@@ -874,7 +881,7 @@ function dialogSpec(t, title, purposeId, input, messageTone = "") {
 foxy.plugin.register({
   id: "llm-assistant",
   name: stringsFor(foxy.locale).name,
-  version: "1.23.6",
+  version: "1.23.7",
   hosts: [],
   features: [],
   configure(ui, locale) {
@@ -970,12 +977,24 @@ async function handleOpen(context) {
     if (context.event === "open") {
       lastResult = "";
       lastResultRequest = "";
-      if (!lastPurposeId) lastPurposeId = findPurpose(settings.defaultPurpose, t).id;
+      const initial = context.values || {};
+      const purposeId = initial.purpose === undefined
+        ? (lastPurposeId || findPurpose(settings.defaultPurpose, t).id)
+        : findPurpose(initial.purpose, t).id;
+      lastPurposeId = purposeId;
       currentReasoning = "auto";
       currentProvider = pickProvider(settings, configuredSecrets).value;
       lastProvider = currentProvider;
-      const selected = await foxy.editor.getSelection();
-      return foxy.ui.dialog.show(dialogSpec(t, t.assistantTitle, lastPurposeId, selected));
+      const selected = initial.input === undefined
+        ? await foxy.editor.getSelection()
+        : String(initial.input);
+      const initialDialog = dialogSpec(t, t.assistantTitle, purposeId, selected);
+      if (initial.autoSend !== true) return foxy.ui.dialog.show(initialDialog);
+      // Show the chosen task before the existing send flow asks for a host grant or starts work.
+      await foxy.ui.dialog.update(initialDialog);
+      context = {...context, event: "send", values: {
+        purpose: purposeId, provider: currentProvider, input: selected, reasoning: currentReasoning
+      }};
     }
 
     const values = context.values || {};

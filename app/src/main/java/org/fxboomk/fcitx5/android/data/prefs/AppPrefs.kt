@@ -320,6 +320,11 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
             "space_swipe_vertical_behavior",
             SpaceSwipeVerticalBehavior.ArrowKeys
         )
+        val spaceSwipeIdleBehavior = ManagedPreference.PStringSet(
+            sharedPreferences,
+            "space_swipe_idle_behavior",
+            emptySet()
+        ).apply { register() }
         val showLangSwitchKey =
             switch(R.string.show_lang_switch_key, "show_lang_switch_key", true)
         val textKeyboardLayoutProfile = ManagedPreference.PString(

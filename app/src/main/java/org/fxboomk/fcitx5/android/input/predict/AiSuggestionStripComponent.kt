@@ -8,6 +8,7 @@ import android.os.Looper
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.ExtractedTextRequest
+import android.view.inputmethod.InputConnection
 import android.widget.FrameLayout
 import androidx.preference.PreferenceManager
 import org.fxboomk.fcitx5.android.R
@@ -16,6 +17,7 @@ import org.fxboomk.fcitx5.android.core.CapabilityFlags
 import org.fxboomk.fcitx5.android.core.FcitxEvent
 import org.fxboomk.fcitx5.android.core.FormattedText
 import org.fxboomk.fcitx5.android.input.FcitxInputMethodService
+import org.fxboomk.fcitx5.android.input.EditorSessionTracker
 import org.fxboomk.fcitx5.android.input.broadcast.InputBroadcastReceiver
 import org.fxboomk.fcitx5.android.input.dependency.UniqueViewComponent
 import org.fxboomk.fcitx5.android.utils.withBatchEdit
@@ -104,6 +106,13 @@ internal fun hasCompletedAiResult(
     state: AiSuggestionStripComponent.PresentationState,
 ): Boolean = !state.isLoading &&
     (state.suggestions.isNotEmpty() || state.panelSuggestions.isNotEmpty())
+
+internal fun canCommitAiSuggestionFromUi(
+    suggestion: String,
+    state: AiSuggestionStripComponent.PresentationState,
+): Boolean = suggestion.isNotBlank() &&
+    (suggestion in state.suggestions || suggestion in state.panelSuggestions ||
+        suggestion == state.singleTextCommitText)
 
 internal fun shouldAutoRequestRememberedTranslate(
     displayMode: LlmPrefs.PredictionDisplayMode,
@@ -203,6 +212,15 @@ class AiSuggestionStripComponent(
     private var taskMode = LlmTaskMode.Completion
     private var longFormEnabled = false
     private var briefAnswerEnabled = false
+    private data class SelectionRequest(
+        val selected: SelectedAiText,
+        val connection: InputConnection,
+        val token: EditorSessionTracker.Token,
+        val previousTaskMode: LlmTaskMode,
+        val previousLongFormEnabled: Boolean,
+        val previousBriefAnswerEnabled: Boolean,
+    )
+    private var selectionRequest: SelectionRequest? = null
     private var pseudoStreamToken = 0L
     private var pseudoStreamRunnable: Runnable? = null
     private var startInputPredictionGeneration = 0
@@ -236,6 +254,7 @@ class AiSuggestionStripComponent(
     }
 
     override fun onStartInput(info: EditorInfo, capFlags: CapabilityFlags, restarting: Boolean) {
+        restoreModeAfterSelectionRequest()
         val config = LlmPrefs.read(service.applicationContext)
         allowPrediction = config.enabled && !capFlags.has(CapabilityFlag.PasswordOrSensitive)
         hasClientPreedit = false
@@ -296,6 +315,10 @@ class AiSuggestionStripComponent(
 
     override fun onSelectionUpdate(start: Int, end: Int) {
         selectionCollapsed = start == end
+        if (selectionRequest != null) {
+            validateSelectionRequest()
+            return
+        }
         if (!selectionCollapsed || !shouldKeepSingleTextPanelVisible()) {
             collapsePanel()
         }
@@ -311,6 +334,7 @@ class AiSuggestionStripComponent(
 
     fun commitPrimarySuggestion(): Boolean {
         val suggestion = activeSuggestions.firstOrNull() ?: return false
+        if (selectionRequest != null) return commitSelectedTextResult(suggestion)
         if (taskMode == LlmTaskMode.Translate || isTranslatePanelMode()) {
             commitTranslatedText(suggestion)
         } else {
@@ -351,6 +375,7 @@ class AiSuggestionStripComponent(
     }
 
     fun selectPersona(value: String): Boolean {
+        if (selectionRequest != null) clearSuggestions(resetRequestState = true)
         val normalized = value.ifBlank { LlmPrefs.PersonaPreset.Custom.value }
         val prefs = PreferenceManager.getDefaultSharedPreferences(service.applicationContext)
         prefs.edit().putString(LlmPrefs.KEY_PERSONA_PRESET, normalized).apply()
@@ -359,6 +384,7 @@ class AiSuggestionStripComponent(
     }
 
     fun toggleQuestionAnswerMode(): Boolean {
+        if (selectionRequest != null) clearSuggestions(resetRequestState = true)
         briefAnswerEnabled = false
         taskMode = if (taskMode == LlmTaskMode.QuestionAnswer) {
             LlmTaskMode.Completion
@@ -373,6 +399,7 @@ class AiSuggestionStripComponent(
     }
 
     fun toggleTranslateMode(): Boolean {
+        if (selectionRequest != null) clearSuggestions(resetRequestState = true)
         briefAnswerEnabled = false
         taskMode = if (taskMode == LlmTaskMode.Translate) {
             LlmTaskMode.Completion
@@ -386,6 +413,7 @@ class AiSuggestionStripComponent(
     }
 
     fun toggleLongFormMode(): Boolean {
+        if (selectionRequest != null) clearSuggestions(resetRequestState = true)
         briefAnswerEnabled = false
         longFormEnabled = !longFormEnabled
         if (longFormEnabled) {
@@ -397,6 +425,7 @@ class AiSuggestionStripComponent(
     }
 
     internal fun requestAction(action: AiCandidateAction): Boolean {
+        if (selectionRequest != null) clearSuggestions(resetRequestState = true)
         if (action == AiCandidateAction.Settings) return false
         val config = LlmPrefs.read(service.applicationContext)
         val flags = CapabilityFlags.fromEditorInfo(service.currentInputEditorInfo)
@@ -422,6 +451,137 @@ class AiSuggestionStripComponent(
         return requestPanelTextContent(configOverride = config, trigger = PredictionTrigger.Explicit)
     }
 
+    /** Explicit editing actions process the selection, not the text around the cursor. */
+    internal fun requestSelectionAction(action: AiCandidateAction, selectedText: String): Boolean {
+        val config = LlmPrefs.read(service.applicationContext)
+        val request = selectedAiTextRequest(action, selectedText, config.thinkingEffort) ?: return false
+        val info = service.currentInputEditorInfo ?: return false
+        if (!config.enabled || !config.isUsable ||
+            CapabilityFlags.fromEditorInfo(info).has(CapabilityFlag.PasswordOrSensitive) ||
+            hasClientPreedit || hasInputPanelPreedit || service.hardwarePredictionSession.isSuppressed
+        ) return false
+        val connection = service.applicationInputConnection ?: return false
+        val token = service.editorSession.capture() ?: return false
+        val range = service.currentInputSelection
+        if (range.start == range.end || connection.getSelectedText(0)?.toString() != selectedText) return false
+        val selected = SelectedAiText(
+            text = selectedText,
+            start = range.start,
+            end = range.end,
+            before = connection.getTextBeforeCursor(FULL_TEXT_FETCH_CHARS, 0)?.toString().orEmpty(),
+            after = connection.getTextAfterCursor(FULL_TEXT_FETCH_CHARS, 0)?.toString().orEmpty(),
+        )
+        clearSuggestions(resetRequestState = true)
+        val session = SelectionRequest(selected, connection, token, taskMode, longFormEnabled, briefAnswerEnabled)
+        selectionRequest = session
+        selectionCollapsed = false
+        taskMode = request.taskMode
+        longFormEnabled = request.outputMode == LlmOutputMode.LongForm
+        briefAnswerEnabled = request.outputMode == LlmOutputMode.BriefAnswer
+        panelVisible = true
+        panelContentMode = selectionPanelMode(action, loading = true)
+        lastRequestedBeforeCursor = selectedText
+        dispatchPresentationChanged()
+        var streamedText = ""
+        predictor.request(
+            request = request,
+            onPartial = { partial ->
+                if (selectionRequest !== session || !validateSelectionRequest()) return@request
+                val sanitized = sanitizeSingleCandidate(partial, selectedText, request.outputMode, request.taskMode, isPartial = true)
+                if (sanitized.isBlank()) return@request
+                streamedText = sanitized
+                panelDisplayedText = sanitized
+                activeSuggestions = listOf(selectionCommitText(action, sanitized))
+                panelContentMode = selectionPanelMode(action, streaming = true)
+                dispatchPresentationChanged()
+            },
+            onResult = { suggestions ->
+                if (selectionRequest !== session || !validateSelectionRequest()) return@request
+                val finalText = suggestions.firstOrNull()?.let {
+                    sanitizeSingleCandidate(it, selectedText, request.outputMode, request.taskMode)
+                }.orEmpty()
+                val result = mergeSingleTextPanelResult(streamedText, finalText)
+                if (result.isBlank()) {
+                    clearSuggestions(resetRequestState = true)
+                    return@request
+                }
+                panelDisplayedText = result
+                activeSuggestions = listOf(selectionCommitText(action, result))
+                panelContentMode = selectionPanelMode(action)
+                dispatchPresentationChanged()
+            },
+            onError = { error ->
+                if (selectionRequest !== session || !validateSelectionRequest()) return@request
+                clearSuggestions(resetRequestState = true)
+                errorMessage = predictionErrorMessage(error)
+                panelVisible = true
+                dispatchPresentationChanged()
+            },
+        )
+        return true
+    }
+
+    private fun selectionPanelMode(action: AiCandidateAction, loading: Boolean = false, streaming: Boolean = false): PanelContentMode =
+        when (action) {
+            AiCandidateAction.Translate -> when {
+                loading -> PanelContentMode.TranslateLoading
+                streaming -> PanelContentMode.TranslateStreaming
+                else -> PanelContentMode.TranslateReady
+            }
+            AiCandidateAction.Reply -> when {
+                loading -> PanelContentMode.QuestionAnswerLoading
+                streaming -> PanelContentMode.QuestionAnswerStreaming
+                else -> PanelContentMode.QuestionAnswerReady
+            }
+            else -> when {
+                loading -> PanelContentMode.LongFormLoading
+                streaming -> PanelContentMode.LongFormStreaming
+                else -> PanelContentMode.LongFormReady
+            }
+        }
+
+    private fun selectionCommitText(action: AiCandidateAction, text: String): String =
+        if (action == AiCandidateAction.Translate) extractCommittedTranslation(text) else text
+
+    private fun validateSelectionRequest(): Boolean {
+        val session = selectionRequest ?: return false
+        val range = service.currentInputSelection
+        val info = service.currentInputEditorInfo
+        val current = session.token.isCurrent() &&
+            service.applicationInputConnection === session.connection &&
+            LlmPrefs.read(service.applicationContext).enabled &&
+            !service.hardwarePredictionSession.isSuppressed &&
+            info != null && !CapabilityFlags.fromEditorInfo(info).has(CapabilityFlag.PasswordOrSensitive) &&
+            !hasClientPreedit && !hasInputPanelPreedit &&
+            session.selected.matches(
+                range.start, range.end,
+                session.connection.getSelectedText(0)?.toString().orEmpty(),
+                session.connection.getTextBeforeCursor(FULL_TEXT_FETCH_CHARS, 0)?.toString().orEmpty(),
+                session.connection.getTextAfterCursor(FULL_TEXT_FETCH_CHARS, 0)?.toString().orEmpty(),
+            )
+        if (!current) clearSuggestions(resetRequestState = true)
+        return current
+    }
+
+    private fun commitSelectedTextResult(text: String): Boolean {
+        if (!validateSelectionRequest()) return false
+        val selected = checkNotNull(selectionRequest).selected
+        val config = LlmPrefs.read(service.applicationContext)
+        service.recordAiInsertionUndoSnapshot(text, selected.text, selected.start, selected.end)
+        noteCommittedText(text, config)
+        service.commitText(text)
+        clearSuggestions(resetRequestState = true)
+        return true
+    }
+
+    private fun restoreModeAfterSelectionRequest() {
+        val session = selectionRequest ?: return
+        taskMode = session.previousTaskMode
+        longFormEnabled = session.previousLongFormEnabled
+        briefAnswerEnabled = session.previousBriefAnswerEnabled
+        selectionRequest = null
+    }
+
     private fun exitTranslateMode() {
         if (taskMode == LlmTaskMode.Translate) {
             taskMode = LlmTaskMode.Completion
@@ -430,6 +590,10 @@ class AiSuggestionStripComponent(
 
     fun collapsePanel(): Boolean {
         if (!panelVisible) return false
+        if (selectionRequest != null) {
+            clearSuggestions(resetRequestState = true)
+            return true
+        }
         panelVisible = false
         resetPanelContentState()
         dispatchPresentationChanged()
@@ -539,6 +703,11 @@ class AiSuggestionStripComponent(
     }
 
     internal fun commitSuggestionFromUi(suggestion: String, fromExpandedArea: Boolean = false) {
+        if (!canCommitAiSuggestionFromUi(suggestion, latestPresentationState)) return
+        if (selectionRequest != null) {
+            commitSelectedTextResult(suggestion)
+            return
+        }
         when {
             taskMode == LlmTaskMode.Translate || isTranslatePanelMode() ->
                 commitTranslatedText(suggestion)
@@ -576,6 +745,7 @@ class AiSuggestionStripComponent(
     }
 
     fun close() {
+        restoreModeAfterSelectionRequest()
         startInputPredictionGeneration += 1
         if (predictorCreated) {
             predictor.close()
@@ -596,6 +766,10 @@ class AiSuggestionStripComponent(
     }
 
     private fun requestPredictionIfNeeded(trigger: PredictionTrigger = PredictionTrigger.Automatic) {
+        if (selectionRequest != null) {
+            validateSelectionRequest()
+            return
+        }
         if (service.hardwarePredictionSession.isSuppressed) {
             clearSuggestions(resetRequestState = true)
             return
@@ -904,6 +1078,7 @@ class AiSuggestionStripComponent(
     }
 
     private fun clearSuggestions(resetRequestState: Boolean) {
+        restoreModeAfterSelectionRequest()
         if (predictorCreated) {
             predictor.cancel()
         }
@@ -1115,6 +1290,7 @@ class AiSuggestionStripComponent(
         configOverride: LlmPrefs.Config? = null,
         trigger: PredictionTrigger = PredictionTrigger.Automatic,
     ): Boolean {
+        if (selectionRequest != null) return validateSelectionRequest()
         if (service.hardwarePredictionSession.isSuppressed) {
             clearSuggestions(resetRequestState = true)
             return false

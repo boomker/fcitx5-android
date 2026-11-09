@@ -28,6 +28,20 @@
         android:maxSdkVersion="32" />
     <!-- replace intent queries merged from library manifests with the app-visible packages we need -->
     <queries tools:node="replace">
+        <!-- Find the default browser without resolving selected links to other apps. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="https" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.WEB_SEARCH" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="http" />
+        </intent>
         <intent>
             <action android:name="${applicationId}.plugin.MANIFEST" />
         </intent>

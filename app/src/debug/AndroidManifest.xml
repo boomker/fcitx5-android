@@ -5,6 +5,10 @@
     <application
         android:label="@string/app_debug_name"
         tools:replace="android:label">
+        <activity
+            android:name=".input.editing.GestureEditingTestActivity"
+            android:exported="false"
+            android:windowSoftInputMode="stateAlwaysVisible|adjustResize" />
         <service
             android:name=".input.FcitxInputMethodService"
             android:label="@string/app_debug_name"

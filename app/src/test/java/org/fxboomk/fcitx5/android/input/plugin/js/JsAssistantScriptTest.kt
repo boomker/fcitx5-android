@@ -159,6 +159,103 @@ class JsAssistantScriptTest {
         assertEquals("auto", result["reopened"]!!.jsonPrimitive.content)
     }
 
+    @Test
+    fun selectedActionsAutoSendExactInputAndShowTheirTaskBeforeRequest() = runBlocking {
+        val result = evaluate("""
+            (async () => {
+              const input = '  selected text\n保留原文  ';
+              const settings = {defaultPurpose: 'tone', defaultProvider: 'deepseek',
+                deepseekUrl: 'https://api.example/v1', deepseekModel: 'test-model'};
+              const calls = [];
+              const updates = [];
+              const previews = [];
+              foxy.ui.dialog.update = async spec => updates.push(spec);
+              foxy.editor.setComposition = async text => previews.push(text);
+              foxy.editor.getSelection = async () => { throw new Error('selection must use snapshot'); };
+              foxy.http.request = async options => {
+                calls.push({body: JSON.parse(options.body), updatesBeforeRequest: updates.length});
+                return JSON.stringify({ok: true, status: 200,
+                  body: JSON.stringify({choices: [{message: {content: 'generated result'}}]})});
+              };
+              const results = [];
+              for (const purpose of ['translate', 'polish', 'short']) {
+                const dialog = await handleOpen({event: 'open', settings, configuredSecrets: ['deepseekKey'],
+                  values: {purpose, input, autoSend: true}});
+                results.push({purpose: dialog.layout.children.find(node => node.type === 'row').children
+                    .find(node => node.id === 'purpose').value,
+                  input: dialog.layout.children.find(node => node.id === 'input').value});
+              }
+              return {calls, updates, previews, results, defaultPurpose: settings.defaultPurpose};
+            })()
+        """).jsonObject
+        val calls = result["calls"]!!.jsonArray
+        assertEquals(3, calls.size)
+        calls.forEachIndexed { index, entry ->
+            val call = entry.jsonObject
+            val prompt = call["body"]!!.jsonObject["messages"]!!.jsonArray.last()
+                .jsonObject["content"]!!.jsonPrimitive.content
+            assertTrue(prompt.endsWith("  selected text\n保留原文  "))
+            assertEquals((index + 1).toString(), call["updatesBeforeRequest"]!!.jsonPrimitive.content)
+            when (index) {
+                0 -> assertTrue(prompt.contains("繁体中文") && prompt.contains("简体中文") && prompt.contains("英文"))
+                1 -> assertTrue(prompt.contains("润色"))
+                2 -> assertTrue(prompt.contains("简洁"))
+            }
+        }
+        assertEquals(listOf("translate", "polish", "short"), result["results"]!!.jsonArray.map {
+            it.jsonObject["purpose"]!!.jsonPrimitive.content
+        })
+        assertEquals(3, result["previews"]!!.jsonArray.size)
+        assertEquals("tone", result["defaultPurpose"]!!.jsonPrimitive.content)
+    }
+
+    @Test
+    fun selectedActionsKeepMissingCredentialErrorsAndOrdinaryOpenDoesNotSend() = runBlocking {
+        val result = evaluate("""
+            (async () => {
+              const settings = {defaultPurpose: 'polish', defaultProvider: 'deepseek',
+                deepseekUrl: 'https://api.example/v1', deepseekModel: 'test-model'};
+              let calls = 0;
+              foxy.http.request = async () => { calls++; throw new Error('no request expected'); };
+              foxy.ui.dialog.update = async () => {};
+              foxy.editor.getSelection = async () => 'ordinary selection';
+              const ordinary = await handleOpen({event: 'open', settings, configuredSecrets: []});
+              const selected = await handleOpen({event: 'open', settings, configuredSecrets: [],
+                values: {purpose: 'translate', input: 'selected text', autoSend: true}});
+              return {ordinary, selected, calls};
+            })()
+        """).jsonObject
+        assertEquals("0", result["calls"]!!.jsonPrimitive.content)
+        val ordinary = result["ordinary"]!!.jsonObject["layout"]!!.jsonObject["children"]!!.jsonArray
+        val ordinaryRow = ordinary.single { it.jsonObject["type"]?.jsonPrimitive?.content == "row" }
+            .jsonObject["children"]!!.jsonArray
+        assertEquals("polish", ordinaryRow.single { it.jsonObject["id"]?.jsonPrimitive?.content == "purpose" }
+            .jsonObject["value"]!!.jsonPrimitive.content)
+        assertEquals("ordinary selection", ordinary.single { it.jsonObject["id"]?.jsonPrimitive?.content == "input" }
+            .jsonObject["value"]!!.jsonPrimitive.content)
+        assertTrue(result["selected"]!!.toString().contains("API 密钥"))
+        assertTrue(result["selected"]!!.toString().contains("selected text"))
+    }
+
+    @Test
+    fun translationHasTheSameLanguageRuleAcrossAllAssistantLocales() = runBlocking {
+        val result = evaluate("""
+            ['en', 'zh-CN', 'zh-TW'].map(locale => {
+              const t = stringsFor(locale);
+              return {label: findPurpose('translate', t).label, prefix: findPurpose('translate', t).prefix,
+                oldPrefix: findPurpose('toEnglish', t).prefix,
+                options: purposeOptions(t).map(option => option.value)};
+            })
+        """).jsonArray
+        assertEquals(listOf("Translate", "翻译", "翻譯"), result.map { it.jsonObject["label"]!!.jsonPrimitive.content })
+        result.forEach { entry ->
+            val value = entry.jsonObject
+            assertTrue(value["prefix"]!!.jsonPrimitive.content.length > value["oldPrefix"]!!.jsonPrimitive.content.length)
+            assertTrue(value["options"]!!.jsonArray.any { it.jsonPrimitive.content == "translate" })
+            assertTrue(value["options"]!!.jsonArray.any { it.jsonPrimitive.content == "toEnglish" })
+        }
+    }
+
     private suspend fun evaluate(expression: String): JsonElement {
         val script = listOf(
             File("src/main/assets/bundled/js-apps/llm-assistant.js"),
