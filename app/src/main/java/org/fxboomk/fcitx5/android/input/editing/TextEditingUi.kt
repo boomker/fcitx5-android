@@ -11,6 +11,7 @@ import androidx.annotation.StringRes
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.data.InputFeedbacks
 import org.fxboomk.fcitx5.android.data.theme.Theme
+import org.fxboomk.fcitx5.android.data.theme.ThemeManager
 import org.fxboomk.fcitx5.android.input.bar.ui.ToolButton
 import org.fxboomk.fcitx5.android.input.config.KeyIconIds
 import org.fxboomk.fcitx5.android.input.config.KeyIconThemeStore
@@ -60,7 +61,14 @@ class TextEditingUi(
         }
 
     private fun applyIcon(spec: IconButtonSpec) {
-        KeyIconThemeStore.resolveDrawableObject(ctx, spec.iconId, spec.fallback)
+        val fallback = if (spec.iconId == KeyIconIds.BACKSPACE &&
+            ThemeManager.prefs.gboardStyleSideKeys.getValue()
+        ) {
+            R.drawable.ic_outline_backspace_24
+        } else {
+            spec.fallback
+        }
+        KeyIconThemeStore.resolveDrawableObject(ctx, spec.iconId, fallback)
             ?.let(spec.button::setIconDrawable)
     }
 
@@ -108,7 +116,7 @@ class TextEditingUi(
 
     val backspaceButton = iconButton(
         KeyIconIds.BACKSPACE,
-        R.drawable.ic_outline_backspace_24,
+        R.drawable.ic_baseline_backspace_24,
         altStyle = true
     ).apply {
         soundEffect = InputFeedbacks.SoundEffect.Delete
