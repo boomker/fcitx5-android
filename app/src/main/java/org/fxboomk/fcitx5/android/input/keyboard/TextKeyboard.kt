@@ -462,6 +462,7 @@ class TextKeyboard private constructor(
 
     private val showLangSwitchKey = AppPrefs.getInstance().keyboard.showLangSwitchKey
     private val spaceKeyLabelMode = AppPrefs.getInstance().keyboard.spaceKeyLabelMode
+    private val spaceKeyLongPressBehavior = AppPrefs.getInstance().keyboard.spaceKeyLongPressBehavior
     private val punctuationPosition = ThemeManager.prefs.punctuationPosition
     private val uppercasePosition = ThemeManager.prefs.uppercasePosition
     private var currentIme: InputMethodEntry? = layoutState.ime
@@ -477,6 +478,11 @@ class TextKeyboard private constructor(
     @Keep
     private val spaceKeyLabelModeListener = ManagedPreference.OnChangeListener<SpaceKeyLabelMode> { _, mode ->
         currentIme?.let { updateSpaceLabel(it, mode) }
+    }
+
+    @Keep
+    private val spaceKeyLongPressBehaviorListener = ManagedPreference.OnChangeListener<SpaceLongPressBehavior> { _, _ ->
+        updateSpaceLabel(currentIme)
     }
 
     @Keep
@@ -741,6 +747,7 @@ class TextKeyboard private constructor(
         registerKeyboard(this)
         showLangSwitchKey.registerOnChangeListener(showLangSwitchKeyListener)
         spaceKeyLabelMode.registerOnChangeListener(spaceKeyLabelModeListener)
+        spaceKeyLongPressBehavior.registerOnChangeListener(spaceKeyLongPressBehaviorListener)
         punctuationPosition.registerOnChangeListener(altTextPositionListener)
         uppercasePosition.registerOnChangeListener(altTextPositionListener)
         refreshDynamicState()
@@ -750,6 +757,7 @@ class TextKeyboard private constructor(
         unregisterKeyboard(this)
         showLangSwitchKey.unregisterOnChangeListener(showLangSwitchKeyListener)
         spaceKeyLabelMode.unregisterOnChangeListener(spaceKeyLabelModeListener)
+        spaceKeyLongPressBehavior.unregisterOnChangeListener(spaceKeyLongPressBehaviorListener)
         punctuationPosition.unregisterOnChangeListener(altTextPositionListener)
         uppercasePosition.unregisterOnChangeListener(altTextPositionListener)
         super.onDetachedFromWindow()
@@ -762,6 +770,9 @@ class TextKeyboard private constructor(
     }
 
     private fun updateSpaceLabel(ime: InputMethodEntry?, mode: SpaceKeyLabelMode = spaceKeyLabelMode.getValue()) {
+        ensureSpecialKeyViewsInitialized()
+        val showVoiceIcon = spaceKeyLongPressBehavior.getValue() == SpaceLongPressBehavior.VoiceHold
+        specialKeyViews.space.forEach { it.setSpaceVoiceIconVisible(showVoiceIcon) }
         if (ime == null) return
         val subModeText = ime.subMode.run { label.ifEmpty { name.ifEmpty { "" } } }
         val newText = when (mode) {
@@ -780,7 +791,6 @@ class TextKeyboard private constructor(
                 if (subModeText.isNotEmpty()) subModeText else ime.displayName
             }
         }
-        ensureSpecialKeyViewsInitialized()
         specialKeyViews.space.forEach { spaceKey ->
             spaceKey.mainText.text = newText
         }

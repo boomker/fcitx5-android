@@ -28,6 +28,7 @@ import androidx.annotation.FloatRange
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.updateLayoutParams
 import org.fxboomk.fcitx5.android.R
+import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.data.theme.Theme
 import org.fxboomk.fcitx5.android.data.theme.ThemeManager
 import org.fxboomk.fcitx5.android.data.theme.ThemePrefs.PunctuationPosition
@@ -611,6 +612,8 @@ open class TextKeyView(
         )
     }
 
+    private var spaceVoiceIcon: ImageView? = null
+
     init {
         appearanceView.apply {
             if (def.viewId == R.id.button_space) {
@@ -625,6 +628,42 @@ open class TextKeyView(
                     centerInParent()
                 })
             }
+        }
+        if (def.viewId == R.id.button_space) {
+            setSpaceVoiceIconVisible(
+                AppPrefs.getInstance().keyboard.spaceKeyLongPressBehavior.getValue() ==
+                    SpaceLongPressBehavior.VoiceHold
+            )
+        }
+    }
+
+    internal fun setSpaceVoiceIconVisible(visible: Boolean) {
+        if (def.viewId != R.id.button_space) return
+        if (visible && spaceVoiceIcon == null) {
+            spaceVoiceIcon = imageView {
+                isClickable = false
+                isFocusable = false
+                importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+                imageResource = R.drawable.ic_baseline_keyboard_voice_24
+            }.also { icon ->
+                appearanceView.add(icon, appearanceView.lParams(dp(16), dp(16)) {
+                    leftToLeft = parentId
+                    leftMargin = hMargin + dp(10)
+                    topToTop = parentId
+                    bottomToBottom = parentId
+                })
+            }
+        }
+        spaceVoiceIcon?.apply {
+            visibility = if (visible) View.VISIBLE else View.GONE
+            imageTintList = ColorStateList.valueOf(mainText.currentTextColor)
+        }
+        // Reserve equal space on both sides to keep the input method label centered.
+        val inset = hMargin + dp(10) + if (visible) dp(20) else 0
+        if (mainText.paddingLeft != inset || mainText.paddingRight != inset) {
+            mainText.setPadding(inset, 0, inset, 0)
+            // AutoScaleTextView caches its transform even when only padding changes.
+            mainText.setTextSize(TypedValue.COMPLEX_UNIT_PX, mainText.textSize)
         }
     }
 
@@ -646,6 +685,7 @@ open class TextKeyView(
                 }
             )
         )
+        spaceVoiceIcon?.imageTintList = ColorStateList.valueOf(mainText.currentTextColor)
     }
 }
 
