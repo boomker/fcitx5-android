@@ -378,8 +378,8 @@
     <string name="space_swipe_vertical_summary">有编码有候选：%1$s\n无编码无候选：%2$s</string>
     <string name="text_selection">文本选择</string>
     <string name="cursor_movement">光标移动</string>
-    <string name="gesture_text_selection_mode">选择文本模式</string>
-    <string name="gesture_cursor_mode">移动光标模式</string>
+    <string name="gesture_text_selection_mode">@string/text_selection</string>
+    <string name="gesture_cursor_mode">@string/cursor_movement</string>
     <string name="gesture_action_translate">翻译</string>
     <string name="gesture_action_polish">润色</string>
     <string name="gesture_action_brief_reply">简答</string>
@@ -622,6 +622,7 @@
     <string name="private_mode">隐私模式（点击打开状态区域）</string>
     <string name="return_to_toolbar">返回工具栏</string>
     <string name="back_to_keyboard">返回键盘</string>
+    <string name="back_to_panel">返回%1$s</string>
     <string name="backspace">退格</string>
     <string name="move_cursor_up">向上移动光标</string>
     <string name="move_cursor_right">向右移动光标</string>

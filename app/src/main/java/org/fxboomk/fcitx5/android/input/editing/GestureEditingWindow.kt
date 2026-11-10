@@ -43,8 +43,10 @@ import splitties.views.dsl.core.lParams
 import timber.log.Timber
 import kotlin.math.abs
 
-class GestureEditingWindow(val mode: GestureEditingMode) :
-    InputWindow.ExtendedInputWindow<GestureEditingWindow>() {
+class GestureEditingWindow(
+    val mode: GestureEditingMode,
+    returnWindow: InputWindow.ExtendedInputWindow<*>? = null
+) : InputWindow.ExtendedInputWindow<GestureEditingWindow>(returnWindow) {
 
     private val service: FcitxInputMethodService by manager.inputMethodService()
     private val fcitx: FcitxConnection by manager.fcitx()
@@ -60,7 +62,7 @@ class GestureEditingWindow(val mode: GestureEditingMode) :
         GestureEditingUi(context, theme, mode, buttonRipple, buttonBorder, buttonRadius.toFloat(), ::move).apply {
             exitButton.setOnClickListener { windowManager.attachWindow(KeyboardWindow) }
             switchButton.setOnClickListener {
-                windowManager.attachWindow(GestureEditingWindow(GestureEditingMode.Selection))
+                windowManager.attachWindow(GestureEditingWindow(GestureEditingMode.Selection, this@GestureEditingWindow))
             }
             actionsButton.setOnClickListener { showActions() }
             pasteButton.setOnClickListener {

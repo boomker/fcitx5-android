@@ -418,7 +418,8 @@ data object ClipboardAction : ButtonAction() {
                 return
             }
         }
-        windowManager.attachWindow(ClipboardWindow())
+        val returnWindow = windowManager.currentWindowOrNull() as? GestureEditingWindow
+        windowManager.attachWindow(ClipboardWindow(returnWindow))
     }
 
     override fun onLongPress(

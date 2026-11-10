@@ -384,8 +384,8 @@
     <string name="space_swipe_vertical_summary">With preedit/candidates: %1$s\nWithout preedit/candidates: %2$s</string>
     <string name="text_selection">Text selection</string>
     <string name="cursor_movement">Cursor movement</string>
-    <string name="gesture_text_selection_mode">Text selection mode</string>
-    <string name="gesture_cursor_mode">Cursor movement mode</string>
+    <string name="gesture_text_selection_mode">@string/text_selection</string>
+    <string name="gesture_cursor_mode">@string/cursor_movement</string>
     <string name="gesture_action_translate">Translate</string>
     <string name="gesture_action_polish">Polish</string>
     <string name="gesture_action_brief_reply">Brief reply</string>
@@ -794,6 +794,7 @@
     <string name="private_mode">Private mode (tap to open status area)</string>
     <string name="return_to_toolbar">Return to toolbar</string>
     <string name="back_to_keyboard">Back to keyboard</string>
+    <string name="back_to_panel">Back to %1$s</string>
     <string name="backspace">Backspace</string>
     <string name="move_cursor_up">Move cursor up</string>
     <string name="move_cursor_right">Move cursor right</string>

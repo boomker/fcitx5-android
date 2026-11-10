@@ -296,8 +296,8 @@
     <string name="space_swipe_vertical_summary">有編碼有候選：%1$s\n無編碼無候選：%2$s</string>
     <string name="text_selection">文字選擇</string>
     <string name="cursor_movement">游標移動</string>
-    <string name="gesture_text_selection_mode">選擇文字模式</string>
-    <string name="gesture_cursor_mode">移動游標模式</string>
+    <string name="gesture_text_selection_mode">@string/text_selection</string>
+    <string name="gesture_cursor_mode">@string/cursor_movement</string>
     <string name="gesture_action_translate">翻譯</string>
     <string name="gesture_action_polish">潤色</string>
     <string name="gesture_action_brief_reply">簡答</string>
@@ -525,6 +525,7 @@
     <string name="private_mode">隱私模式（點擊開啟狀態區）</string>
     <string name="return_to_toolbar">返回工具列</string>
     <string name="back_to_keyboard">返回鍵盤</string>
+    <string name="back_to_panel">返回%1$s</string>
     <string name="backspace">退格</string>
     <string name="move_cursor_up">向上移動游標</string>
     <string name="move_cursor_right">向右移動游標</string>

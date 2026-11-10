@@ -16,6 +16,7 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.PopupWindow
+import android.widget.TextView
 import androidx.core.view.allViews
 import androidx.test.platform.app.InstrumentationRegistry
 import kotlinx.coroutines.runBlocking
@@ -226,6 +227,105 @@ class GestureEditingIntegrationTest {
                 wm.attachWindow(KeyboardWindow)
             }
         }
+    }
+
+    @Test
+    fun gesturePanelTitlesAndCaptionsUseTheSameShortNames() = withEditor { _, service ->
+        val wm = windowManager(service)
+        GestureEditingMode.entries.forEach { mode ->
+            val window = openGesturePanel(service, mode)
+            val label = context.getString(if (mode == GestureEditingMode.Selection) R.string.text_selection else R.string.cursor_movement)
+            onMain {
+                assertEquals(label, window.title)
+                assertEquals(label, context.getString(if (mode == GestureEditingMode.Selection)
+                    R.string.gesture_text_selection_mode else R.string.gesture_cursor_mode))
+                assertEquals(1, window.onCreateView().allViews.filterIsInstance<TextView>().count { it.text.toString() == label })
+                // One label is the visible title bar; the other is the caption in the touchpad.
+                assertEquals(2, service.inputView!!.allViews.filterIsInstance<TextView>().count { it.isShown && it.text.toString() == label })
+            }
+            clickHeaderBack(service)
+            await { wm.currentWindowOrNull() is KeyboardWindow }
+        }
+    }
+
+    @Test
+    fun clipboardHeaderBackRestoresBothGesturePanelsAndTheirWorkingTouchpads() = withEditor { editor, service ->
+        val wm = windowManager(service)
+        val original = editor.text.toString()
+        GestureEditingMode.entries.forEach { mode ->
+            onMain { editor.setSelection(20) }
+            await { service.currentInputSelection.start == 20 && service.currentInputSelection.end == 20 }
+            val window = openGesturePanel(service, mode)
+            val pad = touchpad(service)
+            stroke(pad, 20f, 0f)
+            await { editor.selectionEnd == 21 }
+            val selection = editor.selectionStart to editor.selectionEnd
+            openPanelClipboard(service, window)
+            clickHeaderBack(service, context.getString(R.string.back_to_panel, window.title))
+            await { wm.currentWindowOrNull() === window && touchpadOrNull(service) === pad && pad.isShown }
+            onMain {
+                assertEquals(selection, editor.selectionStart to editor.selectionEnd)
+                assertTrue(editor.hasFocus())
+                assertEquals(original, editor.text.toString())
+            }
+            stroke(pad, 20f, 0f)
+            await { editor.selectionEnd == 22 }
+            assertEquals(if (mode == GestureEditingMode.Selection) 20 else 22, editor.selectionStart)
+            clickHeaderBack(service)
+            await { wm.currentWindowOrNull() is KeyboardWindow }
+        }
+    }
+
+    @Test
+    fun nestedSelectionAndClipboardHeadersReturnThroughEachPreviousPanel() = withEditor { editor, service ->
+        val wm = windowManager(service)
+        val original = editor.text.toString()
+        val cursor = openGesturePanel(service, GestureEditingMode.Cursor)
+        val cursorPad = touchpad(service)
+        stroke(cursorPad, -20f, 0f)
+        await { editor.selectionStart == 19 && editor.selectionEnd == 19 }
+        onMain { cursorPad.buttons[1].performClick() }
+        await {
+            (wm.currentWindowOrNull() as? GestureEditingWindow)?.mode == GestureEditingMode.Selection &&
+                touchpadOrNull(service)?.let { it.isShown && it.width > 0 && it.height > 0 } == true
+        }
+        val selection = wm.currentWindowOrNull() as GestureEditingWindow
+        val selectionPad = touchpad(service)
+        stroke(selectionPad, 20f, 0f)
+        await { editor.selectionStart == 19 && editor.selectionEnd == 20 }
+        openPanelClipboard(service, selection)
+        clickHeaderBack(service, context.getString(R.string.back_to_panel, selection.title))
+        await { wm.currentWindowOrNull() === selection && touchpadOrNull(service) === selectionPad && selectionPad.isShown }
+        stroke(selectionPad, 20f, 0f)
+        await { editor.selectionStart == 19 && editor.selectionEnd == 21 }
+        clickHeaderBack(service, context.getString(R.string.back_to_panel, cursor.title))
+        await { wm.currentWindowOrNull() === cursor && touchpadOrNull(service) === cursorPad && cursorPad.isShown }
+        stroke(cursorPad, -20f, 0f)
+        await { editor.selectionStart == editor.selectionEnd }
+        clickHeaderBack(service)
+        await { wm.currentWindowOrNull() is KeyboardWindow }
+        val beforeArrow = editor.selectionEnd
+        onMain { service.sendDownUpKeyEvents(KeyEvent.KEYCODE_DPAD_RIGHT) }
+        await { editor.selectionStart == editor.selectionEnd && editor.selectionEnd != beforeArrow }
+        onMain {
+            assertTrue(editor.hasFocus())
+            assertEquals(original, editor.text.toString())
+        }
+    }
+
+    @Test
+    fun explicitGestureExitAndDirectClipboardBackReturnToKeyboardWithoutOldParents() = withEditor { editor, service ->
+        val wm = windowManager(service)
+        openGesturePanel(service, GestureEditingMode.Cursor)
+        onMain { touchpad(service).buttons[1].performClick() }
+        await { (wm.currentWindowOrNull() as? GestureEditingWindow)?.mode == GestureEditingMode.Selection }
+        onMain { touchpad(service).buttons.first().performClick() }
+        await { wm.currentWindowOrNull() is KeyboardWindow }
+        onMain { service.inputView!!.executeButtonAction("clipboard") }
+        await { wm.currentWindowOrNull() is ClipboardWindow }
+        clickHeaderBack(service)
+        await { wm.currentWindowOrNull() is KeyboardWindow }
+        onMain { assertTrue(editor.hasFocus()) }
     }
 
     @Test
@@ -647,6 +747,43 @@ class GestureEditingIntegrationTest {
             .get(inputView) as InputWindowManager
     }
 
+    private fun openGesturePanel(service: FcitxInputMethodService, mode: GestureEditingMode): GestureEditingWindow {
+        onMain { service.inputView!!.executeButtonAction(if (mode == GestureEditingMode.Selection) "text_selection" else "cursor_movement") }
+        val wm = windowManager(service)
+        await {
+            (wm.currentWindowOrNull() as? GestureEditingWindow)?.mode == mode &&
+                touchpadOrNull(service)?.let { it.isShown && it.width > 0 && it.height > 0 } == true
+        }
+        // A laid-out touchpad can still move during Android's initial IME insets animation.
+        instrumentation.waitForIdleSync()
+        SystemClock.sleep(350)
+        return wm.currentWindowOrNull() as GestureEditingWindow
+    }
+
+    private fun openPanelClipboard(service: FcitxInputMethodService, window: GestureEditingWindow) {
+        await {
+            window.onCreateBarExtension().allViews.filterIsInstance<ToolButton>().any {
+                it.isShown && it.width > 0 && it.contentDescription == context.getString(R.string.clipboard)
+            }
+        }
+        onMain {
+            window.onCreateBarExtension().allViews.filterIsInstance<ToolButton>()
+                .single { it.isShown && it.contentDescription == context.getString(R.string.clipboard) }.performClick()
+        }
+        await { windowManager(service).currentWindowOrNull() is ClipboardWindow }
+    }
+
+    private fun clickHeaderBack(
+        service: FcitxInputMethodService,
+        description: String = context.getString(R.string.back_to_keyboard)
+    ) {
+        fun button() = service.inputView?.allViews?.filterIsInstance<ToolButton>()?.singleOrNull {
+            it.isShown && it.width > 0 && it.height > 0 && it.contentDescription == description
+        }
+        await { button() != null }
+        onMain { requireNotNull(button()).performClick() }
+    }
+
     private fun actionsPopup(service: FcitxInputMethodService): PopupWindow {
         val inputView = requireNotNull(service.inputView)
         val wmField = inputView.javaClass.getDeclaredField("windowManager").apply { isAccessible = true }
@@ -680,6 +817,9 @@ class GestureEditingIntegrationTest {
                 activity.setContentView(editor)
                 editor.requestFocus()
                 editor.setSelection(20)
+            }
+            await { editor.isShown && editor.hasWindowFocus() }
+            onMain {
                 activity.getSystemService(InputMethodManager::class.java).showSoftInput(editor, InputMethodManager.SHOW_IMPLICIT)
             }
             await { runningService()?.inputView?.isShown == true }

@@ -67,7 +67,9 @@ import org.mechdancer.dependency.manager.must
 import splitties.dimensions.dp
 import splitties.views.dsl.core.withTheme
 
-class ClipboardWindow : InputWindow.ExtendedInputWindow<ClipboardWindow>() {
+class ClipboardWindow(
+    returnWindow: InputWindow.ExtendedInputWindow<*>? = null
+) : InputWindow.ExtendedInputWindow<ClipboardWindow>(returnWindow) {
 
     private val service: FcitxInputMethodService by manager.inputMethodService()
     private val windowManager: InputWindowManager by manager.must()

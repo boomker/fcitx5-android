@@ -63,7 +63,10 @@ sealed class InputWindow : Dependent {
         override fun toString(): String = javaClass.name
     }
 
-    abstract class ExtendedInputWindow<T : ExtendedInputWindow<T>> : IUniqueComponent<T>,
+    abstract class ExtendedInputWindow<T : ExtendedInputWindow<T>>(
+        /** The originating panel, when the title bar should return to it. */
+        val returnWindow: ExtendedInputWindow<*>? = null
+    ) : IUniqueComponent<T>,
         InputWindow() {
 
         open val showTitle: Boolean = true

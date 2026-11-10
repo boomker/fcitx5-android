@@ -370,6 +370,7 @@
     <string name="private_mode">Приватный режим (нажмите, чтобы открыть область состояния)</string>
     <string name="return_to_toolbar">Вернуться на панель инструментов</string>
     <string name="back_to_keyboard">Вернуться к клавиатуре</string>
+    <string name="back_to_panel">Вернуться к %1$s</string>
     <string name="backspace">Backspace</string>
     <string name="move_cursor_up">Переместить курсор вверх</string>
     <string name="move_cursor_right">Переместить курсор вправо</string>
@@ -867,8 +868,8 @@
     <string name="space_swipe_vertical_summary">С кодом ввода/кандидатами: %1$s\nБез кода ввода/кандидатов: %2$s</string>
     <string name="text_selection">Выделение текста</string>
     <string name="cursor_movement">Перемещение курсора</string>
-    <string name="gesture_text_selection_mode">Режим выделения текста</string>
-    <string name="gesture_cursor_mode">Режим перемещения курсора</string>
+    <string name="gesture_text_selection_mode">@string/text_selection</string>
+    <string name="gesture_cursor_mode">@string/cursor_movement</string>
     <string name="gesture_action_translate">Перевести</string>
     <string name="gesture_action_polish">Улучшить текст</string>
     <string name="gesture_action_brief_reply">Краткий ответ</string>

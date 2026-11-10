@@ -559,6 +559,7 @@
     <string name="added_x">Se agrego %1$s</string>
     <string name="app_crash_message">Lo sentimos; hemos preparado registros para investigarlo.</string>
     <string name="back_to_keyboard">Volver al teclado</string>
+    <string name="back_to_panel">Volver a %1$s</string>
     <string name="backspace">Retroceso</string>
     <string name="build_git_hash">Hash Git de compilacion</string>
     <string name="build_time">Hora de compilacion</string>
@@ -867,8 +868,8 @@
     <string name="space_swipe_vertical_summary">Con preedición/candidatos: %1$s\nSin preedición/candidatos: %2$s</string>
     <string name="text_selection">Selección de texto</string>
     <string name="cursor_movement">Movimiento del cursor</string>
-    <string name="gesture_text_selection_mode">Modo de selección de texto</string>
-    <string name="gesture_cursor_mode">Modo de movimiento del cursor</string>
+    <string name="gesture_text_selection_mode">@string/text_selection</string>
+    <string name="gesture_cursor_mode">@string/cursor_movement</string>
     <string name="gesture_action_translate">Traducir</string>
     <string name="gesture_action_polish">Mejorar texto</string>
     <string name="gesture_action_brief_reply">Respuesta breve</string>

@@ -944,8 +944,16 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
                 titleUi.setTitle(window.title)
                 window.onCreateLeadingBarExtension()?.let { titleUi.addLeadingExtension(it) }
                 window.onCreateBarExtension()?.let { titleUi.addExtension(it, window.showTitle) }
-                titleUi.setReturnButtonOnClickListener {
-                    windowManager.attachWindow(KeyboardWindow)
+                val returnWindow = window.returnWindow
+                val returnDescription = returnWindow?.let {
+                    context.getString(R.string.back_to_panel, it.title)
+                } ?: context.getString(R.string.back_to_keyboard)
+                titleUi.setReturnButtonOnClickListener(returnDescription) {
+                    if (returnWindow != null) {
+                        windowManager.attachWindow(returnWindow)
+                    } else {
+                        windowManager.attachWindow(KeyboardWindow)
+                    }
                 }
                 barStateMachine.push(ExtendedWindowAttached)
             }

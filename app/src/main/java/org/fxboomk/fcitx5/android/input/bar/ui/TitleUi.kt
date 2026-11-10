@@ -57,7 +57,11 @@ class TitleUi(override val ctx: Context, theme: Theme) : Ui {
         })
     }
 
-    fun setReturnButtonOnClickListener(block: () -> Unit) {
+    fun setReturnButtonOnClickListener(
+        description: CharSequence = ctx.getText(R.string.back_to_keyboard),
+        block: () -> Unit
+    ) {
+        backButton.contentDescription = description
         backButton.setOnClickListener {
             block()
         }

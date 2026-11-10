@@ -719,6 +719,7 @@
 
     <!-- Auto-completed missing strings (fallback to zh-CN/en) -->
     <string name="back_to_keyboard">キーボードに戻る</string>
+    <string name="back_to_panel">%1$s に戻る</string>
     <string name="backspace">Backspace</string>
     <string name="button_up_haptic_feedback">キーを離した時に振動</string>
     <string name="candidates_window">候補ウィンドウ</string>
@@ -867,8 +868,8 @@
     <string name="space_swipe_vertical_summary">入力コードと候補あり：%1$s\n入力コードも候補もなし：%2$s</string>
     <string name="text_selection">テキスト選択</string>
     <string name="cursor_movement">カーソル移動</string>
-    <string name="gesture_text_selection_mode">テキスト選択モード</string>
-    <string name="gesture_cursor_mode">カーソル移動モード</string>
+    <string name="gesture_text_selection_mode">@string/text_selection</string>
+    <string name="gesture_cursor_mode">@string/cursor_movement</string>
     <string name="gesture_action_translate">翻訳</string>
     <string name="gesture_action_polish">推敲</string>
     <string name="gesture_action_brief_reply">短い返信</string>

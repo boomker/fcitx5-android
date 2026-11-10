@@ -535,6 +535,7 @@
     <!-- Auto-completed missing strings (fallback to zh-CN/en) -->
     <string name="_cannot_be_empty">%1$s은(는) 비워 둘 수 없습니다</string>
     <string name="back_to_keyboard">키보드로 돌아가기</string>
+    <string name="back_to_panel">%1$s(으)로 돌아가기</string>
     <string name="backspace">백스페이스</string>
     <string name="brightness">밝기</string>
     <string name="button_haptic_feedback">키 누를 때 햅틱 피드백</string>
@@ -868,8 +869,8 @@
     <string name="space_swipe_vertical_summary">입력 코드와 후보 있음: %1$s\n입력 코드와 후보 없음: %2$s</string>
     <string name="text_selection">텍스트 선택</string>
     <string name="cursor_movement">커서 이동</string>
-    <string name="gesture_text_selection_mode">텍스트 선택 모드</string>
-    <string name="gesture_cursor_mode">커서 이동 모드</string>
+    <string name="gesture_text_selection_mode">@string/text_selection</string>
+    <string name="gesture_cursor_mode">@string/cursor_movement</string>
     <string name="gesture_action_translate">번역</string>
     <string name="gesture_action_polish">다듬기</string>
     <string name="gesture_action_brief_reply">짧은 답변</string>
