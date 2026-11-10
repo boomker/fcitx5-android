@@ -31,6 +31,11 @@ import org.fxboomk.fcitx5.android.input.predict.LlmPredictor
 import org.fxboomk.fcitx5.android.input.predict.LlmPrefs
 import org.fxboomk.fcitx5.android.input.predict.LlmOutputMode
 import org.fxboomk.fcitx5.android.input.predict.LlmTaskMode
+import org.fxboomk.fcitx5.android.input.status.StatusAreaWindow
+import org.fxboomk.fcitx5.android.input.clipboard.ClipboardWindow
+import org.fxboomk.fcitx5.android.input.keyboard.KeyboardWindow
+import org.fxboomk.fcitx5.android.input.keyboard.MacroAction
+import org.fxboomk.fcitx5.android.input.keyboard.MacroStep
 import org.fxboomk.fcitx5.android.input.FcitxInputMethodService
 import org.fxboomk.fcitx5.android.input.keyboard.BaseKeyboard
 import org.fxboomk.fcitx5.android.input.keyboard.KeyView
@@ -110,6 +115,61 @@ class GestureEditingIntegrationTest {
                 onMain { pad.buttons.first().performClick() }
                 await { touchpadOrNull(service) == null }
             }
+        }
+    }
+
+    @Test
+    fun appActionsOpenBothTouchpadModesAndTheStatusMenu() = withEditor { editor, service ->
+        val original = editor.text.toString()
+        listOf("text_selection" to 3, "cursor_movement" to 4).forEach { (actionId, buttons) ->
+            onMain { service.inputView!!.executeButtonAction(actionId) }
+            await { touchpadOrNull(service)?.buttons?.size == buttons }
+            val pad = touchpad(service)
+            assertEquals(original, editor.text.toString())
+            onMain { pad.buttons.first().performClick() }
+            await { touchpadOrNull(service) == null }
+        }
+        onMain { service.inputView!!.executeButtonAction("more") }
+        await {
+            val inputView = service.inputView!!
+            val wmField = inputView.javaClass.getDeclaredField("windowManager").apply { isAccessible = true }
+            val wm = wmField.get(inputView) as org.fxboomk.fcitx5.android.input.wm.InputWindowManager
+            wm.currentWindowOrNull() is StatusAreaWindow
+        }
+        onMain { service.inputView!!.executeButtonAction("clipboard_search") }
+        await { service.inputView!!.clipboardSearchActive }
+        assertEquals(original, editor.text.toString())
+        onMain { service.inputView!!.closeClipboardSearch() }
+        onMain { service.inputView!!.executeButtonAction("input_method_picker") }
+        val dialogField = FcitxInputMethodService::class.java.getDeclaredField("showingDialog").apply { isAccessible = true }
+        await { (dialogField.get(service) as? android.app.Dialog)?.isShowing == true }
+        onMain { (dialogField.get(service) as android.app.Dialog).dismiss() }
+        onMain { service.inputView!!.executeButtonAction("hide_keyboard") }
+        await { !service.isInputViewShown }
+    }
+
+    @Test
+    fun consecutiveAppActionsInMacrosKeepTheDeclaredWindowOrder() = withEditor { _, service ->
+        val inputView = service.inputView!!
+        val wmField = inputView.javaClass.getDeclaredField("windowManager").apply { isAccessible = true }
+        val wm = wmField.get(inputView) as org.fxboomk.fcitx5.android.input.wm.InputWindowManager
+        val execute = BaseKeyboard::class.java.getDeclaredMethod("executeMacro", MacroAction::class.java).apply { isAccessible = true }
+        listOf(
+            listOf("text_selection", "clipboard") to ClipboardWindow::class.java,
+            listOf("cursor_movement", "cursor_move") to TextEditingWindow::class.java,
+            listOf("more", "cursor_move") to TextEditingWindow::class.java,
+            listOf("clipboard", "text_selection") to GestureEditingWindow::class.java,
+        ).forEach { (actions, expected) ->
+            onMain { wm.attachWindow(KeyboardWindow) }
+            await { inputView.allViews.filterIsInstance<BaseKeyboard>().any { it.isShown } }
+            onMain {
+                val keyboard = inputView.allViews.filterIsInstance<BaseKeyboard>().first { it.isShown }
+                execute.invoke(keyboard, MacroAction(actions.map { MacroStep.AppAction(it) }))
+            }
+            instrumentation.waitForIdleSync()
+            await { expected.isInstance(wm.currentWindowOrNull()) }
+            instrumentation.waitForIdleSync()
+            onMain { assertTrue(expected.isInstance(wm.currentWindowOrNull())) }
         }
     }
 

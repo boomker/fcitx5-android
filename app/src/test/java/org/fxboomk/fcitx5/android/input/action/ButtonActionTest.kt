@@ -16,6 +16,34 @@ import org.junit.Test
 class ButtonActionTest {
 
     @Test
+    fun appActionPickerContainsEveryRegisteredActionExactlyOnce() {
+        val ids = ButtonAction.macroEditorActions.map { it.id }
+        assertEquals(ids.toSet().size, ids.size)
+        assertEquals(ButtonAction.allActions.map { it.id }.toSet(), ids.toSet())
+        listOf("text_selection", "cursor_movement", "hide_keyboard", "clipboard_search", "input_method_picker", "ai_candidates", "theme_toggle",
+            "number_keyboard", "symbol_keyboard", "voice_input", "toolbar_customize", "adjust_keyboard_height", "search")
+            .forEach { assertTrue("Missing app action: $it", it in ids) }
+    }
+
+    @Test
+    fun touchpadActionsKeepTheExistingTextEditingActionAvailable() {
+        assertSame(TextSelectionAction, ButtonAction.fromId("text_selection"))
+        assertSame(CursorMovementAction, ButtonAction.fromId("cursor_movement"))
+        assertSame(CursorMoveAction, ButtonAction.fromId("cursor_move"))
+        assertEquals(R.string.text_selection, TextSelectionAction.defaultLabelRes)
+        assertEquals(R.string.cursor_movement, CursorMovementAction.defaultLabelRes)
+        assertEquals(R.string.text_editing, CursorMoveAction.defaultLabelRes)
+    }
+
+    @Test
+    fun pickerLabelsDistinguishThePanelsFromSettings() {
+        assertEquals(R.string.macro_editor_app_action_status_area_menu, MoreAction.macroEditorLabelRes)
+        assertEquals(R.string.macro_editor_app_action_clipboard_settings, SettingsClipboardSettingsAction.macroEditorLabelRes)
+        assertEquals(R.string.macro_editor_app_action_advanced_settings, SettingsAdvancedAction.macroEditorLabelRes)
+        assertEquals(ClipboardAction.defaultLabelRes, ClipboardAction.macroEditorLabelRes)
+    }
+
+    @Test
     fun numberKeyboardIsAvailableAsAnOptionalKawaiiBarAction() {
         assertSame(NumberKeyboardAction, ButtonAction.fromId("number_keyboard"))
         assertEquals(R.string.number_keyboard, NumberKeyboardAction.defaultLabelRes)

@@ -865,6 +865,8 @@
     <string name="space_swipe_idle_cursor_only">Solo modo de movimiento del cursor</string>
     <string name="space_swipe_idle_default">Predeterminado (deslizar la barra espaciadora para mover el cursor)</string>
     <string name="space_swipe_vertical_summary">Con preedición/candidatos: %1$s\nSin preedición/candidatos: %2$s</string>
+    <string name="text_selection">Selección de texto</string>
+    <string name="cursor_movement">Movimiento del cursor</string>
     <string name="gesture_text_selection_mode">Modo de selección de texto</string>
     <string name="gesture_cursor_mode">Modo de movimiento del cursor</string>
     <string name="gesture_action_translate">Traducir</string>

@@ -865,6 +865,8 @@
     <string name="space_swipe_idle_cursor_only">カーソル移動モードのみ</string>
     <string name="space_swipe_idle_default">デフォルト(スペースキーのスワイプでカーソル移動)</string>
     <string name="space_swipe_vertical_summary">入力コードと候補あり：%1$s\n入力コードも候補もなし：%2$s</string>
+    <string name="text_selection">テキスト選択</string>
+    <string name="cursor_movement">カーソル移動</string>
     <string name="gesture_text_selection_mode">テキスト選択モード</string>
     <string name="gesture_cursor_mode">カーソル移動モード</string>
     <string name="gesture_action_translate">翻訳</string>

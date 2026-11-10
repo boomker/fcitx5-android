@@ -29,6 +29,7 @@ import androidx.lifecycle.findViewTreeLifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.yield
 import org.fxboomk.fcitx5.android.core.FcitxKeyMapping
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.core.InputMethodEntry
@@ -1831,6 +1832,8 @@ abstract class BaseKeyboard(
      */
     private fun executeMacro(macroAction: MacroAction) {
         findViewTreeLifecycleOwner()?.lifecycleScope?.launch {
+            // Finish dispatching the key gesture before any macro action detaches its keyboard.
+            yield()
             Timber.v("executeMacro: steps=%d", macroAction.steps.size)
 
             // General macro execution

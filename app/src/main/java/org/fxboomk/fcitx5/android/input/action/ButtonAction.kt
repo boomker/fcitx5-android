@@ -30,6 +30,8 @@ import org.fxboomk.fcitx5.android.input.config.ButtonsLayoutConfig
 import org.fxboomk.fcitx5.android.input.dialog.AddMoreInputMethodsPrompt
 import org.fxboomk.fcitx5.android.input.dialog.InputMethodPickerDialog
 import org.fxboomk.fcitx5.android.input.editing.TextEditingWindow
+import org.fxboomk.fcitx5.android.input.editing.GestureEditingMode
+import org.fxboomk.fcitx5.android.input.editing.GestureEditingWindow
 import org.fxboomk.fcitx5.android.input.bar.ui.ToolButton
 import org.fxboomk.fcitx5.android.input.keyboard.LangSwitchBehavior
 import org.fxboomk.fcitx5.android.input.keyboard.KeyboardWindow
@@ -69,6 +71,15 @@ sealed class ButtonAction {
      * Default label string resource for this button.
      */
     abstract val defaultLabelRes: Int
+
+    /** Picker labels distinguish opening a panel from opening its settings. */
+    val macroEditorLabelRes: Int
+        get() = when (id) {
+            "more" -> R.string.macro_editor_app_action_status_area_menu
+            "settings_clipboard" -> R.string.macro_editor_app_action_clipboard_settings
+            "settings_advanced" -> R.string.macro_editor_app_action_advanced_settings
+            else -> defaultLabelRes
+        }
 
     /**
      * Execute the action.
@@ -129,6 +140,8 @@ sealed class ButtonAction {
                 UndoAction,
                 RedoAction,
                 CursorMoveAction,
+                TextSelectionAction,
+                CursorMovementAction,
                 FloatingToggleAction,
                 AiCandidatesAction,
                 AiAssistantAction,
@@ -163,44 +176,20 @@ sealed class ButtonAction {
                 TextKeyboardLayoutFileSelectAction,
                 TextKeyboardLayoutManageAction,
                 EditFontsetAction,
+                HideKeyboardAction,
+                ClipboardSearchAction,
+                InputMethodPickerAction,
             )
         }
 
         /**
          * Actions exposed by macro editor as "app actions".
          */
-        val macroEditorActions: List<ButtonAction> by lazy {
-            listOf(
-                ThemeAction,
-                VirtualKeyboardAction,
-                MoreAction,
-                BrowseUserDataDirAction,
-                ClipboardAction,
-                CursorMoveAction,
-                FloatingToggleAction,
-                LanguageSwitchAction,
-                ReloadConfigAction,
-                OneHandedKeyboardAction,
-                InputMethodOptionsAction,
-                UndoAction,
-                RedoAction,
-                SettingsGlobalOptionsAction,
-                SettingsInputMethodsAction,
-                SettingsCandidatesWindowAction,
-                SettingsClipboardSettingsAction,
-                SettingsSymbolSettingsAction,
-                SettingsPluginSettingsAction,
-                SettingsLlmAction,
-                SettingsAdvancedAction,
-                SettingsDeveloperAction,
-                SettingsAboutAction,
-                SettingsLicenseAction,
-                EditTextKeyboardLayoutAction,
-                TextKeyboardLayoutFileSelectAction,
-                TextKeyboardLayoutManageAction,
-                EditFontsetAction,
-                AiAssistantAction
-            )
+        val macroEditorActions: List<ButtonAction> get() = allActions
+
+        fun sortedMacroEditorActions(context: Context): List<ButtonAction> = macroEditorActions.sortedBy {
+            val label = context.getString(it.macroEditorLabelRes)
+            label.codePointCount(0, label.length)
         }
 
         /**
@@ -334,6 +323,42 @@ data object CursorMoveAction : ButtonAction() {
     }
 }
 
+data object TextSelectionAction : ButtonAction() {
+    override val id = "text_selection"
+    override val defaultIcon = R.drawable.ic_baseline_select_all_24
+    override val defaultLabelRes = R.string.text_selection
+
+    override fun execute(context: Context, service: FcitxInputMethodService, fcitx: FcitxConnection,
+        windowManager: InputWindowManager, view: View?, onActionComplete: (() -> Unit)?) {
+        windowManager.attachWindow(GestureEditingWindow(GestureEditingMode.Selection))
+        onActionComplete?.invoke()
+    }
+}
+
+data object CursorMovementAction : ButtonAction() {
+    override val id = "cursor_movement"
+    override val defaultIcon = R.drawable.ic_cursor_move
+    override val defaultLabelRes = R.string.cursor_movement
+
+    override fun execute(context: Context, service: FcitxInputMethodService, fcitx: FcitxConnection,
+        windowManager: InputWindowManager, view: View?, onActionComplete: (() -> Unit)?) {
+        windowManager.attachWindow(GestureEditingWindow(GestureEditingMode.Cursor))
+        onActionComplete?.invoke()
+    }
+}
+
+data object HideKeyboardAction : ButtonAction() {
+    override val id = "hide_keyboard"
+    override val defaultIcon = R.drawable.ic_keyboard_hide_24
+    override val defaultLabelRes = R.string.hide_keyboard
+
+    override fun execute(context: Context, service: FcitxInputMethodService, fcitx: FcitxConnection,
+        windowManager: InputWindowManager, view: View?, onActionComplete: (() -> Unit)?) {
+        service.requestHideSelf(0)
+        onActionComplete?.invoke()
+    }
+}
+
 data object FloatingToggleAction : ButtonAction() {
     override val id = "floating_toggle"
     override val defaultIcon = R.drawable.ic_floating_toggle_24
@@ -402,6 +427,18 @@ data object ClipboardAction : ButtonAction() {
         view: View
     ) {
         service.inputView?.openClipboardSearch()
+    }
+}
+
+data object ClipboardSearchAction : ButtonAction() {
+    override val id = "clipboard_search"
+    override val defaultIcon = R.drawable.ic_baseline_search_24
+    override val defaultLabelRes = R.string.clipboard_search_title
+
+    override fun execute(context: Context, service: FcitxInputMethodService, fcitx: FcitxConnection,
+        windowManager: InputWindowManager, view: View?, onActionComplete: (() -> Unit)?) {
+        service.inputView?.openClipboardSearch()
+        onActionComplete?.invoke()
     }
 }
 
@@ -571,8 +608,8 @@ data object MoreAction : ButtonAction() {
         view: View?,
         onActionComplete: (() -> Unit)?
     ) {
-        // More button opens Status Area - handled specially in KawaiiBarComponent
-        // This is a placeholder for completeness
+        windowManager.attachWindow(StatusAreaWindow())
+        onActionComplete?.invoke()
     }
 }
 
@@ -648,6 +685,25 @@ data object LanguageSwitchAction : ButtonAction() {
                     it, service, context,
                     AppPrefs.getInstance().keyboard.langSwitchKeyLongPressBehavior.getValue()
                 ))
+            }
+        }
+    }
+}
+
+data object InputMethodPickerAction : ButtonAction() {
+    override val id = "input_method_picker"
+    override val defaultIcon = R.drawable.ic_baseline_language_24
+    override val defaultLabelRes = R.string.choose_input_method
+
+    override fun execute(context: Context, service: FcitxInputMethodService, fcitx: FcitxConnection,
+        windowManager: InputWindowManager, view: View?, onActionComplete: (() -> Unit)?) {
+        fcitx.launchOnReady {
+            service.lifecycleScope.launch {
+                service.showDialog(InputMethodPickerDialog.build(
+                    it, service, context,
+                    AppPrefs.getInstance().keyboard.langSwitchKeyLongPressBehavior.getValue()
+                ))
+                onActionComplete?.invoke()
             }
         }
     }
@@ -880,7 +936,7 @@ data object SettingsSymbolSettingsAction : ButtonAction() {
         view: View?,
         onActionComplete: (() -> Unit)?
     ) {
-        AppUtil.launchMainToRoute(context, SettingsRoute.Advanced)
+        AppUtil.launchMainToRoute(context, SettingsRoute.Symbol)
     }
 }
 

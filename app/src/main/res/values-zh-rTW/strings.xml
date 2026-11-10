@@ -294,6 +294,8 @@
     <string name="space_swipe_idle_cursor_only">僅進入游標移動模式</string>
     <string name="space_swipe_idle_default">預設(滑動空格鍵移動游標)</string>
     <string name="space_swipe_vertical_summary">有編碼有候選：%1$s\n無編碼無候選：%2$s</string>
+    <string name="text_selection">文字選擇</string>
+    <string name="cursor_movement">游標移動</string>
     <string name="gesture_text_selection_mode">選擇文字模式</string>
     <string name="gesture_cursor_mode">移動游標模式</string>
     <string name="gesture_action_translate">翻譯</string>

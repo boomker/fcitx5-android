@@ -376,6 +376,8 @@
     <string name="space_swipe_idle_cursor_only">仅进入光标移动模式</string>
     <string name="space_swipe_idle_default">默认(划动空格键移动光标)</string>
     <string name="space_swipe_vertical_summary">有编码有候选：%1$s\n无编码无候选：%2$s</string>
+    <string name="text_selection">文本选择</string>
+    <string name="cursor_movement">光标移动</string>
     <string name="gesture_text_selection_mode">选择文本模式</string>
     <string name="gesture_cursor_mode">移动光标模式</string>
     <string name="gesture_action_translate">翻译</string>

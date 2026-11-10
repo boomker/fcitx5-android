@@ -866,6 +866,8 @@
     <string name="space_swipe_idle_cursor_only">커서 이동 모드만</string>
     <string name="space_swipe_idle_default">기본값(스페이스 키를 스와이프하여 커서 이동)</string>
     <string name="space_swipe_vertical_summary">입력 코드와 후보 있음: %1$s\n입력 코드와 후보 없음: %2$s</string>
+    <string name="text_selection">텍스트 선택</string>
+    <string name="cursor_movement">커서 이동</string>
     <string name="gesture_text_selection_mode">텍스트 선택 모드</string>
     <string name="gesture_cursor_mode">커서 이동 모드</string>
     <string name="gesture_action_translate">번역</string>

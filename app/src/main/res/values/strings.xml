@@ -382,6 +382,8 @@
     <string name="space_swipe_idle_cursor_only">Cursor movement mode only</string>
     <string name="space_swipe_idle_default">Default (swipe the space key to move the cursor)</string>
     <string name="space_swipe_vertical_summary">With preedit/candidates: %1$s\nWithout preedit/candidates: %2$s</string>
+    <string name="text_selection">Text selection</string>
+    <string name="cursor_movement">Cursor movement</string>
     <string name="gesture_text_selection_mode">Text selection mode</string>
     <string name="gesture_cursor_mode">Cursor movement mode</string>
     <string name="gesture_action_translate">Translate</string>

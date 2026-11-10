@@ -863,6 +863,8 @@
     <string name="space_swipe_idle_cursor_only">Nur Cursorbewegungsmodus</string>
     <string name="space_swipe_idle_default">Standard (Leertaste wischen, um den Cursor zu bewegen)</string>
     <string name="space_swipe_vertical_summary">Mit Vorbearbeitung/Kandidaten: %1$s\nOhne Vorbearbeitung/Kandidaten: %2$s</string>
+    <string name="text_selection">Textauswahl</string>
+    <string name="cursor_movement">Cursorbewegung</string>
     <string name="gesture_text_selection_mode">Textauswahlmodus</string>
     <string name="gesture_cursor_mode">Cursorbewegungsmodus</string>
     <string name="gesture_action_translate">Übersetzen</string>

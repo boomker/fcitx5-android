@@ -1605,20 +1605,10 @@ class MacroEditorActivity : AppCompatActivity() {
                 .show()
         }
 
-        private fun showAppActionPicker(onSelect: (String) -> Unit) {
-            val actions = ButtonAction.macroEditorActions
-            val actionLabels = actions.map {
-                if (it.id == "more") {
-                    getString(R.string.macro_editor_app_action_status_area_menu)
-                } else if (it.id == "settings_clipboard") {
-                    getString(R.string.macro_editor_app_action_clipboard_settings)
-                } else if (it.id == "settings_advanced") {
-                    getString(R.string.macro_editor_app_action_advanced_settings)
-                } else {
-                    getString(it.defaultLabelRes)
-                }
-            }.toTypedArray()
-            AlertDialog.Builder(this@MacroEditorActivity)
+        private fun showAppActionPicker(onSelect: (String) -> Unit): AlertDialog {
+            val actions = ButtonAction.sortedMacroEditorActions(this@MacroEditorActivity)
+            val actionLabels = actions.map { getString(it.macroEditorLabelRes) }.toTypedArray()
+            return AlertDialog.Builder(this@MacroEditorActivity)
                 .setTitle(R.string.macro_editor_app_picker_title)
                 .setItems(actionLabels) { _, which ->
                     onSelect(actions[which].id)
@@ -1628,17 +1618,8 @@ class MacroEditorActivity : AppCompatActivity() {
         }
 
         private fun getAppActionLabel(actionId: String): String {
-            if (actionId == "more") {
-                return getString(R.string.macro_editor_app_action_status_area_menu)
-            }
-            if (actionId == "settings_clipboard") {
-                return getString(R.string.macro_editor_app_action_clipboard_settings)
-            }
-            if (actionId == "settings_advanced") {
-                return getString(R.string.macro_editor_app_action_advanced_settings)
-            }
             return ButtonAction.fromId(actionId)
-                ?.let { getString(it.defaultLabelRes) }
+                ?.let { getString(it.macroEditorLabelRes) }
                 ?: actionId
         }
 

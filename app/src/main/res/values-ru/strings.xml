@@ -865,6 +865,8 @@
     <string name="space_swipe_idle_cursor_only">Только режим перемещения курсора</string>
     <string name="space_swipe_idle_default">По умолчанию (свайп по пробелу перемещает курсор)</string>
     <string name="space_swipe_vertical_summary">С кодом ввода/кандидатами: %1$s\nБез кода ввода/кандидатов: %2$s</string>
+    <string name="text_selection">Выделение текста</string>
+    <string name="cursor_movement">Перемещение курсора</string>
     <string name="gesture_text_selection_mode">Режим выделения текста</string>
     <string name="gesture_cursor_mode">Режим перемещения курсора</string>
     <string name="gesture_action_translate">Перевести</string>
