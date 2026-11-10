@@ -206,6 +206,8 @@ class ButtonsCustomizerActivity : AppCompatActivity() {
         ButtonDefinition("undo", R.drawable.ic_baseline_undo_24, R.string.undo),
         ButtonDefinition("redo", R.drawable.ic_baseline_redo_24, R.string.redo),
         ButtonDefinition("cursor_move", R.drawable.ic_cursor_move, R.string.text_editing),
+        ButtonDefinition("text_selection", R.drawable.ic_gesture_select_24, R.string.text_selection),
+        ButtonDefinition("cursor_movement", R.drawable.ic_cursor_move_character_24, R.string.cursor_movement),
         ButtonDefinition("floating_toggle", R.drawable.ic_floating_toggle_24, R.string.floating_keyboard),
         ButtonDefinition("ai_candidates", R.drawable.ic_baseline_auto_awesome_24, R.string.ai_clip_title),
         ButtonDefinition("ai_assistant", R.drawable.ic_flash_auto_24, R.string.ai_assistant),
@@ -337,6 +339,7 @@ class ButtonsCustomizerActivity : AppCompatActivity() {
         val snapshot = ConfigProviders.readButtonsLayoutConfig<ButtonsLayoutConfig>()
         val config = (snapshot?.value ?: ButtonsLayoutConfig.default())
             .withKeyboardHeightAdjustButton().withToolbarCustomizeButton()
+            .withGestureEditingButtons()
         hideKeyboardButton = config.resolvedHideKeyboardButton()
         originalVoiceInputButton = ToolbarVoiceInputPolicy.syncedSwitchState(config.kawaiiBarButtons)
 

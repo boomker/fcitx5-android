@@ -18,12 +18,18 @@ import kotlinx.coroutines.withContext
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.core.CapabilityFlag
 import org.fxboomk.fcitx5.android.core.CapabilityFlags
+import org.fxboomk.fcitx5.android.daemon.FcitxConnection
 import org.fxboomk.fcitx5.android.data.InputFeedbacks
 import org.fxboomk.fcitx5.android.data.clipboard.ClipboardManager
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.data.theme.ThemeManager
 import org.fxboomk.fcitx5.android.input.FcitxInputMethodService
+import org.fxboomk.fcitx5.android.input.action.ClipboardAction
+import org.fxboomk.fcitx5.android.input.action.RedoAction
+import org.fxboomk.fcitx5.android.input.action.UndoAction
+import org.fxboomk.fcitx5.android.input.bar.ui.ToolButton
 import org.fxboomk.fcitx5.android.input.config.KeyIconThemeStore
+import org.fxboomk.fcitx5.android.input.dependency.fcitx
 import org.fxboomk.fcitx5.android.input.dependency.inputMethodService
 import org.fxboomk.fcitx5.android.input.dependency.theme
 import org.fxboomk.fcitx5.android.input.keyboard.KeyboardWindow
@@ -31,6 +37,9 @@ import org.fxboomk.fcitx5.android.input.wm.InputWindow
 import org.fxboomk.fcitx5.android.input.wm.InputWindowManager
 import org.mechdancer.dependency.manager.must
 import splitties.dimensions.dp
+import splitties.views.dsl.core.add
+import splitties.views.dsl.core.horizontalLayout
+import splitties.views.dsl.core.lParams
 import timber.log.Timber
 import kotlin.math.abs
 
@@ -38,6 +47,7 @@ class GestureEditingWindow(val mode: GestureEditingMode) :
     InputWindow.ExtendedInputWindow<GestureEditingWindow>() {
 
     private val service: FcitxInputMethodService by manager.inputMethodService()
+    private val fcitx: FcitxConnection by manager.fcitx()
     private val windowManager: InputWindowManager by manager.must()
     private val theme by manager.theme()
     private val hapticOnRepeat by AppPrefs.getInstance().keyboard.hapticOnRepeat
@@ -168,6 +178,23 @@ class GestureEditingWindow(val mode: GestureEditingMode) :
     private val onKeyIconThemeChanged: () -> Unit = { ui.refreshIcons() }
 
     override fun onCreateView(): View = ui.root
+
+    private val barExtension by lazy {
+        context.horizontalLayout {
+            listOf(UndoAction, RedoAction, ClipboardAction).forEach { action ->
+                add(ToolButton(context, action.defaultIcon, theme).apply {
+                    contentDescription = context.getString(action.defaultLabelRes)
+                    TooltipCompat.setTooltipText(this, contentDescription)
+                    setOnClickListener {
+                        actionsPopup?.dismiss()
+                        action.execute(context, service, fcitx, windowManager, this)
+                    }
+                }, lParams(dp(40), dp(40)))
+            }
+        }
+    }
+
+    override fun onCreateBarExtension(): View = barExtension
 
     override val title: String
         get() = context.getString(

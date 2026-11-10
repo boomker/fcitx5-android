@@ -33,6 +33,85 @@ class ButtonActionTest {
         assertEquals(R.string.text_selection, TextSelectionAction.defaultLabelRes)
         assertEquals(R.string.cursor_movement, CursorMovementAction.defaultLabelRes)
         assertEquals(R.string.text_editing, CursorMoveAction.defaultLabelRes)
+        assertEquals(R.drawable.ic_gesture_select_24, TextSelectionAction.defaultIcon)
+        assertEquals(R.drawable.ic_cursor_move_character_24, CursorMovementAction.defaultIcon)
+    }
+
+    @Test
+    fun gestureEditingPanelsDefaultToStatusAreaAndRemainConfigurable() {
+        val config = ButtonsLayoutConfig.default()
+        listOf(TextSelectionAction, CursorMovementAction).forEach { action ->
+            assertTrue(ButtonAction.statusAreaActions.contains(action))
+            assertEquals(1, ButtonAction.allConfigurableActions.count { it.id == action.id })
+            assertEquals(1, config.statusAreaButtons.count { it.id == action.id })
+            assertFalse(config.kawaiiBarButtons.any { it.id == action.id })
+            assertFalse(config.optionalButtons.any { it.id == action.id })
+        }
+        assertSame(config, config.withGestureEditingButtons())
+    }
+
+    @Test
+    fun legacyLayoutGainsGesturePanelsBeforeFixedInputMethodOptions() {
+        val themeButton = ConfigurableButton("theme", icon = "font:E141", label = "Custom theme")
+        val legacy = ButtonsLayoutConfig(
+            kawaiiBarButtons = listOf(ConfigurableButton("more")),
+            statusAreaButtons = listOf(themeButton, ConfigurableButton("input_method_options"))
+        )
+
+        val normalized = legacy.withGestureEditingButtons()
+
+        assertEquals(
+            listOf("theme", "text_selection", "cursor_movement", "input_method_options"),
+            normalized.statusAreaButtons.map { it.id }
+        )
+        assertSame(themeButton, normalized.statusAreaButtons.first())
+        assertEquals(legacy.kawaiiBarButtons, normalized.kawaiiBarButtons)
+        assertEquals(legacy.hideKeyboardButton, normalized.hideKeyboardButton)
+        assertSame(normalized, normalized.withGestureEditingButtons())
+    }
+
+    @Test
+    fun legacyLayoutAppendsOnlyTheMissingGesturePanel() {
+        val selection = ConfigurableButton("text_selection", icon = "custom_selection", label = "Select")
+        val legacy = ButtonsLayoutConfig(
+            kawaiiBarButtons = emptyList(),
+            statusAreaButtons = listOf(selection)
+        )
+
+        val normalized = legacy.withGestureEditingButtons()
+
+        assertEquals(listOf("text_selection", "cursor_movement"), normalized.statusAreaButtons.map { it.id })
+        assertSame(selection, normalized.statusAreaButtons.first())
+        assertSame(normalized, normalized.withGestureEditingButtons())
+    }
+
+    @Test
+    fun gesturePanelsPlacedInToolbarOrHiddenKeepTheirCustomization() {
+        val selection = ConfigurableButton("text_selection", icon = "custom_selection", label = "Select")
+        val cursor = ConfigurableButton("cursor_movement", icon = "custom_cursor", label = "Move")
+        val legacy = ButtonsLayoutConfig(
+            kawaiiBarButtons = listOf(selection),
+            statusAreaButtons = emptyList(),
+            optionalButtons = listOf(cursor)
+        )
+
+        assertSame(legacy, legacy.withGestureEditingButtons())
+    }
+
+    @Test
+    fun missingGesturePanelIsAddedWhileTheOtherRemainsHidden() {
+        val hiddenSelection = ConfigurableButton("text_selection", icon = "custom_selection", label = "Select")
+        val legacy = ButtonsLayoutConfig(
+            kawaiiBarButtons = emptyList(),
+            statusAreaButtons = emptyList(),
+            optionalButtons = listOf(hiddenSelection)
+        )
+
+        val normalized = legacy.withGestureEditingButtons()
+
+        assertEquals(listOf("cursor_movement"), normalized.statusAreaButtons.map { it.id })
+        assertSame(hiddenSelection, normalized.optionalButtons.single())
+        assertSame(normalized, normalized.withGestureEditingButtons())
     }
 
     @Test

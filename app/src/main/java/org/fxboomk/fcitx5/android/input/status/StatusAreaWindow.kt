@@ -73,7 +73,8 @@ class StatusAreaWindow : InputWindow.ExtendedInputWindow<StatusAreaWindow>(),
         return try {
             val snapshot = ConfigProviders.readButtonsLayoutConfig<ButtonsLayoutConfig>()
             val config = snapshot?.value ?: ButtonsLayoutConfig.default()
-            config.withKeyboardHeightAdjustButton().withToolbarCustomizeButton().statusAreaButtons
+            config.withKeyboardHeightAdjustButton().withToolbarCustomizeButton()
+                .withGestureEditingButtons().statusAreaButtons
         } catch (e: Exception) {
             ButtonsLayoutConfig.default().statusAreaButtons
         }
@@ -377,6 +378,8 @@ class StatusAreaWindow : InputWindow.ExtendedInputWindow<StatusAreaWindow>(),
                         val opensOwnWindow = entry.buttonAction.id in
                             listOf(
                                 "cursor_move",
+                                "text_selection",
+                                "cursor_movement",
                                 "clipboard",
                                 "symbol_keyboard",
                                 ButtonsLayoutConfig.KEYBOARD_HEIGHT_ADJUST_ID

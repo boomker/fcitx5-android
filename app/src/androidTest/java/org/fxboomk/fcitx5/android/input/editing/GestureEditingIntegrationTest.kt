@@ -32,6 +32,10 @@ import org.fxboomk.fcitx5.android.input.predict.LlmPrefs
 import org.fxboomk.fcitx5.android.input.predict.LlmOutputMode
 import org.fxboomk.fcitx5.android.input.predict.LlmTaskMode
 import org.fxboomk.fcitx5.android.input.status.StatusAreaWindow
+import org.fxboomk.fcitx5.android.input.status.StatusAreaAdapter
+import org.fxboomk.fcitx5.android.input.status.StatusAreaEntry
+import org.fxboomk.fcitx5.android.input.bar.ui.ToolButton
+import org.fxboomk.fcitx5.android.input.wm.InputWindowManager
 import org.fxboomk.fcitx5.android.input.clipboard.ClipboardWindow
 import org.fxboomk.fcitx5.android.input.keyboard.KeyboardWindow
 import org.fxboomk.fcitx5.android.input.keyboard.MacroAction
@@ -146,6 +150,82 @@ class GestureEditingIntegrationTest {
         onMain { (dialogField.get(service) as android.app.Dialog).dismiss() }
         onMain { service.inputView!!.executeButtonAction("hide_keyboard") }
         await { !service.isInputViewShown }
+    }
+
+    @Test
+    fun statusAreaGestureButtonsOpenTheirPanelsWithoutReturningToKeyboard() = withEditor { editor, service ->
+        val wm = windowManager(service)
+        val original = editor.text.toString()
+        listOf("text_selection" to GestureEditingMode.Selection, "cursor_movement" to GestureEditingMode.Cursor)
+            .forEach { (actionId, mode) ->
+                onMain { service.inputView!!.executeButtonAction("more") }
+                await {
+                    val status = wm.currentWindowOrNull() as? StatusAreaWindow
+                    val adapter = status?.view?.adapter as? StatusAreaAdapter
+                    adapter?.entries?.any {
+                        it is StatusAreaEntry.ActionEntry && it.buttonAction.id == actionId
+                    } == true
+                }
+                onMain {
+                    val status = wm.currentWindowOrNull() as StatusAreaWindow
+                    val adapter = status.view.adapter as StatusAreaAdapter
+                    val entry = adapter.entries.filterIsInstance<StatusAreaEntry.ActionEntry>()
+                        .single { it.buttonAction.id == actionId }
+                    adapter.onItemClick(status.view, entry)
+                }
+                await { (wm.currentWindowOrNull() as? GestureEditingWindow)?.mode == mode }
+                instrumentation.waitForIdleSync()
+                onMain {
+                    assertEquals(mode, (wm.currentWindowOrNull() as GestureEditingWindow).mode)
+                    assertEquals(original, editor.text.toString())
+                    assertTrue(editor.hasFocus())
+                    wm.attachWindow(KeyboardWindow)
+                }
+            }
+    }
+
+    @Test
+    fun bothGesturePanelHeadersUndoRedoAndOpenClipboardWhileKeepingEditorFocus() = withEditor { editor, service ->
+        val wm = windowManager(service)
+        listOf("text_selection", "cursor_movement").forEach { actionId ->
+            val original = editor.text.toString()
+            onMain { service.currentInputConnection!!.commitText("123", 1) }
+            await { editor.text.toString() != original }
+            val inserted = editor.text.toString()
+            onMain { service.inputView!!.executeButtonAction(actionId) }
+            await { wm.currentWindowOrNull() is GestureEditingWindow }
+            lateinit var window: GestureEditingWindow
+            lateinit var buttons: List<ToolButton>
+            onMain {
+                window = wm.currentWindowOrNull() as GestureEditingWindow
+                buttons = window.onCreateBarExtension().allViews.filterIsInstance<ToolButton>().toList()
+                assertEquals(listOf(R.string.undo, R.string.redo, R.string.clipboard).map(context::getString),
+                    buttons.map { it.contentDescription.toString() })
+                buttons.forEach {
+                    assertTrue(it.image.drawable != null)
+                    assertEquals(it.contentDescription, it.tooltipText)
+                }
+                buttons[0].performClick()
+            }
+            await { editor.text.toString() == original }
+            onMain {
+                assertTrue(wm.currentWindowOrNull() === window)
+                assertTrue(editor.hasFocus())
+                buttons[1].performClick()
+            }
+            await { editor.text.toString() == inserted }
+            onMain {
+                assertTrue(wm.currentWindowOrNull() === window)
+                assertTrue(editor.hasFocus())
+                buttons[2].performClick()
+            }
+            await { wm.currentWindowOrNull() is ClipboardWindow }
+            onMain {
+                assertTrue(editor.hasFocus())
+                assertEquals(inserted, editor.text.toString())
+                wm.attachWindow(KeyboardWindow)
+            }
+        }
     }
 
     @Test
@@ -559,6 +639,12 @@ class GestureEditingIntegrationTest {
             delegateField.set(component, originalDelegate)
             createdField.setBoolean(component, originalCreated)
         } }
+    }
+
+    private fun windowManager(service: FcitxInputMethodService): InputWindowManager {
+        val inputView = requireNotNull(service.inputView)
+        return inputView.javaClass.getDeclaredField("windowManager").apply { isAccessible = true }
+            .get(inputView) as InputWindowManager
     }
 
     private fun actionsPopup(service: FcitxInputMethodService): PopupWindow {

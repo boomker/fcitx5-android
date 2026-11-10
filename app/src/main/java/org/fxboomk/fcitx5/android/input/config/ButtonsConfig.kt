@@ -178,6 +178,8 @@ data class ButtonsLayoutConfig(
                 ConfigurableButton("reload_config"),
                 ConfigurableButton("virtual_keyboard"),
                 ConfigurableButton("one_handed_keyboard"),
+                ConfigurableButton("text_selection"),
+                ConfigurableButton("cursor_movement"),
                 ConfigurableButton("adjust_keyboard_height")
             ),
             optionalButtons = listOf(
@@ -220,6 +222,18 @@ data class ButtonsLayoutConfig(
                 .takeIf { it >= 0 } ?: buttons.size
         }
         buttons.add(insertAt, ConfigurableButton(TOOLBAR_CUSTOMIZE_ID))
+        return copy(statusAreaButtons = buttons)
+    }
+
+    /** Add the gesture panels to old layouts, preserving explicit placement or hiding. */
+    fun withGestureEditingButtons(): ButtonsLayoutConfig {
+        val allIds = (kawaiiBarButtons + statusAreaButtons + optionalButtons).mapTo(mutableSetOf()) { it.id }
+        val missing = listOf("text_selection", "cursor_movement").filterNot { it in allIds }
+        if (missing.isEmpty()) return this
+        val buttons = statusAreaButtons.toMutableList()
+        val insertAt = buttons.indexOfFirst { it.id == "input_method_options" }
+            .takeIf { it >= 0 } ?: buttons.size
+        buttons.addAll(insertAt, missing.map { ConfigurableButton(it) })
         return copy(statusAreaButtons = buttons)
     }
 }

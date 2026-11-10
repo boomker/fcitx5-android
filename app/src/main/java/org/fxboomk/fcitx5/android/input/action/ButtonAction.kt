@@ -217,6 +217,8 @@ sealed class ButtonAction {
          */
         val statusAreaActions: List<ButtonAction> by lazy {
             listOf(
+                TextSelectionAction,
+                CursorMovementAction,
                 LanguageSwitchAction,
                 ThemeAction,
                 ToolbarCustomizeAction,
@@ -325,7 +327,7 @@ data object CursorMoveAction : ButtonAction() {
 
 data object TextSelectionAction : ButtonAction() {
     override val id = "text_selection"
-    override val defaultIcon = R.drawable.ic_baseline_select_all_24
+    override val defaultIcon = R.drawable.ic_gesture_select_24
     override val defaultLabelRes = R.string.text_selection
 
     override fun execute(context: Context, service: FcitxInputMethodService, fcitx: FcitxConnection,
@@ -337,7 +339,7 @@ data object TextSelectionAction : ButtonAction() {
 
 data object CursorMovementAction : ButtonAction() {
     override val id = "cursor_movement"
-    override val defaultIcon = R.drawable.ic_cursor_move
+    override val defaultIcon = R.drawable.ic_cursor_move_character_24
     override val defaultLabelRes = R.string.cursor_movement
 
     override fun execute(context: Context, service: FcitxInputMethodService, fcitx: FcitxConnection,
