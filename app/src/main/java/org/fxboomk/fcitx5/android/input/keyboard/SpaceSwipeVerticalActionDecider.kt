@@ -13,7 +13,7 @@ internal fun spaceSwipeVerticalAction(
     hasPreedit: Boolean,
     hasCandidates: Boolean,
     composingBehavior: SpaceSwipeVerticalBehavior,
-    idleBehaviors: Set<String>,
+    idleBehavior: SpaceSwipeIdleBehavior,
     isMainKeyboard: Boolean,
     hasVisibleAiSuggestions: Boolean = false,
 ): SpaceSwipeVerticalActionType {
@@ -23,11 +23,14 @@ internal fun spaceSwipeVerticalAction(
             SpaceSwipeVerticalBehavior.CandidateRows -> SpaceSwipeVerticalActionType.CandidateRows
         }
     }
-    return when {
-        isMainKeyboard && !hasVisibleAiSuggestions && delta < 0 && SpaceSwipeIdleBehavior.UpSelect.name in idleBehaviors ->
-            SpaceSwipeVerticalActionType.TextSelection
-        isMainKeyboard && !hasVisibleAiSuggestions && delta > 0 && SpaceSwipeIdleBehavior.DownCursor.name in idleBehaviors ->
-            SpaceSwipeVerticalActionType.CursorMovement
-        else -> SpaceSwipeVerticalActionType.ArrowKey
+    if (!isMainKeyboard || hasVisibleAiSuggestions || delta == 0) return SpaceSwipeVerticalActionType.ArrowKey
+    return when (idleBehavior) {
+        SpaceSwipeIdleBehavior.SelectionThenCursor ->
+            if (delta < 0) SpaceSwipeVerticalActionType.TextSelection else SpaceSwipeVerticalActionType.CursorMovement
+        SpaceSwipeIdleBehavior.CursorThenSelection ->
+            if (delta < 0) SpaceSwipeVerticalActionType.CursorMovement else SpaceSwipeVerticalActionType.TextSelection
+        SpaceSwipeIdleBehavior.SelectionOnly -> SpaceSwipeVerticalActionType.TextSelection
+        SpaceSwipeIdleBehavior.CursorOnly -> SpaceSwipeVerticalActionType.CursorMovement
+        SpaceSwipeIdleBehavior.Default -> SpaceSwipeVerticalActionType.ArrowKey
     }
 }

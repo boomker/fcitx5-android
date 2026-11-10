@@ -406,12 +406,12 @@ class CommonKeyActionListener :
                     backspaceSwipeState = Stopped
                 }
                 is SpaceSwipeVerticalAction -> {
-                    when (spaceSwipeVerticalAction(
+                    when (val swipeAction = spaceSwipeVerticalAction(
                         delta = action.delta,
                         hasPreedit = !preeditState.isEmpty,
                         hasCandidates = service.hasVisibleCandidates(),
                         composingBehavior = spaceSwipeVerticalBehavior,
-                        idleBehaviors = spaceSwipeIdleBehavior,
+                        idleBehavior = spaceSwipeIdleBehavior,
                         isMainKeyboard = source == KeyActionListener.Source.Keyboard &&
                             windowManager.currentWindowOrNull() is KeyboardWindow,
                         hasVisibleAiSuggestions = service.inputView?.hasVisibleAiSuggestions() == true,
@@ -438,7 +438,11 @@ class CommonKeyActionListener :
                         }
                         SpaceSwipeVerticalActionType.TextSelection,
                         SpaceSwipeVerticalActionType.CursorMovement -> {
-                            val mode = if (action.delta < 0) GestureEditingMode.Selection else GestureEditingMode.Cursor
+                            val mode = if (swipeAction == SpaceSwipeVerticalActionType.TextSelection) {
+                                GestureEditingMode.Selection
+                            } else {
+                                GestureEditingMode.Cursor
+                            }
                             // Finish dispatching the entry swipe before detaching its keyboard.
                             service.inputView?.post {
                                 if (windowManager.currentWindowOrNull() is KeyboardWindow &&

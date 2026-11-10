@@ -1,7 +1,4 @@
-/*
- * SPDX-License-Identifier: LGPL-2.1-or-later
- * SPDX-FileCopyrightText: Copyright 2026 Fcitx5 for Android Contributors
- */
+/* SPDX-License-Identifier: LGPL-2.1-or-later */
 package org.fxboomk.fcitx5.android.input.keyboard
 
 import org.junit.Assert.assertEquals
@@ -9,29 +6,33 @@ import org.junit.Test
 
 class SpaceSwipeIdleBehaviorTest {
     @Test
-    fun bothIdleGesturesCanBeSelectedAndRemovedIndependently() {
-        val up = SpaceSwipeIdleBehavior.updateSelection(emptySet(), SpaceSwipeIdleBehavior.UpSelect, true)
-        val both = SpaceSwipeIdleBehavior.updateSelection(up, SpaceSwipeIdleBehavior.DownCursor, true)
-        assertEquals(setOf("UpSelect", "DownCursor"), both)
-        assertEquals(
-            setOf("DownCursor"),
-            SpaceSwipeIdleBehavior.updateSelection(both, SpaceSwipeIdleBehavior.UpSelect, false)
+    fun legacyCheckboxSelectionsMapToTheCorrespondingSingleOption() {
+        val expected = mapOf(
+            emptySet<String>() to SpaceSwipeIdleBehavior.Default,
+            setOf("UpSelect", "DownCursor") to SpaceSwipeIdleBehavior.SelectionThenCursor,
+            setOf("UpSelect") to SpaceSwipeIdleBehavior.SelectionOnly,
+            setOf("DownCursor") to SpaceSwipeIdleBehavior.CursorOnly,
+            setOf("Default", "unknown") to SpaceSwipeIdleBehavior.Default,
         )
-        assertEquals(
-            emptySet<String>(),
-            SpaceSwipeIdleBehavior.updateSelection(setOf("DownCursor"), SpaceSwipeIdleBehavior.DownCursor, false)
-        )
+        expected.forEach { (stored, behavior) ->
+            assertEquals(behavior, SpaceSwipeIdleBehavior.fromStoredValue(stored))
+        }
     }
 
     @Test
-    fun defaultClearsBothGesturesAndCannotBePersistedAlongsideThem() {
-        assertEquals(
-            emptySet<String>(),
-            SpaceSwipeIdleBehavior.updateSelection(setOf("UpSelect", "DownCursor"), SpaceSwipeIdleBehavior.Default, true)
-        )
-        assertEquals(
-            setOf("UpSelect"),
-            SpaceSwipeIdleBehavior.updateSelection(setOf("Default", "unknown"), SpaceSwipeIdleBehavior.UpSelect, true)
-        )
+    fun everyNewOptionRoundTripsAsOneEnumName() {
+        assertEquals(5, SpaceSwipeIdleBehavior.entries.size)
+        SpaceSwipeIdleBehavior.entries.forEach { behavior ->
+            assertEquals(behavior, SpaceSwipeIdleBehavior.fromStoredValue(behavior.name))
+        }
+    }
+
+    @Test
+    fun missingAndInvalidStorageUseDefaultAndLegacyNamesRemainReadable() {
+        listOf(null, "unknown", 1, true, setOf(42)).forEach { value ->
+            assertEquals(SpaceSwipeIdleBehavior.Default, SpaceSwipeIdleBehavior.fromStoredValue(value))
+        }
+        assertEquals(SpaceSwipeIdleBehavior.SelectionOnly, SpaceSwipeIdleBehavior.fromStoredValue("UpSelect"))
+        assertEquals(SpaceSwipeIdleBehavior.CursorOnly, SpaceSwipeIdleBehavior.fromStoredValue("DownCursor"))
     }
 }

@@ -857,9 +857,11 @@
     <string name="space_swipe_vertical_behavior_candidate_rows">Kandidatenzeilen wechseln</string>
     <string name="space_swipe_with_composition">Mit Vorbearbeitung und Kandidaten</string>
     <string name="space_swipe_without_composition">Ohne Vorbearbeitung oder Kandidaten</string>
-    <string name="space_swipe_idle_up_select">Nach oben wischen: Textauswahl</string>
-    <string name="space_swipe_idle_down_cursor">Nach unten wischen: Cursor bewegen</string>
-    <string name="space_swipe_idle_summary">Beide Gesten können aktiviert werden. Standard deaktiviert beide.</string>
+    <string name="space_swipe_idle_selection_cursor">Textauswahl+Cursor bewegen</string>
+    <string name="space_swipe_idle_cursor_selection">Cursor bewegen+Textauswahl</string>
+    <string name="space_swipe_idle_selection_only">Nur Textauswahlmodus</string>
+    <string name="space_swipe_idle_cursor_only">Nur Cursorbewegungsmodus</string>
+    <string name="space_swipe_idle_default">Standard (Leertaste wischen, um den Cursor zu bewegen)</string>
     <string name="space_swipe_vertical_summary">Mit Vorbearbeitung/Kandidaten: %1$s\nOhne Vorbearbeitung/Kandidaten: %2$s</string>
     <string name="gesture_text_selection_mode">Textauswahlmodus</string>
     <string name="gesture_cursor_mode">Cursorbewegungsmodus</string>

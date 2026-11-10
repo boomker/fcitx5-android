@@ -859,9 +859,11 @@
     <string name="space_swipe_vertical_behavior_candidate_rows">Переключать строки кандидатов</string>
     <string name="space_swipe_with_composition">С кодом ввода и кандидатами</string>
     <string name="space_swipe_without_composition">Без кода ввода и кандидатов</string>
-    <string name="space_swipe_idle_up_select">Свайп вверх: выделение текста</string>
-    <string name="space_swipe_idle_down_cursor">Свайп вниз: перемещение курсора</string>
-    <string name="space_swipe_idle_summary">Можно включить оба жеста. По умолчанию оба отключены.</string>
+    <string name="space_swipe_idle_selection_cursor">Выделение текста+Перемещение курсора</string>
+    <string name="space_swipe_idle_cursor_selection">Перемещение курсора+Выделение текста</string>
+    <string name="space_swipe_idle_selection_only">Только режим выделения текста</string>
+    <string name="space_swipe_idle_cursor_only">Только режим перемещения курсора</string>
+    <string name="space_swipe_idle_default">По умолчанию (свайп по пробелу перемещает курсор)</string>
     <string name="space_swipe_vertical_summary">С кодом ввода/кандидатами: %1$s\nБез кода ввода/кандидатов: %2$s</string>
     <string name="gesture_text_selection_mode">Режим выделения текста</string>
     <string name="gesture_cursor_mode">Режим перемещения курсора</string>

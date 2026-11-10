@@ -859,9 +859,11 @@
     <string name="space_swipe_vertical_behavior_candidate_rows">候補行を切り替え</string>
     <string name="space_swipe_with_composition">入力コードと候補がある場合</string>
     <string name="space_swipe_without_composition">入力コードも候補もない場合</string>
-    <string name="space_swipe_idle_up_select">上スワイプ：テキスト選択モード</string>
-    <string name="space_swipe_idle_down_cursor">下スワイプ：カーソル移動モード</string>
-    <string name="space_swipe_idle_summary">両方のジェスチャーを有効にできます。デフォルトを選ぶと両方が解除されます。</string>
+    <string name="space_swipe_idle_selection_cursor">テキスト選択+カーソル移動</string>
+    <string name="space_swipe_idle_cursor_selection">カーソル移動+テキスト選択</string>
+    <string name="space_swipe_idle_selection_only">テキスト選択モードのみ</string>
+    <string name="space_swipe_idle_cursor_only">カーソル移動モードのみ</string>
+    <string name="space_swipe_idle_default">デフォルト(スペースキーのスワイプでカーソル移動)</string>
     <string name="space_swipe_vertical_summary">入力コードと候補あり：%1$s\n入力コードも候補もなし：%2$s</string>
     <string name="gesture_text_selection_mode">テキスト選択モード</string>
     <string name="gesture_cursor_mode">カーソル移動モード</string>

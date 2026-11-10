@@ -34,6 +34,7 @@ import org.fxboomk.fcitx5.android.input.predict.LlmTaskMode
 import org.fxboomk.fcitx5.android.input.FcitxInputMethodService
 import org.fxboomk.fcitx5.android.input.keyboard.BaseKeyboard
 import org.fxboomk.fcitx5.android.input.keyboard.KeyView
+import org.fxboomk.fcitx5.android.input.keyboard.SpaceSwipeIdleBehavior
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -90,6 +91,26 @@ class GestureEditingIntegrationTest {
         // A plain arrow after exit must collapse the selection rather than extending it.
         onMain { service.sendGestureEditingDirection(KeyEvent.KEYCODE_DPAD_RIGHT, false) }
         await { editor.selectionStart == editor.selectionEnd }
+    }
+
+    @Test
+    fun eachSingleChoiceRoutesBothDirectionsToItsConfiguredMode() = withEditor { _, service ->
+        val mappings = mapOf(
+            SpaceSwipeIdleBehavior.SelectionThenCursor to (GestureEditingMode.Selection to GestureEditingMode.Cursor),
+            SpaceSwipeIdleBehavior.CursorThenSelection to (GestureEditingMode.Cursor to GestureEditingMode.Selection),
+            SpaceSwipeIdleBehavior.SelectionOnly to (GestureEditingMode.Selection to GestureEditingMode.Selection),
+            SpaceSwipeIdleBehavior.CursorOnly to (GestureEditingMode.Cursor to GestureEditingMode.Cursor),
+        )
+        mappings.forEach { (behavior, modes) ->
+            onMain { AppPrefs.getInstance().keyboard.spaceSwipeIdleBehavior.setValue(behavior) }
+            listOf(-1 to modes.first, 1 to modes.second).forEach { (direction, expectedMode) ->
+                enter(service, direction)
+                val pad = touchpad(service)
+                assertEquals(if (expectedMode == GestureEditingMode.Selection) 3 else 4, pad.buttons.size)
+                onMain { pad.buttons.first().performClick() }
+                await { touchpadOrNull(service) == null }
+            }
+        }
     }
 
     @Test
@@ -493,7 +514,7 @@ class GestureEditingIntegrationTest {
 
     private fun withEditor(block: (EditText, FcitxInputMethodService) -> Unit) {
         val prefs = AppPrefs.getInstance().keyboard
-        val oldIdle = prefs.spaceSwipeIdleBehavior.getValue().toSet()
+        val oldIdle = prefs.spaceSwipeIdleBehavior.getValue()
         val oldHaptic = prefs.hapticOnRepeat.getValue()
         val activity = instrumentation.startActivitySync(
             Intent(context, GestureEditingTestActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -501,7 +522,7 @@ class GestureEditingIntegrationTest {
         lateinit var editor: EditText
         try {
             onMain {
-                prefs.spaceSwipeIdleBehavior.setValue(setOf("UpSelect", "DownCursor"))
+                prefs.spaceSwipeIdleBehavior.setValue(SpaceSwipeIdleBehavior.SelectionThenCursor)
                 prefs.hapticOnRepeat.setValue(false)
                 editor = EditText(activity).apply {
                     id = View.generateViewId()

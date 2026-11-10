@@ -860,9 +860,11 @@
     <string name="space_swipe_vertical_behavior_candidate_rows">후보 행 전환</string>
     <string name="space_swipe_with_composition">입력 코드와 후보가 있을 때</string>
     <string name="space_swipe_without_composition">입력 코드와 후보가 없을 때</string>
-    <string name="space_swipe_idle_up_select">위로 스와이프: 텍스트 선택 모드</string>
-    <string name="space_swipe_idle_down_cursor">아래로 스와이프: 커서 이동 모드</string>
-    <string name="space_swipe_idle_summary">두 제스처를 모두 사용할 수 있습니다. 기본값을 선택하면 둘 다 해제됩니다.</string>
+    <string name="space_swipe_idle_selection_cursor">텍스트 선택+커서 이동</string>
+    <string name="space_swipe_idle_cursor_selection">커서 이동+텍스트 선택</string>
+    <string name="space_swipe_idle_selection_only">텍스트 선택 모드만</string>
+    <string name="space_swipe_idle_cursor_only">커서 이동 모드만</string>
+    <string name="space_swipe_idle_default">기본값(스페이스 키를 스와이프하여 커서 이동)</string>
     <string name="space_swipe_vertical_summary">입력 코드와 후보 있음: %1$s\n입력 코드와 후보 없음: %2$s</string>
     <string name="gesture_text_selection_mode">텍스트 선택 모드</string>
     <string name="gesture_cursor_mode">커서 이동 모드</string>

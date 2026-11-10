@@ -376,9 +376,11 @@
     <string name="space_swipe_vertical_behavior_candidate_rows">Switch candidate rows</string>
     <string name="space_swipe_with_composition">With preedit and candidates</string>
     <string name="space_swipe_without_composition">Without preedit or candidates</string>
-    <string name="space_swipe_idle_up_select">Swipe up: text selection mode</string>
-    <string name="space_swipe_idle_down_cursor">Swipe down: cursor movement mode</string>
-    <string name="space_swipe_idle_summary">Both gestures can be enabled. Choosing Default clears both.</string>
+    <string name="space_swipe_idle_selection_cursor">Text selection+Cursor movement</string>
+    <string name="space_swipe_idle_cursor_selection">Cursor movement+Text selection</string>
+    <string name="space_swipe_idle_selection_only">Text selection mode only</string>
+    <string name="space_swipe_idle_cursor_only">Cursor movement mode only</string>
+    <string name="space_swipe_idle_default">Default (swipe the space key to move the cursor)</string>
     <string name="space_swipe_vertical_summary">With preedit/candidates: %1$s\nWithout preedit/candidates: %2$s</string>
     <string name="gesture_text_selection_mode">Text selection mode</string>
     <string name="gesture_cursor_mode">Cursor movement mode</string>

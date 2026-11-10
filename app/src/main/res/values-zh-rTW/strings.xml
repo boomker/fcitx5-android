@@ -288,9 +288,11 @@
     <string name="space_swipe_vertical_behavior_candidate_rows">切換候選詞行</string>
     <string name="space_swipe_with_composition">有編碼有候選</string>
     <string name="space_swipe_without_composition">無編碼無候選</string>
-    <string name="space_swipe_idle_up_select">上劃：選擇文字模式</string>
-    <string name="space_swipe_idle_down_cursor">下劃：移動游標模式</string>
-    <string name="space_swipe_idle_summary">上劃與下劃可同時啟用；選擇預設會取消兩項。</string>
+    <string name="space_swipe_idle_selection_cursor">文字選擇+游標移動</string>
+    <string name="space_swipe_idle_cursor_selection">游標移動+文字選擇</string>
+    <string name="space_swipe_idle_selection_only">僅進入文字選擇模式</string>
+    <string name="space_swipe_idle_cursor_only">僅進入游標移動模式</string>
+    <string name="space_swipe_idle_default">預設(滑動空格鍵移動游標)</string>
     <string name="space_swipe_vertical_summary">有編碼有候選：%1$s\n無編碼無候選：%2$s</string>
     <string name="gesture_text_selection_mode">選擇文字模式</string>
     <string name="gesture_cursor_mode">移動游標模式</string>
