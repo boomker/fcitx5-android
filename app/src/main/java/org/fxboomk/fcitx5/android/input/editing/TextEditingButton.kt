@@ -16,6 +16,7 @@ import org.fxboomk.fcitx5.android.data.theme.Theme
 import org.fxboomk.fcitx5.android.input.keyboard.CustomGestureView
 import org.fxboomk.fcitx5.android.input.keyboard.shadowedKeyBackgroundDrawable
 import org.fxboomk.fcitx5.android.input.keyboard.insetRadiusDrawable
+import org.fxboomk.fcitx5.android.input.keyboard.radiusDrawable
 import org.fxboomk.fcitx5.android.utils.borderDrawable
 import org.fxboomk.fcitx5.android.utils.pressHighlightDrawable
 import org.fxboomk.fcitx5.android.utils.rippleDrawable
@@ -36,7 +37,8 @@ class TextEditingButton(
     private val rippled: Boolean,
     private val bordered: Boolean,
     private val radius: Float,
-    private val altStyle: Boolean = false
+    private val altStyle: Boolean = false,
+    private val roundedWithoutBorder: Boolean = false
 ) : CustomGestureView(ctx) {
 
     // bordered
@@ -68,10 +70,18 @@ class TextEditingButton(
                 }
             }
         } else {
-            background = borderDrawable(lineWidth, theme.dividerColor)
-            foreground =
+            background = borderDrawable(lineWidth, theme.dividerColor,
+                cornerRadius = if (roundedWithoutBorder) radius else 0f)
+            foreground = if (roundedWithoutBorder) {
+                if (rippled) rippleDrawable(theme.keyPressHighlightColor, radiusDrawable(radius))
+                else StateListDrawable().apply {
+                    addState(intArrayOf(android.R.attr.state_pressed),
+                        radiusDrawable(radius, theme.keyPressHighlightColor))
+                }
+            } else {
                 if (rippled) rippleDrawable(theme.keyPressHighlightColor)
                 else pressHighlightDrawable(theme.keyPressHighlightColor)
+            }
         }
     }
 

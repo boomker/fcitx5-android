@@ -91,9 +91,12 @@ internal object ThemeSettingsSupport {
 
     val toolbarStyleKeys = toolbarStyleSwitchKeys + toolbarStyleNonSwitchKeys
 
+    // Ascending Chinese title length; preserve this order for equally long titles.
     val otherStyleThemeKeys = listOf(
+        "clipboard_entry_radius",
         "text_editing_button_radius",
-        "clipboard_entry_radius"
+        "cursor_movement_button_radius",
+        "text_selection_button_radius"
     )
 
     val otherStyleKeys = otherStyleThemeKeys

@@ -779,6 +779,8 @@
     <string name="swipe_up">위로 스와이프</string>
     <string name="system_default">시스템 기본값</string>
     <string name="text_editing_button_radius">텍스트 편집 버튼 반경</string>
+    <string name="cursor_movement_button_radius">커서 이동 패널 · 버튼 모서리 반경</string>
+    <string name="text_selection_button_radius">텍스트 선택 패널 · 버튼 모서리 반경</string>
     <string name="text_keyboard_layout_file_delete_confirm">레이아웃 파일 프로필 "%1$s"와 백업을 삭제할까요?</string>
     <string name="text_keyboard_layout_file_delete_failed">레이아웃 파일 삭제 실패</string>
     <string name="text_keyboard_layout_file_deleted">삭제된 프로필: %1$s</string>

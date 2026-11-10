@@ -42,7 +42,7 @@ internal class GestureEditingUi(
     onMovement: (GestureMovementAccumulator.Movement) -> Unit
 ) {
     private fun iconButton(label: Int, icon: Int) =
-        TextEditingButton(context, theme, ripple, border, radius, altStyle = true).apply {
+        TextEditingButton(context, theme, ripple, border, radius, altStyle = true, roundedWithoutBorder = true).apply {
             setIcon(icon)
             contentDescription = context.getString(label)
             TooltipCompat.setTooltipText(this, contentDescription)

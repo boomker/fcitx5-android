@@ -143,6 +143,8 @@
     <string name="key_radius">Радиус клавиш</string>
     <string name="navbar_radius">Радиус скругления углов панели инструментов</string>
     <string name="text_editing_button_radius">Радиус кнопки редактирования текста</string>
+    <string name="cursor_movement_button_radius">Панель перемещения курсора · Радиус скругления кнопок</string>
+    <string name="text_selection_button_radius">Панель выделения текста · Радиус скругления кнопок</string>
     <string name="clipboard_entry_radius">Радиус входа в буфер обмена</string>
     <string name="key_horizontal_margin">Горизонтальное поле клавиш</string>
     <string name="key_vertical_margin">Вертикальное поле клавиш</string>

@@ -7,6 +7,10 @@ package org.fxboomk.fcitx5.android.input.editing
 import android.app.Activity
 import android.app.Instrumentation
 import android.content.Intent
+import android.graphics.drawable.Drawable
+import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.InsetDrawable
+import android.graphics.drawable.LayerDrawable
 import android.text.InputType
 import android.os.SystemClock
 import android.view.KeyEvent
@@ -46,6 +50,7 @@ import org.fxboomk.fcitx5.android.input.keyboard.BaseKeyboard
 import org.fxboomk.fcitx5.android.input.keyboard.KeyView
 import org.fxboomk.fcitx5.android.input.keyboard.SpaceSwipeIdleBehavior
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
+import org.fxboomk.fcitx5.android.data.theme.ThemeManager
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -326,6 +331,71 @@ class GestureEditingIntegrationTest {
         clickHeaderBack(service)
         await { wm.currentWindowOrNull() is KeyboardWindow }
         onMain { assertTrue(editor.hasFocus()) }
+    }
+
+    @Test
+    fun gestureButtonsAndSelectionPopupUseIndependentRadiiInBothBorderStyles() {
+        val prefs = ThemeManager.prefs
+        val preferences = prefs.cursorMovementButtonRadius.sharedPreferences
+        val radiusKeys = listOf(prefs.cursorMovementButtonRadius.key, prefs.textSelectionButtonRadius.key,
+            prefs.textEditingButtonRadius.key)
+        val oldRadii = radiusKeys.associateWith { key ->
+            if (preferences.contains(key)) preferences.getInt(key, 0) else null
+        }
+        val oldBorder = if (preferences.contains(prefs.keyBorder.key)) preferences.getBoolean(prefs.keyBorder.key, false) else null
+        try {
+            onMain {
+                prefs.cursorMovementButtonRadius.setValue(4)
+                prefs.textSelectionButtonRadius.setValue(20)
+                prefs.textEditingButtonRadius.setValue(11)
+            }
+            listOf(false, true).forEach { bordered ->
+                onMain { prefs.keyBorder.setValue(bordered) }
+                withEditor { _, service ->
+                    val wm = windowManager(service)
+                    openGesturePanel(service, GestureEditingMode.Cursor)
+                    onMain { touchpad(service).buttons.forEach { assertGestureRadius(it as TextEditingButton, 4) } }
+                    clickHeaderBack(service)
+                    await { wm.currentWindowOrNull() is KeyboardWindow }
+                    openGesturePanel(service, GestureEditingMode.Selection)
+                    onMain {
+                        val pad = touchpad(service)
+                        pad.buttons.forEach { assertGestureRadius(it as TextEditingButton, 20) }
+                        pad.buttons[1].performClick()
+                    }
+                    val popup = actionsPopup(service)
+                    await { actionButtons(popup).all { it.width > 0 } }
+                    onMain {
+                        actionButtons(popup).forEach { assertGestureRadius(it, 20) }
+                        popup.dismiss()
+                    }
+                    clickHeaderBack(service)
+                    await { wm.currentWindowOrNull() is KeyboardWindow }
+                    onMain { service.inputView!!.executeButtonAction("cursor_move") }
+                    await { wm.currentWindowOrNull() is TextEditingWindow }
+                    onMain {
+                        val buttons = (wm.currentWindowOrNull() as TextEditingWindow).onCreateView()
+                            .allViews.filterIsInstance<TextEditingButton>().toList()
+                        assertTrue(buttons.isNotEmpty())
+                        // The legacy panel retains its existing radius semantics.
+                        buttons.forEach { assertEquals(11f, buttonRadius(it), 0f) }
+                        assertEquals(4, prefs.cursorMovementButtonRadius.getValue())
+                        assertEquals(20, prefs.textSelectionButtonRadius.getValue())
+                        assertEquals(11, prefs.textEditingButtonRadius.getValue())
+                    }
+                    clickHeaderBack(service)
+                    await { wm.currentWindowOrNull() is KeyboardWindow }
+                }
+            }
+        } finally {
+            onMain {
+                val editor = preferences.edit()
+                oldRadii.forEach { (key, value) -> if (value == null) editor.remove(key) else editor.putInt(key, value) }
+                if (oldBorder == null) editor.remove(prefs.keyBorder.key) else editor.putBoolean(prefs.keyBorder.key, oldBorder)
+                assertTrue(editor.commit())
+                ThemeManager.syncToDeviceEncryptedStorage()
+            }
+        }
     }
 
     @Test
@@ -745,6 +815,23 @@ class GestureEditingIntegrationTest {
         val inputView = requireNotNull(service.inputView)
         return inputView.javaClass.getDeclaredField("windowManager").apply { isAccessible = true }
             .get(inputView) as InputWindowManager
+    }
+
+    private fun buttonRadius(button: TextEditingButton) = TextEditingButton::class.java
+        .getDeclaredField("radius").apply { isAccessible = true }.getFloat(button)
+
+    private fun assertGestureRadius(button: TextEditingButton, radiusDp: Int) {
+        val radius = radiusDp * density
+        assertEquals(radius, buttonRadius(button), 0f)
+        assertTrue("Rendered background should use the configured radius",
+            backgroundShapes(button.background).any { it.cornerRadius == radius })
+    }
+
+    private fun backgroundShapes(drawable: Drawable): List<GradientDrawable> = when (drawable) {
+        is GradientDrawable -> listOf(drawable)
+        is InsetDrawable -> drawable.drawable?.let(::backgroundShapes).orEmpty()
+        is LayerDrawable -> (0 until drawable.numberOfLayers).flatMap { backgroundShapes(drawable.getDrawable(it)) }
+        else -> emptyList()
     }
 
     private fun openGesturePanel(service: FcitxInputMethodService, mode: GestureEditingMode): GestureEditingWindow {

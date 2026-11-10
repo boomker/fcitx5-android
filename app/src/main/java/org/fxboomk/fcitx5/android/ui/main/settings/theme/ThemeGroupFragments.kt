@@ -214,10 +214,8 @@ class ThemeModeFragment : ThemeGroupFragment(ThemeManager.prefs) {
 
 class ThemeOtherStyleFragment : ThemeGroupFragment(ThemeManager.prefs) {
     override fun onBuildPreferenceScreen(screen: PreferenceScreen) {
-        addThemePreferences(
-            screen,
-            ThemeManager.prefs,
-            ThemeSettingsSupport.otherStyleThemeKeys
-        )
+        ThemeSettingsSupport.otherStyleThemeKeys.forEachIndexed { index, key ->
+            addManagedPreference(screen, ThemeManager.prefs, key)?.order = index
+        }
     }
 }

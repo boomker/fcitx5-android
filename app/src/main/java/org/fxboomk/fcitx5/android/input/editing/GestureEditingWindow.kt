@@ -55,11 +55,14 @@ class GestureEditingWindow(
     private val hapticOnRepeat by AppPrefs.getInstance().keyboard.hapticOnRepeat
     private val buttonRipple by ThemeManager.prefs.keyRippleEffect
     private val buttonBorder by ThemeManager.prefs.keyBorder
-    private val buttonRadius by ThemeManager.prefs.textEditingButtonRadius
+    private val buttonRadius by when (mode) {
+        GestureEditingMode.Cursor -> ThemeManager.prefs.cursorMovementButtonRadius
+        GestureEditingMode.Selection -> ThemeManager.prefs.textSelectionButtonRadius
+    }
     private var actionsPopup: PopupWindow? = null
 
     private val ui by lazy {
-        GestureEditingUi(context, theme, mode, buttonRipple, buttonBorder, buttonRadius.toFloat(), ::move).apply {
+        GestureEditingUi(context, theme, mode, buttonRipple, buttonBorder, context.dp(buttonRadius.toFloat()), ::move).apply {
             exitButton.setOnClickListener { windowManager.attachWindow(KeyboardWindow) }
             switchButton.setOnClickListener {
                 windowManager.attachWindow(GestureEditingWindow(GestureEditingMode.Selection, this@GestureEditingWindow))
@@ -107,7 +110,8 @@ class GestureEditingWindow(
             elevation = context.dp(8).toFloat()
         }
         fun action(label: Int, icon: Int, enabled: Boolean = true, block: () -> Unit) {
-            buttons += TextEditingButton(context, theme, buttonRipple, buttonBorder, buttonRadius.toFloat(), true).apply {
+            buttons += TextEditingButton(context, theme, buttonRipple, buttonBorder,
+                context.dp(buttonRadius.toFloat()), altStyle = true, roundedWithoutBorder = true).apply {
                 setIcon(icon)
                 contentDescription = context.getString(label)
                 TooltipCompat.setTooltipText(this, contentDescription)

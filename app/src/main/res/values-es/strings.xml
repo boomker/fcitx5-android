@@ -786,6 +786,8 @@
     <string name="synced">¡Sincronizado!</string>
     <string name="text_editing">Edicion de texto</string>
     <string name="text_editing_button_radius">Radio de boton de edicion de texto</string>
+    <string name="cursor_movement_button_radius">Panel de movimiento del cursor · Radio de las esquinas de los botones</string>
+    <string name="text_selection_button_radius">Panel de selección de texto · Radio de las esquinas de los botones</string>
     <string name="text_keyboard_layout_file_delete_confirm">¿Eliminar el perfil de archivo de diseno "%1$s" y sus copias de seguridad?</string>
     <string name="text_keyboard_layout_file_delete_failed">No se pudo eliminar el archivo de diseno</string>
     <string name="text_keyboard_layout_file_deleted">Perfil eliminado: %1$s</string>

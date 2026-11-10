@@ -174,6 +174,8 @@
     <string name="key_radius">按鍵圓角半徑</string>
     <string name="navbar_radius">工具欄圓角半徑</string>
     <string name="text_editing_button_radius">文本編輯按鈕圓角半徑</string>
+    <string name="cursor_movement_button_radius">游標移動面板・按鈕圓角半徑</string>
+    <string name="text_selection_button_radius">文字選擇面板・按鈕圓角半徑</string>
     <string name="clipboard_entry_radius">剪貼簿條目圓角半徑</string>
     <string name="key_horizontal_margin">按鍵橫向邊距</string>
     <string name="key_vertical_margin">按鍵垂直邊距</string>

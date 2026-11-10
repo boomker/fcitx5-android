@@ -91,8 +91,7 @@ class ThemeSettingsOrganizationTest {
             listOf(
                 "toolbar_dynamic_height",
                 "toolbar_num_row_on_password",
-                "physical_keyboard_horizontal_candidate_bar",
-                "show_voice_input_button"
+                "physical_keyboard_horizontal_candidate_bar"
             ),
             ThemeSettingsSupport.toolbarStyleKeyboardKeys
         )
@@ -102,7 +101,6 @@ class ThemeSettingsOrganizationTest {
                 "toolbar_dynamic_height",
                 "toolbar_num_row_on_password",
                 "physical_keyboard_horizontal_candidate_bar",
-                "show_voice_input_button",
                 "toolbar_height",
                 "navbar_radius"
             ),
@@ -110,15 +108,19 @@ class ThemeSettingsOrganizationTest {
         )
         assertEquals(
             listOf(
+                "clipboard_entry_radius",
                 "text_editing_button_radius",
-                "clipboard_entry_radius"
+                "cursor_movement_button_radius",
+                "text_selection_button_radius"
             ),
             ThemeSettingsSupport.otherStyleThemeKeys
         )
         assertEquals(
             listOf(
+                "clipboard_entry_radius",
                 "text_editing_button_radius",
-                "clipboard_entry_radius"
+                "cursor_movement_button_radius",
+                "text_selection_button_radius"
             ),
             ThemeSettingsSupport.otherStyleKeys
         )
@@ -205,6 +207,8 @@ class ThemeSettingsOrganizationTest {
                 "navbar_radius",
                 "text_editing_button_radius",
                 "clipboard_entry_radius",
+                "cursor_movement_button_radius",
+                "text_selection_button_radius",
                 "follow_system_dark_mode",
                 "light_mode_themes",
                 "dark_mode_themes",

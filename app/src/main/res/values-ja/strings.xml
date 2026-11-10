@@ -778,6 +778,8 @@
     <string name="commit_first_candidate_character">先頭文字を確定</string>
     <string name="commit_last_candidate_character">末尾文字を確定</string>
     <string name="text_editing_button_radius">テキスト編集ボタンの角丸半径</string>
+    <string name="cursor_movement_button_radius">カーソル移動パネル・ボタンの角丸半径</string>
+    <string name="text_selection_button_radius">テキスト選択パネル・ボタンの角丸半径</string>
     <string name="text_keyboard_layout_file_delete_confirm">レイアウトファイル設定「%1$s」とそのバックアップを削除してもよろしいですか？</string>
     <string name="text_keyboard_layout_file_delete_failed">レイアウトファイルの削除に失敗しました</string>
     <string name="text_keyboard_layout_file_deleted">設定を削除しました：%1$s</string>

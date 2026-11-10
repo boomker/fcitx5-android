@@ -783,6 +783,8 @@
     <string name="punctuation_swipe_raw">Originalzeichen einfügen</string>
     <string name="swipe_symbol_behavior">Wischrichtung für Satzzeichen</string>
     <string name="text_editing_button_radius">Eckradius der Textbearbeitungstasten</string>
+    <string name="cursor_movement_button_radius">Cursorbewegungsbereich · Eckradius der Tasten</string>
+    <string name="text_selection_button_radius">Textauswahlbereich · Eckradius der Tasten</string>
     <string name="text_keyboard_layout_file_delete_confirm">Layout-Dateiprofil "%1$s" und dessen Sicherung wirklich löschen?</string>
     <string name="text_keyboard_layout_file_delete_failed">Löschen der Layout-Datei fehlgeschlagen</string>
     <string name="text_keyboard_layout_file_deleted">Profil gelöscht: %1$s</string>
