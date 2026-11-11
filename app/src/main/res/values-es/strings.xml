@@ -119,7 +119,7 @@
     <string name="clipboard_search_local_results">Historial local · %1$d resultados</string>
     <string name="clipboard_search_all_results">Todo el historial · %1$d resultados</string>
     <string name="clipboard_search_auto_all_results">Búsqueda automática en todo el historial · %1$d resultados</string>
-    <string name="clipboard_search_favorite_results">Favoritos · %1$d resultados</string>
+    <string name="clipboard_search_favorite_results">Frases frecuentes · %1$d resultados</string>
     <string name="clipboard_search_remote_results">Historial de otros dispositivos · %1$d resultados</string>
     <string name="clipboard_search_media_results">Contenido multimedia · %1$d resultados</string>
     <string name="clipboard_search_category_remote">Otros dispositivos</string>
@@ -578,9 +578,8 @@
     <string name="clipboard_enable">Habilitar portapapeles</string>
     <string name="clipboard_entry_radius">Radio de elemento del portapapeles</string>
     <string name="clipboard_listening">Registrar historial del portapapeles</string>
-    <string name="clipboard_mask_sensitive">Ocultar datos sensibles (como contrasenas)</string>
+    <string name="clipboard_mask_sensitive">Ocultar datos sensibles</string>
     <string name="clipboard_return_after_paste">Volver después de pegar</string>
-    <string name="clipboard_suggestion">Mostrar sugerencias del portapapeles</string>
     <string name="clipboard_suggestion_timeout">Tiempo de espera de sugerencia del portapapeles</string>
     <string name="config_addon_not_loaded">No hay opciones de configuración disponibles; quizá este complemento esta deshabilitado al iniciar fcitx.</string>
     <string name="confirm_import_user_data">Importar datos de usuario sobrescribira la configuracion local y el historial de entrada, y requiere reiniciar la aplicacion para aplicar cambios. ¿Continuar?</string>
@@ -829,7 +828,7 @@
     <string name="update_package_missing">El paquete descargado ya no está disponible; vuelva a buscar actualizaciones</string>
     <string name="update_download_ready">%1$s descargado, listo para instalar</string>
     <string name="clipboard_category_all">Todo</string>
-    <string name="clipboard_category_favorites">Favoritos</string>
+    <string name="clipboard_category_favorites">Frases frecuentes</string>
     <string name="clipboard_category_local">Local</string>
     <string name="clipboard_category_media">Imágenes y archivos</string>
     <string name="clipboard_category_remote">Otros dispositivos</string>
@@ -1263,4 +1262,17 @@
     <string name="wubi_config_space_before_hint">Espacio antes de las pistas</string>
     <string name="wubi_config_candidate_direction">Orientación de candidatos</string>
     <string name="wubi_config_keypad_input">Entrada con teclado numérico</string>
+    <string name="clipboard_phrases">Frases frecuentes</string>
+    <string name="clipboard_phrase_drag">Arrastrar para reordenar</string>
+    <string name="clipboard_phrases_empty">Aún no hay frases frecuentes. Guarda entradas como favoritas o impórtalas en los ajustes.</string>
+    <string name="import_phrases">Importar frases frecuentes</string>
+    <string name="export_phrases">Exportar frases frecuentes</string>
+    <string name="import_phrases_summary">Combinar frases de un archivo JSON o de texto</string>
+    <string name="export_phrases_summary">Guardar frases frecuentes en un archivo JSON</string>
+    <string name="phrases_imported">Se importaron %1$d frases frecuentes</string>
+    <string name="phrases_exported">Se exportaron %1$d frases frecuentes</string>
+    <string name="invalid_phrases_file">Archivo de frases frecuentes no válido</string>
+    <string name="clipboard_suggestion_timeout_summary">0 desactiva las sugerencias; -1 significa sin límite de tiempo.</string>
+    <string name="import_phrases_failed">No se pudieron importar las frases frecuentes</string>
+    <string name="export_phrases_failed">No se pudieron exportar las frases frecuentes</string>
 </resources>

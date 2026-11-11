@@ -57,6 +57,7 @@ import org.fxboomk.fcitx5.android.core.FcitxKeyMapping
 import org.fxboomk.fcitx5.android.daemon.FcitxConnection
 import org.fxboomk.fcitx5.android.daemon.launchOnReady
 import org.fxboomk.fcitx5.android.data.clipboard.ClipboardManager
+import org.fxboomk.fcitx5.android.data.clipboard.ClipboardSearchCategory
 import org.fxboomk.fcitx5.android.data.clipboard.clipboardSearchCommitText
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.data.prefs.SplitKeyboardStateManager
@@ -3431,13 +3432,13 @@ class InputView(
         }
     }
 
-    fun openClipboardSearch() {
+    fun openClipboardSearch(initialCategory: ClipboardSearchCategory = ClipboardSearchCategory.Local) {
         if (clipboardSearchActive) return
         windowManager.attachWindow(KeyboardWindow)
         restoreFloatingAfterClipboardSearch = isFloating
         if (isFloating) toggleFloatingMode(persist = false)
         fcitx.runIfReady { reset() }
-        clipboardSearchOverlay.open()
+        clipboardSearchOverlay.open(initialCategory)
         clipboardSearchOverlay.root.visibility = VISIBLE
         clipboardSearchOverlay.root.bringToFront()
         service.window.window?.decorView?.requestLayout()

@@ -9,6 +9,7 @@ import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.RippleDrawable
+import android.text.TextUtils
 import android.view.View
 import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
@@ -60,7 +61,6 @@ class ClipboardUi(override val ctx: Context, private val theme: Theme) : Ui {
 
     private val categoryButtons = linkedMapOf(
         ClipboardCategory.All to createCategoryButton(R.string.clipboard_category_all),
-        ClipboardCategory.Favorites to createCategoryButton(R.string.clipboard_category_favorites),
         ClipboardCategory.Local to createCategoryButton(R.string.clipboard_category_local),
         ClipboardCategory.Media to createCategoryButton(R.string.clipboard_category_media),
         ClipboardCategory.Remote to createCategoryButton(R.string.clipboard_category_remote)
@@ -80,6 +80,33 @@ class ClipboardUi(override val ctx: Context, private val theme: Theme) : Ui {
                 )
             }
         }, lParams(wrapContent, matchParent))
+    }
+
+    private var showingPhrases = false
+
+    private val sectionButtons = linkedMapOf(
+        false to createCategoryButton(R.string.clipboard),
+        true to createCategoryButton(R.string.clipboard_phrases)
+    )
+
+    val sectionSwitcher = horizontalLayout {
+        gravity = gravityCenter
+        add(horizontalLayout {
+            background = GradientDrawable().apply {
+                cornerRadius = dp(14).toFloat()
+                setColor(theme.keyBackgroundColor)
+            }
+            setPaddingDp(2, 2, 2, 2)
+            sectionButtons.values.forEach { button ->
+                button.setPaddingDp(8, 0, 8, 0)
+                button.isSingleLine = true
+                button.ellipsize = TextUtils.TruncateAt.END
+                button.contentDescription = button.text
+                add(button, lParams(dp(64), dp(24)))
+            }
+        }, lParams(wrapContent, wrapContent))
+    }.also {
+        setButtonSelected(sectionButtons.getValue(false), true)
     }
 
     private val keyBorder by ThemeManager.prefs.keyBorder
@@ -117,8 +144,8 @@ class ClipboardUi(override val ctx: Context, private val theme: Theme) : Ui {
     }
 
     private fun setActionButtonsShown(enabled: Boolean) {
-        searchButton.visibility = if (enabled) View.VISIBLE else View.INVISIBLE
-        settingsButton.visibility = if (enabled) View.VISIBLE else View.INVISIBLE
+        searchButton.visibility = if (enabled || showingPhrases) View.VISIBLE else View.INVISIBLE
+        settingsButton.visibility = View.VISIBLE
         deleteAllButton.visibility = if (enabled) View.VISIBLE else View.INVISIBLE
     }
 
@@ -158,15 +185,33 @@ class ClipboardUi(override val ctx: Context, private val theme: Theme) : Ui {
     }
 
     fun setSelectedCategory(category: ClipboardCategory) {
-        categoryButtons.forEach { (buttonCategory, button) ->
-            val selected = buttonCategory == category
-            if (button.isSelected == selected) return@forEach
-            button.isSelected = selected
-            categoryButtonBackgrounds.getValue(button).setColor(
-                if (selected) theme.accentKeyBackgroundColor else theme.keyBackgroundColor
-            )
-            button.setTextColor(if (selected) theme.accentKeyTextColor else theme.keyTextColor)
+        showingPhrases = category == ClipboardCategory.Favorites
+        categoryBar.visibility = if (showingPhrases) View.GONE else View.VISIBLE
+        emptyUi.setInstruction(
+            if (showingPhrases) R.string.clipboard_phrases_empty else R.string.instruction_copy
+        )
+        sectionButtons.forEach { (phrases, button) ->
+            setButtonSelected(button, phrases == showingPhrases)
         }
+        categoryButtons.forEach { (buttonCategory, button) ->
+            setButtonSelected(button, buttonCategory == category)
+        }
+        setActionButtonsShown(viewAnimator.displayedChild == 0)
+    }
+
+    fun setOnSectionSelectedListener(listener: (Boolean) -> Unit) {
+        sectionButtons.forEach { (phrases, button) ->
+            button.setOnClickListener { listener(phrases) }
+        }
+    }
+
+    private fun setButtonSelected(button: TextView, selected: Boolean) {
+        if (button.isSelected == selected) return
+        button.isSelected = selected
+        categoryButtonBackgrounds.getValue(button).setColor(
+            if (selected) theme.accentKeyBackgroundColor else theme.keyBackgroundColor
+        )
+        button.setTextColor(if (selected) theme.accentKeyTextColor else theme.keyTextColor)
     }
 
     fun switchUiByState(state: ClipboardStateMachine.State) {

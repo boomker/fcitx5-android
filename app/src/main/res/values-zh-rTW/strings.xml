@@ -87,7 +87,7 @@
     <string name="clipboard_search_local_results">本機記錄，共 %1$d 筆</string>
     <string name="clipboard_search_all_results">全部記錄，共 %1$d 筆</string>
     <string name="clipboard_search_auto_all_results">已自動搜尋全部記錄，共 %1$d 筆</string>
-    <string name="clipboard_search_favorite_results">收藏記錄，共 %1$d 筆</string>
+    <string name="clipboard_search_favorite_results">常用語，共 %1$d 筆</string>
     <string name="clipboard_search_remote_results">其他裝置記錄，共 %1$d 筆</string>
     <string name="clipboard_search_media_results">圖文記錄，共 %1$d 筆</string>
     <string name="clipboard_search_category_remote">其他裝置</string>
@@ -116,9 +116,9 @@
     <string name="instruction_enable_clipboard_listening">要啟用剪貼簿管理，請在設定中開啟「記錄剪貼簿歷史」。</string>
     <string name="instruction_copy">嘗試複製一些東西</string>
     <string name="clipboard_category_all">全部</string>
-    <string name="clipboard_category_favorites">收藏</string>
+    <string name="clipboard_category_favorites">常用語</string>
     <string name="clipboard_category_local">本機</string>
-    <string name="clipboard_category_media">圖文</string>
+    <string name="clipboard_category_media">圖片・檔案</string>
     <string name="clipboard_category_remote">其他裝置</string>
     <string name="clipboard_entry_file">檔案</string>
     <string name="clipboard_entry_file_named">檔案 · %1$s</string>
@@ -242,7 +242,6 @@
     <string name="keyboard_bottom_padding">鍵盤底部邊距</string>
     <string name="keyboard_side_padding">鍵盤兩側邊距</string>
     <string name="physical_keyboard_horizontal_candidate_bar">使用實體鍵盤時保留工具/候選欄</string>
-    <string name="clipboard_suggestion">顯示剪貼簿建議</string>
     <string name="disable_addon_warn_title">停用附加元件</string>
     <string name="disable_addon_warn_name">停用%1$s且同時：</string>
     <string name="disable_addon_warn_dep">停用%1$s</string>
@@ -476,7 +475,7 @@
     <string name="lang_switch_key_behavior">語言切換鍵行為</string>
     <string name="lang_switch_behavior_next_ime_app">切換至下一個輸入法</string>
     <string name="_cannot_be_empty">%1$s不能為空</string>
-    <string name="clipboard_mask_sensitive">隱藏敏感訊息（如密碼）</string>
+    <string name="clipboard_mask_sensitive">隱藏敏感資訊</string>
     <string name="open_rime_user_data_dir">即將開啓應用資料目錄。RIME 用户資料目錄位於 “data/rime”。</string>
     <string name="generic_multiselect_min">至少需要選擇 %1$d 項。</string>
     <string name="please_wait">請稍候……</string>
@@ -1236,4 +1235,17 @@
     <string name="wubi_config_keypad_input">數字鍵盤輸入</string>
     <string name="switch_toolbar_theme">主題切換</string>
     <string name="switch_icon_theme">主題切換</string>
+    <string name="clipboard_phrases">常用語</string>
+    <string name="clipboard_phrase_drag">拖曳排序</string>
+    <string name="clipboard_phrases_empty">尚無常用語，可收藏剪貼簿項目或在設定中匯入。</string>
+    <string name="import_phrases">匯入常用語</string>
+    <string name="export_phrases">匯出常用語</string>
+    <string name="import_phrases_summary">從 JSON 或文字檔案合併匯入</string>
+    <string name="export_phrases_summary">將常用語儲存為 JSON 檔案</string>
+    <string name="phrases_imported">已匯入 %1$d 筆常用語</string>
+    <string name="phrases_exported">已匯出 %1$d 筆常用語</string>
+    <string name="invalid_phrases_file">常用語檔案格式無效</string>
+    <string name="clipboard_suggestion_timeout_summary">設為 0 停用提示，-1 表示永不逾時。</string>
+    <string name="import_phrases_failed">無法匯入常用語</string>
+    <string name="export_phrases_failed">無法匯出常用語</string>
 </resources>

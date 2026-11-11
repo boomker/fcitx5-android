@@ -157,7 +157,6 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
 
     private val toolbarHeightPref = ThemeManager.prefs.toolbarHeight
     private val toolbarDynamicHeight by prefs.keyboard.toolbarDynamicHeight
-    private val clipboardSuggestion = prefs.clipboard.clipboardSuggestion
     private val clipboardItemTimeout = prefs.clipboard.clipboardItemTimeout
     private val clipboardMaskSensitive by prefs.clipboard.clipboardMaskSensitive
     private val expandedCandidateStyle by prefs.keyboard.expandedCandidateStyle
@@ -201,19 +200,21 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
     @Keep
     private val onClipboardUpdateListener =
         ClipboardManager.OnClipboardUpdateListener {
-            if (!clipboardSuggestion.getValue()) return@OnClipboardUpdateListener
+            if (clipboardItemTimeout.getValue() == 0) return@OnClipboardUpdateListener
             service.lifecycleScope.launch {
+                if (clipboardItemTimeout.getValue() == 0) return@launch
                 clipboardPreviewJob?.cancel()
                 if (it.text.isEmpty()) {
-                    idleUi.clipboardUi.showText("")
-                    isClipboardFresh = false
+                    clearClipboardSuggestion()
                 } else if (it.isUriEntry() && it.type.startsWith("image/")) {
                     idleUi.clipboardUi.showImagePreview(null)
                     isClipboardFresh = true
                     val previewKey = ClipboardAdapter.imagePreviewKey(it)
                     clipboardPreviewJob = launch {
                         val bitmap = ClipboardAdapter.loadImagePreview(context, it)
-                        if (ClipboardAdapter.imagePreviewKey(ClipboardManager.lastEntry ?: return@launch) == previewKey) {
+                        if (clipboardItemTimeout.getValue() != 0 &&
+                            ClipboardAdapter.imagePreviewKey(ClipboardManager.lastEntry ?: return@launch) == previewKey
+                        ) {
                             idleUi.clipboardUi.showImagePreview(bitmap)
                         }
                     }
@@ -232,34 +233,34 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         }
 
     @Keep
-    private val onClipboardSuggestionUpdateListener =
-        ManagedPreference.OnChangeListener<Boolean> { _, it ->
-            if (!it) {
-                isClipboardFresh = false
-                evalIdleUiState()
-                clipboardTimeoutJob?.cancel()
-                clipboardTimeoutJob = null
-                clipboardPreviewJob?.cancel()
-                clipboardPreviewJob = null
-            }
-        }
-
-    @Keep
     private val onClipboardTimeoutUpdateListener =
-        ManagedPreference.OnChangeListener<Int> { _, _ ->
-            when (idleUi.currentState) {
-                IdleUi.State.Clipboard -> {
-                    // renew timeout when clipboard suggestion is present
-                    launchClipboardTimeoutJob()
-                }
-
-                else -> {}
+        ManagedPreference.OnChangeListener<Int> { _, timeout ->
+            if (timeout == 0) {
+                clearClipboardSuggestion()
+                evalIdleUiState()
+            } else if (isClipboardFresh) {
+                launchClipboardTimeoutJob()
             }
         }
+
+    private fun clearClipboardSuggestion() {
+        isClipboardFresh = false
+        clipboardTimeoutJob?.cancel()
+        clipboardTimeoutJob = null
+        clipboardPreviewJob?.cancel()
+        clipboardPreviewJob = null
+        idleUi.clipboardUi.showText("")
+    }
 
     private fun launchClipboardTimeoutJob() {
         clipboardTimeoutJob?.cancel()
+        clipboardTimeoutJob = null
         val timeout = clipboardSuggestionTimeoutMillis(clipboardItemTimeout.getValue())
+        if (timeout == 0L) {
+            clearClipboardSuggestion()
+            evalIdleUiState()
+            return
+        }
         // never transition to ClipboardTimedOut state when timeout < 0
         if (timeout < 0L) return
         clipboardTimeoutJob = service.lifecycleScope.launch {
@@ -273,7 +274,7 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
     private fun evalIdleUiState(fromUser: Boolean = false) {
         val newState = when {
             numberRowState == NumberRowState.ForceShow -> IdleUi.State.NumberRow
-            isClipboardFresh -> IdleUi.State.Clipboard
+            isClipboardFresh && clipboardItemTimeout.getValue() != 0 -> IdleUi.State.Clipboard
             isInlineSuggestionPresent -> IdleUi.State.InlineSuggestion
             isCapabilityFlagsPassword && !isKeyboardLayoutNumber && numberRowState != NumberRowState.ForceHide -> IdleUi.State.NumberRow
             else -> IdleUi.State.Toolbar
@@ -866,13 +867,11 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
     override fun onScopeSetupFinished(scope: DynamicScope) {
         ClipboardManager.lastEntry?.let {
             val now = System.currentTimeMillis()
-            val clipboardTimeout = clipboardSuggestionTimeoutMillis(clipboardItemTimeout.getValue())
-            if (clipboardTimeout < 0L || now - it.timestamp < clipboardTimeout) {
+            if (isClipboardSuggestionFresh(it.timestamp, now, clipboardItemTimeout.getValue())) {
                 onClipboardUpdateListener.onUpdate(it)
             }
         }
         ClipboardManager.addOnUpdateListener(onClipboardUpdateListener)
-        clipboardSuggestion.registerOnChangeListener(onClipboardSuggestionUpdateListener)
         clipboardItemTimeout.registerOnChangeListener(onClipboardTimeoutUpdateListener)
         prefs.keyboard.showVoiceInputButton.registerOnChangeListener(onVoiceInputSettingsChanged)
         VoiceInputProviderManager.setUiCallbacks(

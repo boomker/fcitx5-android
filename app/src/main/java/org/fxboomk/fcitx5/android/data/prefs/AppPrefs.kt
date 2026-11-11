@@ -8,7 +8,9 @@ import android.content.SharedPreferences
 import android.os.Build
 import androidx.annotation.Keep
 import androidx.core.content.edit
+import androidx.preference.Preference
 import androidx.preference.PreferenceManager
+import androidx.preference.PreferenceScreen
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.data.InputFeedbacks.InputFeedbackMode
 import org.fxboomk.fcitx5.android.input.candidates.expanded.ExpandedCandidateStyle
@@ -33,6 +35,7 @@ import org.fxboomk.fcitx5.android.input.picker.SymbolCatalogType
 import org.fxboomk.fcitx5.android.input.picker.SymbolPanelStyle
 import org.fxboomk.fcitx5.android.input.popup.EmojiModifier
 import org.fxboomk.fcitx5.android.input.preedit.CompositionAreaStyle
+import org.fxboomk.fcitx5.android.ui.main.settings.EditTextIntPreference
 import org.fxboomk.fcitx5.android.utils.DeviceUtil
 import org.fxboomk.fcitx5.android.utils.appContext
 import org.fxboomk.fcitx5.android.utils.vibrator
@@ -629,23 +632,35 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
             "clipboard_limit_media",
             100,
         ) { clipboardListening.getValue() }
-        val clipboardSuggestion = switch(
-            R.string.clipboard_suggestion, "clipboard_suggestion", true
-        ) { clipboardListening.getValue() }
-        val clipboardItemTimeout = int(
-            R.string.clipboard_suggestion_timeout,
-            "clipboard_item_timeout",
-            3,
-            -1,
-            Int.MAX_VALUE,
-            "s"
-        ) { clipboardListening.getValue() && clipboardSuggestion.getValue() }
+        val clipboardItemTimeout: ManagedPreference<Int> =
+            ClipboardSuggestionTimeoutPreference(sharedPreferences).apply {
+                getValue()
+                register()
+                ManagedPreferenceUi.EditTextInt(
+                    R.string.clipboard_suggestion_timeout,
+                    key,
+                    defaultValue,
+                    -1,
+                    Int.MAX_VALUE,
+                    "s"
+                ) { clipboardListening.getValue() }.registerUi()
+            }
         val clipboardReturnAfterPaste = switch(
             R.string.clipboard_return_after_paste, "clipboard_return_after_paste", false
         ) { clipboardListening.getValue() }
         val clipboardMaskSensitive = switch(
             R.string.clipboard_mask_sensitive, "clipboard_mask_sensitive", true
         ) { clipboardListening.getValue() }
+
+        override fun createUi(screen: PreferenceScreen) {
+            super.createUi(screen)
+            screen.findPreference<EditTextIntPreference>(clipboardItemTimeout.key)?.apply {
+                summaryProvider = Preference.SummaryProvider<EditTextIntPreference> { preference ->
+                    "${EditTextIntPreference.SimpleSummaryProvider.provideSummary(preference)}\n" +
+                        preference.context.getString(R.string.clipboard_suggestion_timeout_summary)
+                }
+            }
+        }
     }
 
     inner class Symbols : ManagedPreferenceCategory(R.string.emoji_and_symbols, sharedPreferences) {

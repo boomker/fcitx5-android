@@ -32,7 +32,9 @@ data class ClipboardEntry(
     @ColumnInfo(defaultValue = "0")
     val deleted: Boolean = false,
     @ColumnInfo(defaultValue = "0")
-    val sensitive: Boolean = false
+    val sensitive: Boolean = false,
+    @ColumnInfo(defaultValue = "0")
+    val favoriteOrder: Long = timestamp
 ) {
     companion object {
         const val BULLET = "•"

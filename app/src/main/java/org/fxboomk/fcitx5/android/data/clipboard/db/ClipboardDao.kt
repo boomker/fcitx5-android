@@ -8,6 +8,7 @@ import androidx.paging.PagingSource
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ClipboardDao {
@@ -22,6 +23,12 @@ interface ClipboardDao {
 
     @Query("UPDATE ${ClipboardEntry.TABLE_NAME} SET timestamp=:timestamp WHERE id=:id")
     suspend fun updateTime(id: Int, timestamp: Long)
+
+    @Query("UPDATE ${ClipboardEntry.TABLE_NAME} SET favoriteOrder=:order WHERE id=:id AND pinned=1")
+    suspend fun updateFavoriteOrder(id: Int, order: Long)
+
+    @Query("SELECT COALESCE(MAX(favoriteOrder), 0) FROM ${ClipboardEntry.TABLE_NAME} WHERE pinned=1")
+    suspend fun maxFavoriteOrder(): Long
 
     @Query("SELECT COUNT(*) FROM ${ClipboardEntry.TABLE_NAME} WHERE deleted=0")
     suspend fun itemCount(): Int
@@ -55,15 +62,29 @@ interface ClipboardDao {
             "WHERE pinned=1 AND deleted=0 " +
             "AND text NOT LIKE 'content://%' AND text NOT LIKE 'file://%' " +
             "AND instr(lower(text), lower(:query)) > 0 " +
-            "ORDER BY timestamp DESC"
+            "ORDER BY favoriteOrder DESC, id DESC"
     )
     suspend fun searchFavoriteTextEntries(query: String): List<ClipboardEntry>
 
     @Query("SELECT * FROM ${ClipboardEntry.TABLE_NAME} WHERE deleted=0 ORDER BY pinned DESC, timestamp DESC")
     fun allEntries(): PagingSource<Int, ClipboardEntry>
 
-    @Query("SELECT * FROM ${ClipboardEntry.TABLE_NAME} WHERE pinned=1 AND deleted=0 ORDER BY timestamp DESC")
+    @Query("SELECT * FROM ${ClipboardEntry.TABLE_NAME} WHERE pinned=1 AND deleted=0 ORDER BY favoriteOrder DESC, id DESC")
     fun favoriteEntries(): PagingSource<Int, ClipboardEntry>
+
+    @Query("SELECT * FROM ${ClipboardEntry.TABLE_NAME} WHERE pinned=1 AND deleted=0 ORDER BY favoriteOrder DESC, id DESC")
+    suspend fun getFavoriteEntries(): List<ClipboardEntry>
+
+    @Query("SELECT * FROM ${ClipboardEntry.TABLE_NAME} WHERE pinned=1 AND deleted=0 ORDER BY favoriteOrder DESC, id DESC")
+    fun observeFavoriteEntries(): Flow<List<ClipboardEntry>>
+
+    @Query(
+        "SELECT * FROM ${ClipboardEntry.TABLE_NAME} " +
+            "WHERE pinned=1 AND deleted=0 " +
+            "AND text NOT LIKE 'content://%' AND text NOT LIKE 'file://%' " +
+            "ORDER BY favoriteOrder DESC, id DESC"
+    )
+    suspend fun getFavoriteTextEntries(): List<ClipboardEntry>
 
     @Query(
         "SELECT * FROM ${ClipboardEntry.TABLE_NAME} " +

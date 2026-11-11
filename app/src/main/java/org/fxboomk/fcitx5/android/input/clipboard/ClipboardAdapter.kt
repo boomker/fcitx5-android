@@ -4,6 +4,7 @@
  */
 package org.fxboomk.fcitx5.android.input.clipboard
 
+import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.content.Context
@@ -12,6 +13,7 @@ import android.os.Build
 import android.util.LruCache
 import android.util.Patterns
 import android.view.ViewGroup
+import android.view.MotionEvent
 import android.widget.PopupMenu
 import androidx.core.net.toUri
 import androidx.paging.PagingDataAdapter
@@ -209,6 +211,11 @@ abstract class ClipboardAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val entry = getItem(position) ?: return
+        bindEntry(holder, entry, draggable = false)
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    private fun bindEntry(holder: ViewHolder, entry: ClipboardEntry, draggable: Boolean) {
         with(holder.entryUi) {
             val displayText = if (entry.isUriEntry()) {
                 compactUriLabel(ctx, entry)
@@ -224,6 +231,13 @@ abstract class ClipboardAdapter(
             holder.thumbnailJob?.cancel()
             holder.boundThumbnailKey = thumbnailKey
             setEntry(displayText, entry.pinned, cachedThumbnail)
+            setDragHandleVisible(draggable)
+            dragHandle.setOnTouchListener { _, event ->
+                if (event.actionMasked == MotionEvent.ACTION_DOWN && draggable) {
+                    onStartDrag(holder)
+                }
+                draggable
+            }
             if (thumbnailKey != null && cachedThumbnail == null) {
                 holder.thumbnailJob = scope.launch {
                     val bitmap = loadImagePreview(ctx, entry)
@@ -232,6 +246,7 @@ abstract class ClipboardAdapter(
                     }
                     if (holder.boundThumbnailKey == thumbnailKey) {
                         holder.entryUi.setEntry(displayText, entry.pinned, bitmap)
+                        holder.entryUi.setDragHandleVisible(draggable)
                     }
                 }
             }
@@ -357,6 +372,70 @@ abstract class ClipboardAdapter(
 
     fun getEntryAt(position: Int) = getItem(position)
 
+    /** Favorites keep a complete, mutable list so dragging also works across page boundaries. */
+    inner class FavoritesAdapter : RecyclerView.Adapter<ViewHolder>() {
+        private var entries = mutableListOf<ClipboardEntry>()
+        private var dragging = false
+        private var orderChanged = false
+
+        init {
+            setHasStableIds(true)
+        }
+
+        override fun getItemCount(): Int = entries.size
+
+        override fun getItemId(position: Int): Long = entries[position].id.toLong()
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder =
+            this@ClipboardAdapter.onCreateViewHolder(parent, viewType)
+
+        override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+            bindEntry(holder, entries[position], draggable = true)
+        }
+
+        override fun onViewRecycled(holder: ViewHolder) {
+            this@ClipboardAdapter.onViewRecycled(holder)
+        }
+
+        fun getEntryAt(position: Int): ClipboardEntry? = entries.getOrNull(position)
+
+        fun submitEntries(updated: List<ClipboardEntry>) {
+            if (dragging) return
+            val previous = entries
+            val diff = DiffUtil.calculateDiff(object : DiffUtil.Callback() {
+                override fun getOldListSize() = previous.size
+                override fun getNewListSize() = updated.size
+                override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int) =
+                    previous[oldItemPosition].id == updated[newItemPosition].id
+                override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int) =
+                    previous[oldItemPosition] == updated[newItemPosition]
+            })
+            entries = updated.toMutableList()
+            diff.dispatchUpdatesTo(this)
+        }
+
+        fun beginDrag() {
+            dragging = true
+            orderChanged = false
+        }
+
+        fun move(from: Int, to: Int): Boolean {
+            if (!dragging || from !in entries.indices || to !in entries.indices || from == to) return false
+            entries.add(to, entries.removeAt(from))
+            orderChanged = true
+            notifyItemMoved(from, to)
+            return true
+        }
+
+        fun changedOrder(): List<Int>? = if (orderChanged) entries.map { it.id } else null
+
+        fun finishDrag(updated: List<ClipboardEntry>) {
+            dragging = false
+            orderChanged = false
+            submitEntries(updated)
+        }
+    }
+
     fun onDetached() {
         scope.cancel()
         popupMenu?.dismiss()
@@ -370,6 +449,8 @@ abstract class ClipboardAdapter(
     abstract fun onPin(id: Int)
 
     abstract fun onUnpin(id: Int)
+
+    open fun onStartDrag(holder: ViewHolder) = Unit
 
     abstract fun onEdit(id: Int)
 

@@ -98,6 +98,15 @@ class ClipboardEntryUi(
         }
     }
 
+    val dragHandle = imageView {
+        visibility = View.GONE
+        contentDescription = ctx.getString(R.string.clipboard_phrase_drag)
+        setPaddingDp(4, 4, 4, 4)
+        imageDrawable = drawable(R.drawable.ic_baseline_drag_handle_24)?.apply {
+            setTint(theme.altKeyTextColor)
+        }
+    }
+
     val layout = constraintLayout {
         add(preview, lParams(matchParent, dp(72)) {
             topOfParent(dp(6))
@@ -112,6 +121,10 @@ class ClipboardEntryUi(
         add(pin, lParams(dp(12), dp(12)) {
             bottomOfParent(dp(2))
             endOfParent(dp(2))
+        })
+        add(dragHandle, lParams(dp(28), dp(28)) {
+            topOfParent()
+            endOfParent()
         })
     }
 
@@ -207,6 +220,19 @@ class ClipboardEntryUi(
                 textView.setPaddingDp(8, 4, 8, 4)
                 root.minimumHeight = ctx.dp(30)
             }
+        }
+    }
+
+    fun setDragHandleVisible(visible: Boolean) {
+        dragHandle.visibility = if (visible) View.VISIBLE else View.GONE
+        if (visible) {
+            pin.visibility = View.GONE
+            textView.setPadding(
+                textView.paddingLeft,
+                textView.paddingTop,
+                ctx.dp(36),
+                textView.paddingBottom
+            )
         }
     }
 }

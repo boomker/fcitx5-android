@@ -86,7 +86,7 @@
     <string name="clipboard_search_local_results">ローカル履歴 · %1$d 件</string>
     <string name="clipboard_search_all_results">すべての履歴 · %1$d 件</string>
     <string name="clipboard_search_auto_all_results">すべての履歴を自動検索 · %1$d 件</string>
-    <string name="clipboard_search_favorite_results">お気に入り · %1$d 件</string>
+    <string name="clipboard_search_favorite_results">定型文 · %1$d 件</string>
     <string name="clipboard_search_remote_results">他のデバイスの履歴 · %1$d 件</string>
     <string name="clipboard_search_media_results">メディア · %1$d 件</string>
     <string name="clipboard_search_category_remote">他のデバイス</string>
@@ -730,9 +730,8 @@
     <string name="cannot_resolve_popup_preset">ポップアッププリセットファイルが見つかりません</string>
     <string name="clear_clp_db_confirm">クリップボードデータベースがピン留めされた項目を含めて完全に消去されます。続行しますか？</string>
     <string name="clipboard_entry_radius">クリップボード項目の角丸半径</string>
-    <string name="clipboard_mask_sensitive">機密情報（パスワードなど）を非表示</string>
+    <string name="clipboard_mask_sensitive">機密情報を非表示</string>
     <string name="clipboard_return_after_paste">貼り付け後にキーボードに戻る</string>
-    <string name="clipboard_suggestion">クリップボードヒントを表示</string>
     <string name="confirm_import_user_data">ユーザーデータをインポートすると、ローカルの設定と入力履歴が上書きされ、アプリの再起動後に有効になります。続行しますか？</string>
     <string name="default_emoji_skin_tone">デフォルトの絵文字スキン色</string>
     <string name="delete_all">すべて削除</string>
@@ -829,7 +828,7 @@
     <string name="update_package_missing">ダウンロード済みの更新パッケージを利用できません。もう一度更新を確認してください</string>
     <string name="update_download_ready">%1$s をダウンロードしました。インストールの準備ができています</string>
     <string name="clipboard_category_all">すべて</string>
-    <string name="clipboard_category_favorites">お気に入り</string>
+    <string name="clipboard_category_favorites">定型文</string>
     <string name="clipboard_category_local">この端末</string>
     <string name="clipboard_category_media">画像・ファイル</string>
     <string name="clipboard_category_remote">他のデバイス</string>
@@ -1263,4 +1262,17 @@
     <string name="wubi_config_space_before_hint">ヒントの前に空白</string>
     <string name="wubi_config_candidate_direction">候補の表示方向</string>
     <string name="wubi_config_keypad_input">テンキー入力</string>
+    <string name="clipboard_phrases">定型文</string>
+    <string name="clipboard_phrase_drag">ドラッグして並べ替え</string>
+    <string name="clipboard_phrases_empty">定型文はまだありません。クリップボードの項目をお気に入りに追加するか、設定からインポートしてください。</string>
+    <string name="import_phrases">定型文をインポート</string>
+    <string name="export_phrases">定型文をエクスポート</string>
+    <string name="import_phrases_summary">JSON またはテキストファイルから定型文を追加</string>
+    <string name="export_phrases_summary">定型文を JSON ファイルに保存</string>
+    <string name="phrases_imported">定型文を %1$d 件インポートしました</string>
+    <string name="phrases_exported">定型文を %1$d 件エクスポートしました</string>
+    <string name="invalid_phrases_file">定型文ファイルの形式が無効です</string>
+    <string name="clipboard_suggestion_timeout_summary">0 は候補を無効にし、-1 はタイムアウトなしを意味します。</string>
+    <string name="import_phrases_failed">定型文をインポートできませんでした</string>
+    <string name="export_phrases_failed">定型文をエクスポートできませんでした</string>
 </resources>

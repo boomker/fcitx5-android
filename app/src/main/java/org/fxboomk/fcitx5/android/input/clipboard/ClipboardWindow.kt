@@ -40,6 +40,7 @@ import org.fxboomk.fcitx5.android.core.FcitxPluginServices
 import org.fxboomk.fcitx5.android.core.data.DataManager
 import org.fxboomk.fcitx5.android.data.clipboard.ClipboardCategory
 import org.fxboomk.fcitx5.android.data.clipboard.ClipboardManager
+import org.fxboomk.fcitx5.android.data.clipboard.ClipboardSearchCategory
 import org.fxboomk.fcitx5.android.data.clipboard.db.ClipboardEntry
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.data.prefs.ManagedPreference
@@ -85,7 +86,8 @@ class ClipboardWindow(
     @Keep
     private val clipboardEnabledListener = ManagedPreference.OnChangeListener<Boolean> { _, it ->
         stateMachine.push(
-            ClipboardListeningUpdated, ClipboardListeningEnabled to it
+            ClipboardListeningUpdated,
+            ClipboardListeningEnabled to (it || currentCategory == ClipboardCategory.Favorites)
         )
     }
 
@@ -98,7 +100,13 @@ class ClipboardWindow(
     private val clipboardEntryRadius by ThemeManager.prefs.clipboardEntryRadius
 
     private var currentCategory = ClipboardCategory.Local
+    private var lastClipboardCategory = ClipboardCategory.Local
     private var adapterSubmitJob: Job? = null
+    private var itemTouchHelper: ItemTouchHelper? = null
+    private var draggedFavoriteHolder: RecyclerView.ViewHolder? = null
+    private var favoriteOrderSaveJob: Job? = null
+
+    private val favoritesAdapter by lazy { adapter.FavoritesAdapter() }
 
     private val adapter: ClipboardAdapter by lazy {
         object : ClipboardAdapter(
@@ -112,6 +120,14 @@ class ClipboardWindow(
 
             override fun onUnpin(id: Int) {
                 service.lifecycleScope.launch { ClipboardManager.unpin(id) }
+            }
+
+            override fun onStartDrag(holder: ViewHolder) {
+                if (currentCategory == ClipboardCategory.Favorites &&
+                    draggedFavoriteHolder == null && favoriteOrderSaveJob?.isActive != true
+                ) {
+                    itemTouchHelper?.startDrag(holder)
+                }
             }
 
             override fun onEdit(id: Int) {
@@ -265,12 +281,43 @@ class ClipboardWindow(
 
     private fun submitCategory(category: ClipboardCategory) {
         if (currentCategory == category && adapterSubmitJob?.isActive == true) return
+        finishFavoriteDrag()
         currentCategory = category
+        if (category != ClipboardCategory.Favorites) lastClipboardCategory = category
+        (ui.recyclerView.layoutManager as StaggeredGridLayoutManager).spanCount =
+            if (category == ClipboardCategory.Favorites) 1 else 2
         ui.setSelectedCategory(category)
+        stateMachine.push(
+            ClipboardListeningUpdated,
+            ClipboardListeningEnabled to
+                (clipboardEnabledPref.getValue() || category == ClipboardCategory.Favorites)
+        )
         adapterSubmitJob?.cancel()
         adapterSubmitJob = service.lifecycleScope.launch(Dispatchers.Main.immediate) {
-            entriesPager(category).flow.collect {
-                adapter.submitData(it)
+            if (category == ClipboardCategory.Favorites) {
+                ui.recyclerView.adapter = favoritesAdapter
+                ClipboardManager.observeFavoriteEntries().collect {
+                    favoritesAdapter.submitEntries(it)
+                    stateMachine.push(ClipboardDbUpdated, ClipboardDbEmpty to it.isEmpty())
+                }
+            } else {
+                ui.recyclerView.adapter = adapter
+                entriesPager(category).flow.collect {
+                    adapter.submitData(it)
+                }
+            }
+        }
+    }
+
+    private fun finishFavoriteDrag() {
+        if (draggedFavoriteHolder == null) return
+        draggedFavoriteHolder = null
+        val ids = favoritesAdapter.changedOrder()
+        favoriteOrderSaveJob = service.lifecycleScope.launch {
+            try {
+                if (ids != null) ClipboardManager.reorderFavorites(ids)
+            } finally {
+                favoritesAdapter.finishDrag(ClipboardManager.getFavoriteEntries())
             }
         }
     }
@@ -319,12 +366,22 @@ class ClipboardWindow(
             }
             setSelectedCategory(currentCategory)
             setOnCategorySelectedListener(::submitCategory)
-            ItemTouchHelper(object : ItemTouchHelper.Callback() {
+            setOnSectionSelectedListener { phrases ->
+                submitCategory(if (phrases) ClipboardCategory.Favorites else lastClipboardCategory)
+            }
+            itemTouchHelper = ItemTouchHelper(object : ItemTouchHelper.Callback() {
+                override fun isLongPressDragEnabled(): Boolean = false
+
                 override fun getMovementFlags(
                     recyclerView: RecyclerView,
                     viewHolder: RecyclerView.ViewHolder
                 ): Int {
-                    return makeMovementFlags(0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT)
+                    val drag = if (currentCategory == ClipboardCategory.Favorites && favoriteOrderSaveJob?.isActive != true) {
+                        ItemTouchHelper.UP or ItemTouchHelper.DOWN
+                    } else {
+                        0
+                    }
+                    return makeMovementFlags(drag, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT)
                 }
 
                 override fun onMove(
@@ -332,18 +389,38 @@ class ClipboardWindow(
                     viewHolder: RecyclerView.ViewHolder,
                     target: RecyclerView.ViewHolder
                 ): Boolean {
-                    return false
+                    if (currentCategory != ClipboardCategory.Favorites) return false
+                    return favoritesAdapter.move(viewHolder.bindingAdapterPosition, target.bindingAdapterPosition)
+                }
+
+                override fun onSelectedChanged(viewHolder: RecyclerView.ViewHolder?, actionState: Int) {
+                    if (actionState == ItemTouchHelper.ACTION_STATE_DRAG && viewHolder != null) {
+                        draggedFavoriteHolder = viewHolder
+                        favoritesAdapter.beginDrag()
+                    }
+                    super.onSelectedChanged(viewHolder, actionState)
+                }
+
+                override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
+                    super.clearView(recyclerView, viewHolder)
+                    if (viewHolder === draggedFavoriteHolder) finishFavoriteDrag()
                 }
 
                 override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-                    val entry = adapter.getEntryAt(viewHolder.bindingAdapterPosition) ?: return
+                    val position = viewHolder.bindingAdapterPosition
+                    if (position == RecyclerView.NO_POSITION) return
+                    val entry = if (currentCategory == ClipboardCategory.Favorites) {
+                        favoritesAdapter.getEntryAt(position)
+                    } else {
+                        adapter.getEntryAt(position)
+                    } ?: return
                     service.lifecycleScope.launch {
                         maybeQueueRemoteMediaSuppression(entry.id)
                         ClipboardManager.delete(entry.id)
                         showUndoSnackbar(entry.id)
                     }
                 }
-            }).attachToRecyclerView(recyclerView)
+            }).also { it.attachToRecyclerView(recyclerView) }
             enableUi.enableButton.setOnClickListener {
                 clipboardEnabledPref.setValue(true)
             }
@@ -353,7 +430,13 @@ class ClipboardWindow(
                 }
             }
             searchButton.setOnClickListener {
-                service.inputView?.openClipboardSearch()
+                service.inputView?.openClipboardSearch(
+                    if (currentCategory == ClipboardCategory.Favorites) {
+                        ClipboardSearchCategory.Favorites
+                    } else {
+                        ClipboardSearchCategory.Local
+                    }
+                )
             }
             settingsButton.setOnClickListener {
                 AppUtil.launchMainToRoute(context, SettingsRoute.Clipboard)
@@ -480,6 +563,9 @@ class ClipboardWindow(
     }
 
     override fun onAttached() {
+        currentCategory = ClipboardCategory.Local
+        lastClipboardCategory = ClipboardCategory.Local
+        ui.setSelectedCategory(currentCategory)
         val isEmpty = ClipboardManager.itemCount == 0
         val isListening = clipboardEnabledPref.getValue()
         val initialState = when {
@@ -493,6 +579,7 @@ class ClipboardWindow(
         // manually switch to initial ui
         ui.switchUiByState(initialState)
         adapter.addLoadStateListener {
+            if (currentCategory == ClipboardCategory.Favorites) return@addLoadStateListener
             // A refresh is not a new empty/non-empty result. Keep the current view
             // until Paging has presented the replacement category.
             if (it.refresh !is LoadState.NotLoading) return@addLoadStateListener
@@ -504,6 +591,7 @@ class ClipboardWindow(
     }
 
     override fun onDetached() {
+        finishFavoriteDrag()
         clipboardEnabledPref.unregisterOnChangeListener(clipboardEnabledListener)
         adapter.onDetached()
         adapterSubmitJob?.cancel()
@@ -511,9 +599,7 @@ class ClipboardWindow(
         snackbarInstance?.dismiss()
     }
 
-    override val title: String by lazy {
-        context.getString(R.string.clipboard)
-    }
+    override fun onCreateLeadingBarExtension(): View = ui.sectionSwitcher
 
     override fun onCreateBarExtension(): View = ui.extension
 }

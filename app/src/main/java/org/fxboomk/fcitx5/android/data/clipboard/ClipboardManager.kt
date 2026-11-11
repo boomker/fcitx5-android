@@ -233,6 +233,47 @@ object ClipboardManager : ClipboardManager.OnPrimaryClipChangedListener,
 
     fun favoriteEntries() = clbDao.favoriteEntries()
 
+    fun observeFavoriteEntries() = clbDao.observeFavoriteEntries()
+
+    suspend fun getFavoriteEntries() = clbDao.getFavoriteEntries()
+
+    suspend fun exportPhrases(): List<String> =
+        clbDao.getFavoriteTextEntries().map { it.text }.filter { it.isNotBlank() }.distinct()
+
+    /** Merge a validated text file without touching the system clipboard or existing favorites. */
+    suspend fun importPhrases(phrases: List<String>): Int {
+        val texts = PhraseTransfer.validate(phrases)
+        return mutex.withLock {
+            val imported = clbDb.withTransaction {
+                val favorites = clbDao.getFavoriteTextEntries().mapTo(mutableSetOf()) { it.text }
+                val timestamp = System.currentTimeMillis()
+                val firstOrder = clbDao.maxFavoriteOrder() + texts.size
+                var added = 0
+                texts.forEachIndexed { index, text ->
+                    if (favorites.add(text)) {
+                        val existing = clbDao.find(text, sensitive = false, source = ClipboardEntry.SOURCE_LOCAL)
+                        if (existing != null) {
+                            clbDao.updatePinStatus(existing.id, true)
+                            clbDao.updateTime(existing.id, timestamp - index)
+                            clbDao.updateFavoriteOrder(existing.id, firstOrder - index)
+                        } else {
+                            clbDao.insert(ClipboardEntry(
+                                text = text,
+                                pinned = true,
+                                timestamp = timestamp - index,
+                                favoriteOrder = firstOrder - index
+                            ))
+                        }
+                        added++
+                    }
+                }
+                added
+            }
+            updateItemCount()
+            imported
+        }
+    }
+
     fun localTextEntries() = clbDao.textEntriesBySource(ClipboardEntry.SOURCE_LOCAL)
 
     fun remoteTextEntries() = clbDao.textEntriesBySource(ClipboardEntry.SOURCE_REMOTE)
@@ -279,7 +320,31 @@ object ClipboardManager : ClipboardManager.OnPrimaryClipChangedListener,
         runCatching { Uri.parse(entry.text) }.getOrNull()
             ?.let { resolveClipboardUriFileName(appContext, it) }
 
-    suspend fun pin(id: Int) = clbDao.updatePinStatus(id, true)
+    suspend fun pin(id: Int) {
+        mutex.withLock {
+            clbDb.withTransaction {
+                val entry = clbDao.get(id) ?: return@withTransaction
+                if (!entry.pinned) {
+                    val order = clbDao.maxFavoriteOrder() + 1
+                    clbDao.updatePinStatus(id, true)
+                    clbDao.updateFavoriteOrder(id, order)
+                }
+            }
+        }
+    }
+
+    suspend fun reorderFavorites(ids: List<Int>) = mutex.withLock {
+        clbDb.withTransaction {
+            val current = clbDao.getFavoriteEntries().associateBy { it.id }
+            // A clipboard update can add or remove favorites during the drag.
+            val requested = ids.toSet()
+            val entries = ids.distinct().mapNotNull { current[it] } +
+                current.values.filter { it.id !in requested }
+            entries.forEachIndexed { index, entry ->
+                clbDao.updateFavoriteOrder(entry.id, (entries.size - index).toLong())
+            }
+        }
+    }
 
     /** Save an explicit text selection as a local favorite without replacing the system clipboard. */
     suspend fun addFavoriteText(text: String): ClipboardEntry? {
@@ -289,12 +354,19 @@ object ClipboardManager : ClipboardManager.OnPrimaryClipChangedListener,
                 val timestamp = System.currentTimeMillis()
                 val existing = clbDao.find(text, sensitive = false, source = ClipboardEntry.SOURCE_LOCAL)
                 if (existing != null) {
+                    val order = if (existing.pinned) existing.favoriteOrder else clbDao.maxFavoriteOrder() + 1
                     clbDao.updatePinStatus(existing.id, true)
                     clbDao.updateTime(existing.id, timestamp)
-                    existing.copy(pinned = true, timestamp = timestamp)
+                    clbDao.updateFavoriteOrder(existing.id, order)
+                    existing.copy(pinned = true, timestamp = timestamp, favoriteOrder = order)
                 } else {
                     // Pin at insertion so a zero local-history limit cannot trim the selection.
-                    val rowId = clbDao.insert(ClipboardEntry(text = text, pinned = true, timestamp = timestamp))
+                    val rowId = clbDao.insert(ClipboardEntry(
+                        text = text,
+                        pinned = true,
+                        timestamp = timestamp,
+                        favoriteOrder = clbDao.maxFavoriteOrder() + 1
+                    ))
                     checkNotNull(clbDao.get(rowId))
                 }
             }

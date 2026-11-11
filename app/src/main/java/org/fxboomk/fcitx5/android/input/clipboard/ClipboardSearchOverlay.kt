@@ -91,10 +91,10 @@ class ClipboardSearchOverlay(
         showInitialState()
     }
 
-    fun open() {
+    fun open(initialCategory: ClipboardSearchCategory = ClipboardSearchCategory.Local) {
         inputState.clear()
-        selectedCategory = ClipboardSearchCategory.Local
-        categoryExplicitlySelected = false
+        selectedCategory = initialCategory
+        categoryExplicitlySelected = initialCategory != ClipboardSearchCategory.Local
         isPinned = false
         ui.panel.translationX = 0f
         ui.panel.translationY = 0f
@@ -103,6 +103,7 @@ class ClipboardSearchOverlay(
         ui.setPinned(isPinned)
         ui.renderInput(inputState)
         showInitialState()
+        if (categoryExplicitlySelected) onInputChanged()
     }
 
     fun close() {

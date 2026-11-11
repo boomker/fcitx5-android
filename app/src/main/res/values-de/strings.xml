@@ -83,7 +83,7 @@
     <string name="clipboard_search_local_results">Lokaler Verlauf · %1$d Ergebnisse</string>
     <string name="clipboard_search_all_results">Gesamter Verlauf · %1$d Ergebnisse</string>
     <string name="clipboard_search_auto_all_results">Gesamten Verlauf automatisch durchsucht · %1$d Ergebnisse</string>
-    <string name="clipboard_search_favorite_results">Favoriten · %1$d Ergebnisse</string>
+    <string name="clipboard_search_favorite_results">Häufige Texte · %1$d Ergebnisse</string>
     <string name="clipboard_search_remote_results">Verlauf anderer Geräte · %1$d Ergebnisse</string>
     <string name="clipboard_search_media_results">Medien · %1$d Ergebnisse</string>
     <string name="clipboard_search_category_remote">Andere Geräte</string>
@@ -628,9 +628,8 @@
     <string name="capture_heap_dump">Heap-Dump erfassen</string>
     <string name="clear_clp_db_confirm">Die Zwischenablage-Datenbank wird vollständig geleert, einschließlich angehefteter Einträge. Fortfahren?</string>
     <string name="clipboard_entry_radius">Eckradius von Zwischenablage-Einträgen</string>
-    <string name="clipboard_mask_sensitive">Sensible Inhalte ausblenden (z. B. Passwörter)</string>
+    <string name="clipboard_mask_sensitive">Sensible Inhalte ausblenden</string>
     <string name="clipboard_return_after_paste">Nach dem Einfügen zurückkehren</string>
-    <string name="clipboard_suggestion">Zwischenablage-Hinweis anzeigen</string>
     <string name="clipboard_suggestion_timeout">Timeout für Zwischenablage-Hinweis</string>
     <string name="configure">Konfigurieren</string>
     <string name="confirm_import_user_data">Beim Importieren von Benutzerdaten werden lokale Einstellungen und Eingabeverlauf überschrieben und die Änderungen werden erst nach einem App-Neustart wirksam. Fortfahren?</string>
@@ -827,7 +826,7 @@
     <string name="update_package_missing">Das heruntergeladene Updatepaket ist nicht verfügbar. Bitte prüfen Sie erneut auf Updates</string>
     <string name="update_download_ready">%1$s heruntergeladen, bereit zur Installation</string>
     <string name="clipboard_category_all">Alle</string>
-    <string name="clipboard_category_favorites">Favoriten</string>
+    <string name="clipboard_category_favorites">Häufige Texte</string>
     <string name="clipboard_category_local">Lokal</string>
     <string name="clipboard_category_media">Bilder und Dateien</string>
     <string name="clipboard_category_remote">Andere Geräte</string>
@@ -1261,4 +1260,17 @@
     <string name="wubi_config_space_before_hint">Leerzeichen vor Hinweisen</string>
     <string name="wubi_config_candidate_direction">Kandidatenrichtung</string>
     <string name="wubi_config_keypad_input">Ziffernblock-Eingabe</string>
+    <string name="clipboard_phrases">Häufige Texte</string>
+    <string name="clipboard_phrase_drag">Zum Sortieren ziehen</string>
+    <string name="clipboard_phrases_empty">Noch keine häufigen Texte. Einträge als Favoriten speichern oder in den Einstellungen importieren.</string>
+    <string name="import_phrases">Häufige Texte importieren</string>
+    <string name="export_phrases">Häufige Texte exportieren</string>
+    <string name="import_phrases_summary">Texte aus einer JSON- oder Textdatei zusammenführen</string>
+    <string name="export_phrases_summary">Häufige Texte als JSON-Datei speichern</string>
+    <string name="phrases_imported">%1$d häufige Texte importiert</string>
+    <string name="phrases_exported">%1$d häufige Texte exportiert</string>
+    <string name="invalid_phrases_file">Ungültige Datei für häufige Texte</string>
+    <string name="clipboard_suggestion_timeout_summary">0 deaktiviert Hinweise; -1 bedeutet kein Zeitlimit.</string>
+    <string name="import_phrases_failed">Häufige Texte konnten nicht importiert werden</string>
+    <string name="export_phrases_failed">Häufige Texte konnten nicht exportiert werden</string>
 </resources>

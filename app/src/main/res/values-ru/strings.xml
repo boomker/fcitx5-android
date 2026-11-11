@@ -87,7 +87,7 @@
     <string name="clipboard_search_local_results">Локальная история · %1$d результатов</string>
     <string name="clipboard_search_all_results">Вся история · %1$d результатов</string>
     <string name="clipboard_search_auto_all_results">Автоматический поиск по всей истории · %1$d результатов</string>
-    <string name="clipboard_search_favorite_results">Избранное · %1$d результатов</string>
+    <string name="clipboard_search_favorite_results">Частые фразы · %1$d результатов</string>
     <string name="clipboard_search_remote_results">История других устройств · %1$d результатов</string>
     <string name="clipboard_search_media_results">Медиафайлы · %1$d результатов</string>
     <string name="clipboard_search_category_remote">Другие устройства</string>
@@ -209,7 +209,6 @@
     <string name="keyboard_bottom_padding">Нижнее поле клавиатуры</string>
     <string name="keyboard_side_padding">Боковое поле клавиатуры</string>
     <string name="physical_keyboard_horizontal_candidate_bar">Сохранять панель инструментов/кандидатов при физической клавиатуре</string>
-    <string name="clipboard_suggestion">Показать предложения буфера обмена</string>
     <string name="disable_addon_warn_title">Отключить дополнение</string>
     <string name="disable_addon_warn_name">Отключение %1$s также приведет к:</string>
     <string name="disable_addon_warn_dep">Отключить %1$s</string>
@@ -321,7 +320,7 @@
     <string name="lang_switch_key_behavior">Поведение клавиши переключения языка</string>
     <string name="lang_switch_behavior_next_ime_app">Переключиться на следующий метод ввода</string>
     <string name="_cannot_be_empty">%1$s не может быть пустым</string>
-    <string name="clipboard_mask_sensitive">Маскировать конфиденциальные данные (например, пароли).</string>
+    <string name="clipboard_mask_sensitive">Скрывать конфиденциальные данные</string>
     <string name="open_rime_user_data_dir">Будет открыт каталог данных приложения. Каталог пользовательских данных RIME находится в директории \"data/rime\".</string>
     <string name="generic_multiselect_min">Необходимо выбрать как минимум %1$d элемент(а).</string>
     <string name="please_wait">Пожалуйста, подождите…</string>
@@ -829,7 +828,7 @@
     <string name="update_package_missing">Загруженный пакет обновления недоступен, проверьте обновления ещё раз</string>
     <string name="update_download_ready">%1$s загружен, готово к установке</string>
     <string name="clipboard_category_all">Все</string>
-    <string name="clipboard_category_favorites">Избранное</string>
+    <string name="clipboard_category_favorites">Частые фразы</string>
     <string name="clipboard_category_local">Локальные</string>
     <string name="clipboard_category_media">Изображения и файлы</string>
     <string name="clipboard_category_remote">Другие устройства</string>
@@ -1263,4 +1262,17 @@
     <string name="wubi_config_space_before_hint">Пробел перед подсказками</string>
     <string name="wubi_config_candidate_direction">Ориентация кандидатов</string>
     <string name="wubi_config_keypad_input">Ввод с цифровой клавиатуры</string>
+    <string name="clipboard_phrases">Частые фразы</string>
+    <string name="clipboard_phrase_drag">Перетащите для изменения порядка</string>
+    <string name="clipboard_phrases_empty">Частых фраз пока нет. Добавьте записи в избранное или импортируйте их в настройках.</string>
+    <string name="import_phrases">Импорт частых фраз</string>
+    <string name="export_phrases">Экспорт частых фраз</string>
+    <string name="import_phrases_summary">Объединить фразы из файла JSON или текстового файла</string>
+    <string name="export_phrases_summary">Сохранить частые фразы в файл JSON</string>
+    <string name="phrases_imported">Импортировано фраз: %1$d</string>
+    <string name="phrases_exported">Экспортировано фраз: %1$d</string>
+    <string name="invalid_phrases_file">Неверный формат файла частых фраз</string>
+    <string name="clipboard_suggestion_timeout_summary">0 отключает подсказки; -1 отменяет тайм-аут.</string>
+    <string name="import_phrases_failed">Не удалось импортировать частые фразы</string>
+    <string name="export_phrases_failed">Не удалось экспортировать частые фразы</string>
 </resources>

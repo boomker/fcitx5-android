@@ -100,7 +100,7 @@
     <string name="clipboard_search_local_results">本机记录，共 %1$d 条</string>
     <string name="clipboard_search_all_results">全部记录，共 %1$d 条</string>
     <string name="clipboard_search_auto_all_results">已自动搜索全部记录，共 %1$d 条</string>
-    <string name="clipboard_search_favorite_results">收藏记录，共 %1$d 条</string>
+    <string name="clipboard_search_favorite_results">常用语，共 %1$d 条</string>
     <string name="clipboard_search_remote_results">远程记录，共 %1$d 条</string>
     <string name="clipboard_search_media_results">图文记录，共 %1$d 条</string>
     <string name="clipboard_search_category_remote">远程</string>
@@ -109,9 +109,9 @@
     <string name="clipboard_search_unpin">取消固定搜索浮窗</string>
     <string name="clipboard_search_no_results">没有找到相关记录</string>
     <string name="clipboard_category_all">全部</string>
-    <string name="clipboard_category_favorites">收藏</string>
+    <string name="clipboard_category_favorites">常用语</string>
     <string name="clipboard_category_local">本机</string>
-    <string name="clipboard_category_media">图文</string>
+    <string name="clipboard_category_media">图片・文件</string>
     <string name="clipboard_category_remote">其他设备</string>
     <string name="clipboard_entry_file">文件</string>
     <string name="clipboard_entry_file_named">文件 · %1$s</string>
@@ -256,7 +256,6 @@
     <string name="keyboard_bottom_padding">键盘底部边距</string>
     <string name="keyboard_side_padding">键盘两侧边距</string>
     <string name="physical_keyboard_horizontal_candidate_bar">使用物理键盘时保留工具/候选栏</string>
-    <string name="clipboard_suggestion">显示剪贴板提示</string>
 
     <!-- Split keyboard settings (refactored) -->
     <string name="split_keyboard_enabled">启用自动分体键盘</string>
@@ -573,7 +572,7 @@
     <string name="lang_switch_key_behavior">语言切换键行为</string>
     <string name="lang_switch_behavior_next_ime_app">切换至下一个输入法应用</string>
     <string name="_cannot_be_empty">%1$s不能为空</string>
-    <string name="clipboard_mask_sensitive">隐藏敏感信息（如密码）</string>
+    <string name="clipboard_mask_sensitive">隐藏敏感信息</string>
     <string name="open_rime_user_data_dir">即将打开应用数据目录。 RIME 用户数据目录位于“data/rime”。</string>
     <string name="generic_multiselect_min">至少需要选择 %1$d 项。</string>
     <string name="please_wait">请稍候…</string>
@@ -1267,4 +1266,17 @@
     <string name="wubi_config_space_before_hint">提示前加空格</string>
     <string name="wubi_config_candidate_direction">候选方向</string>
     <string name="wubi_config_keypad_input">小键盘输入</string>
+    <string name="clipboard_phrases">常用语</string>
+    <string name="clipboard_phrase_drag">拖动排序</string>
+    <string name="clipboard_phrases_empty">暂无常用语，可收藏剪贴板条目或在设置中导入。</string>
+    <string name="import_phrases">导入常用语</string>
+    <string name="export_phrases">导出常用语</string>
+    <string name="import_phrases_summary">从 JSON 或文本文件合并导入</string>
+    <string name="export_phrases_summary">将常用语保存为 JSON 文件</string>
+    <string name="phrases_imported">已导入 %1$d 条常用语</string>
+    <string name="phrases_exported">已导出 %1$d 条常用语</string>
+    <string name="invalid_phrases_file">常用语文件格式无效</string>
+    <string name="clipboard_suggestion_timeout_summary">设为 0 禁用提示，-1 表示永不超时。</string>
+    <string name="import_phrases_failed">无法导入常用语</string>
+    <string name="export_phrases_failed">无法导出常用语</string>
 </resources>

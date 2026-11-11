@@ -15,6 +15,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import org.fxboomk.fcitx5.android.R
+import org.fxboomk.fcitx5.android.data.clipboard.ClipboardSearchCategory
 import org.fxboomk.fcitx5.android.data.clipboard.db.ClipboardEntry
 import org.fxboomk.fcitx5.android.data.theme.ThemePreset
 import org.junit.Assert.assertEquals
@@ -25,6 +26,21 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ClipboardSearchRefreshTest {
+
+    @Test
+    fun openingPhrasesSearchLoadsFavoritesAndDefaultOpeningRestoresLocal() =
+        withOverlay { overlay, _ ->
+            overlay.open(ClipboardSearchCategory.Favorites)
+            val request = searchJob(overlay)
+            assertNotNull(request)
+            assertEquals(ClipboardSearchCategory.Favorites, selectedCategory(overlay))
+            clickCategory(overlay, R.string.clipboard_category_favorites)
+            assertSame(request, searchJob(overlay))
+            overlay.close()
+            overlay.open()
+            assertEquals(ClipboardSearchCategory.Local, selectedCategory(overlay))
+            assertEquals(null, searchJob(overlay))
+        }
 
     @Test
     fun rapidCategorySwitchesKeepPresentedResultsVisible() = withOverlay { overlay, ui ->
@@ -115,6 +131,12 @@ class ClipboardSearchRefreshTest {
         ClipboardSearchOverlay::class.java.getDeclaredField("searchJob").run {
             isAccessible = true
             get(overlay) as Job?
+        }
+
+    private fun selectedCategory(overlay: ClipboardSearchOverlay): ClipboardSearchCategory =
+        ClipboardSearchOverlay::class.java.getDeclaredField("selectedCategory").run {
+            isAccessible = true
+            get(overlay) as ClipboardSearchCategory
         }
 
     private fun withOverlay(block: (ClipboardSearchOverlay, ClipboardSearchUi) -> Unit) =

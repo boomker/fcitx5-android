@@ -5,6 +5,7 @@
 package org.fxboomk.fcitx5.android.input.clipboard
 
 import android.content.Context
+import androidx.annotation.StringRes
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.data.theme.Theme
 import splitties.dimensions.dp
@@ -65,6 +66,10 @@ sealed class ClipboardInstructionUi(override val ctx: Context, protected val the
         private val instructionText = textView {
             setText(R.string.instruction_copy)
             setTextColor(theme.keyTextColor)
+        }
+
+        fun setInstruction(@StringRes textRes: Int) {
+            instructionText.setText(textRes)
         }
 
         override val root = constraintLayout {
