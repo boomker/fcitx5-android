@@ -1276,4 +1276,8 @@
     <string name="clipboard_suggestion_timeout_summary">0은 제안을 끄고, -1은 시간 제한을 없앱니다.</string>
     <string name="import_phrases_failed">문구를 가져올 수 없습니다</string>
     <string name="export_phrases_failed">문구를 내보낼 수 없습니다</string>
+    <string name="shuangpin_keyboard_layout">키보드 배열</string>
+    <string name="shuangpin_keyboard_layout_full">26키</string>
+    <string name="shuangpin_keyboard_layout_compact18">18키 (그룹 쌍병)</string>
+    <string name="shuangpin_key_separator">구분</string>
 </resources>

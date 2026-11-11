@@ -24,6 +24,9 @@ class CustomShuangpinPreferencesFragment : FcitxPreferenceFragment() {
     override fun getPageTitle(): String =
         getString(R.string.custom_shuangpin_tab_preferences)
 
+    override fun getShuangpinKeyboardInputMethod(): String =
+        CustomShuangpinSchemeStore.currentUniqueName()
+
     override fun getConfigLayout(context: Context): ConfigLayout? =
         AddonConfigLayouts.getForInputMethod(
             context,

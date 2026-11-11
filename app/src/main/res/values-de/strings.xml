@@ -1273,4 +1273,8 @@
     <string name="clipboard_suggestion_timeout_summary">0 deaktiviert Hinweise; -1 bedeutet kein Zeitlimit.</string>
     <string name="import_phrases_failed">Häufige Texte konnten nicht importiert werden</string>
     <string name="export_phrases_failed">Häufige Texte konnten nicht exportiert werden</string>
+    <string name="shuangpin_keyboard_layout">Tastaturlayout</string>
+    <string name="shuangpin_keyboard_layout_full">26 Tasten</string>
+    <string name="shuangpin_keyboard_layout_compact18">18 Tasten (gruppiertes Shuangpin)</string>
+    <string name="shuangpin_key_separator">Trennen</string>
 </resources>

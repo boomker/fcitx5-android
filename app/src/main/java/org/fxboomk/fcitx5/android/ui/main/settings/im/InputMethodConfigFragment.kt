@@ -19,6 +19,8 @@ class InputMethodConfigFragment : FcitxPreferenceFragment() {
 
     override fun getPageTitle(): String = args.name
 
+    override fun getShuangpinKeyboardInputMethod(): String = args.uniqueName
+
     override fun getConfigLayout(context: Context): ConfigLayout? =
         AddonConfigLayouts.getForInputMethod(context, args.uniqueName)
 

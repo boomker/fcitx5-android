@@ -24,6 +24,7 @@ import org.fxboomk.fcitx5.android.daemon.FcitxConnection
 import org.fxboomk.fcitx5.android.ui.common.PaddingPreferenceFragment
 import org.fxboomk.fcitx5.android.ui.common.withLoadingDialog
 import org.fxboomk.fcitx5.android.ui.main.MainViewModel
+import org.fxboomk.fcitx5.android.ui.main.settings.im.shuangpinKeyboardLayoutPreference
 import org.fxboomk.fcitx5.android.utils.addPreference
 import org.fxboomk.fcitx5.android.utils.navigateWithAnim
 
@@ -53,6 +54,8 @@ abstract class FcitxPreferenceFragment : PaddingPreferenceFragment() {
 
     /** Scope used to store the app-level preedit style independently. */
     protected open fun getPreeditStyleScope(): PreeditStyleScope? = null
+
+    protected open fun getShuangpinKeyboardInputMethod(): String? = null
 
     abstract suspend fun obtainConfig(fcitx: FcitxAPI): RawConfig
     abstract suspend fun saveConfig(fcitx: FcitxAPI, newConfig: RawConfig)
@@ -149,6 +152,12 @@ abstract class FcitxPreferenceFragment : PaddingPreferenceFragment() {
             } else {
                 preferenceManager.createPreferenceScreen(context).apply {
                     addPreference(R.string.config_addon_not_loaded)
+                }
+            }
+            getShuangpinKeyboardInputMethod()?.let { uniqueName ->
+                shuangpinKeyboardLayoutPreference(context, uniqueName)?.let { preference ->
+                    preference.order = -1
+                    preferenceScreen.addPreference(preference)
                 }
             }
             PreferenceScrollHelper.scrollToPendingPreference(

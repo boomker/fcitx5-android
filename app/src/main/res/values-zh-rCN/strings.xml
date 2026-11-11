@@ -1279,4 +1279,8 @@
     <string name="clipboard_suggestion_timeout_summary">设为 0 禁用提示，-1 表示永不超时。</string>
     <string name="import_phrases_failed">无法导入常用语</string>
     <string name="export_phrases_failed">无法导出常用语</string>
+    <string name="shuangpin_keyboard_layout">键盘布局</string>
+    <string name="shuangpin_keyboard_layout_full">26 键</string>
+    <string name="shuangpin_keyboard_layout_compact18">18 键（分组双拼）</string>
+    <string name="shuangpin_key_separator">分词</string>
 </resources>

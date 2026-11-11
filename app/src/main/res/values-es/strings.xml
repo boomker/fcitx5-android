@@ -1275,4 +1275,8 @@
     <string name="clipboard_suggestion_timeout_summary">0 desactiva las sugerencias; -1 significa sin límite de tiempo.</string>
     <string name="import_phrases_failed">No se pudieron importar las frases frecuentes</string>
     <string name="export_phrases_failed">No se pudieron exportar las frases frecuentes</string>
+    <string name="shuangpin_keyboard_layout">Diseño del teclado</string>
+    <string name="shuangpin_keyboard_layout_full">26 teclas</string>
+    <string name="shuangpin_keyboard_layout_compact18">18 teclas (Shuangpin agrupado)</string>
+    <string name="shuangpin_key_separator">Separar</string>
 </resources>

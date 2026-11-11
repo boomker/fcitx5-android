@@ -58,6 +58,7 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
         val lastNonEnglishIme = string("last_non_english_ime", "")
         val lastNonEnglishSubMode = string("last_non_english_submode", "")
         val lastRimeChineseSubMode = string("last_rime_chinese_submode", "")
+        val compactShuangpinInputMethods = stringSet("compact_shuangpin_input_methods", emptySet())
         val verboseLog = bool("verbose_log", false)
         val pid = int("pid", 0)
         val editorInfoInspector = bool("editor_info_inspector", false)

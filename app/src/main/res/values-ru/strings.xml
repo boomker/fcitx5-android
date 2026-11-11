@@ -1275,4 +1275,8 @@
     <string name="clipboard_suggestion_timeout_summary">0 отключает подсказки; -1 отменяет тайм-аут.</string>
     <string name="import_phrases_failed">Не удалось импортировать частые фразы</string>
     <string name="export_phrases_failed">Не удалось экспортировать частые фразы</string>
+    <string name="shuangpin_keyboard_layout">Раскладка клавиатуры</string>
+    <string name="shuangpin_keyboard_layout_full">26 клавиш</string>
+    <string name="shuangpin_keyboard_layout_compact18">18 клавиш (групповой шуанпинь)</string>
+    <string name="shuangpin_key_separator">Разделить</string>
 </resources>

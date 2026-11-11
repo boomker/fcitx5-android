@@ -425,13 +425,26 @@ AndroidFrontend::AndroidFrontend(Instance *instance)
 
 void AndroidFrontend::keyEvent(const Key &key, bool isRelease, const int timestamp) {
     if (!activeIC_) return;
+    const auto sym = key.sym();
+    const bool compactKey = (sym >= 0x0200e000 && sym <= 0x0200e011) ||
+                            sym == 0x0200e100 || sym == 0x0200e101;
+    if (compactKey) {
+        // Check the actual native IM, since Kotlin's IM update can be queued
+        // behind a key. Protocol keys never fall through as application input.
+        const auto *entry = instance_->inputMethodEntry(activeIC_);
+        if (!key.isVirtual() || !entry || entry->addon() != "pinyin" ||
+            (entry->uniqueName() != "shuangpin" &&
+             entry->uniqueName().compare(0, 10, "shuangpin-") != 0)) {
+            return;
+        }
+    }
     KeyEvent keyEvent(activeIC_, key, isRelease);
     // A Return key (optionally with Ctrl/Shift) can make the active engine commit
     // the preedit as-is; flag commits emitted during that key so the Kotlin layer
     // pads Chinese/English just like it does for a candidate selection.
     ScopedFlag returnGuard(committingViaReturn_, !isRelease && isReturnKey(key));
     activeIC_->keyEvent(keyEvent);
-    if (!keyEvent.accepted()) {
+    if (!keyEvent.accepted() && !compactKey) {
         auto sym = key.sym();
         keyEventCallback(sym, key.states(), Key::keySymToUnicode(sym), isRelease, timestamp);
     }

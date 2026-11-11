@@ -1275,4 +1275,8 @@
     <string name="clipboard_suggestion_timeout_summary">0 は候補を無効にし、-1 はタイムアウトなしを意味します。</string>
     <string name="import_phrases_failed">定型文をインポートできませんでした</string>
     <string name="export_phrases_failed">定型文をエクスポートできませんでした</string>
+    <string name="shuangpin_keyboard_layout">キーボード配列</string>
+    <string name="shuangpin_keyboard_layout_full">26 キー</string>
+    <string name="shuangpin_keyboard_layout_compact18">18 キー（グループ双拼）</string>
+    <string name="shuangpin_key_separator">区切り</string>
 </resources>

@@ -31,6 +31,7 @@ import splitties.views.imageResource
 import kotlinx.serialization.json.*
 import kotlinx.serialization.Serializable
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.utils.LayoutJsonUtils
+import org.fxboomk.fcitx5.android.utils.appContext
 
 internal fun resolveCapsAwareAltText(
     appearance: KeyDef.Appearance.AltText,
@@ -159,6 +160,11 @@ class TextKeyboard private constructor(
                 keyboard.refreshStyle()
                 keyboard.refreshDynamicState()
             }
+        }
+
+        @Synchronized
+        internal fun refreshShuangpinLayout() {
+            refreshAttachedKeyboards()
         }
 
         @Synchronized
@@ -323,6 +329,13 @@ class TextKeyboard private constructor(
             val subModeLabel = layoutSubMode.label
             val subModeName = layoutSubMode.name
             val showLangSwitch = AppPrefs.getInstance().keyboard.showLangSwitchKey.getValue()
+            if (ShuangpinKeyboardLayouts.isCompact(currentIme)) {
+                return Shuangpin18Keys.layout(
+                    showLangSwitch,
+                    Shuangpin18Keys.showSemicolon(currentIme?.uniqueName.orEmpty()),
+                    appContext.getString(R.string.shuangpin_key_separator),
+                )
+            }
             if (imeName != null) {
                 val json = textLayoutJson
                 if (json != null) {
@@ -525,6 +538,7 @@ class TextKeyboard private constructor(
 
     private var punctuationMapping: Map<String, String> = mapOf()
     private var lastLayoutSignature: String? = null
+    private var lastSentShuangpinLayout: Pair<String, Boolean>? = null
     private fun transformPunctuation(p: String) = punctuationMapping.getOrDefault(p, p)
 
     private fun layoutSignature(ime: InputMethodEntry): String {
@@ -539,10 +553,26 @@ class TextKeyboard private constructor(
         }
         val subMode = layoutState.layoutSubMode(ime)
         val subModeLabel = subMode.label.ifEmpty { subMode.name.ifEmpty { "" } }
-        return "$layoutSource|$subModeLabel|${subMode.name}|$lastRawModified"
+        val compact = ShuangpinKeyboardLayouts.isCompact(ime)
+        return "$layoutSource|$subModeLabel|${subMode.name}|$lastRawModified|$compact"
     }
 
     override fun onAction(action: KeyAction, source: KeyActionListener.Source) {
+        val activeIme = currentIme
+        if (activeIme?.addon == "pinyin" && ShuangpinKeyboardLayouts.supports(activeIme.uniqueName)) {
+            val selection = activeIme.uniqueName to ShuangpinKeyboardLayouts.isCompact(activeIme)
+            if (selection != lastSentShuangpinLayout) {
+                // Use the same listener queue as the key so mode changes precede
+                // backspace, space, punctuation and ordinary letters alike.
+                super.onAction(Shuangpin18Keys.modeAction(selection.second), source)
+                lastSentShuangpinLayout = selection
+            }
+        } else {
+            lastSentShuangpinLayout = null
+        }
+        if (action is KeyAction.SymAction && Shuangpin18Keys.indexOf(action.sym) != null &&
+            !ShuangpinKeyboardLayouts.isCompact(currentIme)
+        ) return
         var transformed = action
         when (action) {
             is KeyAction.FcitxKeyAction -> when (source) {
@@ -744,6 +774,7 @@ class TextKeyboard private constructor(
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
+        lastSentShuangpinLayout = null
         registerKeyboard(this)
         showLangSwitchKey.registerOnChangeListener(showLangSwitchKeyListener)
         spaceKeyLabelMode.registerOnChangeListener(spaceKeyLabelModeListener)
@@ -807,6 +838,7 @@ class TextKeyboard private constructor(
     }
 
     override fun onInputMethodUpdate(ime: InputMethodEntry) {
+        lastSentShuangpinLayout = null
         currentIme = ime
         layoutState.ime = ime
         val signature = layoutSignature(ime)

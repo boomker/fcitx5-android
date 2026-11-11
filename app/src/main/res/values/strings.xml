@@ -1400,4 +1400,8 @@
     <string name="clipboard_suggestion_timeout_summary">0 disables suggestions; -1 means no timeout.</string>
     <string name="import_phrases_failed">Could not import common phrases</string>
     <string name="export_phrases_failed">Could not export common phrases</string>
+    <string name="shuangpin_keyboard_layout">Keyboard layout</string>
+    <string name="shuangpin_keyboard_layout_full">26 keys</string>
+    <string name="shuangpin_keyboard_layout_compact18">18 keys (grouped Shuangpin)</string>
+    <string name="shuangpin_key_separator">Separate</string>
 </resources>

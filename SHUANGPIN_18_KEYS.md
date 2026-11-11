@@ -1,0 +1,72 @@
+# 18 键双拼
+
+在输入法列表中打开具体双拼方案的设置，将“键盘布局”设为“18 键”。
+每个内置或自定义双拼方案分别记忆布局，默认仍为 26 键。
+自定义方案在其“偏好设置”页选择布局。
+
+## 布局与输入
+
+```text
+    Q   WE   RT    Y    U   IO    P
+    A   SD   FG    H   JK   L;
+ 分词    Z   XC    V   BN    M  退格
+```
+
+微软双拼的分号与 L 共用分组。其他内置方案只显示 L；自定义方案保留分号入口。
+底行继续使用现有数字、符号、空格、语言切换和回车键。
+
+- 点按分组保留全部可能字母，LibIME 联合词典、语言模型生成候选。
+- 分词键发送普通拼音分隔符；退格和部分选词沿用现有输入链。
+- 长按可选具体字母或符号，划动输入角标；具体字母按普通双拼解释。
+- 原始上屏和组合显示采用 `BN IO` 等分组标签，避免输出内部代表码。
+- 切换布局或改用实体键盘时，先提交已有组合的默认候选，再切换解释方式。
+
+此实现针对 Fcitx 双拼。18 键全拼、9 键和新的手动音节约束界面属于后续迁移阶段。
+
+## 引擎接入
+
+`ShuangpinProfile` 从普通方案投影出分组表，保留多音节映射、半音节、
+零声母及模糊音标志。自定义双拼仍从原 `pinyin/sp.dat` 读取，分组方案在内存中缓存。
+
+`PinyinContext` 独立选择 profile，分组与普通输入共用原有词典、学习和候选路径。
+投影不覆盖共享的普通 profile，也不写入用户自定义双拼文件。
+
+Android 分组键使用 Virtual 专用 KeySym `0x0200E000..0x0200E011`，
+模式通知使用 `0x0200E100`（26 键）和 `0x0200E101`（18 键）。
+这些键值不对应 Unicode 字符；快捷短语等临时模式不会把它们当作文本。
+Android 原生入口核对实际输入法，并消费不属于当前双拼模式的协议事件。
+
+分组模式不使用普通字母快捷码匹配自定义短语，也不提供“置顶为自定义短语”，
+以免把内部代表码保存到普通 26 键配置。词典学习和忘记候选继续有效。
+
+## 验证
+
+Android 验证命令（先完成单元测试和构建，再独立运行 lint）：
+
+```sh
+./gradlew :app:testDebugUnitTest :app:assembleDebug -PbuildABI=arm64-v8a
+./gradlew :app:lintDebug -PbuildABI=arm64-v8a
+```
+
+LibIME 测试：`testshuangpinprofile`、`testpinyinencoder`、`testpinyinime_unit`。
+Fcitx 测试：`testpinyin`、`testgroupedshuangpin`。
+Android 布局和协议测试：`ShuangpinKeyboardLayoutTest`。
+原生 AndroidFrontend 桥接测试位于 `app/src/test/cpp/compact-shuangpin`。
+
+2026-11-11 验证结果：核心和 Fcitx 集成测试通过；Android 全量单元测试
+882/884 通过，18 键目标测试 6 项全部通过；AndroidFrontend 桥接测试通过；
+lint 报告为 0 项问题，arm64 调试 APK 构建成功。
+两项失败均位于已有的 `KeyboardCandidateSettingsOrganizationTest`，涉及语音按钮的设置归类；
+该测试及其依赖的设置列表与开发前版本字节一致，未在本次修改。
+
+独立桥接测试构建方式（需要已安装的 host Fcitx5 和完成构建的 chinese-addons 测试依赖）：
+
+```sh
+cmake -S app/src/test/cpp/compact-shuangpin -B /tmp/fcitx18-bridge \
+  -DCMAKE_PREFIX_PATH=/path/to/host-prefix \
+  -DCHINESE_ADDONS_BINARY_DIR=/path/to/chinese-addons-build
+cmake --build /tmp/fcitx18-bridge
+ctest --test-dir /tmp/fcitx18-bridge --output-on-failure
+```
+
+本次环境未连接 Android 设备，尚未完成实际 APK 的键盘显示、触摸及横竖屏验证。
