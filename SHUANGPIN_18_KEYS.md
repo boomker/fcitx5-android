@@ -26,7 +26,9 @@
 ## 引擎接入
 
 `ShuangpinProfile` 从普通方案投影出分组表，保留多音节映射、半音节、
-零声母及模糊音标志。自定义双拼仍从原 `pinyin/sp.dat` 读取，分组方案在内存中缓存。
+零声母及非冗余模糊音标志。同一音节有准确映射时，准确映射优先，避免
+Android 默认的 QWERTY 纠错把合法的多字候选误判为纠错结果。
+自定义双拼仍从原 `pinyin/sp.dat` 读取，分组方案在内存中缓存。
 
 `PinyinContext` 独立选择 profile，分组与普通输入共用原有词典、学习和候选路径。
 投影不覆盖共享的普通 profile，也不写入用户自定义双拼文件。
@@ -52,6 +54,8 @@ LibIME 测试：`testshuangpinprofile`、`testpinyinencoder`、`testpinyinime_un
 Fcitx 测试：`testpinyin`、`testgroupedshuangpin`。
 Android 布局和协议测试：`ShuangpinKeyboardLayoutTest`。
 原生 AndroidFrontend 桥接测试位于 `app/src/test/cpp/compact-shuangpin`。
+真机 JNI 回归位于 `app/src/androidTest/java/org/fxboomk/fcitx5/android/input/keyboard/Shuangpin18DeviceTest.kt`，
+明确激活独立输入上下文，关闭该测试上下文的学习并在结束时恢复原输入法列表。
 
 2026-11-11 验证结果：核心和 Fcitx 集成测试通过；Android 全量单元测试
 882/884 通过，18 键目标测试 6 项全部通过；AndroidFrontend 桥接测试通过；
@@ -69,4 +73,7 @@ cmake --build /tmp/fcitx18-bridge
 ctest --test-dir /tmp/fcitx18-bridge --output-on-failure
 ```
 
-本次环境未连接 Android 设备，尚未完成实际 APK 的键盘显示、触摸及横竖屏验证。
+2026-11-11 已通过无线 ADB 在 PJA110（Android 16）运行实际 APK：8 项设备回归全部通过，
+覆盖小鹤、微软、自然码连续输入“你好”、输入“中国”、微软分号、退格、分词和部分选词、
+原始上屏、布局模式切换及快捷短语。测试使用手机默认的 QWERTY 纠错配置，
+没有修改用户词典、学习记录或自定义双拼文件。
