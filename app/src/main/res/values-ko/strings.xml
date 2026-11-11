@@ -1279,5 +1279,4 @@
     <string name="shuangpin_keyboard_layout">키보드 배열</string>
     <string name="shuangpin_keyboard_layout_full">26키</string>
     <string name="shuangpin_keyboard_layout_compact18">18키 (그룹 쌍병)</string>
-    <string name="shuangpin_key_separator">구분</string>
 </resources>

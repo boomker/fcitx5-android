@@ -82,6 +82,8 @@ internal class TextKeyboardLayoutState(
 ) {
     private val subModeTracker = RimeSubModeLayoutTracker(subModeStore)
 
+    var useUppercaseLayout = false
+
     var ime: InputMethodEntry? = ime
         set(value) {
             field = value
@@ -105,7 +107,11 @@ internal class TextKeyboardLayoutState(
         subModeTracker.resolve(currentIme)
 
     fun getLayout(theme: Theme): List<List<KeyDef>> =
-        TextKeyboard.getLayout(ime, theme, layoutSubMode())
+        if (useUppercaseLayout && ShuangpinKeyboardLayouts.isCompact(ime)) {
+            TextKeyboard.getDefaultLayout(AppPrefs.getInstance().keyboard.showLangSwitchKey.getValue())
+        } else {
+            TextKeyboard.getLayout(ime, theme, layoutSubMode())
+        }
 
     companion object {
         private val activeSubModeTracker = RimeSubModeLayoutTracker()

@@ -1278,5 +1278,4 @@
     <string name="shuangpin_keyboard_layout">Diseño del teclado</string>
     <string name="shuangpin_keyboard_layout_full">26 teclas</string>
     <string name="shuangpin_keyboard_layout_compact18">18 teclas (Shuangpin agrupado)</string>
-    <string name="shuangpin_key_separator">Separar</string>
 </resources>

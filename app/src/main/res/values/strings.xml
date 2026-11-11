@@ -1403,5 +1403,4 @@
     <string name="shuangpin_keyboard_layout">Keyboard layout</string>
     <string name="shuangpin_keyboard_layout_full">26 keys</string>
     <string name="shuangpin_keyboard_layout_compact18">18 keys (grouped Shuangpin)</string>
-    <string name="shuangpin_key_separator">Separate</string>
 </resources>

@@ -79,7 +79,7 @@ class ShuangpinKeyboardLayoutTest {
     }
 
     @Test
-    fun groupedRowsKeepSourceProportionsAndSeparateWordSeparatorFromGroups() {
+    fun groupedRowsKeepSourceProportionsAndCapsKeepsASyllableSeparatorSwipe() {
         val rows = Shuangpin18Keys.layout(showLangSwitch = true, semicolon = true)
         assertEquals(listOf(7, 6, 7, 6), rows.map { it.size })
         for (row in rows.take(3)) {
@@ -92,8 +92,13 @@ class ShuangpinKeyboardLayoutTest {
         }.filter { Shuangpin18Keys.indexOf(it.sym) != null }
         assertEquals(18, groups.size)
         assertEquals((0..17).toList(), groups.map { Shuangpin18Keys.indexOf(it.sym) })
-        val separator = rows[2].first().behaviors.filterIsInstance<KeyDef.Behavior.Press>().single().action as KeyAction.FcitxKeyAction
-        assertEquals("'", separator.act)
+        val caps = rows[2].first() as CapsKey
+        assertEquals(KeyAction.CapsAction(false),
+            caps.behaviors.filterIsInstance<KeyDef.Behavior.Press>().single().action)
+        assertEquals("'", caps.swipeUpLabel)
+        assertEquals(MacroAction(listOf(MacroStep.Tap(listOf(KeyRef.Fcitx("apostrophe"))))), caps.swipeUp)
+        assertEquals(KeyAction.CapsAction(true),
+            caps.behaviors.filterIsInstance<KeyDef.Behavior.LongPress>().single().action)
         assertFalse((Shuangpin18Keys.layout(false, false)[1].last().appearance as KeyDef.Appearance.Text).displayText.contains(';'))
     }
 }

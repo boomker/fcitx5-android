@@ -91,7 +91,6 @@ internal object Shuangpin18Keys {
     fun layout(
         showLangSwitch: Boolean,
         semicolon: Boolean,
-        separatorLabel: String = "'",
     ): List<List<KeyDef>> {
         fun groupKey(index: Int, width: Float): KeyDef {
             val group = groups[index].let { if (semicolon) it else it.replace(";", "") }
@@ -118,13 +117,10 @@ internal object Shuangpin18Keys {
         return listOf(
             (0..6).map { groupKey(it, 1f / 7) },
             (7..12).map { groupKey(it, 1f / 6) },
-            listOf(KeyDef(
-                KeyDef.Appearance.Text(
-                    separatorLabel, 16f, percentWidth = 0.15f,
-                    variant = KeyDef.Appearance.Variant.Alternative,
-                ),
-                setOf(KeyDef.Behavior.Press(KeyAction.FcitxKeyAction("'"))),
-                arrayOf(KeyDef.Popup.Preview("'")),
+            listOf(CapsKey(
+                percentWidth = 0.15f,
+                swipeUp = MacroAction(listOf(MacroStep.Tap(listOf(KeyRef.Fcitx("apostrophe"))))),
+                swipeUpLabel = "'",
             )) +
                 (13..17).map { groupKey(it, 0.14f) } + BackspaceKey(0.15f),
             TextKeyboard.getDefaultLayout(showLangSwitch).last(),

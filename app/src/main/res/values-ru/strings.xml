@@ -1278,5 +1278,4 @@
     <string name="shuangpin_keyboard_layout">Раскладка клавиатуры</string>
     <string name="shuangpin_keyboard_layout_full">26 клавиш</string>
     <string name="shuangpin_keyboard_layout_compact18">18 клавиш (групповой шуанпинь)</string>
-    <string name="shuangpin_key_separator">Разделить</string>
 </resources>

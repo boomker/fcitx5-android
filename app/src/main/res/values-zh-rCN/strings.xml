@@ -1282,5 +1282,4 @@
     <string name="shuangpin_keyboard_layout">键盘布局</string>
     <string name="shuangpin_keyboard_layout_full">26 键</string>
     <string name="shuangpin_keyboard_layout_compact18">18 键</string>
-    <string name="shuangpin_key_separator">分词</string>
 </resources>

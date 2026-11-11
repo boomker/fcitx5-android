@@ -8,7 +8,9 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.view.View
+import android.view.ViewConfiguration
 import androidx.annotation.Keep
 import androidx.core.view.allViews
 import java.io.File
@@ -31,7 +33,6 @@ import splitties.views.imageResource
 import kotlinx.serialization.json.*
 import kotlinx.serialization.Serializable
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.utils.LayoutJsonUtils
-import org.fxboomk.fcitx5.android.utils.appContext
 
 internal fun resolveCapsAwareAltText(
     appearance: KeyDef.Appearance.AltText,
@@ -333,7 +334,6 @@ class TextKeyboard private constructor(
                 return Shuangpin18Keys.layout(
                     showLangSwitch,
                     Shuangpin18Keys.showSemicolon(currentIme?.uniqueName.orEmpty()),
-                    appContext.getString(R.string.shuangpin_key_separator),
                 )
             }
             if (imeName != null) {
@@ -524,6 +524,7 @@ class TextKeyboard private constructor(
         get() = allViews.filterIsInstance(TextKeyView::class.java).toList()
 
     private var capsState: CapsState = CapsState.None
+    private var lastCompactCapsTapTime: Long? = null
 
     private fun isDisplayCapsOn(): Boolean {
         return capsState != CapsState.None || isSimulatedCapsLockOn()
@@ -560,7 +561,8 @@ class TextKeyboard private constructor(
     override fun onAction(action: KeyAction, source: KeyActionListener.Source) {
         val activeIme = currentIme
         if (activeIme?.addon == "pinyin" && ShuangpinKeyboardLayouts.supports(activeIme.uniqueName)) {
-            val selection = activeIme.uniqueName to ShuangpinKeyboardLayouts.isCompact(activeIme)
+            val selection = activeIme.uniqueName to
+                (ShuangpinKeyboardLayouts.isCompact(activeIme) && !layoutState.useUppercaseLayout)
             if (selection != lastSentShuangpinLayout) {
                 // Use the same listener queue as the key so mode changes precede
                 // backspace, space, punctuation and ordinary letters alike.
@@ -571,7 +573,7 @@ class TextKeyboard private constructor(
             lastSentShuangpinLayout = null
         }
         if (action is KeyAction.SymAction && Shuangpin18Keys.indexOf(action.sym) != null &&
-            !ShuangpinKeyboardLayouts.isCompact(currentIme)
+            (!ShuangpinKeyboardLayouts.isCompact(currentIme) || layoutState.useUppercaseLayout)
         ) return
         var transformed = action
         when (action) {
@@ -618,7 +620,21 @@ class TextKeyboard private constructor(
                     // MacroKey tap Caps_Lock opened lock state: single tap on CapsKey should send Caps_Lock again.
                 } else {
                     val behavior = AppPrefs.getInstance().keyboard.capsKeyBehavior.getValue()
-                    switchCapsState(shouldLockCapsAction(action.lock, behavior))
+                    val compact = ShuangpinKeyboardLayouts.isCompact(currentIme)
+                    val now = SystemClock.uptimeMillis()
+                    // The first tap replaces the compact layout's Caps view.
+                    // Recognize a second tap across that view replacement.
+                    val secondTap = compact && source == KeyActionListener.Source.Keyboard &&
+                        !action.lock && capsState == CapsState.Once &&
+                        lastCompactCapsTapTime?.let {
+                            now - it <= ViewConfiguration.getDoubleTapTimeout()
+                        } == true
+                    val firstTap = compact && !action.lock &&
+                        source == KeyActionListener.Source.Keyboard && capsState == CapsState.None
+                    switchCapsState(shouldLockCapsAction(action.lock || secondTap, behavior))
+                    // Rebuilding the 26-key layout may outlast the tap timeout.
+                    // Start the second-tap window once that key is available.
+                    lastCompactCapsTapTime = if (firstTap) SystemClock.uptimeMillis() else null
                 }
             }
             is KeyAction.CommitAction -> {
@@ -762,14 +778,14 @@ class TextKeyboard private constructor(
     }
 
     override fun onAttach() {
+        lastCompactCapsTapTime = null
         ensureSpecialKeyViewsInitialized()
         capsState = if (getService()?.isVirtualShiftLockOn() == true) {
             CapsState.Lock
         } else {
             CapsState.None
         }
-        updateCapsButtonIcon()
-        updateAlphabetKeys()
+        refreshCapsPresentation()
     }
 
     override fun onAttachedToWindow() {
@@ -828,6 +844,7 @@ class TextKeyboard private constructor(
     }
 
     private fun refreshDynamicState() {
+        syncUppercaseLayout()
         ensureSpecialKeyViewsInitialized()
         updateCapsButtonIcon()
         updateAlphabetKeys()
@@ -923,13 +940,25 @@ class TextKeyboard private constructor(
     }
 
     private fun refreshCapsPresentation() {
+        if (syncUppercaseLayout()) {
+            refreshDynamicState()
+        }
         updateCapsButtonIcon()
         updateAlphabetKeys()
         // 大写切换时同步刷新键面副字符（大写副字符显示）
         updatePunctuationKeys()
     }
 
+    private fun syncUppercaseLayout(): Boolean {
+        val uppercase = ShuangpinKeyboardLayouts.isCompact(currentIme) && capsState != CapsState.None
+        if (layoutState.useUppercaseLayout == uppercase) return false
+        layoutState.useUppercaseLayout = uppercase
+        reloadLayout()
+        return true
+    }
+
     private fun clearLocalCapsState() {
+        lastCompactCapsTapTime = null
         if (capsState == CapsState.None) return
         capsState = CapsState.None
         refreshCapsPresentation()
