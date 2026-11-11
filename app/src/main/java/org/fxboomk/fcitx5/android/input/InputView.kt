@@ -2725,6 +2725,18 @@ class InputView(
         }
 
         outRegion.set(rect)
+        if (preedit.ui.root.visibility == View.VISIBLE && preedit.ui.syllables.visibility == View.VISIBLE) {
+            // The code row sits above keyboardView. Include its exact bounds
+            // so Android delivers syllable clicks instead of sending them to
+            // the editor underneath the fullscreen IME window.
+            val location = IntArray(2)
+            preedit.ui.root.getLocationInWindow(location)
+            outRegion.op(
+                Rect(location[0], location[1], location[0] + preedit.ui.root.width,
+                    location[1] + preedit.ui.root.height),
+                Region.Op.UNION,
+            )
+        }
         aiSuggestionOverlay.unionTouchableRegion(outRegion)
     }
 
