@@ -108,10 +108,7 @@ internal object Shuangpin18Keys {
                 ),
                 arrayOf(
                     KeyDef.Popup.AltPreview(label, corner),
-                    KeyDef.Popup.Keyboard.Explicit(
-                        (group.map { if (it == ';') ":" else it.uppercase() } +
-                            corner + group.map(Char::toString)).distinct().toTypedArray()
-                    ),
+                    KeyDef.Popup.Keyboard.GroupedPreset(group, corner),
                 ),
             )
         }

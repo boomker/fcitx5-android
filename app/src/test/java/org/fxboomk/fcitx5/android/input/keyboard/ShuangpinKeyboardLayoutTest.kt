@@ -128,6 +128,32 @@ class ShuangpinKeyboardLayoutTest {
     }
 
     @Test
+    fun groupedKeysUsePresetBackedPopupKeystrokes() {
+        val groupKeys = Shuangpin18Keys.layout(false, semicolon = true).take(3).flatten()
+            .filter { key ->
+                val action = key.behaviors
+                    .filterIsInstance<KeyDef.Behavior.Press>()
+                    .singleOrNull()?.action as? KeyAction.SymAction
+                action != null && Shuangpin18Keys.indexOf(action.sym) != null
+            }
+
+        assertEquals(18, groupKeys.size)
+        val corners = listOf(
+            "1", "2", "3", "4", "5", "6", "7",
+            "8", "9", "0", "(", ")", "-",
+            "~", "!", "@", "?", ":",
+        )
+        groupKeys.forEachIndexed { index, key ->
+            val grouped = key.popup.orEmpty()
+                .filterIsInstance<KeyDef.Popup.Keyboard.GroupedPreset>()
+                .single()
+            assertEquals(Shuangpin18Keys.groups[index], grouped.group)
+            assertEquals(corners[index], grouped.corner)
+            assertTrue(key.popup.orEmpty().none { it is KeyDef.Popup.Keyboard.Explicit })
+        }
+    }
+
+    @Test
     fun composingReplacesOnlyTheCompactCapsKeyWithATapSeparator() {
         for (semicolon in listOf(false, true)) {
             val caps = Shuangpin18Keys.layout(false, semicolon)[2].first()

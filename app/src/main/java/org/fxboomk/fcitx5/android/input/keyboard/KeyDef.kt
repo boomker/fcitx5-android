@@ -329,6 +329,9 @@ open class KeyDef(
                 Keyboard()
 
             class Explicit(val items: Array<String>) : Keyboard()
+
+            /** Resolve each grouped letter's preset when the popup opens. */
+            class GroupedPreset(val group: String, val corner: String) : Keyboard()
         }
 
         class Menu(val items: Array<Item>) : Popup() {

@@ -193,6 +193,14 @@ class PopupComponent :
                 }
                 labels = keys
             }
+            is KeyDef.Popup.Keyboard.GroupedPreset -> {
+                keys = resolveGroupedPopupPresetCandidates(
+                    keyboard.group, keyboard.corner, popupPresetJson
+                )
+                labels = if (punctuation.enabled) {
+                    Array(keys.size) { punctuation.transform(keys[it]) }
+                } else keys
+            }
         }
         // clear popup preview text OR create empty popup preview
         showingEntryUi[viewId]?.setText("") ?: showPopup(viewId, "", bounds)

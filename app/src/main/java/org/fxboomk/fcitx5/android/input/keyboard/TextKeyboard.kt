@@ -912,7 +912,8 @@ class TextKeyboard private constructor(
                             action
                         }
                     }
-                    is KeyDef.Popup.Keyboard.Explicit -> action
+                    is KeyDef.Popup.Keyboard.Explicit,
+                    is KeyDef.Popup.Keyboard.GroupedPreset -> action
                 }
             }
             is PopupAction.ShowLongPressKeyboardAction -> action

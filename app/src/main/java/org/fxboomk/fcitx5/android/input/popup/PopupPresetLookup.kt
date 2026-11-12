@@ -37,3 +37,19 @@ internal fun resolvePopupPresetCandidates(
     keys.firstNotNullOfOrNull { key -> builtInPresets[key] }?.let { return it }
     return null
 }
+
+internal fun resolveGroupedPopupPresetCandidates(
+    group: String,
+    corner: String,
+    customPresets: Map<String, Array<String>>? = null,
+): Array<String> = buildList {
+    // Keep the existing letter choices and default focus ahead of the presets.
+    addAll(group.map { if (it == ';') ":" else it.uppercase() })
+    add(corner)
+    addAll(group.map(Char::toString))
+    group.forEach { letter ->
+        resolvePopupPresetCandidates(letter.toString(), null, customPresets)?.let {
+            addAll(it)
+        }
+    }
+}.distinct().toTypedArray()

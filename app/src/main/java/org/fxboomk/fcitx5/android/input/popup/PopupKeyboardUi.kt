@@ -24,7 +24,13 @@ import splitties.views.gravityCenter
 import splitties.views.gravityEnd
 import splitties.views.gravityStart
 import kotlin.math.ceil
-import kotlin.math.roundToInt
+
+/** Five keys per row, with the last row allowed to be shorter. */
+internal fun popupRowCount(keyCount: Int): Int = ceil(keyCount / 5f).toInt()
+
+/** Round up so trailing keys are never dropped from the grid. */
+internal fun popupColumnCount(keyCount: Int, rowCount: Int): Int =
+    ceil(keyCount.toFloat() / rowCount).toInt()
 
 /**
  * @param ctx [Context]
@@ -94,9 +100,8 @@ class PopupKeyboardUi(
     private val focusColumn: Int
 
     init {
-        val keyCount: Float = keys.size.toFloat()
-        rowCount = ceil(keyCount / 5).toInt()
-        columnCount = (keyCount / rowCount).roundToInt()
+        rowCount = popupRowCount(keys.size)
+        columnCount = popupColumnCount(keys.size, rowCount)
 
         focusRow = 0
         focusColumn = calcInitialFocusedColumn(columnCount, keyWidth, outerBounds, triggerBounds)
