@@ -559,7 +559,8 @@ class TextKeyboard private constructor(
         val subMode = layoutState.layoutSubMode(ime)
         val subModeLabel = subMode.label.ifEmpty { subMode.name.ifEmpty { "" } }
         val compact = ShuangpinKeyboardLayouts.isCompact(ime)
-        return "$layoutSource|$subModeLabel|${subMode.name}|$lastRawModified|$compact"
+        val semicolon = compact && Shuangpin18Keys.showSemicolon(ime.uniqueName)
+        return "$layoutSource|$subModeLabel|${subMode.name}|$lastRawModified|$compact|$semicolon"
     }
 
     override fun onAction(action: KeyAction, source: KeyActionListener.Source) {

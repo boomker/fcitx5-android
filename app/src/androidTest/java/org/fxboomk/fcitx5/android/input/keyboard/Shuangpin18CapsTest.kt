@@ -11,6 +11,8 @@ import android.view.View
 import android.widget.FrameLayout
 import androidx.core.view.allViews
 import androidx.test.platform.app.InstrumentationRegistry
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.core.FcitxKeyMapping
 import org.fxboomk.fcitx5.android.core.InputMethodEntry
@@ -20,6 +22,11 @@ import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.data.theme.ThemeManager
 import org.fxboomk.fcitx5.android.data.theme.ThemePrefs.PunctuationPosition
 import org.fxboomk.fcitx5.android.data.theme.ThemePreset
+import org.fxboomk.fcitx5.android.input.config.ConfigProviders
+import org.fxboomk.fcitx5.android.input.config.MemoryConfigProvider
+import org.fxboomk.fcitx5.android.input.popup.PopupAction
+import org.fxboomk.fcitx5.android.input.popup.PopupActionListener
+import org.fxboomk.fcitx5.android.input.popup.resolveGroupedPopupPresetCandidates
 import org.fxboomk.fcitx5.android.ui.main.MainActivity
 import org.junit.Assert.*
 import org.junit.Test
@@ -245,6 +252,52 @@ class Shuangpin18CapsTest {
                 assertGroupLabels(scene.keyboard, uppercase = false, semicolon = true)
             }
         }
+
+    @Test
+    fun switchingCompactSchemesRefreshesSemicolonLabelsAndPopups() = withKeyboard { scene ->
+        onMain {
+            val previousProvider = ConfigProviders.provider
+            var shownPopup: KeyDef.Popup.Keyboard? = null
+            scene.keyboard.popupActionListener = PopupActionListener { action ->
+                if (action is PopupAction.ShowKeyboardAction) shownPopup = action.keyboard
+            }
+            fun assertSemicolonVariant(semicolon: Boolean) {
+                assertGroupLabels(scene.keyboard, uppercase = false, semicolon = semicolon)
+                shownPopup = null
+                textKey(scene.keyboard, if (semicolon) "l;" else "l").performLongClick()
+                assertTrue("The current key did not open its grouped popup",
+                    shownPopup is KeyDef.Popup.Keyboard.GroupedPreset)
+                val preset = shownPopup as KeyDef.Popup.Keyboard.GroupedPreset
+                assertEquals(if (semicolon) "l;" else "l", preset.group)
+                assertEquals("The literal semicolon must follow the active scheme", semicolon,
+                    ";" in resolveGroupedPopupPresetCandidates(preset.group, preset.corner))
+            }
+            try {
+                val compact = AppPrefs.getInstance().internal.compactShuangpinInputMethods
+                compact.setValue(compact.getValue() + "shuangpin-ms")
+                val layouts = listOf(
+                    JsonObject(emptyMap()),
+                    JsonObject(mapOf("shuangpin" to JsonArray(emptyList()))),
+                )
+                for (json in layouts) {
+                    ConfigProviders.provider = MemoryConfigProvider(json, previousProvider)
+                    scene.keyboard.onInputMethodUpdate(entry(XIAOHE, "pinyin"))
+                    layout(scene.keyboard)
+                    assertSemicolonVariant(false)
+                    scene.keyboard.onInputMethodUpdate(entry("shuangpin-ms", "pinyin"))
+                    layout(scene.keyboard)
+                    assertSemicolonVariant(true)
+                    scene.keyboard.onInputMethodUpdate(entry(XIAOHE, "pinyin"))
+                    layout(scene.keyboard)
+                    assertSemicolonVariant(false)
+                }
+            } finally {
+                scene.keyboard.popupActionListener = null
+                ConfigProviders.provider = previousProvider
+                TextKeyboard.invalidateLayoutCache()
+            }
+        }
+    }
 
     private fun assertGroupLabels(keyboard: TextKeyboard, uppercase: Boolean, semicolon: Boolean) {
         val expected = listOf("q", "we", "rt", "y", "u", "io", "p", "a", "sd", "fg", "h", "jk",
