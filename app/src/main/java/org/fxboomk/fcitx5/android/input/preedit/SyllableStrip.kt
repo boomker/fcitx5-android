@@ -29,14 +29,13 @@ internal fun preeditSyllableActions(
     enabled: Boolean,
 ): List<CandidateAction> {
     if (!enabled) return emptyList()
-    val syllables = tabs.filter { action ->
-        action.id >= 0 && action.isCheckable && !action.isSeparator &&
+    return tabs.filter { action ->
+        action.id >= 0 && !action.isSeparator &&
             action.text.isNotEmpty() && action.text.all { it in 'a'..'z' || it == 'ü' || it == ':' }
     }
-    return syllables.takeIf { it.size > 1 }.orEmpty()
 }
 
-/** The current native candidate filters, with the same IDs as the expanded candidate panel. */
+/** The current native syllable actions, with the same IDs as the expanded candidate panel. */
 @SuppressLint("ViewConstructor")
 internal class SyllableStrip(context: Context, private val theme: Theme) : HorizontalScrollView(context) {
     var onSelect: ((CandidateAction, FcitxEvent.InputPanelEvent.Data) -> Unit)? = null
@@ -54,7 +53,7 @@ internal class SyllableStrip(context: Context, private val theme: Theme) : Horiz
 
     fun update(panel: FcitxEvent.InputPanelEvent.Data, enabled: Boolean) {
         val actions = preeditSyllableActions(panel.tabs, enabled && panel.preedit.isNotEmpty())
-        if (shownPanel == panel && shownActions == actions) return
+        if (shownPanel === panel && shownActions == actions) return
         shownPanel = panel
         shownActions = actions
         // A pressed or queued click belongs to the previous candidate list.
@@ -77,8 +76,8 @@ internal class SyllableStrip(context: Context, private val theme: Theme) : Horiz
             override fun onInitializeAccessibilityNodeInfo(info: AccessibilityNodeInfo) {
                 super.onInitializeAccessibilityNodeInfo(info)
                 info.className = Button::class.java.name
-                info.isCheckable = true
-                info.isChecked = isActivated
+                info.isCheckable = action.isCheckable
+                info.isChecked = action.isChecked
             }
         }.apply {
             text = action.text
@@ -100,7 +99,7 @@ internal class SyllableStrip(context: Context, private val theme: Theme) : Horiz
             }
             layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
             setOnClickListener {
-                if (shownPanel == panel && action in shownActions) onSelect?.invoke(action, panel)
+                if (shownPanel === panel && action in shownActions) onSelect?.invoke(action, panel)
             }
         }
 }

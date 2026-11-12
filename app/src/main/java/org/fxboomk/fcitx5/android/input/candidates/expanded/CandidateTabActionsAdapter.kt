@@ -34,10 +34,12 @@ abstract class CandidateTabActionsAdapter(val theme: Theme, val indicatorStyle: 
     RecyclerView.Adapter<CandidateTabActionsAdapter.TabActionViewHolder>() {
 
     private var tabs = listOf<CandidateAction>()
+    private var generation = 0L
 
     @SuppressLint("NotifyDataSetChanged")
     fun updateTabs(newTabs: List<CandidateAction>) {
         tabs = newTabs
+        generation++
         notifyDataSetChanged()
     }
 
@@ -67,10 +69,13 @@ abstract class CandidateTabActionsAdapter(val theme: Theme, val indicatorStyle: 
             private set
 
         fun update(tab: CandidateAction) {
+            val boundGeneration = generation
             tabAction = tab
             ui.update(tab)
             ui.root.setOnClickListener {
-                onTriggerTabAction(tab.id)
+                if (boundGeneration == generation && tabAction == tab && tab in tabs) {
+                    onTriggerTabAction(tab.id)
+                }
             }
         }
 

@@ -31,7 +31,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Verify the shipped JNI formatter, display option and existing native syllable filters. */
+/** Verify the shipped JNI formatter, display option and ordered native syllable confirmations. */
 class Shuangpin18PreeditTest {
     @Test
     fun defaultPreeditUsesTheDecodedOrdinaryShuangpinKeys() = withIme(XIAOHE) {
@@ -76,24 +76,135 @@ class Shuangpin18PreeditTest {
         }
 
     @Test
-    fun selectingASyllableUpdatesTheCodeAndRepeatingItCancelsTheFilter() = withIme(XIAOHE) {
+    fun syllablesAreConfirmedFromTheFirstPairToTheNext() = withIme(XIAOHE) {
         grouped("nihc")
         awaitPreedit("ni hc")
-        awaitPanel("the bi alternative") { it.tabs.any { action -> action.id >= 0 && action.text == "bi" } }
-        val before = getCandidates(0, CANDIDATE_LIMIT).map { it.text }
-        val bi = inputPanelCached.tabs.single { it.id >= 0 && it.isCheckable && it.text == "bi" }
-        triggerCandidateListTabAction(bi.id)
-        awaitPreedit("the selected bi syllable") { it.startsWith("bi ") }
-        awaitPanel("the bi filter checked state") {
-            it.tabs.any { action -> action.id == bi.id && action.isChecked }
+        pickSyllable("bi")
+        awaitPreedit("the confirmed first bi syllable") { it.startsWith("bi ") }
+        awaitPanel("the second pair's syllables") {
+            it.tabs.any { action -> action.text == "hua" } &&
+                it.tabs.none { action -> action.text == "bi" || action.text == "ni" }
         }
-        assertFalse("The ni candidate survived a bi filter", getCandidates(0, CANDIDATE_LIMIT).any { it.text == "你好" })
+        assertFalse("The ni candidate survived confirming bi", getCandidates(0, CANDIDATE_LIMIT).any { it.text == "你好" })
 
-        triggerCandidateListTabAction(bi.id)
+        pickSyllable("hua")
+        awaitPreedit("bi hx")
+        awaitPanel("all syllables confirmed") { it.tabs.none { action -> action.id >= 0 } }
+        assertTrue("Confirming both syllables left no candidate", getCandidates(0, CANDIDATE_LIMIT).isNotEmpty())
+    }
+
+    @Test
+    fun backspaceGivesBackTheLastConfirmedPairFirst() = withIme(XIAOHE) {
+        grouped("nihc")
         awaitPreedit("ni hc")
-        awaitPanel("the cancelled bi filter") { it.tabs.none { action -> action.id == bi.id && action.isChecked } }
-        assertEquals("Cancelling the filter must restore all candidates", before,
-            getCandidates(0, CANDIDATE_LIMIT).map { it.text })
+        pickSyllable("bi")
+        pickSyllable("hua")
+        awaitPreedit("bi hx")
+
+        nextPanel("the last pair given back") { press("BackSpace") }
+        awaitPreedit("the first bi confirmation kept") { it.startsWith("bi ") }
+        awaitPanel("the second pair offered again") {
+            it.tabs.any { action -> action.text == "hua" } &&
+                it.tabs.none { action -> action.text == "bi" || action.text == "ni" }
+        }
+        assertFalse(getCandidates(0, CANDIDATE_LIMIT).any { it.text == "你好" })
+
+        nextPanel("the first pair given back") { press("BackSpace") }
+        awaitPreedit("ni hc")
+        awaitPanel("the first pair offered again") { it.tabs.any { action -> action.text == "bi" } }
+        assertTrue(getCandidates(0, CANDIDATE_LIMIT).any { it.text == "你好" })
+    }
+
+    @Test
+    fun keysTypedAfterAConfirmationAreDeletedBeforeGivingItBack() = withIme(XIAOHE) {
+        grouped("nihc")
+        pickSyllable("bi")
+        pickSyllable("hua")
+        awaitPreedit("bi hx")
+        grouped("ni")
+        awaitPreedit("a new pair after both confirmations") { it.startsWith("bi hx ") && it.length > 6 }
+
+        nextPanel("the last newly typed key deleted") { press("BackSpace") }
+        awaitPreedit("both confirmations kept after deleting one new key") { it.startsWith("bi hx ") }
+        nextPanel("the other newly typed key deleted") { press("BackSpace") }
+        awaitPreedit("bi hx")
+        awaitPanel("both original pairs still confirmed") { it.tabs.none { action -> action.id >= 0 } }
+
+        nextPanel("the last confirmation given back after new keys") { press("BackSpace") }
+        awaitPanel("hua offered again") { it.tabs.any { action -> action.text == "hua" } }
+    }
+
+    @Test
+    fun theSameSyllableCanBeConfirmedForRepeatedPairs() = withIme(XIAOHE) {
+        grouped("nini")
+        pickSyllable("bi")
+        awaitPreedit("bi confirmed only in the first pair") { it.startsWith("bi ") }
+        pickSyllable("bi")
+        awaitPreedit("bi bi")
+        awaitPanel("both repeated pairs confirmed") { it.tabs.none { action -> action.id >= 0 } }
+
+        nextPanel("the second repeated pair given back") { press("BackSpace") }
+        awaitPreedit("the first repeated pair still confirmed") { it.startsWith("bi ") }
+        awaitPanel("the second bi available again") { it.tabs.any { action -> action.text == "bi" } }
+    }
+
+    @Test
+    fun aPartialWordLeavesOnlyItsRemainingPairToConfirm() = withIme(XIAOHE) {
+        grouped("nihc")
+        pickSyllable("ni")
+        val index = getCandidates(0, CANDIDATE_LIMIT).indexOfFirst { it.text == "你" }
+        assertTrue("Partial candidate 你 is missing", index >= 0)
+        nextPanel("the partial word kept") {
+            assertTrue("Partial selection was rejected", select(index))
+        }
+        awaitPreedit("你hc")
+        pickSyllable("hua")
+        awaitPreedit("你hx")
+        awaitPanel("the remaining pair confirmed") { it.tabs.none { action -> action.id >= 0 } }
+        assertFalse("好 survived confirming hua", getCandidates(0, CANDIDATE_LIMIT).any { it.text == "好" })
+        completeWithWord("花", "你花")
+    }
+
+    @Test
+    fun completePinyinDisplayKeepsTheSameConfirmationOrder() = withIme(XIAOHE, completePinyin = true) {
+        grouped("nihc")
+        awaitPreedit("ni hao")
+        pickSyllable("bi")
+        awaitPreedit("the first confirmation in complete pinyin") { it.startsWith("bi ") }
+        pickSyllable("hua")
+        awaitPreedit("bi hua")
+        awaitPanel("complete-pinyin syllables all confirmed") { it.tabs.none { action -> action.id >= 0 } }
+    }
+
+    @Test
+    fun anInvalidPairOffersItsFirstSingleKeyAndKeepsTheOriginalCode() = withIme(XIAOHE) {
+        // QWERTY correction can turn wp into a valid pair. Exercise the
+        // parser's single-key fallback with correction disabled for this test.
+        val config = getImConfig(XIAOHE)["cfg"].deepCopy().apply {
+            getOrCreate("Fuzzy").getOrCreate("Correction").value = "None"
+        }
+        setImConfig(XIAOHE, config)
+        reset()
+        mode(true)
+        grouped("wp")
+        pickSyllable("w")
+        awaitPreedit("w p")
+        awaitPanel("the second single key after confirming w") {
+            it.tabs.any { action -> action.id >= 0 && action.text == "p" } &&
+                it.tabs.none { action -> action.text == "w" }
+        }
+        pickSyllable("p")
+        awaitPreedit("w p")
+        awaitPanel("both single-key syllables confirmed") { it.tabs.none { action -> action.id >= 0 } }
+        coroutineScope {
+            val commit = async(start = CoroutineStart.UNDISPATCHED) {
+                withTimeout(EVENT_TIMEOUT_MS) {
+                    eventFlow.filterIsInstance<FcitxEvent.CommitStringEvent>().first().data.text
+                }
+            }
+            press("Return")
+            assertEquals("WE P", commit.await())
+        }
     }
 
     @Test
@@ -240,6 +351,26 @@ class Shuangpin18PreeditTest {
     private suspend fun FcitxAPI.press(key: String) {
         sendKey(key, states = KeyStates.Virtual.states)
         sendKey(key, states = KeyStates.Virtual.states, up = true)
+    }
+
+    private suspend fun FcitxAPI.pickSyllable(text: String) {
+        awaitPanel("the pending $text syllable") { it.tabs.any { action -> action.id >= 0 && action.text == text } }
+        val action = inputPanelCached.tabs.single { it.id >= 0 && it.text == text }
+        assertFalse("A confirmation is not a toggle", action.isCheckable)
+        assertFalse("A pending syllable is not already confirmed", action.isChecked)
+        nextPanel("the panel after confirming $text") { triggerCandidateListTabAction(action.id) }
+    }
+
+    private suspend fun FcitxAPI.nextPanel(description: String, action: suspend FcitxAPI.() -> Unit) = coroutineScope {
+        val before = inputPanelCached
+        val updated = async(start = CoroutineStart.UNDISPATCHED) {
+            withTimeout(EVENT_TIMEOUT_MS) {
+                eventFlow.filterIsInstance<FcitxEvent.InputPanelEvent>().first { it.data !== before }
+            }
+        }
+        action()
+        updated.await()
+        awaitPanel(description) { it !== before }
     }
 
     private suspend fun FcitxAPI.completeWithWord(word: String, expected: String) {

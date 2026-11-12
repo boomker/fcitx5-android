@@ -72,6 +72,7 @@ abstract class BaseExpandedCandidateWindow<T : BaseExpandedCandidateWindow<T>> :
     protected val disableAnimation by AppPrefs.getInstance().advanced.disableAnimation
 
     private lateinit var candidateLayout: ExpandedCandidateLayout
+    private var shownPanel: FcitxEvent.InputPanelEvent.Data? = null
 
     protected val dividerDrawable by lazy {
         ShapeDrawable(RectShape()).apply {
@@ -127,7 +128,7 @@ abstract class BaseExpandedCandidateWindow<T : BaseExpandedCandidateWindow<T>> :
     val tabsAdapter by lazy {
         object : CandidateTabActionsAdapter(theme, false) {
             override fun onTriggerTabAction(id: Int) {
-                fcitx.launchOnReady { it.triggerCandidateListTabAction(id) }
+                triggerTabAction(id)
             }
         }
     }
@@ -135,12 +136,22 @@ abstract class BaseExpandedCandidateWindow<T : BaseExpandedCandidateWindow<T>> :
     val pinnedTabsAdapter by lazy {
         object : CandidateTabActionsAdapter(theme, true) {
             override fun onTriggerTabAction(id: Int) {
-                fcitx.launchOnReady { it.triggerCandidateListTabAction(id) }
+                triggerTabAction(id)
             }
         }
     }
 
-    private fun updateTabs(newTabs: Array<CandidateAction>) {
+    private fun triggerTabAction(id: Int) {
+        val panel = shownPanel ?: return
+        fcitx.launchOnReady {
+            // Identical labels can represent the next pair after a confirmation.
+            if (it.inputPanelCached === panel) it.triggerCandidateListTabAction(id)
+        }
+    }
+
+    private fun updateTabs(panel: FcitxEvent.InputPanelEvent.Data) {
+        shownPanel = panel
+        val newTabs = panel.tabs
         val tabs = newTabs.takeWhile { !it.isSeparator }
         val pinnedTabs = newTabs.drop(tabs.size + 1).filter { !it.isSeparator }
         if (tabs.isEmpty() && pinnedTabs.isEmpty()) {
@@ -182,7 +193,7 @@ abstract class BaseExpandedCandidateWindow<T : BaseExpandedCandidateWindow<T>> :
             it.onReturnDrawableUpdate(returnKeyDrawable.resourceId)
             it.keyActionListener = keyActionListener
         }
-        updateTabs(fcitx.runImmediately { inputPanelCached.tabs })
+        updateTabs(fcitx.runImmediately { inputPanelCached })
         offsetJob = service.lifecycleScope.launch {
             horizontalCandidate.expandedCandidateOffset.collect {
                 if (it <= 0 && !shouldKeepExpandedForAiSuggestion()) {
@@ -224,6 +235,7 @@ abstract class BaseExpandedCandidateWindow<T : BaseExpandedCandidateWindow<T>> :
     }
 
     override fun onDetached() {
+        shownPanel = null
         bar.expandButtonStateMachine.push(
             ExpandedCandidatesDetached,
             ExpandedCandidatesEmpty to (horizontalCandidate.adapter.total == adapter.offset)
@@ -242,7 +254,7 @@ abstract class BaseExpandedCandidateWindow<T : BaseExpandedCandidateWindow<T>> :
     }
 
     override fun onInputPanelUpdate(data: FcitxEvent.InputPanelEvent.Data) {
-        updateTabs(data.tabs)
+        updateTabs(data)
     }
 
     fun dismissExpandedCandidateToToolbar() {

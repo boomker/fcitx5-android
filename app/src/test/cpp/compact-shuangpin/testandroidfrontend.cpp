@@ -52,11 +52,14 @@ int main() {
     frontend.activateInputContext(18, "compact-shuangpin-host-test");
     auto *ic = frontend.activeInputContext();
     FCITX_ASSERT(ic);
+    ic->setCapabilityFlags(CapabilityFlag::Preedit);
     frontend.focusInputContext(true);
     instance.setCurrentInputMethod(ic, "shuangpin", true);
     RawConfig config;
     config.setValueByPath("ShuangpinProfile", "Xiaohe");
     config.setValueByPath("Prediction", "False");
+    config.setValueByPath("PreeditMode", "Composing pinyin");
+    config.setValueByPath("PinyinInPreedit", "False");
     instance.inputMethodEngine(ic)->setConfigForInputMethod(
         *instance.inputMethodEntry(ic), config);
     frontend.resetInputContext();
@@ -81,6 +84,68 @@ int main() {
         static_cast<int>(std::distance(candidates.begin(), nihao))));
     FCITX_ASSERT(commits == std::vector<std::string>{"你好"});
     FCITX_ASSERT(forwardedKeys == 0);
+
+    // Syllables confirm successive input positions, including positions with
+    // the same compact code. Fetch each action from the current list.
+    const auto typeNiHao = [&sendCompact]() {
+      for (int index : {16, 5, 10, 14}) {
+        sendCompact(static_cast<KeySym>(0x0200e000 + index));
+      }
+    };
+    const auto syllables = [ic]() {
+      auto list = ic->inputPanel().candidateList();
+      FCITX_ASSERT(list && list->toTabbed());
+      std::vector<CandidateAction> result;
+      for (const auto &action : list->toTabbed()->tabActions()) {
+        if (action.id() >= 0) result.push_back(action);
+      }
+      return result;
+    };
+    const auto confirm = [&frontend, &syllables](const std::string &text) {
+      const auto actions = syllables();
+      auto action = std::find_if(actions.begin(), actions.end(),
+                                [&text](const auto &item) {
+                                  return item.text() == text;
+                                });
+      FCITX_ASSERT(action != actions.end());
+      FCITX_ASSERT(!action->isCheckable());
+      frontend.triggerCandidateListTabAction(action->id());
+    };
+    typeNiHao();
+    confirm("bi");
+    auto second = syllables();
+    FCITX_ASSERT(std::none_of(second.begin(), second.end(), [](const auto &a) {
+      return a.text() == "bi" || a.text() == "ni";
+    }));
+    confirm("hua");
+    FCITX_ASSERT(syllables().empty());
+    FCITX_ASSERT(ic->inputPanel().clientPreedit().toString() == "bi hx")
+        << ic->inputPanel().clientPreedit().toString();
+    FCITX_ASSERT(commits == std::vector<std::string>{"你好"});
+    frontend.keyEvent(Key(FcitxKey_BackSpace, KeyState::Virtual), false, 0);
+    FCITX_ASSERT(!syllables().empty());
+    FCITX_ASSERT(ic->inputPanel().clientPreedit().toString().starts_with("bi "));
+    frontend.keyEvent(Key(FcitxKey_BackSpace, KeyState::Virtual), false, 0);
+    auto first = syllables();
+    FCITX_ASSERT(std::any_of(first.begin(), first.end(), [](const auto &a) {
+      return a.text() == "bi";
+    }));
+    frontend.resetInputContext();
+    for (int index : {16, 5, 16, 5}) {
+      sendCompact(static_cast<KeySym>(0x0200e000 + index));
+    }
+    confirm("bi");
+    confirm("ni");
+    FCITX_ASSERT(syllables().empty());
+    FCITX_ASSERT(ic->inputPanel().clientPreedit().toString() == "bi ni");
+    frontend.resetInputContext();
+    // An invalid two-key pair still offers the parser's first single key.
+    sendCompact(static_cast<KeySym>(0x0200e001)); // WE
+    sendCompact(static_cast<KeySym>(0x0200e006)); // P
+    confirm("w");
+    confirm("p");
+    FCITX_ASSERT(syllables().empty());
+    frontend.resetInputContext();
 
     // A queued layout update must not send compact keys to a different IM.
     instance.setCurrentInputMethod(ic, "pinyin", true);

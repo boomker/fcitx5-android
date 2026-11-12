@@ -51,7 +51,7 @@ class PreeditComponent : UniqueComponent<PreeditComponent>(), Dependent, InputBr
                 service.postFcitxJob {
                     val actualIme = currentIme()
                     if (actualIme.uniqueName == expectedIme &&
-                        ShuangpinKeyboardLayouts.isCompact(actualIme) && inputPanelCached == panel &&
+                        ShuangpinKeyboardLayouts.isCompact(actualIme) && inputPanelCached === panel &&
                         inputPanelCached.tabs.any { it == action }
                     ) {
                         triggerCandidateListTabAction(action.id)
