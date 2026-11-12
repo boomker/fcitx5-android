@@ -130,7 +130,9 @@ open class KeyDef(
             /** Uppercase MacroKey letters stay fixed; lowercase letters follow Caps. */
             val caseAwareCapsState: Boolean = false,
             /** Keep an explicitly configured display label in its configured case. */
-            val preserveConfiguredDisplayCase: Boolean = false
+            val preserveConfiguredDisplayCase: Boolean = false,
+            /** Grouped letter labels share alphabet casing and font scaling, including "l;". */
+            val isLetterGroup: Boolean = false
         ) : Text(
             displayText,
             textSize,

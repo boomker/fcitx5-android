@@ -54,6 +54,10 @@ internal fun resolveCapsAwareAltText(
     }
     if (!appearance.followsCapsState) return appearance.displayText
 
+    if (appearance.isLetterGroup) {
+        return if (keepLettersUppercase || displayUppercase) displayText.uppercase() else displayText.lowercase()
+    }
+
     val character = appearance.character
     val displayIsSingleLetter = displayText.length == 1 && displayText[0].isLetter()
     val characterIsSingleLetter = sourceFromAppearance &&

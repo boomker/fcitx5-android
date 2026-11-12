@@ -40,7 +40,7 @@ class Shuangpin18CapsTest {
             onMain {
                 layout(scene.keyboard)
                 val originalCaps = caps(scene.keyboard)
-                val originalGroup = textKey(scene.keyboard, "WE")
+                val originalGroup = textKey(scene.keyboard, "we")
                 assertTrue(originalCaps is ImageKeyView)
                 assertFalse("Caps still exposes an upward separator gesture", originalCaps.swipeEnabled)
                 val slot = listOf(originalCaps.left, originalCaps.top, originalCaps.width, originalCaps.height)
@@ -50,7 +50,7 @@ class Shuangpin18CapsTest {
                 assertEquals(slot, listOf(separator.left, separator.top, separator.width, separator.height))
                 assertEquals(View.VISIBLE, separator.mainText.visibility)
                 assertTrue("The separator label is missing at $position", separator.mainText.width > 0)
-                assertSame("Composing replaced an unrelated group key", originalGroup, textKey(scene.keyboard, "WE"))
+                assertSame("Composing replaced an unrelated group key", originalGroup, textKey(scene.keyboard, "we"))
                 scene.keyboard.onCompositionStateChanged(true)
                 assertSame(separator, textKey(scene.keyboard, "'词"))
                 scene.actions.clear()
@@ -64,7 +64,7 @@ class Shuangpin18CapsTest {
             }
         }
         onMain {
-            tap(textKey(scene.keyboard, "WE"))
+            tap(textKey(scene.keyboard, "we"))
             assertTrue(scene.actions.filterIsInstance<KeyAction.SymAction>().any {
                 Shuangpin18Keys.indexOf(it.sym) == 1
             })
@@ -190,7 +190,7 @@ class Shuangpin18CapsTest {
     @Test
     fun inputMethodChangeAndReattachmentDoNotKeepStaleGroupedActions() = withKeyboard { scene ->
         onMain {
-            val staleGroupedKey = textKey(scene.keyboard, "WE")
+            val staleGroupedKey = textKey(scene.keyboard, "we")
             tap(caps(scene.keyboard))
             layout(scene.keyboard)
             assertUppercase26(scene.keyboard)
@@ -208,13 +208,62 @@ class Shuangpin18CapsTest {
         }
     }
 
+    @Test
+    fun groupedLettersFollowTheUppercaseDisplayPreference() = withKeyboard { scene ->
+        onMain {
+            val prefs = AppPrefs.getInstance().keyboard
+            assertGroupLabels(scene.keyboard, uppercase = false, semicolon = false)
+            prefs.keepLettersUppercase.setValue(true)
+            scene.keyboard.onInputMethodUpdate(entry(XIAOHE, "pinyin"))
+            layout(scene.keyboard)
+            assertGroupLabels(scene.keyboard, uppercase = true, semicolon = false)
+            scene.actions.clear()
+            tap(textKey(scene.keyboard, "WE"))
+            assertTrue("Uppercase presentation changed the grouped key action", scene.actions.any {
+                it is KeyAction.SymAction && Shuangpin18Keys.indexOf(it.sym) == 1 &&
+                    !it.states.has(KeyState.Shift)
+            })
+            prefs.keepLettersUppercase.setValue(false)
+            scene.keyboard.onInputMethodUpdate(entry(XIAOHE, "pinyin"))
+            layout(scene.keyboard)
+            assertGroupLabels(scene.keyboard, uppercase = false, semicolon = false)
+        }
+    }
+
+    @Test
+    fun microsoftSemicolonGroupFollowsTheUppercaseDisplayPreference() =
+        withKeyboard(uniqueName = "shuangpin-ms") { scene ->
+            onMain {
+                assertGroupLabels(scene.keyboard, uppercase = false, semicolon = true)
+                AppPrefs.getInstance().keyboard.keepLettersUppercase.setValue(true)
+                scene.keyboard.onInputMethodUpdate(entry("shuangpin-ms", "pinyin"))
+                layout(scene.keyboard)
+                assertGroupLabels(scene.keyboard, uppercase = true, semicolon = true)
+                AppPrefs.getInstance().keyboard.keepLettersUppercase.setValue(false)
+                scene.keyboard.onInputMethodUpdate(entry("shuangpin-ms", "pinyin"))
+                layout(scene.keyboard)
+                assertGroupLabels(scene.keyboard, uppercase = false, semicolon = true)
+            }
+        }
+
+    private fun assertGroupLabels(keyboard: TextKeyboard, uppercase: Boolean, semicolon: Boolean) {
+        val expected = listOf("q", "we", "rt", "y", "u", "io", "p", "a", "sd", "fg", "h", "jk",
+            if (semicolon) "l;" else "l", "z", "xc", "v", "bn", "m")
+            .map { if (uppercase) it.uppercase() else it }
+        val actual = keyboard.allViews.filterIsInstance<AltTextKeyView>()
+            .filter { (it.def as KeyDef.Appearance.AltText).character in Shuangpin18Keys.groups ||
+                (!semicolon && (it.def as KeyDef.Appearance.AltText).character == "l") }
+            .map { it.mainText.text.toString() }.toList()
+        assertEquals("Every grouped letter must follow the display preference", expected, actual)
+    }
+
     private data class Scene(
         val activity: MainActivity,
         val keyboard: TextKeyboard,
         val actions: MutableList<KeyAction>,
     )
 
-    private fun withKeyboard(block: (Scene) -> Unit) {
+    private fun withKeyboard(uniqueName: String = XIAOHE, block: (Scene) -> Unit) {
         val prefs = AppPrefs.getInstance()
         val compact = prefs.internal.compactShuangpinInputMethods.getValue()
         val behavior = prefs.keyboard.capsKeyBehavior.getValue()
@@ -227,7 +276,7 @@ class Shuangpin18CapsTest {
         var activity: MainActivity? = null
         try {
             onMain {
-                prefs.internal.compactShuangpinInputMethods.setValue(compact + XIAOHE)
+                prefs.internal.compactShuangpinInputMethods.setValue(compact + uniqueName)
                 prefs.keyboard.capsKeyBehavior.setValue(CapsKeyBehavior.Default)
                 prefs.keyboard.keepLettersUppercase.setValue(false)
                 prefs.keyboard.popupOnKeyPress.setValue(false)
@@ -242,7 +291,7 @@ class Shuangpin18CapsTest {
             val host = activity
             val scene = onMain {
                 val actions = mutableListOf<KeyAction>()
-                val keyboard = TextKeyboard(host, ThemePreset.MaterialLight, entry(XIAOHE, "pinyin"))
+                val keyboard = TextKeyboard(host, ThemePreset.MaterialLight, entry(uniqueName, "pinyin"))
                 keyboard.keyActionListener = KeyActionListener { action, _ -> actions += action }
                 host.setContentView(keyboard)
                 keyboard.onAttach()
@@ -277,7 +326,7 @@ class Shuangpin18CapsTest {
         keyboard.allViews.filterIsInstance<TextKeyView>().map { it.mainText.text.toString() }.toList()
 
     private fun assertCompact(keyboard: TextKeyboard) {
-        assertTrue("The grouped WE key is missing", "WE" in labels(keyboard))
+        assertTrue("The grouped we key is missing", "we" in labels(keyboard))
         assertFalse("The uppercase 26-key layout was retained", "W" in labels(keyboard))
     }
 
@@ -298,7 +347,7 @@ class Shuangpin18CapsTest {
         val letters = labels(keyboard).filter { it.length == 1 && it[0].lowercaseChar() in 'a'..'z' }
         assertEquals("The temporary layout must render all 26 uppercase letters",
             ('A'..'Z').map(Char::toString), letters.sorted())
-        assertFalse("A grouped key survived uppercase mode", "WE" in labels(keyboard))
+        assertFalse("A grouped key survived uppercase mode", labels(keyboard).any { it.equals("we", ignoreCase = true) })
     }
 
     private fun assertUppercaseW(actions: List<KeyAction>) {

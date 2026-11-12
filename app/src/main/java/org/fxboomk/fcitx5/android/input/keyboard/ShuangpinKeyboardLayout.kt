@@ -95,12 +95,12 @@ internal object Shuangpin18Keys {
     ): List<List<KeyDef>> {
         fun groupKey(index: Int, width: Float): KeyDef {
             val group = groups[index].let { if (semicolon) it else it.replace(";", "") }
-            val label = group.uppercase()
+            val label = group
             val corner = corners[index]
             return KeyDef(
                 KeyDef.Appearance.AltText(
                     displayText = label, altText = corner, character = group, textSize = 23f,
-                    percentWidth = width, followsCapsState = false,
+                    percentWidth = width, isLetterGroup = true,
                 ),
                 setOf(
                     KeyDef.Behavior.Press(action(index)),

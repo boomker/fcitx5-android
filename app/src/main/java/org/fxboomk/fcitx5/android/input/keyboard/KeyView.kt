@@ -1299,24 +1299,25 @@ class AltTextKeyView(
                 )
             }
             if (placements.isEmpty()) return
-            val isSingleLetterKey = { placement: MainLabelPlacement ->
+            val isLetterKey = { placement: MainLabelPlacement ->
                 val keyText = placement.key.mainText.text.toString()
                 val visibleText = keyText.filterNot {
                     it.isWhitespace() || Character.getType(it) == Character.FORMAT.toInt()
                 }
-                val character = (placement.key.def as? KeyDef.Appearance.AltText)?.character
-                visibleText.singleOrNull()?.let {
+                val appearance = placement.key.def as? KeyDef.Appearance.AltText
+                val character = appearance?.character
+                appearance?.isLetterGroup == true || (visibleText.singleOrNull()?.let {
                     it.isLetter()
                 } == true && character?.singleOrNull()?.let {
                     it.isLetter()
-                } == true
+                } == true)
             }
-            val singleLetters = placements.filter(isSingleLetterKey)
-            val sharedLetterScale = singleLetters.minOfOrNull { placement ->
+            val letterKeys = placements.filter(isLetterKey)
+            val sharedLetterScale = letterKeys.minOfOrNull { placement ->
                 min(placement.widthScale, placement.inputs.geometry().scale)
             }
             placements.forEach { placement ->
-                val isLetter = isSingleLetterKey(placement)
+                val isLetter = isLetterKey(placement)
                 val scale = if (isLetter) {
                     sharedLetterScale ?: placement.inputs.geometry().scale
                 } else {

@@ -105,6 +105,29 @@ class ShuangpinKeyboardLayoutTest {
     }
 
     @Test
+    fun groupedLabelsDefaultToLowercaseAndFollowTheUppercasePreference() {
+        for (semicolon in listOf(false, true)) {
+            val appearances = Shuangpin18Keys.layout(false, semicolon).take(3).flatten()
+                .mapNotNull { it.appearance as? KeyDef.Appearance.AltText }
+            val expected = Shuangpin18Keys.groups.map {
+                if (semicolon) it else it.replace(";", "")
+            }
+            assertEquals(expected, appearances.map { it.displayText })
+            appearances.zip(expected).forEach { (appearance, label) ->
+                for (capsOn in listOf(false, true)) {
+                    for (keepUppercase in listOf(false, true)) {
+                        assertEquals(
+                            if (capsOn || keepUppercase) label.uppercase() else label,
+                            resolveCapsAwareAltText(appearance, label, capsOn, keepUppercase),
+                        )
+                    }
+                }
+                assertEquals(label, resolveCapsAwareAltText(appearance, label.uppercase(), false, false))
+            }
+        }
+    }
+
+    @Test
     fun composingReplacesOnlyTheCompactCapsKeyWithATapSeparator() {
         for (semicolon in listOf(false, true)) {
             val caps = Shuangpin18Keys.layout(false, semicolon)[2].first()
