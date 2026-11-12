@@ -6,6 +6,7 @@ package org.fxboomk.fcitx5.android.input.keyboard
 
 import org.fxboomk.fcitx5.android.core.KeyState
 import org.fxboomk.fcitx5.android.core.InputMethodEntry
+import org.fxboomk.fcitx5.android.core.FcitxKeyMapping
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -79,7 +80,7 @@ class ShuangpinKeyboardLayoutTest {
     }
 
     @Test
-    fun groupedRowsKeepSourceProportionsAndCapsKeepsASyllableSeparatorSwipe() {
+    fun groupedRowsKeepSourceProportions() {
         val rows = Shuangpin18Keys.layout(showLangSwitch = true, semicolon = true)
         assertEquals(listOf(7, 6, 7, 6), rows.map { it.size })
         for (row in rows.take(3)) {
@@ -95,11 +96,30 @@ class ShuangpinKeyboardLayoutTest {
         val caps = rows[2].first() as CapsKey
         assertEquals(KeyAction.CapsAction(false),
             caps.behaviors.filterIsInstance<KeyDef.Behavior.Press>().single().action)
-        assertEquals("'", caps.swipeLabel)
-        assertTrue(caps.appearance.followsPunctuationPosition)
-        assertEquals(MacroAction(listOf(MacroStep.Tap(listOf(KeyRef.Fcitx("apostrophe"))))), caps.swipeUp)
+        assertTrue(caps.behaviors.none { it is KeyDef.Behavior.Swipe })
         assertEquals(KeyAction.CapsAction(true),
             caps.behaviors.filterIsInstance<KeyDef.Behavior.LongPress>().single().action)
+        assertEquals(KeyAction.CapsAction(true),
+            caps.behaviors.filterIsInstance<KeyDef.Behavior.DoubleTap>().single().action)
         assertFalse((Shuangpin18Keys.layout(false, false)[1].last().appearance as KeyDef.Appearance.Text).displayText.contains(';'))
+    }
+
+    @Test
+    fun composingReplacesOnlyTheCompactCapsKeyWithATapSeparator() {
+        for (semicolon in listOf(false, true)) {
+            val caps = Shuangpin18Keys.layout(false, semicolon)[2].first()
+            val separator = requireNotNull(caps.composeOverride)
+            assertEquals("'词", (separator.appearance as KeyDef.Appearance.Text).displayText)
+            assertEquals(caps.appearance.percentWidth, separator.appearance.percentWidth, 0f)
+            val action = separator.behaviors.filterIsInstance<KeyDef.Behavior.Press>().single().action
+                as KeyAction.SymAction
+            assertEquals(FcitxKeyMapping.FcitxKey_apostrophe, action.sym.sym)
+            assertTrue(action.states.has(KeyState.Virtual))
+            assertFalse(action.states.has(KeyState.Shift))
+            assertFalse(action.states.has(KeyState.CapsLock))
+            assertEquals(1, separator.behaviors.size)
+            assertTrue(separator.popup.isNullOrEmpty())
+        }
+        assertNull(TextKeyboard.getDefaultLayout(false)[2].first().composeOverride)
     }
 }

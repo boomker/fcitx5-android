@@ -61,8 +61,6 @@ open class KeyDef(
         var altText1PositionOverride: AltTextPosition? = null
         // Function-key hints are bound to physical up/down gestures.
         var directionalSwipeLabels: Boolean = false
-        // Punctuation labels on function keys can opt into the theme position.
-        var followsPunctuationPosition: Boolean = false
 
         open class Text(
             val displayText: String,

@@ -64,7 +64,12 @@ class Shuangpin18DeviceTest {
 
     @Test
     fun separatorAllowsPartialWordSelection() = withIme("shuangpin-xiaohe") {
-        grouped("ni'hc")
+        grouped("ni")
+        val separator = requireNotNull(Shuangpin18Keys.layout(false, false)[2].first().composeOverride)
+        val action = separator.behaviors.filterIsInstance<KeyDef.Behavior.Press>().single().action
+            as KeyAction.SymAction
+        sendKey(action.sym, action.states)
+        grouped("hc")
         val index = candidateIndex("你")
         assertTrue("Partial selection was rejected", select(index))
         selectWord("好", "你好")

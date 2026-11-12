@@ -97,9 +97,7 @@ abstract class KeyView(
 
     protected fun punctuationPositionForKey(): PunctuationPosition {
         val character = (def as? KeyDef.Appearance.AltText)?.character?.singleOrNull()
-        return if (def.followsPunctuationPosition ||
-            (character != null && (character in 'a'..'z' || character in 'A'..'Z'))
-        ) {
+        return if (character != null && (character in 'a'..'z' || character in 'A'..'Z')) {
             ThemeManager.prefs.punctuationPosition.getValue()
         } else {
             // Other keys keep the default position; explicit layout overrides
@@ -1458,11 +1456,6 @@ class ImageAltTextKeyView(
         altText.requestLayout()
         altText1.requestLayout()
         lastLayoutMode = null
-        applyLayout()
-    }
-
-
-    fun refreshLayout() {
         applyLayout()
     }
 

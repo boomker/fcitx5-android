@@ -4,6 +4,7 @@
  */
 package org.fxboomk.fcitx5.android.input.keyboard
 
+import org.fxboomk.fcitx5.android.core.FcitxKeyMapping
 import org.fxboomk.fcitx5.android.core.InputMethodEntry
 import org.fxboomk.fcitx5.android.core.KeyStates
 import org.fxboomk.fcitx5.android.core.KeySym
@@ -117,12 +118,16 @@ internal object Shuangpin18Keys {
         return listOf(
             (0..6).map { groupKey(it, 1f / 7) },
             (7..12).map { groupKey(it, 1f / 6) },
-            listOf(CapsKey(
-                percentWidth = 0.15f,
-                swipeUp = MacroAction(listOf(MacroStep.Tap(listOf(KeyRef.Fcitx("apostrophe"))))),
-                swipeLabel = "'",
-            ).apply {
-                appearance.followsPunctuationPosition = true
+            listOf(CapsKey(percentWidth = 0.15f).apply {
+                composeOverride = KeyDef(
+                    KeyDef.Appearance.Text(
+                        displayText = "'词", textSize = 23f, percentWidth = 0.15f,
+                        variant = KeyDef.Appearance.Variant.Alternative,
+                    ),
+                    setOf(KeyDef.Behavior.Press(KeyAction.SymAction(
+                        KeySym(FcitxKeyMapping.FcitxKey_apostrophe), KeyStates.Virtual,
+                    ))),
+                )
             }) +
                 (13..17).map { groupKey(it, 0.14f) } + BackspaceKey(0.15f),
             TextKeyboard.getDefaultLayout(showLangSwitch).last(),
