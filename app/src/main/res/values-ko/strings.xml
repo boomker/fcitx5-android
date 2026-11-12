@@ -643,6 +643,8 @@
     <string name="fontset_saved_at">fontset.json 저장 위치: %1$s</string>
     <string name="grant_permission">권한 부여</string>
     <string name="hide_candidates_list">후보 목록 숨기기</string>
+    <string name="expand_syllables">음절 펼치기</string>
+    <string name="hide_syllables">음절 접기</string>
     <string name="hide_keyboard">키보드 숨기기</string>
     <string name="hide_unsupported_emojis">지원되지 않는 이모지 숨기기</string>
     <string name="horizontal_candidate_always_fill">항상 너비 채우기</string>

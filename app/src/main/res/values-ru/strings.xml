@@ -367,6 +367,8 @@
     <string name="commit_last_candidate_character">Ввести последний символ</string>
     <string name="expand_candidates_list">Развернуть список кандидатов</string>
     <string name="hide_candidates_list">Скрыть список кандидатов</string>
+    <string name="expand_syllables">Развернуть слоги</string>
+    <string name="hide_syllables">Свернуть слоги</string>
     <string name="hide_keyboard">Скрыть клавиатуру</string>
     <string name="private_mode">Приватный режим (нажмите, чтобы открыть область состояния)</string>
     <string name="return_to_toolbar">Вернуться на панель инструментов</string>

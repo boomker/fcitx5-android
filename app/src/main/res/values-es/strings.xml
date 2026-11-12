@@ -652,6 +652,8 @@
     <string name="fontset_saved_at">fontset.json guardado en: %1$s</string>
     <string name="grant_permission">Conceder permiso</string>
     <string name="hide_candidates_list">Ocultar lista de candidatos</string>
+    <string name="expand_syllables">Expandir sílabas</string>
+    <string name="hide_syllables">Contraer sílabas</string>
     <string name="hide_keyboard">Ocultar teclado</string>
     <string name="hide_unsupported_emojis">Ocultar emojis no compatibles</string>
     <string name="horizontal_candidate_always_fill">Rellenar ancho siempre</string>

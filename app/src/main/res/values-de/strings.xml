@@ -694,6 +694,8 @@
     <string name="fontset_saved_at">fontset.json gespeichert unter: %1$s</string>
     <string name="grant_permission">Berechtigung erteilen</string>
     <string name="hide_candidates_list">Ausblenden</string>
+    <string name="expand_syllables">Silben aufklappen</string>
+    <string name="hide_syllables">Silben einklappen</string>
     <string name="hide_keyboard">Tastatur ausblenden</string>
     <string name="return_to_toolbar">Zurück zur Werkzeugleiste</string>
     <string name="hide_unsupported_emojis">Nicht unterstützte Emojis ausblenden</string>

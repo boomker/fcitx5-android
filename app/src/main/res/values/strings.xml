@@ -791,6 +791,8 @@
     <string name="commit_last_candidate_character">Commit last character</string>
     <string name="expand_candidates_list">Expand candidates list</string>
     <string name="hide_candidates_list">Hide candidates list</string>
+    <string name="expand_syllables">Expand syllables</string>
+    <string name="hide_syllables">Hide syllables</string>
     <string name="hide_keyboard">Hide keyboard</string>
     <string name="private_mode">Private mode (tap to open status area)</string>
     <string name="return_to_toolbar">Return to toolbar</string>

@@ -619,6 +619,8 @@
     <string name="commit_last_candidate_character">提交尾字</string>
     <string name="expand_candidates_list">展开候选词列表</string>
     <string name="hide_candidates_list">隐藏</string>
+    <string name="expand_syllables">展开音节</string>
+    <string name="hide_syllables">收起音节</string>
     <string name="hide_keyboard">隐藏键盘</string>
     <string name="private_mode">隐私模式（点击打开状态区域）</string>
     <string name="return_to_toolbar">返回工具栏</string>

@@ -58,7 +58,7 @@ class PreeditComponent : UniqueComponent<PreeditComponent>(), Dependent, InputBr
                     }
                 }
             }
-            root.background = GradientDrawable().apply {
+            codeRow.background = GradientDrawable().apply {
                 setColor(bkgColor)
                 setStroke(1, theme.dividerColor)
                 val radius = context.dp(9).toFloat()
@@ -69,6 +69,12 @@ class PreeditComponent : UniqueComponent<PreeditComponent>(), Dependent, InputBr
                     0f, 0f
                 )
             }
+            expandedSyllables.background = GradientDrawable().apply {
+                setColor(bkgColor)
+                setStroke(1, theme.dividerColor)
+                cornerRadius = context.dp(9).toFloat()
+            }
+            expandedSyllables.setPadding(0, context.dp(4), 0, context.dp(4))
             // TODO make it customizable
             root.alpha = 0.8f
             root.visibility = View.INVISIBLE

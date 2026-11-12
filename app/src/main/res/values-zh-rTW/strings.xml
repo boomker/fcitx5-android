@@ -522,6 +522,8 @@
     <string name="commit_last_candidate_character">提交尾字</string>
     <string name="expand_candidates_list">展開選字列表</string>
     <string name="hide_candidates_list">隱藏選字列表</string>
+    <string name="expand_syllables">展開音節</string>
+    <string name="hide_syllables">收起音節</string>
     <string name="hide_keyboard">隱藏鍵盤</string>
     <string name="private_mode">隱私模式（點擊開啟狀態區）</string>
     <string name="return_to_toolbar">返回工具列</string>

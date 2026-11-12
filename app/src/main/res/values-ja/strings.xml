@@ -786,6 +786,8 @@
     
     <!-- Previously missing strings (now translated) -->
     <string name="hide_candidates_list">非表示</string>
+    <string name="expand_syllables">音節を展開</string>
+    <string name="hide_syllables">音節を折りたたむ</string>
     <string name="hide_keyboard">キーボードを非表示</string>
     <string name="return_to_toolbar">ツールバーに戻る</string>
     <string name="hide_unsupported_emojis">サポートされていない絵文字を非表示</string>

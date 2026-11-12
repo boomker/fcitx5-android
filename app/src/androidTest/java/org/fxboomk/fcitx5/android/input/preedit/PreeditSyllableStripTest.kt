@@ -7,10 +7,12 @@ package org.fxboomk.fcitx5.android.input.preedit
 import android.view.View
 import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.FrameLayout
+import android.widget.HorizontalScrollView
 import android.widget.TextView
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
 import androidx.core.view.allViews
 import androidx.test.platform.app.InstrumentationRegistry
+import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.core.CandidateAction
 import org.fxboomk.fcitx5.android.core.FcitxEvent
 import org.fxboomk.fcitx5.android.core.FormattedText
@@ -169,7 +171,139 @@ class PreeditSyllableStripTest {
     }
 
     @Test
-    fun longCodeAndSyllablesShareOnlyTheActualKeyboardWidth() = onMain {
+    fun theThirdInputSyllableUsesAnExpandButtonRegardlessOfTheNumberOfChoices() = onMain {
+        val row = PreeditRowUi(context, ThemePreset.MaterialLight, setupTextView = {})
+        val choices = arrayOf(action(7, "ni"), action(11, "bi"), action(12, "nuo"),
+            action(13, "bo"), action(14, "bu"), action(15, "bing"))
+        for (code in listOf("n", "ni", "ni hc")) {
+            row.update(panel(code, choices), true)
+            assertEquals("$code should keep the choices beside the code", View.VISIBLE, row.syllables.visibility)
+            assertSame(row.codeRow, row.syllables.parent)
+            assertEquals(View.GONE, row.expandButton.visibility)
+            assertEquals(View.GONE, row.expandedSyllables.visibility)
+        }
+
+        // The incomplete third pair is already a third input syllable.
+        row.update(panel("ni hc n", arrayOf(action(7, "ni"))), true)
+        assertEquals(View.GONE, row.syllables.visibility)
+        assertEquals(View.VISIBLE, row.expandButton.visibility)
+        assertEquals(context.getString(R.string.expand_syllables), row.expandButton.contentDescription)
+        assertEquals(View.GONE, row.expandedSyllables.visibility)
+        assertTrue("The collapsed expand button must receive IME touches", row.hasInteractiveContent)
+    }
+
+    @Test
+    fun expandedSyllablesOccupyTheirOwnRowAboveTheCodeAndCanBeCollapsed() = onMain {
+        val row = PreeditRowUi(context, ThemePreset.MaterialLight, setupTextView = {})
+        val code = "ni hc ma"
+        row.update(panel(code, arrayOf(action(7, "ni"), action(11, "bi"))), true)
+        measureAndLayout(row)
+        val collapsedHeight = row.root.height
+
+        assertTrue(row.expandButton.performClick())
+        measureAndLayout(row)
+        assertEquals(View.VISIBLE, row.syllables.visibility)
+        assertEquals(View.VISIBLE, row.expandedSyllables.visibility)
+        assertSame(row.expandedSyllables, row.syllables.parent)
+        assertNotSame(row.codeRow, row.syllables.parent)
+        assertTrue("The syllable panel overlaps the code row", row.expandedSyllables.bottom < row.codeRow.top)
+        assertTrue(row.root.height > collapsedHeight)
+        assertNull("Each row provides its own surface", row.root.background)
+        assertEquals(context.getString(R.string.hide_syllables), row.expandButton.contentDescription)
+        assertTrue(labels(row.codeRow).any { it.text.toString() == code })
+
+        assertTrue(row.expandButton.performClick())
+        measureAndLayout(row)
+        assertEquals(View.GONE, row.expandedSyllables.visibility)
+        assertEquals(View.GONE, row.syllables.visibility)
+        assertEquals(collapsedHeight, row.root.height)
+        assertEquals(context.getString(R.string.expand_syllables), row.expandButton.contentDescription)
+    }
+
+    @Test
+    fun shorterInputRestoresInlineChoicesAndLongerInputStartsCollapsedAgain() = onMain {
+        val row = PreeditRowUi(context, ThemePreset.MaterialLight, setupTextView = {})
+        val choices = arrayOf(action(7, "ni"), action(11, "bi"))
+        row.update(panel("ni hc ma", choices), true)
+        row.expandButton.performClick()
+        assertEquals(View.VISIBLE, row.expandedSyllables.visibility)
+
+        row.update(panel("ni hc", choices), true)
+        assertEquals(View.GONE, row.expandedSyllables.visibility)
+        assertEquals(View.GONE, row.expandButton.visibility)
+        assertEquals(View.VISIBLE, row.syllables.visibility)
+        assertSame(row.codeRow, row.syllables.parent)
+
+        row.update(panel("ni hc ma", choices), true)
+        assertEquals(View.VISIBLE, row.expandButton.visibility)
+        assertEquals(View.GONE, row.expandedSyllables.visibility)
+        assertEquals(View.GONE, row.syllables.visibility)
+    }
+
+    @Test
+    fun clearingChoicesOrInputOrDisablingTheStripResetsItsExpansion() = onMain {
+        val choices = arrayOf(action(7, "ni"), action(11, "bi"))
+        val longPanel = panel("ni hc ma", choices)
+        val resets = listOf(
+            panel("ni hc ma", emptyArray()) to true,
+            panel("", choices) to true,
+            longPanel to false,
+        )
+        for ((resetPanel, enabled) in resets) {
+            val row = PreeditRowUi(context, ThemePreset.MaterialLight, setupTextView = {})
+            val picks = mutableListOf<Int>()
+            row.syllables.onSelect = { action, _ -> picks += action.id }
+            row.update(longPanel, true)
+            row.expandButton.performClick()
+            val oldBi = labels(row.syllables).single { it.text.toString() == "bi" }
+            row.update(resetPanel, enabled)
+            assertEquals(View.GONE, row.expandedSyllables.visibility)
+            assertEquals(View.GONE, row.expandButton.visibility)
+            assertEquals(View.GONE, row.syllables.visibility)
+            assertFalse(row.hasInteractiveContent)
+            oldBi.performClick()
+            row.expandButton.performClick()
+            assertTrue("A hidden choice dispatched its old ID", picks.isEmpty())
+            assertEquals(View.GONE, row.expandedSyllables.visibility)
+
+            row.update(longPanel, true)
+            assertEquals(View.VISIBLE, row.expandButton.visibility)
+            assertEquals(View.GONE, row.expandedSyllables.visibility)
+            assertEquals(View.GONE, row.syllables.visibility)
+        }
+    }
+
+    @Test
+    fun expandedChoicesAdvanceWithoutClosingAndRejectOldPanelBindings() = onMain {
+        val row = PreeditRowUi(context, ThemePreset.MaterialLight, setupTextView = {})
+        val picks = mutableListOf<Pair<CandidateAction, FcitxEvent.InputPanelEvent.Data>>()
+        row.syllables.onSelect = { action, panel -> picks += action to panel }
+        val first = panel("ni hc ma", arrayOf(action(7, "ni"), action(11, "bi")))
+        row.update(first, true)
+        row.expandButton.performClick()
+        val oldBi = labels(row.syllables).single { it.text.toString() == "bi" }
+        oldBi.performClick()
+        assertEquals(11, picks.single().first.id)
+        assertSame(first, picks.single().second)
+
+        val next = panel("bi hc ma", arrayOf(action(7, "hao"), action(11, "hua")))
+        row.update(next, true)
+        assertEquals(View.VISIBLE, row.expandedSyllables.visibility)
+        assertSame(row.expandedSyllables, row.syllables.parent)
+        oldBi.performClick()
+        assertEquals("The previous pair dispatched its reused ID", 1, picks.size)
+        val hua = labels(row.syllables).single { it.text.toString() == "hua" }
+        hua.performClick()
+        assertEquals(11, picks.last().first.id)
+        assertSame(next, picks.last().second)
+
+        row.expandButton.performClick()
+        hua.performClick()
+        assertEquals("Collapsing left an old choice clickable", 2, picks.size)
+    }
+
+    @Test
+    fun longCodeGetsTheKeyboardWidthApartFromItsButtonWhileChoicesUseTheRowAbove() = onMain {
         val keyboardWidth = context.dp(240)
         val row = PreeditRowUi(context, ThemePreset.MaterialLight, setupTextView = {},
             availableWidth = { keyboardWidth })
@@ -177,18 +311,66 @@ class PreeditSyllableStripTest {
         val data = panel(code, arrayOf(action(7, "ni"), action(11, "bi"), action(12, "nuo"),
             action(13, "bo"), action(14, "bu"), action(15, "bing")))
         row.update(data, true)
-        row.root.measure(View.MeasureSpec.makeMeasureSpec(context.dp(400), View.MeasureSpec.AT_MOST),
-            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
-        row.root.layout(0, 0, row.root.measuredWidth, row.root.measuredHeight)
+        measureAndLayout(row)
         assertTrue(row.root.width <= keyboardWidth)
-        assertTrue(row.syllables.width <= (keyboardWidth * PreeditRowUi.MAX_SYLLABLE_SHARE).toInt())
-        assertTrue(row.root.width - row.syllables.width > 0)
+        assertEquals(View.GONE, row.syllables.visibility)
+        assertEquals(View.VISIBLE, row.expandButton.visibility)
+        val viewport = row.codeRow.allViews.filterIsInstance<HorizontalScrollView>()
+            .single { it !== row.syllables }
+        assertEquals(keyboardWidth - row.expandButton.width, viewport.width)
+        assertTrue("The code still reserves space for hidden syllables", viewport.width > keyboardWidth / 2)
+
+        row.expandButton.performClick()
+        measureAndLayout(row)
+        assertTrue(row.root.width <= keyboardWidth)
+        assertEquals(keyboardWidth - row.expandButton.width, viewport.width)
+        assertTrue(row.syllables.width <= keyboardWidth)
+        assertTrue("The independent syllable row retains the old 60% limit",
+            row.syllables.width > (keyboardWidth * PreeditRowUi.MAX_SYLLABLE_SHARE).toInt())
+        assertTrue(row.expandedSyllables.bottom < row.codeRow.top)
         assertTrue(labels(row.root).any { it.text.toString() == code })
 
         row.update(data, false)
+        measureAndLayout(row)
         assertEquals(View.GONE, row.syllables.visibility)
+        assertEquals(View.GONE, row.expandButton.visibility)
+        assertEquals(View.GONE, row.expandedSyllables.visibility)
+        assertEquals(keyboardWidth, viewport.width)
         assertTrue(row.visible)
         assertTrue(labels(row.root).any { it.text.toString() == code })
+    }
+
+    @Test
+    fun inlineAndExpandedControlsStayWithinTheKeyboardInRtl() = onMain {
+        val keyboardWidth = context.dp(240)
+        val row = PreeditRowUi(context, ThemePreset.MaterialLight, setupTextView = {},
+            availableWidth = { keyboardWidth })
+        row.root.layoutDirection = View.LAYOUT_DIRECTION_RTL
+        val choices = arrayOf(action(7, "ni"), action(11, "bi"), action(12, "nuo"),
+            action(13, "bo"), action(14, "bu"), action(15, "bing"))
+        row.update(panel("ni hc", choices), true)
+        measureAndLayout(row)
+        assertEquals(0, row.syllables.left)
+        assertTrue(row.syllables.right <= row.codeRow.width)
+        assertTrue(row.root.width <= keyboardWidth)
+
+        row.update(panel("ni hc ma", choices), true)
+        measureAndLayout(row)
+        assertEquals(0, row.expandButton.left)
+        assertTrue(row.expandButton.right <= row.codeRow.width)
+        row.expandButton.performClick()
+        measureAndLayout(row)
+        assertTrue(row.root.width <= keyboardWidth)
+        assertTrue(row.expandedSyllables.left >= 0)
+        assertTrue(row.expandedSyllables.right <= row.root.width)
+        assertTrue(row.syllables.right <= row.expandedSyllables.width)
+        assertTrue(row.expandedSyllables.bottom < row.codeRow.top)
+    }
+
+    private fun measureAndLayout(row: PreeditRowUi) {
+        row.root.measure(View.MeasureSpec.makeMeasureSpec(context.dp(400), View.MeasureSpec.AT_MOST),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
+        row.root.layout(0, 0, row.root.measuredWidth, row.root.measuredHeight)
     }
 
     private fun labels(view: View): List<TextView> = view.allViews.filterIsInstance<TextView>().toList()
