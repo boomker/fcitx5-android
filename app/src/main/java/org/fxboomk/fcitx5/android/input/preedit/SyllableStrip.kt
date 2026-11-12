@@ -17,6 +17,7 @@ import android.widget.Button
 import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import androidx.appcompat.widget.AppCompatTextView
+import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
 import androidx.core.view.isVisible
 import org.fxboomk.fcitx5.android.core.CandidateAction
 import org.fxboomk.fcitx5.android.core.FcitxEvent
@@ -77,7 +78,10 @@ internal class SyllableStrip(context: Context, private val theme: Theme) : Horiz
                 super.onInitializeAccessibilityNodeInfo(info)
                 info.className = Button::class.java.name
                 info.isCheckable = action.isCheckable
-                info.isChecked = action.isChecked
+                AccessibilityNodeInfoCompat.wrap(info).setChecked(
+                    if (action.isChecked) AccessibilityNodeInfoCompat.CHECKED_STATE_TRUE
+                    else AccessibilityNodeInfoCompat.CHECKED_STATE_FALSE
+                )
             }
         }.apply {
             text = action.text

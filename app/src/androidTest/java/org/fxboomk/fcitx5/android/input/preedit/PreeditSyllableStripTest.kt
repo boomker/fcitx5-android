@@ -8,6 +8,7 @@ import android.view.View
 import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.FrameLayout
 import android.widget.TextView
+import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
 import androidx.core.view.allViews
 import androidx.test.platform.app.InstrumentationRegistry
 import org.fxboomk.fcitx5.android.core.CandidateAction
@@ -54,7 +55,8 @@ class PreeditSyllableStripTest {
         try {
             hua.onInitializeAccessibilityNodeInfo(info)
             assertFalse(info.isCheckable)
-            assertFalse(info.isChecked)
+            assertEquals(AccessibilityNodeInfoCompat.CHECKED_STATE_FALSE,
+                AccessibilityNodeInfoCompat.wrap(info).checked)
         } finally {
             info.recycle()
         }
@@ -87,7 +89,8 @@ class PreeditSyllableStripTest {
         try {
             bi.onInitializeAccessibilityNodeInfo(info)
             assertTrue(info.isCheckable)
-            assertTrue(info.isChecked)
+            assertEquals(AccessibilityNodeInfoCompat.CHECKED_STATE_TRUE,
+                AccessibilityNodeInfoCompat.wrap(info).checked)
         } finally {
             info.recycle()
         }
