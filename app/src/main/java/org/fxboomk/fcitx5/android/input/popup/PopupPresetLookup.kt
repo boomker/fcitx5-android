@@ -38,18 +38,76 @@ internal fun resolvePopupPresetCandidates(
     return null
 }
 
+/**
+ * Brackets grouped by the direction they open in. A grouped key only owns the
+ * symbol family advertised by its corner, so `h` (corner `(`) keeps `[`, `{`,
+ * `【`, while `jk` (corner `)`) keeps `]`, `}`, `】`.
+ */
+private val openingBrackets = setOf(
+    '(', '[', '{', '（', '［', '｛', '【', '〔', '〖', '〘', '〚', '《', '〈', '「', '『', '⟨',
+)
+private val closingBrackets = setOf(
+    ')', ']', '}', '）', '］', '｝', '】', '〕', '〗', '〙', '〛', '》', '〉', '」', '』', '⟩',
+)
+
+private fun bracketFamily(corner: String): Set<Char>? = when {
+    corner.length != 1 -> null
+    corner[0] in openingBrackets -> openingBrackets
+    corner[0] in closingBrackets -> closingBrackets
+    else -> null
+}
+
+/**
+ * Only accept candidates that agree with the corner: letters (including the
+ * accented forms of the group letters), the corner itself, and brackets that
+ * open in the same direction. Digits and symbols from other keys are dropped so
+ * `we` cannot offer `3` and `jk` cannot offer `{`.
+ */
+private fun matchesCorner(candidate: String, corner: String, family: Set<Char>?): Boolean {
+    if (candidate == corner) return true
+    if (candidate.isNotEmpty() && candidate.all { it.isLetter() }) return true
+    return family != null && candidate.length == 1 && candidate[0] in family
+}
+
+/**
+ * Collect the bracket variants of the requested direction from every preset the
+ * user can see, so a custom `【` lands on the opening corner and a custom `】`
+ * lands on the closing one.
+ */
+private fun cornerFamilyCandidates(
+    family: Set<Char>,
+    customPresets: Map<String, Array<String>>?,
+    builtInPresets: Map<String, Array<String>>,
+): List<String> {
+    val effectivePresets = LinkedHashMap(builtInPresets)
+    customPresets?.forEach { (key, values) -> effectivePresets[key] = values }
+    return buildList {
+        effectivePresets.values.forEach { values ->
+            values.forEach { value ->
+                if (value.length == 1 && value[0] in family) add(value)
+            }
+        }
+    }.distinct()
+}
+
 internal fun resolveGroupedPopupPresetCandidates(
     group: String,
     corner: String,
     customPresets: Map<String, Array<String>>? = null,
-): Array<String> = buildList {
-    // Keep the existing letter choices and default focus ahead of the presets.
-    addAll(group.map { if (it == ';') ":" else it.uppercase() })
-    add(corner)
-    addAll(group.map(Char::toString))
-    group.forEach { letter ->
-        resolvePopupPresetCandidates(letter.toString(), null, customPresets)?.let {
-            addAll(it)
+    builtInPresets: Map<String, Array<String>> = PopupPreset,
+): Array<String> {
+    val family = bracketFamily(corner)
+    return buildList {
+        // Keep the existing letter choices and default focus ahead of the presets.
+        addAll(group.map { if (it == ';') ":" else it.uppercase() })
+        add(corner)
+        addAll(group.map(Char::toString))
+        group.forEach { letter ->
+            resolvePopupPresetCandidates(letter.toString(), null, customPresets, builtInPresets)
+                ?.forEach { candidate ->
+                    if (matchesCorner(candidate, corner, family)) add(candidate)
+                }
         }
-    }
-}.distinct().toTypedArray()
+        family?.let { addAll(cornerFamilyCandidates(it, customPresets, builtInPresets)) }
+    }.distinct().toTypedArray()
+}
