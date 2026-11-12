@@ -20,7 +20,7 @@ import org.fxboomk.fcitx5.android.input.bar.ui.ToolButton
 import splitties.dimensions.dp
 import splitties.views.dsl.core.Ui
 
-/** Short compositions share a row; longer ones expose syllables in a separate panel above it. */
+/** Share a row only when the complete code and all syllable choices fit together. */
 internal class PreeditRowUi(
     override val ctx: Context,
     theme: Theme,
@@ -37,9 +37,10 @@ internal class PreeditRowUi(
     val syllables = SyllableStrip(ctx, theme)
     private var expanded = false
     private var canExpand = false
+    private var hasSyllables = false
     private var currentPanel = FcitxEvent.InputPanelEvent.Data()
 
-    val expandButton = ToolButton(ctx, R.drawable.ic_baseline_expand_less_24, theme).apply {
+    val expandButton: ToolButton = ToolButton(ctx, R.drawable.ic_baseline_expand_less_24, theme).apply {
         image.setPadding(ctx.dp(4), ctx.dp(4), ctx.dp(4), ctx.dp(4))
         isVisible = false
         isFocusable = true
@@ -47,6 +48,7 @@ internal class PreeditRowUi(
             if (canExpand) {
                 expanded = !expanded
                 updateSyllablePresentation()
+                root.requestLayout()
             }
         }
     }
@@ -56,7 +58,7 @@ internal class PreeditRowUi(
     val visible: Boolean get() = code.visible
     val hasInteractiveContent: Boolean get() = syllables.isVisible || expandButton.isVisible
 
-    val codeRow = object : ViewGroup(ctx) {
+    val codeRow: ViewGroup = object : ViewGroup(ctx) {
         init {
             addView(codeScroll)
             addView(syllables)
@@ -69,7 +71,7 @@ internal class PreeditRowUi(
             val heightSpec = getChildMeasureSpec(heightMeasureSpec, paddingTop + paddingBottom, LayoutParams.WRAP_CONTENT)
             val inlineSyllables = syllables.parent === this && syllables.isVisible
             val stripWidth = if (inlineSyllables) {
-                syllables.measure(MeasureSpec.makeMeasureSpec((contentWidth * MAX_SYLLABLE_SHARE).toInt(), MeasureSpec.AT_MOST), heightSpec)
+                syllables.measure(MeasureSpec.makeMeasureSpec(contentWidth, MeasureSpec.AT_MOST), heightSpec)
                 syllables.measuredWidth
             } else 0
             val buttonWidth = if (expandButton.isVisible) minOf(ctx.dp(32), contentWidth) else 0
@@ -106,7 +108,7 @@ internal class PreeditRowUi(
         }
     }
 
-    override val root = object : LinearLayout(ctx) {
+    override val root: LinearLayout = object : LinearLayout(ctx) {
         init {
             orientation = VERTICAL
             gravity = Gravity.START
@@ -126,6 +128,25 @@ internal class PreeditRowUi(
                 MeasureSpec.getMode(widthMeasureSpec) != MeasureSpec.UNSPECIFIED -> incoming
                 else -> resources.displayMetrics.widthPixels
             }
+            val contentWidth = (widthLimit - paddingLeft - paddingRight -
+                codeRow.paddingLeft - codeRow.paddingRight).coerceAtLeast(0)
+            val needsExpand = if (hasSyllables) {
+                // Measure the actual views without clipping either scroll viewport.
+                // This includes font metrics, preedit spans, padding and every choice.
+                val naturalSize = MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED)
+                codeScroll.measure(naturalSize, naturalSize)
+                syllables.measure(naturalSize, naturalSize)
+                // The probe changes child measurements even if the parent's specs
+                // stay unchanged. Always restore constrained viewport measurements.
+                codeRow.forceLayout()
+                expandedSyllables.forceLayout()
+                codeScroll.measuredWidth + syllables.measuredWidth > contentWidth
+            } else false
+            if (canExpand != needsExpand) {
+                canExpand = needsExpand
+                if (!canExpand) expanded = false
+                updateSyllablePresentation()
+            }
             // Constrain both surfaces to the actual (possibly floating) keyboard width.
             super.onMeasure(MeasureSpec.makeMeasureSpec(widthLimit, MeasureSpec.AT_MOST), heightMeasureSpec)
         }
@@ -134,16 +155,18 @@ internal class PreeditRowUi(
     fun update(panel: FcitxEvent.InputPanelEvent.Data, showSyllables: Boolean) {
         currentPanel = panel
         code.update(panel)
-        val hasSyllables = panel.preedit.isNotEmpty() &&
+        hasSyllables = panel.preedit.isNotEmpty() &&
             preeditSyllableActions(panel.tabs, showSyllables).isNotEmpty()
-        canExpand = hasSyllables && preeditSyllableCount(panel.preedit.toString()) >= 3
-        if (!canExpand) expanded = false
-        updateSyllablePresentation(hasSyllables)
+        if (!hasSyllables) {
+            canExpand = false
+            expanded = false
+        }
+        updateSyllablePresentation()
         codeScroll.isVisible = code.visible
         root.requestLayout()
     }
 
-    private fun updateSyllablePresentation(hasSyllables: Boolean = true) {
+    private fun updateSyllablePresentation() {
         val parent = if (expanded) expandedSyllables else codeRow
         if (syllables.parent !== parent) {
             (syllables.parent as? ViewGroup)?.removeView(syllables)
@@ -151,17 +174,12 @@ internal class PreeditRowUi(
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         }
         // Updating the strip also invalidates any pending clicks when it is hidden.
-        syllables.update(currentPanel, hasSyllables && (!canExpand || expanded))
+        syllables.update(currentPanel, hasSyllables, showItems = !canExpand || expanded)
         expandedSyllables.isVisible = expanded
         expandButton.isVisible = canExpand
         expandButton.setIcon(if (expanded) R.drawable.ic_baseline_expand_more_24
             else R.drawable.ic_baseline_expand_less_24)
         expandButton.contentDescription = ctx.getString(if (expanded) R.string.hide_syllables
             else R.string.expand_syllables)
-        root.requestLayout()
-    }
-
-    companion object {
-        const val MAX_SYLLABLE_SHARE = 0.6f
     }
 }

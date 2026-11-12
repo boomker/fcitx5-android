@@ -52,9 +52,11 @@ internal class SyllableStrip(context: Context, private val theme: Theme) : Horiz
         isVisible = false
     }
 
-    fun update(panel: FcitxEvent.InputPanelEvent.Data, enabled: Boolean) {
+    fun update(panel: FcitxEvent.InputPanelEvent.Data, enabled: Boolean, showItems: Boolean = true) {
         val actions = preeditSyllableActions(panel.tabs, enabled && panel.preedit.isNotEmpty())
-        if (shownPanel === panel && shownActions == actions) return
+        val visible = showItems && actions.isNotEmpty()
+        val sameItems = shownPanel === panel && shownActions == actions
+        if (sameItems && isVisible == visible) return
         shownPanel = panel
         shownActions = actions
         // A pressed or queued click belongs to the previous candidate list.
@@ -63,11 +65,14 @@ internal class SyllableStrip(context: Context, private val theme: Theme) : Horiz
             it.recycle()
         }
         items.cancelPendingInputEvents()
+        isVisible = visible
+        // A visibility change must preserve the measured items and their font metrics.
+        if (sameItems) return
         for (index in 0 until items.childCount) {
             items.getChildAt(index).setOnClickListener(null)
         }
         items.removeAllViews()
-        isVisible = actions.isNotEmpty()
+        // Keep hidden choices measurable so the row can adapt to width/font changes.
         actions.forEach { action -> items.addView(item(action, panel)) }
         scrollTo(0, 0)
     }
@@ -103,7 +108,9 @@ internal class SyllableStrip(context: Context, private val theme: Theme) : Horiz
             }
             layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
             setOnClickListener {
-                if (shownPanel === panel && action in shownActions) onSelect?.invoke(action, panel)
+                if (this@SyllableStrip.isVisible && shownPanel === panel && action in shownActions) {
+                    onSelect?.invoke(action, panel)
+                }
             }
         }
 }

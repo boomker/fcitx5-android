@@ -3005,10 +3005,15 @@ class InputView(
 
         keyboardView.clipToOutline = true
         keyboardView.outlineProvider = keyboardOutlineProvider
-        keyboardView.addOnLayoutChangeListener { view, _, _, _, _, _, _, _, _ ->
+        keyboardView.addOnLayoutChangeListener { view, left, _, right, _, oldLeft, _, oldRight, _ ->
             view.invalidateOutline()
             keyBlurMaskView.markKeyRegionsDirty()
             keyBlurMaskView.invalidate()
+            if (right - left != oldRight - oldLeft) {
+                // Re-measure after availableWidth can read the new keyboard bounds.
+                val preeditRoot = preedit.ui.root
+                preeditRoot.post { preeditRoot.requestLayout() }
+            }
         }
         windowManager.view.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
             keyBlurMaskView.markKeyRegionsDirty()

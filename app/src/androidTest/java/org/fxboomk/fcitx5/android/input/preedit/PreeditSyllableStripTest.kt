@@ -4,6 +4,7 @@
  */
 package org.fxboomk.fcitx5.android.input.preedit
 
+import android.util.TypedValue
 import android.view.View
 import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.FrameLayout
@@ -171,20 +172,31 @@ class PreeditSyllableStripTest {
     }
 
     @Test
-    fun theThirdInputSyllableUsesAnExpandButtonRegardlessOfTheNumberOfChoices() = onMain {
-        val row = PreeditRowUi(context, ThemePreset.MaterialLight, setupTextView = {})
-        val choices = arrayOf(action(7, "ni"), action(11, "bi"), action(12, "nuo"),
-            action(13, "bo"), action(14, "bu"), action(15, "bing"))
-        for (code in listOf("n", "ni", "ni hc")) {
-            row.update(panel(code, choices), true)
-            assertEquals("$code should keep the choices beside the code", View.VISIBLE, row.syllables.visibility)
-            assertSame(row.codeRow, row.syllables.parent)
-            assertEquals(View.GONE, row.expandButton.visibility)
-            assertEquals(View.GONE, row.expandedSyllables.visibility)
-        }
+    fun fourNarrowCodesAndAFewChoicesStayInlineWhenTheyFit() = onMain {
+        var keyboardWidth = context.dp(1000)
+        val row = PreeditRowUi(context, ThemePreset.MaterialLight, setupTextView = {},
+            availableWidth = { keyboardWidth })
+        val code = "j'j'k'k"
+        row.update(panel(code, arrayOf(action(7, "ji"), action(11, "ju"))), true)
+        measureAndLayout(row)
+        keyboardWidth = naturalInlineWidth(row) + context.dp(8)
+        measureAndLayout(row)
+        assertEquals(View.VISIBLE, row.syllables.visibility)
+        assertSame(row.codeRow, row.syllables.parent)
+        assertEquals(View.GONE, row.expandButton.visibility)
+        assertEquals(View.GONE, row.expandedSyllables.visibility)
+        assertEquals(row.syllables.getChildAt(0).measuredWidth, row.syllables.width)
+        assertTrue(labels(row.codeRow).any { it.text.toString() == code })
+    }
 
-        // The incomplete third pair is already a third input syllable.
-        row.update(panel("ni hc n", arrayOf(action(7, "ni"))), true)
+    @Test
+    fun tooManyChoicesUseAnExpandButtonEvenWithOneInputSyllable() = onMain {
+        val keyboardWidth = context.dp(240)
+        val row = PreeditRowUi(context, ThemePreset.MaterialLight, setupTextView = {},
+            availableWidth = { keyboardWidth })
+        row.update(panel("ni", Array(20) { action(it, "ni") }), true)
+        measureAndLayout(row)
+        assertTrue(naturalInlineWidth(row) > keyboardWidth)
         assertEquals(View.GONE, row.syllables.visibility)
         assertEquals(View.VISIBLE, row.expandButton.visibility)
         assertEquals(context.getString(R.string.expand_syllables), row.expandButton.contentDescription)
@@ -193,9 +205,108 @@ class PreeditSyllableStripTest {
     }
 
     @Test
+    fun exactWidthStaysInlineAndOnePixelLessRequiresExpansion() = onMain {
+        var keyboardWidth = context.dp(1000)
+        val row = PreeditRowUi(context, ThemePreset.MaterialLight, setupTextView = {},
+            availableWidth = { keyboardWidth })
+        row.update(panel("j'j'k'k", arrayOf(action(7, "ji"), action(11, "ju"))), true)
+        measureAndLayout(row)
+        val requiredWidth = naturalInlineWidth(row)
+        keyboardWidth = requiredWidth
+        measureAndLayout(row)
+        assertEquals(View.VISIBLE, row.syllables.visibility)
+        assertEquals(View.GONE, row.expandButton.visibility)
+        assertEquals(requiredWidth, row.root.width)
+
+        keyboardWidth = requiredWidth - 1
+        row.root.requestLayout()
+        measureAndLayout(row)
+        assertEquals(View.GONE, row.syllables.visibility)
+        assertEquals(View.VISIBLE, row.expandButton.visibility)
+        assertTrue(row.root.width <= keyboardWidth)
+    }
+
+    @Test
+    fun aSingleLongChoiceUsesItsFullTextWidthToDecideWhetherToExpand() = onMain {
+        val keyboardWidth = context.dp(240)
+        val row = PreeditRowUi(context, ThemePreset.MaterialLight, setupTextView = {},
+            availableWidth = { keyboardWidth })
+        val choice = "zhuang".repeat(40)
+        row.update(panel("ni", arrayOf(action(7, choice))), true)
+        measureAndLayout(row)
+        assertTrue(row.syllables.getChildAt(0).measuredWidth > keyboardWidth)
+        assertEquals(View.GONE, row.syllables.visibility)
+        assertEquals(View.VISIBLE, row.expandButton.visibility)
+        row.expandButton.performClick()
+        measureAndLayout(row)
+        assertEquals(View.VISIBLE, row.expandedSyllables.visibility)
+        assertTrue(labels(row.syllables).any { it.text.toString() == choice })
+        assertTrue(row.syllables.width <= keyboardWidth)
+    }
+
+    @Test
+    fun largerCodeOrSyllableFontsCanRequireExpansionWithoutANewPanel() = onMain {
+        for (resizeSyllable in listOf(false, true)) {
+            var keyboardWidth = context.dp(1000)
+            val row = PreeditRowUi(context, ThemePreset.MaterialLight, setupTextView = {},
+                availableWidth = { keyboardWidth })
+            val code = "j'j'k'k"
+            row.update(panel(code, arrayOf(action(7, "zhuang"))), true)
+            measureAndLayout(row)
+            keyboardWidth = naturalInlineWidth(row)
+            measureAndLayout(row)
+            assertEquals(View.GONE, row.expandButton.visibility)
+
+            val label = if (resizeSyllable) labels(row.syllables).single()
+                else labels(codeViewport(row)).single { it.text.toString() == code }
+            label.setTextSize(TypedValue.COMPLEX_UNIT_PX, label.textSize * 3)
+            row.root.requestLayout()
+            measureAndLayout(row)
+            assertTrue(naturalInlineWidth(row) > keyboardWidth)
+            assertEquals(View.VISIBLE, row.expandButton.visibility)
+            assertEquals(View.GONE, row.syllables.visibility)
+        }
+    }
+
+    @Test
+    fun keyboardWidthChangesSwitchPresentationAndResetExpansionWithoutANewPanel() = onMain {
+        var keyboardWidth = context.dp(1000)
+        val row = PreeditRowUi(context, ThemePreset.MaterialLight, setupTextView = {},
+            availableWidth = { keyboardWidth })
+        row.update(panel("j'j'k'k", arrayOf(action(7, "ji"), action(11, "ju"))), true)
+        measureAndLayout(row)
+        val requiredWidth = naturalInlineWidth(row)
+        assertEquals(View.VISIBLE, row.syllables.visibility)
+
+        keyboardWidth = requiredWidth - 1
+        row.root.requestLayout()
+        measureAndLayout(row)
+        assertEquals(View.VISIBLE, row.expandButton.visibility)
+        row.expandButton.performClick()
+        measureAndLayout(row)
+        assertEquals(View.VISIBLE, row.expandedSyllables.visibility)
+
+        keyboardWidth = requiredWidth + 1
+        row.root.requestLayout()
+        measureAndLayout(row)
+        assertEquals(View.GONE, row.expandedSyllables.visibility)
+        assertEquals(View.GONE, row.expandButton.visibility)
+        assertEquals(View.VISIBLE, row.syllables.visibility)
+        assertSame(row.codeRow, row.syllables.parent)
+
+        keyboardWidth = requiredWidth - 1
+        row.root.requestLayout()
+        measureAndLayout(row)
+        assertEquals(View.VISIBLE, row.expandButton.visibility)
+        assertEquals(View.GONE, row.expandedSyllables.visibility)
+        assertEquals(View.GONE, row.syllables.visibility)
+    }
+
+    @Test
     fun expandedSyllablesOccupyTheirOwnRowAboveTheCodeAndCanBeCollapsed() = onMain {
-        val row = PreeditRowUi(context, ThemePreset.MaterialLight, setupTextView = {})
-        val code = "ni hc ma"
+        val row = PreeditRowUi(context, ThemePreset.MaterialLight, setupTextView = {},
+            availableWidth = { context.dp(240) })
+        val code = "ni hc ".repeat(40).trimEnd()
         row.update(panel(code, arrayOf(action(7, "ni"), action(11, "bi"))), true)
         measureAndLayout(row)
         val collapsedHeight = row.root.height
@@ -221,52 +332,39 @@ class PreeditSyllableStripTest {
     }
 
     @Test
-    fun shorterInputRestoresInlineChoicesAndLongerInputStartsCollapsedAgain() = onMain {
-        val row = PreeditRowUi(context, ThemePreset.MaterialLight, setupTextView = {})
-        val choices = arrayOf(action(7, "ni"), action(11, "bi"))
-        row.update(panel("ni hc ma", choices), true)
-        row.expandButton.performClick()
-        assertEquals(View.VISIBLE, row.expandedSyllables.visibility)
-
-        row.update(panel("ni hc", choices), true)
-        assertEquals(View.GONE, row.expandedSyllables.visibility)
-        assertEquals(View.GONE, row.expandButton.visibility)
-        assertEquals(View.VISIBLE, row.syllables.visibility)
-        assertSame(row.codeRow, row.syllables.parent)
-
-        row.update(panel("ni hc ma", choices), true)
-        assertEquals(View.VISIBLE, row.expandButton.visibility)
-        assertEquals(View.GONE, row.expandedSyllables.visibility)
-        assertEquals(View.GONE, row.syllables.visibility)
-    }
-
-    @Test
     fun clearingChoicesOrInputOrDisablingTheStripResetsItsExpansion() = onMain {
         val choices = arrayOf(action(7, "ni"), action(11, "bi"))
-        val longPanel = panel("ni hc ma", choices)
+        val code = "ni hc ".repeat(40).trimEnd()
+        val longPanel = panel(code, choices)
         val resets = listOf(
-            panel("ni hc ma", emptyArray()) to true,
+            panel(code, emptyArray()) to true,
             panel("", choices) to true,
             longPanel to false,
         )
         for ((resetPanel, enabled) in resets) {
-            val row = PreeditRowUi(context, ThemePreset.MaterialLight, setupTextView = {})
+            val row = PreeditRowUi(context, ThemePreset.MaterialLight, setupTextView = {},
+                availableWidth = { context.dp(240) })
             val picks = mutableListOf<Int>()
             row.syllables.onSelect = { action, _ -> picks += action.id }
             row.update(longPanel, true)
+            measureAndLayout(row)
             row.expandButton.performClick()
+            measureAndLayout(row)
             val oldBi = labels(row.syllables).single { it.text.toString() == "bi" }
             row.update(resetPanel, enabled)
+            measureAndLayout(row)
             assertEquals(View.GONE, row.expandedSyllables.visibility)
             assertEquals(View.GONE, row.expandButton.visibility)
             assertEquals(View.GONE, row.syllables.visibility)
             assertFalse(row.hasInteractiveContent)
             oldBi.performClick()
             row.expandButton.performClick()
+            measureAndLayout(row)
             assertTrue("A hidden choice dispatched its old ID", picks.isEmpty())
             assertEquals(View.GONE, row.expandedSyllables.visibility)
 
             row.update(longPanel, true)
+            measureAndLayout(row)
             assertEquals(View.VISIBLE, row.expandButton.visibility)
             assertEquals(View.GONE, row.expandedSyllables.visibility)
             assertEquals(View.GONE, row.syllables.visibility)
@@ -275,19 +373,23 @@ class PreeditSyllableStripTest {
 
     @Test
     fun expandedChoicesAdvanceWithoutClosingAndRejectOldPanelBindings() = onMain {
-        val row = PreeditRowUi(context, ThemePreset.MaterialLight, setupTextView = {})
+        val row = PreeditRowUi(context, ThemePreset.MaterialLight, setupTextView = {},
+            availableWidth = { context.dp(240) })
         val picks = mutableListOf<Pair<CandidateAction, FcitxEvent.InputPanelEvent.Data>>()
         row.syllables.onSelect = { action, panel -> picks += action to panel }
-        val first = panel("ni hc ma", arrayOf(action(7, "ni"), action(11, "bi")))
+        val first = panel("ni hc ".repeat(40).trimEnd(), arrayOf(action(7, "ni"), action(11, "bi")))
         row.update(first, true)
+        measureAndLayout(row)
         row.expandButton.performClick()
+        measureAndLayout(row)
         val oldBi = labels(row.syllables).single { it.text.toString() == "bi" }
         oldBi.performClick()
         assertEquals(11, picks.single().first.id)
         assertSame(first, picks.single().second)
 
-        val next = panel("bi hc ma", arrayOf(action(7, "hao"), action(11, "hua")))
+        val next = panel("bi hc ".repeat(40).trimEnd(), arrayOf(action(7, "hao"), action(11, "hua")))
         row.update(next, true)
+        measureAndLayout(row)
         assertEquals(View.VISIBLE, row.expandedSyllables.visibility)
         assertSame(row.expandedSyllables, row.syllables.parent)
         oldBi.performClick()
@@ -298,6 +400,7 @@ class PreeditSyllableStripTest {
         assertSame(next, picks.last().second)
 
         row.expandButton.performClick()
+        measureAndLayout(row)
         hua.performClick()
         assertEquals("Collapsing left an old choice clickable", 2, picks.size)
     }
@@ -315,8 +418,7 @@ class PreeditSyllableStripTest {
         assertTrue(row.root.width <= keyboardWidth)
         assertEquals(View.GONE, row.syllables.visibility)
         assertEquals(View.VISIBLE, row.expandButton.visibility)
-        val viewport = row.codeRow.allViews.filterIsInstance<HorizontalScrollView>()
-            .single { it !== row.syllables }
+        val viewport = codeViewport(row)
         assertEquals(keyboardWidth - row.expandButton.width, viewport.width)
         assertTrue("The code still reserves space for hidden syllables", viewport.width > keyboardWidth / 2)
 
@@ -325,8 +427,7 @@ class PreeditSyllableStripTest {
         assertTrue(row.root.width <= keyboardWidth)
         assertEquals(keyboardWidth - row.expandButton.width, viewport.width)
         assertTrue(row.syllables.width <= keyboardWidth)
-        assertTrue("The independent syllable row retains the old 60% limit",
-            row.syllables.width > (keyboardWidth * PreeditRowUi.MAX_SYLLABLE_SHARE).toInt())
+        assertEquals(minOf(keyboardWidth, row.syllables.getChildAt(0).measuredWidth), row.syllables.width)
         assertTrue(row.expandedSyllables.bottom < row.codeRow.top)
         assertTrue(labels(row.root).any { it.text.toString() == code })
 
@@ -342,19 +443,20 @@ class PreeditSyllableStripTest {
 
     @Test
     fun inlineAndExpandedControlsStayWithinTheKeyboardInRtl() = onMain {
-        val keyboardWidth = context.dp(240)
+        var keyboardWidth = context.dp(1000)
         val row = PreeditRowUi(context, ThemePreset.MaterialLight, setupTextView = {},
             availableWidth = { keyboardWidth })
         row.root.layoutDirection = View.LAYOUT_DIRECTION_RTL
-        val choices = arrayOf(action(7, "ni"), action(11, "bi"), action(12, "nuo"),
-            action(13, "bo"), action(14, "bu"), action(15, "bing"))
-        row.update(panel("ni hc", choices), true)
+        val choices = arrayOf(action(7, "ni"), action(11, "bi"))
+        row.update(panel("j'j'k'k", choices), true)
+        measureAndLayout(row)
+        keyboardWidth = naturalInlineWidth(row) + 1
         measureAndLayout(row)
         assertEquals(0, row.syllables.left)
         assertTrue(row.syllables.right <= row.codeRow.width)
         assertTrue(row.root.width <= keyboardWidth)
 
-        row.update(panel("ni hc ma", choices), true)
+        row.update(panel("ni hc ".repeat(40).trimEnd(), choices), true)
         measureAndLayout(row)
         assertEquals(0, row.expandButton.left)
         assertTrue(row.expandButton.right <= row.codeRow.width)
@@ -367,10 +469,99 @@ class PreeditSyllableStripTest {
         assertTrue(row.expandedSyllables.bottom < row.codeRow.top)
     }
 
+    @Test
+    fun repeatedMeasurementsKeepInlineCollapsedAndExpandedViewportsConstrained() = onMain {
+        for (overflow in listOf(false, true)) {
+            var keyboardWidth = context.dp(1000)
+            val row = PreeditRowUi(context, ThemePreset.MaterialLight, setupTextView = {},
+                availableWidth = { keyboardWidth })
+            val code = if (overflow) "ni hc ".repeat(40).trimEnd() else "j'j'k'k"
+            val choices = if (overflow) Array(20) { action(it, "ni") }
+                else arrayOf(action(7, "ji"), action(11, "ju"))
+            row.update(panel(code, choices), true)
+            measureAndLayout(row)
+            keyboardWidth = if (overflow) context.dp(240) else naturalInlineWidth(row) + context.dp(8)
+            measureAndLayout(row)
+
+            for (expanded in if (overflow) listOf(false, true) else listOf(false)) {
+                if (expanded) {
+                    row.expandButton.performClick()
+                    measureAndLayout(row)
+                }
+                val viewport = codeViewport(row)
+                val expectedCodeWidth = viewport.width
+                val expectedStripWidth = row.syllables.width
+                val expectedRootHeight = row.root.height
+                repeat(10) {
+                    // Reuse the same panel, keyboard width and parent specs. The natural
+                    // size probe must not leave either visible scroll viewport unconstrained.
+                    measureAndLayout(row)
+                    assertEquals(expectedRootHeight, row.root.height)
+                    assertTrue(row.root.width <= keyboardWidth)
+                    assertEquals(if (overflow) View.VISIBLE else View.GONE, row.expandButton.visibility)
+                    assertEquals(if (expanded) View.VISIBLE else View.GONE, row.expandedSyllables.visibility)
+                    assertEquals(if (!overflow || expanded) View.VISIBLE else View.GONE, row.syllables.visibility)
+                    assertEquals(expectedCodeWidth, viewport.width)
+                    assertEquals(viewport.width, viewport.measuredWidth)
+                    assertTrue(viewport.left >= row.codeRow.paddingLeft)
+                    assertTrue(viewport.right <= row.codeRow.width - row.codeRow.paddingRight)
+                    if (!overflow || expanded) {
+                        val parent = if (expanded) row.expandedSyllables else row.codeRow
+                        assertSame(parent, row.syllables.parent)
+                        assertEquals(expectedStripWidth, row.syllables.width)
+                        assertEquals(row.syllables.width, row.syllables.measuredWidth)
+                        assertTrue(row.syllables.left >= parent.paddingLeft)
+                        assertTrue(row.syllables.right <= parent.width - parent.paddingRight)
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun exactInlineWidthAccountsForBothRootAndCodeRowPadding() = onMain {
+        var keyboardWidth = context.dp(1000)
+        val row = PreeditRowUi(context, ThemePreset.MaterialLight, setupTextView = {},
+            availableWidth = { keyboardWidth })
+        row.root.setPadding(7, 0, 11, 0)
+        row.codeRow.setPadding(13, 0, 17, 0)
+        row.update(panel("j'j'k'k", arrayOf(action(7, "ji"), action(11, "ju"))), true)
+        measureAndLayout(row)
+        val requiredWidth = naturalInlineWidth(row) + row.root.paddingLeft + row.root.paddingRight +
+            row.codeRow.paddingLeft + row.codeRow.paddingRight
+
+        keyboardWidth = requiredWidth
+        measureAndLayout(row)
+        assertEquals(View.VISIBLE, row.syllables.visibility)
+        assertEquals(View.GONE, row.expandButton.visibility)
+        assertEquals(requiredWidth, row.root.width)
+        assertTrue(codeViewport(row).left >= row.codeRow.paddingLeft)
+        assertTrue(row.syllables.right <= row.codeRow.width - row.codeRow.paddingRight)
+
+        keyboardWidth = requiredWidth - 1
+        measureAndLayout(row)
+        assertEquals(View.GONE, row.syllables.visibility)
+        assertEquals(View.VISIBLE, row.expandButton.visibility)
+        assertTrue(row.root.width <= keyboardWidth)
+    }
+
     private fun measureAndLayout(row: PreeditRowUi) {
-        row.root.measure(View.MeasureSpec.makeMeasureSpec(context.dp(400), View.MeasureSpec.AT_MOST),
+        row.root.requestLayout()
+        row.root.measure(View.MeasureSpec.makeMeasureSpec(context.dp(2000), View.MeasureSpec.AT_MOST),
             View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
         row.root.layout(0, 0, row.root.measuredWidth, row.root.measuredHeight)
+    }
+
+    private fun codeViewport(row: PreeditRowUi) = row.codeRow.allViews
+        .filterIsInstance<HorizontalScrollView>().single { it !== row.syllables }
+
+    private fun naturalInlineWidth(row: PreeditRowUi): Int {
+        val unspecified = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        val code = codeViewport(row).getChildAt(0)
+        val choices = row.syllables.getChildAt(0)
+        code.measure(unspecified, unspecified)
+        choices.measure(unspecified, unspecified)
+        return code.measuredWidth + choices.measuredWidth
     }
 
     private fun labels(view: View): List<TextView> = view.allViews.filterIsInstance<TextView>().toList()
