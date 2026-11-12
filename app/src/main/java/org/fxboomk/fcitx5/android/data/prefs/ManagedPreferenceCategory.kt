@@ -54,11 +54,12 @@ abstract class ManagedPreferenceCategory(
         entryValues: List<T>,
         @StringRes
         entryLabels: List<Int>,
-        enableUiOn: (() -> Boolean)? = null
+        enableUiOn: (() -> Boolean)? = null,
+        enableEntryOn: ((T) -> Boolean)? = null
     ): ManagedPreference.PStringLike<T> {
         val pref = ManagedPreference.PStringLike(sharedPreferences, key, defaultValue, codec)
         val ui = ManagedPreferenceUi.StringList(
-            title, key, defaultValue, codec, entryValues, entryLabels, enableUiOn
+            title, key, defaultValue, codec, entryValues, entryLabels, enableUiOn, enableEntryOn
         )
         pref.register()
         ui.registerUi()
@@ -71,7 +72,8 @@ abstract class ManagedPreferenceCategory(
         key: String,
         defaultValue: T,
         noinline enableUiOn: (() -> Boolean)? = null,
-        showUi: Boolean = true
+        showUi: Boolean = true,
+        noinline enableEntryOn: ((T) -> Boolean)? = null
     ): ManagedPreference.PStringLike<T> where T : Enum<T>, T : ManagedPreferenceEnum {
         val codec = object : ManagedPreference.StringLikeCodec<T> {
             override fun decode(raw: String): T = enumValueOf(raw)
@@ -82,7 +84,7 @@ abstract class ManagedPreferenceCategory(
         }
         val entryValues = enumValues<T>().toList()
         val entryLabels = entryValues.map { it.stringRes }
-        return list(title, key, defaultValue, codec, entryValues, entryLabels, enableUiOn)
+        return list(title, key, defaultValue, codec, entryValues, entryLabels, enableUiOn, enableEntryOn)
     }
 
     protected fun voiceInputPreference(

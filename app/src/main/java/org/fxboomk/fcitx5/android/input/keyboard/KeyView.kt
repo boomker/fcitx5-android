@@ -96,8 +96,11 @@ abstract class KeyView(
     CustomGestureView(ctx) {
 
     protected fun punctuationPositionForKey(): PunctuationPosition {
-        val character = (def as? KeyDef.Appearance.AltText)?.character?.singleOrNull()
-        return if (character != null && (character in 'a'..'z' || character in 'A'..'Z')) {
+        val appearance = def as? KeyDef.Appearance.AltText
+        val character = appearance?.character?.singleOrNull()
+        return if (appearance?.isLetterGroup == true ||
+            (character != null && (character in 'a'..'z' || character in 'A'..'Z'))
+        ) {
             ThemeManager.prefs.punctuationPosition.getValue()
         } else {
             // Other keys keep the default position; explicit layout overrides
@@ -724,6 +727,11 @@ class AltTextKeyView(
      * member functions use this AltText-typed reference instead of re-casting.
      */
     private val altDef = def
+    private val uppercaseHintText = (if (def.isLetterGroup) {
+        def.character.filter { it.isLetter() }
+    } else {
+        def.character
+    }).uppercase()
 
     val altText = view(::AutoScaleTextView) {
         isClickable = false
@@ -768,10 +776,22 @@ class AltTextKeyView(
         )
     }
 
+    internal val groupedUppercaseText = if (def.isLetterGroup && uppercaseHintText.length > 1) {
+        view(::AutoScaleTextView) {
+            isClickable = false
+            isFocusable = false
+            visibility = View.GONE
+            scaleMode = AutoScaleTextView.Mode.Proportional
+            textDirection = View.TEXT_DIRECTION_FIRST_STRONG_LTR
+            fontKey = "key_alt_font"
+        }
+    } else null
+
     init {
         appearanceView.apply {
             add(altText, lParams(0, wrapContent))
             add(altText1, lParams(0, wrapContent))
+            groupedUppercaseText?.let { add(it, lParams(0, wrapContent)) }
         }
         // 修复时序问题：使用 post 延后执行，确保获取到 layout 后的最终高度
         appearanceView.post {
@@ -802,7 +822,11 @@ class AltTextKeyView(
             return UppercasePosition.None
         }
         val character = altDef.character
-        if (character.length != 1 || !character[0].isLetter()) return UppercasePosition.None
+        if (altDef.isLetterGroup) {
+            if (uppercaseHintText.isEmpty()) return UppercasePosition.None
+        } else if (character.length != 1 || !character[0].isLetter()) {
+            return UppercasePosition.None
+        }
         return pref
     }
 
@@ -820,21 +844,30 @@ class AltTextKeyView(
         return character.length == 1 && character[0].isLetter() && alt1 == character.uppercase()
     }
 
-    internal fun uppercaseSwipeAction(): KeyAction? {
+    internal fun uppercaseSwipeAction(): KeyAction.CommitAction? {
         if (resolveUppercaseMode() == UppercasePosition.None) return null
-        val character = altDef.character
-        if (character.length != 1) return null
         // Commit as-is: must not be lowercased by the caps state transformation
-        return KeyAction.CommitAction(character.uppercase())
+        return KeyAction.CommitAction(uppercaseHintText)
     }
 
     private fun syncAltText1() {
         val showUppercaseHint = resolveUppercaseMode() != UppercasePosition.None
         if (showUppercaseHint || uppercaseHintInSecondarySlot) {
-            val text = if (showUppercaseHint) altDef.character.uppercase() else altDef.altText1.orEmpty()
+            val text = if (showUppercaseHint) {
+                if (groupedUppercaseText != null) uppercaseHintText.take(1) else uppercaseHintText
+            } else altDef.altText1.orEmpty()
             if (altText1.text.toString() != text) {
                 altText1.text = text
             }
+        }
+        groupedUppercaseText?.apply {
+            val text = if (showUppercaseHint) uppercaseHintText.drop(1) else ""
+            if (this.text.toString() != text) this.text = text
+            if (typeface != altText1.typeface) typeface = altText1.typeface
+            if (textSize != altText1.textSize) {
+                setTextSize(TypedValue.COMPLEX_UNIT_PX, altText1.textSize)
+            }
+            setTextColor(altText1.currentTextColor)
         }
         uppercaseHintInSecondarySlot = showUppercaseHint
     }
@@ -1036,6 +1069,21 @@ class AltTextKeyView(
         var primary = if (hasPrimary) requestedPrimary else LabelPosition.Hidden
         var secondary = if (hasSecondary) resolveSecondaryPosition() else LabelPosition.Hidden
 
+        if (altDef.isLetterGroup && isUppercaseHintActive()) {
+            // Compact groups reserve one whole edge for uppercase hints. The
+            // uppercase preference wins if punctuation requests that same edge.
+            secondary = if (resolveUppercaseMode() == UppercasePosition.Top) {
+                LabelPosition.Top
+            } else LabelPosition.Bottom
+            if (primary != LabelPosition.Hidden && isTop(primary) == isTop(secondary)) {
+                primary = if (isTop(secondary)) LabelPosition.Bottom else LabelPosition.Top
+            }
+            val layout = LabelLayout(primary, secondary)
+            return if (keyHeight > 0 && !hasEnoughRoom(layout, keyHeight)) {
+                LabelLayout(LabelPosition.Hidden, LabelPosition.Hidden)
+            } else layout
+        }
+
         // TopBottom is the legacy combined row setting: it pins the first label
         // above the second, regardless of the theme's independent positions.
         if (hasPrimary && hasSecondary &&
@@ -1122,8 +1170,18 @@ class AltTextKeyView(
         }
         altText.maxHeight = labelMaxHeight
         altText1.maxHeight = labelMaxHeight
+        groupedUppercaseText?.apply {
+            visibility = View.GONE
+            maxHeight = labelMaxHeight
+        }
 
         when {
+            altDef.isLetterGroup && isUppercaseHintActive() &&
+                secondaryVisible && groupedUppercaseText != null -> {
+                if (primaryVisible) positionLabel(altText, layout.primary) else hidePrimaryAltText()
+                placeCornerLabel(altText1, isTop(layout.secondary), right = false)
+                placeCornerLabel(groupedUppercaseText, isTop(layout.secondary), right = true)
+            }
             primaryVisible && secondaryVisible && isTop(layout.primary) == isTop(layout.secondary) -> {
                 val primaryRight = layout.primary == LabelPosition.TopRight
                 applyCornerPairAltTextPosition(isTop(layout.primary), primaryRight)
@@ -1139,7 +1197,7 @@ class AltTextKeyView(
     }
 
     private fun updateRemainingSpaceLabels(keyHeight: Int) {
-        val visibleLabels = listOf(altText, altText1).filter {
+        val visibleLabels = listOfNotNull(altText, altText1, groupedUppercaseText).filter {
             it.visibility == View.VISIBLE && !it.text.isNullOrBlank()
         }
         remainingSpaceTopLabels = visibleLabels.filter {
@@ -1255,7 +1313,7 @@ class AltTextKeyView(
                 key.mainText.paint.getTextBounds(text, 0, text.length, bounds)
                 if (bounds.isEmpty) return@mapNotNull null
 
-                val visibleLabels = listOf(key.altText, key.altText1).filter {
+                val visibleLabels = listOfNotNull(key.altText, key.altText1, key.groupedUppercaseText).filter {
                     it.visibility == View.VISIBLE && !it.text.isNullOrBlank()
                 }
                 val topLabels = key.remainingSpaceTopLabels.ifEmpty {

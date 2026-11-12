@@ -153,7 +153,8 @@ class ThemePrefs(sharedPreferences: SharedPreferences) :
     val punctuationPosition = enumList(
         R.string.punctuation_position,
         "punctuation_position",
-        PunctuationPosition.Bottom
+        PunctuationPosition.Bottom,
+        enableEntryOn = { canUseSubLabelPositions(punctuation = it) }
     )
 
     enum class UppercasePosition(override val stringRes: Int) : ManagedPreferenceEnum {
@@ -165,8 +166,19 @@ class ThemePrefs(sharedPreferences: SharedPreferences) :
     val uppercasePosition = enumList(
         R.string.uppercase_position,
         "uppercase_position",
-        UppercasePosition.None
+        UppercasePosition.None,
+        enableEntryOn = { canUseSubLabelPositions(uppercase = it) }
     )
+
+    private fun canUseSubLabelPositions(
+        punctuation: PunctuationPosition = punctuationPosition.getValue(),
+        uppercase: UppercasePosition = uppercasePosition.getValue()
+    ): Boolean = when (uppercase) {
+        UppercasePosition.None -> true
+        UppercasePosition.Top -> punctuation != PunctuationPosition.Top &&
+            punctuation != PunctuationPosition.TopRight
+        UppercasePosition.Bottom -> punctuation != PunctuationPosition.Bottom
+    }
 
     /**
      * When [followSystemDayNightTheme] is disabled, this theme is used.

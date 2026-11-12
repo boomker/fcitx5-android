@@ -114,6 +114,7 @@ class ShuangpinKeyboardLayoutTest {
             }
             assertEquals(expected, appearances.map { it.displayText })
             appearances.zip(expected).forEach { (appearance, label) ->
+                assertTrue("Missing uppercase hints for $label", appearance.supportsUppercaseHint)
                 for (capsOn in listOf(false, true)) {
                     for (keepUppercase in listOf(false, true)) {
                         assertEquals(

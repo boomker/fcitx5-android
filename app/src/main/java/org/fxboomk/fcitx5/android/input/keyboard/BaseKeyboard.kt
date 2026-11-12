@@ -1743,9 +1743,6 @@ abstract class BaseKeyboard(
                 behavior.downAction ?: behavior.action ?: behavior.legacyMacro
             AltTextSwipeTarget.Uppercase ->
                 (view as? AltTextKeyView)?.uppercaseSwipeAction()
-                    ?: behavior.downAction
-                    ?: behavior.action
-                    ?: behavior.legacyMacro
             null -> null
         }
 
@@ -1817,8 +1814,7 @@ abstract class BaseKeyboard(
             AltTextSwipeTarget.Primary -> popup.alternative
             AltTextSwipeTarget.Secondary -> popup.alternative1 ?: popup.alternative
             AltTextSwipeTarget.Uppercase ->
-                (view as? AltTextKeyView)?.altText1?.text?.toString()
-                    ?.takeIf { it.isNotEmpty() }
+                (view as? AltTextKeyView)?.uppercaseSwipeAction()?.text
                     ?: popup.content.uppercase()
             null -> popup.content
         }

@@ -100,7 +100,7 @@ internal object Shuangpin18Keys {
             return KeyDef(
                 KeyDef.Appearance.AltText(
                     displayText = label, altText = corner, character = group, textSize = 23f,
-                    percentWidth = width, isLetterGroup = true,
+                    percentWidth = width, isLetterGroup = true, supportsUppercaseHint = true,
                 ),
                 setOf(
                     KeyDef.Behavior.Press(action(index)),

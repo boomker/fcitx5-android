@@ -11,6 +11,7 @@ import androidx.preference.ListPreference
 import androidx.preference.Preference
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.input.voice.VoiceInputChoices
+import org.fxboomk.fcitx5.android.ui.main.modified.EntryEnabledListPreference
 import org.fxboomk.fcitx5.android.ui.main.modified.MySwitchPreference
 import org.fxboomk.fcitx5.android.ui.main.settings.DialogSeekBarPreference
 import org.fxboomk.fcitx5.android.ui.main.settings.EditTextIntPreference
@@ -74,9 +75,14 @@ abstract class ManagedPreferenceUi<T : Preference>(
         val entryValues: List<T>,
         @StringRes
         val entryLabels: List<Int>,
-        enableUiOn: (() -> Boolean)? = null
+        enableUiOn: (() -> Boolean)? = null,
+        private val enableEntryOn: ((T) -> Boolean)? = null
     ) : ManagedPreferenceUi<ListPreference>(key, enableUiOn) {
-        override fun createUi(context: Context) = ListPreference(context).apply {
+        override fun createUi(context: Context) = (enableEntryOn?.let { enabled ->
+            EntryEnabledListPreference(context, codec.encode(defaultValue)) { raw ->
+                codec.decode(raw)?.let(enabled) == true
+            }
+        } ?: ListPreference(context)).apply {
             key = this@StringList.key
             isIconSpaceReserved = false
             isSingleLineTitle = false
