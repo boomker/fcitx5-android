@@ -172,6 +172,9 @@ abstract class BaseKeyboard(
         return allViews.firstOrNull { it.tag == tagId && it is T } as? T
     }
 
+    // reloadLayout creates keys during initialization and reads this value.
+    private var currentTextScale = 1.0f
+
     init {
         isMotionEventSplittingEnabled = true
         reloadLayout()
@@ -553,8 +556,6 @@ abstract class BaseKeyboard(
         }
     }
 
-    private var currentTextScale = 1.0f
-
     fun setTextScale(scale: Float) {
         val scaleChanged = currentTextScale != scale
         currentTextScale = scale
@@ -646,14 +647,19 @@ abstract class BaseKeyboard(
     }
 
     /**
-     * Refresh all AltTextKeyView layouts with current final heights.
+     * Refresh text labels and function-key punctuation with current final heights.
      * Should be called after keyboard size is fully applied and stable.
      */
     fun refreshAltTextLayouts() {
         if (::keyRows.isInitialized) {
             keyRows.forEach { row ->
                 row.children.forEach { child ->
-                    (child as? AltTextKeyView)?.refreshLayout()
+                    when (child) {
+                        is AltTextKeyView -> child.refreshLayout()
+                        is ImageAltTextKeyView -> if (child.def.followsPunctuationPosition) {
+                            child.refreshLayout()
+                        }
+                    }
                 }
             }
             // A stable-height global-layout callback runs after onLayout's
@@ -1030,6 +1036,7 @@ abstract class BaseKeyboard(
             else -> this
         }.also {
             it.directionalSwipeLabels = directionalSwipeLabels
+            it.followsPunctuationPosition = followsPunctuationPosition
         }
     }
 
@@ -1135,6 +1142,7 @@ abstract class BaseKeyboard(
         )
     }.also {
         it.directionalSwipeLabels = directionalSwipeLabels
+        it.followsPunctuationPosition = followsPunctuationPosition
     }
 
     private fun applyAppearance(view: KeyView, appearance: KeyDef.Appearance) {
@@ -1269,6 +1277,7 @@ abstract class BaseKeyboard(
             it.altTextPositionOverride = appearance.altTextPositionOverride
             it.altText1PositionOverride = appearance.altText1PositionOverride
             it.directionalSwipeLabels = appearance.directionalSwipeLabels
+            it.followsPunctuationPosition = appearance.followsPunctuationPosition
         }
     }
 

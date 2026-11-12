@@ -95,7 +95,8 @@ class ShuangpinKeyboardLayoutTest {
         val caps = rows[2].first() as CapsKey
         assertEquals(KeyAction.CapsAction(false),
             caps.behaviors.filterIsInstance<KeyDef.Behavior.Press>().single().action)
-        assertEquals("'", caps.swipeUpLabel)
+        assertEquals("'", caps.swipeLabel)
+        assertTrue(caps.appearance.followsPunctuationPosition)
         assertEquals(MacroAction(listOf(MacroStep.Tap(listOf(KeyRef.Fcitx("apostrophe"))))), caps.swipeUp)
         assertEquals(KeyAction.CapsAction(true),
             caps.behaviors.filterIsInstance<KeyDef.Behavior.LongPress>().single().action)

@@ -6,9 +6,11 @@ package org.fxboomk.fcitx5.android.input.keyboard
 
 import android.content.Intent
 import android.os.SystemClock
+import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.widget.FrameLayout
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.allViews
 import androidx.test.platform.app.InstrumentationRegistry
 import org.fxboomk.fcitx5.android.R
@@ -16,6 +18,8 @@ import org.fxboomk.fcitx5.android.core.InputMethodEntry
 import org.fxboomk.fcitx5.android.core.KeyState
 import org.fxboomk.fcitx5.android.data.InputFeedbacks.InputFeedbackMode
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
+import org.fxboomk.fcitx5.android.data.theme.ThemeManager
+import org.fxboomk.fcitx5.android.data.theme.ThemePrefs.PunctuationPosition
 import org.fxboomk.fcitx5.android.data.theme.ThemePreset
 import org.fxboomk.fcitx5.android.input.keyboard.CustomGestureView.Event
 import org.fxboomk.fcitx5.android.input.keyboard.CustomGestureView.GestureType
@@ -29,21 +33,38 @@ class Shuangpin18CapsTest {
 
     @Test
     fun compactCapsSwipeSeparatesWordsWithoutTogglingCaps() = withKeyboard { scene ->
-        onMain {
+        val originalCaps = onMain {
             assertCompact(scene.keyboard)
-            scene.actions.clear()
-            swipeUp(caps(scene.keyboard))
+            caps(scene.keyboard) as ImageAltTextKeyView
         }
-        waitFor("Apostrophe macro did not release its key") {
-            scene.actions.filterIsInstance<KeyAction.FcitxKeyAction>().any { it.up }
+        val positions = listOf(PunctuationPosition.Top, PunctuationPosition.TopRight,
+            PunctuationPosition.Bottom, PunctuationPosition.None, PunctuationPosition.Top)
+        for (position in positions) {
+            onMain {
+                ThemeManager.prefs.punctuationPosition.setValue(position)
+            }
+            instrumentation.waitForIdleSync()
+            onMain {
+                layout(scene.keyboard)
+                assertSame("Changing $position replaced the Caps view", originalCaps, caps(scene.keyboard))
+                assertCapsSeparatorPosition(originalCaps, position)
+                scene.actions.clear()
+                swipeUp(originalCaps)
+            }
+            waitFor("Apostrophe macro did not release its key at $position") {
+                scene.actions.filterIsInstance<KeyAction.FcitxKeyAction>().any { it.up }
+            }
+            onMain {
+                val keys = scene.actions.filterIsInstance<KeyAction.FcitxKeyAction>()
+                assertEquals(listOf("apostrophe", "apostrophe"), keys.map { it.act })
+                assertEquals(listOf(false, true), keys.map { it.up })
+                assertTrue(keys.none { it.states.has(KeyState.Shift) })
+                assertTrue(scene.actions.none { it is KeyAction.CommitAction || it is KeyAction.CapsAction })
+                assertCompact(scene.keyboard)
+                assertSame(originalCaps, caps(scene.keyboard))
+            }
         }
         onMain {
-            val keys = scene.actions.filterIsInstance<KeyAction.FcitxKeyAction>()
-            assertEquals(listOf("apostrophe", "apostrophe"), keys.map { it.act })
-            assertEquals(listOf(false, true), keys.map { it.up })
-            assertTrue(keys.none { it.states.has(KeyState.Shift) })
-            assertTrue(scene.actions.none { it is KeyAction.CommitAction || it is KeyAction.CapsAction })
-            assertCompact(scene.keyboard)
             tap(textKey(scene.keyboard, "WE"))
             assertTrue(scene.actions.filterIsInstance<KeyAction.SymAction>().any {
                 Shuangpin18Keys.indexOf(it.sym) == 1
@@ -142,6 +163,7 @@ class Shuangpin18CapsTest {
         val swipe = prefs.keyboard.swipeSymbolDirection.getValue()
         val haptic = prefs.keyboard.hapticOnKeyPress.getValue()
         val sound = prefs.keyboard.soundOnKeyPress.getValue()
+        val punctuationPosition = ThemeManager.prefs.punctuationPosition.getValue()
         var activity: MainActivity? = null
         try {
             onMain {
@@ -179,6 +201,7 @@ class Shuangpin18CapsTest {
                 prefs.keyboard.swipeSymbolDirection.setValue(swipe)
                 prefs.keyboard.hapticOnKeyPress.setValue(haptic)
                 prefs.keyboard.soundOnKeyPress.setValue(sound)
+                ThemeManager.prefs.punctuationPosition.setValue(punctuationPosition)
             }
             instrumentation.waitForIdleSync()
         }
@@ -197,6 +220,48 @@ class Shuangpin18CapsTest {
         assertTrue("The grouped WE key is missing", "WE" in labels(keyboard))
         assertFalse("The uppercase 26-key layout was retained", "W" in labels(keyboard))
         caps(keyboard)
+    }
+
+    private fun assertCapsSeparatorPosition(key: ImageAltTextKeyView, position: PunctuationPosition) {
+        val label = key.altText
+        assertEquals("'", label.text.toString())
+        assertEquals(View.GONE, key.altText1.visibility)
+        assertEquals(if (position == PunctuationPosition.None) View.GONE else View.VISIBLE, label.visibility)
+        if (position == PunctuationPosition.None) return
+
+        val params = label.layoutParams as ConstraintLayout.LayoutParams
+        val parent = label.parent as View
+        val diagnostic = "position=$position; label=[${label.left},${label.top},${label.right},${label.bottom}] " +
+            "measured=${label.measuredWidth}x${label.measuredHeight} paint.textSize=${label.paint.textSize} " +
+            "useGlyphBounds=${label.useGlyphBounds}; " +
+            "parent=[${parent.left},${parent.top},${parent.right},${parent.bottom}] " +
+            "measured=${parent.measuredWidth}x${parent.measuredHeight}; " +
+            "icon=[${key.img.left},${key.img.top},${key.img.right},${key.img.bottom}] " +
+            "measured=${key.img.measuredWidth}x${key.img.measuredHeight}; " +
+            "params topToTop=${params.topToTop} topToBottom=${params.topToBottom} " +
+            "bottomToBottom=${params.bottomToBottom} bottomToTop=${params.bottomToTop} " +
+            "leftToLeft=${params.leftToLeft} rightToRight=${params.rightToRight} " +
+            "width=${params.width} height=${params.height} " +
+            "margins=${params.leftMargin},${params.topMargin},${params.rightMargin},${params.bottomMargin}"
+        assertTrue("The separator was not laid out: $diagnostic", label.width > 0 && label.height > 0)
+        assertTrue(label.left >= 0 && label.right <= parent.width)
+        val labelCenterY = (label.top + label.bottom) / 2f
+        val iconCenterY = (key.img.top + key.img.bottom) / 2f
+        if (position == PunctuationPosition.Bottom) {
+            assertEquals(ConstraintLayout.LayoutParams.PARENT_ID, params.bottomToBottom)
+            assertEquals(ConstraintLayout.LayoutParams.UNSET, params.topToTop)
+            assertTrue("The separator is above the icon at Bottom", labelCenterY > iconCenterY)
+        } else {
+            assertEquals(ConstraintLayout.LayoutParams.PARENT_ID, params.topToTop)
+            assertEquals(ConstraintLayout.LayoutParams.UNSET, params.bottomToBottom)
+            assertTrue("The separator is below the icon at $position", labelCenterY < iconCenterY)
+        }
+        assertEquals(when (position) {
+            PunctuationPosition.Top -> Gravity.CENTER
+            PunctuationPosition.TopRight -> Gravity.END or Gravity.CENTER_VERTICAL
+            PunctuationPosition.Bottom -> Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+            PunctuationPosition.None -> error("Hidden labels have no placement")
+        }, label.gravity)
     }
 
     private fun assertUppercase26(keyboard: TextKeyboard) {

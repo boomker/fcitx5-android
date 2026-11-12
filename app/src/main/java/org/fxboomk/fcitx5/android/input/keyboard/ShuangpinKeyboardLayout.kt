@@ -120,8 +120,10 @@ internal object Shuangpin18Keys {
             listOf(CapsKey(
                 percentWidth = 0.15f,
                 swipeUp = MacroAction(listOf(MacroStep.Tap(listOf(KeyRef.Fcitx("apostrophe"))))),
-                swipeUpLabel = "'",
-            )) +
+                swipeLabel = "'",
+            ).apply {
+                appearance.followsPunctuationPosition = true
+            }) +
                 (13..17).map { groupKey(it, 0.14f) } + BackspaceKey(0.15f),
             TextKeyboard.getDefaultLayout(showLangSwitch).last(),
         )
