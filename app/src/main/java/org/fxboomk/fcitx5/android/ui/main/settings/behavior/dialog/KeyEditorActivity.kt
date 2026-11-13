@@ -833,18 +833,20 @@ class KeyEditorActivity : AppCompatActivity() {
     }
 
     private fun renderDirectionalSwipeEditors() {
-        val upLabel = uiBuilder.createEditField(
-            getString(R.string.text_keyboard_layout_swipe_up_label),
-            keyData["swipeUpLabel"] as? String ?: ""
-        )
-        val downLabel = uiBuilder.createEditField(
-            getString(R.string.text_keyboard_layout_swipe_down_label),
-            keyData["swipeDownLabel"] as? String ?: ""
-        )
-        nonMacroSwipeUpLabelEdit = upLabel.second
-        nonMacroSwipeDownLabelEdit = downLabel.second
-        fieldsContainer.addView(upLabel.first)
-        fieldsContainer.addView(downLabel.first)
+        if (selectedType != "ShuangpinGroupKey") {
+            val upLabel = uiBuilder.createEditField(
+                getString(R.string.text_keyboard_layout_swipe_up_label),
+                keyData["swipeUpLabel"] as? String ?: ""
+            )
+            val downLabel = uiBuilder.createEditField(
+                getString(R.string.text_keyboard_layout_swipe_down_label),
+                keyData["swipeDownLabel"] as? String ?: ""
+            )
+            nonMacroSwipeUpLabelEdit = upLabel.second
+            nonMacroSwipeDownLabelEdit = downLabel.second
+            fieldsContainer.addView(upLabel.first)
+            fieldsContainer.addView(downLabel.first)
+        }
 
         nonMacroSwipeUpAction = SwipeActionDraft.from(keyData["swipeUp"])
         nonMacroSwipeDownAction = SwipeActionDraft.from(keyData["swipeDown"])

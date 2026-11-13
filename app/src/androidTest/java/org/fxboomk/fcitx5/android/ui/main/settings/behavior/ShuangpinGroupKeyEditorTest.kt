@@ -3,7 +3,9 @@ package org.fxboomk.fcitx5.android.ui.main.settings.behavior
 
 import android.content.Intent
 import android.widget.EditText
+import android.widget.TextView
 import android.view.MenuItem
+import androidx.core.view.allViews
 import androidx.test.platform.app.InstrumentationRegistry
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.dialog.KeyEditorActivity
@@ -17,22 +19,31 @@ class ShuangpinGroupKeyEditorTest {
             hashMapOf<String, Any?>("type" to "text", "text" to "test")
         ))
         val data = hashMapOf<String, Any?>(
-            "type" to "ShuangpinGroupKey", "groupId" to "we", "alt" to "2",
+            "type" to "ShuangpinGroupKey", "groupId" to "we", "alt" to "2", "alt1" to "3",
             "displayText" to "WE", "weight" to 0.2f,
-            "swipeUp" to action, "swipeUpLabel" to "UP", "longPress" to action,
+            "swipeUp" to action, "swipeDown" to action,
+            "swipeUpLabel" to "UP", "swipeDownLabel" to "DOWN", "longPress" to action,
         )
         val saved = save(data) { activity ->
             assertEquals("we", groupEdit(activity).text.toString())
+            val labels = activity.window.decorView.allViews.filterIsInstance<TextView>().map { it.text.toString() }.toList()
+            assertFalse(labels.contains(activity.getString(R.string.text_keyboard_layout_swipe_up_label)))
+            assertFalse(labels.contains(activity.getString(R.string.text_keyboard_layout_swipe_down_label)))
+            assertEquals("2", (field(activity, "alphabetAltEdit") as EditText).text.toString())
+            assertEquals("3", (field(activity, "alphabetAlt1Edit") as EditText).text.toString())
             (field(activity, "alphabetDisplayTextSimpleEdit") as EditText).setText("左右")
         }
         assertEquals("ShuangpinGroupKey", saved["type"])
         assertEquals("we", saved["groupId"])
         assertEquals("左右", saved["displayText"])
         assertEquals("2", saved["alt"])
+        assertEquals("3", saved["alt1"])
         assertEquals(0.2f, (saved["weight"] as Number).toFloat(), 0f)
         assertEquals(action, saved["longPress"])
         assertEquals(action, saved["swipeUp"])
-        assertEquals("UP", saved["swipeUpLabel"])
+        assertEquals(action, saved["swipeDown"])
+        assertFalse(saved.containsKey("swipeUpLabel"))
+        assertFalse(saved.containsKey("swipeDownLabel"))
         val reopened = save(HashMap(saved)) { activity ->
             assertEquals("左右", (field(activity, "alphabetDisplayTextSimpleEdit") as EditText).text.toString())
         }

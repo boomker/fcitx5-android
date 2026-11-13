@@ -14,8 +14,6 @@ internal class ShuangpinGroupKey(
     weight: Float = 0.1f,
     val swipeUp: MacroAction? = null,
     val swipeDown: MacroAction? = null,
-    val swipeUpLabel: String? = null,
-    val swipeDownLabel: String? = null,
     val longPress: MacroAction? = null,
     textColor: Int? = null,
     textColorMonet: String? = null,
@@ -28,8 +26,8 @@ internal class ShuangpinGroupKey(
 ) : KeyDef(
     Appearance.AltText(
         displayText = configuredDisplayText ?: Shuangpin18Keys.displayGroup(groupId, showSemicolon),
-        altText = if (swipeUpLabel != null || swipeDownLabel != null) swipeUpLabel.orEmpty() else punctuation,
-        altText1 = if (swipeUpLabel != null || swipeDownLabel != null) swipeDownLabel else punctuation1,
+        altText = punctuation,
+        altText1 = punctuation1,
         character = Shuangpin18Keys.displayGroup(groupId, showSemicolon),
         textSize = 23f,
         percentWidth = weight,
@@ -53,6 +51,7 @@ internal class ShuangpinGroupKey(
                 downAction = punctuation1?.takeIf { it.isNotEmpty() }?.let(KeyAction::FcitxKeyAction),
                 upMacro = swipeUp,
                 downMacro = swipeDown,
+                overrideDefaults = swipeUp != null || swipeDown != null,
             ))
         }
         longPress?.let { add(Behavior.LongPress(it)) }
@@ -69,8 +68,4 @@ internal class ShuangpinGroupKey(
             ))
         }
     }.toTypedArray(),
-) {
-    init {
-        appearance.directionalSwipeLabels = swipeUpLabel != null || swipeDownLabel != null
-    }
-}
+)

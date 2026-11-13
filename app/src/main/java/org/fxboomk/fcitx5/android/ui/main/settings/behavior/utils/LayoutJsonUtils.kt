@@ -665,8 +665,6 @@ object LayoutJsonUtils {
                 json["weight"] = appearance.percentWidth
                 keyDef.swipeUp?.let { json["swipeUp"] = macroActionToJson(it) }
                 keyDef.swipeDown?.let { json["swipeDown"] = macroActionToJson(it) }
-                keyDef.swipeUpLabel?.let { json["swipeUpLabel"] = it }
-                keyDef.swipeDownLabel?.let { json["swipeDownLabel"] = it }
                 keyDef.longPress?.let { json["longPress"] = macroActionToJson(it) }
             }
             is AlphabetKey -> {
@@ -944,8 +942,6 @@ object LayoutJsonUtils {
                     weight = key.weight ?: rowKeyWidth ?: DEFAULT_KEY_WIDTH,
                     swipeUp = key.swipeUp,
                     swipeDown = key.swipeDown,
-                    swipeUpLabel = key.swipeUpLabel,
-                    swipeDownLabel = key.swipeDownLabel,
                     longPress = key.longPress,
                     textColor = key.textColor,
                     textColorMonet = key.textColorMonet,

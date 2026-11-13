@@ -48,6 +48,23 @@ class DirectionalSwipeBehaviorTest {
     }
 
     @Test
+    fun groupedSwipeEventsOverrideBothAltCharactersAndGlobalDirections() = withPreferences {
+        val up = macro("explicit group up")
+        val down = macro("explicit group down")
+        SwipeSymbolDirection.entries.forEach { direction ->
+            AppPrefs.getInstance().keyboard.swipeSymbolDirection.setValue(direction)
+            listOf(PunctuationPosition.Top, PunctuationPosition.Bottom, PunctuationPosition.None).forEach { position ->
+                ThemeManager.prefs.punctuationPosition.setValue(position)
+                val keyboard = createKeyboard(ShuangpinGroupKey(
+                    groupId = "we", punctuation = "@", punctuation1 = "#",
+                    swipeUp = up, swipeDown = down,
+                ))
+                assertSwipes(keyboard, up, down)
+            }
+        }
+    }
+
+    @Test
     fun physicalMacrosWorkWithoutLabelsAndWithPunctuationHidden() = withPreferences {
         val up = macro("up without visible label")
         val down = macro("down without visible label")

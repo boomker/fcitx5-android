@@ -39,7 +39,7 @@ class LayoutJsonUtilsRowStyleTest {
         val original = ShuangpinGroupKey(
             groupId = "we", punctuation = "@", punctuation1 = "#",
             configuredDisplayText = "我的WE", weight = 0.2f,
-            swipeUp = up, swipeDown = down, swipeUpLabel = "上", swipeDownLabel = "下",
+            swipeUp = up, swipeDown = down,
             longPress = longPress, textColor = 123, backgroundColor = 456,
         )
         val data = LayoutJsonUtils.keyDefToJson(original)
@@ -55,11 +55,30 @@ class LayoutJsonUtilsRowStyleTest {
         assertEquals(up, restored.swipeUp)
         assertEquals(down, restored.swipeDown)
         assertEquals(longPress, restored.longPress)
-        assertTrue(restored.appearance.directionalSwipeLabels)
+        val appearance = restored.appearance as KeyDef.Appearance.AltText
+        assertEquals("@", appearance.altText)
+        assertEquals("#", appearance.altText1)
+        assertFalse(appearance.directionalSwipeLabels)
         assertTrue(restored.popup.orEmpty().none { it is KeyDef.Popup.Keyboard.GroupedPreset })
         val action = restored.behaviors.filterIsInstance<KeyDef.Behavior.Press>().single().action as KeyAction.SymAction
         assertEquals(Shuangpin18Keys.action("we"), action)
         assertEquals(data, LayoutJsonUtils.keyDefToJson(restored))
+    }
+
+    @Test
+    fun groupedKeysIgnoreAndDropLegacyDirectionalLabels() {
+        val parsed = requireNotNull(LayoutJsonUtils.parseKeyJson(
+            Json.parseToJsonElement(
+                """{"type":"ShuangpinGroupKey","groupId":"we","alt":"@","alt1":"#","swipeUpLabel":"旧上划","swipeDownLabel":"旧下划"}"""
+            ).jsonObject
+        ))
+        val key = LayoutJsonUtils.createKeyDef(parsed, theme = testTheme)
+        val appearance = key.appearance as KeyDef.Appearance.AltText
+        assertEquals("@", appearance.altText)
+        assertEquals("#", appearance.altText1)
+        val saved = LayoutJsonUtils.keyDefToJson(key)
+        assertFalse(saved.containsKey("swipeUpLabel"))
+        assertFalse(saved.containsKey("swipeDownLabel"))
     }
 
     @Test
