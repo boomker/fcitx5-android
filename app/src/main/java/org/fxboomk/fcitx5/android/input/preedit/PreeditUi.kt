@@ -7,6 +7,7 @@ package org.fxboomk.fcitx5.android.input.preedit
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
+import android.graphics.Rect
 import android.graphics.drawable.ShapeDrawable
 import android.graphics.drawable.shapes.RectShape
 import android.text.Spanned
@@ -26,6 +27,8 @@ import splitties.views.dsl.core.add
 import splitties.views.dsl.core.lParams
 import splitties.views.dsl.core.textView
 import splitties.views.dsl.core.verticalLayout
+import kotlin.math.ceil
+import kotlin.math.floor
 
 open class PreeditUi(
     override val ctx: Context,
@@ -94,6 +97,9 @@ open class PreeditUi(
 
     private val downView = createTextView()
 
+    private var cursorPosition = 0
+    private var hasCursorSpan = false
+
     var visible = false
         private set
 
@@ -108,6 +114,27 @@ open class PreeditUi(
     }
 
     private var lastUpdatedData: FcitxEvent.InputPanelEvent.Data? = null
+
+    /** Bounds of the cursor and the preceding character in [root]'s coordinates. */
+    internal fun getCursorBounds(bounds: Rect): Boolean {
+        val view = if (upView.visibility == View.VISIBLE) upView else downView
+        val layout = view.layout ?: return false
+        if (view.visibility != View.VISIBLE || view.text.isEmpty()) return false
+        val cursor = if (view === upView) cursorPosition else view.text.length
+        val start = if (cursor > 0) Character.offsetByCodePoints(view.text, cursor, -1) else 0
+        val end = if (view === upView && hasCursorSpan) cursor + 1 else cursor
+        val positions = floatArrayOf(layout.getPrimaryHorizontal(start),
+            layout.getPrimaryHorizontal(cursor), layout.getPrimaryHorizontal(end))
+        val textLeft = view.left + view.totalPaddingLeft
+        bounds.set(
+            floor(positions.min() + textLeft).toInt(), view.top,
+            ceil(positions.max() + textLeft).toInt(), view.bottom,
+        )
+        // Keep the text padding visible at either end of the composition.
+        if (cursor == 0) bounds.left = view.left
+        if (end == view.text.length) bounds.right = view.right
+        return true
+    }
 
     /**
      * Update preedit views with [inputPanel].
@@ -138,6 +165,8 @@ open class PreeditUi(
         val hasUp = upString.isNotEmpty()
         val hasDown = downString.isNotEmpty()
         visible = hasUp || hasDown
+        cursorPosition = if (upCursor < 0) upString.length else upCursor.coerceAtMost(upString.length)
+        hasCursorSpan = upCursor >= 0 && upCursor < upString.length
         if (!visible) {
             updateTextView(upView, "", false)
             updateTextView(downView, "", false)

@@ -5,6 +5,7 @@
 package org.fxboomk.fcitx5.android.input.preedit
 
 import android.content.Context
+import android.graphics.Rect
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -27,12 +28,38 @@ internal class PreeditRowUi(
     setupTextView: TextView.() -> Unit,
     private val availableWidth: () -> Int = { 0 },
 ) : Ui {
-    private val code = PreeditUi(ctx, theme, setupTextView)
-    private val codeScroll = HorizontalScrollView(ctx).apply {
-        isHorizontalScrollBarEnabled = false
-        overScrollMode = View.OVER_SCROLL_NEVER
-        addView(code.root, android.widget.FrameLayout.LayoutParams(
-            ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+    private val code = PreeditUi(ctx, theme, setupTextView = {
+        setupTextView(this)
+        setSingleLine(true)
+    })
+    private var followCursor = true
+    private val cursorBounds = Rect()
+    private val codeScroll = object : HorizontalScrollView(ctx) {
+        private var lastViewportWidth = 0
+
+        init {
+            isHorizontalScrollBarEnabled = false
+            overScrollMode = View.OVER_SCROLL_NEVER
+            addView(code.root, FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        }
+
+        override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
+            val widthChanged = lastViewportWidth != right - left
+            lastViewportWidth = right - left
+            super.onLayout(changed, left, top, right, bottom)
+            if (!code.visible) {
+                scrollTo(0, 0)
+                followCursor = false
+            } else if ((followCursor || widthChanged) && width > 0 &&
+                code.getCursorBounds(cursorBounds)) {
+                // Wait until TextView has laid out the new spans and cursor.
+                requestChildRectangleOnScreen(code.root, cursorBounds, true)
+                // Replace any old fling with a stationary animation at the new position.
+                smoothScrollBy(0, 0)
+                followCursor = false
+            }
+        }
     }
     val syllables = SyllableStrip(ctx, theme)
     private var expanded = false
@@ -56,7 +83,9 @@ internal class PreeditRowUi(
     val expandedSyllables = FrameLayout(ctx).apply { isVisible = false }
 
     val visible: Boolean get() = code.visible
-    val hasInteractiveContent: Boolean get() = syllables.isVisible || expandButton.isVisible
+    val hasInteractiveContent: Boolean get() = syllables.isVisible || expandButton.isVisible ||
+        (codeScroll.isVisible &&
+            (codeScroll.canScrollHorizontally(-1) || codeScroll.canScrollHorizontally(1)))
 
     val codeRow: ViewGroup = object : ViewGroup(ctx) {
         init {
@@ -153,6 +182,10 @@ internal class PreeditRowUi(
     }
 
     fun update(panel: FcitxEvent.InputPanelEvent.Data, showSyllables: Boolean) {
+        if (panel.preedit != currentPanel.preedit || panel.auxUp != currentPanel.auxUp ||
+            panel.auxDown != currentPanel.auxDown) {
+            followCursor = true
+        }
         currentPanel = panel
         code.update(panel)
         hasSyllables = panel.preedit.isNotEmpty() &&

@@ -356,7 +356,8 @@ class PreeditSyllableStripTest {
             assertEquals(View.GONE, row.expandedSyllables.visibility)
             assertEquals(View.GONE, row.expandButton.visibility)
             assertEquals(View.GONE, row.syllables.visibility)
-            assertFalse(row.hasInteractiveContent)
+            assertEquals("Long code remains draggable after its choices are hidden",
+                resetPanel.preedit.isNotEmpty(), row.hasInteractiveContent)
             oldBi.performClick()
             row.expandButton.performClick()
             measureAndLayout(row)
