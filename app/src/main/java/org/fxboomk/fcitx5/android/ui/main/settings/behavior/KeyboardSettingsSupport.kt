@@ -63,6 +63,11 @@ internal object KeyboardSettingsSupport {
         "split_keyboard_use_landscape_layout"
     )
 
+    val voiceKeys = listOf(
+        "show_voice_input_button",
+        "preferred_voice_input"
+    )
+
     fun ManagedPreferenceFragment.addManagedPreference(
         parent: PreferenceGroup,
         provider: ManagedPreferenceProvider,

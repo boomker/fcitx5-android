@@ -42,7 +42,7 @@ class KeyboardVoiceSettingsFragment : KeyboardSectionFragment() {
             addKeyboardSection(
                 screen,
                 R.string.keyboard_category_voice,
-                listOf("show_voice_input_button", "preferred_voice_input"),
+                voiceKeys,
             )
         }
         screen.addCategory(R.string.js_voice_plugins_title) {

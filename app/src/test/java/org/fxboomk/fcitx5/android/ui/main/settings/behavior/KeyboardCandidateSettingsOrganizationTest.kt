@@ -84,8 +84,7 @@ class KeyboardCandidateSettingsOrganizationTest {
         for (key in listOf(
             "toolbar_dynamic_height",
             "toolbar_num_row_on_password",
-            "physical_keyboard_horizontal_candidate_bar",
-            "show_voice_input_button"
+            "physical_keyboard_horizontal_candidate_bar"
         )) {
             assertTrue("$key should be in theme toolbar style", key in ThemeSettingsSupport.toolbarStyleKeyboardKeys)
             assertFalse("$key should not be in basic behavior", key in KeyboardSettingsSupport.basicBehaviorKeys)
@@ -95,11 +94,17 @@ class KeyboardCandidateSettingsOrganizationTest {
     }
 
     @Test
-    fun preferredVoiceInputLivesInBasicBehavior() {
+    fun voiceInputSettingsLiveInTheirOwnSection() {
         assertEquals(
-            "preferred_voice_input",
-            KeyboardSettingsSupport.basicBehaviorKeys.last()
+            listOf("show_voice_input_button", "preferred_voice_input"),
+            KeyboardSettingsSupport.voiceKeys
         )
+        for (key in KeyboardSettingsSupport.voiceKeys) {
+            assertFalse("$key should not be in basic behavior", key in KeyboardSettingsSupport.basicBehaviorKeys)
+            assertFalse("$key should not be in theme toolbar style", key in ThemeSettingsSupport.toolbarStyleKeyboardKeys)
+            assertFalse("$key should not be in key and gesture", key in KeyboardSettingsSupport.keyAndGestureKeys)
+            assertFalse("$key should not be in layout", key in KeyboardSettingsSupport.layoutKeys)
+        }
     }
 
     @Test
