@@ -4,7 +4,7 @@
  */
 package org.fxboomk.fcitx5.android.input.keyboard
 
-/** A stable native group identity whose placement and displayed label can be customized. */
+/** A letter group whose placement and displayed label can be customized independently. */
 internal class ShuangpinGroupKey(
     val groupId: String,
     showSemicolon: Boolean = true,
@@ -46,7 +46,7 @@ internal class ShuangpinGroupKey(
         shadowColorMonet = shadowColorMonet,
     ),
     buildSet {
-        add(Behavior.Press(Shuangpin18Keys.action(Shuangpin18Keys.groups.indexOf(groupId))))
+        add(Behavior.Press(Shuangpin18Keys.action(groupId)))
         if (punctuation.isNotEmpty() || !punctuation1.isNullOrEmpty() || swipeUp != null || swipeDown != null) {
             add(Behavior.Swipe(
                 action = punctuation.takeIf { it.isNotEmpty() }?.let(KeyAction::FcitxKeyAction),

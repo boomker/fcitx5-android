@@ -16,8 +16,11 @@ internal object ShuangpinLayoutVariants {
 
     fun baseKey(key: String): String = key.removeSuffix(":$CHILD_KEY")
 
-    /** Validate the complete group set before activating a custom compact keyboard. */
-    fun validationErrors(rows: List<List<Map<String, Any?>>>): List<String> = buildList {
+    /** Validate the letter partition before activating a custom compact keyboard. */
+    fun validationErrors(
+        rows: List<List<Map<String, Any?>>>,
+        requireSemicolon: Boolean = false,
+    ): List<String> = buildList {
         val presentGroups = mutableSetOf<String>()
         if (rows.isEmpty()) add("18 键布局没有任何行")
         rows.forEachIndexed { rowIndex, row ->
@@ -26,7 +29,7 @@ internal object ShuangpinLayoutVariants {
             keys.forEachIndexed { keyIndex, key ->
                 if (key["type"] == "ShuangpinGroupKey") {
                     val groupId = key["groupId"] as? String
-                    if (groupId !in Shuangpin18Keys.groups) {
+                    if (!Shuangpin18Keys.isValidGroup(groupId)) {
                         add("第 ${rowIndex + 1} 行第 ${keyIndex + 1} 个键的 groupId 无效：${groupId.orEmpty()}")
                     } else {
                         presentGroups.add(requireNotNull(groupId))
@@ -44,7 +47,6 @@ internal object ShuangpinLayoutVariants {
                 }
             }
         }
-        val missing = Shuangpin18Keys.groups.filter { it !in presentGroups }
-        if (missing.isNotEmpty()) add("18 键布局缺少分组：${missing.joinToString("、")}")
+        addAll(Shuangpin18Keys.groupingErrors(presentGroups.toList(), requireSemicolon))
     }
 }

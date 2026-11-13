@@ -25,11 +25,11 @@ class ShuangpinKeyboardLayoutTest {
             assertEquals(listOf(6, 6, 6), layout.take(3).map { it.size })
             val keys = layout.take(3).flatten().filterIsInstance<ShuangpinGroupKey>()
             assertEquals(Shuangpin18Keys.groups, keys.map { it.groupId })
-            keys.forEachIndexed { index, key ->
+            keys.forEach { key ->
                 assertEquals(1f / 6, key.appearance.percentWidth, 0f)
                 val action = key.behaviors.filterIsInstance<KeyDef.Behavior.Press>().single().action
                     as KeyAction.SymAction
-                assertEquals(index, Shuangpin18Keys.indexOf(action.sym))
+                assertEquals(Shuangpin18Keys.action(key.groupId), action)
             }
             val functions = layout.last()
             assertTrue(functions.any { it is CapsKey && it.composeOverride != null })
@@ -41,7 +41,7 @@ class ShuangpinKeyboardLayoutTest {
     }
 
     @Test
-    fun compactValidationAcceptsReorderingAndDuplicatesButNamesMissingGroups() {
+    fun compactValidationAcceptsReorderingAndDuplicatesButNamesMissingCharacters() {
         val rows = Shuangpin18Keys.layoutSixColumns(false, true)
             .map { row -> row.map(LayoutJsonUtils::keyDefToJson).toMutableList() }.toMutableList()
         rows[0].reverse()
@@ -49,7 +49,7 @@ class ShuangpinKeyboardLayoutTest {
         assertTrue(ShuangpinLayoutVariants.validationErrors(rows).isEmpty())
         rows[1].removeAll { it["groupId"] == "h" }
         assertTrue(ShuangpinLayoutVariants.validationErrors(rows).any { it.contains("h") })
-        rows[0][0]["groupId"] = "wq"
+        rows[0][0]["groupId"] = "ww"
         rows[0][0]["weight"] = Float.NaN
         val errors = ShuangpinLayoutVariants.validationErrors(rows)
         assertTrue(errors.any { it.contains("groupId") })
@@ -157,7 +157,7 @@ class ShuangpinKeyboardLayoutTest {
                 .filterIsInstance<KeyDef.Popup.AltPreview>().single().content)
             assertEquals(expected, key.popup.orEmpty()
                 .filterIsInstance<KeyDef.Popup.Keyboard.GroupedPreset>().single().group)
-            assertEquals(Shuangpin18Keys.action(12),
+            assertEquals(Shuangpin18Keys.action("l;"),
                 key.behaviors.filterIsInstance<KeyDef.Behavior.Press>().single().action)
         }
     }
@@ -196,9 +196,9 @@ class ShuangpinKeyboardLayoutTest {
         assertTrue(rows.last().last() is ReturnKey)
         val groups = rows.flatten().mapNotNull { key ->
             key.behaviors.filterIsInstance<KeyDef.Behavior.Press>().singleOrNull()?.action as? KeyAction.SymAction
-        }.filter { Shuangpin18Keys.indexOf(it.sym) != null }
+        }.filter { Shuangpin18Keys.isGroupAction(it.sym) }
         assertEquals(18, groups.size)
-        assertEquals((0..17).toList(), groups.map { Shuangpin18Keys.indexOf(it.sym) })
+        assertEquals(Shuangpin18Keys.groups.map(Shuangpin18Keys::action), groups)
         val caps = rows[2].first() as CapsKey
         assertEquals(KeyAction.CapsAction(false),
             caps.behaviors.filterIsInstance<KeyDef.Behavior.Press>().single().action)
@@ -241,7 +241,7 @@ class ShuangpinKeyboardLayoutTest {
                 val action = key.behaviors
                     .filterIsInstance<KeyDef.Behavior.Press>()
                     .singleOrNull()?.action as? KeyAction.SymAction
-                action != null && Shuangpin18Keys.indexOf(action.sym) != null
+                action != null && Shuangpin18Keys.isGroupAction(action.sym)
             }
 
         assertEquals(18, groupKeys.size)

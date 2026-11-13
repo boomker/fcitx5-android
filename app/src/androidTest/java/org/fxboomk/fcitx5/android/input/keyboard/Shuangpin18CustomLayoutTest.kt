@@ -23,6 +23,136 @@ import org.junit.Test
 
 class Shuangpin18CustomLayoutTest {
     @Test
+    fun regroupingSynchronizesBeforeInputAndSurvivesMovingSplittingMergingAndCaps() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val prefs = AppPrefs.getInstance()
+        val originalCompact = prefs.internal.compactShuangpinInputMethods.getValue()
+        val originalUppercase = prefs.keyboard.keepLettersUppercase.getValue()
+        val originalCapsBehavior = prefs.keyboard.capsKeyBehavior.getValue()
+        val originalProvider = ConfigProviders.provider
+        var activity: MainActivity? = null
+        try {
+            activity = instrumentation.startActivitySync(
+                Intent(instrumentation.targetContext, MainActivity::class.java)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            ) as MainActivity
+            val host = activity
+            instrumentation.runOnMainSync {
+                prefs.internal.compactShuangpinInputMethods.setValue(originalCompact + "shuangpin-xiaohe")
+                prefs.keyboard.keepLettersUppercase.setValue(false)
+                prefs.keyboard.capsKeyBehavior.setValue(CapsKeyBehavior.Default)
+                val rows = LayoutDataManager(host).compactDefaultRows(sixColumns = true)
+                rows[0][0]["groupId"] = "wq"
+                rows[0][1]["groupId"] = "e"
+                val entryKey = ShuangpinLayoutVariants.entryKey("shuangpin-xiaohe")
+                fun installRows() {
+                    ConfigProviders.provider = MemoryConfigProvider(
+                        LayoutJsonUtils.convertToSaveJson(mapOf(entryKey to rows)), originalProvider,
+                    )
+                    TextKeyboard.clearCachedKeyDefLayouts()
+                }
+                fun partition() = rows.flatten().mapNotNull {
+                    if (it["type"] == "ShuangpinGroupKey") it["groupId"] as? String else null
+                }.distinct().sorted()
+                installRows()
+                val ime = InputMethodEntry(
+                    "shuangpin-xiaohe", "小鹤双拼", "", "", "双", "zh", "pinyin", false,
+                )
+                val actions = mutableListOf<KeyAction>()
+                val keyboard = TextKeyboard(host, ThemePreset.MaterialLight, ime)
+                keyboard.keyActionListener = KeyActionListener { action, _ -> actions += action }
+                host.setContentView(keyboard)
+                keyboard.onAttach()
+                layout(keyboard, 400, 320)
+                fun pressGroup(group: String) = groupViews(keyboard).single {
+                    (it.def as KeyDef.Appearance.AltText).character == group
+                }.performClick()
+                fun expectSynchronization(group: String) {
+                    assertEquals(
+                        Shuangpin18Keys.configurationActions(partition()) +
+                            Shuangpin18Keys.modeAction(true) + Shuangpin18Keys.action(group),
+                        actions,
+                    )
+                }
+                assertTrue("Rendering a preview sent native actions", actions.isEmpty())
+                assertEquals(listOf("wq", "e"), groupViews(keyboard).take(2).map {
+                    (it.def as KeyDef.Appearance.AltText).displayText
+                })
+                pressGroup("wq")
+                expectSynchronization("wq")
+                actions.clear()
+                pressGroup("e")
+                assertEquals(listOf(Shuangpin18Keys.action("e")), actions)
+
+                val moved = rows[0][0]
+                rows[0][0] = rows[2][2]
+                rows[2][2] = moved
+                installRows()
+                keyboard.refreshStyle()
+                layout(keyboard, 400, 320)
+                assertEquals("wq", (groupViews(keyboard)[14].def as KeyDef.Appearance.AltText).character)
+                actions.clear()
+                pressGroup("wq")
+                assertEquals("Moving a group changed native input state", listOf(Shuangpin18Keys.action("wq")), actions)
+
+                rows.forEach { row ->
+                    val index = row.indexOfFirst { it["groupId"] == "wq" }
+                    if (index >= 0) {
+                        row[index]["groupId"] = "w"
+                        row.add(index + 1, row[index].toMutableMap().apply { this["groupId"] = "q" })
+                    }
+                }
+                installRows()
+                keyboard.refreshStyle()
+                layout(keyboard, 400, 320)
+                assertEquals(19, groupViews(keyboard).size)
+                assertFalse(groupViews(keyboard).any { (it.def as KeyDef.Appearance.AltText).character == "wq" })
+                actions.clear()
+                pressGroup("w")
+                expectSynchronization("w")
+                actions.clear()
+                pressGroup("q")
+                assertEquals(listOf(Shuangpin18Keys.action("q")), actions)
+
+                rows.forEach { row ->
+                    row.removeAll { it["groupId"] == "q" || it["groupId"] == "e" }
+                    row.firstOrNull { it["groupId"] == "w" }?.set("groupId", "wqe")
+                }
+                installRows()
+                keyboard.refreshStyle()
+                layout(keyboard, 400, 320)
+                assertEquals(17, groupViews(keyboard).size)
+                actions.clear()
+                pressGroup("wqe")
+                expectSynchronization("wqe")
+
+                keyboard.allViews.filterIsInstance<KeyView>()
+                    .single { it.def.viewId == R.id.button_caps }.performClick()
+                layout(keyboard, 400, 320)
+                assertTrue(groupViews(keyboard).isEmpty())
+                keyboard.allViews.filterIsInstance<TextKeyView>()
+                    .single { it.mainText.text.toString() == "W" }.performClick()
+                layout(keyboard, 400, 320)
+                assertEquals(17, groupViews(keyboard).size)
+                actions.clear()
+                pressGroup("wqe")
+                expectSynchronization("wqe")
+                host.setContentView(FrameLayout(host))
+            }
+        } finally {
+            instrumentation.runOnMainSync {
+                activity?.finish()
+                ConfigProviders.provider = originalProvider
+                TextKeyboard.clearCachedKeyDefLayouts()
+                prefs.internal.compactShuangpinInputMethods.setValue(originalCompact)
+                prefs.keyboard.keepLettersUppercase.setValue(originalUppercase)
+                prefs.keyboard.capsKeyBehavior.setValue(originalCapsBehavior)
+            }
+            instrumentation.waitForIdleSync()
+        }
+    }
+
+    @Test
     fun sixColumnsRenderAndKeepNativeIdentityAfterMovingAndCaps() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val prefs = AppPrefs.getInstance()
@@ -95,7 +225,7 @@ class Shuangpin18CustomLayoutTest {
                 groupViews(keyboard).single {
                     (it.def as KeyDef.Appearance.AltText).character == "we"
                 }.performClick()
-                assertEquals(1, Shuangpin18Keys.indexOf(actions.filterIsInstance<KeyAction.SymAction>().last().sym))
+                assertEquals(Shuangpin18Keys.action("we"), actions.filterIsInstance<KeyAction.SymAction>().last())
                 val capsWidth = keyboard.allViews.filterIsInstance<KeyView>()
                     .single { it.def.viewId == R.id.button_caps }.width
                 keyboard.onCompositionStateChanged(true)

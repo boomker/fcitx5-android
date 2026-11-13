@@ -102,6 +102,93 @@ class Shuangpin18DeviceTest {
         grouped("n")
         expectCommit("x") { press("Return") }
     }
+
+    @Test
+    fun regroupedLettersDecodeAndCommitTheirConfiguredLabels() = withIme("shuangpin-xiaohe") {
+        val groups = GROUPS.map { when (it) { "q" -> "e"; "we" -> "wq"; else -> it } }
+        configure(groups)
+        customGrouped("wo", groups)
+        selectWord("我")
+        reset()
+        customGrouped("wo", groups)
+        expectCommit("WQ IO") { press("Return") }
+    }
+
+    @Test
+    fun splitAndMergedGroupsDecodeWholePhrases() = withIme("shuangpin-xiaohe") {
+        val split = "abcdefghijklmnopqrstuvwxyz;".map(Char::toString)
+        configure(split)
+        customGrouped("nihc", split)
+        selectWord("你好")
+        reset()
+        customGrouped("ni", split)
+        expectCommit("N I") { press("Return") }
+
+        val merged = GROUPS.filter { it != "m" }.map { if (it == "bn") "bnm" else it }
+        configure(merged)
+        customGrouped("nihc", merged)
+        selectWord("你好")
+        reset()
+        customGrouped("ni", merged)
+        expectCommit("BNM IO") { press("Return") }
+    }
+
+    @Test
+    fun customMicrosoftSemicolonAndCapsModeRestore() = withIme("shuangpin-ms") {
+        val groups = GROUPS.map { when (it) { "l;" -> "l"; "y" -> "y;"; else -> it } }
+        configure(groups)
+        customGrouped("y;", groups)
+        selectWord("应")
+        reset()
+        mode(false)
+        press("n")
+        press("i")
+        expectCommit("ni") { press("Return") }
+        mode(true)
+        customGrouped("y;", groups)
+        selectWord("应")
+    }
+
+    @Test
+    fun reorderingGroupsKeepsCompositionAndChangingGroupsFinishesIt() = withIme("shuangpin-xiaohe") {
+        val groups = GROUPS.map { when (it) { "q" -> "e"; "we" -> "wq"; else -> it } }
+        configure(groups)
+        customGrouped("nihc", groups)
+        val before = getCandidates(0, CANDIDATE_LIMIT).map { it.text }
+        configure(groups.reversed())
+        assertEquals(before, getCandidates(0, CANDIDATE_LIMIT).map { it.text })
+        expectCommit(before.first()) { configure(GROUPS) }
+        customGrouped("nihc", GROUPS)
+        selectWord("你好")
+    }
+
+    @Test
+    fun configurationDuringQuickPhraseAppliesAfterItCloses() = withIme("shuangpin-xiaohe") {
+        val groups = GROUPS.map { when (it) { "q" -> "e"; "we" -> "wq"; else -> it } }
+        configure(groups)
+        mode(false)
+        triggerQuickPhrase()
+        press("x")
+        configure(GROUPS)
+        expectCommit("x") { press("Return") }
+        customGrouped("wo", GROUPS)
+        expectCommit("WE IO") { press("Return") }
+    }
+
+    private suspend fun FcitxAPI.configure(groups: List<String>) {
+        Shuangpin18Keys.configurationActions(groups).forEach { sendAction(it) }
+        mode(true)
+    }
+
+    private suspend fun FcitxAPI.customGrouped(input: String, groups: List<String>) {
+        input.forEach { chr -> sendAction(Shuangpin18Keys.action(groups.single { chr in it })) }
+    }
+
+    private suspend fun FcitxAPI.sendAction(action: KeyAction.SymAction) {
+        sendKey(action.sym, action.states)
+        sendKey(action.sym, action.states, up = true)
+    }
+
     private fun withIme(uniqueName: String, body: suspend FcitxAPI.() -> Unit) = runBlocking {
         val clientName = "Shuangpin18DeviceTest-$uniqueName"
         val connection = FcitxDaemon.connect(clientName)

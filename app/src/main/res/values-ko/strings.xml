@@ -1287,5 +1287,11 @@
     <string name="shuangpin_layout_replace_message">현재 18키 배열을 바꾸시겠습니까? 이 파일의 다른 배열은 유지됩니다.</string>
     <string name="shuangpin_group_input">입력 그룹</string>
     <string name="shuangpin_group_default_popup">기본 그룹 글자 팝업</string>
-    <string name="shuangpin_group_invalid">올바른 솽핀 글자 그룹을 선택하세요.</string>
+    <string name="shuangpin_group_invalid">올바른 솽핀 글자 그룹을 입력하세요.</string>
+    <string name="shuangpin_group_letters_hint">예: WQ</string>
+    <string name="shuangpin_group_presets">기본 글자 그룹</string>
+    <string name="shuangpin_group_letters_summary">그룹 키를 편집, 추가 또는 삭제하여 글자를 나누거나 합칠 수 있습니다. 그룹은 입력을, 주 라벨은 표시를 결정합니다. 레이아웃을 저장할 때 누락된 글자와 겹치는 그룹을 확인합니다.</string>
+    <string name="shuangpin_group_letters_required">글자를 하나 이상 입력하세요.</string>
+    <string name="shuangpin_group_letters_invalid">a-z 글자와 세미콜론(;)만 사용할 수 있습니다.</string>
+    <string name="shuangpin_group_letters_repeated">한 그룹 안에서 같은 문자를 반복할 수 없습니다.</string>
 </resources>

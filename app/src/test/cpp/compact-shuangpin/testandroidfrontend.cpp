@@ -147,16 +147,97 @@ int main() {
     FCITX_ASSERT(syllables().empty());
     frontend.resetInputContext();
 
-    // A queued layout update must not send compact keys to a different IM.
-    instance.setCurrentInputMethod(ic, "pinyin", true);
-    FCITX_ASSERT(instance.inputMethodEntry(ic)->uniqueName() == "pinyin");
-    sendCompact(static_cast<KeySym>(0x0200e101));
-    sendCompact(static_cast<KeySym>(0x0200e010));
-    instance.setCurrentInputMethod(ic, "keyboard-us", true);
-    FCITX_ASSERT(instance.inputMethodEntry(ic)->uniqueName() == "keyboard-us");
-    sendCompact(static_cast<KeySym>(0x0200e101));
-    sendCompact(static_cast<KeySym>(0x0200e010));
+    std::vector<KeySym> compactProtocol;
+    for (int index = 0; index < 18; ++index) {
+      compactProtocol.push_back(static_cast<KeySym>(0x0200e000 + index));
+    }
+    for (uint32_t sym : {0x0200e100, 0x0200e101, 0x0200e200,
+                         0x0200e201, 0x0200e202}) {
+      compactProtocol.push_back(static_cast<KeySym>(sym));
+    }
+    for (int index = 0; index < 27; ++index) {
+      compactProtocol.push_back(static_cast<KeySym>(0x0200e210 + index));
+      compactProtocol.push_back(static_cast<KeySym>(0x0200e300 + index));
+    }
+    // A physical, modified, or release-only protocol event cannot type or
+    // open a configuration transaction, and cannot reach application code.
+    for (const auto sym : compactProtocol) {
+      frontend.keyEvent(Key(sym), false, 0);
+      frontend.keyEvent(Key(sym, KeyStates(KeyState::Virtual) | KeyState::Ctrl),
+                        false, 0);
+      frontend.keyEvent(Key(sym, KeyState::Virtual), true, 0);
+    }
+    FCITX_ASSERT(ic->inputPanel().clientPreedit().empty());
     FCITX_ASSERT(commits == std::vector<std::string>{"你好"});
+    FCITX_ASSERT(forwardedKeys == 0);
+
+    // Send the new transaction through the real Android frontend. WQ keeps
+    // its configured character order, while all profile syllables still decode.
+    const std::vector<std::string> groups = {
+        "e", "wq", "rt", "y", "u", "io", "p", "a", "sd", "fg", "h", "jk",
+        "l;", "z", "xc", "v", "bn", "m"};
+    const auto configureGroups = [&sendCompact](
+                                      const std::vector<std::string> &layout) {
+      sendCompact(static_cast<KeySym>(0x0200e200));
+      for (const auto &letters : layout) {
+        for (const char letter : letters) {
+          sendCompact(static_cast<KeySym>(0x0200e210 +
+                                            (letter == ';' ? 26 : letter - 'a')));
+        }
+        sendCompact(static_cast<KeySym>(0x0200e201));
+      }
+      sendCompact(static_cast<KeySym>(0x0200e202));
+      sendCompact(static_cast<KeySym>(0x0200e101));
+    };
+    configureGroups(groups);
+    for (const char representative : std::string("bihx")) {
+      sendCompact(static_cast<KeySym>(0x0200e300 + representative - 'a'));
+    }
+    const auto customCandidates = frontend.getCandidates(0, 128);
+    const auto customNihao = std::find_if(
+        customCandidates.begin(), customCandidates.end(),
+        [](const CandidateEntity &candidate) { return candidate.text == "你好"; });
+    FCITX_ASSERT(customNihao != customCandidates.end());
+    FCITX_ASSERT(frontend.selectCandidate(
+        static_cast<int>(std::distance(customCandidates.begin(), customNihao))));
+    sendCompact(static_cast<KeySym>(0x0200e300 + ('w' - 'a')));
+    frontend.keyEvent(Key(FcitxKey_Return, KeyState::Virtual), false, 0);
+    std::vector<std::string> expectedCommits = {"你好", "你好", "WQ"};
+    FCITX_ASSERT(commits == expectedCommits);
+    FCITX_ASSERT(forwardedKeys == 0);
+
+    // Layout notifications can arrive while an addon owns the key pipeline.
+    // The next grouped input must use the requested layout after it exits.
+    sendCompact(static_cast<KeySym>(0x0200e100));
+    config.setValueByPath("QuickPhraseKey", "Control+semicolon");
+    instance.inputMethodEngine(ic)->setConfigForInputMethod(
+        *instance.inputMethodEntry(ic), config);
+    frontend.keyEvent(
+        Key(FcitxKey_semicolon, KeyStates(KeyState::Ctrl) | KeyState::Virtual),
+        false, 0);
+    frontend.keyEvent(Key(FcitxKey_x, KeyState::Virtual), false, 0);
+    FCITX_ASSERT(ic->inputPanel().clientPreedit().toString() == "x");
+    const std::vector<std::string> factoryGroups = {
+        "q", "we", "rt", "y", "u", "io", "p", "a", "sd", "fg", "h", "jk",
+        "l;", "z", "xc", "v", "bn", "m"};
+    configureGroups(factoryGroups);
+    FCITX_ASSERT(ic->inputPanel().clientPreedit().toString() == "x");
+    frontend.keyEvent(Key(FcitxKey_Return, KeyState::Virtual), false, 0);
+    expectedCommits.push_back("x");
+    FCITX_ASSERT(commits == expectedCommits);
+    sendCompact(static_cast<KeySym>(0x0200e300 + ('w' - 'a')));
+    frontend.keyEvent(Key(FcitxKey_Return, KeyState::Virtual), false, 0);
+    expectedCommits.push_back("WE");
+    FCITX_ASSERT(commits == expectedCommits) << commits;
+
+    // A queued layout update must not send compact keys to a different IM.
+    for (const std::string ime : {"pinyin", "keyboard-us"}) {
+      instance.setCurrentInputMethod(ic, ime, true);
+      FCITX_ASSERT(instance.inputMethodEntry(ic)->uniqueName() == ime);
+      for (const auto sym : compactProtocol) sendCompact(sym);
+      FCITX_ASSERT(ic->inputPanel().clientPreedit().empty());
+    }
+    FCITX_ASSERT(commits == expectedCommits);
     FCITX_ASSERT(forwardedKeys == 0);
 
     // Ordinary application input still reaches the frontend callback.

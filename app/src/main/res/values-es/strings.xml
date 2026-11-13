@@ -1286,5 +1286,11 @@
     <string name="shuangpin_layout_replace_message">¿Reemplazar la distribución actual de 18 teclas? Se conservarán las demás distribuciones de este archivo.</string>
     <string name="shuangpin_group_input">Grupo de entrada</string>
     <string name="shuangpin_group_default_popup">Ventana emergente predeterminada de letras del grupo</string>
-    <string name="shuangpin_group_invalid">Selecciona un grupo de letras Shuangpin válido.</string>
+    <string name="shuangpin_group_invalid">Introduce un grupo de letras Shuangpin válido.</string>
+    <string name="shuangpin_group_letters_hint">p. ej. WQ</string>
+    <string name="shuangpin_group_presets">Grupos de letras de fábrica</string>
+    <string name="shuangpin_group_letters_summary">Edita, añade o elimina teclas de grupo para dividir o combinar letras. Los grupos controlan la entrada y la etiqueta principal controla la apariencia. Al guardar se comprueban las letras que faltan y los grupos superpuestos.</string>
+    <string name="shuangpin_group_letters_required">Introduce al menos una letra.</string>
+    <string name="shuangpin_group_letters_invalid">Usa solo letras a-z y punto y coma (;).</string>
+    <string name="shuangpin_group_letters_repeated">Cada carácter puede aparecer solo una vez en un grupo.</string>
 </resources>

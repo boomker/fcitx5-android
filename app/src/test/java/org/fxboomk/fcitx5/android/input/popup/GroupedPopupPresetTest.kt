@@ -21,6 +21,37 @@ class GroupedPopupPresetTest {
     }
 
     @Test
+    fun regroupedLettersWithoutPunctuationDoNotOfferAnEmptyKey() {
+        val candidates = resolveGroupedPopupPresetCandidates("wq", "")
+
+        assertEquals(listOf("W", "Q", "w", "q"), candidates.take(4))
+        assertFalse(candidates.contains(""))
+        assertTrue(candidates.all { it.all(Char::isLetter) })
+    }
+
+    @Test
+    fun emptyCustomPresetEntriesAreIgnoredWithoutACorner() {
+        val candidates = resolveGroupedPopupPresetCandidates(
+            "wq", "", mapOf("w" to arrayOf("", "ẃ", "2", "!")), emptyMap(),
+        )
+
+        assertEquals(listOf("W", "Q", "w", "q", "ẃ"), candidates.toList())
+    }
+
+    @Test
+    fun mergedAlphabetKeepsEveryLetterAndFitsItsPopupGrid() {
+        val group = "abcdefghijklmnopqrstuvwxyz;"
+        val candidates = resolveGroupedPopupPresetCandidates(group, "", builtInPresets = emptyMap())
+
+        val uppercase = ('A'..'Z').map(Char::toString) + ":"
+        assertEquals(uppercase + group.map(Char::toString), candidates.toList())
+        assertFalse(candidates.contains(""))
+        val rows = popupRowCount(candidates.size)
+        val columns = popupColumnCount(candidates.size, rows)
+        assertTrue(rows * columns >= candidates.size)
+    }
+
+    @Test
     fun numericCandidatesFollowTheCornerDigit() {
         val candidates = resolveGroupedPopupPresetCandidates("we", "2")
 

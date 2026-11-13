@@ -41,7 +41,7 @@ class Shuangpin18LabelLayoutTest {
                                 .filter { definition ->
                                     definition.behaviors.filterIsInstance<KeyDef.Behavior.Press>().any {
                                         val action = it.action as? KeyAction.SymAction
-                                        action != null && Shuangpin18Keys.indexOf(action.sym) != null
+                                        action != null && Shuangpin18Keys.isGroupAction(action.sym)
                                     }
                                 }.map { definition ->
                                     val appearance = definition.appearance as KeyDef.Appearance.AltText

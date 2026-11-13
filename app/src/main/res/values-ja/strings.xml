@@ -1286,5 +1286,11 @@
     <string name="shuangpin_layout_replace_message">現在の18キー配列を置き換えますか？このファイルの他の配列は保持されます。</string>
     <string name="shuangpin_group_input">入力グループ</string>
     <string name="shuangpin_group_default_popup">標準のグループ文字ポップアップ</string>
-    <string name="shuangpin_group_invalid">有効な双拼文字グループを選択してください。</string>
+    <string name="shuangpin_group_invalid">有効な双拼文字グループを入力してください。</string>
+    <string name="shuangpin_group_letters_hint">例：WQ</string>
+    <string name="shuangpin_group_presets">出荷時の文字グループ</string>
+    <string name="shuangpin_group_letters_summary">グループキーの編集・追加・削除で文字を分割または結合できます。グループは入力内容、主ラベルは表示を決めます。レイアウト保存時に文字の不足とグループの重複を確認します。</string>
+    <string name="shuangpin_group_letters_required">少なくとも1文字を入力してください。</string>
+    <string name="shuangpin_group_letters_invalid">a-z の文字とセミコロン（;）のみ使用できます。</string>
+    <string name="shuangpin_group_letters_repeated">同じグループ内で文字を重複させることはできません。</string>
 </resources>

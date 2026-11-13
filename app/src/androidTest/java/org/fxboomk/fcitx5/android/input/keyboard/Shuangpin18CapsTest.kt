@@ -77,7 +77,7 @@ class Shuangpin18CapsTest {
         onMain {
             tap(textKey(scene.keyboard, "we"))
             assertTrue(scene.actions.filterIsInstance<KeyAction.SymAction>().any {
-                Shuangpin18Keys.indexOf(it.sym) == 1
+                it == Shuangpin18Keys.action("we")
             })
         }
     }
@@ -231,7 +231,7 @@ class Shuangpin18CapsTest {
             scene.actions.clear()
             tap(textKey(scene.keyboard, "WE"))
             assertTrue("Uppercase presentation changed the grouped key action", scene.actions.any {
-                it is KeyAction.SymAction && Shuangpin18Keys.indexOf(it.sym) == 1 &&
+                it is KeyAction.SymAction && it.sym == Shuangpin18Keys.action("we").sym &&
                     !it.states.has(KeyState.Shift)
             })
             prefs.keepLettersUppercase.setValue(false)
@@ -459,7 +459,12 @@ class Shuangpin18CapsTest {
 
     private fun assertSeparatorKeys(actions: List<KeyAction>, taps: Int = 1) {
         assertTrue("Separator taps emitted a non-symbol action", actions.all { it is KeyAction.SymAction })
-        val symbols = actions.filterIsInstance<KeyAction.SymAction>()
+        val emitted = actions.filterIsInstance<KeyAction.SymAction>()
+        val configuration = Shuangpin18Keys.configurationActions(Shuangpin18Keys.groups.sorted())
+        val symbols = if (emitted.firstOrNull() == configuration.first()) {
+            assertEquals("Incomplete partition before separator", configuration, emitted.take(configuration.size))
+            emitted.drop(configuration.size)
+        } else emitted
         val modeSymbols = listOf(false, true).map { Shuangpin18Keys.modeAction(it).sym.sym }
         assertTrue("Separator taps emitted an unrelated symbol", symbols.all {
             it.sym.sym == FcitxKeyMapping.FcitxKey_apostrophe || it.sym.sym in modeSymbols

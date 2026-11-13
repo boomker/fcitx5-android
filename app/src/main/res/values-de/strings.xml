@@ -1284,5 +1284,11 @@
     <string name="shuangpin_layout_replace_message">Das aktuelle Layout mit 18 Tasten ersetzen? Andere Layouts in dieser Datei bleiben erhalten.</string>
     <string name="shuangpin_group_input">Eingabegruppe</string>
     <string name="shuangpin_group_default_popup">Standardauswahl für Gruppenbuchstaben</string>
-    <string name="shuangpin_group_invalid">Eine gültige Shuangpin-Buchstabengruppe auswählen.</string>
+    <string name="shuangpin_group_invalid">Eine gültige Shuangpin-Buchstabengruppe eingeben.</string>
+    <string name="shuangpin_group_letters_hint">z. B. WQ</string>
+    <string name="shuangpin_group_presets">Werkseitige Buchstabengruppen</string>
+    <string name="shuangpin_group_letters_summary">Gruppentasten bearbeiten, hinzufügen oder entfernen, um Buchstaben zu teilen oder zusammenzuführen. Gruppen bestimmen die Eingabe, die Hauptbeschriftung die Anzeige. Beim Speichern werden vollständige Buchstabenabdeckung und überlappende Gruppen geprüft.</string>
+    <string name="shuangpin_group_letters_required">Mindestens einen Buchstaben eingeben.</string>
+    <string name="shuangpin_group_letters_invalid">Nur Buchstaben a-z und Semikolon (;) verwenden.</string>
+    <string name="shuangpin_group_letters_repeated">Jedes Zeichen darf nur einmal in einer Gruppe vorkommen.</string>
 </resources>

@@ -399,7 +399,7 @@ class TextKeyboard private constructor(
                                 Timber.tag("TextKeyboard").w("Grouped keys outside compact layout %s; using built-in layout", resolution.sourceKey)
                                 defaultLayout()
                             } else if (!compact) parseRows() else runCatching {
-                                val errors = ShuangpinLayoutVariants.validationErrors(rawRows)
+                                val errors = ShuangpinLayoutVariants.validationErrors(rawRows, requireSemicolon = semicolon)
                                 require(errors.isEmpty()) { errors.joinToString("; ") }
                                 parseRows().also { parsed ->
                                     require(parsed.isNotEmpty() && parsed.all { it.isNotEmpty() }) { "Empty compact keyboard row" }
@@ -579,7 +579,8 @@ class TextKeyboard private constructor(
 
     private var punctuationMapping: Map<String, String> = mapOf()
     private var lastLayoutSignature: String? = null
-    private var lastSentShuangpinLayout: Pair<String, Boolean>? = null
+    private data class ShuangpinInputLayout(val ime: String, val groups: List<String>?)
+    private var lastSentShuangpinLayout: ShuangpinInputLayout? = null
     private fun transformPunctuation(p: String) = punctuationMapping.getOrDefault(p, p)
 
     private fun layoutSignature(ime: InputMethodEntry): String {
@@ -598,18 +599,28 @@ class TextKeyboard private constructor(
     override fun onAction(action: KeyAction, source: KeyActionListener.Source) {
         val activeIme = currentIme
         if (activeIme?.addon == "pinyin" && ShuangpinKeyboardLayouts.supports(activeIme.uniqueName)) {
-            val selection = activeIme.uniqueName to
-                (layoutState.layoutVariant(activeIme) == ShuangpinKeyboardLayout.Compact18 && !layoutState.useUppercaseLayout)
+            val compact = layoutState.layoutVariant(activeIme) == ShuangpinKeyboardLayout.Compact18 &&
+                !layoutState.useUppercaseLayout
+            val groups = if (compact) {
+                layoutState.getLayout(theme).flatten().filterIsInstance<ShuangpinGroupKey>()
+                    .map { it.groupId }.distinct().sorted()
+            } else null
+            val selection = ShuangpinInputLayout(activeIme.uniqueName, groups)
             if (selection != lastSentShuangpinLayout) {
-                // Use the same listener queue as the key so mode changes precede
-                // backspace, space, punctuation and ordinary letters alike.
-                super.onAction(Shuangpin18Keys.modeAction(selection.second), source)
+                // Stage and commit the complete partition on the same queue as
+                // the following key. Previews only emit to their own listener.
+                groups?.let {
+                    Shuangpin18Keys.configurationActions(it).forEach { configuration ->
+                        super.onAction(configuration, source)
+                    }
+                }
+                super.onAction(Shuangpin18Keys.modeAction(compact), source)
                 lastSentShuangpinLayout = selection
             }
         } else {
             lastSentShuangpinLayout = null
         }
-        if (action is KeyAction.SymAction && Shuangpin18Keys.indexOf(action.sym) != null &&
+        if (action is KeyAction.SymAction && Shuangpin18Keys.isGroupAction(action.sym) &&
             (layoutState.layoutVariant() != ShuangpinKeyboardLayout.Compact18 || layoutState.useUppercaseLayout)
         ) return
         var transformed = action
@@ -815,6 +826,7 @@ class TextKeyboard private constructor(
     }
 
     override fun onAttach() {
+        lastSentShuangpinLayout = null
         lastCompactCapsTapTime = null
         ensureSpecialKeyViewsInitialized()
         capsState = if (getService()?.isVirtualShiftLockOn() == true) {

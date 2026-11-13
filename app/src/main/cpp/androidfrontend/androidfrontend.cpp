@@ -427,7 +427,9 @@ void AndroidFrontend::keyEvent(const Key &key, bool isRelease, const int timesta
     if (!activeIC_) return;
     const auto sym = key.sym();
     const bool compactKey = (sym >= 0x0200e000 && sym <= 0x0200e011) ||
-                            sym == 0x0200e100 || sym == 0x0200e101;
+                            sym == 0x0200e100 || sym == 0x0200e101 ||
+                            (sym >= 0x0200e200 && sym <= 0x0200e2ff) ||
+                            (sym >= 0x0200e300 && sym <= 0x0200e31a);
     if (compactKey) {
         // Check the actual native IM, since Kotlin's IM update can be queued
         // behind a key. Protocol keys never fall through as application input.
@@ -435,6 +437,16 @@ void AndroidFrontend::keyEvent(const Key &key, bool isRelease, const int timesta
         if (!key.isVirtual() || !entry || entry->addon() != "pinyin" ||
             (entry->uniqueName() != "shuangpin" &&
              entry->uniqueName().compare(0, 10, "shuangpin-") != 0)) {
+            return;
+        }
+        if (sym >= 0x0200e200 && sym <= 0x0200e2ff) {
+            // Configuration must reach Pinyin even while a temporary addon
+            // mode owns key routing. It only stores the desired partition;
+            // a later mode/group event activates it through ordinary routing.
+            if (auto *engine = instance_->inputMethodEngine(activeIC_)) {
+                KeyEvent configuration(activeIC_, key, isRelease);
+                engine->keyEvent(*entry, configuration);
+            }
             return;
         }
     }

@@ -58,7 +58,7 @@ class LayoutJsonUtilsRowStyleTest {
         assertTrue(restored.appearance.directionalSwipeLabels)
         assertTrue(restored.popup.orEmpty().none { it is KeyDef.Popup.Keyboard.GroupedPreset })
         val action = restored.behaviors.filterIsInstance<KeyDef.Behavior.Press>().single().action as KeyAction.SymAction
-        assertEquals(1, Shuangpin18Keys.indexOf(action.sym))
+        assertEquals(Shuangpin18Keys.action("we"), action)
         assertEquals(data, LayoutJsonUtils.keyDefToJson(restored))
     }
 
@@ -74,6 +74,37 @@ class LayoutJsonUtilsRowStyleTest {
         assertEquals("l", (key.appearance as KeyDef.Appearance.Text).displayText)
         assertEquals("l", key.popup.orEmpty().filterIsInstance<KeyDef.Popup.Keyboard.GroupedPreset>().single().group)
         assertEquals("l;", LayoutJsonUtils.keyDefToJson(key)["groupId"])
+    }
+
+    @Test
+    fun regroupedAndSplitKeysRoundTripWithoutChangingTheLetterOrder() {
+        for (groupId in listOf("wq", "e", "wert", ";")) {
+            val original = ShuangpinGroupKey(groupId, configuredDisplayText = "标签", weight = 0.18f)
+            val data = LayoutJsonUtils.keyDefToJson(original)
+            val json = LayoutJsonUtils.rowToJsonElement(listOf(data)).jsonArray.single().jsonObject
+            val restored = LayoutJsonUtils.createKeyDef(
+                requireNotNull(LayoutJsonUtils.parseKeyJson(json)), theme = testTheme,
+            ) as ShuangpinGroupKey
+            assertEquals(groupId, restored.groupId)
+            assertEquals("标签", (restored.appearance as KeyDef.Appearance.Text).displayText)
+            assertEquals(groupId, restored.popup.orEmpty()
+                .filterIsInstance<KeyDef.Popup.Keyboard.GroupedPreset>().single().group)
+            assertEquals(data, LayoutJsonUtils.keyDefToJson(restored))
+            assertEquals(Shuangpin18Keys.action(groupId), restored.behaviors
+                .filterIsInstance<KeyDef.Behavior.Press>().single().action)
+        }
+    }
+
+    @Test
+    fun invalidGroupContentCannotBecomeAnInputKey() {
+        for (groupId in listOf("", "WW", "ww", "w1", "w q")) {
+            val parsed = requireNotNull(LayoutJsonUtils.parseKeyJson(
+                Json.parseToJsonElement("""{"type":"ShuangpinGroupKey","groupId":"$groupId"}""").jsonObject
+            ))
+            org.junit.Assert.assertThrows(IllegalArgumentException::class.java) {
+                LayoutJsonUtils.createKeyDef(parsed, theme = testTheme)
+            }
+        }
     }
 
     @Test

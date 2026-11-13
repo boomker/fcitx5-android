@@ -64,6 +64,7 @@ private fun bracketFamily(corner: String): Set<Char>? = when {
  * `we` cannot offer `3` and `jk` cannot offer `{`.
  */
 private fun matchesCorner(candidate: String, corner: String, family: Set<Char>?): Boolean {
+    if (candidate.isEmpty()) return false
     if (candidate == corner) return true
     if (candidate.isNotEmpty() && candidate.all { it.isLetter() }) return true
     return family != null && candidate.length == 1 && candidate[0] in family
@@ -100,7 +101,7 @@ internal fun resolveGroupedPopupPresetCandidates(
     return buildList {
         // Keep the existing letter choices and default focus ahead of the presets.
         addAll(group.map { if (it == ';') ":" else it.uppercase() })
-        add(corner)
+        if (corner.isNotEmpty()) add(corner)
         addAll(group.map(Char::toString))
         group.forEach { letter ->
             resolvePopupPresetCandidates(letter.toString(), null, customPresets, builtInPresets)

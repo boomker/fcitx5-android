@@ -61,6 +61,12 @@ internal object ShuangpinKeyboardLayouts {
 internal object Shuangpin18Keys {
     private const val GROUP_KEYSYM_BASE = 0x0200E000
     private const val MODE_KEYSYM_BASE = 0x0200E100
+    private const val CONFIG_BEGIN = 0x0200E200
+    private const val CONFIG_END_GROUP = 0x0200E201
+    private const val CONFIG_COMMIT = 0x0200E202
+    private const val CONFIG_CHARACTER_BASE = 0x0200E210
+    private const val REPRESENTATIVE_KEYSYM_BASE = 0x0200E300
+    private const val GROUP_CHARACTERS = "abcdefghijklmnopqrstuvwxyz;"
 
     val groups = listOf(
         "q", "we", "rt", "y", "u", "io", "p",
@@ -74,14 +80,37 @@ internal object Shuangpin18Keys {
     )
 
     fun defaultCorner(groupId: String): String {
-        val index = groups.indexOf(groupId)
-        require(index >= 0) { "Unknown shuangpin group: $groupId" }
-        return corners[index]
+        require(isValidGroup(groupId)) { "Invalid shuangpin group: $groupId" }
+        return corners.getOrNull(groups.indexOf(groupId)).orEmpty()
     }
 
     fun displayGroup(groupId: String, semicolon: Boolean): String {
-        require(groupId in groups) { "Unknown shuangpin group: $groupId" }
-        return if (semicolon) groupId else groupId.replace(";", "")
+        require(isValidGroup(groupId)) { "Invalid shuangpin group: $groupId" }
+        return if (semicolon || groupId == ";") groupId else groupId.replace(";", "")
+    }
+
+    fun isValidGroup(groupId: String?): Boolean =
+        !groupId.isNullOrEmpty() && groupId.all { it in GROUP_CHARACTERS } &&
+            groupId.toSet().size == groupId.length
+
+    /** Identical buttons may repeat; distinct groups must form a complete partition. */
+    fun groupingErrors(groupIds: List<String>, requireSemicolon: Boolean = false): List<String> = buildList {
+        val owners = mutableMapOf<Char, String>()
+        groupIds.distinct().forEach { groupId ->
+            if (!isValidGroup(groupId)) {
+                add("键位分组无效：$groupId（使用不重复的小写字母 a-z 或分号）")
+                return@forEach
+            }
+            groupId.forEach { character ->
+                val previous = owners.putIfAbsent(character, groupId)
+                if (previous != null) {
+                    add("字符 $character 同时属于分组 $previous 和 $groupId")
+                }
+            }
+        }
+        val required = if (requireSemicolon) GROUP_CHARACTERS else GROUP_CHARACTERS.dropLast(1)
+        val missing = required.filter { it !in owners }
+        if (missing.isNotEmpty()) add("18 键布局缺少字符：${missing.toList().joinToString("、")}")
     }
 
     fun action(index: Int): KeyAction.SymAction {
@@ -93,6 +122,33 @@ internal object Shuangpin18Keys {
 
     fun indexOf(sym: KeySym): Int? =
         (sym.sym - GROUP_KEYSYM_BASE).takeIf { it in groups.indices }
+
+    /** The representative is independent of the group's position in the layout. */
+    fun action(groupId: String): KeyAction.SymAction {
+        require(isValidGroup(groupId)) { "Invalid shuangpin group: $groupId" }
+        return virtualAction(REPRESENTATIVE_KEYSYM_BASE + GROUP_CHARACTERS.indexOf(groupId.first()))
+    }
+
+    fun isGroupAction(sym: KeySym): Boolean = indexOf(sym) != null ||
+        sym.sym - REPRESENTATIVE_KEYSYM_BASE in GROUP_CHARACTERS.indices
+
+    /** Commit a complete partition; mode notification or a group press activates it. */
+    fun configurationActions(groupIds: List<String>): List<KeyAction.SymAction> {
+        val errors = groupingErrors(groupIds)
+        require(errors.isEmpty()) { errors.joinToString("; ") }
+        return buildList {
+            add(virtualAction(CONFIG_BEGIN))
+            groupIds.distinct().forEach { groupId ->
+                groupId.forEach { character ->
+                    add(virtualAction(CONFIG_CHARACTER_BASE + GROUP_CHARACTERS.indexOf(character)))
+                }
+                add(virtualAction(CONFIG_END_GROUP))
+            }
+            add(virtualAction(CONFIG_COMMIT))
+        }
+    }
+
+    private fun virtualAction(sym: Int) = KeyAction.SymAction(KeySym(sym), KeyStates.Virtual)
 
     fun modeAction(compact: Boolean): KeyAction.SymAction = KeyAction.SymAction(
         KeySym(MODE_KEYSYM_BASE + if (compact) 1 else 0), KeyStates.Virtual

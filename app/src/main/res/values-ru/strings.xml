@@ -1286,5 +1286,11 @@
     <string name="shuangpin_layout_replace_message">Заменить текущую раскладку из 18 клавиш? Другие раскладки в этом файле сохранятся.</string>
     <string name="shuangpin_group_input">Группа ввода</string>
     <string name="shuangpin_group_default_popup">Стандартное всплывающее окно букв группы</string>
-    <string name="shuangpin_group_invalid">Выберите допустимую группу букв шуанпинь.</string>
+    <string name="shuangpin_group_invalid">Введите допустимую группу букв шуанпинь.</string>
+    <string name="shuangpin_group_letters_hint">например WQ</string>
+    <string name="shuangpin_group_presets">Заводские группы букв</string>
+    <string name="shuangpin_group_letters_summary">Изменяйте, добавляйте или удаляйте групповые клавиши, чтобы разделять или объединять буквы. Группа определяет ввод, основная надпись — внешний вид. При сохранении проверяются пропущенные буквы и пересекающиеся группы.</string>
+    <string name="shuangpin_group_letters_required">Введите хотя бы одну букву.</string>
+    <string name="shuangpin_group_letters_invalid">Используйте только буквы a-z и точку с запятой (;).</string>
+    <string name="shuangpin_group_letters_repeated">Каждый символ может встречаться в группе только один раз.</string>
 </resources>

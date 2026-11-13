@@ -1290,5 +1290,11 @@
     <string name="shuangpin_layout_replace_message">替换当前 18 键布局？此文件中的其他布局会保留。</string>
     <string name="shuangpin_group_input">键位分组</string>
     <string name="shuangpin_group_default_popup">默认组内字母弹窗</string>
-    <string name="shuangpin_group_invalid">请选择有效的双拼字母分组。</string>
+    <string name="shuangpin_group_invalid">请输入有效的双拼字母分组。</string>
+    <string name="shuangpin_group_letters_hint">例如 WQ</string>
+    <string name="shuangpin_group_presets">出厂字母分组</string>
+    <string name="shuangpin_group_letters_summary">编辑、添加或删除分组键可拆分或合并字母。分组决定输入，主标签仅改变显示。保存整个布局时会检查字母覆盖与分组冲突。</string>
+    <string name="shuangpin_group_letters_required">分组至少需要一个字母。</string>
+    <string name="shuangpin_group_letters_invalid">仅可使用 a-z 字母和分号（;）。</string>
+    <string name="shuangpin_group_letters_repeated">同一分组内不能重复使用字符。</string>
 </resources>

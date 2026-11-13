@@ -855,7 +855,10 @@ class LayoutDataManager(private val context: Context) {
                 if (!ShuangpinKeyboardLayouts.supports(ShuangpinLayoutVariants.baseKey(layoutName))) {
                     errors.add("布局 \"$layoutName\" 不支持 18 键双拼")
                 }
-                errors.addAll(ShuangpinLayoutVariants.validationErrors(rows).map { "布局 \"$layoutName\"：$it" })
+                errors.addAll(ShuangpinLayoutVariants.validationErrors(
+                    rows,
+                    requireSemicolon = Shuangpin18Keys.showSemicolon(ShuangpinLayoutVariants.baseKey(layoutName)),
+                ).map { "布局 \"$layoutName\"：$it" })
             }
             if (rows.isEmpty()) {
                 errors.add("布局 \"$layoutName\" 没有任何行")
@@ -904,7 +907,7 @@ class LayoutDataManager(private val context: Context) {
                 if (!ShuangpinLayoutVariants.isCompactEntry(layoutName)) {
                     errors.add("布局 \"$layoutName\" 的分组键只能用于 18 键布局")
                 }
-                if (key["groupId"] !in Shuangpin18Keys.groups) {
+                if (!Shuangpin18Keys.isValidGroup(key["groupId"] as? String)) {
                     errors.add("布局 \"$layoutName\" 第 ${rowIndex + 1} 行第 ${keyIndex + 1} 个键的 groupId 无效")
                 }
             }

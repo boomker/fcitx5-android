@@ -23,6 +23,7 @@ import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import android.text.Editable
+import android.text.InputType
 import android.text.TextWatcher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
@@ -60,6 +61,7 @@ import splitties.views.dsl.core.wrapContent
 import java.io.Serializable
 import java.util.Arrays
 import java.util.LinkedHashMap
+import java.util.Locale
 
 class KeyEditorActivity : AppCompatActivity() {
 
@@ -111,7 +113,7 @@ class KeyEditorActivity : AppCompatActivity() {
     private var hasMultiSubmodeSupport: Boolean = false
     private var lockTypeSelection: Boolean = false
     private var allowShuangpinGroup: Boolean = false
-    private var groupSpinner: Spinner? = null
+    private var groupLettersEdit: EditText? = null
     private var groupLongPressSteps: List<Any> = emptyList()
     private var disableWeightEditing: Boolean = false
     private var composeOverrideEditorMode: Boolean = false
@@ -416,7 +418,7 @@ class KeyEditorActivity : AppCompatActivity() {
         }
 
         fieldsContainer.removeAllViews()
-        groupSpinner = null
+        groupLettersEdit = null
         alphabetMainEdit = null
         alphabetAltEdit = null
         alphabetAlt1Edit = null
@@ -774,19 +776,28 @@ class KeyEditorActivity : AppCompatActivity() {
                 marginEnd = dp(8)
             }
         }
-        groupSpinner = Spinner(this).apply {
+        groupLettersEdit = EditText(this).apply {
             layoutParams = LinearLayout.LayoutParams(0, wrapContent, 1f)
-            adapter = android.widget.ArrayAdapter(
-                this@KeyEditorActivity,
-                android.R.layout.simple_spinner_item,
-                Shuangpin18Keys.groups
-            ).apply { setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
-            setSelection(Shuangpin18Keys.groups.indexOf(keyData["groupId"]).coerceAtLeast(0))
-            onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
-                override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
-                    updateActionButtonState()
-                }
-                override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
+            setSingleLine(true)
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD or
+                InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+            hint = getString(R.string.shuangpin_group_letters_hint)
+            contentDescription = getString(R.string.shuangpin_group_input)
+            setText(keyData["groupId"] as? String ?: Shuangpin18Keys.groups.first())
+        }
+        val presets = ImageButton(this).apply {
+            setImageResource(R.drawable.ic_baseline_arrow_drop_down_24)
+            imageTintList = ColorStateList.valueOf(styledColor(android.R.attr.textColorSecondary))
+            background = styledDrawable(android.R.attr.selectableItemBackgroundBorderless)
+            layoutParams = LinearLayout.LayoutParams(dp(48), dp(48))
+            contentDescription = getString(R.string.shuangpin_group_presets)
+            setOnClickListener {
+                AlertDialog.Builder(this@KeyEditorActivity)
+                    .setTitle(R.string.shuangpin_group_presets)
+                    .setItems(Shuangpin18Keys.groups.toTypedArray()) { _, index ->
+                        groupLettersEdit?.setText(Shuangpin18Keys.groups[index])
+                    }
+                    .show()
             }
         }
         fieldsContainer.addView(LinearLayout(this).apply {
@@ -794,8 +805,31 @@ class KeyEditorActivity : AppCompatActivity() {
             gravity = Gravity.CENTER_VERTICAL
             setPadding(0, dp(4), 0, dp(4))
             addView(label)
-            addView(groupSpinner)
+            addView(groupLettersEdit)
+            addView(presets)
         })
+        fieldsContainer.addView(TextView(this).apply {
+            text = getString(R.string.shuangpin_group_letters_summary)
+            textSize = 12f
+            setTextColor(styledColor(android.R.attr.textColorSecondary))
+            setPadding(0, 0, 0, dp(8))
+        })
+    }
+
+    private fun groupLetters(): String =
+        groupLettersEdit?.text?.toString()?.trim()?.lowercase(Locale.ROOT).orEmpty()
+
+    private fun groupValidationError(): String? {
+        if (selectedType != "ShuangpinGroupKey") return null
+        val letters = groupLetters()
+        return when {
+            !allowShuangpinGroup -> getString(R.string.shuangpin_group_invalid)
+            letters.isEmpty() -> getString(R.string.shuangpin_group_letters_required)
+            letters.any { it !in 'a'..'z' && it != ';' } -> getString(R.string.shuangpin_group_letters_invalid)
+            letters.toSet().size != letters.length -> getString(R.string.shuangpin_group_letters_repeated)
+            !Shuangpin18Keys.isValidGroup(letters) -> getString(R.string.shuangpin_group_invalid)
+            else -> null
+        }
     }
 
     private fun renderDirectionalSwipeEditors() {
@@ -1313,10 +1347,12 @@ class KeyEditorActivity : AppCompatActivity() {
     }
 
     private fun updateActionButtonState() {
-        val changed = hasChanges()
-        saveMenuItem?.isEnabled = changed
+        val error = groupValidationError()
+        groupLettersEdit?.error = error
+        val enabled = hasChanges() && error == null
+        saveMenuItem?.isEnabled = enabled
         saveMenuItem?.title = getString(R.string.save)
-        saveMenuItem?.icon?.mutate()?.setTint(saveIconTint(changed))
+        saveMenuItem?.icon?.mutate()?.setTint(saveIconTint(enabled))
     }
 
     private fun hasChanges(): Boolean {
@@ -1431,7 +1467,7 @@ class KeyEditorActivity : AppCompatActivity() {
                 val alt = alphabetAltEdit?.text?.toString().orEmpty()
                 val alt1 = alphabetAlt1Edit?.text?.toString().orEmpty()
                 if (selectedType == "ShuangpinGroupKey") {
-                    draft["groupId"] = groupSpinner?.selectedItem as? String
+                    draft["groupId"] = groupLetters()
                     applyDirectionalSwipeDraft(draft)
                     if (groupLongPressSteps.isNotEmpty()) draft["longPress"] = mapOf("macro" to groupLongPressSteps)
                 } else if (main.isNotEmpty()) draft["main"] = main
@@ -1855,10 +1891,11 @@ class KeyEditorActivity : AppCompatActivity() {
         macroWeightEdit: EditText?,
         simpleWeightEdit: EditText?
     ): MutableMap<String, Any?>? {
-        if (selectedType == "ShuangpinGroupKey" &&
-            (!allowShuangpinGroup || groupSpinner?.selectedItem !in Shuangpin18Keys.groups)
-        ) {
-            Toast.makeText(this, R.string.shuangpin_group_invalid, Toast.LENGTH_SHORT).show()
+        val groupError = groupValidationError()
+        if (groupError != null) {
+            groupLettersEdit?.error = groupError
+            groupLettersEdit?.requestFocus()
+            Toast.makeText(this, groupError, Toast.LENGTH_SHORT).show()
             return null
         }
         if (selectedType == "AlphabetKey") {
@@ -1901,7 +1938,7 @@ class KeyEditorActivity : AppCompatActivity() {
         when (selectedType) {
             "AlphabetKey", "ShuangpinGroupKey" -> {
                 if (selectedType == "ShuangpinGroupKey") {
-                    newKey["groupId"] = groupSpinner?.selectedItem as? String
+                    newKey["groupId"] = groupLetters()
                     applyDirectionalSwipeDraft(newKey)
                     if (groupLongPressSteps.isNotEmpty()) newKey["longPress"] = mapOf("macro" to groupLongPressSteps)
                 } else {

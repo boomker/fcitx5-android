@@ -1411,5 +1411,11 @@
     <string name="shuangpin_layout_replace_message">Replace the current 18-key layout? Other layouts in this file are kept.</string>
     <string name="shuangpin_group_input">Input group</string>
     <string name="shuangpin_group_default_popup">Default group letter popup</string>
-    <string name="shuangpin_group_invalid">Choose a valid Shuangpin letter group.</string>
+    <string name="shuangpin_group_invalid">Enter a valid Shuangpin letter group.</string>
+    <string name="shuangpin_group_letters_hint">e.g. WQ</string>
+    <string name="shuangpin_group_presets">Factory letter groups</string>
+    <string name="shuangpin_group_letters_summary">Edit, add or remove group keys to split or merge letters. Groups control input; the main label controls appearance. Saving the layout checks alphabet coverage and overlapping groups.</string>
+    <string name="shuangpin_group_letters_required">Enter at least one letter.</string>
+    <string name="shuangpin_group_letters_invalid">Use only letters a-z and semicolon (;).</string>
+    <string name="shuangpin_group_letters_repeated">Each character may appear only once in a group.</string>
 </resources>
