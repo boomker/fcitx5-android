@@ -35,6 +35,8 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
+import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipGroup
 import kotlinx.serialization.json.JsonObject
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.data.theme.SystemColorResourceId
@@ -792,12 +794,12 @@ class KeyEditorActivity : AppCompatActivity() {
             layoutParams = LinearLayout.LayoutParams(dp(48), dp(48))
             contentDescription = getString(R.string.shuangpin_group_presets)
             setOnClickListener {
-                AlertDialog.Builder(this@KeyEditorActivity)
-                    .setTitle(R.string.shuangpin_group_presets)
-                    .setItems(Shuangpin18Keys.groups.toTypedArray()) { _, index ->
-                        groupLettersEdit?.setText(Shuangpin18Keys.groups[index])
-                    }
-                    .show()
+                showGridPicker(
+                    R.string.shuangpin_group_presets,
+                    Shuangpin18Keys.groups.map { it.uppercase(Locale.ROOT) }
+                ) { index ->
+                    groupLettersEdit?.setText(Shuangpin18Keys.groups[index])
+                }
             }
         }
         fieldsContainer.addView(LinearLayout(this).apply {
@@ -814,6 +816,35 @@ class KeyEditorActivity : AppCompatActivity() {
             setTextColor(styledColor(android.R.attr.textColorSecondary))
             setPadding(0, 0, 0, dp(8))
         })
+    }
+
+    private fun showGridPicker(titleRes: Int, labels: List<String>, onSelected: (Int) -> Unit) {
+        val choices = ChipGroup(this).apply {
+            isSingleLine = false
+            chipSpacingHorizontal = dp(8)
+            chipSpacingVertical = dp(4)
+            setPadding(dp(20), dp(8), dp(20), dp(8))
+        }
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(titleRes)
+            .setView(ScrollView(this).apply {
+                addView(choices, matchParent, wrapContent)
+            })
+            .setNegativeButton(android.R.string.cancel, null)
+            .create()
+        labels.forEachIndexed { index, label ->
+            choices.addView(Chip(this).apply {
+                text = label
+                minWidth = dp(48)
+                minHeight = dp(48)
+                isCheckable = false
+                setOnClickListener {
+                    onSelected(index)
+                    dialog.dismiss()
+                }
+            })
+        }
+        dialog.show()
     }
 
     private fun groupLetters(): String =
@@ -1401,6 +1432,13 @@ class KeyEditorActivity : AppCompatActivity() {
             val symbols = swipeSymbolMappingKeys()
             if (symbols.isEmpty()) {
                 Toast.makeText(this, R.string.swipe_symbol_picker_empty, Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            if (selectedType == "ShuangpinGroupKey") {
+                showGridPicker(R.string.swipe_symbol_picker_title, symbols) { index ->
+                    target.setText(symbols[index])
+                    target.setSelection(target.text?.length ?: 0)
+                }
                 return@setOnClickListener
             }
             val popup = ListPopupWindow(this).apply {
