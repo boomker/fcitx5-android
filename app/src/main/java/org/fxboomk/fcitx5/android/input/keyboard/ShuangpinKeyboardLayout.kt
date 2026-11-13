@@ -8,6 +8,8 @@ import org.fxboomk.fcitx5.android.core.FcitxKeyMapping
 import org.fxboomk.fcitx5.android.core.InputMethodEntry
 import org.fxboomk.fcitx5.android.core.KeyStates
 import org.fxboomk.fcitx5.android.core.KeySym
+import org.fxboomk.fcitx5.android.data.pinyin.CustomShuangpinScheme
+import org.fxboomk.fcitx5.android.data.pinyin.CustomShuangpinSchemeStore
 import org.fxboomk.fcitx5.android.data.pinyin.ShuangpinLayoutKeys
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 
@@ -85,9 +87,18 @@ internal object Shuangpin18Keys {
         KeySym(MODE_KEYSYM_BASE + if (compact) 1 else 0), KeyStates.Virtual
     )
 
-    fun showSemicolon(uniqueName: String): Boolean =
-        uniqueName == ShuangpinLayoutKeys.BASE_LAYOUT_KEY || uniqueName == "shuangpin-ms" ||
-            ShuangpinLayoutKeys.isCustomSchemeUniqueName(uniqueName)
+    fun showSemicolon(
+        uniqueName: String,
+        customScheme: CustomShuangpinScheme? = null,
+    ): Boolean = when {
+        uniqueName == ShuangpinLayoutKeys.BASE_LAYOUT_KEY || uniqueName == "shuangpin-ms" -> true
+        ShuangpinLayoutKeys.isCustomSchemeUniqueName(uniqueName) -> {
+            val scheme = customScheme ?: CustomShuangpinSchemeStore.load()
+            ";" in scheme.initials.values || ";" in scheme.finals.values ||
+                scheme.syllables.values.any { keys -> keys.any { ';' in it } }
+        }
+        else -> false
+    }
 
     fun layout(
         showLangSwitch: Boolean,

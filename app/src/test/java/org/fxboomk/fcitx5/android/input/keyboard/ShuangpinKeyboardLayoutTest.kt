@@ -7,6 +7,8 @@ package org.fxboomk.fcitx5.android.input.keyboard
 import org.fxboomk.fcitx5.android.core.KeyState
 import org.fxboomk.fcitx5.android.core.InputMethodEntry
 import org.fxboomk.fcitx5.android.core.FcitxKeyMapping
+import org.fxboomk.fcitx5.android.data.pinyin.CustomShuangpinScheme
+import org.fxboomk.fcitx5.android.data.pinyin.CustomShuangpinSchemeCodec
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -51,9 +53,64 @@ class ShuangpinKeyboardLayoutTest {
         val allLetters = Shuangpin18Keys.groups.joinToString("")
         assertEquals(('a'..'z').toList(), allLetters.filter { it != ';' }.toList().sorted())
         assertEquals(1, allLetters.count { it == ';' })
+        assertTrue(Shuangpin18Keys.showSemicolon("shuangpin"))
         assertTrue(Shuangpin18Keys.showSemicolon("shuangpin-ms"))
-        assertTrue(Shuangpin18Keys.showSemicolon("shuangpin-custom"))
         assertFalse(Shuangpin18Keys.showSemicolon("shuangpin-xiaohe"))
+    }
+
+    @Test
+    fun defaultAndRenamedCustomSchemesHideUnusedSemicolon() {
+        for (id in listOf("custom", "tiane")) {
+            val scheme = CustomShuangpinSchemeCodec.defaultScheme().copy(name = "天鹅双拼", id = id)
+            assertFalse(Shuangpin18Keys.showSemicolon("shuangpin-$id", scheme))
+            val parsed = CustomShuangpinSchemeCodec.parseSpDat(CustomShuangpinSchemeCodec.toSpDat(scheme))
+            assertFalse(Shuangpin18Keys.showSemicolon("shuangpin-$id", parsed))
+        }
+        assertFalse(Shuangpin18Keys.showSemicolon("shuangpin-custom", CustomShuangpinScheme()))
+    }
+
+    @Test
+    fun customSemicolonFollowsInitialFinalAndSyllableMappings() {
+        val default = CustomShuangpinSchemeCodec.defaultScheme()
+        val mappedSchemes = listOf(
+            default.copy(initials = default.initials + ("sh" to ";")),
+            default.copy(finals = default.finals + ("ing" to ";")),
+            default.copy(syllables = mapOf("ying" to listOf("yk", "y;"))),
+            default.copy(syllables = mapOf("shi" to listOf(";i"))),
+        )
+        for (scheme in mappedSchemes) {
+            assertTrue(Shuangpin18Keys.showSemicolon("shuangpin-tiane", scheme))
+            assertFalse(Shuangpin18Keys.showSemicolon("shuangpin-xiaohe", scheme))
+        }
+        assertFalse(Shuangpin18Keys.showSemicolon(
+            "shuangpin-tiane", default.copy(syllables = mapOf("ying" to listOf("yk")))
+        ))
+        val mapped = default.copy(finals = default.finals + ("ing" to ";"))
+        assertFalse(Shuangpin18Keys.showSemicolon(
+            "shuangpin-tiane", mapped.copy(finals = mapped.finals + ("ing" to "k"))
+        ))
+    }
+
+    @Test
+    fun customSemicolonUpdatesKeyLabelAndPopupTogether() {
+        val default = CustomShuangpinSchemeCodec.defaultScheme().copy(name = "天鹅双拼", id = "tiane")
+        for (semicolon in listOf(false, true)) {
+            val scheme = if (semicolon) default.copy(finals = default.finals + ("ing" to ";")) else default
+            val key = Shuangpin18Keys.layout(
+                showLangSwitch = false,
+                semicolon = Shuangpin18Keys.showSemicolon("shuangpin-tiane", scheme),
+            )[1].last()
+            val expected = if (semicolon) "l;" else "l"
+            val appearance = key.appearance as KeyDef.Appearance.AltText
+            assertEquals(expected, appearance.displayText)
+            assertEquals(expected, appearance.character)
+            assertEquals(expected, key.popup.orEmpty()
+                .filterIsInstance<KeyDef.Popup.AltPreview>().single().content)
+            assertEquals(expected, key.popup.orEmpty()
+                .filterIsInstance<KeyDef.Popup.Keyboard.GroupedPreset>().single().group)
+            assertEquals(Shuangpin18Keys.action(12),
+                key.behaviors.filterIsInstance<KeyDef.Behavior.Press>().single().action)
+        }
     }
 
     @Test

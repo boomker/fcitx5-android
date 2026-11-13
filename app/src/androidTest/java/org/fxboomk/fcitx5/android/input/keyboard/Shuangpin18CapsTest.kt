@@ -18,12 +18,16 @@ import org.fxboomk.fcitx5.android.core.FcitxKeyMapping
 import org.fxboomk.fcitx5.android.core.InputMethodEntry
 import org.fxboomk.fcitx5.android.core.KeyState
 import org.fxboomk.fcitx5.android.data.InputFeedbacks.InputFeedbackMode
+import org.fxboomk.fcitx5.android.data.pinyin.CustomShuangpinSchemeCodec
+import org.fxboomk.fcitx5.android.data.pinyin.CustomShuangpinSchemeStore
+import org.fxboomk.fcitx5.android.data.pinyin.ShuangpinLayoutKeys
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.data.theme.ThemeManager
 import org.fxboomk.fcitx5.android.data.theme.ThemePrefs.PunctuationPosition
 import org.fxboomk.fcitx5.android.data.theme.ThemePreset
 import org.fxboomk.fcitx5.android.input.config.ConfigProviders
 import org.fxboomk.fcitx5.android.input.config.MemoryConfigProvider
+import org.fxboomk.fcitx5.android.input.config.UserConfigFiles
 import org.fxboomk.fcitx5.android.input.popup.PopupAction
 import org.fxboomk.fcitx5.android.input.popup.PopupActionListener
 import org.fxboomk.fcitx5.android.input.popup.resolveGroupedPopupPresetCandidates
@@ -295,6 +299,76 @@ class Shuangpin18CapsTest {
                 scene.keyboard.popupActionListener = null
                 ConfigProviders.provider = previousProvider
                 TextKeyboard.invalidateLayoutCache()
+            }
+        }
+    }
+
+    @Test
+    fun customSchemeMappingsRefreshRenderedSemicolonAndPopup() {
+        val original = CustomShuangpinSchemeStore.load()
+        val uniqueName = CustomShuangpinSchemeStore.uniqueNameFor(original.id)
+        val entryDir = UserConfigFiles.inputMethodConfDir()
+        val originalEntries = entryDir?.listFiles().orEmpty().filter {
+            it.isFile && ShuangpinLayoutKeys.isCustomSchemeUniqueName(it.name.removeSuffix(".conf"))
+        }
+        val files = listOf(UserConfigFiles.customShuangpinSchemeJson(),
+            UserConfigFiles.customShuangpinSpDat()) + originalEntries
+        val backups = files.associateWith { it.takeIf { file -> file.isFile }?.readBytes() }
+        try {
+            val default = CustomShuangpinSchemeCodec.defaultScheme().copy(name = "天鹅双拼", id = original.id)
+            CustomShuangpinSchemeStore.save(default).getOrThrow()
+            withKeyboard(uniqueName) { scene ->
+                onMain {
+                    var shownPopup: KeyDef.Popup.Keyboard? = null
+                    scene.keyboard.popupActionListener = PopupActionListener { action ->
+                        if (action is PopupAction.ShowKeyboardAction) shownPopup = action.keyboard
+                    }
+                    try {
+                        val cases = listOf(
+                            default to false,
+                            default.copy(finals = default.finals + ("ing" to ";")) to true,
+                            default to false,
+                            default.copy(initials = default.initials + ("sh" to ";")) to true,
+                            default to false,
+                            default.copy(syllables = mapOf("ying" to listOf("y;"))) to true,
+                            default to false,
+                        )
+                        for ((scheme, semicolon) in cases) {
+                            CustomShuangpinSchemeStore.save(scheme).getOrThrow()
+                            assertEquals(scheme, CustomShuangpinSchemeStore.load())
+                            scene.keyboard.onInputMethodUpdate(entry(uniqueName, "pinyin"))
+                            layout(scene.keyboard)
+                            assertGroupLabels(scene.keyboard, uppercase = false, semicolon = semicolon)
+                            val expected = if (semicolon) "l;" else "l"
+                            val key = textKey(scene.keyboard, expected)
+                            assertTrue("The key label was not rendered", key.mainText.width > 0)
+                            assertTrue("The key label was hidden", key.mainText.visibility == View.VISIBLE)
+                            shownPopup = null
+                            key.performLongClick()
+                            assertTrue("The current key did not open its grouped popup",
+                                shownPopup is KeyDef.Popup.Keyboard.GroupedPreset)
+                            val preset = shownPopup as KeyDef.Popup.Keyboard.GroupedPreset
+                            assertEquals(expected, preset.group)
+                            assertEquals("The popup retained an unused semicolon", semicolon,
+                                ";" in resolveGroupedPopupPresetCandidates(preset.group, preset.corner))
+                        }
+                    } finally {
+                        scene.keyboard.popupActionListener = null
+                    }
+                }
+            }
+        } finally {
+            try {
+                CustomShuangpinSchemeStore.save(original).getOrThrow()
+            } finally {
+                entryDir?.listFiles().orEmpty().filter {
+                    it.isFile && it !in backups &&
+                        ShuangpinLayoutKeys.isCustomSchemeUniqueName(it.name.removeSuffix(".conf"))
+                }.forEach { assertTrue("Could not remove temporary scheme entry", it.delete()) }
+                backups.forEach { (file, bytes) ->
+                    if (bytes != null) file.writeBytes(bytes)
+                    else if (file.exists()) assertTrue("Could not restore absent config", file.delete())
+                }
             }
         }
     }
