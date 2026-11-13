@@ -4,7 +4,9 @@
  */
 package org.fxboomk.fcitx5.android.ui.main.settings.behavior.dialog
 
+import org.fxboomk.fcitx5.android.input.keyboard.Shuangpin18Keys
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.os.Build
 import android.os.Bundle
 import android.view.Gravity
@@ -13,6 +15,7 @@ import android.view.MenuItem
 import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.EditText
+import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.ListPopupWindow
 import android.widget.ScrollView
@@ -50,6 +53,7 @@ import org.fxboomk.fcitx5.android.utils.saveIconTint
 import org.fxboomk.fcitx5.android.utils.serializable
 import splitties.dimensions.dp
 import splitties.resources.styledColor
+import splitties.resources.styledDrawable
 import splitties.views.backgroundColor
 import splitties.views.dsl.core.matchParent
 import splitties.views.dsl.core.wrapContent
@@ -106,6 +110,9 @@ class KeyEditorActivity : AppCompatActivity() {
     private var currentSubModeLabel: String? = null
     private var hasMultiSubmodeSupport: Boolean = false
     private var lockTypeSelection: Boolean = false
+    private var allowShuangpinGroup: Boolean = false
+    private var groupSpinner: Spinner? = null
+    private var groupLongPressSteps: List<Any> = emptyList()
     private var disableWeightEditing: Boolean = false
     private var composeOverrideEditorMode: Boolean = false
     private var hasInitialComposeOverride: Boolean = false
@@ -206,7 +213,7 @@ class KeyEditorActivity : AppCompatActivity() {
             monetKey = "altTextColorMonet",
             labelRes = R.string.text_keyboard_layout_key_alt_text_color,
             themeColorGetter = { it.altKeyTextColor },
-            supportedTypes = setOf("AlphabetKey", "MacroKey")
+            supportedTypes = setOf("AlphabetKey", "MacroKey", "ShuangpinGroupKey")
         ),
         EditableColorField(
             customKey = "backgroundColor",
@@ -335,6 +342,7 @@ class KeyEditorActivity : AppCompatActivity() {
         currentSubModeLabel = intent.getStringExtra(EXTRA_CURRENT_SUBMODE_LABEL)
         hasMultiSubmodeSupport = intent.getBooleanExtra(EXTRA_HAS_MULTI_SUBMODE_SUPPORT, false)
         lockTypeSelection = intent.getBooleanExtra(EXTRA_LOCK_TYPE_SELECTION, false)
+        allowShuangpinGroup = intent.getBooleanExtra(EXTRA_ALLOW_SHUANGPIN_GROUP, false)
         disableWeightEditing = intent.getBooleanExtra(EXTRA_DISABLE_WEIGHT_EDITING, false)
         composeOverrideEditorMode = intent.getBooleanExtra(EXTRA_COMPOSE_OVERRIDE_EDITOR_MODE, false)
         hasInitialComposeOverride = intent.getBooleanExtra(EXTRA_HAS_INITIAL_COMPOSE_OVERRIDE, false)
@@ -375,7 +383,7 @@ class KeyEditorActivity : AppCompatActivity() {
 
     private fun buildForm() {
         contentContainer.removeAllViews()
-        typeSpinner = uiBuilder.setupTypeSpinner(contentContainer, keyData)
+        typeSpinner = uiBuilder.setupTypeSpinner(contentContainer, keyData, allowShuangpinGroup)
         if (lockTypeSelection) {
             typeSpinner.isEnabled = false
             typeSpinner.alpha = 0.6f
@@ -389,7 +397,7 @@ class KeyEditorActivity : AppCompatActivity() {
         if (!lockTypeSelection) {
             typeSpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
                 override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: android.view.View?, position: Int, id: Long) {
-                    selectedType = KeyboardEditorUiBuilder.KEY_TYPES[position]
+                    selectedType = typeSpinner.getItemAtPosition(position) as String
                     rebuildFields()
                     updateActionButtonState()
                 }
@@ -408,6 +416,7 @@ class KeyEditorActivity : AppCompatActivity() {
         }
 
         fieldsContainer.removeAllViews()
+        groupSpinner = null
         alphabetMainEdit = null
         alphabetAltEdit = null
         alphabetAlt1Edit = null
@@ -460,7 +469,7 @@ class KeyEditorActivity : AppCompatActivity() {
         }
 
         when (selectedType) {
-            "AlphabetKey" -> {
+            "AlphabetKey", "ShuangpinGroupKey" -> {
                 val mainEdit = uiBuilder.createEditField(
                     getString(R.string.text_keyboard_layout_key_main),
                     keyData["main"] as? String ?: ""
@@ -473,7 +482,11 @@ class KeyEditorActivity : AppCompatActivity() {
                     getString(R.string.text_keyboard_layout_key_alt_one),
                     (keyData["alt1"] as? String).orEmpty().ifEmpty { autoUppercaseAlt1(keyData) }
                 )
-                fieldsContainer.addView(mainEdit.first)
+                if (selectedType == "ShuangpinGroupKey") {
+                    renderGroupSelector()
+                } else {
+                    fieldsContainer.addView(mainEdit.first)
+                }
                 fieldsContainer.addView(altEdit.first)
                 fieldsContainer.addView(alt1Edit.first)
                 // 需求 1：副字符 / 副字符一 支持从「符号划动映射」第一列下拉选择
@@ -529,6 +542,24 @@ class KeyEditorActivity : AppCompatActivity() {
                     alphabetDisplayTextRowBindings.addAll(bindings)
                     alphabetDisplayTextSimpleEdit = simpleTextEdit ?: bindings.lastOrNull()?.valueEdit
                     updateActionButtonState()
+                }
+                if (selectedType == "ShuangpinGroupKey") {
+                    renderDirectionalSwipeEditors()
+                    groupLongPressSteps = (((keyData["longPress"] as? Map<*, *>)
+                        ?.get("macro") as? List<*>)?.filterNotNull()).orEmpty()
+                    createMacroEditorButton(
+                        getString(R.string.text_keyboard_layout_macro_longpress_event),
+                        if (groupLongPressSteps.isEmpty()) getString(R.string.shuangpin_group_default_popup)
+                        else buildMacroPreview(groupLongPressSteps)
+                    ) {
+                        openMacroEditor(groupLongPressSteps, getString(R.string.text_keyboard_layout_macro_longpress_event)) { steps ->
+                            val draft = buildDraftKeyData()
+                            if (steps.isEmpty()) draft.remove("longPress")
+                            else draft["longPress"] = mapOf("macro" to steps)
+                            keyData = draft
+                            rebuildFields()
+                        }
+                    }.forEach { fieldsContainer.addView(it) }
                 }
             }
 
@@ -732,6 +763,39 @@ class KeyEditorActivity : AppCompatActivity() {
         renderColorEditors()
         attachFieldWatchers(fieldsContainer)
         updateActionButtonState()
+    }
+
+    private fun renderGroupSelector() {
+        val label = TextView(this).apply {
+            text = getString(R.string.shuangpin_group_input)
+            textSize = 13f
+            setTextColor(styledColor(android.R.attr.textColorSecondary))
+            layoutParams = LinearLayout.LayoutParams(dp(96), wrapContent).apply {
+                marginEnd = dp(8)
+            }
+        }
+        groupSpinner = Spinner(this).apply {
+            layoutParams = LinearLayout.LayoutParams(0, wrapContent, 1f)
+            adapter = android.widget.ArrayAdapter(
+                this@KeyEditorActivity,
+                android.R.layout.simple_spinner_item,
+                Shuangpin18Keys.groups
+            ).apply { setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+            setSelection(Shuangpin18Keys.groups.indexOf(keyData["groupId"]).coerceAtLeast(0))
+            onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
+                    updateActionButtonState()
+                }
+                override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
+            }
+        }
+        fieldsContainer.addView(LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, dp(4), 0, dp(4))
+            addView(label)
+            addView(groupSpinner)
+        })
     }
 
     private fun renderDirectionalSwipeEditors() {
@@ -1287,12 +1351,12 @@ class KeyEditorActivity : AppCompatActivity() {
      * 选中后写入 [target]。
      */
     private fun attachSwipeSymbolPicker(fieldContainer: LinearLayout, target: EditText) {
-        val button = TextView(this).apply {
-            text = "▾"
-            textSize = 18f
-            gravity = Gravity.CENTER
-            setPadding(dp(12), dp(4), dp(8), dp(4))
-            setTextColor(styledColor(android.R.attr.textColorSecondary))
+        val button = ImageButton(this).apply {
+            setImageResource(R.drawable.ic_baseline_arrow_drop_down_24)
+            imageTintList = ColorStateList.valueOf(styledColor(android.R.attr.textColorSecondary))
+            background = styledDrawable(android.R.attr.selectableItemBackgroundBorderless)
+            setPadding(dp(12), dp(12), dp(12), dp(12))
+            layoutParams = LinearLayout.LayoutParams(dp(48), dp(48))
             contentDescription = getString(R.string.swipe_symbol_picker_title)
         }
         button.setOnClickListener {
@@ -1362,11 +1426,15 @@ class KeyEditorActivity : AppCompatActivity() {
         draft["type"] = selectedType
 
         when (selectedType) {
-            "AlphabetKey" -> {
+            "AlphabetKey", "ShuangpinGroupKey" -> {
                 val main = alphabetMainEdit?.text?.toString().orEmpty()
                 val alt = alphabetAltEdit?.text?.toString().orEmpty()
                 val alt1 = alphabetAlt1Edit?.text?.toString().orEmpty()
-                if (main.isNotEmpty()) draft["main"] = main
+                if (selectedType == "ShuangpinGroupKey") {
+                    draft["groupId"] = groupSpinner?.selectedItem as? String
+                    applyDirectionalSwipeDraft(draft)
+                    if (groupLongPressSteps.isNotEmpty()) draft["longPress"] = mapOf("macro" to groupLongPressSteps)
+                } else if (main.isNotEmpty()) draft["main"] = main
                 if (alt.isNotEmpty()) draft["alt"] = alt
                 if (alt1.isNotEmpty()) draft["alt1"] = alt1
                 if (!disableWeightEditing) {
@@ -1787,6 +1855,12 @@ class KeyEditorActivity : AppCompatActivity() {
         macroWeightEdit: EditText?,
         simpleWeightEdit: EditText?
     ): MutableMap<String, Any?>? {
+        if (selectedType == "ShuangpinGroupKey" &&
+            (!allowShuangpinGroup || groupSpinner?.selectedItem !in Shuangpin18Keys.groups)
+        ) {
+            Toast.makeText(this, R.string.shuangpin_group_invalid, Toast.LENGTH_SHORT).show()
+            return null
+        }
         if (selectedType == "AlphabetKey") {
             val main = alphabetMainEdit?.text?.toString()?.trim().orEmpty()
             val alt = alphabetAltEdit?.text?.toString()?.trim().orEmpty()
@@ -1825,8 +1899,14 @@ class KeyEditorActivity : AppCompatActivity() {
         newKey["type"] = selectedType
 
         when (selectedType) {
-            "AlphabetKey" -> {
-                newKey["main"] = alphabetMainEdit?.text?.toString().orEmpty()
+            "AlphabetKey", "ShuangpinGroupKey" -> {
+                if (selectedType == "ShuangpinGroupKey") {
+                    newKey["groupId"] = groupSpinner?.selectedItem as? String
+                    applyDirectionalSwipeDraft(newKey)
+                    if (groupLongPressSteps.isNotEmpty()) newKey["longPress"] = mapOf("macro" to groupLongPressSteps)
+                } else {
+                    newKey["main"] = alphabetMainEdit?.text?.toString().orEmpty()
+                }
                 newKey["alt"] = alphabetAltEdit?.text?.toString().orEmpty()
                 alphabetAlt1Edit?.text?.toString()?.takeIf { it.isNotEmpty() }?.let {
                     newKey["alt1"] = it
@@ -2019,6 +2099,7 @@ class KeyEditorActivity : AppCompatActivity() {
         const val EXTRA_CURRENT_SUBMODE_LABEL = "current_submode_label"
         const val EXTRA_HAS_MULTI_SUBMODE_SUPPORT = "has_multi_submode_support"
         const val EXTRA_LOCK_TYPE_SELECTION = "lock_type_selection"
+        const val EXTRA_ALLOW_SHUANGPIN_GROUP = "allow_shuangpin_group"
         const val EXTRA_DISABLE_WEIGHT_EDITING = "disable_weight_editing"
         const val EXTRA_COMPOSE_OVERRIDE_EDITOR_MODE = "compose_override_editor_mode"
         const val EXTRA_HAS_INITIAL_COMPOSE_OVERRIDE = "has_initial_compose_override"

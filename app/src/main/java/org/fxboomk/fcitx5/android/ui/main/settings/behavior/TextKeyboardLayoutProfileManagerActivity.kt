@@ -49,8 +49,12 @@ import org.fxboomk.fcitx5.android.daemon.FcitxConnection
 import org.fxboomk.fcitx5.android.daemon.FcitxDaemon
 import org.fxboomk.fcitx5.android.input.config.ConfigProviders
 import org.fxboomk.fcitx5.android.input.config.UserConfigFiles
+import org.fxboomk.fcitx5.android.input.keyboard.ShuangpinKeyboardLayout
+import org.fxboomk.fcitx5.android.input.keyboard.ShuangpinKeyboardLayouts
+import org.fxboomk.fcitx5.android.input.keyboard.ShuangpinLayoutVariants
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.data.LayoutDataManager
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.data.LayoutHeightPercentOverrides
+import org.fxboomk.fcitx5.android.ui.main.settings.behavior.data.deepEquals
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.dialog.LayoutFileProfileInputActivity
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.manager.RimeSchemaResolver
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.manager.SubModeManager
@@ -356,7 +360,12 @@ class TextKeyboardLayoutProfileManagerActivity : AppCompatActivity() {
             displayProfile(currentProfile),
             activeIme,
             activeStatusActions,
-            baseLayoutDisplayName(ShuangpinLayoutKeys.BASE_LAYOUT_KEY)
+            baseLayoutDisplayName(ShuangpinLayoutKeys.BASE_LAYOUT_KEY),
+            activeIme?.takeIf { ShuangpinKeyboardLayouts.supports(it.uniqueName) }?.let {
+                getString(if (ShuangpinKeyboardLayouts.read(it.uniqueName) == ShuangpinKeyboardLayout.Compact18) {
+                    R.string.shuangpin_keyboard_layout_compact18
+                } else R.string.shuangpin_keyboard_layout_full)
+            }
         )
 
     private fun buildScrollArea(): View {
@@ -749,7 +758,7 @@ class TextKeyboardLayoutProfileManagerActivity : AppCompatActivity() {
             // 双拼子行只来自「输入法」列表页已启用的方案
             return shuangpinSubLayoutRows(manager).isNotEmpty()
         }
-        return manager.subLayoutKeys(baseLayout).isNotEmpty()
+        return manager.subLayoutKeys(baseLayout).any { !ShuangpinLayoutVariants.isCompactEntry(it) }
     }
 
     /** 推断父级输入法布局的子布局操作语义。 */
@@ -781,7 +790,7 @@ class TextKeyboardLayoutProfileManagerActivity : AppCompatActivity() {
             return shuangpinSubLayoutRows(manager)
         }
         val isRimeScheme = kind == ChildLayoutKind.RIME
-        val customKeys = manager.subLayoutKeys(baseLayout)
+        val customKeys = manager.subLayoutKeys(baseLayout).filterNot(ShuangpinLayoutVariants::isCompactEntry)
         val engineLabels = if (isRimeScheme) {
             fetchRimeSchemaLabels(profile, baseLayout)
         } else {
@@ -810,7 +819,7 @@ class TextKeyboardLayoutProfileManagerActivity : AppCompatActivity() {
             else -> SubLayoutState.UNCUSTOMIZED
         }
         return buildList {
-            engineLabels.filter { it.isNotBlank() }.forEach { label ->
+            engineLabels.filter { it.isNotBlank() && it != ShuangpinLayoutVariants.CHILD_KEY }.forEach { label ->
                 val key = customByKey[label]
                 add(SubLayoutRow(label, baseLayout, label, key, stateFor(key), kind))
             }
@@ -841,7 +850,8 @@ class TextKeyboardLayoutProfileManagerActivity : AppCompatActivity() {
 
     /** 单个双拼方案行：无专属布局键时为"继承"，否则按内容判定定制状态。 */
     private fun shuangpinSubLayoutRow(manager: LayoutDataManager, schemeKey: String): SubLayoutRow {
-        val stored = manager.entries.containsKey(schemeKey)
+        val stored = manager.entries.containsKey(schemeKey) ||
+            manager.entries.containsKey(ShuangpinLayoutVariants.entryKey(schemeKey))
         return SubLayoutRow(
             displayName = baseLayoutDisplayName(schemeKey),
             editLayoutKey = schemeKey,
@@ -864,7 +874,12 @@ class TextKeyboardLayoutProfileManagerActivity : AppCompatActivity() {
         sourceKey: String
     ): Boolean {
         if (manager.getLayoutHeightPercentOverride(sourceKey)?.isEmpty() == false) return true
+        if (!ShuangpinLayoutVariants.isCompactEntry(sourceKey) && ShuangpinKeyboardLayouts.supports(sourceKey) &&
+            isLayoutCustomized(manager, ShuangpinLayoutVariants.entryKey(sourceKey))) return true
         val rows = manager.entries[sourceKey] ?: return false
+        if (ShuangpinLayoutVariants.isCompactEntry(sourceKey)) {
+            return !deepEquals(rows, manager.compactDefaultRows())
+        }
         return !manager.matchesDefaultPreset(rows)
     }
 
@@ -1039,16 +1054,23 @@ class TextKeyboardLayoutProfileManagerActivity : AppCompatActivity() {
      * 复位为出厂 26 键预设）。方案本身由 Rime 方案清单决定并始终保留在列表中。
      */
     private fun confirmResetSubLayout(profile: String, baseLayout: String, row: SubLayoutRow) {
-        val options = arrayOf(
+        val options = mutableListOf(
             getString(R.string.text_keyboard_layout_manage_reset_option_inherit),
             getString(R.string.text_keyboard_layout_manage_reset_option_factory)
         )
+        if (row.kind == ChildLayoutKind.SHUANGPIN) {
+            val fullLabel = getString(R.string.shuangpin_keyboard_layout_full)
+            options[0] = "$fullLabel: ${options[0]}"
+            options[1] = "$fullLabel: ${options[1]}"
+            options += getString(R.string.shuangpin_layout_restore_inherited)
+            options += getString(R.string.shuangpin_layout_restore_default)
+        }
         var checkedOption = 0
         AlertDialog.Builder(this)
             // 注意：本机 DialogInterface 同时设置 message 与单选列表时列表不渲染，
             // 因此将上下文并入标题，仅用 setSingleChoiceItems 呈现选项。
             .setTitle(getString(R.string.text_keyboard_layout_manage_reset_type_message, row.displayName))
-            .setSingleChoiceItems(options, checkedOption) { _, which -> checkedOption = which }
+            .setSingleChoiceItems(options.toTypedArray(), checkedOption) { _, which -> checkedOption = which }
             .setPositiveButton(android.R.string.ok) { _, _ ->
                 when (checkedOption) {
                     0 -> {
@@ -1068,7 +1090,7 @@ class TextKeyboardLayoutProfileManagerActivity : AppCompatActivity() {
                             render()
                         }
                     }
-                    else -> {
+                    1 -> {
                         // 出厂 26 键：保留专属条目，内容复位为默认 26 键预设
                         val key = row.storedKey ?: if (row.kind == ChildLayoutKind.SHUANGPIN) {
                             row.editLayoutKey
@@ -1076,6 +1098,20 @@ class TextKeyboardLayoutProfileManagerActivity : AppCompatActivity() {
                             "$baseLayout:${row.editSubLabel ?: row.displayName}"
                         }
                         managerFor(profile).resetLayoutToDefaultPreset(key)
+                        if (persistProfile(profile)) {
+                            toast(getString(R.string.text_keyboard_layout_manage_sub_reset, row.displayName))
+                            render()
+                        }
+                    }
+                    else -> {
+                        val manager = managerFor(profile)
+                        val key = ShuangpinLayoutVariants.entryKey(row.editLayoutKey)
+                        if (checkedOption == 2) {
+                            manager.entries.remove(key)
+                            manager.setLayoutHeightPercentOverride(key, null)
+                        } else {
+                            manager.entries[key] = manager.compactDefaultRows()
+                        }
                         if (persistProfile(profile)) {
                             toast(getString(R.string.text_keyboard_layout_manage_sub_reset, row.displayName))
                             render()
@@ -1097,6 +1133,9 @@ class TextKeyboardLayoutProfileManagerActivity : AppCompatActivity() {
         startActivity(Intent(this, TextKeyboardLayoutCustomizeActivity::class.java).apply {
             putExtra(TextKeyboardLayoutCustomizeActivity.EXTRA_PROFILE, profile)
             putExtra(TextKeyboardLayoutCustomizeActivity.EXTRA_LAYOUT, layoutKey)
+            if (ShuangpinKeyboardLayouts.supports(layoutKey)) {
+                putExtra(TextKeyboardLayoutCustomizeActivity.EXTRA_LAYOUT_VARIANT, ShuangpinKeyboardLayouts.read(layoutKey).name)
+            }
             if (subLabel != null) {
                 putExtra(TextKeyboardLayoutCustomizeActivity.EXTRA_SUBMODE, subLabel)
             }

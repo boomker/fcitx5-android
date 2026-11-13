@@ -100,6 +100,7 @@ import org.fxboomk.fcitx5.android.input.editing.GestureEditingWindow
 import org.fxboomk.fcitx5.android.input.editing.SelectedTextAiAction
 import org.fxboomk.fcitx5.android.input.assistant.AiAssistant
 import org.fxboomk.fcitx5.android.input.keyboard.KeyboardHeightOverrideTarget
+import org.fxboomk.fcitx5.android.input.keyboard.ShuangpinKeyboardLayout
 import org.fxboomk.fcitx5.android.input.keyboard.TextKeyboard
 import org.fxboomk.fcitx5.android.input.keyboard.fileLevelKeyboardHeightPercentOverride
 import org.fxboomk.fcitx5.android.input.keyboard.keyboardHeightOverrideTarget
@@ -1114,6 +1115,7 @@ class InputView(
             displayName = ime.displayName,
             subModeLabel = TextKeyboard.layoutSubModeForIme(ime).label,
             subModeName = TextKeyboard.layoutSubModeForIme(ime).name,
+            layoutVariant = TextKeyboard.layoutVariantForIme(ime),
         )?.keyboardHeightPercentOverride(isLayoutLandscape)
             ?: json.fileLevelKeyboardHeightPercentOverride(isLayoutLandscape)
     }
@@ -1127,6 +1129,7 @@ class InputView(
             displayName = ime.displayName,
             subModeLabel = TextKeyboard.layoutSubModeForIme(ime).label,
             subModeName = TextKeyboard.layoutSubModeForIme(ime).name,
+            layoutVariant = TextKeyboard.layoutVariantForIme(ime),
         )
         return resolution?.keyboardHeightOverrideTarget(landscape)
             ?: json.fileLevelKeyboardHeightPercentOverride(landscape)
@@ -1188,7 +1191,13 @@ class InputView(
             displayName = ime.displayName,
             subModeLabel = TextKeyboard.layoutSubModeForIme(ime).label,
             subModeName = TextKeyboard.layoutSubModeForIme(ime).name,
+            layoutVariant = TextKeyboard.layoutVariantForIme(ime),
         ) ?: return null
+        // A built-in compact template has no editable variant node yet. Do not write
+        // its height into the ordinary 26-key layout; the editor creates that node.
+        if (TextKeyboard.layoutVariantForIme(ime) == ShuangpinKeyboardLayout.Compact18 && resolution.subMode == null) {
+            return null
+        }
         return if (resolution.subMode != null) {
             KeyboardHeightOverrideTarget.SubMode(
                 resolution.layoutKey,

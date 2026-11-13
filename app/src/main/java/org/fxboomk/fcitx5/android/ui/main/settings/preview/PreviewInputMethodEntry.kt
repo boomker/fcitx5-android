@@ -5,6 +5,7 @@
 package org.fxboomk.fcitx5.android.ui.main.settings.preview
 
 import org.fxboomk.fcitx5.android.core.InputMethodEntry
+import org.fxboomk.fcitx5.android.data.pinyin.ShuangpinLayoutKeys
 
 object PreviewInputMethodEntry {
 
@@ -23,6 +24,18 @@ object PreviewInputMethodEntry {
     ): InputMethodEntry {
         val selectedSubModeLabel = subModeLabel?.trim().orEmpty()
         val isRimeLayout = layoutName.equals(RIME_LAYOUT_NAME, ignoreCase = true)
+        val isShuangpinLayout = layoutName == ShuangpinLayoutKeys.BASE_LAYOUT_KEY ||
+            ShuangpinLayoutKeys.isSchemeUniqueName(layoutName)
+        if (isShuangpinLayout) {
+            return (base ?: InputMethodEntry(layoutName)).copy(
+                uniqueName = layoutName,
+                name = displayName?.takeIf { it.isNotBlank() } ?: layoutName,
+                label = "双",
+                addon = "pinyin",
+                icon = "fcitx-shuangpin",
+                subMode = org.fxboomk.fcitx5.android.core.InputMethodSubMode(),
+            )
+        }
         return base
             ?.copy(
                 uniqueName = layoutName,

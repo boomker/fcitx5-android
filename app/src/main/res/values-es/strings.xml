@@ -1280,4 +1280,11 @@
     <string name="shuangpin_keyboard_layout">Diseño del teclado</string>
     <string name="shuangpin_keyboard_layout_full">26 teclas</string>
     <string name="shuangpin_keyboard_layout_compact18">18 teclas (Shuangpin agrupado)</string>
+    <string name="shuangpin_layout_variant">Distribución del teclado</string>
+    <string name="shuangpin_layout_restore_default">Restaurar la distribución de fábrica de 18 teclas</string>
+    <string name="shuangpin_layout_restore_inherited">Restaurar la distribución heredada de 18 teclas</string>
+    <string name="shuangpin_layout_replace_message">¿Reemplazar la distribución actual de 18 teclas? Se conservarán las demás distribuciones de este archivo.</string>
+    <string name="shuangpin_group_input">Grupo de entrada</string>
+    <string name="shuangpin_group_default_popup">Ventana emergente predeterminada de letras del grupo</string>
+    <string name="shuangpin_group_invalid">Selecciona un grupo de letras Shuangpin válido.</string>
 </resources>

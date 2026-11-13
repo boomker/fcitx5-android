@@ -1281,4 +1281,11 @@
     <string name="shuangpin_keyboard_layout">키보드 배열</string>
     <string name="shuangpin_keyboard_layout_full">26키</string>
     <string name="shuangpin_keyboard_layout_compact18">18키 (그룹 쌍병)</string>
+    <string name="shuangpin_layout_variant">키보드 배열</string>
+    <string name="shuangpin_layout_restore_default">기본 18키 배열 복원</string>
+    <string name="shuangpin_layout_restore_inherited">상속된 18키 배열 복원</string>
+    <string name="shuangpin_layout_replace_message">현재 18키 배열을 바꾸시겠습니까? 이 파일의 다른 배열은 유지됩니다.</string>
+    <string name="shuangpin_group_input">입력 그룹</string>
+    <string name="shuangpin_group_default_popup">기본 그룹 글자 팝업</string>
+    <string name="shuangpin_group_invalid">올바른 솽핀 글자 그룹을 선택하세요.</string>
 </resources>

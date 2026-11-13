@@ -11,6 +11,7 @@ import android.content.Intent
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
+import android.text.TextUtils
 import android.view.Gravity
 import android.view.Menu
 import android.view.MenuItem
@@ -49,6 +50,9 @@ import org.fxboomk.fcitx5.android.input.config.ConfigProviders
 import org.fxboomk.fcitx5.android.input.config.ConfigProvider
 import org.fxboomk.fcitx5.android.input.config.UserConfigFiles
 import org.fxboomk.fcitx5.android.input.keyboard.TextKeyboard
+import org.fxboomk.fcitx5.android.input.keyboard.ShuangpinKeyboardLayout
+import org.fxboomk.fcitx5.android.input.keyboard.ShuangpinKeyboardLayouts
+import org.fxboomk.fcitx5.android.input.keyboard.ShuangpinLayoutVariants
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.adapter.KeyboardLayoutAdapter
 import org.fxboomk.fcitx5.android.utils.AppUtil
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.adapter.SimpleDividerItemDecoration
@@ -103,6 +107,14 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
     }
 
     private var previewKeyboard: TextKeyboard? = null
+    private var selectedLayoutVariant = ShuangpinKeyboardLayout.Full
+    private val variantContainer by lazy {
+        LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+    }
+    private val variantSpinner by lazy { Spinner(this) }
 
     private val listContainer by lazy {
         LinearLayout(this).apply {
@@ -186,7 +198,10 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         } else {
             baseDisplay
         }
-        return "${displayProfile(currentLayoutProfile)}:$editing"
+        val variantLabel = if (ShuangpinKeyboardLayouts.supports(layoutName)) {
+            ":${getString(if (selectedLayoutVariant == ShuangpinKeyboardLayout.Compact18) R.string.shuangpin_keyboard_layout_compact18 else R.string.shuangpin_keyboard_layout_full)}"
+        } else ""
+        return "${displayProfile(currentLayoutProfile)}:$editing$variantLabel"
     }
 
     /** 布局键的展示名：优先输入法名称（如 shuangpin-xiaohe→小鹤双拼），双拼父级输入法布局→“双拼”。 */
@@ -232,7 +247,10 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             dataManager::getLayoutHeightPercentOverride
         ).apply {
             profileHeightPercentProvider = { dataManager.profileHeightOverrides }
-            fallbackRowsProvider = { dataManager.defaultPresetSnapshot() }
+            fallbackRowsProvider = {
+                if (selectedLayoutVariant == ShuangpinKeyboardLayout.Compact18) dataManager.compactDefaultRows()
+                else dataManager.defaultPresetSnapshot()
+            }
         }
     }
     
@@ -269,7 +287,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
 
                     updateSaveButtonState()
                     currentLayout?.let { name ->
-                        previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection)
+                        previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection, selectedLayoutVariant)
                     }
                 }
 
@@ -279,7 +297,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                         rowsAdapter?.notifyRowChanged(rowIndex)
                         updateSaveButtonState()
                         currentLayout?.let { name ->
-                            previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection)
+                            previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection, selectedLayoutVariant)
                         }
                     }
                 }
@@ -307,7 +325,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             rowsAdapter?.notifyRowChanged(rowIndex)
             updateSaveButtonState()
             currentLayout?.let { name ->
-                previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection)
+                previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection, selectedLayoutVariant)
             }
         }
 
@@ -376,12 +394,15 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             layoutFile = provider.textKeyboardLayoutFile()
         }
 
+        selectedLayoutVariant = intent.getStringExtra(EXTRA_TARGET_LAYOUT_VARIANT)
+            ?.let { name -> ShuangpinKeyboardLayout.entries.firstOrNull { it.name == name } }
+            ?: ShuangpinKeyboardLayout.Full
         loadState()
 
         buildSpinner()
         buildSubModeSpinner()
         buildRows()
-        run { val layoutName = currentLayout ?: return@run; previewManager.updatePreview(layoutName, previewSubModeLabel, fcitxConnection) }
+        run { val layoutName = currentLayout ?: return@run; previewManager.updatePreview(layoutName, previewSubModeLabel, fcitxConnection, selectedLayoutVariant) }
         maybePromptSwitchToFcitxIme()
 
         // Show toast to indicate current editing layout
@@ -410,6 +431,8 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             .apply { setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER) }
         menu.add(Menu.NONE, MENU_MANAGE_LAYOUT_ID, Menu.NONE, R.string.text_keyboard_layout_editor_menu_manage)
             .apply { setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER) }
+        menu.add(Menu.NONE, MENU_COMPACT_RESET, Menu.NONE, R.string.shuangpin_layout_restore_default)
+        menu.add(Menu.NONE, MENU_COMPACT_INHERIT, Menu.NONE, R.string.shuangpin_layout_restore_inherited)
         // 布局文件级操作（新建 / 重命名 / 删除 / 二维码导入导出）已迁移至
         // TextKeyboardLayoutProfileManagerActivity（键盘布局管理页），编辑页仅保留内容编辑与保存。
         updateSaveButtonState()
@@ -419,6 +442,10 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
     override fun onPrepareOptionsMenu(menu: Menu): Boolean {
         // 每次菜单即将展示时重算保存按钮状态，兜底任何遗漏的刷新路径
         updateSaveButtonState()
+        val compact = selectedLayoutVariant == ShuangpinKeyboardLayout.Compact18
+        listOf(MENU_COMPACT_RESET, MENU_COMPACT_INHERIT).forEach {
+            menu.findItem(it)?.isVisible = compact
+        }
         return super.onPrepareOptionsMenu(menu)
     }
 
@@ -439,6 +466,8 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             startActivity(Intent(this, TextKeyboardLayoutProfileManagerActivity::class.java))
             true
         }
+        MENU_COMPACT_RESET -> { confirmCompactTemplate(); true }
+        MENU_COMPACT_INHERIT -> { confirmCompactInheritance(); true }
         else -> super.onOptionsItemSelected(item)
     }
 
@@ -480,7 +509,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         buildSpinner()
         buildSubModeSpinner(forceResetSelection = true)
         buildRows()
-        run { val layoutName = currentLayout ?: return; previewManager.updatePreview(layoutName, previewSubModeLabel, fcitxConnection) }
+        run { val layoutName = currentLayout ?: return; previewManager.updatePreview(layoutName, previewSubModeLabel, fcitxConnection, selectedLayoutVariant) }
         updateSaveButtonState()
     }
 
@@ -535,7 +564,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         }
 
         // 设置 previewSubModeLabel
-        val layoutLabels = subModeManager.extractSubModeLabelsFromLayout(currentLayout.orEmpty())
+        val layoutLabels = subModeManager.extractSubModeLabelsFromLayout(currentLayout.orEmpty()).filterNot { it == ShuangpinLayoutVariants.CHILD_KEY }
         val allLabels = (fcitxLabels + layoutLabels).distinct().filter { it.isNotBlank() }
 
         if (allLabels.isNotEmpty() && currentSubModeLabel != null) {
@@ -602,6 +631,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         // 从布局管理页直达编辑双拼继承布局时，保留目标内容但不显示已移除的分类下拉项。
         if (targetForceBase && currentLayout == ShuangpinLayoutKeys.BASE_LAYOUT_KEY) {
             spinnerContainer.visibility = View.GONE
+            buildVariantSelector()
             return
         }
 
@@ -684,7 +714,9 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                 // Only reset if the new layout doesn't have the current submode
                 val oldSubModeLabel = previewSubModeLabel
                 val oldLayout = currentLayout
+                syncBufferedLayout()
                 currentLayout = newLayout
+                if (!ShuangpinKeyboardLayouts.supports(newLayout.orEmpty())) selectedLayoutVariant = ShuangpinKeyboardLayout.Full
 
                 // Build submode spinner without forcing reset
                 buildSubModeSpinner(forceResetSelection = false)
@@ -695,7 +727,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                 }
 
                 buildRows()
-                run { val layoutName = currentLayout ?: return@run; previewManager.updatePreview(layoutName, previewSubModeLabel, fcitxConnection) }
+                run { val layoutName = currentLayout ?: return@run; previewManager.updatePreview(layoutName, previewSubModeLabel, fcitxConnection, selectedLayoutVariant) }
 
                 // Show toast when switching IME/layout - only if editing target changed
                 val layoutName = currentLayout ?: return@onItemSelected
@@ -727,14 +759,15 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
     }
 
     private fun buildSubModeSpinner(forceResetSelection: Boolean = false) {
-        if (targetForceBase) {
+        buildVariantSelector()
+        if (selectedLayoutVariant == ShuangpinKeyboardLayout.Compact18 || targetForceBase) {
             // 直达父级输入法布局行：不提供子模式选择，只编辑父级输入法布局（含 Rime，
             // 管理页直达基础行时明确要求编辑父级输入法布局，不自动切方案）
             hideSubModeSpinner()
             return
         }
         val layoutName = currentLayout ?: return
-        val layoutLabels = subModeManager.extractSubModeLabelsFromLayout(layoutName)
+        val layoutLabels = subModeManager.extractSubModeLabelsFromLayout(layoutName).filterNot { it == ShuangpinLayoutVariants.CHILD_KEY }
         val isRime = subModeManager.isCurrentLayoutRime(layoutName)
         val shouldShowForLayout = layoutLabels.isNotEmpty() || isRime
         if (!shouldShowForLayout) {
@@ -780,6 +813,84 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         bindSubModeSpinner(labels, if (isRime) SPINNER_MIN_VISIBLE_CHARS else 0)
     }
 
+    private fun buildVariantSelector() {
+        val supportsCompact = ShuangpinKeyboardLayouts.supports(currentLayout.orEmpty())
+        variantContainer.visibility = if (supportsCompact) View.VISIBLE else View.GONE
+        if (!supportsCompact) return
+        variantSpinner.onItemSelectedListener = null
+        variantContainer.removeAllViews()
+        variantContainer.addView(TextView(this).apply {
+            text = getString(R.string.shuangpin_layout_variant)
+            textSize = DIALOG_LABEL_TEXT_SIZE_SP
+            isSingleLine = true
+            ellipsize = TextUtils.TruncateAt.END
+            maxWidth = dp(64)
+            setPadding(0, dp(8), dp(8), dp(8))
+        })
+        val labels = listOf(
+            getString(R.string.shuangpin_keyboard_layout_full),
+            getString(R.string.shuangpin_keyboard_layout_compact18)
+        )
+        variantSpinner.layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        variantSpinner.contentDescription = getString(R.string.shuangpin_layout_variant)
+        variantSpinner.adapter = createSpinnerAdapter(labels, variantSpinner, 0)
+            .apply { setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+        applySpinnerDropDownWidth(variantSpinner, labels)
+        variantSpinner.setSelection(ShuangpinKeyboardLayout.entries.indexOf(selectedLayoutVariant))
+        variantContainer.addView(variantSpinner)
+        variantSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val next = ShuangpinKeyboardLayout.entries[position]
+                if (next == selectedLayoutVariant) return
+                syncBufferedLayout()
+                selectedLayoutVariant = next
+                buildSubModeSpinner()
+                buildRows()
+                currentLayout?.let { previewManager.updatePreview(it, previewSubModeLabel, fcitxConnection, selectedLayoutVariant) }
+                updateToolbarSubtitle()
+                invalidateOptionsMenu()
+            }
+            override fun onNothingSelected(parent: AdapterView<*>?) = Unit
+        }
+    }
+
+    private fun confirmCompactTemplate() {
+        if (selectedLayoutVariant != ShuangpinKeyboardLayout.Compact18) return
+        AlertDialog.Builder(this)
+            .setTitle(R.string.shuangpin_layout_restore_default)
+            .setMessage(R.string.shuangpin_layout_replace_message)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                syncBufferedLayout()
+                val layout = currentLayout ?: return@setPositiveButton
+                entries[ShuangpinLayoutVariants.entryKey(layout)] = dataManager.compactDefaultRows()
+                bufferedLayoutKey = null
+                buildRows()
+                previewManager.updatePreview(layout, null, fcitxConnection, selectedLayoutVariant)
+                updateSaveButtonState()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun confirmCompactInheritance() {
+        if (selectedLayoutVariant != ShuangpinKeyboardLayout.Compact18) return
+        AlertDialog.Builder(this)
+            .setTitle(R.string.shuangpin_layout_restore_inherited)
+            .setMessage(R.string.shuangpin_layout_replace_message)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val layout = currentLayout ?: return@setPositiveButton
+                val key = ShuangpinLayoutVariants.entryKey(layout)
+                bufferedLayoutKey = null
+                entries.remove(key)
+                dataManager.setLayoutHeightPercentOverride(key, null)
+                buildRows()
+                previewManager.updatePreview(layout, null, fcitxConnection, selectedLayoutVariant)
+                updateSaveButtonState()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
     private fun hideSubModeSpinner() {
         subModeSpinner.visibility = View.GONE
 
@@ -818,6 +929,8 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
                 return super.getView(position, convertView, parent).also { view ->
                     (view as? TextView)?.apply {
+                        isSingleLine = true
+                        ellipsize = TextUtils.TruncateAt.END
                         minimumWidth = boundedMinWidth.toInt()
                         maxWidth = capTextWidth.toInt()
                     }
@@ -864,7 +977,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                 try {
                     previewSubModeLabel = selected
                     // Update preview and editor rows to show the selected submode layout
-                    run { val layoutName = currentLayout ?: return@run; previewManager.updatePreview(layoutName, previewSubModeLabel, fcitxConnection) }
+                    run { val layoutName = currentLayout ?: return@run; previewManager.updatePreview(layoutName, previewSubModeLabel, fcitxConnection, selectedLayoutVariant) }
                     buildRows()
                     updateSaveButtonState()
 
@@ -904,11 +1017,15 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
     private var rowsAdapter: KeyboardLayoutAdapter? = null
     private var rowTouchHelper: ItemTouchHelper? = null
     private var currentRowsRef: MutableList<MutableList<MutableMap<String, Any?>>> = mutableListOf()
+    private var bufferedOriginalRows: List<List<Map<String, Any?>>>? = null
 
     /** 只有实际编辑才创建专属布局；无改动的 UI 刷新保留缓冲身份。 */
     private fun syncBufferedLayout() {
         val key = bufferedLayoutKey ?: return
-        val baseRows = inheritedRowSource(key) ?: return
+        // Compare against the snapshot actually shown to the user. A parent
+        // layout changing after browsing must not turn an untouched draft into
+        // a new dedicated layout containing the old parent rows.
+        val baseRows = bufferedOriginalRows ?: inheritedRowSource(key) ?: return
         if (deepEquals(currentRowsRef, baseRows)) return
         val firstMaterialization = !entries.containsKey(key)
         entries[key] = currentRowsRef
@@ -918,6 +1035,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             dataManager.freezeInheritedHeightOverride(key)
         }
         bufferedLayoutKey = null
+        bufferedOriginalRows = null
         updateToolbarSubtitle()
     }
 
@@ -926,10 +1044,17 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
      * 未定制专属布局时以出厂 26 键布局为基准，而非可被用户定制的 English
      * 布局，避免把 English 的定制内容带进其他输入法。
      */
-    private fun inheritedRowSource(layoutName: String): List<List<Map<String, Any?>>>? =
-        entries[layoutName.substringBefore(':')]
+    private fun inheritedRowSource(layoutName: String): List<List<Map<String, Any?>>>? {
+        if (ShuangpinLayoutVariants.isCompactEntry(layoutName)) {
+            val base = ShuangpinLayoutVariants.baseKey(layoutName)
+            return ShuangpinLayoutKeys.parentBaseLayoutKey(base)
+                ?.let { entries[ShuangpinLayoutVariants.entryKey(it)] }
+                ?: dataManager.compactDefaultRows()
+        }
+        return entries[layoutName.substringBefore(':')]
             ?: ShuangpinLayoutKeys.parentBaseLayoutKey(layoutName)?.let { entries[it] }
             ?: dataManager.defaultPresetSnapshot()
+    }
 
     /** 所选子模式总是独立编辑，不能因为尚无专属数据而意外修改父级输入法布局。 */
     private fun showsSubModeTarget(layoutName: String, subModeLabel: String?): Boolean =
@@ -941,9 +1066,12 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         // 重新解析前先登记未落盘的方案编辑缓冲，避免切换目标时丢失变更
         syncBufferedLayout()
         bufferedLayoutKey = null
+        bufferedOriginalRows = null
 
         // Try to load submode-specific layout first
-        val subModeKey = previewSubModeLabel?.let { "$layoutName:$it" }
+        val subModeKey = if (selectedLayoutVariant == ShuangpinKeyboardLayout.Compact18) {
+            ShuangpinLayoutVariants.entryKey(layoutName)
+        } else previewSubModeLabel?.let { "$layoutName:$it" }
 
         // Determine which layout to edit
         val rows = when {
@@ -952,7 +1080,10 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             // 变更后由 syncBufferedLayout 登记为专属布局
             subModeKey != null || !entries.containsKey(layoutName) -> {
                 bufferedLayoutKey = subModeKey ?: layoutName
-                inheritedRowSource(layoutName)?.let { dataManager.copyLayout(it) }
+                inheritedRowSource(subModeKey ?: layoutName)?.let {
+                    bufferedOriginalRows = dataManager.copyLayout(it)
+                    dataManager.copyLayout(it)
+                }
             }
             else -> entries[layoutName]
         }
@@ -969,7 +1100,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                 subModeSpinner.onItemSelectedListener = null
                 hideSubModeSpinner()
                 buildRows()
-                run { val name = currentLayout ?: return@run; previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection) }
+                run { val name = currentLayout ?: return@run; previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection, selectedLayoutVariant) }
                 updateSaveButtonState()
             } else {
                 Timber.tag("TextKeyboardEditor").e("No valid layout found in entries")
@@ -984,8 +1115,13 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             // Clear and rebuild content
             listContainer.removeAllViews()
 
-            // Add spinner container to list container
-            listContainer.addView(spinnerContainer)
+            val selectorRow = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                addView(spinnerContainer, LinearLayout.LayoutParams(0, wrapContent, 1f))
+                addView(variantContainer, LinearLayout.LayoutParams(0, wrapContent, 1f))
+            }
+            listContainer.addView(selectorRow)
 
             // Add divider between spinner and content
             val divider = View(this).apply {
@@ -1036,7 +1172,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                     rowsAdapter?.notifyRowChanged(destinationIndex)
                     updateSaveButtonState()
                     currentLayout?.let { name ->
-                        previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection)
+                        previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection, selectedLayoutVariant)
                     }
                 }
 
@@ -1050,7 +1186,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                         rowsAdapter?.notifyDataSetChanged()
                         updateSaveButtonState()
                         currentLayout?.let { name ->
-                            previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection)
+                            previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection, selectedLayoutVariant)
                         }
                     }
                 }
@@ -1075,7 +1211,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                         }
                         updateSaveButtonState()
                         currentLayout?.let { name ->
-                            previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection)
+                            previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection, selectedLayoutVariant)
                         }
                     }
                 }
@@ -1086,7 +1222,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                         if (fromRow in currentRowsRef.indices) rowsAdapter?.notifyRowChanged(fromRow)
                         if (toRow in currentRowsRef.indices) rowsAdapter?.notifyRowChanged(toRow)
                         currentLayout?.let { name ->
-                            previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection)
+                            previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection, selectedLayoutVariant)
                         }
                     }
                 }
@@ -1206,7 +1342,8 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             keyIndex?.let { putExtra(KeyEditorActivity.EXTRA_KEY_INDEX, it) }
             putExtra(KeyEditorActivity.EXTRA_IS_EDITING_SUBMODE_LAYOUT, isEditingSubModeLayout)
             putExtra(KeyEditorActivity.EXTRA_CURRENT_SUBMODE_LABEL, previewSubModeLabel)
-            putExtra(KeyEditorActivity.EXTRA_HAS_MULTI_SUBMODE_SUPPORT, hasMultiSubmodeSupport)
+            putExtra(KeyEditorActivity.EXTRA_HAS_MULTI_SUBMODE_SUPPORT, hasMultiSubmodeSupport && selectedLayoutVariant == ShuangpinKeyboardLayout.Full)
+            putExtra(KeyEditorActivity.EXTRA_ALLOW_SHUANGPIN_GROUP, selectedLayoutVariant == ShuangpinKeyboardLayout.Compact18)
         }
         keyEditorLauncher.launch(launchIntent)
     }
@@ -1239,7 +1376,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
                     // Update preview
                     updateSaveButtonState()
                     currentLayout?.let { name ->
-                        previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection)
+                        previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection, selectedLayoutVariant)
                     }
                 }
             }
@@ -1263,7 +1400,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
         // Update preview
         updateSaveButtonState()
         currentLayout?.let { name ->
-            previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection)
+            previewManager.updatePreview(name, previewSubModeLabel, fcitxConnection, selectedLayoutVariant)
         }
     }
 
@@ -1299,7 +1436,7 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
             // 通知 provider watcher 文件已更改
             ConfigProviders.ensureWatching()
             currentLayout?.let { layoutName ->
-                previewManager.updatePreview(layoutName, previewSubModeLabel, fcitxConnection)
+                previewManager.updatePreview(layoutName, previewSubModeLabel, fcitxConnection, selectedLayoutVariant)
             }
             updateSaveButtonState()
             return true
@@ -1409,6 +1546,9 @@ class TextKeyboardLayoutEditorActivity : AppCompatActivity() {
 
         /** 目标布局的展示名（如自定义双拼改名后的名称），优先用于工具栏副标题 */
         const val EXTRA_TARGET_DISPLAY_NAME = "target_display_name"
+        const val EXTRA_TARGET_LAYOUT_VARIANT = "target_layout_variant"
+        private const val MENU_COMPACT_RESET = 3005
+        private const val MENU_COMPACT_INHERIT = 3006
         private const val DIALOG_LABEL_TEXT_SIZE_SP = 13f
         private const val MIN_LAYOUT_HEIGHT_PERCENT = 10
         private const val MAX_LAYOUT_HEIGHT_PERCENT = 90

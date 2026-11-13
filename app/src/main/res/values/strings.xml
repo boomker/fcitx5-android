@@ -1405,4 +1405,11 @@
     <string name="shuangpin_keyboard_layout">Keyboard layout</string>
     <string name="shuangpin_keyboard_layout_full">26 keys</string>
     <string name="shuangpin_keyboard_layout_compact18">18 keys (grouped Shuangpin)</string>
+    <string name="shuangpin_layout_variant">Keyboard layout</string>
+    <string name="shuangpin_layout_restore_default">Restore factory 18-key layout</string>
+    <string name="shuangpin_layout_restore_inherited">Restore inherited 18-key layout</string>
+    <string name="shuangpin_layout_replace_message">Replace the current 18-key layout? Other layouts in this file are kept.</string>
+    <string name="shuangpin_group_input">Input group</string>
+    <string name="shuangpin_group_default_popup">Default group letter popup</string>
+    <string name="shuangpin_group_invalid">Choose a valid Shuangpin letter group.</string>
 </resources>

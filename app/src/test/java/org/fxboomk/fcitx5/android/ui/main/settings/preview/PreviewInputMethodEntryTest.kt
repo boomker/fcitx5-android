@@ -11,6 +11,21 @@ import org.junit.Test
 class PreviewInputMethodEntryTest {
 
     @Test
+    fun `shuangpin preview carries target identity regardless of active input method`() {
+        val rime = inputMethod("rime", "Rime", "fcitx-rime", "㞢", "rime")
+        for (base in listOf(rime, null)) {
+            for (target in listOf("shuangpin", "shuangpin-xiaohe", "shuangpin-ms")) {
+                val preview = PreviewInputMethodEntry.create(layoutName = target, base = base)
+                assertEquals(target, preview.uniqueName)
+                assertEquals("pinyin", preview.addon)
+                assertEquals("双", preview.label)
+                assertEquals("", preview.subMode.name)
+                assertEquals("rime", rime.uniqueName)
+            }
+        }
+    }
+
+    @Test
     fun `rime layout preview uses rime engine identity even when active ime is builtin shuangpin`() {
         // 当前活动输入法是内置双拼，其 label 为 "双"
         val shuangpin = inputMethod(

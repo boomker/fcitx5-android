@@ -9,6 +9,8 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import org.fxboomk.fcitx5.android.data.pinyin.ShuangpinLayoutKeys
+import org.fxboomk.fcitx5.android.input.keyboard.ShuangpinKeyboardLayout
+import org.fxboomk.fcitx5.android.input.keyboard.ShuangpinLayoutVariants
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.data.LayoutHeightPercentOverrides
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.utils.LayoutJsonUtils
 import org.junit.Assert.assertEquals
@@ -19,6 +21,68 @@ import org.junit.Test
 class KeyboardPreviewManagerTest {
     private val defaultRows = listOf(listOf(mapOf<String, Any?>("main" to "a")))
     private val subModeRows = listOf(listOf(mapOf<String, Any?>("main" to "A")))
+
+    private val sixColumnRows = listOf(
+        "q", "we", "rt", "y", "u", "io", "p", "a", "sd",
+        "fg", "h", "jk", "l;", "z", "xc", "v", "bn", "m"
+    ).map { mapOf<String, Any?>("type" to "ShuangpinGroupKey", "groupId" to it) }.chunked(6)
+
+    @Test
+    fun compactPreviewInheritsSixColumnParentEvenWithDedicatedFullLayout() {
+        val entries = mapOf(
+            "default" to defaultRows,
+            "shuangpin-xiaohe" to subModeRows,
+            ShuangpinLayoutVariants.entryKey("shuangpin") to sixColumnRows,
+        )
+        val resolved = resolvePreviewRows(
+            entries, "shuangpin-xiaohe", null, layoutVariant = ShuangpinKeyboardLayout.Compact18
+        )
+        assertSame(sixColumnRows, resolved)
+        assertEquals(listOf(6, 6, 6), resolved!!.map { it.size })
+        val preview = buildPreviewSubModeMap(
+            entries, "shuangpin-xiaohe", null, resolved, null, ShuangpinKeyboardLayout.Compact18
+        )
+        assertEquals(setOf(ShuangpinLayoutVariants.CHILD_KEY), preview.keys)
+        assertEquals(rowsJson(sixColumnRows), preview[ShuangpinLayoutVariants.CHILD_KEY])
+        assertEquals(3, entries.size)
+    }
+
+    @Test
+    fun compactPreviewNeverUsesFullRowsAndPrefersItsOwnVariant() {
+        val fullEntries = mapOf("shuangpin" to defaultRows, "shuangpin-xiaohe" to subModeRows)
+        assertNull(resolvePreviewRows(
+            fullEntries, "shuangpin-xiaohe", null, layoutVariant = ShuangpinKeyboardLayout.Compact18
+        ))
+        val ownRows = sixColumnRows.reversed()
+        val entries = fullEntries + mapOf(
+            ShuangpinLayoutVariants.entryKey("shuangpin") to sixColumnRows,
+            ShuangpinLayoutVariants.entryKey("shuangpin-xiaohe") to ownRows,
+        )
+        assertSame(ownRows, resolvePreviewRows(
+            entries, "shuangpin-xiaohe", null, layoutVariant = ShuangpinKeyboardLayout.Compact18
+        ))
+        assertSame(subModeRows, resolvePreviewRows(entries, "shuangpin-xiaohe", null))
+    }
+
+    @Test
+    fun compactPreviewHeightUsesOwnAndParentVariantIndependently() {
+        val parentKey = ShuangpinLayoutVariants.entryKey("shuangpin")
+        val ownKey = ShuangpinLayoutVariants.entryKey("shuangpin-xiaohe")
+        val entries = mapOf(
+            "shuangpin" to defaultRows, "shuangpin-xiaohe" to subModeRows,
+            parentKey to sixColumnRows, ownKey to sixColumnRows,
+        )
+        val heights = mapOf(
+            "shuangpin" to LayoutHeightPercentOverrides(30, 31),
+            "shuangpin-xiaohe" to LayoutHeightPercentOverrides(40, 41),
+            parentKey to LayoutHeightPercentOverrides(50, 51),
+            ownKey to LayoutHeightPercentOverrides(portrait = 60),
+        )
+        assertEquals(LayoutHeightPercentOverrides(60, 51), resolvePreviewHeightOverrides(
+            entries, "shuangpin-xiaohe", null, heights::get,
+            layoutVariant = ShuangpinKeyboardLayout.Compact18,
+        ))
+    }
 
     @Test
     fun missingBaseUsesProvidedFactoryRowsAsPreviewDefault() {

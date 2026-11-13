@@ -25,6 +25,12 @@ class ActiveLayoutChainTest {
         assertEquals("配置-双拼", formatActiveLayoutChain("配置", shuangpin, emptyArray()))
     }
 
+    @Test fun compactVariantIsShownAfterTheSchemeIdentity() {
+        val scheme = shuangpin.copy(uniqueName = "shuangpin-xiaohe", name = "小鹤双拼")
+        assertEquals("配置-双拼-小鹤双拼-18 键",
+            formatActiveLayoutChain("配置", scheme, emptyArray(), "双拼", "18 键"))
+    }
+
     @Test fun englishRemainsEnglish() {
         val english = shuangpin.copy(uniqueName = "keyboard-us", name = "English", addon = "keyboard")
         assertEquals("配置-English", formatActiveLayoutChain("配置", english, emptyArray()))

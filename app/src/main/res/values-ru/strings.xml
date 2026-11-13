@@ -1280,4 +1280,11 @@
     <string name="shuangpin_keyboard_layout">Раскладка клавиатуры</string>
     <string name="shuangpin_keyboard_layout_full">26 клавиш</string>
     <string name="shuangpin_keyboard_layout_compact18">18 клавиш (групповой шуанпинь)</string>
+    <string name="shuangpin_layout_variant">Раскладка клавиатуры</string>
+    <string name="shuangpin_layout_restore_default">Восстановить стандартную раскладку из 18 клавиш</string>
+    <string name="shuangpin_layout_restore_inherited">Восстановить унаследованную раскладку из 18 клавиш</string>
+    <string name="shuangpin_layout_replace_message">Заменить текущую раскладку из 18 клавиш? Другие раскладки в этом файле сохранятся.</string>
+    <string name="shuangpin_group_input">Группа ввода</string>
+    <string name="shuangpin_group_default_popup">Стандартное всплывающее окно букв группы</string>
+    <string name="shuangpin_group_invalid">Выберите допустимую группу букв шуанпинь.</string>
 </resources>

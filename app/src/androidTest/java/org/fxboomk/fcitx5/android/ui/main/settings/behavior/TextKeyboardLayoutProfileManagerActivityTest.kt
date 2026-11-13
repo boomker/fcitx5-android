@@ -19,6 +19,8 @@ import org.fxboomk.fcitx5.android.daemon.FcitxDaemon
 import org.fxboomk.fcitx5.android.data.pinyin.ShuangpinLayoutKeys
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.input.config.UserConfigFiles
+import org.fxboomk.fcitx5.android.input.keyboard.ShuangpinKeyboardLayout
+import org.fxboomk.fcitx5.android.input.keyboard.ShuangpinKeyboardLayouts
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.data.LayoutDataManager
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.data.LayoutHeightPercentOverrides
 import org.junit.Assert.assertEquals
@@ -107,11 +109,11 @@ class TextKeyboardLayoutProfileManagerActivityTest {
             val before = manager.exportCurrentJsonString()
             val shuangpin = InputMethodEntry("shuangpin", "双拼", "", "", "", "zh", "pinyin", false)
             setPrivateField(activity, "activeIme", shuangpin)
-            assertEquals("${profiles.first()}-双拼", invokePrivate(activity, "activeLayoutChain"))
+            assertEquals("${profiles.first()}-双拼-${variantLabel(activity, "shuangpin")}", invokePrivate(activity, "activeLayoutChain"))
             // A scheme is a child of the 「双拼」 parent layout, so the parent shows up too.
             setPrivateField(activity, "activeIme",
                 InputMethodEntry("shuangpin-xiaohe", "小鹤双拼", "", "", "", "zh", "pinyin", false))
-            assertEquals("${profiles.first()}-双拼-小鹤双拼", invokePrivate(activity, "activeLayoutChain"))
+            assertEquals("${profiles.first()}-双拼-小鹤双拼-${variantLabel(activity, "shuangpin-xiaohe")}", invokePrivate(activity, "activeLayoutChain"))
             val rime = InputMethodEntry("rime", "中州韵", "", "", "", "zh", "rime", false,
                 "Latin Mode", "abc", "")
             setPrivateField(activity, "activeStatusActions", arrayOf(
@@ -455,8 +457,14 @@ class TextKeyboardLayoutProfileManagerActivityTest {
         actions: Array<Action>
     ): String? = formatActiveLayoutChain(
         profile, ime, actions,
-        invokePrivate(activity, "baseLayoutDisplayName", ShuangpinLayoutKeys.BASE_LAYOUT_KEY) as String
+        invokePrivate(activity, "baseLayoutDisplayName", ShuangpinLayoutKeys.BASE_LAYOUT_KEY) as String,
+        ime.uniqueName.takeIf(ShuangpinKeyboardLayouts::supports)?.let { variantLabel(activity, it) },
     )
+
+    private fun variantLabel(activity: TextKeyboardLayoutProfileManagerActivity, uniqueName: String): String =
+        activity.getString(if (ShuangpinKeyboardLayouts.read(uniqueName) == ShuangpinKeyboardLayout.Compact18) {
+            R.string.shuangpin_keyboard_layout_compact18
+        } else R.string.shuangpin_keyboard_layout_full)
 
     /** 某父级输入法布局行右侧的展开/折叠按钮（[base] 为其中的可辨识文本片段）。 */
     private fun baseLayoutToggleButton(

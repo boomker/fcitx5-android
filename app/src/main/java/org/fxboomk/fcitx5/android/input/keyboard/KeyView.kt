@@ -169,6 +169,8 @@ abstract class KeyView(
     private val cachedLocation = intArrayOf(0, 0)
     private val cachedBounds = Rect()
     private var boundsValid = false
+    private var lastSideKeyLayoutWidth = -1
+    private var lastSideKeyLayoutHeight = -1
     val bounds: Rect
         get() = cachedBounds.also {
             if (!boundsValid) updateBounds()
@@ -445,7 +447,13 @@ abstract class KeyView(
         onAppearanceLayoutChanged(appearanceView.width, appearanceView.height)
         val appearanceWidth = appearanceView.width.takeIf { it > 0 } ?: (right - left)
         val appearanceHeight = appearanceView.height.takeIf { it > 0 } ?: (bottom - top)
-        maybeRefreshGboardSideKeyShape(appearanceWidth, appearanceHeight)
+        // Replacing a background requests another layout. Rebuild it only when
+        // its geometry changes, otherwise circular side keys never become idle.
+        if (appearanceWidth != lastSideKeyLayoutWidth || appearanceHeight != lastSideKeyLayoutHeight) {
+            lastSideKeyLayoutWidth = appearanceWidth
+            lastSideKeyLayoutHeight = appearanceHeight
+            maybeRefreshGboardSideKeyShape(appearanceWidth, appearanceHeight)
+        }
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {

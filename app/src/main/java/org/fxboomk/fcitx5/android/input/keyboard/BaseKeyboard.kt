@@ -178,7 +178,17 @@ abstract class BaseKeyboard(
     init {
         isMotionEventSplittingEnabled = true
         reloadLayout()
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
         splitKeyboardManager.registerListener(splitStateChangeListener)
+        splitStateChangeListener.onSplitStateChanged(splitKeyboardManager.shouldUseSplitKeyboard(width))
+    }
+
+    override fun onDetachedFromWindow() {
+        splitKeyboardManager.unregisterListener(splitStateChangeListener)
+        super.onDetachedFromWindow()
     }
 
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {

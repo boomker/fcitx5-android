@@ -23,7 +23,6 @@ import org.fxboomk.fcitx5.android.core.KeyStates
 import org.fxboomk.fcitx5.android.input.FcitxInputMethodService
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.data.prefs.ManagedPreference
-import org.fxboomk.fcitx5.android.data.pinyin.ShuangpinLayoutKeys
 import org.fxboomk.fcitx5.android.data.theme.Theme
 import org.fxboomk.fcitx5.android.data.theme.ThemeManager
 import org.fxboomk.fcitx5.android.input.popup.PopupAction
@@ -33,6 +32,7 @@ import splitties.views.imageResource
 import kotlinx.serialization.json.*
 import kotlinx.serialization.Serializable
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.utils.LayoutJsonUtils
+import timber.log.Timber
 
 internal fun resolveCapsAwareAltText(
     appearance: KeyDef.Appearance.AltText,
@@ -97,6 +97,17 @@ class TextKeyboard private constructor(
         initialIme: InputMethodEntry? = null,
     ) : this(context, theme, TextKeyboardLayoutState(initialIme))
 
+    internal var layoutVariantOverride: ShuangpinKeyboardLayout?
+        get() = layoutState.layoutVariantOverride
+        set(value) {
+            if (layoutState.layoutVariantOverride == value) return
+            layoutState.layoutVariantOverride = value
+            layoutState.useUppercaseLayout = false
+            reloadLayout()
+            ensureSpecialKeyViewsInitialized()
+            refreshCapsPresentation()
+        }
+
     enum class CapsState { None, Once, Lock }
 
     internal data class KeyDefLayoutCacheKey(
@@ -108,6 +119,8 @@ class TextKeyboard private constructor(
         val theme: Theme,
         val layoutFile: String?,
         val layoutRevision: Long,
+        val layoutVariant: ShuangpinKeyboardLayout = ShuangpinKeyboardLayout.Full,
+        val showShuangpinSemicolon: Boolean = true,
     )
 
     companion object {
@@ -325,21 +338,26 @@ class TextKeyboard private constructor(
         internal fun layoutSubModeForIme(ime: InputMethodEntry): InputMethodSubMode =
             TextKeyboardLayoutState.activeLayoutSubMode(ime)
 
+        internal fun layoutVariantForIme(ime: InputMethodEntry?): ShuangpinKeyboardLayout =
+            if (ShuangpinKeyboardLayouts.isCompact(ime)) ShuangpinKeyboardLayout.Compact18
+            else ShuangpinKeyboardLayout.Full
+
         internal fun getLayout(
             currentIme: InputMethodEntry?,
             theme: Theme,
             layoutSubMode: InputMethodSubMode = currentIme?.subMode ?: InputMethodSubMode(),
+            layoutVariant: ShuangpinKeyboardLayout = layoutVariantForIme(currentIme),
         ): List<List<KeyDef>> {
             val imeName = currentIme?.uniqueName
             val subModeLabel = layoutSubMode.label
             val subModeName = layoutSubMode.name
             val showLangSwitch = AppPrefs.getInstance().keyboard.showLangSwitchKey.getValue()
-            if (ShuangpinKeyboardLayouts.isCompact(currentIme)) {
-                return Shuangpin18Keys.layout(
-                    showLangSwitch,
-                    Shuangpin18Keys.showSemicolon(currentIme?.uniqueName.orEmpty()),
-                )
-            }
+            val compact = layoutVariant == ShuangpinKeyboardLayout.Compact18 &&
+                currentIme?.addon == "pinyin" && ShuangpinKeyboardLayouts.supports(imeName.orEmpty())
+            val effectiveVariant = if (compact) ShuangpinKeyboardLayout.Compact18 else ShuangpinKeyboardLayout.Full
+            val semicolon = compact && Shuangpin18Keys.showSemicolon(imeName.orEmpty())
+            fun defaultLayout() = if (compact) Shuangpin18Keys.layout(showLangSwitch, semicolon)
+                else getDefaultLayout(showLangSwitch)
             if (imeName != null) {
                 val json = textLayoutJson
                 if (json != null) {
@@ -349,6 +367,7 @@ class TextKeyboard private constructor(
                         displayName = currentIme.displayName,
                         subModeLabel = subModeLabel,
                         subModeName = subModeName,
+                        layoutVariant = effectiveVariant,
                     )
                     val rows = resolution?.rows
                     if (rows != null) {
@@ -361,22 +380,39 @@ class TextKeyboard private constructor(
                             theme = theme,
                             layoutFile = lastRawLayoutFile,
                             layoutRevision = lastRawModified,
+                            layoutVariant = effectiveVariant,
+                            showShuangpinSemicolon = semicolon,
                         )
                         return cachedKeyDefLayouts.getOrPut(cacheKey) {
-                            rows.map { rowElement ->
+                            fun parseRows() = rows.map { rowElement ->
                                 LayoutJsonUtils.createKeyDefsForRowElement(
                                     rowElement = rowElement,
                                     showLangSwitch = showLangSwitch,
                                     subModeLabel = subModeLabel,
                                     subModeName = layoutSubMode.name,
                                     theme = theme,
+                                    showShuangpinSemicolon = semicolon,
                                 )
+                            }
+                            val rawRows = LayoutJsonUtils.parseLayoutRows(rows)
+                            if (!compact && rawRows.flatten().any { it["type"] == "ShuangpinGroupKey" }) {
+                                Timber.tag("TextKeyboard").w("Grouped keys outside compact layout %s; using built-in layout", resolution.sourceKey)
+                                defaultLayout()
+                            } else if (!compact) parseRows() else runCatching {
+                                val errors = ShuangpinLayoutVariants.validationErrors(rawRows)
+                                require(errors.isEmpty()) { errors.joinToString("; ") }
+                                parseRows().also { parsed ->
+                                    require(parsed.isNotEmpty() && parsed.all { it.isNotEmpty() }) { "Empty compact keyboard row" }
+                                }
+                            }.getOrElse { error ->
+                                Timber.tag("TextKeyboard").w(error, "Invalid compact layout %s; using built-in layout", resolution.sourceKey)
+                                defaultLayout()
                             }
                         }
                     }
                 }
             }
-            return getDefaultLayout(showLangSwitch)
+            return defaultLayout()
         }
 
         fun getDefaultLayout(showLangSwitch: Boolean = true): List<List<KeyDef>> {
@@ -548,26 +584,22 @@ class TextKeyboard private constructor(
 
     private fun layoutSignature(ime: InputMethodEntry): String {
         val json = textLayoutJson
-        val parentKey = ShuangpinLayoutKeys.parentBaseLayoutKey(ime.uniqueName)
-        val layoutSource = when {
-            json?.containsKey(ime.uniqueName) == true -> "u:${ime.uniqueName}"
-            json?.containsKey(ime.displayName) == true -> "d:${ime.displayName}"
-            // 双拼方案回退到"双拼"父级输入法布局，签名需随父布局变化
-            parentKey != null && json?.containsKey(parentKey) == true -> "p:$parentKey"
-            else -> "default"
-        }
         val subMode = layoutState.layoutSubMode(ime)
         val subModeLabel = subMode.label.ifEmpty { subMode.name.ifEmpty { "" } }
-        val compact = ShuangpinKeyboardLayouts.isCompact(ime)
+        val variant = layoutState.layoutVariant(ime)
+        val layoutSource = json?.let {
+            resolveTextKeyboardLayout(it, ime.uniqueName, ime.displayName, subMode.label, subMode.name, variant)?.sourceKey
+        } ?: "default"
+        val compact = variant == ShuangpinKeyboardLayout.Compact18
         val semicolon = compact && Shuangpin18Keys.showSemicolon(ime.uniqueName)
-        return "$layoutSource|$subModeLabel|${subMode.name}|$lastRawModified|$compact|$semicolon"
+        return "$layoutSource|$subModeLabel|${subMode.name}|$lastRawModified|$variant|$semicolon"
     }
 
     override fun onAction(action: KeyAction, source: KeyActionListener.Source) {
         val activeIme = currentIme
         if (activeIme?.addon == "pinyin" && ShuangpinKeyboardLayouts.supports(activeIme.uniqueName)) {
             val selection = activeIme.uniqueName to
-                (ShuangpinKeyboardLayouts.isCompact(activeIme) && !layoutState.useUppercaseLayout)
+                (layoutState.layoutVariant(activeIme) == ShuangpinKeyboardLayout.Compact18 && !layoutState.useUppercaseLayout)
             if (selection != lastSentShuangpinLayout) {
                 // Use the same listener queue as the key so mode changes precede
                 // backspace, space, punctuation and ordinary letters alike.
@@ -578,7 +610,7 @@ class TextKeyboard private constructor(
             lastSentShuangpinLayout = null
         }
         if (action is KeyAction.SymAction && Shuangpin18Keys.indexOf(action.sym) != null &&
-            (!ShuangpinKeyboardLayouts.isCompact(currentIme) || layoutState.useUppercaseLayout)
+            (layoutState.layoutVariant() != ShuangpinKeyboardLayout.Compact18 || layoutState.useUppercaseLayout)
         ) return
         var transformed = action
         when (action) {
@@ -625,7 +657,7 @@ class TextKeyboard private constructor(
                     // MacroKey tap Caps_Lock opened lock state: single tap on CapsKey should send Caps_Lock again.
                 } else {
                     val behavior = AppPrefs.getInstance().keyboard.capsKeyBehavior.getValue()
-                    val compact = ShuangpinKeyboardLayouts.isCompact(currentIme)
+                    val compact = layoutState.layoutVariant() == ShuangpinKeyboardLayout.Compact18
                     val now = SystemClock.uptimeMillis()
                     // The first tap replaces the compact layout's Caps view.
                     // Recognize a second tap across that view replacement.
@@ -956,7 +988,7 @@ class TextKeyboard private constructor(
     }
 
     private fun syncUppercaseLayout(): Boolean {
-        val uppercase = ShuangpinKeyboardLayouts.isCompact(currentIme) && capsState != CapsState.None
+        val uppercase = layoutState.layoutVariant() == ShuangpinKeyboardLayout.Compact18 && capsState != CapsState.None
         if (layoutState.useUppercaseLayout == uppercase) return false
         layoutState.useUppercaseLayout = uppercase
         reloadLayout()

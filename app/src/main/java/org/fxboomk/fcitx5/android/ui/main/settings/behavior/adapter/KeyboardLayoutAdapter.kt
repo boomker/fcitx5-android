@@ -123,6 +123,7 @@ class KeyboardLayoutAdapter(
 
         private val REQUIRED_KEY_FIELDS = mapOf(
             "AlphabetKey" to setOf("type", "main", "alt"),
+            "ShuangpinGroupKey" to setOf("type", "groupId", "alt"),
             "LayoutSwitchKey" to setOf("type", "label", "subLabel"),
             "SymbolKey" to setOf("type", "label"),
             "MacroKey" to setOf("type", "label", "tap")
@@ -130,6 +131,7 @@ class KeyboardLayoutAdapter(
 
         private val DEFAULT_KEY_WEIGHTS = mapOf(
             "AlphabetKey" to 0.1f,
+            "ShuangpinGroupKey" to 0.1f,
             "CapsKey" to 0.15f,
             "LayoutSwitchKey" to 0.15f,
             "CommaKey" to 0.1f,
@@ -156,6 +158,8 @@ class KeyboardLayoutAdapter(
                     name == "alt1" -> false
                     name == "weight" -> !isDefaultWeight(type, value)
                     name == "displayText" && type == "AlphabetKey" -> value != key["main"]
+                    name == "displayText" && type == "ShuangpinGroupKey" ->
+                        value != (key["groupId"] as? String)?.uppercase()
                     name == "independentColor" -> value == true
                     value is String -> value.isNotBlank()
                     value is Map<*, *> -> value.isNotEmpty()
@@ -969,6 +973,11 @@ class KeyboardLayoutAdapter(
             "AlphabetKey" -> {
                 val main = key["main"] as? String ?: ""
                 main.ifEmpty { "?" }
+            }
+            "ShuangpinGroupKey" -> {
+                (key["displayText"] as? String)?.takeIf { it.isNotBlank() }
+                    ?: (key["groupId"] as? String)?.uppercase()?.takeIf { it.isNotBlank() }
+                    ?: "?"
             }
             "CapsKey" -> context.getString(R.string.text_keyboard_layout_key_label_caps)
             "LayoutSwitchKey" -> {

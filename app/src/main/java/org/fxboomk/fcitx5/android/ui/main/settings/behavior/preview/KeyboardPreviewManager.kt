@@ -28,6 +28,10 @@ import org.fxboomk.fcitx5.android.input.config.ConfigProvider
 import org.fxboomk.fcitx5.android.input.config.ConfigProviders
 import org.fxboomk.fcitx5.android.input.config.MemoryConfigProvider
 import org.fxboomk.fcitx5.android.input.keyboard.TextKeyboard
+import org.fxboomk.fcitx5.android.input.keyboard.ShuangpinKeyboardLayout
+import org.fxboomk.fcitx5.android.input.keyboard.ShuangpinLayoutVariants
+import org.fxboomk.fcitx5.android.input.keyboard.keyboardHeightPercentOverride
+import org.fxboomk.fcitx5.android.input.keyboard.resolveTextKeyboardLayout
 import org.fxboomk.fcitx5.android.ui.main.settings.preview.PreviewInputMethodEntry
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.data.LayoutHeightPercentOverrides
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.utils.LayoutJsonUtils
@@ -38,14 +42,24 @@ internal fun resolvePreviewRows(
     entries: Map<String, List<List<Map<String, Any?>>>>,
     layoutName: String,
     subModeKey: String?,
-    fallbackRows: List<List<Map<String, Any?>>>? = null
-): List<List<Map<String, Any?>>>? = subModeKey?.let { entries[it] }
+    fallbackRows: List<List<Map<String, Any?>>>? = null,
+    layoutVariant: ShuangpinKeyboardLayout = ShuangpinKeyboardLayout.Full,
+): List<List<Map<String, Any?>>>? {
+    if (layoutVariant == ShuangpinKeyboardLayout.Compact18) {
+        return entries[ShuangpinLayoutVariants.entryKey(layoutName)]
+            ?: ShuangpinLayoutKeys.parentBaseLayoutKey(layoutName)?.let {
+                entries[ShuangpinLayoutVariants.entryKey(it)]
+            }
+            ?: fallbackRows
+    }
+    return subModeKey?.let { entries[it] }
     ?: entries[layoutName]
     // 双拼方案回退到“双拼”父级输入法布局
     ?: ShuangpinLayoutKeys.parentBaseLayoutKey(layoutName)?.let { entries[it] }
     // 未定制专属布局的输入法回退到出厂 26 键布局，
     // 而非可被用户定制的 English（default）布局，避免布局污染
     ?: fallbackRows
+}
 
 /** Match runtime inheritance without letting one orientation mask the other. */
 internal fun resolvePreviewHeightOverrides(
@@ -53,8 +67,25 @@ internal fun resolvePreviewHeightOverrides(
     layoutName: String,
     subModeLabel: String?,
     heightProvider: (String) -> LayoutHeightPercentOverrides?,
-    profileHeight: LayoutHeightPercentOverrides? = null
+    profileHeight: LayoutHeightPercentOverrides? = null,
+    layoutVariant: ShuangpinKeyboardLayout = ShuangpinKeyboardLayout.Full,
 ): LayoutHeightPercentOverrides {
+    if (layoutVariant == ShuangpinKeyboardLayout.Compact18) {
+        val heights = entries.keys.mapNotNull { key ->
+            heightProvider(key)?.let { key to it }
+        }.toMap()
+        val resolution = resolveTextKeyboardLayout(
+            json = LayoutJsonUtils.convertToSaveJson(entries, heights),
+            uniqueName = layoutName,
+            displayName = layoutName,
+            subModeLabel = "",
+            layoutVariant = layoutVariant,
+        )
+        return LayoutHeightPercentOverrides(
+            portrait = resolution?.keyboardHeightPercentOverride(false) ?: profileHeight?.portrait,
+            landscape = resolution?.keyboardHeightPercentOverride(true) ?: profileHeight?.landscape,
+        )
+    }
     val child = subModeLabel?.takeIf { it.isNotEmpty() }
         ?.let { "$layoutName:$it" }
         ?.takeIf { it in entries }
@@ -84,12 +115,18 @@ internal fun buildPreviewSubModeMap(
     layoutName: String,
     subModeKey: String?,
     currentRows: List<List<Map<String, Any?>>>,
-    previewSubModeLabel: String?
+    previewSubModeLabel: String?,
+    layoutVariant: ShuangpinKeyboardLayout = ShuangpinKeyboardLayout.Full,
 ): MutableMap<String, JsonElement> {
     val subModeMap = mutableMapOf<String, JsonElement>()
     val currentRowsArray = JsonArray(
         previewRowsUsingMacroLabels(currentRows).map(LayoutJsonUtils::rowToJsonElement)
     )
+
+    if (layoutVariant == ShuangpinKeyboardLayout.Compact18) {
+        subModeMap[ShuangpinLayoutVariants.CHILD_KEY] = currentRowsArray
+        return subModeMap
+    }
 
     if (subModeKey != null && entries.containsKey(subModeKey)) {
         subModeMap[previewSubModeLabel ?: "default"] = currentRowsArray
@@ -169,22 +206,25 @@ class KeyboardPreviewManager(
      * @param previewSubModeLabel Submode label, null for default
      * @param fcitxConnection Fcitx connection for getting current input method
      */
-    fun updatePreview(
+    internal fun updatePreview(
         layoutName: String,
         previewSubModeLabel: String?,
-        fcitxConnection: FcitxConnection
+        fcitxConnection: FcitxConnection,
+        layoutVariant: ShuangpinKeyboardLayout = ShuangpinKeyboardLayout.Full,
     ) {
         // 只移除本管理器创建的预览图层，不清空外层容器上可能存在的其他视图/背景。
         detachPreviewFrame()
 
         // Try to load submode-specific layout first
         val subModeKey = previewSubModeLabel?.let { "$layoutName:$it" }
-        val rows = resolvePreviewRows(entries, layoutName, subModeKey, fallbackRowsProvider()) ?: return
+        val rows = resolvePreviewRows(
+            entries, layoutName, subModeKey, fallbackRowsProvider(), layoutVariant
+        ) ?: return
 
         previewBlurMask.bindKeyboard(null)
 
         // Build submode map with all available submodes for this layout
-        val subModeMap = buildSubModeMap(layoutName, subModeKey, rows, previewSubModeLabel)
+        val subModeMap = buildSubModeMap(layoutName, subModeKey, rows, previewSubModeLabel, layoutVariant)
 
         val tempJson = JsonObject(mapOf(layoutName to JsonObject(subModeMap)))
 
@@ -196,7 +236,7 @@ class KeyboardPreviewManager(
         TextKeyboard.clearCachedKeyDefLayouts()
 
         try {
-            createKeyboardPreview(layoutName, previewSubModeLabel, fcitxConnection)
+            createKeyboardPreview(layoutName, previewSubModeLabel, fcitxConnection, layoutVariant)
         } catch (e: Exception) {
             Timber.tag("KeyboardPreview").e(e, "Failed to create keyboard preview for layout: $layoutName, submode: $previewSubModeLabel")
             showError(e.message ?: "Unknown error")
@@ -233,13 +273,15 @@ class KeyboardPreviewManager(
         layoutName: String,
         subModeKey: String?,
         currentRows: List<List<Map<String, Any?>>>,
-        previewSubModeLabel: String?
+        previewSubModeLabel: String?,
+        layoutVariant: ShuangpinKeyboardLayout,
     ): MutableMap<String, JsonElement> = buildPreviewSubModeMap(
         entries,
         layoutName,
         subModeKey,
         currentRows,
-        previewSubModeLabel
+        previewSubModeLabel,
+        layoutVariant,
     )
 
     /**
@@ -248,12 +290,14 @@ class KeyboardPreviewManager(
     private fun createKeyboardPreview(
         layoutName: String,
         previewSubModeLabel: String?,
-        fcitxConnection: FcitxConnection
+        fcitxConnection: FcitxConnection,
+        layoutVariant: ShuangpinKeyboardLayout,
     ) {
         val theme = ThemeManager.activeTheme
         val keyBorder = ThemeManager.prefs.keyBorder.getValue()
 
         previewKeyboard = TextKeyboard(context, theme).apply {
+            layoutVariantOverride = layoutVariant
             // 预览中的字母键保持大写，与下方编辑器的按键标签视觉一致
             keepLettersUppercaseOverride = true
             preserveMacroDisplayCaseOverride = true
@@ -266,7 +310,7 @@ class KeyboardPreviewManager(
             // 编辑专属子模式布局时优先取该子模式的高度覆写，未配置则回退父级输入法布局
             val layoutHeightOverride = resolvePreviewHeightOverrides(
                 entries, layoutName, previewSubModeLabel,
-                layoutHeightPercentProvider, profileHeightPercentProvider()
+                layoutHeightPercentProvider, profileHeightPercentProvider(), layoutVariant
             )
             val heightPercent = if (isLandscape) {
                 layoutHeightOverride.landscape

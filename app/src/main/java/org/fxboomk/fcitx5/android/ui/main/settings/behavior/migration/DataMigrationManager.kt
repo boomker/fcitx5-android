@@ -10,6 +10,7 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.data.LayoutDataManager
+import org.fxboomk.fcitx5.android.input.keyboard.ShuangpinLayoutVariants
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -88,7 +89,9 @@ class DataMigrationManager(
         }
 
         layoutGroups.forEach { (baseName, keys) ->
-            val hasSubModeLayouts = keys.any { it.contains(':') && it != "$baseName:default" }
+            val hasSubModeLayouts = keys.any {
+                it.contains(':') && it != "$baseName:default" && !ShuangpinLayoutVariants.isCompactEntry(it)
+            }
 
             if (hasSubModeLayouts) {
                 val baseKey = keys.firstOrNull { it == baseName || it == "$baseName:default" }
@@ -178,7 +181,9 @@ class DataMigrationManager(
         }
 
         layoutGroups.forEach { (baseName, keys) ->
-            val subModeKeys = keys.filter { it.contains(':') && it != "$baseName:default" }
+            val subModeKeys = keys.filter {
+                it.contains(':') && it != "$baseName:default" && !ShuangpinLayoutVariants.isCompactEntry(it)
+            }
 
             if (subModeKeys.isEmpty()) {
                 val baseKey = keys.firstOrNull { it == baseName || it == "$baseName:default" }
@@ -234,7 +239,8 @@ class DataMigrationManager(
         val baseLayout = entries[layoutName] ?: return
 
         val subModeKeys = entries.keys.filter {
-            it.startsWith("$layoutName:") && it != "$layoutName:default"
+            it.startsWith("$layoutName:") && it != "$layoutName:default" &&
+                !ShuangpinLayoutVariants.isCompactEntry(it)
         }
 
         if (subModeKeys.isEmpty()) return

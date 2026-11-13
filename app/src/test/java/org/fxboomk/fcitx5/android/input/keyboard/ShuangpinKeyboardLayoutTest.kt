@@ -9,6 +9,7 @@ import org.fxboomk.fcitx5.android.core.InputMethodEntry
 import org.fxboomk.fcitx5.android.core.FcitxKeyMapping
 import org.fxboomk.fcitx5.android.data.pinyin.CustomShuangpinScheme
 import org.fxboomk.fcitx5.android.data.pinyin.CustomShuangpinSchemeCodec
+import org.fxboomk.fcitx5.android.ui.main.settings.behavior.utils.LayoutJsonUtils
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -16,6 +17,54 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ShuangpinKeyboardLayoutTest {
+    @Test
+    fun sixColumnLayoutKeepsAllGroupActionsAndRoomForSpace() {
+        for (languageKey in listOf(false, true)) {
+            val layout = Shuangpin18Keys.layoutSixColumns(languageKey, true)
+            assertEquals(4, layout.size)
+            assertEquals(listOf(6, 6, 6), layout.take(3).map { it.size })
+            val keys = layout.take(3).flatten().filterIsInstance<ShuangpinGroupKey>()
+            assertEquals(Shuangpin18Keys.groups, keys.map { it.groupId })
+            keys.forEachIndexed { index, key ->
+                assertEquals(1f / 6, key.appearance.percentWidth, 0f)
+                val action = key.behaviors.filterIsInstance<KeyDef.Behavior.Press>().single().action
+                    as KeyAction.SymAction
+                assertEquals(index, Shuangpin18Keys.indexOf(action.sym))
+            }
+            val functions = layout.last()
+            assertTrue(functions.any { it is CapsKey && it.composeOverride != null })
+            assertTrue(functions.any { it is BackspaceKey })
+            assertTrue(functions.any { it is SpaceKey && it.appearance.percentWidth == 0f })
+            assertTrue(functions.sumOf { it.appearance.percentWidth.toDouble() } < 0.8)
+            assertEquals(languageKey, functions.any { it is LanguageKey })
+        }
+    }
+
+    @Test
+    fun compactValidationAcceptsReorderingAndDuplicatesButNamesMissingGroups() {
+        val rows = Shuangpin18Keys.layoutSixColumns(false, true)
+            .map { row -> row.map(LayoutJsonUtils::keyDefToJson).toMutableList() }.toMutableList()
+        rows[0].reverse()
+        rows[2].add(rows[0][0].toMutableMap())
+        assertTrue(ShuangpinLayoutVariants.validationErrors(rows).isEmpty())
+        rows[1].removeAll { it["groupId"] == "h" }
+        assertTrue(ShuangpinLayoutVariants.validationErrors(rows).any { it.contains("h") })
+        rows[0][0]["groupId"] = "wq"
+        rows[0][0]["weight"] = Float.NaN
+        val errors = ShuangpinLayoutVariants.validationErrors(rows)
+        assertTrue(errors.any { it.contains("groupId") })
+        assertTrue(errors.any { it.contains("宽度") })
+    }
+
+    @Test
+    fun compactEntryIdentityIsIndependentOfEngineSubModes() {
+        val entry = ShuangpinLayoutVariants.entryKey("shuangpin-xiaohe")
+        assertEquals("shuangpin-xiaohe:__compact18__", entry)
+        assertTrue(ShuangpinLayoutVariants.isCompactEntry(entry))
+        assertEquals("shuangpin-xiaohe", ShuangpinLayoutVariants.baseKey(entry))
+        assertFalse(ShuangpinLayoutVariants.isCompactEntry("rime:朙月拼音"))
+    }
+
     @Test
     fun layoutsAreRememberedSeparatelyForBuiltinAndCustomSchemes() {
         val xiaohe = "shuangpin-xiaohe"

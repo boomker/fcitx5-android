@@ -73,6 +73,17 @@ internal object Shuangpin18Keys {
         "~", "!", "@", "?", ":",
     )
 
+    fun defaultCorner(groupId: String): String {
+        val index = groups.indexOf(groupId)
+        require(index >= 0) { "Unknown shuangpin group: $groupId" }
+        return corners[index]
+    }
+
+    fun displayGroup(groupId: String, semicolon: Boolean): String {
+        require(groupId in groups) { "Unknown shuangpin group: $groupId" }
+        return if (semicolon) groupId else groupId.replace(";", "")
+    }
+
     fun action(index: Int): KeyAction.SymAction {
         require(index in groups.indices)
         return KeyAction.SymAction(
@@ -104,41 +115,40 @@ internal object Shuangpin18Keys {
         showLangSwitch: Boolean,
         semicolon: Boolean,
     ): List<List<KeyDef>> {
-        fun groupKey(index: Int, width: Float): KeyDef {
-            val group = groups[index].let { if (semicolon) it else it.replace(";", "") }
-            val label = group
-            val corner = corners[index]
-            return KeyDef(
-                KeyDef.Appearance.AltText(
-                    displayText = label, altText = corner, character = group, textSize = 23f,
-                    percentWidth = width, isLetterGroup = true, supportsUppercaseHint = true,
-                ),
-                setOf(
-                    KeyDef.Behavior.Press(action(index)),
-                    KeyDef.Behavior.Swipe(KeyAction.FcitxKeyAction(corner)),
-                ),
-                arrayOf(
-                    KeyDef.Popup.AltPreview(label, corner),
-                    KeyDef.Popup.Keyboard.GroupedPreset(group, corner),
-                ),
-            )
-        }
+        fun groupKey(index: Int, width: Float): KeyDef =
+            ShuangpinGroupKey(groups[index], semicolon, weight = width)
         return listOf(
             (0..6).map { groupKey(it, 1f / 7) },
             (7..12).map { groupKey(it, 1f / 6) },
-            listOf(CapsKey(percentWidth = 0.15f).apply {
-                composeOverride = KeyDef(
-                    KeyDef.Appearance.Text(
-                        displayText = "'词", textSize = 23f, percentWidth = 0.15f,
-                        variant = KeyDef.Appearance.Variant.Alternative,
-                    ),
-                    setOf(KeyDef.Behavior.Press(KeyAction.SymAction(
-                        KeySym(FcitxKeyMapping.FcitxKey_apostrophe), KeyStates.Virtual,
-                    ))),
-                )
-            }) +
+            listOf(compactCapsKey(0.15f)) +
                 (13..17).map { groupKey(it, 0.14f) } + BackspaceKey(0.15f),
             TextKeyboard.getDefaultLayout(showLangSwitch).last(),
+        )
+    }
+
+    fun layoutSixColumns(showLangSwitch: Boolean, semicolon: Boolean): List<List<KeyDef>> =
+        groups.chunked(6).map { row ->
+            row.map { ShuangpinGroupKey(it, semicolon, weight = 1f / 6) }
+        } + listOf(buildList {
+            add(compactCapsKey(0.12f))
+            add(LayoutSwitchKey("?123", "", percentWidth = 0.12f))
+            add(CommaKey(0.08f, KeyDef.Appearance.Variant.Alternative))
+            if (showLangSwitch) add(LanguageKey(0.08f))
+            add(SpaceKey())
+            add(SymbolKey(".", 0.08f, KeyDef.Appearance.Variant.Alternative))
+            add(BackspaceKey(0.12f))
+            add(ReturnKey(percentWidth = 0.12f))
+        })
+
+    private fun compactCapsKey(width: Float): CapsKey = CapsKey(percentWidth = width).apply {
+        composeOverride = KeyDef(
+            KeyDef.Appearance.Text(
+                displayText = "'词", textSize = 23f, percentWidth = width,
+                variant = KeyDef.Appearance.Variant.Alternative,
+            ),
+            setOf(KeyDef.Behavior.Press(KeyAction.SymAction(
+                KeySym(FcitxKeyMapping.FcitxKey_apostrophe), KeyStates.Virtual,
+            ))),
         )
     }
 }

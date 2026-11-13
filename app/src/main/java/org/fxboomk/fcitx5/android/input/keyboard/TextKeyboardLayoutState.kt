@@ -84,6 +84,9 @@ internal class TextKeyboardLayoutState(
 
     var useUppercaseLayout = false
 
+    /** A preview chooses its variant without changing the user's active keyboard mode. */
+    var layoutVariantOverride: ShuangpinKeyboardLayout? = null
+
     var ime: InputMethodEntry? = ime
         set(value) {
             field = value
@@ -106,11 +109,18 @@ internal class TextKeyboardLayoutState(
     fun layoutSubMode(currentIme: InputMethodEntry? = ime): InputMethodSubMode =
         subModeTracker.resolve(currentIme)
 
+    fun layoutVariant(currentIme: InputMethodEntry? = ime): ShuangpinKeyboardLayout =
+        if (currentIme?.addon == "pinyin" && ShuangpinKeyboardLayouts.supports(currentIme.uniqueName)) {
+            layoutVariantOverride ?: TextKeyboard.layoutVariantForIme(currentIme)
+        } else {
+            ShuangpinKeyboardLayout.Full
+        }
+
     fun getLayout(theme: Theme): List<List<KeyDef>> =
-        if (useUppercaseLayout && ShuangpinKeyboardLayouts.isCompact(ime)) {
+        if (useUppercaseLayout && layoutVariant() == ShuangpinKeyboardLayout.Compact18) {
             TextKeyboard.getDefaultLayout(AppPrefs.getInstance().keyboard.showLangSwitchKey.getValue())
         } else {
-            TextKeyboard.getLayout(ime, theme, layoutSubMode())
+            TextKeyboard.getLayout(ime, theme, layoutSubMode(), layoutVariant())
         }
 
     companion object {

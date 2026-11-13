@@ -41,7 +41,8 @@ class KeyboardEditorUiBuilder(private val activity: AppCompatActivity) {
             "SymbolKey",
             "ReturnKey",
             "BackspaceKey",
-            "MacroKey"
+            "MacroKey",
+            "ShuangpinGroupKey"
         )
     }
 
@@ -54,7 +55,8 @@ class KeyboardEditorUiBuilder(private val activity: AppCompatActivity) {
      */
     fun setupTypeSpinner(
         container: LinearLayout,
-        keyData: Map<String, Any?>
+        keyData: Map<String, Any?>,
+        allowShuangpinGroup: Boolean = false
     ): Spinner {
         val typeLabel = TextView(activity).apply {
             text = activity.getString(R.string.text_keyboard_layout_key_type)
@@ -70,12 +72,13 @@ class KeyboardEditorUiBuilder(private val activity: AppCompatActivity) {
                 weight = 1f
             }
         }
-        val typeAdapter = ArrayAdapter(activity, android.R.layout.simple_spinner_item, KEY_TYPES)
+        val types = KEY_TYPES.filter { allowShuangpinGroup || it != "ShuangpinGroupKey" }
+        val typeAdapter = ArrayAdapter(activity, android.R.layout.simple_spinner_item, types)
         typeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         typeSpinner.adapter = typeAdapter
 
         val currentType = keyData["type"] as? String ?: "AlphabetKey"
-        val typePosition = KEY_TYPES.indexOf(currentType)
+        val typePosition = types.indexOf(currentType)
         if (typePosition >= 0) typeSpinner.setSelection(typePosition)
 
         val typeRow = LinearLayout(activity).apply {

@@ -7,6 +7,8 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import org.fxboomk.fcitx5.android.core.InputMethodEntry
 import org.fxboomk.fcitx5.android.input.config.UserConfigFiles
+import org.fxboomk.fcitx5.android.input.keyboard.ShuangpinKeyboardLayout
+import org.fxboomk.fcitx5.android.input.keyboard.ShuangpinLayoutVariants
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.data.LayoutDataManager
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.data.LayoutHeightPercentOverrides
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.utils.LayoutJsonUtils
@@ -16,6 +18,42 @@ import java.io.File
 import java.util.UUID
 
 class TextKeyboardLayoutEditorActivityTest {
+    @Test fun compactBrowsingDoesNotCreateADedicatedLayout() = withEditor { activity, file ->
+        set(activity, "selectedLayoutVariant", ShuangpinKeyboardLayout.Compact18)
+        selectDraft(activity, "shuangpin-xiaohe", null)
+        repeat(2) { invoke(activity, "updateSaveButtonState") }
+        assertFalse(invoke(activity, "hasChanges") as Boolean)
+        assertFalse(manager(activity).entries.containsKey(ShuangpinLayoutVariants.entryKey("shuangpin-xiaohe")))
+        assertEquals(18, rows(activity).flatten().count { it["type"] == "ShuangpinGroupKey" })
+        assertFalse(LayoutDataManager(activity).apply { loadFromFile(file) }.entries.keys.any(ShuangpinLayoutVariants::isCompactEntry))
+    }
+
+    @Test fun sixColumnInheritedEditRoundTripsWithoutChangingParentOrFullLayout() = withEditor { activity, file ->
+        val data = manager(activity)
+        val parentKey = ShuangpinLayoutVariants.entryKey("shuangpin")
+        val ownKey = ShuangpinLayoutVariants.entryKey("shuangpin-xiaohe")
+        data.entries[parentKey] = data.compactDefaultRows(sixColumns = true)
+        assertTrue(invoke(activity, "saveLayout") as Boolean)
+        val parentBefore = data.copyLayout(data.entries.getValue(parentKey))
+        val fullBefore = data.copyLayout(data.entries.getValue("default"))
+        set(activity, "selectedLayoutVariant", ShuangpinKeyboardLayout.Compact18)
+        selectDraft(activity, "shuangpin-xiaohe", null)
+        assertEquals(listOf(6, 6, 6), rows(activity).take(3).map { it.size })
+        assertFalse(invoke(activity, "hasChanges") as Boolean)
+        val edited = rows(activity)
+        val we = edited[0][1]
+        edited[0][1] = edited[2][4]
+        edited[2][4] = we
+        edited[2][4]["displayText"] = "我的分组"
+        assertTrue(invoke(activity, "saveLayout") as Boolean)
+        val reloaded = LayoutDataManager(activity).apply { loadFromFile(file) }
+        assertEquals("we", reloaded.entries.getValue(ownKey)[2][4]["groupId"])
+        assertEquals("我的分组", reloaded.entries.getValue(ownKey)[2][4]["displayText"])
+        assertEquals(listOf(6, 6, 6), reloaded.entries.getValue(ownKey).take(3).map { it.size })
+        assertEquals(parentBefore, data.entries[parentKey])
+        assertEquals(fullBefore, data.entries["default"])
+    }
+
     @Test fun missingBaseIsVisibleAndBrowsingDoesNotMaterializeIt() = withEditor { activity, file ->
         set(activity, "allImesFromJson", arrayOf(InputMethodEntry("test-ime", "Test IME", "", "", "", "zh", "test-ime", false)))
         assertTrue((invoke(activity, "visibleBaseLayoutKeys") as List<*>).contains("test-ime"))
@@ -27,6 +65,10 @@ class TextKeyboardLayoutEditorActivityTest {
     }
 
     @Test fun dropdownHidesDisabledPresetsAndKeepsCustomizedLayoutsWithoutWriting() = withEditor { activity, file ->
+        // Exercise the picker, independently of the device's active IME and
+        // the direct-parent editing mode that deliberately hides this spinner.
+        set(activity, "targetForceBase", false)
+        set(activity, "currentLayout", "default")
         val data = manager(activity)
         val originalFile = file.readText()
         for (base in listOf("pinyin", "wubi", "custom-keys", "custom-height")) {
@@ -53,6 +95,8 @@ class TextKeyboardLayoutEditorActivityTest {
     }
 
     @Test fun shuangpinParentIsOmittedFromLayoutSpinner() = withEditor { activity, _ ->
+        set(activity, "targetForceBase", false)
+        set(activity, "currentLayout", "default")
         val data = manager(activity)
         data.entries["shuangpin"] = data.copyLayout(data.entries.getValue("default"))
         set(activity, "allImesFromJson", arrayOf(

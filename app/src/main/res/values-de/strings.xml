@@ -1278,4 +1278,11 @@
     <string name="shuangpin_keyboard_layout">Tastaturlayout</string>
     <string name="shuangpin_keyboard_layout_full">26 Tasten</string>
     <string name="shuangpin_keyboard_layout_compact18">18 Tasten (gruppiertes Shuangpin)</string>
+    <string name="shuangpin_layout_variant">Tastaturlayout</string>
+    <string name="shuangpin_layout_restore_default">Standardlayout mit 18 Tasten wiederherstellen</string>
+    <string name="shuangpin_layout_restore_inherited">Geerbtes Layout mit 18 Tasten wiederherstellen</string>
+    <string name="shuangpin_layout_replace_message">Das aktuelle Layout mit 18 Tasten ersetzen? Andere Layouts in dieser Datei bleiben erhalten.</string>
+    <string name="shuangpin_group_input">Eingabegruppe</string>
+    <string name="shuangpin_group_default_popup">Standardauswahl für Gruppenbuchstaben</string>
+    <string name="shuangpin_group_invalid">Eine gültige Shuangpin-Buchstabengruppe auswählen.</string>
 </resources>

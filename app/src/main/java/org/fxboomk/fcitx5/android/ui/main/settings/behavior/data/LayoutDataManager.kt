@@ -14,6 +14,9 @@ import org.fxboomk.fcitx5.android.data.pinyin.ShuangpinLayoutKeys
 import org.fxboomk.fcitx5.android.data.theme.ThemeManager
 import org.fxboomk.fcitx5.android.input.config.DirectionalSwipeMigration
 import org.fxboomk.fcitx5.android.input.keyboard.TextKeyboard
+import org.fxboomk.fcitx5.android.input.keyboard.Shuangpin18Keys
+import org.fxboomk.fcitx5.android.input.keyboard.ShuangpinKeyboardLayouts
+import org.fxboomk.fcitx5.android.input.keyboard.ShuangpinLayoutVariants
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.migration.DataMigrationManager
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.utils.KeyboardRowStyleUtils
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.utils.LayoutJsonUtils
@@ -430,7 +433,7 @@ class LayoutDataManager(private val context: Context) {
      * 获取父级输入法布局下的专属子布局，按当前文件中的顺序返回。
      */
     fun subLayoutKeys(baseLayout: String): List<String> = entries.keys
-        .filter { it.startsWith("$baseLayout:") }
+        .filter { it.startsWith("$baseLayout:") && !ShuangpinLayoutVariants.isCompactEntry(it) }
         .toList()
 
     /**
@@ -484,13 +487,36 @@ class LayoutDataManager(private val context: Context) {
             row.map { key -> key.toMutableMap() }.toMutableList()
         }.toMutableList()
 
+    /** The editor stores the full group identities, including Microsoft's semicolon. */
+    fun compactDefaultRows(sixColumns: Boolean = false): MutableList<MutableList<MutableMap<String, Any?>>> {
+        val layout = if (sixColumns) Shuangpin18Keys.layoutSixColumns(true, true)
+        else Shuangpin18Keys.layout(true, true)
+        return layout.map { row -> row.map(LayoutJsonUtils::keyDefToJson).toMutableList() }.toMutableList()
+    }
+
+    /** Resolve compact inheritance without materializing a customized entry. */
+    fun compactRowsFor(imeKey: String): List<List<Map<String, Any?>>> =
+        entries[ShuangpinLayoutVariants.entryKey(imeKey)]
+            ?: ShuangpinLayoutKeys.parentBaseLayoutKey(imeKey)
+                ?.let { entries[ShuangpinLayoutVariants.entryKey(it)] }
+            ?: compactDefaultRows()
+
+    fun ensureCompactLayout(imeKey: String): MutableList<MutableList<MutableMap<String, Any?>>> {
+        require(ShuangpinKeyboardLayouts.supports(imeKey)) { "Unsupported compact layout: $imeKey" }
+        val key = ShuangpinLayoutVariants.entryKey(imeKey)
+        return entries[key] ?: copyLayout(compactRowsFor(imeKey)).also {
+            entries[key] = it
+            freezeInheritedHeightOverride(key)
+        }
+    }
+
     /**
      * 将指定布局（父级输入法布局或子模式布局）复位为默认 26 键预设，高度覆写保持不变。
      *
      * 若该键尚不存在（如为仅在父级输入法布局层定制的方案创建专属布局），会新增该键。
      */
     fun resetLayoutToDefaultPreset(key: String) {
-        entries[key] = defaultPresetRows()
+        entries[key] = if (ShuangpinLayoutVariants.isCompactEntry(key)) compactDefaultRows() else defaultPresetRows()
     }
 
     /**
@@ -528,6 +554,7 @@ class LayoutDataManager(private val context: Context) {
      * @return Whether successful
      */
     fun addSubModeLayout(layoutName: String, subModeLabel: String): Boolean {
+        if (subModeLabel == ShuangpinLayoutVariants.CHILD_KEY) return false
         val subModeKey = "$layoutName:$subModeLabel"
 
         if (entries.containsKey(subModeKey)) {
@@ -589,6 +616,22 @@ class LayoutDataManager(private val context: Context) {
      */
     fun freezeInheritedHeightOverride(layoutKey: String) {
         if (layoutHeightPercentOverrides.containsKey(layoutKey)) return
+        if (ShuangpinLayoutVariants.isCompactEntry(layoutKey)) {
+            val base = ShuangpinLayoutVariants.baseKey(layoutKey)
+            val parent = ShuangpinLayoutKeys.parentBaseLayoutKey(base)
+            val sources = listOfNotNull(
+                parent?.let { layoutHeightPercentOverrides[ShuangpinLayoutVariants.entryKey(it)] },
+                layoutHeightPercentOverrides[base],
+                parent?.let { layoutHeightPercentOverrides[it] },
+                profileHeightOverrides,
+            )
+            val inherited = LayoutHeightPercentOverrides(
+                portrait = sources.firstNotNullOfOrNull { it.portrait },
+                landscape = sources.firstNotNullOfOrNull { it.landscape },
+            )
+            if (!inherited.isEmpty()) setLayoutHeightPercentOverride(layoutKey, inherited)
+            return
+        }
         val inherited = layoutHeightPercentOverrides[layoutKey.substringBefore(':')]
             ?: ShuangpinLayoutKeys.parentBaseLayoutKey(layoutKey)?.let { layoutHeightPercentOverrides[it] }
             ?: profileHeightOverrides
@@ -734,7 +777,7 @@ class LayoutDataManager(private val context: Context) {
         
         // 从子模式布局键收集
         entries.keys.forEach { key ->
-            if (key.startsWith("$layoutName:")) {
+            if (key.startsWith("$layoutName:") && !ShuangpinLayoutVariants.isCompactEntry(key)) {
                 val subModeLabel = key.substringAfter("$layoutName:")
                 if (subModeLabel.isNotEmpty() && subModeLabel != "default") {
                     labels.add(subModeLabel)
@@ -767,7 +810,7 @@ class LayoutDataManager(private val context: Context) {
             }
         }
         
-        return labels.toList()
+        return labels.filter { it != ShuangpinLayoutVariants.CHILD_KEY }
     }
     
     // ==================== 验证 ====================
@@ -808,6 +851,12 @@ class LayoutDataManager(private val context: Context) {
         }
         
         entries.forEach { (layoutName, rows) ->
+            if (ShuangpinLayoutVariants.isCompactEntry(layoutName)) {
+                if (!ShuangpinKeyboardLayouts.supports(ShuangpinLayoutVariants.baseKey(layoutName))) {
+                    errors.add("布局 \"$layoutName\" 不支持 18 键双拼")
+                }
+                errors.addAll(ShuangpinLayoutVariants.validationErrors(rows).map { "布局 \"$layoutName\"：$it" })
+            }
             if (rows.isEmpty()) {
                 errors.add("布局 \"$layoutName\" 没有任何行")
                 return@forEach
@@ -851,6 +900,14 @@ class LayoutDataManager(private val context: Context) {
         }
 
         when (type) {
+            "ShuangpinGroupKey" -> {
+                if (!ShuangpinLayoutVariants.isCompactEntry(layoutName)) {
+                    errors.add("布局 \"$layoutName\" 的分组键只能用于 18 键布局")
+                }
+                if (key["groupId"] !in Shuangpin18Keys.groups) {
+                    errors.add("布局 \"$layoutName\" 第 ${rowIndex + 1} 行第 ${keyIndex + 1} 个键的 groupId 无效")
+                }
+            }
             "AlphabetKey" -> {
                 val main = key["main"] as? String
                 val alt = key["alt"] as? String

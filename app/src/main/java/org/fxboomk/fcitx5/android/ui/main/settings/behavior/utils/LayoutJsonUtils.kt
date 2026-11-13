@@ -10,6 +10,7 @@ import kotlinx.serialization.json.*
 import org.fxboomk.fcitx5.android.data.theme.Theme
 import org.fxboomk.fcitx5.android.data.theme.ThemeManager
 import org.fxboomk.fcitx5.android.data.theme.ThemePrefs.PunctuationPosition
+import org.fxboomk.fcitx5.android.core.FcitxKeyMapping
 import org.fxboomk.fcitx5.android.data.theme.resolveThemeColorReference
 import org.fxboomk.fcitx5.android.input.keyboard.*
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.data.LayoutHeightPercentOverrides
@@ -93,6 +94,7 @@ object LayoutJsonUtils {
     const val LAYER_SUBMODE_PREFIX = "__layer__:"
     private val KEY_FIELD_ORDER = listOf(
         "type",
+        "groupId",
         "main",
         "alt",
         "alt1",
@@ -293,6 +295,7 @@ object LayoutJsonUtils {
         } else null
         return KeyJson(
             type = type,
+            groupId = obj["groupId"]?.jsonPrimitive?.contentOrNull,
             main = obj["main"]?.jsonPrimitive?.content,
             alt = obj["alt"]?.jsonPrimitive?.content,
             alt1 = obj["alt1"]?.jsonPrimitive?.content,
@@ -485,7 +488,8 @@ object LayoutJsonUtils {
         showLangSwitch: Boolean = true,
         subModeLabel: String = "",
         subModeName: String = "",
-        theme: Theme = ThemeManager.activeTheme
+        theme: Theme = ThemeManager.activeTheme,
+        showShuangpinSemicolon: Boolean = true,
     ): List<KeyDef> {
         val rowArray = keyArrayFromRowElement(rowElement) ?: return emptyList()
         val rowStyle = rowStyleFromJson(rowElement)
@@ -498,7 +502,8 @@ object LayoutJsonUtils {
                 rowStyle = rowStyle,
                 visibleIndex = visibleIndex,
                 visibleCount = keyJsons.size,
-                theme = theme
+                theme = theme,
+                showShuangpinSemicolon = showShuangpinSemicolon,
             )
         }
     }
@@ -614,7 +619,8 @@ object LayoutJsonUtils {
         val swipe: MacroAction? = null,  // 旧版划动事件，仅用于兼容或迁移
         val longPress: MacroAction? = null,  // MacroKey 使用
         val independentColor: Boolean? = null,
-        val composeOverride: KeyJson? = null
+        val composeOverride: KeyJson? = null,
+        val groupId: String? = null,
     )
 
     /**
@@ -625,6 +631,7 @@ object LayoutJsonUtils {
      */
     fun keyDefToJson(keyDef: KeyDef): MutableMap<String, Any?> {
         val type = when (keyDef) {
+            is ShuangpinGroupKey -> "ShuangpinGroupKey"
             is AlphabetKey -> "AlphabetKey"
             is CapsKey -> "CapsKey"
             is LayoutSwitchKey -> "LayoutSwitchKey"
@@ -650,6 +657,18 @@ object LayoutJsonUtils {
         appearance.shadowColorMonet?.let { json["shadowColorMonet"] = it }
 
         when (keyDef) {
+            is ShuangpinGroupKey -> {
+                json["groupId"] = keyDef.groupId
+                json["alt"] = keyDef.punctuation
+                keyDef.punctuation1?.let { json["alt1"] = it }
+                keyDef.configuredDisplayText?.let { json["displayText"] = it }
+                json["weight"] = appearance.percentWidth
+                keyDef.swipeUp?.let { json["swipeUp"] = macroActionToJson(it) }
+                keyDef.swipeDown?.let { json["swipeDown"] = macroActionToJson(it) }
+                keyDef.swipeUpLabel?.let { json["swipeUpLabel"] = it }
+                keyDef.swipeDownLabel?.let { json["swipeDownLabel"] = it }
+                keyDef.longPress?.let { json["longPress"] = macroActionToJson(it) }
+            }
             is AlphabetKey -> {
                 json["main"] = keyDef.character
                 json["alt"] = keyDef.punctuation
@@ -740,6 +759,19 @@ object LayoutJsonUtils {
 
         keyDef.composeOverride?.let { overrideDef ->
             val overrideJson = keyDefToJson(overrideDef).toMutableMap()
+            val symbolAction = overrideDef.behaviors.singleOrNull()
+                ?.let { it as? KeyDef.Behavior.Press }?.action as? KeyAction.SymAction
+            if (symbolAction?.sym?.sym == FcitxKeyMapping.FcitxKey_apostrophe &&
+                overrideDef.appearance is KeyDef.Appearance.Text
+            ) {
+                // The compact Caps override is a native separator, represented in
+                // editable JSON by the existing single-key macro format.
+                overrideJson["type"] = "MacroKey"
+                overrideJson["label"] = overrideDef.appearance.displayText
+                overrideJson["tap"] = macroActionToJson(MacroAction(
+                    listOf(MacroStep.Tap(listOf(KeyRef.Fcitx("apostrophe"))))
+                ))
+            }
             overrideJson.remove("weight")
             if ((overrideJson["type"] as? String).isNullOrBlank()) {
                 overrideJson["type"] = type
@@ -842,7 +874,8 @@ object LayoutJsonUtils {
         visibleIndex: Int = 0,
         visibleCount: Int = 1,
         theme: Theme = ThemeManager.activeTheme,
-        punctuationPosition: PunctuationPosition? = null
+        punctuationPosition: PunctuationPosition? = null,
+        showShuangpinSemicolon: Boolean = true,
     ): KeyDef {
         val resolvedKey = if (key.type in DIRECTIONAL_SWIPE_KEY_TYPES &&
             (key.swipe != null || key.swipeLabel != null)
@@ -898,6 +931,32 @@ object LayoutJsonUtils {
             else -> key.backgroundColorMonet
         }
         val keyDef = when (key.type) {
+            "ShuangpinGroupKey" -> {
+                val groupId = key.groupId ?: throw IllegalArgumentException("ShuangpinGroupKey requires 'groupId'")
+                ShuangpinGroupKey(
+                    groupId = groupId,
+                    showSemicolon = showShuangpinSemicolon,
+                    punctuation = key.alt ?: Shuangpin18Keys.defaultCorner(groupId),
+                    punctuation1 = key.alt1?.takeIf { it.isNotEmpty() },
+                    configuredDisplayText = key.displayText?.let {
+                        resolveDisplayText(it, subModeLabel, subModeName, Shuangpin18Keys.displayGroup(groupId, showShuangpinSemicolon))
+                    },
+                    weight = key.weight ?: rowKeyWidth ?: DEFAULT_KEY_WIDTH,
+                    swipeUp = key.swipeUp,
+                    swipeDown = key.swipeDown,
+                    swipeUpLabel = key.swipeUpLabel,
+                    swipeDownLabel = key.swipeDownLabel,
+                    longPress = key.longPress,
+                    textColor = key.textColor,
+                    textColorMonet = key.textColorMonet,
+                    altTextColor = key.altTextColor,
+                    altTextColorMonet = key.altTextColorMonet,
+                    backgroundColor = effectiveBackgroundColor,
+                    backgroundColorMonet = effectiveBackgroundColorMonet,
+                    shadowColor = key.shadowColor,
+                    shadowColorMonet = key.shadowColorMonet,
+                )
+            }
             "AlphabetKey" -> AlphabetKey(
                 character = key.main ?: "",
                 punctuation = key.alt ?: "",
@@ -1081,7 +1140,8 @@ object LayoutJsonUtils {
                 visibleIndex = visibleIndex,
                 visibleCount = visibleCount,
                 theme = theme,
-                punctuationPosition = punctuationPosition
+                punctuationPosition = punctuationPosition,
+                showShuangpinSemicolon = showShuangpinSemicolon,
             )
             overrideDef.independentColor = override.independentColor ?: false
             keyDef.composeOverride = overrideDef

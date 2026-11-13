@@ -31,6 +31,13 @@ internal data class TextKeyboardLayoutResolution(
     /** Key for [globalDefault] when it is eligible to provide the effective height. */
     val globalDefaultKey: String?,
     val rows: JsonArray?,
+    /** Compact layouts add variant heights ahead of the existing IME height chain. */
+    val heightSources: List<KeyboardLayoutHeightSource>? = null,
+)
+
+internal data class KeyboardLayoutHeightSource(
+    val target: KeyboardHeightOverrideTarget,
+    val value: JsonElement,
 )
 
 internal sealed interface KeyboardHeightOverrideTarget {
@@ -45,7 +52,11 @@ internal fun resolveTextKeyboardLayout(
     displayName: String,
     subModeLabel: String,
     subModeName: String = "",
+    layoutVariant: ShuangpinKeyboardLayout = ShuangpinKeyboardLayout.Full,
 ): TextKeyboardLayoutResolution? {
+    if (layoutVariant == ShuangpinKeyboardLayout.Compact18) {
+        return resolveCompactTextKeyboardLayout(json, uniqueName, displayName, subModeLabel, subModeName)
+    }
     val parentKey = ShuangpinLayoutKeys.parentBaseLayoutKey(uniqueName)
     val (matchedSourceKey, root) = when {
         json[uniqueName] != null -> uniqueName to json.getValue(uniqueName)
@@ -109,6 +120,61 @@ internal fun resolveTextKeyboardLayout(
     )
 }
 
+private fun resolveCompactTextKeyboardLayout(
+    json: JsonObject,
+    uniqueName: String,
+    displayName: String,
+    subModeLabel: String,
+    subModeName: String,
+): TextKeyboardLayoutResolution? {
+    if (!ShuangpinKeyboardLayouts.supports(uniqueName)) return null
+    val parentKey = ShuangpinLayoutKeys.parentBaseLayoutKey(uniqueName)
+    val candidates = listOfNotNull(uniqueName, displayName, parentKey).distinct()
+    val compactSources = candidates.mapNotNull { key ->
+        val root = json[key] as? JsonObject ?: return@mapNotNull null
+        root[ShuangpinLayoutVariants.CHILD_KEY]?.let { key to it }
+    }
+    val legacy = resolveTextKeyboardLayout(json, uniqueName, displayName, subModeLabel, subModeName)
+    val selected = compactSources.firstOrNull()
+    // Keep the ordinary height chain even when all compact rows use the built-in template.
+    val layoutKey = selected?.first ?: legacy?.layoutKey ?: return null
+    val root = json.getValue(layoutKey)
+    val compact = selected?.second
+    val heights = compactSources.map { (key, value) ->
+        KeyboardLayoutHeightSource(
+            KeyboardHeightOverrideTarget.SubMode(key, ShuangpinLayoutVariants.CHILD_KEY), value,
+        )
+    } + legacy?.let { resolution ->
+        listOfNotNull(
+            resolution.subMode?.let {
+                KeyboardLayoutHeightSource(
+                    KeyboardHeightOverrideTarget.SubMode(
+                        resolution.layoutKey, resolution.subModeKey ?: resolution.subModeLabel,
+                    ), it,
+                )
+            },
+            KeyboardLayoutHeightSource(KeyboardHeightOverrideTarget.Layout(resolution.layoutKey), resolution.root),
+            resolution.globalDefaultKey?.let { key ->
+                resolution.globalDefault?.let {
+                    KeyboardLayoutHeightSource(KeyboardHeightOverrideTarget.Layout(key), it)
+                }
+            },
+        )
+    }.orEmpty()
+    return TextKeyboardLayoutResolution(
+        sourceKey = selected?.let { ShuangpinLayoutVariants.entryKey(it.first) } ?: "compact18-default",
+        layoutKey = layoutKey,
+        root = root,
+        subMode = compact,
+        subModeKey = compact?.let { ShuangpinLayoutVariants.CHILD_KEY },
+        subModeLabel = subModeLabel,
+        globalDefault = null,
+        globalDefaultKey = null,
+        rows = compact.rowsOrNull(),
+        heightSources = heights,
+    )
+}
+
 internal fun TextKeyboardLayoutResolution.keyboardHeightPercentOverride(
     landscape: Boolean,
 ): Int? {
@@ -116,6 +182,9 @@ internal fun TextKeyboardLayoutResolution.keyboardHeightPercentOverride(
         "keyboard_height_percent_landscape"
     } else {
         "keyboard_height_percent"
+    }
+    heightSources?.let { sources ->
+        return sources.firstNotNullOfOrNull { layoutHeightPercentFromMeta(it.value, key) }
     }
     return layoutHeightPercentFromMeta(subMode, key)
         ?: layoutHeightPercentFromMeta(root, key)
@@ -130,6 +199,9 @@ internal fun TextKeyboardLayoutResolution.keyboardHeightOverrideTarget(
     landscape: Boolean,
 ): KeyboardHeightOverrideTarget? {
     val key = keyboardHeightPercentMetaKey(landscape)
+    heightSources?.let { sources ->
+        return sources.firstOrNull { layoutHeightPercentFromMeta(it.value, key) != null }?.target
+    }
     if (layoutHeightPercentFromMeta(subMode, key) != null) {
         return KeyboardHeightOverrideTarget.SubMode(layoutKey, subModeKey ?: subModeLabel)
     }

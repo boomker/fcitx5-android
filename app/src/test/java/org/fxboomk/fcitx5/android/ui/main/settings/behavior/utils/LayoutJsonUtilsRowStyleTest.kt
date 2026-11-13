@@ -18,6 +18,9 @@ import org.fxboomk.fcitx5.android.input.keyboard.MacroStep
 import org.fxboomk.fcitx5.android.input.keyboard.PunctuationSwipeStrategy
 import org.fxboomk.fcitx5.android.input.keyboard.punctuationSwipeAction
 import org.fxboomk.fcitx5.android.input.keyboard.SymbolKey
+import org.fxboomk.fcitx5.android.input.keyboard.Shuangpin18Keys
+import org.fxboomk.fcitx5.android.input.keyboard.ShuangpinGroupKey
+import org.fxboomk.fcitx5.android.input.keyboard.KeyRef
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.data.LayoutHeightPercentOverrides
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -27,6 +30,69 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LayoutJsonUtilsRowStyleTest {
+
+    @Test
+    fun groupedKeyRoundTripsItsIdentityAppearanceAndPhysicalGestures() {
+        val up = MacroAction(listOf(MacroStep.Text("上")))
+        val down = MacroAction(listOf(MacroStep.Text("下")))
+        val longPress = MacroAction(listOf(MacroStep.Text("长按")))
+        val original = ShuangpinGroupKey(
+            groupId = "we", punctuation = "@", punctuation1 = "#",
+            configuredDisplayText = "我的WE", weight = 0.2f,
+            swipeUp = up, swipeDown = down, swipeUpLabel = "上", swipeDownLabel = "下",
+            longPress = longPress, textColor = 123, backgroundColor = 456,
+        )
+        val data = LayoutJsonUtils.keyDefToJson(original)
+        val json = LayoutJsonUtils.rowToJsonElement(listOf(data)).jsonArray.single().jsonObject
+        val restored = LayoutJsonUtils.createKeyDef(
+            requireNotNull(LayoutJsonUtils.parseKeyJson(json)), theme = testTheme
+        ) as ShuangpinGroupKey
+        assertEquals("we", restored.groupId)
+        assertEquals("我的WE", (restored.appearance as KeyDef.Appearance.Text).displayText)
+        assertEquals(0.2f, restored.appearance.percentWidth, 0f)
+        assertEquals(123, restored.appearance.textColor)
+        assertEquals(456, restored.appearance.backgroundColor)
+        assertEquals(up, restored.swipeUp)
+        assertEquals(down, restored.swipeDown)
+        assertEquals(longPress, restored.longPress)
+        assertTrue(restored.appearance.directionalSwipeLabels)
+        assertTrue(restored.popup.orEmpty().none { it is KeyDef.Popup.Keyboard.GroupedPreset })
+        val action = restored.behaviors.filterIsInstance<KeyDef.Behavior.Press>().single().action as KeyAction.SymAction
+        assertEquals(1, Shuangpin18Keys.indexOf(action.sym))
+        assertEquals(data, LayoutJsonUtils.keyDefToJson(restored))
+    }
+
+    @Test
+    fun hiddenMicrosoftSemicolonKeepsNativeGroupAndPopupIdentity() {
+        val parsed = requireNotNull(LayoutJsonUtils.parseKeyJson(
+            Json.parseToJsonElement("""{"type":"ShuangpinGroupKey","groupId":"l;","alt":"-"}""").jsonObject
+        ))
+        val key = LayoutJsonUtils.createKeyDef(
+            parsed, theme = testTheme, showShuangpinSemicolon = false
+        ) as ShuangpinGroupKey
+        assertEquals("l;", key.groupId)
+        assertEquals("l", (key.appearance as KeyDef.Appearance.Text).displayText)
+        assertEquals("l", key.popup.orEmpty().filterIsInstance<KeyDef.Popup.Keyboard.GroupedPreset>().single().group)
+        assertEquals("l;", LayoutJsonUtils.keyDefToJson(key)["groupId"])
+    }
+
+    @Test
+    fun defaultCompactCapsSeparatorSurvivesJsonWithoutBecomingSpace() {
+        val original = Shuangpin18Keys.layout(false, true)[2].first()
+        val json = LayoutJsonUtils.rowToJsonElement(listOf(LayoutJsonUtils.keyDefToJson(original)))
+            .jsonArray.single().jsonObject
+        val restored = LayoutJsonUtils.createKeyDef(
+            requireNotNull(LayoutJsonUtils.parseKeyJson(json)), theme = testTheme
+        )
+        val separator = requireNotNull(restored.composeOverride)
+        assertEquals("'词", (separator.appearance as KeyDef.Appearance.Text).displayText)
+        val action = separator.behaviors.filterIsInstance<KeyDef.Behavior.Press>().single().action as MacroAction
+        assertEquals(listOf(MacroStep.Tap(listOf(KeyRef.Fcitx("apostrophe")))), action.steps)
+        // The renderer merges the override into the original slot; JSON must not
+        // give the temporary label an independent width.
+        assertEquals(0.15f, restored.appearance.percentWidth, 0f)
+        assertNull(json["composeOverride"]!!.jsonObject["weight"])
+    }
 
     @Test
     fun rowWidthMetadataRejectsNonFiniteAndNonPositiveValues() {
