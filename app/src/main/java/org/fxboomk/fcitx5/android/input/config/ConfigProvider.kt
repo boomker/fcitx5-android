@@ -149,6 +149,11 @@ object ConfigProviders {
     }
 
     @Synchronized
+    fun removeTextKeyboardLayoutListener(listener: () -> Unit) {
+        textLayoutListeners.remove(listener)
+    }
+
+    @Synchronized
     fun addPopupPresetListener(listener: () -> Unit) {
         popupPresetListeners.add(listener)
         ensureWatching()

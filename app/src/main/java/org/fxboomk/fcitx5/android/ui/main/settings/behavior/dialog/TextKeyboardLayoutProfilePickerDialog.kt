@@ -5,6 +5,7 @@
 package org.fxboomk.fcitx5.android.ui.main.settings.behavior.dialog
 
 import android.content.Context
+import android.view.ContextThemeWrapper
 import androidx.appcompat.app.AlertDialog
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
@@ -29,7 +30,8 @@ object TextKeyboardLayoutProfilePickerDialog {
         val labels = sortedProfiles.map { profile -> context.displayProfile(profile) }.toTypedArray()
         val selected = sortedProfiles.indexOf(current).coerceAtLeast(0)
 
-        return AlertDialog.Builder(context)
+        val themed = ContextThemeWrapper(context, R.style.Theme_FcitxAppTheme)
+        return AlertDialog.Builder(themed)
             .setTitle(R.string.text_keyboard_layout_file_select_title)
             .setSingleChoiceItems(labels, selected) { dialog, which ->
                 val target = sortedProfiles.getOrNull(which) ?: return@setSingleChoiceItems

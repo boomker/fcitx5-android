@@ -154,6 +154,9 @@
     <string name="edit_popup_preset">Asignación de teclas emergentes</string>
     <string name="edit_popup_preset_summary">Editar asignación de teclas de popup (tecla -&gt; candidatos de popup)</string>
     <string name="toolbar_customize">Personalizar barra</string>
+    <string name="status_area_keyboard_layout">Diseño del teclado</string>
+    <string name="status_area_keyboard_arrangement">Distribución de teclas</string>
+    <string name="keyboard_arrangement_unavailable">La distribución de 18 teclas solo está disponible para los métodos de entrada Shuangpin</string>
     <string name="edit_buttons">Botones e iconos</string>
     <string name="edit_buttons_summary">Tema de botones: %1$s ・ Tema de iconos: %2$s</string>
     <string name="toolbar_buttons_tab">Botones de la barra</string>

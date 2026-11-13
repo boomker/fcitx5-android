@@ -132,6 +132,9 @@
     <string name="edit_popup_preset">팝업 키 매핑</string>
     <string name="edit_popup_preset_summary">팝업 키 매핑 편집 (키 -&gt; 팝업 후보)</string>
     <string name="toolbar_customize">툴바 맞춤설정</string>
+    <string name="status_area_keyboard_layout">키보드 레이아웃</string>
+    <string name="status_area_keyboard_arrangement">키 배열</string>
+    <string name="keyboard_arrangement_unavailable">18키 배열은 쌍병 입력 방식에서만 사용할 수 있습니다</string>
     <string name="edit_buttons">버튼 및 아이콘</string>
     <string name="edit_buttons_summary">버튼 테마: %1$s ・ 아이콘 테마: %2$s</string>
     <string name="toolbar_buttons_tab">툴바 버튼</string>

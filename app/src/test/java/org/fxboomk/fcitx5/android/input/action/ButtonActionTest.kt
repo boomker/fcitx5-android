@@ -16,6 +16,62 @@ import org.junit.Test
 class ButtonActionTest {
 
     @Test
+    fun keyboardLayoutSelectorsDefaultToStatusAreaAndRemainConfigurable() {
+        val config = ButtonsLayoutConfig.default()
+        listOf(KeyboardLayoutAction, KeyboardArrangementAction).forEach { action ->
+            assertSame(action, ButtonAction.fromId(action.id))
+            assertTrue(ButtonAction.statusAreaActions.contains(action))
+            assertEquals(1, ButtonAction.allActions.count { it.id == action.id })
+            assertEquals(1, ButtonAction.allConfigurableActions.count { it.id == action.id })
+            assertEquals(1, config.statusAreaButtons.count { it.id == action.id })
+            assertFalse(config.kawaiiBarButtons.any { it.id == action.id })
+        }
+        assertEquals(R.string.status_area_keyboard_layout, KeyboardLayoutAction.defaultLabelRes)
+        assertEquals(R.string.status_area_keyboard_arrangement, KeyboardArrangementAction.defaultLabelRes)
+        assertSame(config, config.withKeyboardLayoutButtons())
+    }
+
+    @Test
+    fun legacyLayoutGainsLayoutSelectorsBeforeFixedInputMethodOptions() {
+        val theme = ConfigurableButton("theme", icon = "font:E141", label = "Custom theme")
+        val legacy = ButtonsLayoutConfig(
+            kawaiiBarButtons = listOf(ConfigurableButton("more")),
+            statusAreaButtons = listOf(theme, ConfigurableButton("input_method_options")),
+            optionalButtons = listOf(ConfigurableButton("search"))
+        )
+
+        val normalized = legacy.withKeyboardLayoutButtons()
+
+        assertEquals(
+            listOf("theme", "keyboard_layout", "keyboard_arrangement", "input_method_options"),
+            normalized.statusAreaButtons.map { it.id }
+        )
+        assertSame(theme, normalized.statusAreaButtons.first())
+        assertEquals(legacy.kawaiiBarButtons, normalized.kawaiiBarButtons)
+        assertEquals(legacy.optionalButtons, normalized.optionalButtons)
+        assertEquals(legacy.hideKeyboardButton, normalized.hideKeyboardButton)
+        assertSame(normalized, normalized.withKeyboardLayoutButtons())
+    }
+
+    @Test
+    fun layoutSelectorsKeepCustomPlacementAndExplicitHiding() {
+        val layout = ConfigurableButton("keyboard_layout", icon = "font:E141", label = "Profiles")
+        val arrangement = ConfigurableButton("keyboard_arrangement", label = "26 / 18")
+        val legacy = ButtonsLayoutConfig(
+            kawaiiBarButtons = listOf(layout),
+            statusAreaButtons = emptyList(),
+            optionalButtons = listOf(arrangement)
+        )
+        assertSame(legacy, legacy.withKeyboardLayoutButtons())
+
+        val partial = legacy.copy(kawaiiBarButtons = emptyList())
+        val normalized = partial.withKeyboardLayoutButtons()
+        assertEquals(listOf("keyboard_layout"), normalized.statusAreaButtons.map { it.id })
+        assertSame(arrangement, normalized.optionalButtons.single())
+        assertSame(normalized, normalized.withKeyboardLayoutButtons())
+    }
+
+    @Test
     fun appActionPickerContainsEveryRegisteredActionExactlyOnce() {
         val ids = ButtonAction.macroEditorActions.map { it.id }
         assertEquals(ids.toSet().size, ids.size)

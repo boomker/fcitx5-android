@@ -74,7 +74,7 @@ class StatusAreaWindow : InputWindow.ExtendedInputWindow<StatusAreaWindow>(),
             val snapshot = ConfigProviders.readButtonsLayoutConfig<ButtonsLayoutConfig>()
             val config = snapshot?.value ?: ButtonsLayoutConfig.default()
             config.withKeyboardHeightAdjustButton().withToolbarCustomizeButton()
-                .withGestureEditingButtons().statusAreaButtons
+                .withGestureEditingButtons().withKeyboardLayoutButtons().statusAreaButtons
         } catch (e: Exception) {
             ButtonsLayoutConfig.default().statusAreaButtons
         }
@@ -382,6 +382,7 @@ class StatusAreaWindow : InputWindow.ExtendedInputWindow<StatusAreaWindow>(),
                                 "cursor_movement",
                                 "clipboard",
                                 "symbol_keyboard",
+                                ButtonsLayoutConfig.KEYBOARD_ARRANGEMENT_ID,
                                 ButtonsLayoutConfig.KEYBOARD_HEIGHT_ADJUST_ID
                             )
                         // For non-floating-toggle and non-window-opening actions that should close the Status Area

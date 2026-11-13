@@ -38,6 +38,7 @@ import org.fxboomk.fcitx5.android.input.keyboard.KeyboardWindow
 import org.fxboomk.fcitx5.android.input.keyboard.switchToEnglishInputMode
 import org.fxboomk.fcitx5.android.input.picker.PickerWindow
 import org.fxboomk.fcitx5.android.input.status.StatusAreaWindow
+import org.fxboomk.fcitx5.android.input.status.KeyboardArrangementWindow
 import org.fxboomk.fcitx5.android.input.voice.VoiceInputProviderManager
 import org.fxboomk.fcitx5.android.input.wm.InputWindowManager
 import org.fxboomk.fcitx5.android.ui.main.settings.SettingsRoute
@@ -46,6 +47,7 @@ import org.fxboomk.fcitx5.android.ui.main.settings.behavior.FontsetEditorActivit
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.TextKeyboardLayoutEditorActivity
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.TextKeyboardLayoutProfileManagerActivity
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.dialog.TextKeyboardLayoutProfilePickerActivity
+import org.fxboomk.fcitx5.android.ui.main.settings.behavior.dialog.TextKeyboardLayoutProfilePickerDialog
 import org.fxboomk.fcitx5.android.utils.AppUtil
 import org.fxboomk.fcitx5.android.utils.InputMethodUtil
 import org.fxboomk.fcitx5.android.utils.buildDocumentsProviderIntent
@@ -157,6 +159,8 @@ sealed class ButtonAction {
                 InputMethodOptionsAction,
                 ReloadConfigAction,
                 VirtualKeyboardAction,
+                KeyboardLayoutAction,
+                KeyboardArrangementAction,
                 OneHandedKeyboardAction,
                 AdjustKeyboardHeightAction,
                 SearchAction,
@@ -225,6 +229,8 @@ sealed class ButtonAction {
                 InputMethodOptionsAction,
                 ReloadConfigAction,
                 VirtualKeyboardAction,
+                KeyboardLayoutAction,
+                KeyboardArrangementAction,
                 OneHandedKeyboardAction,
                 AdjustKeyboardHeightAction,
                 MoreAction,
@@ -788,6 +794,48 @@ data object VirtualKeyboardAction : ButtonAction() {
         onActionComplete: (() -> Unit)?
     ) {
         AppUtil.launchMainToKeyboard(context)
+    }
+}
+
+data object KeyboardLayoutAction : ButtonAction() {
+    override val id = ButtonsLayoutConfig.KEYBOARD_LAYOUT_ID
+    override val defaultIcon = R.drawable.ic_baseline_library_books_24
+    override val defaultLabelRes = R.string.status_area_keyboard_layout
+
+    override fun execute(
+        context: Context,
+        service: FcitxInputMethodService,
+        fcitx: FcitxConnection,
+        windowManager: InputWindowManager,
+        view: View?,
+        onActionComplete: (() -> Unit)?
+    ) {
+        service.showDialog(TextKeyboardLayoutProfilePickerDialog.build(
+            context,
+            onProfileSelected = { onActionComplete?.invoke() }
+        ).apply { setTitle(defaultLabelRes) })
+    }
+}
+
+data object KeyboardArrangementAction : ButtonAction() {
+    override val id = ButtonsLayoutConfig.KEYBOARD_ARRANGEMENT_ID
+    override val defaultIcon = R.drawable.ic_baseline_keyboard_24
+    override val defaultLabelRes = R.string.status_area_keyboard_arrangement
+
+    override fun execute(
+        context: Context,
+        service: FcitxInputMethodService,
+        fcitx: FcitxConnection,
+        windowManager: InputWindowManager,
+        view: View?,
+        onActionComplete: (() -> Unit)?
+    ) {
+        val ime = fcitx.runImmediately { inputMethodEntryCached }
+        if (!KeyboardArrangementWindow.supports(ime)) {
+            context.toast(R.string.keyboard_arrangement_unavailable)
+            return
+        }
+        windowManager.attachWindow(KeyboardArrangementWindow(ime, onActionComplete))
     }
 }
 

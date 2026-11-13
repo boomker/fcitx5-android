@@ -140,6 +140,8 @@ data class ButtonsLayoutConfig(
     companion object {
         const val KEYBOARD_HEIGHT_ADJUST_ID = "adjust_keyboard_height"
         const val TOOLBAR_CUSTOMIZE_ID = "toolbar_customize"
+        const val KEYBOARD_LAYOUT_ID = "keyboard_layout"
+        const val KEYBOARD_ARRANGEMENT_ID = "keyboard_arrangement"
         private const val DEFAULT_MORE_ICON = "font:E141"
         private const val DEFAULT_HIDE_KEYBOARD_ICON = "ic_keyboard_hide_24"
 
@@ -177,6 +179,8 @@ data class ButtonsLayoutConfig(
                 ConfigurableButton(TOOLBAR_CUSTOMIZE_ID),
                 ConfigurableButton("reload_config"),
                 ConfigurableButton("virtual_keyboard"),
+                ConfigurableButton(KEYBOARD_LAYOUT_ID),
+                ConfigurableButton(KEYBOARD_ARRANGEMENT_ID),
                 ConfigurableButton("one_handed_keyboard"),
                 ConfigurableButton("text_selection"),
                 ConfigurableButton("cursor_movement"),
@@ -229,6 +233,18 @@ data class ButtonsLayoutConfig(
     fun withGestureEditingButtons(): ButtonsLayoutConfig {
         val allIds = (kawaiiBarButtons + statusAreaButtons + optionalButtons).mapTo(mutableSetOf()) { it.id }
         val missing = listOf("text_selection", "cursor_movement").filterNot { it in allIds }
+        if (missing.isEmpty()) return this
+        val buttons = statusAreaButtons.toMutableList()
+        val insertAt = buttons.indexOfFirst { it.id == "input_method_options" }
+            .takeIf { it >= 0 } ?: buttons.size
+        buttons.addAll(insertAt, missing.map { ConfigurableButton(it) })
+        return copy(statusAreaButtons = buttons)
+    }
+
+    /** Add layout selectors to old configs, preserving explicit placement or hiding. */
+    fun withKeyboardLayoutButtons(): ButtonsLayoutConfig {
+        val allIds = (kawaiiBarButtons + statusAreaButtons + optionalButtons).mapTo(mutableSetOf()) { it.id }
+        val missing = listOf(KEYBOARD_LAYOUT_ID, KEYBOARD_ARRANGEMENT_ID).filterNot { it in allIds }
         if (missing.isEmpty()) return this
         val buttons = statusAreaButtons.toMutableList()
         val insertAt = buttons.indexOfFirst { it.id == "input_method_options" }

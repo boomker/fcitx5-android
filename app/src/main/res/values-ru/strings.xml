@@ -398,6 +398,9 @@
     <string name="edit_popup_preset">Сопоставление клавиш всплывающих окон</string>
     <string name="edit_popup_preset_summary">Редактировать сопоставление клавиш всплывающих окон (клавиша -&gt; кандидаты всплывающих окон)</string>
     <string name="toolbar_customize">Настроить панель</string>
+    <string name="status_area_keyboard_layout">Раскладка клавиатуры</string>
+    <string name="status_area_keyboard_arrangement">Расположение клавиш</string>
+    <string name="keyboard_arrangement_unavailable">Расположение из 18 клавиш доступно только для методов ввода Shuangpin</string>
     <string name="edit_buttons">Кнопки и значки</string>
     <string name="edit_buttons_summary">Тема кнопок: %1$s ・ Тема значков: %2$s</string>
     <string name="toolbar_buttons_tab">Кнопки панели</string>

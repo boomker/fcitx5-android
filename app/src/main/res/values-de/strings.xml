@@ -226,6 +226,9 @@
     <string name="edit_popup_preset">Popup-Tastenzuordnung</string>
     <string name="edit_popup_preset_summary">Popup-Tastenzuordnung bearbeiten (Taste -&gt; Popup-Kandidaten)</string>
     <string name="toolbar_customize">Werkzeugleiste anpassen</string>
+    <string name="status_area_keyboard_layout">Tastaturlayout</string>
+    <string name="status_area_keyboard_arrangement">Tastenanordnung</string>
+    <string name="keyboard_arrangement_unavailable">Die Anordnung mit 18 Tasten ist nur für Shuangpin-Eingabemethoden verfügbar</string>
     <string name="edit_buttons">Schaltflächen &amp; Symbole</string>
     <string name="edit_buttons_summary">Button-Design: %1$s ・ Icon-Design: %2$s</string>
     <string name="toolbar_buttons_tab">Werkzeugleisten-Schaltflächen</string>

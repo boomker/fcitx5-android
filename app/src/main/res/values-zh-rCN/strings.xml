@@ -454,6 +454,9 @@
     <string name="swipe_symbol_picker_title">从符号划动映射选择</string>
     <string name="swipe_symbol_picker_empty">符号划动映射为空</string>
     <string name="toolbar_customize">工具栏定制</string>
+    <string name="status_area_keyboard_layout">键盘布局</string>
+    <string name="status_area_keyboard_arrangement">键位配列</string>
+    <string name="keyboard_arrangement_unavailable">当前输入法不支持切换 26 键／18 键配列，请先切换到双拼输入法</string>
     <string name="edit_buttons">按钮与图标</string>
     <string name="edit_buttons_summary">按钮主题：%1$s ・图标主题：%2$s</string>
     <string name="toolbar_buttons_tab">工具栏按钮</string>

@@ -622,6 +622,9 @@
     <string name="swipe_symbol_picker_title">Pick from symbol swipe mapping</string>
     <string name="swipe_symbol_picker_empty">The symbol swipe mapping is empty</string>
     <string name="toolbar_customize">Customize toolbar</string>
+    <string name="status_area_keyboard_layout">Keyboard layout</string>
+    <string name="status_area_keyboard_arrangement">Key arrangement</string>
+    <string name="keyboard_arrangement_unavailable">18-key arrangement is available for Shuangpin input methods only</string>
     <string name="edit_buttons">Buttons &amp; Icons</string>
     <string name="edit_buttons_summary">Button theme: %1$s ・ Icon theme: %2$s</string>
     <string name="toolbar_buttons_tab">Toolbar Buttons</string>
