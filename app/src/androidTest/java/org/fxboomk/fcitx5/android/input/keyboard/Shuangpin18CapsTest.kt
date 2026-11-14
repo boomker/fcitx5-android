@@ -26,14 +26,18 @@ import org.fxboomk.fcitx5.android.data.theme.ThemeManager
 import org.fxboomk.fcitx5.android.data.theme.ThemePrefs.PunctuationPosition
 import org.fxboomk.fcitx5.android.data.theme.ThemePreset
 import org.fxboomk.fcitx5.android.input.config.ConfigProviders
+import org.fxboomk.fcitx5.android.input.config.DefaultConfigProvider
 import org.fxboomk.fcitx5.android.input.config.MemoryConfigProvider
 import org.fxboomk.fcitx5.android.input.config.UserConfigFiles
 import org.fxboomk.fcitx5.android.input.popup.PopupAction
 import org.fxboomk.fcitx5.android.input.popup.PopupActionListener
 import org.fxboomk.fcitx5.android.input.popup.resolveGroupedPopupPresetCandidates
 import org.fxboomk.fcitx5.android.ui.main.MainActivity
+import org.fxboomk.fcitx5.android.ui.main.settings.behavior.data.LayoutDataManager
+import org.fxboomk.fcitx5.android.ui.main.settings.behavior.utils.LayoutJsonUtils
 import org.junit.Assert.*
 import org.junit.Test
+import java.util.UUID
 
 /** Render the real keyboard, recording actions instead of sending keys into the user's editor. */
 class Shuangpin18CapsTest {
@@ -156,6 +160,95 @@ class Shuangpin18CapsTest {
             assertCompact(scene.keyboard)
             assertTrue("Temporary uppercase mode overwrote the stored compact layout",
                 XIAOHE in AppPrefs.getInstance().internal.compactShuangpinInputMethods.getValue())
+        }
+    }
+
+    @Test
+    fun temporaryUppercase26UsesTheActiveProfilesSchemeLayout() {
+        val data = LayoutDataManager(instrumentation.targetContext)
+        val fullRows = data.defaultPresetSnapshot().map { row -> row.toMutableList() }.toMutableList()
+        fullRows.first().reverse()
+        val compactRows = data.compactDefaultRows().apply { first().reverse() }
+        val json = LayoutJsonUtils.convertToSaveJson(mapOf(
+            "shuangpin" to data.defaultPresetSnapshot(),
+            XIAOHE to fullRows,
+            ShuangpinLayoutVariants.entryKey(XIAOHE) to compactRows,
+        ))
+        withLayoutProfiles(listOf(json)) { profiles ->
+            withKeyboard { scene ->
+                onMain {
+                    val compactLabels = labels(scene.keyboard)
+                    assertCompact(scene.keyboard)
+                    tap(caps(scene.keyboard))
+                    layout(scene.keyboard)
+                    assertUppercase26(scene.keyboard)
+                    assertEquals("POIUYTREWQ", uppercaseLetters(scene.keyboard).take(10).joinToString(""))
+                    scene.actions.clear()
+                    tap(textKey(scene.keyboard, "W"))
+                    layout(scene.keyboard)
+                    assertUppercaseW(scene.actions)
+                    assertCompact(scene.keyboard)
+                    assertEquals("Caps discarded the customized 18-key arrangement", compactLabels, labels(scene.keyboard))
+                    assertEquals(profiles.single(), AppPrefs.getInstance().keyboard.textKeyboardLayoutProfile.getValue())
+                }
+            }
+        }
+    }
+
+    @Test
+    fun temporaryUppercase26FallsBackToTheProfilesShuangpinBaseWithOnlyACompactSchemeChild() {
+        val data = LayoutDataManager(instrumentation.targetContext)
+        val fullRows = data.defaultPresetSnapshot().map { row -> row.toMutableList() }.toMutableList()
+        fullRows.first().reverse()
+        val json = LayoutJsonUtils.convertToSaveJson(mapOf(
+            "default" to data.defaultPresetSnapshot(),
+            "shuangpin" to fullRows,
+            ShuangpinLayoutVariants.entryKey(XIAOHE) to data.compactDefaultRows(),
+        ))
+        withLayoutProfiles(listOf(json)) {
+            withKeyboard { scene ->
+                onMain {
+                    assertCompact(scene.keyboard)
+                    tap(caps(scene.keyboard))
+                    layout(scene.keyboard)
+                    assertUppercase26(scene.keyboard)
+                    assertEquals("POIUYTREWQ", uppercaseLetters(scene.keyboard).take(10).joinToString(""))
+                    tap(textKey(scene.keyboard, "W"))
+                    layout(scene.keyboard)
+                    assertCompact(scene.keyboard)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun temporaryUppercase26ReadsTheNewActiveProfileAfterSwitching() {
+        val data = LayoutDataManager(instrumentation.targetContext)
+        val reversed = data.defaultPresetSnapshot().map { row -> row.toMutableList() }.toMutableList()
+        reversed.first().reverse()
+        val rotated = data.defaultPresetSnapshot().map { row -> row.toMutableList() }.toMutableList()
+        rotated.first().add(rotated.first().removeAt(0))
+        val layouts = listOf(reversed, rotated).map { rows ->
+            LayoutJsonUtils.convertToSaveJson(mapOf(XIAOHE to rows))
+        }
+        withLayoutProfiles(layouts) { profiles ->
+            withKeyboard { scene ->
+                onMain {
+                    assertTrue(caps(scene.keyboard).performLongClick())
+                    layout(scene.keyboard)
+                    assertUppercase26(scene.keyboard)
+                    assertEquals("POIUYTREWQ", uppercaseLetters(scene.keyboard).take(10).joinToString(""))
+                    AppPrefs.getInstance().keyboard.textKeyboardLayoutProfile.setValue(profiles[1])
+                    scene.keyboard.refreshStyle()
+                    layout(scene.keyboard)
+                    assertUppercase26(scene.keyboard)
+                    assertEquals("WERTYUIOPQ", uppercaseLetters(scene.keyboard).take(10).joinToString(""))
+                    tap(caps(scene.keyboard))
+                    layout(scene.keyboard)
+                    assertCompact(scene.keyboard)
+                    assertEquals(profiles[1], AppPrefs.getInstance().keyboard.textKeyboardLayoutProfile.getValue())
+                }
+            }
         }
     }
 
@@ -390,6 +483,40 @@ class Shuangpin18CapsTest {
         val actions: MutableList<KeyAction>,
     )
 
+    private fun withLayoutProfiles(layouts: List<JsonObject>, block: (List<String>) -> Unit) {
+        val profilePreference = AppPrefs.getInstance().keyboard.textKeyboardLayoutProfile
+        val originalProfile = profilePreference.getValue()
+        val originalProvider = ConfigProviders.provider
+        val profiles = layouts.map { "caps-layout-test-${UUID.randomUUID()}" }
+        val files = profiles.map { requireNotNull(UserConfigFiles.textKeyboardLayoutJson(it)) }
+        try {
+            files.zip(layouts).forEach { (file, json) ->
+                file.parentFile?.mkdirs()
+                file.writeText(json.toString())
+            }
+            onMain {
+                profilePreference.setValue(profiles.first())
+                ConfigProviders.provider = DefaultConfigProvider
+                TextKeyboard.invalidateLayoutCache()
+            }
+            instrumentation.waitForIdleSync()
+            block(profiles)
+        } finally {
+            onMain {
+                profilePreference.setValue(originalProfile)
+                ConfigProviders.provider = originalProvider
+                TextKeyboard.invalidateLayoutCache()
+            }
+            instrumentation.waitForIdleSync()
+            files.forEach { file ->
+                if (file.exists()) assertTrue("Could not remove the temporary profile", file.delete())
+                file.parentFile?.listFiles { candidate ->
+                    candidate.name.startsWith("${file.nameWithoutExtension}_backup_")
+                }?.forEach { assertTrue("Could not remove the temporary profile backup", it.delete()) }
+            }
+        }
+    }
+
     private fun withKeyboard(uniqueName: String = XIAOHE, block: (Scene) -> Unit) {
         val prefs = AppPrefs.getInstance()
         val compact = prefs.internal.compactShuangpinInputMethods.getValue()
@@ -476,11 +603,14 @@ class Shuangpin18CapsTest {
     }
 
     private fun assertUppercase26(keyboard: TextKeyboard) {
-        val letters = labels(keyboard).filter { it.length == 1 && it[0].lowercaseChar() in 'a'..'z' }
+        val letters = uppercaseLetters(keyboard)
         assertEquals("The temporary layout must render all 26 uppercase letters",
             ('A'..'Z').map(Char::toString), letters.sorted())
         assertFalse("A grouped key survived uppercase mode", labels(keyboard).any { it.equals("we", ignoreCase = true) })
     }
+
+    private fun uppercaseLetters(keyboard: TextKeyboard): List<String> =
+        labels(keyboard).filter { it.length == 1 && it[0].lowercaseChar() in 'a'..'z' }
 
     private fun assertUppercaseW(actions: List<KeyAction>) {
         val key = actions.filterIsInstance<KeyAction.FcitxKeyAction>().last { !it.up }

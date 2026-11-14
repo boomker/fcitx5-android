@@ -125,6 +125,21 @@ class TextKeyboard private constructor(
 
     companion object {
         const val Name = "Text"
+
+        /** Select the preview variant before BaseKeyboard builds its key views. */
+        internal fun createArrangementPreview(
+            context: Context,
+            theme: Theme,
+            ime: InputMethodEntry,
+            variant: ShuangpinKeyboardLayout,
+        ): TextKeyboard = TextKeyboard(context, theme, TextKeyboardLayoutState(ime).apply {
+            layoutVariantOverride = variant
+        }).apply {
+            // All instance fields are initialized now; no IME update or Caps attachment is needed.
+            lastLayoutSignature = layoutSignature(ime)
+            refreshDynamicState()
+        }
+
         private var lastModified = 0L
         internal var ime: InputMethodEntry? = null
             set(value) {

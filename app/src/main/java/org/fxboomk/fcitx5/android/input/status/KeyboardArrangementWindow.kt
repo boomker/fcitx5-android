@@ -4,10 +4,13 @@
  */
 package org.fxboomk.fcitx5.android.input.status
 
+import android.content.Intent
 import android.view.View
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.core.InputMethodEntry
 import org.fxboomk.fcitx5.android.daemon.FcitxConnection
+import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
+import org.fxboomk.fcitx5.android.input.bar.ui.ToolButton
 import org.fxboomk.fcitx5.android.input.broadcast.InputBroadcastReceiver
 import org.fxboomk.fcitx5.android.input.config.ConfigChangeListener
 import org.fxboomk.fcitx5.android.input.config.ConfigProviders
@@ -18,7 +21,12 @@ import org.fxboomk.fcitx5.android.input.keyboard.ShuangpinKeyboardLayout
 import org.fxboomk.fcitx5.android.input.keyboard.ShuangpinKeyboardLayouts
 import org.fxboomk.fcitx5.android.input.wm.InputWindow
 import org.fxboomk.fcitx5.android.input.wm.InputWindowManager
+import org.fxboomk.fcitx5.android.ui.main.settings.behavior.TextKeyboardLayoutEditorActivity
 import org.mechdancer.dependency.manager.must
+import splitties.dimensions.dp
+import splitties.views.dsl.core.add
+import splitties.views.dsl.core.horizontalLayout
+import splitties.views.dsl.core.lParams
 
 internal class KeyboardArrangementWindow(
     private var ime: InputMethodEntry,
@@ -32,9 +40,24 @@ internal class KeyboardArrangementWindow(
     private val ui by lazy { KeyboardArrangementPickerUi(context, theme, ::select) }
     private val onLayoutChanged: ConfigChangeListener = { if (attached) ui.show(ime) }
 
+    private val editLayoutButton by lazy {
+        ToolButton(context, R.drawable.ic_baseline_keyboard_24, theme).apply {
+            contentDescription = context.getString(R.string.edit_text_keyboard_layout)
+            setOnClickListener { editCurrentLayout() }
+        }
+    }
+
+    private val barExtension by lazy {
+        context.horizontalLayout {
+            add(editLayoutButton, lParams(dp(40), dp(40)))
+        }
+    }
+
     override val title: String get() = context.getString(R.string.status_area_keyboard_arrangement)
 
     override fun onCreateView(): View = ui
+
+    override fun onCreateBarExtension(): View = barExtension
 
     override fun onAttached() {
         attached = true
@@ -71,6 +94,24 @@ internal class KeyboardArrangementWindow(
         (windowManager.getEssentialWindow(KeyboardWindow) as KeyboardWindow).refreshAllKeyboards()
         ui.setSelected(layout)
         onLayoutSelected?.invoke()
+        windowManager.attachWindow(KeyboardWindow)
+    }
+
+    private fun editCurrentLayout() {
+        val current = fcitx.runImmediately { inputMethodEntryCached }
+        if (!supports(current)) {
+            onImeUpdate(current)
+            return
+        }
+        context.startActivity(Intent(context, TextKeyboardLayoutEditorActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            putExtra(TextKeyboardLayoutEditorActivity.EXTRA_TARGET_PROFILE,
+                AppPrefs.getInstance().keyboard.textKeyboardLayoutProfile.getValue())
+            putExtra(TextKeyboardLayoutEditorActivity.EXTRA_TARGET_LAYOUT, current.uniqueName)
+            putExtra(TextKeyboardLayoutEditorActivity.EXTRA_TARGET_DISPLAY_NAME, current.displayName)
+            putExtra(TextKeyboardLayoutEditorActivity.EXTRA_TARGET_LAYOUT_VARIANT,
+                ShuangpinKeyboardLayouts.read(current.uniqueName).name)
+        })
     }
 
     companion object {

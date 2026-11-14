@@ -32,6 +32,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.doOnLayout
 import androidx.core.view.updatePadding
 import androidx.lifecycle.lifecycleScope
 import com.journeyapps.barcodescanner.ScanContract
@@ -95,7 +96,9 @@ import java.io.File
  */
 class TextKeyboardLayoutProfileManagerActivity : AppCompatActivity() {
 
-    private companion object {
+    companion object {
+        const val EXTRA_TARGET_PROFILE = "target_profile"
+
         private const val FCITX_CONNECTION_NAME = "TextKeyboardLayoutProfileManagerActivity"
 
         /** 已激活配置的对勾颜色（Material Green 500） */
@@ -259,7 +262,16 @@ class TextKeyboardLayoutProfileManagerActivity : AppCompatActivity() {
             ?.toList()
             .orEmpty()
 
+        val targetProfile = if (savedInstanceState == null) expandTargetProfile() else null
         reloadAll()
+        targetProfile?.let { profile ->
+            listContainer.doOnLayout {
+                val row = (0 until listContainer.childCount).asSequence()
+                    .map(listContainer::getChildAt)
+                    .firstOrNull { it.tag == profile } ?: return@doOnLayout
+                (listContainer.parent as? ScrollView)?.scrollTo(0, row.top)
+            }
+        }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -413,6 +425,22 @@ class TextKeyboardLayoutProfileManagerActivity : AppCompatActivity() {
             }
         }
 
+    private fun expandTargetProfile(): String? {
+        val target = UserConfigFiles.normalizeTextKeyboardLayoutProfile(
+            intent.getStringExtra(EXTRA_TARGET_PROFILE).orEmpty()
+        ) ?: return null
+        val active = UserConfigFiles.normalizeTextKeyboardLayoutProfile(
+            AppPrefs.getInstance().keyboard.textKeyboardLayoutProfile.getValue()
+        ) ?: UserConfigFiles.DEFAULT_TEXT_KEYBOARD_LAYOUT_PROFILE
+        if (target !in TextKeyboardLayoutProfileOrder.ordered(active)) return null
+        val collapsed = collapsedProfileNames().toMutableSet()
+        if (collapsed.remove(target)) {
+            AppPrefs.getInstance().keyboard.textKeyboardLayoutProfileCollapsed
+                .setValue(collapsed.joinToString("\n"))
+        }
+        return target
+    }
+
     private fun reloadAll() {
         currentProfile = UserConfigFiles.normalizeTextKeyboardLayoutProfile(
             AppPrefs.getInstance().keyboard.textKeyboardLayoutProfile.getValue()
@@ -509,6 +537,7 @@ class TextKeyboardLayoutProfileManagerActivity : AppCompatActivity() {
             // 默认配置固定首位不可上移，紧随其后的第一个非默认配置也无法再上移
             listContainer.addView(
                 buildProfileRow(profile, canMoveUp = index > 1, collapsed = collapsed, filtered = filtered)
+                    .apply { tag = profile }
             )
             if (collapsed) return@forEachIndexed
             manager.baseLayoutNames(allImes).forEach { baseLayout ->

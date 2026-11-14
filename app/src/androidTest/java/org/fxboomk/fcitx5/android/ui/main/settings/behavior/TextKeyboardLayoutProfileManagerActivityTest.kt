@@ -34,6 +34,65 @@ import java.util.UUID
 
 class TextKeyboardLayoutProfileManagerActivityTest {
     @Test
+    fun targetProfileExpandsWithoutChangingTheActiveProfileOrOtherSettings() = withProfiles { profiles, files ->
+        val prefs = AppPrefs.getInstance().keyboard
+        val default = UserConfigFiles.DEFAULT_TEXT_KEYBOARD_LAYOUT_PROFILE
+        val target = profiles.last()
+        val originals = files.associateWith { it.readText() }
+        val order = prefs.textKeyboardLayoutProfileOrder.getValue()
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        instrumentation.runOnMainSync {
+            prefs.textKeyboardLayoutProfileCollapsed.setValue((listOf(default) + profiles).joinToString("\n"))
+            prefs.textKeyboardLayoutProfileFiltered.setValue(target)
+        }
+        withTargetedManager(target) { activity ->
+            assertEquals(profiles.first(), prefs.textKeyboardLayoutProfile.getValue())
+            assertEquals(order, prefs.textKeyboardLayoutProfileOrder.getValue())
+            assertEquals(target, prefs.textKeyboardLayoutProfileFiltered.getValue())
+            assertEquals(setOf(default, profiles.first()),
+                prefs.textKeyboardLayoutProfileCollapsed.getValue().split('\n').toSet())
+            assertTrue("The targeted profile must show its customized layouts", "test-height" in profileTexts(activity, target))
+            assertTrue(profileViews(activity, profiles.first()).isEmpty())
+            val collapse = descendants(profileRow(activity, target)).filterIsInstance<ImageButton>().single {
+                it.contentDescription == activity.getString(R.string.text_keyboard_layout_manage_collapse)
+            }
+            collapse.performClick()
+            instrumentation.callActivityOnPause(activity)
+            instrumentation.callActivityOnResume(activity)
+            assertTrue("Returning to the manager must retain the user's later collapse",
+                target in prefs.textKeyboardLayoutProfileCollapsed.getValue().split('\n'))
+        }
+        originals.forEach { (file, original) -> assertEquals(original, file.readText()) }
+    }
+
+    @Test
+    fun defaultTargetExpandsAndUnknownTargetDoesNotChangeCollapseState() = withProfiles { profiles, files ->
+        val prefs = AppPrefs.getInstance().keyboard
+        val default = UserConfigFiles.DEFAULT_TEXT_KEYBOARD_LAYOUT_PROFILE
+        val collapsed = (listOf(default) + profiles).joinToString("\n")
+        val originals = files.associateWith { it.readText() }
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        instrumentation.runOnMainSync { prefs.textKeyboardLayoutProfileCollapsed.setValue(collapsed) }
+        withTargetedManager(default) { activity ->
+            assertEquals(profiles.toSet(), prefs.textKeyboardLayoutProfileCollapsed.getValue().split('\n').toSet())
+            val row = descendants(activity.window.decorView).single { it.tag == default }
+            assertTrue(descendants(row).filterIsInstance<ImageButton>().any {
+                it.contentDescription == activity.getString(R.string.text_keyboard_layout_manage_collapse)
+            })
+            assertEquals(profiles.first(), prefs.textKeyboardLayoutProfile.getValue())
+        }
+        instrumentation.runOnMainSync { prefs.textKeyboardLayoutProfileCollapsed.setValue(collapsed) }
+        val missing = "missing-layout-${UUID.randomUUID()}"
+        withTargetedManager(missing) { activity ->
+            assertEquals(collapsed, prefs.textKeyboardLayoutProfileCollapsed.getValue())
+            assertEquals(profiles.first(), prefs.textKeyboardLayoutProfile.getValue())
+            assertTrue(descendants(activity.window.decorView).none { it.tag == missing })
+        }
+        assertFalse(requireNotNull(UserConfigFiles.textKeyboardLayoutJson(missing)).exists())
+        originals.forEach { (file, original) -> assertEquals(original, file.readText()) }
+    }
+
+    @Test
     fun activeLayoutRefreshesWhenReturningAfterImeSwitch() = withProfiles { profiles, files ->
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val connectionName = "LayoutProfileManagerTest"
@@ -428,6 +487,21 @@ class TextKeyboardLayoutProfileManagerActivityTest {
         val activity = instrumentation.startActivitySync(Intent(instrumentation.targetContext,
             TextKeyboardLayoutProfileManagerActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             as TextKeyboardLayoutProfileManagerActivity
+        try {
+            instrumentation.waitForIdleSync()
+            instrumentation.runOnMainSync { block(activity) }
+        } finally {
+            instrumentation.runOnMainSync { activity.finish() }
+            instrumentation.waitForIdleSync()
+        }
+    }
+
+    private fun withTargetedManager(targetProfile: String, block: (TextKeyboardLayoutProfileManagerActivity) -> Unit) {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val intent = Intent(instrumentation.targetContext, TextKeyboardLayoutProfileManagerActivity::class.java)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            .putExtra(TextKeyboardLayoutProfileManagerActivity.EXTRA_TARGET_PROFILE, targetProfile)
+        val activity = instrumentation.startActivitySync(intent) as TextKeyboardLayoutProfileManagerActivity
         try {
             instrumentation.waitForIdleSync()
             instrumentation.runOnMainSync { block(activity) }

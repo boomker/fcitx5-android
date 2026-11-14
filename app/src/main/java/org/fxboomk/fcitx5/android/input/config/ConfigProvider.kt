@@ -200,8 +200,10 @@ object ConfigProviders {
         ensureWatching()
     }
 
+    fun ensureWatching() = ensureWatching(notifySourceChange = true)
+
     @Synchronized
-    fun ensureWatching() {
+    internal fun ensureWatching(notifySourceChange: Boolean) {
         val memoryLayout = provider.textKeyboardLayoutJson() != null
         val textLayoutPath = provider.textKeyboardLayoutFile()?.let { file ->
             runCatching { file.canonicalPath }.getOrElse { file.absolutePath }
@@ -217,7 +219,7 @@ object ConfigProviders {
         // Preview providers are intentionally isolated from the attached keyboard.
         // Notify only when a real file-backed layout source changes, for example when
         // the active profile changes while the provider object stays the same.
-        if (sourceChanged && hadObservedSource && !memoryLayout && !wasMemoryLayout) {
+        if (notifySourceChange && sourceChanged && hadObservedSource && !memoryLayout && !wasMemoryLayout) {
             notifyListeners(textLayoutListeners)
         }
 

@@ -39,6 +39,7 @@ import org.fxboomk.fcitx5.android.input.keyboard.switchToEnglishInputMode
 import org.fxboomk.fcitx5.android.input.picker.PickerWindow
 import org.fxboomk.fcitx5.android.input.status.StatusAreaWindow
 import org.fxboomk.fcitx5.android.input.status.KeyboardArrangementWindow
+import org.fxboomk.fcitx5.android.input.status.KeyboardLayoutProfileWindow
 import org.fxboomk.fcitx5.android.input.voice.VoiceInputProviderManager
 import org.fxboomk.fcitx5.android.input.wm.InputWindowManager
 import org.fxboomk.fcitx5.android.ui.main.settings.SettingsRoute
@@ -47,7 +48,6 @@ import org.fxboomk.fcitx5.android.ui.main.settings.behavior.FontsetEditorActivit
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.TextKeyboardLayoutEditorActivity
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.TextKeyboardLayoutProfileManagerActivity
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.dialog.TextKeyboardLayoutProfilePickerActivity
-import org.fxboomk.fcitx5.android.ui.main.settings.behavior.dialog.TextKeyboardLayoutProfilePickerDialog
 import org.fxboomk.fcitx5.android.utils.AppUtil
 import org.fxboomk.fcitx5.android.utils.InputMethodUtil
 import org.fxboomk.fcitx5.android.utils.buildDocumentsProviderIntent
@@ -810,10 +810,7 @@ data object KeyboardLayoutAction : ButtonAction() {
         view: View?,
         onActionComplete: (() -> Unit)?
     ) {
-        service.showDialog(TextKeyboardLayoutProfilePickerDialog.build(
-            context,
-            onProfileSelected = { onActionComplete?.invoke() }
-        ).apply { setTitle(defaultLabelRes) })
+        windowManager.attachWindow(KeyboardLayoutProfileWindow(onActionComplete))
     }
 }
 

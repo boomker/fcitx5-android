@@ -114,6 +114,7 @@ import org.fxboomk.fcitx5.android.input.picker.symbolPicker
 import org.fxboomk.fcitx5.android.input.popup.PopupComponent
 import org.fxboomk.fcitx5.android.input.preedit.PreeditComponent
 import org.fxboomk.fcitx5.android.input.status.ButtonsAdjustingWindow
+import org.fxboomk.fcitx5.android.input.status.KeyboardLayoutProfileWindow
 import org.fxboomk.fcitx5.android.input.status.StatusAreaWindow
 import android.graphics.Rect
 import android.graphics.Region
@@ -2876,6 +2877,14 @@ class InputView(
     @Keep
     private val onKeyboardSizeChangeListener = ManagedPreferenceProvider.OnChangeListener { key ->
         if (keyboardSizePrefs.any { it.key == key }) {
+            if (key == textKeyboardLayoutProfile.key &&
+                (windowManager.currentWindowOrNull() as? KeyboardLayoutProfileWindow)
+                    ?.isSelectingProfile == true
+            ) {
+                // This selection synchronously refreshes the layout below and closes the panel.
+                // Update the watched source before reading it, without scheduling a second refresh.
+                ConfigProviders.ensureWatching(notifySourceChange = false)
+            }
             if (key == keyboardPrefs.compositionAreaStyle.key ||
                 key == keyboardPrefs.toolbarDynamicHeight.key
             ) {

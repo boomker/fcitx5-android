@@ -4,6 +4,7 @@
  */
 package org.fxboomk.fcitx5.android.input.status
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Bitmap
@@ -18,6 +19,8 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
+import androidx.core.view.allViews
+import androidx.core.view.children
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.core.InputMethodEntry
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
@@ -25,12 +28,14 @@ import org.fxboomk.fcitx5.android.data.theme.Theme
 import org.fxboomk.fcitx5.android.data.theme.ThemeManager
 import org.fxboomk.fcitx5.android.input.keyboard.ShuangpinKeyboardLayout
 import org.fxboomk.fcitx5.android.input.keyboard.ShuangpinKeyboardLayouts
+import org.fxboomk.fcitx5.android.input.keyboard.Shuangpin18Keys
 import org.fxboomk.fcitx5.android.input.keyboard.TextKeyboard
 import org.fxboomk.fcitx5.android.input.keyboard.keyboardHeightPercentOverride
 import org.fxboomk.fcitx5.android.input.keyboard.resolveTextKeyboardLayout
 import splitties.dimensions.dp
 
 /** Static keyboard images keep preview keys from dispatching input or swallowing swipes. */
+@SuppressLint("ViewConstructor") // Created programmatically with an explicit theme and selection callback.
 internal class KeyboardArrangementPickerUi(
     context: Context,
     private val theme: Theme,
@@ -43,8 +48,15 @@ internal class KeyboardArrangementPickerUi(
     private var ime: InputMethodEntry? = null
     private var previewsDirty = true
     private var previewSize = 0 to 0
+    private var previewWidth = 0
+    private var previewGeneration = 0L
+    private var renderPosted = false
+    private var initialScrollPending = true
+    private var applyingInitialScroll = false
+    private var firstPreview = ShuangpinKeyboardLayout.Full
     internal val cards = linkedMapOf<ShuangpinKeyboardLayout, FrameLayout>()
     private val checkMarks = linkedMapOf<ShuangpinKeyboardLayout, ImageView>()
+    private val previewImages = linkedMapOf<ShuangpinKeyboardLayout, ImageView>()
 
     init {
         setPadding(dp(12), dp(12), dp(12), dp(16))
@@ -56,6 +68,9 @@ internal class KeyboardArrangementPickerUi(
 
     fun show(ime: InputMethodEntry) {
         this.ime = ime
+        previewGeneration++
+        renderPosted = false
+        initialScrollPending = true
         previewsDirty = true
         requestLayout()
     }
@@ -75,9 +90,62 @@ internal class KeyboardArrangementPickerUi(
         super.onMeasure(widthMeasureSpec, heightMeasureSpec)
     }
 
+    override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
+        super.onLayout(changed, left, top, right, bottom)
+        if (initialScrollPending) {
+            initialScrollPending = false
+            applyingInitialScroll = true
+            cards[firstPreview]?.let {
+                it.requestFocus()
+                scrollTo(it.left, 0)
+            }
+            applyingInitialScroll = false
+        }
+    }
+
+    override fun onScrollChanged(left: Int, top: Int, oldLeft: Int, oldTop: Int) {
+        super.onScrollChanged(left, top, oldLeft, oldTop)
+        requestVisiblePreviews()
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        requestVisiblePreviews()
+    }
+
+    override fun onDetachedFromWindow() {
+        previewGeneration++
+        renderPosted = false
+        super.onDetachedFromWindow()
+    }
+
+    private fun requestVisiblePreviews() {
+        if (initialScrollPending || applyingInitialScroll || renderPosted || width <= 0) return
+        val generation = previewGeneration
+        renderPosted = true
+        post {
+            if (generation != previewGeneration) return@post
+            renderPosted = false
+            if (!isAttachedToWindow) return@post
+            val viewportEnd = scrollX + width - paddingLeft - paddingRight
+            cards.forEach { (variant, card) ->
+                // The neighboring card's initial peek must not eagerly render the second image.
+                val center = card.left + card.width / 2
+                if (center in scrollX..viewportEnd) ensurePreview(variant)
+            }
+        }
+    }
+
+    private fun ensurePreview(variant: ShuangpinKeyboardLayout) {
+        val currentIme = ime ?: return
+        val image = previewImages[variant] ?: return
+        if (image.drawable == null) image.setImageBitmap(renderKeyboard(currentIme, variant, previewWidth))
+    }
+
     private fun renderPreviews(viewportWidth: Int, viewportHeight: Int) {
         val currentIme = ime ?: return
         clearPreviews()
+        previewWidth = viewportWidth
         // Leave part of the next card visible so horizontal browsing is discoverable.
         val cardWidth = (viewportWidth - paddingLeft - paddingRight - dp(32)).coerceAtLeast(dp(96))
         val cardHeight = viewportHeight - paddingTop - paddingBottom
@@ -105,7 +173,6 @@ internal class KeyboardArrangementPickerUi(
             val image = ImageView(context).apply {
                 scaleType = ImageView.ScaleType.FIT_CENTER
                 importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_NO
-                setImageBitmap(renderKeyboard(currentIme, layout, viewportWidth))
             }
             card.addView(image, FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT).apply {
                 bottomMargin = dp(32)
@@ -130,17 +197,15 @@ internal class KeyboardArrangementPickerUi(
             card.addView(check, FrameLayout.LayoutParams(dp(28), dp(28), Gravity.TOP or Gravity.END))
             cards[layout] = card
             checkMarks[layout] = check
+            previewImages[layout] = image
             content.addView(card, LinearLayout.LayoutParams(cardWidth, cardHeight).apply {
                 marginEnd = dp(12)
             })
         }
         val selected = ShuangpinKeyboardLayouts.read(currentIme.uniqueName)
         setSelected(selected)
-        post {
-            if (isAttachedToWindow && ime == currentIme) {
-                cards[selected]?.let { scrollTo(it.left, 0) }
-            }
-        }
+        firstPreview = ShuangpinKeyboardLayout.entries.first { it != selected }
+        ensurePreview(firstPreview)
     }
 
     fun setSelected(layout: ShuangpinKeyboardLayout) {
@@ -157,10 +222,14 @@ internal class KeyboardArrangementPickerUi(
     }
 
     fun clearPreviews() {
+        previewGeneration++
+        renderPosted = false
+        initialScrollPending = true
         previewsDirty = true
         content.removeAllViews()
         cards.clear()
         checkMarks.clear()
+        previewImages.clear()
     }
 
     private fun renderKeyboard(
@@ -170,29 +239,40 @@ internal class KeyboardArrangementPickerUi(
     ): Bitmap {
         val landscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
         val prefs = AppPrefs.getInstance().keyboard
-        val heightPercent = TextKeyboard.textLayoutJson?.let { json ->
+        val resolution = TextKeyboard.textLayoutJson?.let { json ->
             resolveTextKeyboardLayout(
                 json, ime.uniqueName, ime.displayName, ime.subMode.label,
                 subModeName = ime.subMode.name, layoutVariant = layout,
-            )?.keyboardHeightPercentOverride(landscape)
-        } ?: if (landscape) prefs.keyboardHeightPercentLandscape.getValue()
+            )
+        }
+        val heightPercent = resolution?.keyboardHeightPercentOverride(landscape)
+            ?: if (landscape) prefs.keyboardHeightPercentLandscape.getValue()
         else prefs.keyboardHeightPercent.getValue()
         val previewHeight = (resources.displayMetrics.heightPixels * heightPercent / 100).coerceAtLeast(1)
-        // Only the keyboard body is rendered: no toolbar or navigation bar.
-        val keyboard = TextKeyboard(context, theme, ime).apply {
-            layoutVariantOverride = layout
-            background = theme.backgroundDrawable(ThemeManager.prefs.keyBorder.getValue())
-            // Keep a neutral local Caps state so a locked real keyboard cannot
-            // turn the Compact18 preview into its temporary uppercase 26-key layout.
-            onInputMethodUpdate(ime)
-        }
-        keyboard.measure(
-            MeasureSpec.makeMeasureSpec(previewWidth, MeasureSpec.EXACTLY),
-            MeasureSpec.makeMeasureSpec(previewHeight, MeasureSpec.EXACTLY),
-        )
-        keyboard.layout(0, 0, previewWidth, previewHeight)
-        return Bitmap.createBitmap(previewWidth, previewHeight, Bitmap.Config.ARGB_8888).also {
-            keyboard.draw(Canvas(it))
+        return KeyboardArrangementPreviewCache.getOrRender(
+            context, theme, ime, layout, resolution?.rows, previewWidth, previewHeight,
+            layout == ShuangpinKeyboardLayout.Compact18 && Shuangpin18Keys.showSemicolon(ime.uniqueName),
+        ) {
+            // Only the keyboard body is rendered, with a neutral local Caps state.
+            val keyboard = TextKeyboard.createArrangementPreview(context, theme, ime, layout).apply {
+                background = theme.backgroundDrawable(ThemeManager.prefs.keyBorder.getValue())
+            }
+            repeat(2) { pass ->
+                // A wide keyboard can rebuild split rows when its real width first becomes known.
+                if (pass == 1 && keyboard.children.any { it.width == 0 || it.height == 0 }) {
+                    // ConstraintLayout must re-register new rows and their nested key constraints.
+                    keyboard.allViews.forEach { it.forceLayout() }
+                }
+                keyboard.requestLayout()
+                keyboard.measure(
+                    MeasureSpec.makeMeasureSpec(previewWidth, MeasureSpec.EXACTLY),
+                    MeasureSpec.makeMeasureSpec(previewHeight, MeasureSpec.EXACTLY),
+                )
+                keyboard.layout(0, 0, previewWidth, previewHeight)
+            }
+            Bitmap.createBitmap(previewWidth, previewHeight, Bitmap.Config.ARGB_8888).also {
+                keyboard.draw(Canvas(it))
+            }
         }
     }
 }

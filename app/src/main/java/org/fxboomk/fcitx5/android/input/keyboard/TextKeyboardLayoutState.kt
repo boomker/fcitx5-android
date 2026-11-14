@@ -116,12 +116,15 @@ internal class TextKeyboardLayoutState(
             ShuangpinKeyboardLayout.Full
         }
 
-    fun getLayout(theme: Theme): List<List<KeyDef>> =
-        if (useUppercaseLayout && layoutVariant() == ShuangpinKeyboardLayout.Compact18) {
-            TextKeyboard.getDefaultLayout(AppPrefs.getInstance().keyboard.showLangSwitchKey.getValue())
+    fun getLayout(theme: Theme): List<List<KeyDef>> {
+        val variant = layoutVariant()
+        val effectiveVariant = if (useUppercaseLayout && variant == ShuangpinKeyboardLayout.Compact18) {
+            ShuangpinKeyboardLayout.Full
         } else {
-            TextKeyboard.getLayout(ime, theme, layoutSubMode(), layoutVariant())
+            variant
         }
+        return TextKeyboard.getLayout(ime, theme, layoutSubMode(), effectiveVariant)
+    }
 
     companion object {
         private val activeSubModeTracker = RimeSubModeLayoutTracker()

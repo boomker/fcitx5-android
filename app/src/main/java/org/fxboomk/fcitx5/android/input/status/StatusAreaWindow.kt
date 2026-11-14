@@ -382,6 +382,7 @@ class StatusAreaWindow : InputWindow.ExtendedInputWindow<StatusAreaWindow>(),
                                 "cursor_movement",
                                 "clipboard",
                                 "symbol_keyboard",
+                                ButtonsLayoutConfig.KEYBOARD_LAYOUT_ID,
                                 ButtonsLayoutConfig.KEYBOARD_ARRANGEMENT_ID,
                                 ButtonsLayoutConfig.KEYBOARD_HEIGHT_ADJUST_ID
                             )
