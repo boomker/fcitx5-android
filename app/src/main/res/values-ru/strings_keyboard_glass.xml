@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="keyboard_top_corner_radius">Радиус верхних углов клавиатуры</string>
+    <string name="keyboard_glass_enabled">Стеклянный фон клавиатуры</string>
+    <string name="keyboard_glass_enabled_summary">Полупрозрачная клавиатура с размытием фона; если системное размытие недоступно, используется непрозрачный фон</string>
+    <string name="keyboard_glass_blur_radius">Размытие стеклянного фона</string>
+    <string name="keyboard_glass_background_opacity">Непрозрачность стеклянного фона</string>
+    <string name="key_opacity">Непрозрачность клавиш</string>
+</resources>

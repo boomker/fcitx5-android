@@ -21,16 +21,13 @@ import android.graphics.Paint
 import android.graphics.RenderEffect
 import android.graphics.Shader
 import androidx.core.content.ContextCompat
-import android.graphics.Outline
 import android.graphics.drawable.ColorDrawable
-import android.graphics.drawable.Drawable
 import android.os.Build
 import android.os.SystemClock
 import android.view.GestureDetector
 import android.view.View
 import android.view.ViewConfiguration
 import android.view.ViewGroup
-import android.view.ViewOutlineProvider
 import android.view.ViewTreeObserver
 import android.view.WindowInsets
 import android.view.Gravity
@@ -64,7 +61,6 @@ import org.fxboomk.fcitx5.android.data.prefs.SplitKeyboardStateManager
 import org.fxboomk.fcitx5.android.data.prefs.ManagedPreferenceProvider
 import org.fxboomk.fcitx5.android.data.theme.Theme
 import org.fxboomk.fcitx5.android.data.theme.ThemeManager
-import org.fxboomk.fcitx5.android.data.theme.ThemeMonet
 import org.fxboomk.fcitx5.android.input.bar.KawaiiBarComponent
 import org.fxboomk.fcitx5.android.ui.main.settings.PreeditStyleResolver
 import org.fxboomk.fcitx5.android.utils.DarkenColorFilter
@@ -121,6 +117,7 @@ import android.graphics.Region
 import android.view.MotionEvent
 import androidx.constraintlayout.widget.ConstraintLayout
 import java.io.File
+import kotlin.math.roundToInt
 import org.fxboomk.fcitx5.android.input.wm.InputWindowManager
 import org.fxboomk.fcitx5.android.utils.unset
 import org.fxboomk.fcitx5.android.utils.windowManager
@@ -169,21 +166,6 @@ class InputView(
     }
 
     private val keyBorder by ThemeManager.prefs.keyBorder
-
-    private fun resolveKeyboardBackgroundDrawable(): Drawable {
-        val baseDrawable = theme.backgroundDrawable(keyBorder)
-        if (theme.hasBackgroundImage) {
-            return baseDrawable
-        }
-        val baseColor = if (keyBorder) theme.backgroundColor else theme.keyboardColor
-        if (Color.alpha(baseColor) == 0) {
-            return baseDrawable
-        }
-        val monet = if (theme.isDark) ThemeMonet.getDark() else ThemeMonet.getLight()
-        val wallpaperTone = if (keyBorder) monet.backgroundColor else monet.keyboardColor
-        val blendRatio = (ThemeManager.prefs.wallpaperBlendPercent.getValue().coerceIn(0, 100)) / 100f
-        return ColorDrawable(ColorUtils.blendARGB(baseColor, wallpaperTone, blendRatio))
-    }
 
     private val customBackground = imageView {
         scaleType = ImageView.ScaleType.CENTER_CROP
@@ -1389,7 +1371,7 @@ class InputView(
         updateKeyboardSize()
         updateOneHandHandlePosition()
         syncKeyboardBoundsAfterLayout()
-        keyboardView.invalidateOutline()
+        updateKeyboardCorners()
         requestLayout()
     }
 
@@ -1657,14 +1639,28 @@ class InputView(
     private val floatingCornerRadiusPx: Int
         get() = dp(10)
 
-    private val keyboardOutlineProvider = object : ViewOutlineProvider() {
-        override fun getOutline(view: View, outline: Outline) {
-            val width = view.width
-            val height = view.height
-            if (width <= 0 || height <= 0) return
-            val radius = if (isEffectiveFloating) floatingCornerRadiusPx.toFloat() else 0f
-            outline.setRoundRect(0, 0, width, height, radius)
-        }
+    private var glassWindow: KeyboardGlassWindow? = null
+
+    private fun updateKeyboardCorners() {
+        val preference = ThemeManager.prefs.keyboardTopCornerRadius
+        val topRadius = if (isEffectiveFloating && !preference.sharedPreferences.contains(preference.key)) {
+            floatingCornerRadiusPx.toFloat()
+        } else dp(preference.getValue().coerceIn(0, 48).toFloat())
+        keyboardView.setCornerRadii(
+            topRadius,
+            if (isEffectiveFloating) floatingCornerRadiusPx.toFloat() else 0f
+        )
+    }
+
+    private fun updateGlassBackground(blurAvailable: Boolean) {
+        if (!ThemeManager.prefs.keyboardGlassEnabled.getValue() || theme.hasBackgroundImage) return
+        val color = if (keyBorder) theme.backgroundColor else theme.keyboardColor
+        val opacity = if (blurAvailable) {
+            ThemeManager.prefs.keyboardGlassBackgroundOpacity.getValue().coerceIn(0, 100)
+        } else 100
+        customBackground.imageDrawable = ColorDrawable(
+            ColorUtils.setAlphaComponent(color, (255 * opacity / 100f).roundToInt())
+        )
     }
 
     // Persistent storage for floating state and one-handed mode
@@ -2027,7 +2023,7 @@ class InputView(
             width = resolveFloatingWidth()
         }
         refreshKeyboardBounds()
-        keyboardView.invalidateOutline()
+        updateKeyboardCorners()
         // Force layout pass to update positions
         requestLayout()
 
@@ -2038,7 +2034,7 @@ class InputView(
     private fun applyFloatingHeight() {
         updateKeyboardSize()
         refreshKeyboardBounds()
-        keyboardView.invalidateOutline()
+        updateKeyboardCorners()
         // Force layout pass to update positions
         requestLayout()
 
@@ -2314,7 +2310,7 @@ class InputView(
 
         syncOneHandHandleUi()
         syncKeyboardBoundsAfterLayout()
-        keyboardView.invalidateOutline()
+        updateKeyboardCorners()
         requestLayout()
     }
 
@@ -2831,7 +2827,7 @@ class InputView(
         updateOneHandHandleVisibility()
         updateSplitBackgroundVisibility()
         // Request layout to apply changes to self and children
-        keyboardView.invalidateOutline()
+        updateKeyboardCorners()
         requestLayout()
     }
 
@@ -2923,7 +2919,7 @@ class InputView(
         }
     }
 
-    val keyboardView: View
+    val keyboardView: KeyboardSurfaceLayout
 
     override fun onTouchEvent(event: MotionEvent?): Boolean {
         if (event?.actionMasked == MotionEvent.ACTION_UP) performClick()
@@ -2965,13 +2961,14 @@ class InputView(
         val hasBlur = theme.shouldApplyBlur()
         Timber.d("InputView init: theme=${theme.name}, hasBackground=${theme.hasBackgroundImage}, enableBlur=$hasBlur")
         customBackground.imageDrawable = theme.backgroundDrawable(keyBorder)
+        updateGlassBackground(blurAvailable = false)
         updateBlurMaskThemeData()
 
         if (windowManager.view.id == View.NO_ID) {
             windowManager.view.id = View.generateViewId()
         }
 
-        keyboardView = constraintLayout {
+        keyboardView = KeyboardSurfaceLayout(context).apply {
             id = View.generateViewId()
             // allow MotionEvent to be delivered to keyboard while pressing on padding views.
             // although it should be default for apps targeting Honeycomb (3.0, API 11) and higher,
@@ -3021,10 +3018,9 @@ class InputView(
             })
         }
 
-        keyboardView.clipToOutline = true
-        keyboardView.outlineProvider = keyboardOutlineProvider
-        keyboardView.addOnLayoutChangeListener { view, left, _, right, _, oldLeft, _, oldRight, _ ->
-            view.invalidateOutline()
+        updateKeyboardCorners()
+        keyboardView.addOnLayoutChangeListener { _, left, _, right, _, oldLeft, _, oldRight, _ ->
+            updateKeyboardCorners()
             keyBlurMaskView.markKeyRegionsDirty()
             keyBlurMaskView.invalidate()
             if (right - left != oldRight - oldLeft) {
@@ -3908,8 +3904,21 @@ class InputView(
         ConfigProviders.addButtonsLayoutListener(onButtonsLayoutChangeListener)
     }
 
+    override fun onWindowVisibilityChanged(visibility: Int) {
+        super.onWindowVisibilityChanged(visibility)
+        glassWindow?.refresh()
+    }
+
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
+        if (ThemeManager.prefs.keyboardGlassEnabled.getValue() && !theme.hasBackgroundImage) {
+            glassWindow = KeyboardGlassWindow(
+                anchor = keyboardView,
+                cornerRadii = keyboardView::cornerRadii,
+                blurRadiusPx = { dp(ThemeManager.prefs.keyboardGlassBlurRadius.getValue().coerceIn(0, 80)) },
+                onBlurAvailabilityChanged = ::updateGlassBackground
+            ).also { it.attach() }
+        }
         internalPrefs.autoHideFloatingMoveHandle.sharedPreferences
             .registerOnSharedPreferenceChangeListener(autoHideMoveHandlePreferenceListener)
         if (autoHideFloatingMoveHandlePref && isEffectiveFloating) {
@@ -3920,6 +3929,8 @@ class InputView(
     }
 
     override fun onDetachedFromWindow() {
+        glassWindow?.dispose()
+        glassWindow = null
         removeCallbacks(floatingMoveHandleAutoHideRunnable)
         floatingHandlesWereEffective = false
         internalPrefs.autoHideFloatingMoveHandle.sharedPreferences

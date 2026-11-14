@@ -844,7 +844,7 @@
     <string name="theme_category_toolbar_style">Стиль панели инструментов</string>
     <string name="theme_category_candidate_style">Стиль кандидатов</string>
     <string name="theme_category_animation">Анимация и эффекты</string>
-    <string name="theme_category_theme_mode">Режим темы</string>
+    <string name="theme_category_theme_mode">Настройки клавиатуры</string>
     <string name="theme_category_other_style">Другие стили</string>
     <string name="theme_mode_summary_follow_system">Как в системе · %1$d светлая / %2$d тёмная</string>
     <string name="theme_mode_summary_manual">Вручную · %1$d светлая / %2$d тёмная</string>

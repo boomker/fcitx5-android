@@ -844,7 +844,7 @@
     <string name="theme_category_toolbar_style">ツールバーのスタイル</string>
     <string name="theme_category_candidate_style">候補のスタイル</string>
     <string name="theme_category_animation">アニメーションと効果</string>
-    <string name="theme_category_theme_mode">テーマモード</string>
+    <string name="theme_category_theme_mode">キーボード設定</string>
     <string name="theme_category_other_style">その他のスタイル</string>
     <string name="theme_mode_summary_follow_system">システムに従う · ライト %1$d / ダーク %2$d</string>
     <string name="theme_mode_summary_manual">手動 · ライト %1$d / ダーク %2$d</string>

@@ -187,7 +187,11 @@ class ThemeModeFragment : ThemeGroupFragment(ThemeManager.prefs) {
         }
 
     override fun onBuildPreferenceScreen(screen: PreferenceScreen) {
-        addThemePreferences(screen, ThemeManager.prefs, ThemeSettingsSupport.themeModeKeys)
+        val keyboardKeys = ThemeSettingsSupport.themeModeKeyboardKeys.toSet()
+        ThemeSettingsSupport.themeModeKeys.forEachIndexed { index, key ->
+            val provider = if (key in keyboardKeys) AppPrefs.getInstance().keyboard else ThemeManager.prefs
+            addManagedPreference(screen, provider, key)?.order = index
+        }
         ThemeManager.prefs.registerOnChangeListener(themeSelectionChangeListener)
     }
 

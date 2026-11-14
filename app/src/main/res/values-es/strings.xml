@@ -844,7 +844,7 @@
     <string name="theme_category_toolbar_style">Estilo de barra de herramientas</string>
     <string name="theme_category_candidate_style">Estilo de candidatos</string>
     <string name="theme_category_animation">Animación y efectos</string>
-    <string name="theme_category_theme_mode">Modo de tema</string>
+    <string name="theme_category_theme_mode">Configuración del teclado</string>
     <string name="theme_category_other_style">Otros estilos</string>
     <string name="theme_mode_summary_follow_system">Siguiendo el sistema · %1$d claro / %2$d oscuro</string>
     <string name="theme_mode_summary_manual">Manual · %1$d claro / %2$d oscuro</string>

@@ -42,6 +42,7 @@ import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.data.prefs.ManagedPreference
 import org.fxboomk.fcitx5.android.data.theme.Theme
 import org.fxboomk.fcitx5.android.data.theme.ThemeManager
+import org.fxboomk.fcitx5.android.input.KeyboardSurfaceLayout
 import org.fxboomk.fcitx5.android.input.bar.KawaiiBarComponent
 import org.fxboomk.fcitx5.android.input.bar.ui.ToolButton
 import org.fxboomk.fcitx5.android.input.bar.ui.idle.ButtonsBarUi
@@ -430,7 +431,7 @@ class KeyboardPreviewUi(
         }
     }
 
-    private val fakeInputView = constraintLayout {
+    private val fakeInputView = KeyboardSurfaceLayout(ctx).apply {
         add(bkg, lParams(matchConstraints, matchConstraints) {
             topOfParent()
             bottomOfParent()
@@ -527,7 +528,7 @@ class KeyboardPreviewUi(
 
         return ctx.constraintLayout {
             id = View.generateViewId()
-            backgroundColor = if (keyBorder) Color.TRANSPARENT else theme.barColor
+            backgroundColor = resolveBarBackgroundColor(theme)
             val buttonSize = ctx.dp(KawaiiBarComponent.configuredHeightDp())
             add(menuButton, lParams(buttonSize, buttonSize) {
                 startOfParent()
@@ -577,7 +578,7 @@ class KeyboardPreviewUi(
     }
 
     private fun resolveBarBackgroundColor(theme: Theme): Int {
-        return if (keyBorder) Color.TRANSPARENT else theme.barColor
+        return if (keyBorder || ThemeManager.prefs.keyboardGlassEnabled.getValue()) Color.TRANSPARENT else theme.barColor
     }
 
     private fun resolveBarBorderColor(theme: Theme, backgroundColor: Int): Int {
@@ -700,6 +701,7 @@ class KeyboardPreviewUi(
     }
 
     fun setBackground(drawable: Drawable) {
+        fakeInputView.setCornerRadii(ctx.dp(ThemeManager.prefs.keyboardTopCornerRadius.getValue().coerceIn(0, 48).toFloat()))
         bkg.imageDrawable = drawable
     }
 

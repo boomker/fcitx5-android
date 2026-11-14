@@ -66,6 +66,14 @@ class ThemeAppearanceFragment : ManagedPreferenceFragment(ThemeManager.prefs) {
             buildThemeModeSummary(ctx),
             SettingsRoute.ThemeMode
         )
+        addSummaryDestination(
+            screen,
+            ctx,
+            KEY_STYLE_ENTRY_KEY,
+            R.string.theme_category_key_style,
+            buildKeyStyleSummary(ctx),
+            SettingsRoute.ThemeKeyStyle
+        )
         screen.addPreference(
             SingleLineSummaryPreference(ctx).apply {
                 key = FONTSET_ENTRY_KEY
@@ -76,14 +84,6 @@ class ThemeAppearanceFragment : ManagedPreferenceFragment(ThemeManager.prefs) {
                     startActivity(Intent(requireContext(), FontsetEditorActivity::class.java))
                 }
             }
-        )
-        addSummaryDestination(
-            screen,
-            ctx,
-            KEY_STYLE_ENTRY_KEY,
-            R.string.theme_category_key_style,
-            buildKeyStyleSummary(ctx),
-            SettingsRoute.ThemeKeyStyle
         )
         addSummaryDestination(
             screen,

@@ -167,7 +167,7 @@
     <string name="theme_category_toolbar_style">Toolbar style</string>
     <string name="theme_category_candidate_style">Candidate style</string>
     <string name="theme_category_animation">Animation and effects</string>
-    <string name="theme_category_theme_mode">Theme mode</string>
+    <string name="theme_category_theme_mode">Keyboard settings</string>
     <string name="theme_category_other_style">Other styles</string>
     <string name="theme_mode_summary_follow_system">Following system · %1$d light / %2$d dark</string>
     <string name="theme_mode_summary_manual">Manual · %1$d light / %2$d dark</string>

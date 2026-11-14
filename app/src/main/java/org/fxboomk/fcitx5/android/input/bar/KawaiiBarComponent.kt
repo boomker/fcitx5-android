@@ -774,7 +774,9 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
     }
 
     private fun resolveBarBackgroundColor(): Int {
-        return if (ThemeManager.prefs.keyBorder.getValue()) Color.TRANSPARENT else theme.barColor
+        return if (ThemeManager.prefs.keyBorder.getValue() ||
+            ThemeManager.prefs.keyboardGlassEnabled.getValue()
+        ) Color.TRANSPARENT else theme.barColor
     }
 
     private fun resolveBarBorderColor(backgroundColor: Int): Int {

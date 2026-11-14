@@ -19,6 +19,7 @@ class ThemeSettingsOrganizationTest {
                 "key_border",
                 "key_border_stroke",
                 "gboard_style_side_keys",
+                "key_opacity",
                 "key_radius",
                 "key_horizontal_margin",
                 "key_vertical_margin",
@@ -32,10 +33,7 @@ class ThemeSettingsOrganizationTest {
                 "show_lang_switch_key",
                 "keep_keyboard_letters_uppercase",
                 "popup_on_key_press",
-                "space_key_label_mode",
-                "keyboard_height_percent",
-                "keyboard_side_padding",
-                "keyboard_bottom_padding"
+                "space_key_label_mode"
             ),
             ThemeSettingsSupport.keyStyleKeyboardKeys
         )
@@ -47,15 +45,13 @@ class ThemeSettingsOrganizationTest {
                 "show_lang_switch_key",
                 "keep_keyboard_letters_uppercase",
                 "popup_on_key_press",
+                "key_opacity",
                 "key_radius",
                 "key_horizontal_margin",
                 "key_vertical_margin",
                 "punctuation_position",
                 "uppercase_position",
-                "space_key_label_mode",
-                "keyboard_height_percent",
-                "keyboard_side_padding",
-                "keyboard_bottom_padding"
+                "space_key_label_mode"
             ),
             ThemeSettingsSupport.keyStyleKeys
         )
@@ -67,14 +63,12 @@ class ThemeSettingsOrganizationTest {
                 "keep_keyboard_letters_uppercase",
                 "popup_on_key_press",
                 "gboard_style_side_keys",
+                "key_opacity",
                 "key_radius",
                 "key_horizontal_margin",
                 "key_vertical_margin",
                 "punctuation_position",
                 "uppercase_position",
-                "keyboard_height_percent",
-                "keyboard_side_padding",
-                "keyboard_bottom_padding",
                 "space_key_label_mode"
             ),
             ThemeSettingsSupport.keyStyleDisplayKeys
@@ -126,12 +120,16 @@ class ThemeSettingsOrganizationTest {
         )
         assertEquals(
             listOf(
+                "keyboard_height_percent",
+                "keyboard_side_padding",
+                "keyboard_bottom_padding",
+                "keyboard_top_corner_radius",
+                "keyboard_glass_enabled",
+                "keyboard_glass_blur_radius",
+                "keyboard_glass_background_opacity",
                 "follow_system_dark_mode",
                 "light_mode_themes",
-                "dark_mode_themes",
-                "gboard_light_main_key_tone",
-                "gboard_light_other_key_tone",
-                "wallpaper_blend_percent"
+                "dark_mode_themes"
             ),
             ThemeSettingsSupport.themeModeKeys
         )
@@ -188,7 +186,7 @@ class ThemeSettingsOrganizationTest {
     fun everyThemePreferenceAppearsInExactlyOneGroup() {
         val themeKeys = ThemeSettingsSupport.keyStyleThemeKeys +
             ThemeSettingsSupport.toolbarStyleThemeKeys +
-            ThemeSettingsSupport.themeModeKeys +
+            ThemeSettingsSupport.themeModeThemeKeys +
             ThemeSettingsSupport.animationThemeKeys +
             ThemeSettingsSupport.otherStyleThemeKeys
         assertEquals(
@@ -198,6 +196,11 @@ class ThemeSettingsOrganizationTest {
                 "key_ripple_effect",
                 "gboard_style_side_keys",
                 "key_radius",
+                "keyboard_top_corner_radius",
+                "keyboard_glass_enabled",
+                "keyboard_glass_blur_radius",
+                "keyboard_glass_background_opacity",
+                "key_opacity",
                 "key_horizontal_margin",
                 "key_vertical_margin",
                 "punctuation_position",
@@ -211,10 +214,7 @@ class ThemeSettingsOrganizationTest {
                 "text_selection_button_radius",
                 "follow_system_dark_mode",
                 "light_mode_themes",
-                "dark_mode_themes",
-                "gboard_light_main_key_tone",
-                "gboard_light_other_key_tone",
-                "wallpaper_blend_percent"
+                "dark_mode_themes"
             ),
             themeKeys.toSet()
         )

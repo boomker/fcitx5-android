@@ -244,12 +244,14 @@ abstract class KeyView(
             val bkgColor = resolveBackgroundColor(theme, defaultBkgColor)
             val borderOrShadowWidth = dp(1)
             // background: key border
-            appearanceView.background = if (borderStroke) borderedKeyBackgroundDrawable(
-                bkgColor, resolveShadowColor(theme),
-                radius, borderOrShadowWidth, hMargin, vMargin
-            ) else shadowedKeyBackgroundDrawable(
-                bkgColor, resolveShadowColor(theme),
-                radius, borderOrShadowWidth, hMargin, vMargin
+            appearanceView.background = decorateGlassKeyBackground(
+                if (borderStroke) borderedKeyBackgroundDrawable(
+                    bkgColor, resolveShadowColor(theme),
+                    radius, borderOrShadowWidth, hMargin, vMargin
+                ) else shadowedKeyBackgroundDrawable(
+                    bkgColor, resolveShadowColor(theme),
+                    radius, borderOrShadowWidth, hMargin, vMargin
+                )
             )
             // foreground: press highlight or ripple
             setupPressHighlight()
@@ -277,12 +279,32 @@ abstract class KeyView(
     }
 
     protected fun resolveBackgroundColor(theme: Theme, defaultColor: Int): Int {
-        return resolveColorOverride(theme, def.backgroundColor, def.backgroundColorMonet) ?: defaultColor
+        val color = resolveColorOverride(theme, def.backgroundColor, def.backgroundColorMonet) ?: defaultColor
+        val opacity = ThemeManager.prefs.keyOpacity.getValue().coerceIn(0, 100)
+        return (color and 0x00ffffff) or ((Color.alpha(color) * opacity / 100) shl 24)
     }
 
     protected fun resolveShadowColor(theme: Theme): Int {
+        // The ordinary shadow is a filled shape underneath the entire key; keeping it
+        // would make a translucent key opaque again, including with glass disabled.
+        if (ThemeManager.prefs.keyboardGlassEnabled.getValue() ||
+            ThemeManager.prefs.keyOpacity.getValue() < 100
+        ) return Color.TRANSPARENT
         return resolveColorOverride(theme, def.shadowColor, def.shadowColorMonet) ?: theme.keyShadowColor
     }
+
+    private fun decorateGlassKeyBackground(
+        background: Drawable,
+        horizontalInset: Int = hMargin,
+        verticalInset: Int = vMargin,
+        cornerRadius: Float = radius,
+        oval: Boolean = false
+    ): Drawable = if (ThemeManager.prefs.keyboardGlassEnabled.getValue()) {
+        GlassKeyDrawable(
+            background, horizontalInset, verticalInset, cornerRadius,
+            resources.displayMetrics.density, theme.isDark, oval
+        )
+    } else background
 
     protected fun resolveTextColor(defaultColor: Int): Int {
         return resolveColorOverride(theme, def.textColor, def.textColorMonet) ?: defaultColor
@@ -314,7 +336,9 @@ abstract class KeyView(
     ) {
         val (hInset, vInset) = resolveSideKeyCircleInsets(viewWidth, viewHeight)
         isCircularSideKey = true
-        appearanceView.background = insetOvalDrawable(hInset, vInset, backgroundColor)
+        appearanceView.background = decorateGlassKeyBackground(
+            insetOvalDrawable(hInset, vInset, backgroundColor), hInset, vInset, oval = true
+        )
         // Keep content inside the visible circular background when the side key becomes short.
         appearanceView.setPadding(hInset, vInset, hInset, vInset)
         setupPressHighlight(
@@ -328,9 +352,11 @@ abstract class KeyView(
     private fun applyRoundedSideKeyBackground(@ColorInt backgroundColor: Int) {
         val borderOrShadowWidth = dp(1)
         isCircularSideKey = false
-        appearanceView.background = shadowedKeyBackgroundDrawable(
-            backgroundColor, resolveShadowColor(theme),
-            radius, borderOrShadowWidth, hMargin, vMargin
+        appearanceView.background = decorateGlassKeyBackground(
+            shadowedKeyBackgroundDrawable(
+                backgroundColor, resolveShadowColor(theme),
+                radius, borderOrShadowWidth, hMargin, vMargin
+            )
         )
         appearanceView.padding = 0
         setupPressHighlight(
@@ -486,8 +512,10 @@ abstract class KeyView(
                 val minHeight = dp(26)
                 val hInset = dp(10)
                 val vInset = if (h < minHeight) 0 else min((h - minHeight) / 2, dp(16))
-                appearanceView.background = insetRadiusDrawable(
-                    hInset, vInset, bkgRadius, resolveBackgroundColor(theme, theme.spaceBarColor)
+                appearanceView.background = decorateGlassKeyBackground(
+                    insetRadiusDrawable(
+                        hInset, vInset, bkgRadius, resolveBackgroundColor(theme, theme.spaceBarColor)
+                    ), hInset, vInset, bkgRadius
                 )
                 // InsetDrawable sets padding to container view; remove padding to prevent text from bing clipped
                 appearanceView.padding = 0
@@ -562,12 +590,14 @@ abstract class KeyView(
             val bkgColor = resolveBackgroundColor(newTheme, defaultBkgColor)
             val borderOrShadowWidth = dp(1)
             // background: key border
-            appearanceView.background = if (borderStroke) borderedKeyBackgroundDrawable(
-                bkgColor, resolveShadowColor(newTheme),
-                radius, borderOrShadowWidth, hMargin, vMargin
-            ) else shadowedKeyBackgroundDrawable(
-                bkgColor, resolveShadowColor(newTheme),
-                radius, borderOrShadowWidth, hMargin, vMargin
+            appearanceView.background = decorateGlassKeyBackground(
+                if (borderStroke) borderedKeyBackgroundDrawable(
+                    bkgColor, resolveShadowColor(newTheme),
+                    radius, borderOrShadowWidth, hMargin, vMargin
+                ) else shadowedKeyBackgroundDrawable(
+                    bkgColor, resolveShadowColor(newTheme),
+                    radius, borderOrShadowWidth, hMargin, vMargin
+                )
             )
         }
         // Update press highlight for all keys

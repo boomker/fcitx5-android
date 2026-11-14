@@ -842,7 +842,7 @@
     <string name="theme_category_toolbar_style">Symbolleistenstil</string>
     <string name="theme_category_candidate_style">Kandidatenstil</string>
     <string name="theme_category_animation">Animation und Effekte</string>
-    <string name="theme_category_theme_mode">Themenmodus</string>
+    <string name="theme_category_theme_mode">Tastatureinstellungen</string>
     <string name="theme_category_other_style">Weitere Stile</string>
     <string name="theme_mode_summary_follow_system">System folgen · %1$d hell / %2$d dunkel</string>
     <string name="theme_mode_summary_manual">Manuell · %1$d hell / %2$d dunkel</string>

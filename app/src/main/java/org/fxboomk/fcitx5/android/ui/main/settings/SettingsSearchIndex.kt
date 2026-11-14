@@ -494,7 +494,15 @@ object SettingsSearchIndex {
             SettingsRoute.ThemeMode,
             pagePath,
             R.string.theme_category_theme_mode,
-            ThemeSettingsSupport.themeModeKeys
+            ThemeSettingsSupport.themeModeThemeKeys
+        )
+        addThemeSection(
+            context,
+            prefs.keyboard,
+            SettingsRoute.ThemeMode,
+            pagePath,
+            R.string.theme_category_theme_mode,
+            ThemeSettingsSupport.themeModeKeyboardKeys
         )
         addThemeSection(
             context,

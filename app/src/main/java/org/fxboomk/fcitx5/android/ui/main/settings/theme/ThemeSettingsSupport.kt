@@ -18,6 +18,7 @@ internal object ThemeSettingsSupport {
     )
 
     val keyStyleThemeNonSwitchKeys = listOf(
+        "key_opacity",
         "key_radius",
         "key_horizontal_margin",
         "key_vertical_margin",
@@ -32,10 +33,7 @@ internal object ThemeSettingsSupport {
     )
 
     val keyStyleKeyboardNonSwitchKeys = listOf(
-        "space_key_label_mode",
-        "keyboard_height_percent",
-        "keyboard_side_padding",
-        "keyboard_bottom_padding"
+        "space_key_label_mode"
     )
 
     val keyStyleThemeKeys = keyStyleThemeSwitchKeys + keyStyleThemeNonSwitchKeys
@@ -55,14 +53,12 @@ internal object ThemeSettingsSupport {
         "keep_keyboard_letters_uppercase",
         "popup_on_key_press",
         "gboard_style_side_keys",
+        "key_opacity",
         "key_radius",
         "key_horizontal_margin",
         "key_vertical_margin",
         "punctuation_position",
         "uppercase_position",
-        "keyboard_height_percent",
-        "keyboard_side_padding",
-        "keyboard_bottom_padding",
         "space_key_label_mode"
     )
 
@@ -144,14 +140,24 @@ internal object ThemeSettingsSupport {
 
     val animationKeys = animationThemeKeys + animationAdvancedKeys
 
-    val themeModeKeys = listOf(
+    val themeModeKeyboardKeys = listOf(
+        "keyboard_height_percent",
+        "keyboard_side_padding",
+        "keyboard_bottom_padding"
+    )
+
+    val themeModeThemeKeys = listOf(
+        "keyboard_top_corner_radius",
+        "keyboard_glass_enabled",
+        "keyboard_glass_blur_radius",
+        "keyboard_glass_background_opacity",
         "follow_system_dark_mode",
         "light_mode_themes",
-        "dark_mode_themes",
-        "gboard_light_main_key_tone",
-        "gboard_light_other_key_tone",
-        "wallpaper_blend_percent"
+        "dark_mode_themes"
     )
+
+    // The keyboard controls precede the existing light/dark theme selection.
+    val themeModeKeys = themeModeKeyboardKeys + themeModeThemeKeys
 
     /**
      * Preferences that keep living in [org.fxboomk.fcitx5.android.data.prefs.AppPrefs.Advanced]

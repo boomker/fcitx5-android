@@ -13,23 +13,25 @@ import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.data.prefs.ManagedPreference
 import org.fxboomk.fcitx5.android.data.prefs.ManagedPreferenceCategory
 import org.fxboomk.fcitx5.android.data.prefs.ManagedPreferenceEnum
+import kotlin.math.roundToInt
 
 class ThemePrefs(sharedPreferences: SharedPreferences) :
     ManagedPreferenceCategory(R.string.theme, sharedPreferences) {
 
     companion object {
-        const val DefaultMainKeyOpacity = 100
-        const val DefaultNonMainKeyOpacity = 100
+        private const val DefaultMainKeyOpacity = 100
+        private const val DefaultNonMainKeyOpacity = 100
         private const val GboardOpacitySemanticsMigratedKey =
             "gboard_key_opacity_semantics_migrated"
     }
 
     init {
         migrateLegacyGboardOpacitySemanticsIfNeeded()
+        migrateLegacyKeyOpacityIfNeeded()
     }
 
     private fun migrateLegacyGboardOpacitySemanticsIfNeeded() {
-        if (sharedPreferences.getBoolean(GboardOpacitySemanticsMigratedKey, false)) return
+        if (sharedPreferences.all[GboardOpacitySemanticsMigratedKey] == true) return
         sharedPreferences.edit {
             migrateLegacyGboardOpacityValue("gboard_light_main_key_tone", DefaultMainKeyOpacity)
             migrateLegacyGboardOpacityValue("gboard_light_other_key_tone", DefaultNonMainKeyOpacity)
@@ -42,6 +44,38 @@ class ThemePrefs(sharedPreferences: SharedPreferences) :
         val storedValue = (sharedPreferences.all[key] as? Int) ?: defaultValue
         if (storedValue in 0..100) {
             putInt(key, 100 - storedValue)
+        }
+    }
+
+    private fun migrateLegacyKeyOpacityIfNeeded() {
+        if (sharedPreferences.contains("key_opacity")) return
+        val legacy = sharedPreferences.all
+        val mainKey = "gboard_light_main_key_tone"
+        val otherKey = "gboard_light_other_key_tone"
+        val glassKey = "keyboard_glass_key_opacity"
+        if (mainKey !in legacy && otherKey !in legacy && glassKey !in legacy) return
+
+        val main = normalizeLegacyKeyOpacity(legacy[mainKey])
+        val other = normalizeLegacyKeyOpacity(legacy[otherKey])
+        val regionOpacity = if (main != 100) main else other
+        val opacity = if (glassKey in legacy && legacy["keyboard_glass_enabled"] == true) {
+            val glass = ((legacy[glassKey] as? Int) ?: 100).coerceIn(0, 100)
+            (regionOpacity * glass / 100f).roundToInt()
+        } else {
+            regionOpacity
+        }
+        sharedPreferences.edit { putInt("key_opacity", opacity) }
+    }
+
+    private fun normalizeLegacyKeyOpacity(value: Any?): Int {
+        val rawValue = value as? Int ?: return 100
+        return when {
+            rawValue in 0..100 -> rawValue
+            rawValue in -1..255 -> {
+                val tone = if (rawValue < 0) 255 else rawValue
+                tone * 100 / 255
+            }
+            else -> 100
         }
     }
 
@@ -124,6 +158,46 @@ class ThemePrefs(sharedPreferences: SharedPreferences) :
     }
 
     val keyRadius = int(R.string.key_radius, "key_radius", 4, 0, 48, "dp")
+
+    val keyboardTopCornerRadius = int(
+        R.string.keyboard_top_corner_radius, "keyboard_top_corner_radius", 0, 0, 48, "dp"
+    )
+
+    val keyboardGlassEnabled = switch(
+        R.string.keyboard_glass_enabled,
+        "keyboard_glass_enabled",
+        false,
+        summary = R.string.keyboard_glass_enabled_summary
+    )
+
+    val keyboardGlassBlurRadius = int(
+        R.string.keyboard_glass_blur_radius,
+        "keyboard_glass_blur_radius",
+        24,
+        0,
+        80,
+        "dp",
+        enableUiOn = { keyboardGlassEnabled.getValue() }
+    )
+
+    val keyboardGlassBackgroundOpacity = int(
+        R.string.keyboard_glass_background_opacity,
+        "keyboard_glass_background_opacity",
+        70,
+        0,
+        100,
+        "%",
+        enableUiOn = { keyboardGlassEnabled.getValue() }
+    )
+
+    val keyOpacity = int(
+        R.string.key_opacity,
+        "key_opacity",
+        100,
+        0,
+        100,
+        "%"
+    )
 
     // Toolbar height in dp, shared by the toolbar and the horizontal candidate bar.
     // Factory default is KawaiiBarComponent.HEIGHT (40dp).
@@ -210,33 +284,6 @@ class ThemePrefs(sharedPreferences: SharedPreferences) :
         it.register()
     }
 
-    val gboardMainKeyOpacity = int(
-        R.string.gboard_light_main_key_tone,
-        "gboard_light_main_key_tone",
-        DefaultMainKeyOpacity,
-        0,
-        100,
-        "%"
-    )
-
-    val gboardNonMainKeyOpacity = int(
-        R.string.gboard_light_other_key_tone,
-        "gboard_light_other_key_tone",
-        DefaultNonMainKeyOpacity,
-        0,
-        100,
-        "%"
-    )
-
-    val wallpaperBlendPercent = int(
-        R.string.wallpaper_blend_percent,
-        "wallpaper_blend_percent",
-        0,
-        0,
-        100,
-        "%"
-    )
-
     /**
      * Selected themes for light mode. Multiple themes can be selected and cycled through.
      */
@@ -295,8 +342,6 @@ class ThemePrefs(sharedPreferences: SharedPreferences) :
         lightModeThemes.key,
         darkModeThemes.key,
         currentLightThemeIndex.key,
-        currentDarkThemeIndex.key,
-        gboardMainKeyOpacity.key,
-        gboardNonMainKeyOpacity.key
+        currentDarkThemeIndex.key
     )
 }

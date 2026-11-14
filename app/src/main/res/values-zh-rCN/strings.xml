@@ -165,7 +165,7 @@
     <string name="theme_category_toolbar_style">工具栏样式</string>
     <string name="theme_category_candidate_style">候选词样式</string>
     <string name="theme_category_animation">动画与特效</string>
-    <string name="theme_category_theme_mode">主题模式</string>
+    <string name="theme_category_theme_mode">键盘设定</string>
     <string name="theme_category_other_style">其他样式</string>
     <string name="theme_mode_summary_follow_system">跟随系统 · 亮色 %1$d / 暗色 %2$d</string>
     <string name="theme_mode_summary_manual">手动 · 亮色 %1$d / 暗色 %2$d</string>

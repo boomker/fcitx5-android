@@ -10,7 +10,6 @@ import android.os.Handler
 import android.os.Looper
 import androidx.annotation.Keep
 import androidx.core.content.edit
-import androidx.core.graphics.ColorUtils
 import androidx.preference.PreferenceManager
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.data.prefs.ManagedPreferenceProvider
@@ -329,80 +328,11 @@ object ThemeManager {
     }
 
     private fun evaluateActiveTheme(): Theme {
-        val rawTheme = if (prefs.followSystemDayNightTheme.getValue()) {
+        return if (prefs.followSystemDayNightTheme.getValue()) {
             if (isDarkMode) getCurrentDarkTheme() else getCurrentLightTheme()
         } else {
             prefs.normalModeTheme.getValue()
         }
-        return normalizeThemeKeyAreaColors(rawTheme)
-    }
-
-    private fun normalizeThemeKeyAreaColors(theme: Theme): Theme {
-        val mainOpacity = normalizeOpacityPercent(
-            prefs.gboardMainKeyOpacity.getValue(),
-            ThemePrefs.DefaultMainKeyOpacity
-        )
-        val nonMainOpacity = normalizeOpacityPercent(
-            prefs.gboardNonMainKeyOpacity.getValue(),
-            ThemePrefs.DefaultNonMainKeyOpacity
-        )
-        // 100% means "keep the theme's own alpha": imported themes may rely on
-        // translucent key colors (e.g. keys over a gradient background), forcing
-        // full opacity there destroys the design.
-        if (mainOpacity >= 100 && nonMainOpacity >= 100) return theme
-
-        val mainKeyColor =
-            if (mainOpacity >= 100) theme.keyBackgroundColor
-            else withOpacity(theme.keyBackgroundColor, mainOpacity)
-        val nonMainKeyColor =
-            if (nonMainOpacity >= 100) theme.altKeyBackgroundColor
-            else withOpacity(theme.altKeyBackgroundColor, nonMainOpacity)
-        val spaceBarColor =
-            if (mainOpacity >= 100) theme.spaceBarColor
-            else withOpacity(theme.spaceBarColor, mainOpacity)
-        val clipboardColor =
-            if (mainOpacity >= 100) theme.clipboardEntryColor
-            else withOpacity(theme.clipboardEntryColor, mainOpacity)
-        return when (theme) {
-            is Theme.Builtin -> theme.copy(
-                keyBackgroundColor = mainKeyColor,
-                altKeyBackgroundColor = nonMainKeyColor,
-                spaceBarColor = spaceBarColor,
-                clipboardEntryColor = clipboardColor
-            )
-
-            is Theme.Custom -> theme.copy(
-                keyBackgroundColor = mainKeyColor,
-                altKeyBackgroundColor = nonMainKeyColor,
-                spaceBarColor = spaceBarColor,
-                clipboardEntryColor = clipboardColor
-            )
-
-            is Theme.Monet -> theme.copy(
-                keyBackgroundColor = mainKeyColor,
-                altKeyBackgroundColor = nonMainKeyColor,
-                spaceBarColor = spaceBarColor,
-                clipboardEntryColor = clipboardColor
-            )
-        }
-    }
-
-    private fun normalizeOpacityPercent(rawValue: Int, defaultValue: Int): Int {
-        return when {
-            rawValue in 0..100 -> rawValue
-            rawValue in -1..255 -> {
-                // Migration for previous "tone" values.
-                val tone = if (rawValue < 0) 255 else rawValue
-                (tone * 100 / 255).coerceIn(0, 100)
-            }
-
-            else -> defaultValue
-        }
-    }
-
-    private fun withOpacity(color: Int, opacityPercent: Int): Int {
-        val alpha = (opacityPercent.coerceIn(0, 100) * 255 / 100)
-        return ColorUtils.setAlphaComponent(color, alpha)
     }
 
     @Keep
