@@ -1201,6 +1201,8 @@
     <string name="pinyin_config_phrase_limit">Phrase limit</string>
     <string name="pinyin_config_sentence_count">Sentence count</string>
     <string name="pinyin_config_long_word_hint">Long word threshold</string>
+    <string name="pinyin_config_partial_sp_length">Abbreviation minimum length</string>
+    <string name="pinyin_config_partial_sp_length_summary">Minimum input length in keys (2–4; default 4). Requires partial Shuangpin matching to be enabled.</string>
     <string name="pinyin_config_prediction">Enable prediction</string>
     <string name="pinyin_config_keep_context">Keep context</string>
     <string name="pinyin_config_learning">Learning</string>
@@ -1231,13 +1233,13 @@
     <string name="pinyin_config_fuzzy_partial_final">Match partial finals</string>
     <string name="pinyin_config_fuzzy_partial_sp">Partial shuangpin match</string>
     <string name="pinyin_config_fuzzy_correction">Neighbor-key correction</string>
-    <string name="pinyin_config_fuzzy_correction_summary">Correct nearby-key typos using the keyboard layout.</string>
+    <string name="pinyin_config_fuzzy_correction_summary">Correct adjacent QWERTY key typos on the 26-key layout; disabled on the 18-key layout.</string>
     <string name="pinyin_config_fuzzy_common_typo_summary">Try matching common pinyin misspellings.</string>
     <string name="pinyin_config_fuzzy_inner_summary">Allow one pinyin syllable to split into two, such as xian → xi\'an.</string>
     <string name="pinyin_config_fuzzy_inner_short_summary">Allow splits in shorter pinyin, such as qie → qi\'e.</string>
     <string name="pinyin_config_fuzzy_lowercase_summary">Also match a single lowercase letter as that Latin letter, e.g. xguang → X光; when off, type Xguang.</string>
     <string name="pinyin_config_fuzzy_partial_final_summary">Allow an initial final to match longer finals, e.g. e to en, eng, or ei.</string>
-    <string name="pinyin_config_fuzzy_partial_sp_summary">Allow partial Shuangpin matching when the input is at least 4 characters long.</string>
+    <string name="pinyin_config_fuzzy_partial_sp_summary">Allow partial Shuangpin matching once the input reaches the configured length (default 4).</string>
     <string name="pinyin_config_commit_preedit">Commit preedit</string>
     <!-- Addon display names -->
     <string name="addon_unicode_name">Character set extensions</string>

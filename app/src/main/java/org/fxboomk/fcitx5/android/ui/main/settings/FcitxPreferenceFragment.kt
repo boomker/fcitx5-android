@@ -57,6 +57,9 @@ abstract class FcitxPreferenceFragment : PaddingPreferenceFragment() {
 
     protected open fun getShuangpinKeyboardInputMethod(): String? = null
 
+    /** Refresh view-only state after the asynchronous preference creation. */
+    protected open fun onPreferenceScreenReady() = Unit
+
     abstract suspend fun obtainConfig(fcitx: FcitxAPI): RawConfig
     abstract suspend fun saveConfig(fcitx: FcitxAPI, newConfig: RawConfig)
 
@@ -160,6 +163,7 @@ abstract class FcitxPreferenceFragment : PaddingPreferenceFragment() {
                     preferenceScreen.addPreference(preference)
                 }
             }
+            onPreferenceScreenReady()
             PreferenceScrollHelper.scrollToPendingPreference(
                 this@FcitxPreferenceFragment,
                 viewModel,

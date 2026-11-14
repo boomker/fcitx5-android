@@ -100,7 +100,8 @@ private object PinyinConfigLayout {
                 "PinyinInPreedit",
                 "ShowShuangpinMode",
                 "PreeditMode",
-                "ShuangpinProfile"
+                "ShuangpinProfile",
+                "PartialSpLength"
             )
         ),
         ConfigLayout.Section(
@@ -294,10 +295,14 @@ private object PinyinConfigLayout {
             sectionNavigation = true,
             fallbackSectionTitle = R.string.pinyin_config_section_other,
             titleOverrides = (if (shortTitles) titleOverrides else emptyMap()) +
-                mapOf("PreeditMode" to R.string.preedit_style),
+                mapOf(
+                    "PreeditMode" to R.string.preedit_style,
+                    "PartialSpLength" to R.string.pinyin_config_partial_sp_length
+                ),
             summaryOverrides = mapOf(
                 "PreeditCursorPositionAtBeginning" to
-                    R.string.pinyin_config_cursor_at_start_summary
+                    R.string.pinyin_config_cursor_at_start_summary,
+                "PartialSpLength" to R.string.pinyin_config_partial_sp_length_summary
             ),
             entryTitleOverrides = if (shortTitles) {
                 mapOf(

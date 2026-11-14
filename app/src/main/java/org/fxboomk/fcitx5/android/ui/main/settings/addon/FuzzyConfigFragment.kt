@@ -11,10 +11,16 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.core.view.doOnLayout
+import androidx.lifecycle.lifecycleScope
+import androidx.preference.Preference
+import androidx.preference.PreferenceScreen
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.ui.main.MainViewModel
 import org.fxboomk.fcitx5.android.ui.main.settings.SettingsRoute
@@ -22,6 +28,11 @@ import org.fxboomk.fcitx5.android.ui.main.settings.ConfigLayout
 import org.fxboomk.fcitx5.android.ui.main.settings.FcitxPreferenceFragment
 import org.fxboomk.fcitx5.android.core.FcitxAPI
 import org.fxboomk.fcitx5.android.core.RawConfig
+import org.fxboomk.fcitx5.android.core.FcitxEvent
+import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
+import org.fxboomk.fcitx5.android.data.prefs.ManagedPreference
+import org.fxboomk.fcitx5.android.input.keyboard.ShuangpinKeyboardLayout
+import org.fxboomk.fcitx5.android.input.keyboard.ShuangpinKeyboardLayouts
 import org.fxboomk.fcitx5.android.utils.lazyRoute
 
 class FuzzyConfigFragment : Fragment() {
@@ -71,6 +82,17 @@ class FuzzyConfigFragment : Fragment() {
 }
 
 class FuzzyConfigTabFragment : FcitxPreferenceFragment() {
+    private val viewModel: MainViewModel by activityViewModels()
+    private val compactLayouts by lazy {
+        AppPrefs.getInstance().internal.compactShuangpinInputMethods
+    }
+    private val layoutChangeListener = ManagedPreference.OnChangeListener<Set<String>> { _, _ ->
+        val currentView = view ?: return@OnChangeListener
+        currentView.post {
+            if (view === currentView) refreshCorrectionPreference()
+        }
+    }
+    private var imeChangeJob: Job? = null
     private val uniqueName get() = requireArguments().getString(ARG_UNIQUE_NAME).orEmpty()
     private val isAddon get() = requireArguments().getBoolean(ARG_IS_ADDON)
     private val sectionTitle get() = requireArguments().getString(ARG_SECTION_TITLE).orEmpty()
@@ -79,6 +101,44 @@ class FuzzyConfigTabFragment : FcitxPreferenceFragment() {
     override val preferenceTabIndex: Int get() = if (mappings) 1 else 0
 
     override fun getPageTitle() = sectionTitle
+
+    override fun onPreferenceScreenReady() = refreshCorrectionPreference()
+
+    override fun onStart() {
+        super.onStart()
+        if (mappings) return
+        compactLayouts.registerOnChangeListener(layoutChangeListener)
+        if (isAddon && uniqueName == "pinyin") {
+            imeChangeJob = viewLifecycleOwner.lifecycleScope.launch {
+                viewModel.fcitx.runImmediately { eventFlow }.collect { event ->
+                    if (event is FcitxEvent.IMChangeEvent) refreshCorrectionPreference()
+                }
+            }
+        }
+        refreshCorrectionPreference()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        refreshCorrectionPreference()
+    }
+
+    override fun onStop() {
+        if (!mappings) compactLayouts.unregisterOnChangeListener(layoutChangeListener)
+        imeChangeJob?.cancel()
+        imeChangeJob = null
+        super.onStop()
+    }
+
+    private fun refreshCorrectionPreference() {
+        if (mappings || preferenceScreen?.findPreference<Preference>("Correction") == null) return
+        val layoutIme = if (isAddon && uniqueName == "pinyin") {
+            viewModel.fcitx.runImmediately {
+                inputMethodEntryCached.takeIf { it.addon == "pinyin" }?.uniqueName
+            }
+        } else uniqueName
+        updateFuzzyCorrectionPreference(preferenceScreen, layoutIme, compactLayouts.getValue())
+    }
 
     override fun getConfigLayout(context: android.content.Context): ConfigLayout? =
         AddonConfigLayouts.getFuzzyTab(context, uniqueName, mappings)
@@ -124,6 +184,17 @@ class FuzzyConfigTabFragment : FcitxPreferenceFragment() {
             }
         }
     }
+}
+
+/** Disable interaction for compact layouts while retaining the saved enum value. */
+internal fun updateFuzzyCorrectionPreference(
+    screen: PreferenceScreen?,
+    uniqueName: String?,
+    compactInputMethods: Set<String>
+) {
+    screen?.findPreference<Preference>("Correction")?.isEnabled =
+        uniqueName == null || ShuangpinKeyboardLayouts.read(uniqueName, compactInputMethods) !=
+            ShuangpinKeyboardLayout.Compact18
 }
 
 /**

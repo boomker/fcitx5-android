@@ -1047,6 +1047,8 @@
     <string name="pinyin_config_phrase_limit">詞組候選數</string>
     <string name="pinyin_config_sentence_count">句子數量</string>
     <string name="pinyin_config_long_word_hint">長詞提示長度</string>
+    <string name="pinyin_config_partial_sp_length">簡拼起始長度</string>
+    <string name="pinyin_config_partial_sp_length_summary">輸入至少多少個按鍵後生效（2～4，預設 4），需開啟「部分雙拼匹配」。</string>
     <string name="pinyin_config_prediction">啟用聯想</string>
     <string name="pinyin_config_keep_context">保留上下文</string>
     <string name="pinyin_config_learning">學習</string>
@@ -1077,13 +1079,13 @@
     <string name="pinyin_config_fuzzy_partial_final">匹配不完整韻母</string>
     <string name="pinyin_config_fuzzy_partial_sp">部分雙拼匹配</string>
     <string name="pinyin_config_fuzzy_correction">鄰鍵糾錯</string>
-    <string name="pinyin_config_fuzzy_correction_summary">依照鍵盤配置修正鄰鍵誤觸造成的拼寫偏差。</string>
+    <string name="pinyin_config_fuzzy_correction_summary">依照 QWERTY 配置修正鄰鍵誤觸，僅適用於 26 鍵配置，18 鍵配置停用。</string>
     <string name="pinyin_config_fuzzy_common_typo_summary">嘗試匹配常見的拼音誤拼。</string>
     <string name="pinyin_config_fuzzy_inner_summary">允許將一個拼音拆分為兩個音節，例如 xian → xi\'an。</string>
     <string name="pinyin_config_fuzzy_inner_short_summary">允許較短拼音的音節內分割，例如 qie → qi\'e。</string>
     <string name="pinyin_config_fuzzy_lowercase_summary">將單個小寫英文字母也按字母本身匹配字母詞條，例如 xguang → X光；關閉後需輸入 Xguang。</string>
     <string name="pinyin_config_fuzzy_partial_final_summary">僅輸入韻母開頭時也嘗試補全，例如 e 可匹配 en、eng、ei。</string>
-    <string name="pinyin_config_fuzzy_partial_sp_summary">輸入長度達到 4 個字元時，允許按部分雙拼編碼匹配。</string>
+    <string name="pinyin_config_fuzzy_partial_sp_summary">輸入長度達到設定值（預設 4）時，允許按部分雙拼編碼匹配。</string>
     <string name="pinyin_config_commit_preedit">提交預編輯</string>
     <!-- 附加元件顯示名稱 -->
     <string name="addon_unicode_name">字元集擴充</string>

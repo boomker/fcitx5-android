@@ -1087,6 +1087,8 @@
     <string name="pinyin_config_phrase_limit">Ограничение фраз</string>
     <string name="pinyin_config_sentence_count">Количество предложений</string>
     <string name="pinyin_config_long_word_hint">Порог длинного слова</string>
+    <string name="pinyin_config_partial_sp_length">Минимальная длина сокращённого пиньиня</string>
+    <string name="pinyin_config_partial_sp_length_summary">Минимальная длина ввода в нажатиях клавиш (2–4; по умолчанию 4). Требуется включить частичное сопоставление shuangpin.</string>
     <string name="pinyin_config_prediction">Включить предсказание</string>
     <string name="pinyin_config_keep_context">Сохранять контекст</string>
     <string name="pinyin_config_learning">Обучение</string>
@@ -1117,13 +1119,13 @@
     <string name="pinyin_config_fuzzy_partial_final">Сопоставлять частичные финали</string>
     <string name="pinyin_config_fuzzy_partial_sp">Частичное сопоставление shuangpin</string>
     <string name="pinyin_config_fuzzy_correction">Исправление соседних клавиш</string>
-    <string name="pinyin_config_fuzzy_correction_summary">Исправляет опечатки соседних клавиш с учётом раскладки клавиатуры.</string>
+    <string name="pinyin_config_fuzzy_correction_summary">Исправляет опечатки соседних клавиш QWERTY в раскладке с 26 клавишами; отключено в раскладке с 18 клавишами.</string>
     <string name="pinyin_config_fuzzy_common_typo_summary">Пытается сопоставить распространённые ошибки в пиньине.</string>
     <string name="pinyin_config_fuzzy_inner_summary">Позволяет разделить один слог пиньиня на два, например xian → xi’an.</string>
     <string name="pinyin_config_fuzzy_inner_short_summary">Позволяет разделять короткие слоги пиньиня, например qie → qi’e.</string>
     <string name="pinyin_config_fuzzy_lowercase_summary">Также сопоставляет одну строчную букву с соответствующей латинской буквой, например xguang → X光; если выключено, вводите Xguang.</string>
     <string name="pinyin_config_fuzzy_partial_final_summary">Позволяет короткому финалю совпадать с более длинными: e, en, eng или ei.</string>
-    <string name="pinyin_config_fuzzy_partial_sp_summary">Разрешает частичное сопоставление shuangpin при вводе не менее 4 символов.</string>
+    <string name="pinyin_config_fuzzy_partial_sp_summary">Разрешает частичное сопоставление shuangpin, когда ввод достигает заданной длины (по умолчанию 4).</string>
     <string name="pinyin_config_commit_preedit">Зафиксировать предварительный ввод</string>
     <!-- Addon display names -->
     <string name="addon_unicode_name">Расширения набора символов</string>

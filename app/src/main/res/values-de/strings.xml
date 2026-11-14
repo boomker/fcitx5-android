@@ -1085,6 +1085,8 @@
     <string name="pinyin_config_phrase_limit">Phrasenlimit</string>
     <string name="pinyin_config_sentence_count">Satzanzahl</string>
     <string name="pinyin_config_long_word_hint">Schwellenwert für lange Wörter</string>
+    <string name="pinyin_config_partial_sp_length">Mindestlänge für Pinyin-Abkürzungen</string>
+    <string name="pinyin_config_partial_sp_length_summary">Mindesteingabelänge in Tasten (2–4; Standard: 4). Die teilweise Shuangpin-Übereinstimmung muss aktiviert sein.</string>
     <string name="pinyin_config_prediction">Vorhersage aktivieren</string>
     <string name="pinyin_config_keep_context">Kontext beibehalten</string>
     <string name="pinyin_config_learning">Lernen</string>
@@ -1115,13 +1117,13 @@
     <string name="pinyin_config_fuzzy_partial_final">Teilweise Finale abgleichen</string>
     <string name="pinyin_config_fuzzy_partial_sp">Teilweise Shuangpin abgleichen</string>
     <string name="pinyin_config_fuzzy_correction">Korrektur benachbarter Tasten</string>
-    <string name="pinyin_config_fuzzy_correction_summary">Korrigiert Tippfehler mit benachbarten Tasten anhand des Tastaturlayouts.</string>
+    <string name="pinyin_config_fuzzy_correction_summary">Korrigiert Tippfehler auf benachbarten QWERTY-Tasten bei Layouts mit 26 Tasten; bei Layouts mit 18 Tasten deaktiviert.</string>
     <string name="pinyin_config_fuzzy_common_typo_summary">Versucht, häufige Pinyin-Fehlschreibungen abzugleichen.</string>
     <string name="pinyin_config_fuzzy_inner_summary">Erlaubt, eine Pinyin-Silbe in zwei zu teilen, z. B. xian → xi’an.</string>
     <string name="pinyin_config_fuzzy_inner_short_summary">Erlaubt Teilungen in kürzeren Pinyin-Silben, z. B. qie → qi’e.</string>
     <string name="pinyin_config_fuzzy_lowercase_summary">Ordnet einen einzelnen Kleinbuchstaben zusätzlich dem lateinischen Buchstaben zu, z. B. xguang → X光; deaktiviert Xguang eingeben.</string>
     <string name="pinyin_config_fuzzy_partial_final_summary">Erlaubt, dass ein Anfangsfinale mit längeren Finalen wie e, en, eng oder ei übereinstimmt.</string>
-    <string name="pinyin_config_fuzzy_partial_sp_summary">Erlaubt teilweise Shuangpin-Übereinstimmung, wenn die Eingabe mindestens 4 Zeichen lang ist.</string>
+    <string name="pinyin_config_fuzzy_partial_sp_summary">Erlaubt teilweise Shuangpin-Übereinstimmung, sobald die Eingabe die eingestellte Länge erreicht (Standard: 4).</string>
     <string name="pinyin_config_commit_preedit">Vorbearbeitung übernehmen</string>
     <!-- Addon display names -->
     <string name="addon_unicode_name">Zeichensatzerweiterungen</string>
