@@ -39,7 +39,6 @@ import splitties.views.dsl.constraintlayout.topOfParent
 import splitties.views.dsl.core.add
 import splitties.views.dsl.core.wrapContent
 import splitties.views.dsl.recyclerview.recyclerView
-import splitties.views.imageResource
 
 @SuppressLint("ViewConstructor")
 class ExpandedCandidateLayout(
@@ -88,10 +87,6 @@ class ExpandedCandidateLayout(
         val pageDnBtn: ImageKeyView? by lazy { findKeyViewById<ImageKeyView>(DownBtnId) }
         val backspace: ImageKeyView? by lazy { findKeyViewById<ImageKeyView>(R.id.button_backspace) }
         val `return`: ImageKeyView? by lazy { findKeyViewById<ImageKeyView>(R.id.button_return) }
-
-        override fun onReturnDrawableUpdate(returnDrawable: Int) {
-            `return`?.img?.imageResource = resolveGboardReturnDrawable(returnDrawable)
-        }
     }
 
     private val keyBorder by ThemeManager.prefs.keyBorder
