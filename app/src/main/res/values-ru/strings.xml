@@ -137,8 +137,8 @@
     <string name="input_method_options">Параметры метода ввода</string>
     <string name="theme">Тема</string>
     <string name="keyboard_theme">Тема клавиатуры</string>
-    <string name="key_ripple_effect">Включить эффект пульсации клавиш</string>
-    <string name="key_border">Включить границы клавиш</string>
+    <string name="key_ripple_effect">Эффект пульсации клавиш</string>
+    <string name="key_border">Границы клавиш</string>
     <string name="brightness">Яркость</string>
     <string name="key_radius">Радиус клавиш</string>
     <string name="navbar_radius">Радиус скругления углов панели инструментов</string>
@@ -394,7 +394,7 @@
     <string name="emoji_skin_tone_type_5">🏾 Type-5</string>
     <string name="emoji_skin_tone_type_6">🏿 Type-6</string>
     <string name="hide_unsupported_emojis">Скрыть неподдерживаемые эмодзи</string>
-    <string name="key_border_stroke">Включить обводку для границы клавиши</string>
+    <string name="key_border_stroke">Обводка границы клавиши</string>
     <string name="edit_popup_preset">Сопоставление клавиш всплывающих окон</string>
     <string name="edit_popup_preset_summary">Редактировать сопоставление клавиш всплывающих окон (клавиша -&gt; кандидаты всплывающих окон)</string>
     <string name="toolbar_customize">Настроить панель</string>

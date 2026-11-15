@@ -6,6 +6,8 @@ package org.fxboomk.fcitx5.android.ui.main.settings.theme
 
 import android.content.Context
 import android.content.Intent
+import android.os.Bundle
+import android.view.View
 import androidx.annotation.StringRes
 import androidx.preference.Preference
 import androidx.preference.PreferenceScreen
@@ -13,6 +15,7 @@ import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.data.prefs.ManagedPreferenceFragment
 import org.fxboomk.fcitx5.android.data.theme.ThemeManager
+import org.fxboomk.fcitx5.android.ui.main.keyboardtest.installKeyboardTestMenu
 import org.fxboomk.fcitx5.android.input.config.ButtonsLayoutThemeStore
 import org.fxboomk.fcitx5.android.input.config.ConfigProviders
 import org.fxboomk.fcitx5.android.input.config.KeyIconStore
@@ -146,6 +149,11 @@ class ThemeAppearanceFragment : ManagedPreferenceFragment(ThemeManager.prefs) {
                 }
             }
         )
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        installKeyboardTestMenu()
     }
 
     override fun onResume() {

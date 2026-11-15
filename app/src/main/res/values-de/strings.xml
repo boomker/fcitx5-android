@@ -712,9 +712,9 @@
     <string name="instruction_enable_clipboard_listening">Um die Zwischenablageverwaltung zu aktivieren, schalten Sie in den Einstellungen "Zwischenablageverlauf aufzeichnen" ein.</string>
     <string name="invalid_data_descriptor">Ungültige Datenbeschreibungsdatei</string>
     <string name="invalid_plugin_descriptor">Ungültige Plugin-Beschreibungsdatei</string>
-    <string name="key_border">Tastenrahmen aktivieren</string>
-    <string name="key_border_stroke">Rahmenkontur für Tasten aktivieren</string>
-    <string name="key_ripple_effect">Wasserwelleneffekt für Tasten aktivieren</string>
+    <string name="key_border">Tastenrahmen</string>
+    <string name="key_border_stroke">Rahmenkontur der Tasten</string>
+    <string name="key_ripple_effect">Wasserwelleneffekt der Tasten</string>
     <string name="keyboard_bottom_padding">Unterer Tastaturabstand</string>
     <string name="keyboard_side_padding">Seitlicher Tastaturabstand</string>
     <string name="physical_keyboard_horizontal_candidate_bar">Werkzeug-/Kandidatenleiste bei Hardwaretastatur beibehalten</string>

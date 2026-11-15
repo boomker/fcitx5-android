@@ -177,8 +177,8 @@
     <string name="theme_animation_summary">水波纹 %1$s · 动画 %2$s</string>
     <string name="theme_other_style_summary">文本编辑 %1$d dp · 剪贴板 %2$d dp</string>
     <string name="toggle_day_night_theme">主题切换</string>
-    <string name="key_ripple_effect">启用按键水波纹特效</string>
-    <string name="key_border">启用按键边框</string>
+    <string name="key_ripple_effect">按键水波纹特效</string>
+    <string name="key_border">按键边框</string>
     <string name="brightness">亮度</string>
     <string name="key_radius">按键圆角半径</string>
     <string name="navbar_radius">工具栏圆角半径</string>
@@ -672,7 +672,7 @@
     <string name="emoji_skin_tone_type_5">🏾 中等深肤色 (Type-5)</string>
     <string name="emoji_skin_tone_type_6">🏿 深肤色 (Type-6)</string>
     <string name="hide_unsupported_emojis">隐藏不支持的表情</string>
-    <string name="key_border_stroke">启用按键边框描边</string>
+    <string name="key_border_stroke">按键边框描边</string>
 
     <!-- Text Keyboard Layout Editor -->
     <string name="edit_text_keyboard_layout">键盘布局设定</string>

@@ -179,8 +179,8 @@
     <string name="theme_animation_summary">Ripple %1$s · Animations %2$s</string>
     <string name="theme_other_style_summary">Text editing %1$d dp · Clipboard %2$d dp</string>
     <string name="toggle_day_night_theme">Day/Night Theme</string>
-    <string name="key_ripple_effect">Enable key ripple effect</string>
-    <string name="key_border">Enable key border</string>
+    <string name="key_ripple_effect">Key ripple effect</string>
+    <string name="key_border">Key border</string>
     <string name="brightness">Brightness</string>
     <string name="key_radius">Key radius</string>
     <string name="navbar_radius">Toolbar corner radius</string>
@@ -844,7 +844,7 @@
     <string name="emoji_skin_tone_type_5">🏾 Type-5</string>
     <string name="emoji_skin_tone_type_6">🏿 Type-6</string>
     <string name="hide_unsupported_emojis">Hide unsupported Emojis</string>
-    <string name="key_border_stroke">Enable stroke for key border</string>
+    <string name="key_border_stroke">Stroke for key border</string>
 
     <!-- Text Keyboard Layout Editor -->
     <string name="edit_text_keyboard_layout">Keyboard Layout Settings</string>

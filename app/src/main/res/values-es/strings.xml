@@ -676,12 +676,12 @@
     <string name="caps_key_behavior_default">Mantener el comportamiento predeterminado</string>
     <string name="caps_key_behavior_single_tap_lock">Un toque bloquea las mayúsculas</string>
     <string name="keep_keyboard_letters_uppercase">Mostrar las letras de las teclas en mayúsculas</string>
-    <string name="key_border">Habilitar borde de tecla</string>
-    <string name="key_border_stroke">Habilitar contorno del borde de tecla</string>
+    <string name="key_border">Borde de tecla</string>
+    <string name="key_border_stroke">Contorno del borde de tecla</string>
     <string name="key_horizontal_margin">Margen horizontal de tecla</string>
     <string name="key_radius">Radio de tecla</string>
     <string name="navbar_radius">Radio de las esquinas de la barra de herramientas</string>
-    <string name="key_ripple_effect">Habilitar efecto ondulado de tecla</string>
+    <string name="key_ripple_effect">Efecto ondulado de tecla</string>
     <string name="key_vertical_margin">Margen vertical de tecla</string>
     <string name="keyboard_bottom_padding">Relleno inferior del teclado</string>
     <string name="keyboard_long_press_delay">Duración del retardo de pulsación larga</string>

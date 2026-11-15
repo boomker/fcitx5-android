@@ -168,8 +168,8 @@
     <string name="theme_candidate_style_summary_floating">%1$s · %2$s · 高亮圓角 %3$d dp</string>
     <string name="theme_animation_summary">水波紋 %1$s · 動畫 %2$s</string>
     <string name="theme_other_style_summary">文字編輯 %1$d dp · 剪貼簿 %2$d dp</string>
-    <string name="key_ripple_effect">啟用按鍵水波紋特效</string>
-    <string name="key_border">啟用按鍵邊框</string>
+    <string name="key_ripple_effect">按鍵水波紋特效</string>
+    <string name="key_border">按鍵邊框</string>
     <string name="brightness">亮度</string>
     <string name="key_radius">按鍵圓角半徑</string>
     <string name="navbar_radius">工具欄圓角半徑</string>

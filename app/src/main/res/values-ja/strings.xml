@@ -136,8 +136,8 @@
     <string name="input_method_options">インプットメソッドのオプション</string>
     <string name="theme">テーマ</string>
     <string name="keyboard_theme">キーボードテーマ</string>
-    <string name="key_ripple_effect">キーの波紋効果を有効にする</string>
-    <string name="key_border">キーの枠を有効にする</string>
+    <string name="key_ripple_effect">キーの波紋効果</string>
+    <string name="key_border">キーの枠</string>
     <string name="brightness">明るさ</string>
     <string name="key_radius">キーの角半径</string>
     <string name="navbar_radius">ツールバーの角半径</string>
@@ -794,7 +794,7 @@
     <string name="hide_keyboard">キーボードを非表示</string>
     <string name="return_to_toolbar">ツールバーに戻る</string>
     <string name="hide_unsupported_emojis">サポートされていない絵文字を非表示</string>
-    <string name="key_border_stroke">キー枠のストロークを有効化</string>
+    <string name="key_border_stroke">キー枠のストローク</string>
     <string name="move_cursor_down">カーソルを下に移動</string>
     <string name="move_cursor_left">左に移動</string>
     <string name="move_cursor_right">カーソルを右に移動</string>
