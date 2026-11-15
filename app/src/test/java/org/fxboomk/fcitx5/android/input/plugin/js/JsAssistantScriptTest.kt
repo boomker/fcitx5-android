@@ -242,18 +242,63 @@ class JsAssistantScriptTest {
         val result = evaluate("""
             ['en', 'zh-CN', 'zh-TW'].map(locale => {
               const t = stringsFor(locale);
-              return {label: findPurpose('translate', t).label, prefix: findPurpose('translate', t).prefix,
-                oldPrefix: findPurpose('toEnglish', t).prefix,
+              return {label: findPurpose('translate', t).label, autoPrefix: findPurpose('translate', t).prefix,
+                englishPrefix: findPurpose('translate', t, 'en').prefix,
+                legacyId: findPurpose('toEnglish', t).id,
                 options: purposeOptions(t).map(option => option.value)};
             })
         """).jsonArray
         assertEquals(listOf("Translate", "翻译", "翻譯"), result.map { it.jsonObject["label"]!!.jsonPrimitive.content })
         result.forEach { entry ->
             val value = entry.jsonObject
-            assertTrue(value["prefix"]!!.jsonPrimitive.content.length > value["oldPrefix"]!!.jsonPrimitive.content.length)
+            assertTrue(value["autoPrefix"]!!.jsonPrimitive.content.contains("简体中文") ||
+                value["autoPrefix"]!!.jsonPrimitive.content.contains("繁體中文") ||
+                value["autoPrefix"]!!.jsonPrimitive.content.contains("Simplified Chinese"))
+            assertTrue(value["englishPrefix"]!!.jsonPrimitive.content.contains("English") ||
+                value["englishPrefix"]!!.jsonPrimitive.content.contains("英文"))
+            assertEquals("translate", value["legacyId"]!!.jsonPrimitive.content)
             assertTrue(value["options"]!!.jsonArray.any { it.jsonPrimitive.content == "translate" })
-            assertTrue(value["options"]!!.jsonArray.any { it.jsonPrimitive.content == "toEnglish" })
+            assertFalse(value["options"]!!.jsonArray.any { it.jsonPrimitive.content == "toEnglish" })
         }
+    }
+
+    @Test
+    fun translationOffersTargetLanguagesAndUsesTheSelectedLanguage() = runBlocking {
+        val result = evaluate("""
+            (() => {
+              const t = stringsFor('zh-CN');
+              const dialog = dialogSpec(t, t.assistantTitle, 'translate', 'text', '', 'ja');
+              const target = dialog.layout.children.find(node => node.id === 'targetLanguage');
+              const request = textRequest(findProvider('deepseek'), {deepseekUrl: 'https://api.example/v1'},
+                'model', findPurpose('translate', t, 'ja'), 'text', t, 'auto', 'ja');
+              return {target, body: JSON.parse(request.body)};
+            })()
+        """).jsonObject
+        val target = result["target"]!!.jsonObject
+        assertEquals("ja", target["value"]!!.jsonPrimitive.content)
+        assertTrue(target["options"]!!.jsonArray.any { it.jsonObject["value"]!!.jsonPrimitive.content == "en" })
+        val prompt = result["body"]!!.jsonObject["messages"]!!.jsonArray.last()
+            .jsonObject["content"]!!.jsonPrimitive.content
+        assertTrue(prompt.contains("Japanese"))
+    }
+
+    @Test
+    fun changingTranslationTargetClearsAnOldResult() = runBlocking {
+        val result = evaluate("""
+            (async () => {
+              const t = stringsFor('zh-CN');
+              lastResult = 'old translation';
+              lastResultRequest = resultRequestKey('text', findProvider('deepseek'),
+                findPurpose('translate', t, 'en'), {}, 'auto', 'en');
+              const dialog = await handleOpen({event: 'targetLanguage', settings: {}, values:
+                {purpose: 'translate', targetLanguage: 'ja', provider: 'deepseek', input: 'text', reasoning: 'auto'}});
+              return {cleared: lastResult === '', hasOldResult: JSON.stringify(dialog).includes('old translation'),
+                target: dialog.layout.children.find(node => node.id === 'targetLanguage').value};
+            })()
+        """).jsonObject
+        assertEquals("true", result["cleared"]!!.jsonPrimitive.content)
+        assertEquals("false", result["hasOldResult"]!!.jsonPrimitive.content)
+        assertEquals("ja", result["target"]!!.jsonPrimitive.content)
     }
 
     private suspend fun evaluate(expression: String): JsonElement {

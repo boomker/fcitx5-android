@@ -52,7 +52,20 @@ const PROTOCOLS = [
   {value: "responses", label: "OpenAI Responses", path: "/responses"}
 ];
 
-const PURPOSE_IDS = ["short", "polish", "translate", "proofread", "tone", "idiom", "classical", "toEnglish", "martian"];
+const PURPOSE_IDS = ["short", "polish", "translate", "proofread", "tone", "idiom", "classical", "martian"];
+
+const TARGET_LANGUAGES = [
+  {value: "auto", labelKey: "targetAuto", prompt: "the appropriate language (Simplified Chinese for non-Simplified-Chinese input, or natural English for Simplified Chinese input)"},
+  {value: "zh-CN", labelKey: "targetZhCN", prompt: "natural Simplified Chinese"},
+  {value: "en", labelKey: "targetEn", prompt: "natural, idiomatic English"},
+  {value: "zh-TW", labelKey: "targetZhTW", prompt: "natural Traditional Chinese"},
+  {value: "ja", labelKey: "targetJa", prompt: "natural Japanese"},
+  {value: "ko", labelKey: "targetKo", prompt: "natural Korean"},
+  {value: "fr", labelKey: "targetFr", prompt: "natural French"},
+  {value: "de", labelKey: "targetDe", prompt: "natural German"},
+  {value: "es", labelKey: "targetEs", prompt: "natural Spanish"},
+  {value: "ru", labelKey: "targetRu", prompt: "natural Russian"}
+];
 
 const STRINGS = {
   en: {
@@ -64,6 +77,7 @@ const STRINGS = {
     qwenShort: "Qwen",
     defaultPurposeLabel: "Default task",
     defaultPurposeDescription: "The assistant starts with this task on open; temporary choices in its dialog do not change this setting.",
+    defaultTargetLanguageDescription: "The translation dialog starts with this target language; you can change it temporarily in the dialog.",
     baseUrl: "API URL",
     baseUrlDescription: "Enter an API URL (including /v1 if required) or a complete endpoint. The path follows the selected protocol.",
     protocol: "API protocol",
@@ -90,6 +104,17 @@ const STRINGS = {
     unsupportedReasoning: "This model or protocol does not support the selected thinking level. Choose Default or another model.",
     insufficientThinkingTokens: "Extended thinking requires an output limit greater than 1024 tokens",
     purpose: "Task",
+    targetLanguage: "Target language",
+    targetAuto: "Auto (Chinese ↔ English)",
+    targetZhCN: "Simplified Chinese",
+    targetEn: "English",
+    targetZhTW: "Traditional Chinese",
+    targetJa: "Japanese",
+    targetKo: "Korean",
+    targetFr: "French",
+    targetDe: "German",
+    targetEs: "Spanish",
+    targetRu: "Russian",
     inputLabel: "Text",
     inputPlaceholder: "Enter the text to process",
     clear: "Clear",
@@ -113,11 +138,9 @@ const STRINGS = {
     prefixTone: "Rewrite the following text in a more natural and polite tone. Return only the rewritten text:\n",
     purposeIdiom: "Idiom chain",
     purposeClassical: "Plain to classical",
-    purposeToEnglish: "Chinese to English",
     purposeMartian: "Martian text",
     prefixIdiom: "Idiom chain game: take the last character of the Chinese idiom below (a homophone is fine) and reply with exactly one new Chinese idiom. Return only that idiom, no explanation:\n",
     prefixClassical: "Rewrite the following plain Chinese text in literary classical Chinese, keeping the original meaning. Return only the rewritten text:\n",
-    prefixToEnglish: "Translate the following Chinese text into natural, idiomatic English. Return only the translation:\n",
     prefixMartian: "Martian-text conversion: rewrite the following Chinese text in the Chinese-internet \"Martian\" style, mixing homophones, look-alike rare characters, Japanese kana and symbols (for example 我→涐, 你→伱, 的→の, 是→湜). Keep the sentence readable and keep its meaning. Return only the converted text, no explanation:\n",
     systemRole: "You follow the instruction strictly and output only the requested result, with no explanation and no small talk.",
     missingKey: "Add the API key for %1 in the plugin settings (field %2)",
@@ -142,6 +165,7 @@ const STRINGS = {
     qwenShort: "通义千问",
     defaultPurposeLabel: "默认用途",
     defaultPurposeDescription: "每次打开助手使用此默认用途；窗口里的临时选择不会覆盖此设置。",
+    defaultTargetLanguageDescription: "翻译窗口默认使用此目标语言；也可以在窗口中临时切换。",
     baseUrl: "API 地址",
     baseUrlDescription: "填写 API 地址（需要时含 /v1）或完整接口地址，接口路径随所选协议调整。",
     protocol: "API 协议",
@@ -168,6 +192,17 @@ const STRINGS = {
     unsupportedReasoning: "此模型或协议不支持所选思考档位，请选择默认或更换模型。",
     insufficientThinkingTokens: "扩展思考需要大于 1024 的输出 Token 上限",
     purpose: "用途",
+    targetLanguage: "目标语言",
+    targetAuto: "自动（中英互译）",
+    targetZhCN: "简体中文",
+    targetEn: "英语",
+    targetZhTW: "繁体中文",
+    targetJa: "日语",
+    targetKo: "韩语",
+    targetFr: "法语",
+    targetDe: "德语",
+    targetEs: "西班牙语",
+    targetRu: "俄语",
     inputLabel: "文本",
     inputPlaceholder: "输入要处理的内容",
     clear: "清空",
@@ -191,11 +226,9 @@ const STRINGS = {
     prefixTone: "请将下面的文本调整为更自然、礼貌的语气，只返回改写后的文本：\n",
     purposeIdiom: "成语接龙",
     purposeClassical: "白话转文言",
-    purposeToEnglish: "中译英",
     purposeMartian: "火星文",
     prefixIdiom: "成语接龙：请接住下面成语的最后一个字（同音字也可以），只返回你接上的那一个成语，不要任何解释：\n",
     prefixClassical: "请把下面的白话文改写成文言文，保留原意，只返回改写后的文言文：\n",
-    prefixToEnglish: "请把下面的中文翻译成地道、自然的英文，只返回译文：\n",
     prefixMartian: "火星文转换：请把下面的文字改写成火星文，混用同音字、形近生僻字、日文假名和符号（例如 我→涐、你→伱、的→の、是→湜），整句要读得懂、意思不变。只返回转换后的文本，不要解释：\n",
     systemRole: "你严格按指令执行，只输出被要求的结果本身，不解释、不寒暄。",
     missingKey: "请先在插件设置中为「%1」填写 API 密钥（字段 %2）",
@@ -220,6 +253,7 @@ const STRINGS = {
     qwenShort: "通義千問",
     defaultPurposeLabel: "預設用途",
     defaultPurposeDescription: "每次開啟助手使用此預設用途；視窗裡的暫時選擇不會覆蓋此設定。",
+    defaultTargetLanguageDescription: "翻譯視窗預設使用此目標語言；也可以在視窗中暫時切換。",
     baseUrl: "API 位址",
     baseUrlDescription: "填寫 API 位址（需要時含 /v1）或完整介面位址，介面路徑隨所選協定調整。",
     protocol: "API 協定",
@@ -246,6 +280,17 @@ const STRINGS = {
     unsupportedReasoning: "此模型或協定不支援所選思考檔位，請選擇預設或更換模型。",
     insufficientThinkingTokens: "延伸思考需要大於 1024 的輸出 Token 上限",
     purpose: "用途",
+    targetLanguage: "目標語言",
+    targetAuto: "自動（中英互譯）",
+    targetZhCN: "簡體中文",
+    targetEn: "英文",
+    targetZhTW: "繁體中文",
+    targetJa: "日文",
+    targetKo: "韓文",
+    targetFr: "法文",
+    targetDe: "德文",
+    targetEs: "西班牙文",
+    targetRu: "俄文",
     inputLabel: "文字",
     inputPlaceholder: "輸入要處理的內容",
     clear: "清除",
@@ -269,11 +314,9 @@ const STRINGS = {
     prefixTone: "請將下列文字調整為更自然、禮貌的語氣，只回傳改寫後的文字：\n",
     purposeIdiom: "成語接龍",
     purposeClassical: "白話轉文言",
-    purposeToEnglish: "中譯英",
     purposeMartian: "火星文",
     prefixIdiom: "成語接龍：請接住下面成語的最後一個字（同音字也可以），只回傳你接上的那一個成語，不要任何解釋：\n",
     prefixClassical: "請把下面的白話文改寫成文言文，保留原意，只回傳改寫後的文言文：\n",
-    prefixToEnglish: "請把下面的中文翻譯成道地、自然的英文，只回傳譯文：\n",
     prefixMartian: "火星文轉換：請把下面的文字改寫成火星文，混用同音字、形近生僻字、日文假名和符號（例如 我→涐、你→伱、的→の、是→湜），整句要讀得懂、意思不變。只回傳轉換後的文字，不要解釋：\n",
     systemRole: "你嚴格按指令執行，只輸出被要求的結果本身，不解釋、不寒暄。",
     missingKey: "請先在外掛設定中為「%1」填寫 API 金鑰（欄位 %2）",
@@ -316,9 +359,27 @@ const PURPOSE_KEYS = {
   tone: {label: "purposeTone", prefix: "prefixTone"},
   idiom: {label: "purposeIdiom", prefix: "prefixIdiom"},
   classical: {label: "purposeClassical", prefix: "prefixClassical"},
-  toEnglish: {label: "purposeToEnglish", prefix: "prefixToEnglish"},
   martian: {label: "purposeMartian", prefix: "prefixMartian"}
 };
+
+function normalizeTargetLanguage(value) {
+  return TARGET_LANGUAGES.some(item => item.value === value) ? value : "auto";
+}
+
+function isLegacyToEnglish(value) {
+  const raw = String(value === undefined || value === null ? "" : value);
+  return raw === "toEnglish" || raw === "中译英" || raw === "中譯英" || raw === "Chinese to English";
+}
+
+function targetLanguageOptions(t) {
+  return TARGET_LANGUAGES.map(({value, labelKey}) => ({value, label: t[labelKey]}));
+}
+
+function translationPrefix(targetLanguage, t) {
+  const target = TARGET_LANGUAGES.find(item => item.value === normalizeTargetLanguage(targetLanguage));
+  if (target.value === "auto") return t.prefixTranslate;
+  return "Translate the complete text below into " + target.prompt + ". Return only the translation, without explanations or labels:\n";
+}
 
 function purposeOptions(t) {
   return PURPOSE_IDS.map((value, order) => ({
@@ -374,11 +435,17 @@ function findProvider(value) {
   return PROVIDERS.find(item => item.value === currentProvider) || PROVIDERS[0];
 }
 
-function findPurpose(value, t) {
-  const id = PURPOSE_IDS.find(item => item === value)
-    || PURPOSE_IDS.find(item => t[PURPOSE_KEYS[item].label] === value)
+function findPurpose(value, t, targetLanguage = "auto") {
+  const raw = String(value === undefined || value === null ? "" : value);
+  const legacyToEnglish = isLegacyToEnglish(raw);
+  const id = legacyToEnglish ? "translate" : PURPOSE_IDS.find(item => item === raw)
+    || PURPOSE_IDS.find(item => t[PURPOSE_KEYS[item].label] === raw)
     || "short";
-  return {id, label: t[PURPOSE_KEYS[id].label], prefix: t[PURPOSE_KEYS[id].prefix]};
+  return {
+    id,
+    label: t[PURPOSE_KEYS[id].label],
+    prefix: id === "translate" ? translationPrefix(targetLanguage, t) : t[PURPOSE_KEYS[id].prefix]
+  };
 }
 
 function configuredProviders(configuredSecrets) {
@@ -518,9 +585,9 @@ function protocolTransport(protocol, provider, settings) {
     headers: {"Accept": "application/json"}};
 }
 
-function textRequest(provider, settings, model, purpose, input, t, reasoning = "auto") {
+function textRequest(provider, settings, model, purpose, input, t, reasoning = "auto", targetLanguage = "auto") {
   const protocol = providerProtocol(provider, settings);
-  const prompt = purpose.prefix + input;
+  const prompt = (purpose.id === "translate" ? translationPrefix(targetLanguage, t) : purpose.prefix) + input;
   const body = {model, stream: false};
   if (protocol === "anthropic") {
     body.max_tokens = outputTokenLimit(provider, settings, t);
@@ -752,6 +819,7 @@ let currentProvider = "deepseek";
 let lastResult = "";
 let lastResultRequest = "";
 let lastPurposeId = "";
+let lastTargetLanguage = "";
 let lastProvider = "";
 let activeSettings = {};
 let activeSecrets = [];
@@ -799,11 +867,12 @@ function endpointSummary(provider, settings, secrets) {
   return parts.join(" · ");
 }
 
-function dialogSpec(t, title, purposeId, input, messageTone = "") {
+function dialogSpec(t, title, purposeId, input, messageTone = "", targetLanguage = "auto") {
   const endpoint = providerEndpoint(findProvider(currentProvider), activeSettings);
+  const normalizedTargetLanguage = normalizeTargetLanguage(targetLanguage);
   return {
     maxWidth: 360,
-    maxHeight: 460,
+    maxHeight: 520,
     layout: {
       type: "column",
       gap: 8,
@@ -841,6 +910,15 @@ function dialogSpec(t, title, purposeId, input, messageTone = "") {
             }
           ]
         },
+        ...(purposeId === "translate" ? [{
+          type: "select",
+          id: "targetLanguage",
+          label: t.targetLanguage,
+          labelPlacement: "top",
+          options: targetLanguageOptions(t),
+          value: normalizedTargetLanguage,
+          height: 48
+        }] : []),
         {
           type: "slider",
           id: "reasoning",
@@ -881,13 +959,16 @@ function dialogSpec(t, title, purposeId, input, messageTone = "") {
 foxy.plugin.register({
   id: "llm-assistant",
   name: stringsFor(foxy.locale).name,
-  version: "1.23.7",
+  version: "1.23.8",
   hosts: [],
   features: [],
   configure(ui, locale) {
     const t = stringsFor(locale);
     ui.select("defaultPurpose", t.defaultPurposeLabel, purposeOptions(t), "short", {
       description: t.defaultPurposeDescription
+    });
+    ui.select("defaultTargetLanguage", t.targetLanguage, targetLanguageOptions(t), "auto", {
+      description: t.defaultTargetLanguageDescription
     });
     ui.select("defaultProvider", t.provider, providerOptions(null), "deepseek", {
       description: t.providerDescription
@@ -952,8 +1033,8 @@ foxy.app.register({
   }
 });
 
-function resultRequestKey(input, provider, purpose, settings, reasoning = "auto") {
-  return JSON.stringify([input, provider.value, purpose.id, settings, reasoning]);
+function resultRequestKey(input, provider, purpose, settings, reasoning = "auto", targetLanguage = "auto") {
+  return JSON.stringify([input, provider.value, purpose.id, settings, reasoning, normalizeTargetLanguage(targetLanguage)]);
 }
 
 async function clearResult() {
@@ -978,45 +1059,54 @@ async function handleOpen(context) {
       lastResult = "";
       lastResultRequest = "";
       const initial = context.values || {};
+      const legacyToEnglish = isLegacyToEnglish(initial.purpose) || isLegacyToEnglish(settings.defaultPurpose);
       const purposeId = initial.purpose === undefined
         ? (lastPurposeId || findPurpose(settings.defaultPurpose, t).id)
         : findPurpose(initial.purpose, t).id;
       lastPurposeId = purposeId;
+      const targetLanguage = normalizeTargetLanguage(initial.targetLanguage === undefined
+        ? (legacyToEnglish ? "en" : (lastTargetLanguage || settings.defaultTargetLanguage || "auto"))
+        : initial.targetLanguage);
+      lastTargetLanguage = targetLanguage;
       currentReasoning = "auto";
       currentProvider = pickProvider(settings, configuredSecrets).value;
       lastProvider = currentProvider;
       const selected = initial.input === undefined
         ? await foxy.editor.getSelection()
         : String(initial.input);
-      const initialDialog = dialogSpec(t, t.assistantTitle, purposeId, selected);
+      const initialDialog = dialogSpec(t, t.assistantTitle, purposeId, selected, "", targetLanguage);
       if (initial.autoSend !== true) return foxy.ui.dialog.show(initialDialog);
       // Show the chosen task before the existing send flow asks for a host grant or starts work.
       await foxy.ui.dialog.update(initialDialog);
       context = {...context, event: "send", values: {
-        purpose: purposeId, provider: currentProvider, input: selected, reasoning: currentReasoning
+        purpose: purposeId, targetLanguage, provider: currentProvider, input: selected, reasoning: currentReasoning
       }};
     }
 
     const values = context.values || {};
-    const purpose = findPurpose(values.purpose, t);
+    const targetLanguage = normalizeTargetLanguage(values.targetLanguage === undefined
+      ? (isLegacyToEnglish(values.purpose) ? "en" : (lastTargetLanguage || settings.defaultTargetLanguage || "auto"))
+      : values.targetLanguage);
+    const purpose = findPurpose(values.purpose, t, targetLanguage);
     const provider = findProvider(values.provider);
     const input = String(values.input || "");
     currentReasoning = normalizeReasoning(values.reasoning === undefined ? currentReasoning : values.reasoning);
-    const requestKey = resultRequestKey(input, provider, purpose, settings, currentReasoning);
+    lastTargetLanguage = targetLanguage;
+    const requestKey = resultRequestKey(input, provider, purpose, settings, currentReasoning, targetLanguage);
     if (lastResult && lastResultRequest !== requestKey) await clearResult();
     currentProvider = provider.value;
     lastPurposeId = purpose.id;
     lastProvider = provider.value;
 
     // 下拉事件重画用途、服务商和模型；思考档位作为本次会话的临时选择保留。
-    if (context.event === "purpose" || context.event === "provider") {
-      return foxy.ui.dialog.show(dialogSpec(t, t.assistantTitle, purpose.id, values.input || ""));
+    if (context.event === "purpose" || context.event === "provider" || context.event === "targetLanguage") {
+      return foxy.ui.dialog.show(dialogSpec(t, t.assistantTitle, purpose.id, values.input || "", "", targetLanguage));
     }
     const providerName = providerLabel(provider, t);
 
     if (context.event === "clear") {
       await clearResult();
-      return foxy.ui.dialog.show(dialogSpec(t, t.assistantTitle, purpose.id, ""));
+      return foxy.ui.dialog.show(dialogSpec(t, t.assistantTitle, purpose.id, "", "", targetLanguage));
     }
     if (context.event === "close" || context.event === "cancel") {
       await clearResult();
@@ -1029,21 +1119,21 @@ async function handleOpen(context) {
       return {close: true};
     }
     if (context.event !== "send" && context.event !== "confirm") {
-      return foxy.ui.dialog.show(dialogSpec(t, t.assistantTitle, purpose.id, input));
+      return foxy.ui.dialog.show(dialogSpec(t, t.assistantTitle, purpose.id, input, "", targetLanguage));
     }
 
     // A legacy confirm without a current result means generate, never dismiss.
     // Invalidate earlier previews before every generation, including validation failures.
     await clearResult();
     if (!input.trim()) {
-      return foxy.ui.dialog.show(dialogSpec(t, t.emptyInput, purpose.id, input, "error"));
+      return foxy.ui.dialog.show(dialogSpec(t, t.emptyInput, purpose.id, input, "error", targetLanguage));
     }
     if (configuredSecrets.indexOf(provider.credential) === -1) {
       return foxy.ui.dialog.show(dialogSpec(
         t,
         format(t.missingKey, providerName, provider.credential),
         purpose.id,
-        values.input || "", "error"
+        values.input || "", "error", targetLanguage
       ));
     }
     const {url, model, protocol} = providerEndpoint(provider, settings);
@@ -1052,7 +1142,7 @@ async function handleOpen(context) {
         t,
         format(t.missingConfig, providerName),
         purpose.id,
-        values.input || "", "error"
+        values.input || "", "error", targetLanguage
       ));
     }
     const host = hostOf(url);
@@ -1061,11 +1151,11 @@ async function handleOpen(context) {
         t,
         t.invalidEndpoint,
         purpose.id,
-        values.input || "", "error"
+        values.input || "", "error", targetLanguage
       ));
     }
 
-    const requestOptions = usedModel => textRequest(provider, settings, usedModel, purpose, values.input || "", t, currentReasoning);
+    const requestOptions = usedModel => textRequest(provider, settings, usedModel, purpose, values.input || "", t, currentReasoning, targetLanguage);
 
     let usedModel = model;
     let fixedNote = "";
@@ -1099,7 +1189,9 @@ async function handleOpen(context) {
         t,
         format(t.resultTitle, purpose.label) + note,
         purpose.id,
-        values.input || ""
+        values.input || "",
+        "",
+        targetLanguage
       ));
     } catch (error) {
       lastResult = "";
@@ -1110,7 +1202,7 @@ async function handleOpen(context) {
         t,
         format(t.requestFailed, String(error.message || error)) + note + trace,
         purpose.id,
-        values.input || "", "error"
+        values.input || "", "error", targetLanguage
       ));
     }
 }

@@ -239,7 +239,7 @@ class JsPluginCatalogTest {
 
         val success = result as JsPluginImportResult.Success
         assertEquals("llm-assistant", success.meta.id)
-        assertEquals("1.23.7", success.meta.version)
+        assertEquals("1.23.8", success.meta.version)
         assertEquals("AI 助手", success.meta.name)
         assertEquals(emptyList<String>(), success.meta.hosts)
         assertEquals(null, success.meta.voiceAsr)
@@ -248,9 +248,10 @@ class JsPluginCatalogTest {
 
         val fields = JsScript.describe(script, "zh-CN")
         assertEquals(
-            listOf("简答", "润色", "翻译", "中译英", "火星文", "调整语气", "成语接龙", "纠正错别字", "白话转文言"),
+            listOf("简答", "润色", "翻译", "火星文", "调整语气", "成语接龙", "纠正错别字", "白话转文言"),
             fields.single { it.key == "defaultPurpose" }.options.map { it.label },
         )
+        assertEquals("auto", fields.single { it.key == "defaultTargetLanguage" }.defaultValue)
         assertEquals("https://api.deepseek.com", fields.single { it.key == "deepseekUrl" }.defaultValue)
         assertEquals("deepseek-flash", fields.single { it.key == "deepseekModel" }.defaultValue)
         assertEquals("https://api.openai.com/v1", fields.single { it.key == "openaiUrl" }.defaultValue)
