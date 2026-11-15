@@ -40,7 +40,7 @@ abstract class ManagedPreferenceProvider {
 
     fun fireChange(key: String) {
         val preference = _managedPreferences[key] ?: return
-        onChangeListeners.forEach { it.onChange(key) }
+        onChangeListeners.toList().forEach { it.onChange(key) }
         preference.fireChange()
     }
 

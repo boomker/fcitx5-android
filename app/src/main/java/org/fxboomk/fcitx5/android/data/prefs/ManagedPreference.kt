@@ -59,7 +59,7 @@ abstract class ManagedPreference<T : Any>(
     fun fireChange() {
         if (!::listeners.isInitialized || listeners.isEmpty()) return
         val newValue = getValue()
-        listeners.forEach { it.onChange(key, newValue) }
+        listeners.toList().forEach { it.onChange(key, newValue) }
     }
 
     class PBool(sharedPreferences: SharedPreferences, key: String, defaultValue: Boolean) :
