@@ -197,7 +197,7 @@ internal class KeyboardGlassWindow(
             window.attributes = window.attributes.apply {
                 this.token = token
                 format = PixelFormat.TRANSLUCENT
-                gravity = Gravity.TOP or Gravity.LEFT
+                gravity = Gravity.TOP or Gravity.START
                 windowAnimations = 0
                 title = WINDOW_TITLE
                 dimAmount = 0f

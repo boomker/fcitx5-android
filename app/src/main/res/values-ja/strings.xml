@@ -856,10 +856,7 @@
     <string name="theme_animation_summary">リップル %1$s · アニメーション %2$s</string>
     <string name="theme_other_style_summary">テキスト編集 %1$d dp · クリップボード %2$d dp</string>
     <string name="toggle_day_night_theme">テーマ切替</string>
-    <string name="gboard_light_main_key_tone">メインキーの不透明度</string>
-    <string name="gboard_light_other_key_tone">サブキーの不透明度</string>
     <string name="gboard_style_side_keys">Gboard風のサイドキー</string>
-    <string name="wallpaper_blend_percent">キーボードと壁紙のブレンド比率</string>
     <string name="navbar_border">ツールバーの枠線を有効にする</string>
     <string name="space_swipe_vertical_behavior">スペースキーの上下スワイプ動作</string>
     <string name="space_swipe_vertical_behavior_arrow_keys">ハイライトを語単位で移動</string>

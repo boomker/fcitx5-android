@@ -23,6 +23,17 @@ class ThemePrefs(sharedPreferences: SharedPreferences) :
         private const val DefaultNonMainKeyOpacity = 100
         private const val GboardOpacitySemanticsMigratedKey =
             "gboard_key_opacity_semantics_migrated"
+
+        // Legacy preference keys from the former Gboard theme's per-region opacity sliders.
+        // They are only storage identifiers now (the UI exposes the single `key_opacity`
+        // setting), but the former labels are kept here as migration documentation instead
+        // of unused string resources.
+        /** Formerly "Main key area opacity" ("主键区不透明度") */
+        private const val LegacyGboardMainKeyTone = "gboard_light_main_key_tone"
+        /** Formerly "Non-main key area opacity" ("非主键区不透明度") */
+        private const val LegacyGboardOtherKeyTone = "gboard_light_other_key_tone"
+        /** Formerly "Keyboard glass key opacity" ("按键不透明度") */
+        private const val LegacyGlassKeyOpacity = "keyboard_glass_key_opacity"
     }
 
     init {
@@ -33,8 +44,8 @@ class ThemePrefs(sharedPreferences: SharedPreferences) :
     private fun migrateLegacyGboardOpacitySemanticsIfNeeded() {
         if (sharedPreferences.all[GboardOpacitySemanticsMigratedKey] == true) return
         sharedPreferences.edit {
-            migrateLegacyGboardOpacityValue("gboard_light_main_key_tone", DefaultMainKeyOpacity)
-            migrateLegacyGboardOpacityValue("gboard_light_other_key_tone", DefaultNonMainKeyOpacity)
+            migrateLegacyGboardOpacityValue(LegacyGboardMainKeyTone, DefaultMainKeyOpacity)
+            migrateLegacyGboardOpacityValue(LegacyGboardOtherKeyTone, DefaultNonMainKeyOpacity)
             putBoolean(GboardOpacitySemanticsMigratedKey, true)
         }
     }
@@ -50,9 +61,9 @@ class ThemePrefs(sharedPreferences: SharedPreferences) :
     private fun migrateLegacyKeyOpacityIfNeeded() {
         if (sharedPreferences.contains("key_opacity")) return
         val legacy = sharedPreferences.all
-        val mainKey = "gboard_light_main_key_tone"
-        val otherKey = "gboard_light_other_key_tone"
-        val glassKey = "keyboard_glass_key_opacity"
+        val mainKey = LegacyGboardMainKeyTone
+        val otherKey = LegacyGboardOtherKeyTone
+        val glassKey = LegacyGlassKeyOpacity
         if (mainKey !in legacy && otherKey !in legacy && glassKey !in legacy) return
 
         val main = normalizeLegacyKeyOpacity(legacy[mainKey])

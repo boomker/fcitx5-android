@@ -855,10 +855,7 @@
     <string name="theme_animation_summary">물결 효과 %1$s · 애니메이션 %2$s</string>
     <string name="theme_other_style_summary">텍스트 편집 %1$d dp · 클립보드 %2$d dp</string>
     <string name="toggle_day_night_theme">테마 전환</string>
-    <string name="gboard_light_main_key_tone">주요 키 영역 불투명도</string>
-    <string name="gboard_light_other_key_tone">보조 키 영역 불투명도</string>
     <string name="gboard_style_side_keys">Gboard 스타일 사이드 키</string>
-    <string name="wallpaper_blend_percent">키보드와 배경화면 혼합 비율</string>
     <string name="navbar_border">도구 모음 테두리 활성화</string>
     <string name="light_mode_theme_summary">선택한 여러 테마를 전환할 때 순환</string>
     <string name="dark_mode_theme_summary">선택한 여러 테마를 전환할 때 순환</string>
