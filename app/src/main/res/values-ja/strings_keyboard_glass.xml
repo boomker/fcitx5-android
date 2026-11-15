@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="keyboard_top_corner_radius">キーボード上部の角半径</string>
-    <string name="keyboard_glass_enabled">キーボードのガラス背景</string>
+    <string name="keyboard_glass_enabled">キーボードのガラス背景効果</string>
     <string name="keyboard_glass_enabled_summary">背景をぼかした半透明キーボード。システムのぼかしが利用できない場合は不透明な背景を使用します</string>
-    <string name="keyboard_glass_blur_radius">ガラス背景のぼかし</string>
+    <string name="keyboard_glass_blur_radius">ガラス背景のぼかし半径</string>
     <string name="keyboard_glass_background_opacity">ガラス背景の不透明度</string>
     <string name="key_opacity">キーの不透明度</string>
 </resources>

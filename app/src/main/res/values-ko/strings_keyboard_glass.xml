@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="keyboard_top_corner_radius">키보드 상단 모서리 반경</string>
-    <string name="keyboard_glass_enabled">키보드 유리 배경</string>
+    <string name="keyboard_glass_enabled">키보드 유리 배경 효과</string>
     <string name="keyboard_glass_enabled_summary">배경 블러가 적용된 반투명 키보드. 시스템 블러를 사용할 수 없으면 불투명 배경을 사용합니다</string>
-    <string name="keyboard_glass_blur_radius">유리 배경 블러</string>
+    <string name="keyboard_glass_blur_radius">유리 배경 블러 반경</string>
     <string name="keyboard_glass_background_opacity">유리 배경 불투명도</string>
     <string name="key_opacity">키 불투명도</string>
 </resources>

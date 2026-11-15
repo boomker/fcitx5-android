@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="keyboard_top_corner_radius">Radio de las esquinas superiores del teclado</string>
-    <string name="keyboard_glass_enabled">Fondo de cristal del teclado</string>
+    <string name="keyboard_glass_enabled">Efecto de fondo de cristal del teclado</string>
     <string name="keyboard_glass_enabled_summary">Teclado translúcido con desenfoque de fondo; usa un fondo opaco si el desenfoque del sistema no está disponible</string>
-    <string name="keyboard_glass_blur_radius">Desenfoque del fondo de cristal</string>
+    <string name="keyboard_glass_blur_radius">Radio de desenfoque del fondo de cristal</string>
     <string name="keyboard_glass_background_opacity">Opacidad del fondo de cristal</string>
     <string name="key_opacity">Opacidad de las teclas</string>
 </resources>

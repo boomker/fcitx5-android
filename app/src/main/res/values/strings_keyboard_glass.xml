@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="keyboard_top_corner_radius">Keyboard top corner radius</string>
-    <string name="keyboard_glass_enabled">Keyboard glass background</string>
+    <string name="keyboard_glass_enabled">Keyboard glass background effect</string>
     <string name="keyboard_glass_enabled_summary">Translucent keyboard with background blur; uses an opaque background when system blur is unavailable</string>
-    <string name="keyboard_glass_blur_radius">Glass background blur</string>
+    <string name="keyboard_glass_blur_radius">Glass background blur radius</string>
     <string name="keyboard_glass_background_opacity">Glass background opacity</string>
     <string name="key_opacity">Key opacity</string>
 </resources>

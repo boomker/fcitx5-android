@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="keyboard_top_corner_radius">鍵盤頂部圓角</string>
-    <string name="keyboard_glass_enabled">鍵盤玻璃背景</string>
+    <string name="keyboard_top_corner_radius">鍵盤頂部圓角半徑</string>
+    <string name="keyboard_glass_enabled">鍵盤玻璃背景效果</string>
     <string name="keyboard_glass_enabled_summary">半透明鍵盤與背景模糊；系統不支援模糊時使用不透明背景</string>
-    <string name="keyboard_glass_blur_radius">玻璃背景模糊</string>
+    <string name="keyboard_glass_blur_radius">玻璃背景模糊半徑</string>
     <string name="keyboard_glass_background_opacity">玻璃背景不透明度</string>
     <string name="key_opacity">按鍵不透明度</string>
 </resources>

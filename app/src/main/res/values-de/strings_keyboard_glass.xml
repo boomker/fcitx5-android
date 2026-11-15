@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="keyboard_top_corner_radius">Oberer Eckenradius der Tastatur</string>
-    <string name="keyboard_glass_enabled">Glashintergrund der Tastatur</string>
+    <string name="keyboard_glass_enabled">Glashintergrundeffekt der Tastatur</string>
     <string name="keyboard_glass_enabled_summary">Halbtransparente Tastatur mit Hintergrundunschärfe; verwendet einen undurchsichtigen Hintergrund, wenn die Systemunschärfe nicht verfügbar ist</string>
-    <string name="keyboard_glass_blur_radius">Unschärfe des Glashintergrunds</string>
+    <string name="keyboard_glass_blur_radius">Unschärferadius des Glashintergrunds</string>
     <string name="keyboard_glass_background_opacity">Deckkraft des Glashintergrunds</string>
     <string name="key_opacity">Tastendeckkraft</string>
 </resources>
