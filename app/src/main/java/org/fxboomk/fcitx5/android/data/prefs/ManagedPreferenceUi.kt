@@ -11,8 +11,8 @@ import androidx.preference.ListPreference
 import androidx.preference.Preference
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.input.voice.VoiceInputChoices
-import org.fxboomk.fcitx5.android.ui.main.modified.EntryEnabledListPreference
-import org.fxboomk.fcitx5.android.ui.main.modified.MySwitchPreference
+import org.fxboomk.fcitx5.android.ui.common.preference.EntryEnabledListPreference
+import org.fxboomk.fcitx5.android.ui.common.preference.ResettableSwitchPreference
 import org.fxboomk.fcitx5.android.ui.main.settings.DialogSeekBarPreference
 import org.fxboomk.fcitx5.android.ui.main.settings.EditTextIntPreference
 import org.fxboomk.fcitx5.android.ui.main.settings.TwinSeekBarPreference
@@ -35,8 +35,8 @@ abstract class ManagedPreferenceUi<T : Preference>(
         @StringRes
         val summary: Int? = null,
         enableUiOn: (() -> Boolean)? = null
-    ) : ManagedPreferenceUi<MySwitchPreference>(key, enableUiOn) {
-        override fun createUi(context: Context) = MySwitchPreference(context).apply {
+    ) : ManagedPreferenceUi<ResettableSwitchPreference>(key, enableUiOn) {
+        override fun createUi(context: Context) = ResettableSwitchPreference(context).apply {
             key = this@Switch.key
             isIconSpaceReserved = false
             isSingleLineTitle = false

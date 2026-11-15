@@ -30,6 +30,7 @@ import org.fxboomk.fcitx5.android.BuildConfig
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.databinding.ActivityMainBinding
+import org.fxboomk.fcitx5.android.ui.common.preference.PreferenceDialogFragmentFactory
 import org.fxboomk.fcitx5.android.ui.main.settings.SettingsRoute
 import org.fxboomk.fcitx5.android.ui.setup.SetupActivity
 import org.fxboomk.fcitx5.android.utils.item
@@ -50,6 +51,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        supportFragmentManager.fragmentFactory =
+            PreferenceDialogFragmentFactory(supportFragmentManager.fragmentFactory)
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         binding = ActivityMainBinding.inflate(layoutInflater)

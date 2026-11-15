@@ -24,7 +24,7 @@ import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.data.prefs.ManagedPreferenceFragment
 import org.fxboomk.fcitx5.android.ui.common.withLoadingDialog
 import org.fxboomk.fcitx5.android.ui.main.MainViewModel
-import org.fxboomk.fcitx5.android.ui.main.modified.MySwitchPreference
+import org.fxboomk.fcitx5.android.ui.common.preference.ResettableSwitchPreference
 import org.fxboomk.fcitx5.android.ui.main.settings.SettingsRoute
 import org.fxboomk.fcitx5.android.ui.main.settings.theme.ThemeSettingsSupport
 import org.fxboomk.fcitx5.android.utils.AppUtil
@@ -112,7 +112,7 @@ class AdvancedSettingsFragment : ManagedPreferenceFragment(AppPrefs.getInstance(
         screen.findPreference<Preference>(AppPrefs.getInstance().advanced.allowOriginalPlugins.key)
             ?.let { screen.removePreference(it) }
 
-        screen.addPreference(MySwitchPreference(ctx).apply {
+        screen.addPreference(ResettableSwitchPreference(ctx).apply {
             key = AppPrefs.getInstance().internal.verboseLog.key
             setTitle(R.string.verbose_log)
             setDefaultValue(false)

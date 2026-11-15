@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
  * SPDX-FileCopyrightText: Copyright 2021-2023 Fcitx5 for Android Contributors
  */
-package org.fxboomk.fcitx5.android.ui.main.modified
+package org.fxboomk.fcitx5.android.ui.common.preference
 
 import android.os.Bundle
 import android.view.View
@@ -11,11 +11,11 @@ import androidx.preference.EditTextPreference
 import androidx.preference.EditTextPreferenceDialogFragmentCompat
 import org.fxboomk.fcitx5.android.R
 
-class MyEditTextPreferenceDialogFragment : EditTextPreferenceDialogFragmentCompat() {
+class ResettableEditTextPreferenceDialogFragment : EditTextPreferenceDialogFragmentCompat() {
     override fun onPrepareDialogBuilder(builder: AlertDialog.Builder) {
         val p = preference as EditTextPreference
         builder.setNeutralButton(R.string.default_) { _, _ ->
-            p.restore()
+            p.resetToDefault()
         }
         super.onPrepareDialogBuilder(builder)
     }
@@ -26,8 +26,8 @@ class MyEditTextPreferenceDialogFragment : EditTextPreferenceDialogFragmentCompa
     }
 
     companion object {
-        fun newInstance(key: String): MyEditTextPreferenceDialogFragment {
-            val fragment = MyEditTextPreferenceDialogFragment()
+        fun newInstance(key: String): ResettableEditTextPreferenceDialogFragment {
+            val fragment = ResettableEditTextPreferenceDialogFragment()
             val b = Bundle(1)
             b.putString(ARG_KEY, key)
             fragment.arguments = b

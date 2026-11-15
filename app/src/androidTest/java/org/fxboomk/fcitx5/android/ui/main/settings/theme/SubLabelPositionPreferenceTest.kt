@@ -13,9 +13,9 @@ import org.fxboomk.fcitx5.android.data.theme.ThemeManager
 import org.fxboomk.fcitx5.android.data.theme.ThemePrefs.PunctuationPosition
 import org.fxboomk.fcitx5.android.data.theme.ThemePrefs.UppercasePosition
 import org.fxboomk.fcitx5.android.ui.main.MainActivity
-import org.fxboomk.fcitx5.android.ui.main.modified.EntryEnabledListPreference
-import org.fxboomk.fcitx5.android.ui.main.modified.MyPreferenceFragment
-import org.fxboomk.fcitx5.android.ui.main.modified.restore
+import org.fxboomk.fcitx5.android.ui.common.preference.EntryEnabledListPreference
+import org.fxboomk.fcitx5.android.ui.common.preference.ResettablePreferenceFragment
+import org.fxboomk.fcitx5.android.ui.common.preference.resetToDefault
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -133,7 +133,7 @@ class SubLabelPositionPreferenceTest {
         onMain {
             val preference = host.preference(PUNCTUATION_KEY)
             assertFalse(dialog.getButton(AlertDialog.BUTTON_NEUTRAL).isEnabled)
-            preference.restore()
+            preference.resetToDefault()
             assertEquals(PunctuationPosition.None, ThemeManager.prefs.punctuationPosition.getValue())
             assertEquals(PunctuationPosition.None.name, preference.value)
         }
@@ -308,7 +308,7 @@ class SubLabelPositionPreferenceTest {
         return task.get()
     }
 
-    class PreferenceHostFragment : MyPreferenceFragment() {
+    class PreferenceHostFragment : ResettablePreferenceFragment() {
         override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
             preferenceScreen = preferenceManager.createPreferenceScreen(requireContext()).apply {
                 for (key in listOf(PUNCTUATION_KEY, UPPERCASE_KEY)) {

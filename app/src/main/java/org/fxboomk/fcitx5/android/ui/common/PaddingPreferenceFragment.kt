@@ -8,10 +8,10 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.annotation.CallSuper
-import org.fxboomk.fcitx5.android.ui.main.modified.MyPreferenceFragment
+import org.fxboomk.fcitx5.android.ui.common.preference.ResettablePreferenceFragment
 import org.fxboomk.fcitx5.android.utils.applyNavBarInsetsBottomPadding
 
-abstract class PaddingPreferenceFragment : MyPreferenceFragment() {
+abstract class PaddingPreferenceFragment : ResettablePreferenceFragment() {
 
     @CallSuper
     override fun onCreateView(

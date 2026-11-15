@@ -19,7 +19,7 @@ import org.fxboomk.fcitx5.android.core.data.DataManager
 import org.fxboomk.fcitx5.android.daemon.FcitxDaemon
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.ui.common.PaddingPreferenceFragment
-import org.fxboomk.fcitx5.android.ui.main.modified.MySwitchPreference
+import org.fxboomk.fcitx5.android.ui.common.preference.ResettableSwitchPreference
 import org.fxboomk.fcitx5.android.utils.addPreference
 import org.fxboomk.fcitx5.android.utils.iso8601UTCDateTime
 import org.fxboomk.fcitx5.android.utils.startActivity
@@ -64,7 +64,7 @@ class DeveloperFragment : PaddingPreferenceFragment() {
             addPreference(R.string.real_time_logs) {
                 startActivity<LogActivity>()
             }
-            addPreference(MySwitchPreference(context).apply {
+            addPreference(ResettableSwitchPreference(context).apply {
                 key = AppPrefs.getInstance().internal.editorInfoInspector.key
                 setTitle(R.string.editor_info_inspector)
                 setDefaultValue(false)

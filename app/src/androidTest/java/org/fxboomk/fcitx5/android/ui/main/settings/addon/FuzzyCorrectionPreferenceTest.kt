@@ -12,7 +12,7 @@ import androidx.preference.PreferenceManager
 import androidx.preference.PreferenceViewHolder
 import androidx.test.platform.app.InstrumentationRegistry
 import org.fxboomk.fcitx5.android.core.RawConfig
-import org.fxboomk.fcitx5.android.ui.main.modified.MySwitchPreference
+import org.fxboomk.fcitx5.android.ui.common.preference.ResettableSwitchPreference
 import org.fxboomk.fcitx5.android.ui.main.settings.FcitxRawConfigStore
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -32,7 +32,7 @@ class FuzzyCorrectionPreferenceTest {
                 val cfg = RawConfig("Fuzzy", subItems = arrayOf(RawConfig("Correction", saved)))
                 val manager = PreferenceManager(context)
                 val screen = manager.createPreferenceScreen(context)
-                val correction = MySwitchPreference(context).apply {
+                val correction = ResettableSwitchPreference(context).apply {
                     key = "Correction"
                     title = "Correction"
                     preferenceDataStore = FcitxRawConfigStore(
@@ -47,7 +47,9 @@ class FuzzyCorrectionPreferenceTest {
                 assertEquals(checked, correction.isChecked)
 
                 val inflater = LayoutInflater.from(context)
-                val row = inflater.inflate(correction.layoutResource, FrameLayout(context), false)
+                val parent = FrameLayout(context)
+                val row = inflater.inflate(correction.layoutResource, parent, false)
+                parent.addView(row)
                 if (correction.widgetLayoutResource != 0) {
                     row.findViewById<ViewGroup>(android.R.id.widget_frame)?.let {
                         inflater.inflate(correction.widgetLayoutResource, it)

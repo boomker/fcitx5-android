@@ -40,7 +40,7 @@ import org.fxboomk.fcitx5.android.ui.main.settings.DialogSeekBarPreference
 import org.fxboomk.fcitx5.android.ui.main.settings.PreferenceScrollHelper
 import splitties.dimensions.dp
 import org.fxboomk.fcitx5.android.ui.main.settings.SettingsRoute
-import org.fxboomk.fcitx5.android.ui.main.modified.MySwitchPreference
+import org.fxboomk.fcitx5.android.ui.common.preference.ResettableSwitchPreference
 import org.fxboomk.fcitx5.android.utils.addPreference
 import org.fxboomk.fcitx5.android.utils.navigateWithAnim
 import org.fxboomk.fcitx5.android.utils.toast
@@ -156,7 +156,7 @@ class LlmSettingsFragment : PaddingPreferenceFragment() {
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         preferenceManager.sharedPreferences?.let(LlmPrefs::migrateSeekBarBackedPreferences)
         preferenceScreen = preferenceManager.createPreferenceScreen(requireContext()).apply {
-            addPreference(MySwitchPreference(context).apply {
+            addPreference(ResettableSwitchPreference(context).apply {
                 key = LlmPrefs.KEY_ENABLED
                 setTitle(R.string.llm_enable)
                 setSummary(R.string.llm_enable_summary)
@@ -164,7 +164,7 @@ class LlmSettingsFragment : PaddingPreferenceFragment() {
                 isIconSpaceReserved = false
                 isSingleLineTitle = false
             })
-            addPreference(MySwitchPreference(context).apply {
+            addPreference(ResettableSwitchPreference(context).apply {
                 key = LlmPrefs.KEY_AUTO_PREDICT_ENABLED
                 setTitle(R.string.llm_auto_predict)
                 setSummary(R.string.llm_auto_predict_summary)

@@ -14,7 +14,7 @@ import org.fxboomk.fcitx5.android.data.prefs.ManagedPreferenceFragment
 import org.fxboomk.fcitx5.android.data.prefs.ManagedPreferenceProvider
 import org.fxboomk.fcitx5.android.data.prefs.ManagedPreferenceUi
 import org.fxboomk.fcitx5.android.input.plugin.js.JsPluginCatalog
-import org.fxboomk.fcitx5.android.ui.main.modified.MySwitchPreference
+import org.fxboomk.fcitx5.android.ui.common.preference.ResettableSwitchPreference
 import org.fxboomk.fcitx5.android.ui.main.settings.plugin.js.JsPluginSettingsActivity
 import org.fxboomk.fcitx5.android.utils.addCategory
 import org.fxboomk.fcitx5.android.utils.addPreference
@@ -112,9 +112,9 @@ class KeyboardLayoutAndSplitSettingsFragment : KeyboardSectionFragment() {
 
     private var calibrationPreference: Preference? = null
     private var useLandscapePreference: Preference? = null
-    private var floatingModePreference: MySwitchPreference? = null
-    private var autoFloatingLandscapePreference: MySwitchPreference? = null
-    private var autoHideMoveHandlePreference: MySwitchPreference? = null
+    private var floatingModePreference: ResettableSwitchPreference? = null
+    private var autoFloatingLandscapePreference: ResettableSwitchPreference? = null
+    private var autoHideMoveHandlePreference: ResettableSwitchPreference? = null
 
     private val onSplitEnabledChangeListener = ManagedPreferenceProvider.OnChangeListener { key ->
         if (key == KeyboardSettingsSupport.SPLIT_ENABLED_KEY) {
@@ -178,7 +178,7 @@ class KeyboardLayoutAndSplitSettingsFragment : KeyboardSectionFragment() {
         titleRes: Int,
         summaryRes: Int,
         preferenceKey: String
-    ): MySwitchPreference = MySwitchPreference(requireContext()).apply {
+    ): ResettableSwitchPreference = ResettableSwitchPreference(requireContext()).apply {
         key = preferenceKey
         setTitle(titleRes)
         setSummary(summaryRes)

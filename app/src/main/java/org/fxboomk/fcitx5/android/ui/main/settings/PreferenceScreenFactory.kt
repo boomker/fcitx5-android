@@ -25,7 +25,7 @@ import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.core.Key
 import org.fxboomk.fcitx5.android.core.RawConfig
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
-import org.fxboomk.fcitx5.android.ui.main.modified.MySwitchPreference
+import org.fxboomk.fcitx5.android.ui.common.preference.ResettableSwitchPreference
 import org.fxboomk.fcitx5.android.utils.AppUtil
 import org.fxboomk.fcitx5.android.utils.CollapsiblePreferenceCategory
 import org.fxboomk.fcitx5.android.utils.LongClickPreference
@@ -420,7 +420,7 @@ object PreferenceScreenFactory {
         val usesPreeditStyle = optionStore is PreeditStyleStore
 
         when (descriptor) {
-            is ConfigBool -> MySwitchPreference(context).apply {
+            is ConfigBool -> ResettableSwitchPreference(context).apply {
                 summary = summaryText
                 setDefaultValue(descriptor.defaultValue)
             }
@@ -431,7 +431,7 @@ object PreferenceScreenFactory {
                         setDefaultValue(PreeditStyleOption.STANDALONE)
                     }
                 } else if (enumSwitch != null) {
-                    MySwitchPreference(context).apply {
+                    ResettableSwitchPreference(context).apply {
                         summary = summaryText
                         setDefaultValue(descriptor.defaultValue == enumSwitch.onValue)
                     }

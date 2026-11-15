@@ -9,7 +9,7 @@ import androidx.preference.EditTextPreferenceDialogFragmentCompat
 import androidx.preference.ListPreference
 import androidx.preference.ListPreferenceDialogFragmentCompat
 import org.fxboomk.fcitx5.android.R
-import org.fxboomk.fcitx5.android.ui.main.modified.fixDialogMargin
+import org.fxboomk.fcitx5.android.ui.common.preference.fixDialogMargin
 
 private const val ARG_RESET_VALUE = "reset_value"
 

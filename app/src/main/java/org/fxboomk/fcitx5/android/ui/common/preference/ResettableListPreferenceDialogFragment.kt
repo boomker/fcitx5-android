@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
  * SPDX-FileCopyrightText: Copyright 2021-2023 Fcitx5 for Android Contributors
  */
-package org.fxboomk.fcitx5.android.ui.main.modified
+package org.fxboomk.fcitx5.android.ui.common.preference
 
 import android.os.Bundle
 import android.view.View
@@ -15,11 +15,11 @@ import androidx.preference.ListPreference
 import androidx.preference.ListPreferenceDialogFragmentCompat
 import org.fxboomk.fcitx5.android.R
 
-class MyListPreferenceDialogFragment : ListPreferenceDialogFragmentCompat() {
+class ResettableListPreferenceDialogFragment : ListPreferenceDialogFragmentCompat() {
     override fun onPrepareDialogBuilder(builder: AlertDialog.Builder) {
         val p = preference as ListPreference
         builder.setNeutralButton(R.string.default_) { _, _ ->
-            p.restore()
+            p.resetToDefault()
         }
         super.onPrepareDialogBuilder(builder)
         if (p is EntryEnabledListPreference) {
@@ -67,8 +67,8 @@ class MyListPreferenceDialogFragment : ListPreferenceDialogFragmentCompat() {
     }
 
     companion object {
-        fun newInstance(key: String): MyListPreferenceDialogFragment {
-            val fragment = MyListPreferenceDialogFragment()
+        fun newInstance(key: String): ResettableListPreferenceDialogFragment {
+            val fragment = ResettableListPreferenceDialogFragment()
             val b = Bundle(1)
             b.putString(ARG_KEY, key)
             fragment.arguments = b
