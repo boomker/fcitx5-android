@@ -44,6 +44,53 @@ class Shuangpin18CapsTest {
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
 
     @Test
+    fun predictionCandidatesKeepCapsAcrossPreeditTransitionsAndUppercaseInput() = withKeyboard { scene ->
+        onMain {
+            scene.keyboard.onCompositionStateChanged(composing = true, hasPreedit = false)
+            layout(scene.keyboard)
+            assertTrue(caps(scene.keyboard) is ImageKeyView)
+            assertFalse("Predictions replaced Caps with a separator", "'词" in labels(scene.keyboard))
+            tap(caps(scene.keyboard))
+            layout(scene.keyboard)
+            assertUppercase26(scene.keyboard)
+            scene.actions.clear()
+            tap(textKey(scene.keyboard, "W"))
+            layout(scene.keyboard)
+            assertUppercaseW(scene.actions)
+            assertCompact(scene.keyboard)
+            assertTrue(caps(scene.keyboard) is ImageKeyView)
+
+            scene.keyboard.onCompositionStateChanged(composing = true, hasPreedit = true)
+            layout(scene.keyboard)
+            textKey(scene.keyboard, "'词")
+            scene.keyboard.onCompositionStateChanged(composing = true, hasPreedit = false)
+            layout(scene.keyboard)
+            assertTrue(caps(scene.keyboard) is ImageKeyView)
+            assertFalse("Clearing encoding retained the separator", "'词" in labels(scene.keyboard))
+        }
+    }
+
+    @Test
+    fun switchingToCompactWithPredictionsReevaluatesTheCapsSlot() = withKeyboard { scene ->
+        onMain {
+            ShuangpinKeyboardLayouts.write(XIAOHE, ShuangpinKeyboardLayout.Full)
+            scene.keyboard.onCompositionStateChanged(composing = true, hasPreedit = false)
+            layout(scene.keyboard)
+            ShuangpinKeyboardLayouts.write(XIAOHE, ShuangpinKeyboardLayout.Compact18)
+            layout(scene.keyboard)
+            assertCompact(scene.keyboard)
+            assertTrue(caps(scene.keyboard) is ImageKeyView)
+            assertFalse("Switching layouts treated predictions as encoding", "'词" in labels(scene.keyboard))
+
+            scene.keyboard.onCompositionStateChanged(composing = true, hasPreedit = true)
+            ShuangpinKeyboardLayouts.write(XIAOHE, ShuangpinKeyboardLayout.Full)
+            ShuangpinKeyboardLayouts.write(XIAOHE, ShuangpinKeyboardLayout.Compact18)
+            layout(scene.keyboard)
+            textKey(scene.keyboard, "'词")
+        }
+    }
+
+    @Test
     fun composingShowsATapSeparatorInTheCapsSlotAndRestoresCaps() = withKeyboard { scene ->
         val positions = listOf(PunctuationPosition.Top, PunctuationPosition.TopRight,
             PunctuationPosition.Bottom, PunctuationPosition.None)

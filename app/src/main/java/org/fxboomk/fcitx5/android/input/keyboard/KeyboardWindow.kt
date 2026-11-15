@@ -44,6 +44,12 @@ internal fun shouldComposeForKeyboardOverride(
     return hasVisibleCandidates && inputMethod?.isRimeInputMethod() != true
 }
 
+internal fun shouldComposeForTextKeyboardOverride(
+    composing: Boolean,
+    hasPreedit: Boolean,
+    layout: ShuangpinKeyboardLayout,
+): Boolean = if (layout == ShuangpinKeyboardLayout.Compact18) hasPreedit else composing
+
 private fun InputMethodEntry.isRimeInputMethod(): Boolean =
     addon == "rime" || icon == "fcitx-rime"
 
@@ -105,6 +111,7 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
     private var hasVisibleCandidates = false
     private var currentInputMethod: InputMethodEntry? = null
     private var composingState = false
+    private var composingHasPreedit = false
     private var floatingGboardSideKeyStyle = false
 
     private val currentKeyboard: BaseKeyboard? get() = keyboards[currentKeyboardName]
@@ -125,15 +132,17 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
         return keyboard
     }
 
-    private fun updateCompositionState() {
+    private fun updateCompositionState(force: Boolean = false) {
         val composing = shouldComposeForKeyboardOverride(
             preeditEmpty = preeditEmpty,
             hasVisibleCandidates = hasVisibleCandidates,
             inputMethod = currentInputMethod,
         )
-        if (composingState == composing) return
+        val hasPreedit = !preeditEmpty
+        if (!force && composingState == composing && composingHasPreedit == hasPreedit) return
         composingState = composing
-        currentKeyboard?.onCompositionStateChanged(composing)
+        composingHasPreedit = hasPreedit
+        currentKeyboard?.onCompositionStateChanged(composing, hasPreedit)
         service.inputView?.requestBlurRefresh(retryFrames = 2, hierarchyChanged = true)
     }
 
@@ -220,7 +229,8 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
             // shuangpin scheme in settings). Refresh asynchronously; the
             // emitted IMChangeEvent corrects the space label when done.
             fcitx.runIfReady { refreshImEntry() }
-            updateCompositionState()
+            // A keyboard hidden during an encoding change still has its previous compose state.
+            updateCompositionState(force = true)
         }
     }
 
@@ -267,6 +277,7 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
         // updateCompositionState would early-return on equal state.
         if (composingState) {
             composingState = false
+            composingHasPreedit = false
             currentKeyboard?.onCompositionStateChanged(false)
             service.inputView?.requestBlurRefresh(retryFrames = 2, hierarchyChanged = true)
         }

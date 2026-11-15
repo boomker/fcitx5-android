@@ -822,7 +822,7 @@ abstract class BaseKeyboard(
         }
     }
 
-    open fun onCompositionStateChanged(composing: Boolean) {
+    open fun onCompositionStateChanged(composing: Boolean, hasPreedit: Boolean = composing) {
         if (this.composing == composing) return
         this.composing = composing
         data class PendingUpdate(

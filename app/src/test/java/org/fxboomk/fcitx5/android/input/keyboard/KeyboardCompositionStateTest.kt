@@ -55,6 +55,38 @@ class KeyboardCompositionStateTest {
         )
     }
 
+    @Test
+    fun compactPredictionCandidatesDoNotActivateComposeOverride() {
+        val composing = shouldComposeForKeyboardOverride(
+            preeditEmpty = true,
+            hasVisibleCandidates = true,
+            inputMethod = inputMethod(addon = "pinyin", icon = "pinyin"),
+        )
+
+        assertTrue(composing)
+        assertFalse(shouldComposeForTextKeyboardOverride(composing, false, ShuangpinKeyboardLayout.Compact18))
+        assertTrue(shouldComposeForTextKeyboardOverride(composing, false, ShuangpinKeyboardLayout.Full))
+    }
+
+    @Test
+    fun compactComposeOverrideFollowsPreeditWhileCandidatesRemainVisible() {
+        for (hasPreedit in listOf(false, true, false)) {
+            val active = shouldComposeForTextKeyboardOverride(true, hasPreedit, ShuangpinKeyboardLayout.Compact18)
+            if (hasPreedit) assertTrue(active) else assertFalse(active)
+        }
+    }
+
+    @Test
+    fun compactPreeditActivatesComposeOverrideEvenWithoutCandidates() {
+        val composing = shouldComposeForKeyboardOverride(
+            preeditEmpty = false,
+            hasVisibleCandidates = false,
+            inputMethod = inputMethod(addon = "pinyin", icon = "pinyin"),
+        )
+
+        assertTrue(shouldComposeForTextKeyboardOverride(composing, true, ShuangpinKeyboardLayout.Compact18))
+    }
+
     private fun rimeInputMethod() = inputMethod(addon = "rime", icon = "fcitx-rime")
 
     private fun inputMethod(addon: String, icon: String) = InputMethodEntry(

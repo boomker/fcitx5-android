@@ -580,6 +580,8 @@ class TextKeyboard private constructor(
 
     private var capsState: CapsState = CapsState.None
     private var lastCompactCapsTapTime: Long? = null
+    private var composingState = false
+    private var composingHasPreedit = false
 
     private fun isDisplayCapsOn(): Boolean {
         return capsState != CapsState.None || isSimulatedCapsLockOn()
@@ -909,6 +911,7 @@ class TextKeyboard private constructor(
 
     private fun refreshDynamicState() {
         syncUppercaseLayout()
+        updateComposeOverrideState()
         ensureSpecialKeyViewsInitialized()
         updateCapsButtonIcon()
         updateAlphabetKeys()
@@ -940,8 +943,23 @@ class TextKeyboard private constructor(
         // Note: returnDrawable is managed by KeyboardWindow
     }
 
-    override fun onCompositionStateChanged(composing: Boolean) {
-        super.onCompositionStateChanged(composing)
+    private fun updateComposeOverrideState() {
+        val layout = if (layoutState.useUppercaseLayout) {
+            ShuangpinKeyboardLayout.Full
+        } else {
+            layoutState.layoutVariant()
+        }
+        // Prediction candidates can keep the generic compose state active without any encoding.
+        super.onCompositionStateChanged(
+            shouldComposeForTextKeyboardOverride(composingState, composingHasPreedit, layout),
+            composingHasPreedit,
+        )
+    }
+
+    override fun onCompositionStateChanged(composing: Boolean, hasPreedit: Boolean) {
+        composingState = composing
+        composingHasPreedit = hasPreedit
+        updateComposeOverrideState()
         ensureSpecialKeyViewsInitialized()
         // Compose-state switches may recreate the Caps key view; restore every state-dependent
         // presentation, including the lock icon, after the hierarchy has been updated.
