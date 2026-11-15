@@ -61,6 +61,8 @@ object FcitxDaemon {
             ) = realFcitx.selectPrediction(idx, expected)
 
             override suspend fun refreshImEntry() = realFcitx.refreshImEntry()
+
+            override suspend fun setCandidateCursor(idx: Int) = realFcitx.setCandidateCursor(idx)
         }
     }
 

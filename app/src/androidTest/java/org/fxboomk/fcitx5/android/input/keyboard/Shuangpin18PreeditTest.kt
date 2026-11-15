@@ -22,6 +22,7 @@ import org.fxboomk.fcitx5.android.core.CapabilityFlag
 import org.fxboomk.fcitx5.android.core.CapabilityFlags
 import org.fxboomk.fcitx5.android.core.FcitxAPI
 import org.fxboomk.fcitx5.android.core.FcitxEvent
+import org.fxboomk.fcitx5.android.core.KeyState
 import org.fxboomk.fcitx5.android.core.KeyStates
 import org.fxboomk.fcitx5.android.core.KeySym
 import org.fxboomk.fcitx5.android.core.RawConfig
@@ -55,6 +56,9 @@ class Shuangpin18PreeditTest {
         awaitPreedit("a single source key") { it.length == 1 && it[0] in "bn" }
         grouped("i")
         awaitPreedit("ni")
+        // Lock the completed pair so dictionary ranking cannot split it into
+        // two initials while this test checks the next unfinished syllable.
+        pickSyllable("ni")
         grouped("h")
         awaitPreedit("ni h")
         assertFalse("Grouped labels leaked into the composition", clientPreeditCached.toString().contains("bn io"))
@@ -203,7 +207,7 @@ class Shuangpin18PreeditTest {
                 }
             }
             press("Return")
-            assertEquals("WE P", commit.await())
+            assertEquals("wp", commit.await())
         }
     }
 
@@ -246,7 +250,7 @@ class Shuangpin18PreeditTest {
     }
 
     @Test
-    fun rawCommitKeepsItsExistingVisibleGroupFormat() = withIme(XIAOHE) {
+    fun rawCommitUsesItsDecodedOrdinaryKeys() = withIme(XIAOHE) {
         grouped("ni")
         awaitPreedit("ni")
         coroutineScope {
@@ -256,7 +260,74 @@ class Shuangpin18PreeditTest {
                 }
             }
             press("Return")
-            assertEquals("BN IO", commit.await())
+            assertEquals("ni", commit.await())
+        }
+    }
+
+    @Test
+    fun returnAndShiftReturnFollowTheDisplayOptionInBothLayouts() {
+        for (completePinyin in listOf(false, true)) {
+            withIme(XIAOHE, completePinyin = completePinyin) {
+                for (compact in listOf(true, false)) {
+                    mode(compact)
+                    for (separated in listOf(false, true)) {
+                        for (explicitSeparator in listOf(false, true)) {
+                            val input = if (explicitSeparator) "ni'hc" else "nihc"
+                            if (compact) grouped(input)
+                            else input.forEach { press(if (it == '\'') "apostrophe" else it.toString()) }
+                            val visible = "ni" + (if (explicitSeparator) "'" else "") +
+                                (if (completePinyin) "hao" else "hc")
+                            awaitPreedit("the composing code before Return") {
+                                it.replace(" ", "") == visible
+                            }
+                            coroutineScope {
+                                val commit = async(start = CoroutineStart.UNDISPATCHED) {
+                                    withTimeout(EVENT_TIMEOUT_MS) {
+                                        eventFlow.filterIsInstance<FcitxEvent.CommitStringEvent>().first().data.text
+                                    }
+                                }
+                                press("Return", shift = separated)
+                                val boundary = if (!separated) "" else if (explicitSeparator) "'" else " "
+                                assertEquals("ni" + boundary + if (completePinyin) "hao" else "hc", commit.await())
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun returnCommitsTheCandidateHighlightedThroughJni() {
+        for (completePinyin in listOf(false, true)) {
+            withIme(XIAOHE, completePinyin = completePinyin) {
+                for (separated in listOf(false, true)) {
+                    grouped("nihc")
+                    val initialPreedit = if (completePinyin) "ni hao" else "ni hc"
+                    awaitPreedit(initialPreedit)
+                    val candidates = getCandidates(0, CANDIDATE_LIMIT)
+                    val index = candidates.indexOfFirst { it.text == "壁画" }
+                    assertTrue("A non-first 壁画 candidate is required", index > 0)
+                    assertFalse("A negative cursor index was accepted", setCandidateCursor(-1))
+                    assertFalse("An out-of-range cursor index was accepted", setCandidateCursor(Int.MAX_VALUE))
+                    awaitPreedit(initialPreedit)
+                    assertEquals("Invalid cursor updates changed candidates", candidates.toList(),
+                        getCandidates(0, CANDIDATE_LIMIT).toList())
+                    assertTrue("Highlighting 壁画 through JNI failed", setCandidateCursor(index))
+                    coroutineScope {
+                        val commit = async(start = CoroutineStart.UNDISPATCHED) {
+                            withTimeout(EVENT_TIMEOUT_MS) {
+                                eventFlow.filterIsInstance<FcitxEvent.CommitStringEvent>().first().data.text
+                            }
+                        }
+                        press("Return", shift = separated)
+                        val boundary = if (separated) " " else ""
+                        val expected = "bi" + boundary + (if (completePinyin) "hua" else "hx")
+                        assertEquals(expected, commit.await())
+                    }
+                    awaitPreedit("")
+                }
+            }
         }
     }
 
@@ -348,9 +419,10 @@ class Shuangpin18PreeditTest {
         sendKey(sym, KeyStates.Virtual, up = true)
     }
 
-    private suspend fun FcitxAPI.press(key: String) {
-        sendKey(key, states = KeyStates.Virtual.states)
-        sendKey(key, states = KeyStates.Virtual.states, up = true)
+    private suspend fun FcitxAPI.press(key: String, shift: Boolean = false) {
+        val states = if (shift) KeyStates(KeyState.Virtual, KeyState.Shift) else KeyStates.Virtual
+        sendKey(key, states = states.states)
+        sendKey(key, states = states.states, up = true)
     }
 
     private suspend fun FcitxAPI.pickSyllable(text: String) {

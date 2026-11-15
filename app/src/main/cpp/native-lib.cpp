@@ -119,6 +119,10 @@ public:
         return p_frontend->call<fcitx::IAndroidFrontend::selectCandidate>(idx);
     }
 
+    bool setCandidateCursor(int idx) {
+        return p_frontend->call<fcitx::IAndroidFrontend::setCandidateCursor>(idx);
+    }
+
     bool isInputPanelEmpty() {
         return p_frontend->call<fcitx::IAndroidFrontend::isInputPanelEmpty>();
     }
@@ -978,6 +982,13 @@ JNIEXPORT jboolean JNICALL
 Java_org_fxboomk_fcitx5_android_core_Fcitx_selectCandidate(JNIEnv *env, jclass clazz, jint idx) {
     RETURN_VALUE_IF_NOT_RUNNING(false)
     return Fcitx::Instance().select(idx);
+}
+
+extern "C"
+JNIEXPORT jboolean JNICALL
+Java_org_fxboomk_fcitx5_android_core_Fcitx_setCandidateCursorNative(JNIEnv *env, jclass clazz, jint idx) {
+    RETURN_VALUE_IF_NOT_RUNNING(false)
+    return Fcitx::Instance().setCandidateCursor(idx);
 }
 
 extern "C"

@@ -218,6 +218,14 @@ class CommonKeyActionListener :
                             meta = action.states.meta,
                         ) -> {}
                         else -> service.postFcitxJob {
+                            val returnSym = when (action.act) {
+                                "Return" -> FcitxKeyMapping.FcitxKey_Return
+                                "KP_Enter" -> FcitxKeyMapping.FcitxKey_KP_Enter
+                                else -> null
+                            }
+                            if (returnSym != null) {
+                                service.syncHighlightedPinyinCandidateForReturn(this, returnSym, action.up)
+                            }
                             sendKey(action.act, action.states.states, action.code, action.up)
                         }
                     }
@@ -305,6 +313,7 @@ class CommonKeyActionListener :
                             moveVisibleCandidateHighlight(1)
                         }
                         else -> {
+                            service.syncHighlightedPinyinCandidateForReturn(this, action.sym.sym)
                             sendKey(action.sym, action.states)
                         }
                     }

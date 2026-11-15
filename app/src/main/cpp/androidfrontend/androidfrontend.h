@@ -34,6 +34,7 @@ public:
     void keyEvent(const Key &key, bool isRelease, int timestamp);
     void forwardKey(const Key &key, bool isRelease);
     bool selectCandidate(int idx);
+    bool setCandidateCursor(int idx);
     bool isInputPanelEmpty();
     void resetInputContext();
     void repositionCursor(int idx);
@@ -66,6 +67,7 @@ public:
 private:
     FCITX_ADDON_EXPORT_FUNCTION(AndroidFrontend, keyEvent);
     FCITX_ADDON_EXPORT_FUNCTION(AndroidFrontend, selectCandidate);
+    FCITX_ADDON_EXPORT_FUNCTION(AndroidFrontend, setCandidateCursor);
     FCITX_ADDON_EXPORT_FUNCTION(AndroidFrontend, isInputPanelEmpty);
     FCITX_ADDON_EXPORT_FUNCTION(AndroidFrontend, resetInputContext);
     FCITX_ADDON_EXPORT_FUNCTION(AndroidFrontend, repositionCursor);

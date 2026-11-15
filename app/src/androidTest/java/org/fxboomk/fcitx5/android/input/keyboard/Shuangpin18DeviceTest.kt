@@ -76,9 +76,9 @@ class Shuangpin18DeviceTest {
     }
 
     @Test
-    fun rawCommitContainsVisibleGroups() = withIme("shuangpin-xiaohe") {
+    fun rawCommitContainsDecodedOrdinaryKeys() = withIme("shuangpin-xiaohe") {
         grouped("ni")
-        expectCommit("BN IO") { press("Return") }
+        expectCommit("ni") { press("Return") }
     }
 
     @Test
@@ -104,14 +104,14 @@ class Shuangpin18DeviceTest {
     }
 
     @Test
-    fun regroupedLettersDecodeAndCommitTheirConfiguredLabels() = withIme("shuangpin-xiaohe") {
+    fun regroupedLettersDecodeAndCommitTheirOrdinaryKeys() = withIme("shuangpin-xiaohe") {
         val groups = GROUPS.map { when (it) { "q" -> "e"; "we" -> "wq"; else -> it } }
         configure(groups)
         customGrouped("wo", groups)
         selectWord("我")
         reset()
         customGrouped("wo", groups)
-        expectCommit("WQ IO") { press("Return") }
+        expectCommit("wo") { press("Return") }
     }
 
     @Test
@@ -122,7 +122,7 @@ class Shuangpin18DeviceTest {
         selectWord("你好")
         reset()
         customGrouped("ni", split)
-        expectCommit("N I") { press("Return") }
+        expectCommit("ni") { press("Return") }
 
         val merged = GROUPS.filter { it != "m" }.map { if (it == "bn") "bnm" else it }
         configure(merged)
@@ -130,7 +130,7 @@ class Shuangpin18DeviceTest {
         selectWord("你好")
         reset()
         customGrouped("ni", merged)
-        expectCommit("BNM IO") { press("Return") }
+        expectCommit("ni") { press("Return") }
     }
 
     @Test
@@ -172,7 +172,7 @@ class Shuangpin18DeviceTest {
         configure(GROUPS)
         expectCommit("x") { press("Return") }
         customGrouped("wo", GROUPS)
-        expectCommit("WE IO") { press("Return") }
+        expectCommit("wo") { press("Return") }
     }
 
     private suspend fun FcitxAPI.configure(groups: List<String>) {

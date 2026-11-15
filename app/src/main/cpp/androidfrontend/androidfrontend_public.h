@@ -30,6 +30,9 @@ FCITX_ADDON_DECLARE_FUNCTION(AndroidFrontend, keyEvent,
 FCITX_ADDON_DECLARE_FUNCTION(AndroidFrontend, selectCandidate,
                              bool(int idx))
 
+FCITX_ADDON_DECLARE_FUNCTION(AndroidFrontend, setCandidateCursor,
+                             bool(int idx))
+
 FCITX_ADDON_DECLARE_FUNCTION(AndroidFrontend, isInputPanelEmpty,
                              bool())
 

@@ -514,6 +514,32 @@ bool AndroidFrontend::selectCandidate(int idx) {
     }
 }
 
+bool AndroidFrontend::setCandidateCursor(int idx) {
+    if (!activeIC_ || idx < 0) return false;
+    const auto &list = activeIC_->inputPanel().candidateList();
+    if (!list) return false;
+    try {
+        // Match selectCandidate's page-relative indices, including absolute
+        // indices from an expanded candidate window beyond the current page.
+        if (pagingMode_ && idx < list->size()) {
+            auto *cursor = list->toCursorModifiable();
+            if (!cursor) return false;
+            cursor->setCursorIndex(idx);
+        } else {
+            auto *bulk = list->toBulk();
+            auto *cursor = list->toBulkCursor();
+            if (!bulk || !cursor || (bulk->totalSize() >= 0 && idx >= bulk->totalSize())) return false;
+            bulk->candidateFromAll(idx);
+            cursor->setGlobalCursorIndex(idx);
+        }
+    } catch (const std::invalid_argument &) {
+        return false;
+    }
+    // The following key consumes this cursor. Publishing an intermediate UI
+    // update would reset Android's local highlight before that key commits it.
+    return true;
+}
+
 std::vector<CandidateActionEntity> AndroidFrontend::getCandidateActions(const int idx) {
     if (!activeIC_) return {};
     return activeIC_->getCandidateAction(idx);

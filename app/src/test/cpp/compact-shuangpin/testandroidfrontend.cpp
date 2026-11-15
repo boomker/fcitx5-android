@@ -202,7 +202,7 @@ int main() {
         static_cast<int>(std::distance(customCandidates.begin(), customNihao))));
     sendCompact(static_cast<KeySym>(0x0200e300 + ('w' - 'a')));
     frontend.keyEvent(Key(FcitxKey_Return, KeyState::Virtual), false, 0);
-    std::vector<std::string> expectedCommits = {"你好", "你好", "WQ"};
+    std::vector<std::string> expectedCommits = {"你好", "你好", "w"};
     FCITX_ASSERT(commits == expectedCommits);
     FCITX_ASSERT(forwardedKeys == 0);
 
@@ -227,7 +227,7 @@ int main() {
     FCITX_ASSERT(commits == expectedCommits);
     sendCompact(static_cast<KeySym>(0x0200e300 + ('w' - 'a')));
     frontend.keyEvent(Key(FcitxKey_Return, KeyState::Virtual), false, 0);
-    expectedCommits.push_back("WE");
+    expectedCommits.push_back("w");
     FCITX_ASSERT(commits == expectedCommits) << commits;
 
     // A queued layout update must not send compact keys to a different IM.
@@ -239,6 +239,50 @@ int main() {
     }
     FCITX_ASSERT(commits == expectedCommits);
     FCITX_ASSERT(forwardedKeys == 0);
+
+    // Android's highlight is local. Synchronize its exact candidate before
+    // Return without using navigation bindings, selecting text, or learning.
+    instance.setCurrentInputMethod(ic, "shuangpin", true);
+    config.setValueByPath("NextCandidate/0", "Control+n");
+    config.setValueByPath("PrevCandidate/0", "Control+p");
+    for (const bool fullPinyin : {false, true}) {
+      config.setValueByPath("PinyinInPreedit", fullPinyin ? "True" : "False");
+      instance.inputMethodEngine(ic)->setConfigForInputMethod(
+          *instance.inputMethodEntry(ic), config);
+      for (const int pagingMode : {0, 1}) {
+        frontend.resetInputContext();
+        frontend.setCandidatePagingMode(pagingMode);
+        sendCompact(static_cast<KeySym>(0x0200e101));
+        typeNiHao();
+        const auto all = frontend.getCandidates(0, 256);
+        const auto bihua = std::find_if(all.begin(), all.end(), [](const auto &candidate) {
+          return candidate.text == "壁画";
+        });
+        FCITX_ASSERT(bihua != all.end());
+        const int absoluteIndex = static_cast<int>(std::distance(all.begin(), bihua));
+        FCITX_ASSERT(absoluteIndex > 0);
+        const auto list = ic->inputPanel().candidateList();
+        const int pageSize = list->size();
+        const int pageBefore = list->toPageable()->currentPage();
+        int visibleIndex = absoluteIndex;
+        if (pagingMode) {
+          list->toPageable()->setPage(absoluteIndex / pageSize);
+          visibleIndex = absoluteIndex % pageSize;
+        }
+        FCITX_ASSERT(!frontend.setCandidateCursor(-1));
+        FCITX_ASSERT(!frontend.setCandidateCursor(100000));
+        FCITX_ASSERT(frontend.call<IAndroidFrontend::setCandidateCursor>(visibleIndex));
+        FCITX_ASSERT(list->toBulkCursor()->globalCursorIndex() == absoluteIndex);
+        if (!pagingMode) FCITX_ASSERT(list->toPageable()->currentPage() == pageBefore);
+        FCITX_ASSERT(commits == expectedCommits);
+        frontend.keyEvent(Key(FcitxKey_Return, KeyState::Virtual), false, 0);
+        expectedCommits.push_back(fullPinyin ? "bihua" : "bihx");
+        FCITX_ASSERT(commits == expectedCommits) << commits;
+        FCITX_ASSERT(!frontend.setCandidateCursor(0));
+      }
+    }
+    FCITX_ASSERT(forwardedKeys == 0);
+    instance.setCurrentInputMethod(ic, "keyboard-us", true);
 
     // Ordinary application input still reaches the frontend callback.
     frontend.keyEvent(Key(FcitxKey_x, KeyState::Virtual), false, 0);

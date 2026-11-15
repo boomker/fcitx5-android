@@ -151,6 +151,7 @@ class Fcitx(private val context: Context) : FcitxAPI, FcitxLifecycleOwner {
         withFcitxContext { sendKeySymToFcitx(sym.sym, states.toInt(), code, up, timestamp) }
 
     override suspend fun select(idx: Int): Boolean = withFcitxContext { selectCandidate(idx) }
+    override suspend fun setCandidateCursor(idx: Int): Boolean = withFcitxContext { setCandidateCursorNative(idx) }
     override suspend fun selectPrediction(idx: Int, expected: FcitxEvent.PagedCandidateEvent.Data): Boolean =
         withFcitxContext {
             if (clientPreeditCached.isNotEmpty() || inputPanelCached.preedit.isNotEmpty() ||
@@ -351,6 +352,9 @@ class Fcitx(private val context: Context) : FcitxAPI, FcitxLifecycleOwner {
 
         @JvmStatic
         external fun selectCandidate(idx: Int): Boolean
+
+        @JvmStatic
+        external fun setCandidateCursorNative(idx: Int): Boolean
 
         @JvmStatic
         external fun isInputPanelEmpty(): Boolean

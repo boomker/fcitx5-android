@@ -145,6 +145,14 @@ internal fun applyAiInsertionUndo(
     }
 }
 
+internal fun shouldSyncPinyinCandidateForReturn(
+    sym: Int,
+    addon: String,
+    hasPreedit: Boolean,
+    up: Boolean,
+): Boolean = !up && hasPreedit && addon == "pinyin" &&
+    (sym == FcitxKeyMapping.FcitxKey_Return || sym == FcitxKeyMapping.FcitxKey_KP_Enter)
+
 class FcitxInputMethodService : LifecycleInputMethodService() {
 
     internal lateinit var fcitx: FcitxConnection
@@ -527,6 +535,21 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     internal fun highlightedCandidateText(): String? =
         candidatesView?.highlightedCandidateText()
             ?: inputView?.takeIf { it.isShown }?.highlightedCandidateText()
+
+    /** Keep local candidate browsing intact; synchronize only when committing its code. */
+    internal suspend fun syncHighlightedPinyinCandidateForReturn(api: FcitxAPI, sym: Int, up: Boolean = false) {
+        if (!shouldSyncPinyinCandidateForReturn(
+                sym,
+                api.inputMethodEntryCached.addon,
+                api.clientPreeditCached.isNotEmpty() || api.inputPanelCached.preedit.isNotEmpty(),
+                up,
+            )
+        ) return
+        val index = withContext(Dispatchers.Main.immediate) {
+            highlightedNativeCandidateIndex()
+        } ?: return
+        api.setCandidateCursor(index)
+    }
 
     private fun moveVisibleCandidateHighlightOnMain(delta: Int, syncEngine: Boolean = false) {
         lifecycleScope.launch(Dispatchers.Main.immediate) {
@@ -2018,6 +2041,7 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
                 ) {
                     reset()
                 }
+                syncHighlightedPinyinCandidateForReturn(this, adjustedSym.sym, up)
                 sendKey(adjustedSym, states, forwardedEvent.scanCode, up, timestamp)
             }
             return true

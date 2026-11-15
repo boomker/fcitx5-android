@@ -73,6 +73,8 @@ interface FcitxAPI {
     suspend fun sendKey(sym: KeySym, states: KeyStates, code: Int = 0, up: Boolean = false, timestamp: Int = -1)
 
     suspend fun select(idx: Int): Boolean
+    /** Synchronize the visible highlight before key dispatch, without selecting or learning it. */
+    suspend fun setCandidateCursor(idx: Int): Boolean
     /** Select only from the exact prediction page that was visible when the key was pressed. */
     suspend fun selectPrediction(idx: Int, expected: FcitxEvent.PagedCandidateEvent.Data): Boolean
     suspend fun isEmpty(): Boolean
