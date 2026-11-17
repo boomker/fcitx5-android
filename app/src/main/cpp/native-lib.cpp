@@ -10,6 +10,9 @@
 #include <future>
 #include <fstream>
 #include <unordered_map>
+#include <optional>
+#include <string>
+#include <vector>
 
 #include <android/log.h>
 
@@ -22,6 +25,7 @@
 #include <fcitx/inputmethodmanager.h>
 #include <fcitx/userinterfacemanager.h>
 #include <fcitx/action.h>
+#include <fcitx/inputpanel.h>
 #include <fcitx/statusarea.h>
 #include <fcitx-utils/i18n.h>
 #include <fcitx-utils/event.h>
@@ -575,6 +579,56 @@ public:
             actions.emplace_back(a);
         }
         return actions;
+    }
+
+    std::optional<std::vector<CandidateActionEntity>> getCandidateActionsIfCurrent(
+            int idx, const std::string &candidateText) {
+        if (idx < 0) return std::nullopt;
+        auto *ic = p_frontend->call<fcitx::IAndroidFrontend::activeInputContext>();
+        if (!ic) return std::nullopt;
+        const auto list = ic->inputPanel().candidateList();
+        if (!list) return std::nullopt;
+        try {
+            // Match the existing action dispatch: small indices address the
+            // current page, and larger indices address the bulk candidate list.
+            const fcitx::CandidateWord *candidate;
+            if (idx >= list->size()) {
+                const auto *bulk = list->toBulk();
+                if (!bulk) return std::nullopt;
+                candidate = &bulk->candidateFromAll(idx);
+            } else {
+                candidate = &list->candidate(idx);
+            }
+            if (p_instance->outputFilter(ic, candidate->text()).toString() != candidateText) {
+                return std::nullopt;
+            }
+            std::vector<CandidateActionEntity> actions;
+            if (const auto *actionable = list->toActionable()) {
+                for (const auto &action : actionable->candidateActions(*candidate)) {
+                    actions.emplace_back(action);
+                }
+            }
+            return actions;
+        } catch (const std::exception &) {
+            return std::nullopt;
+        }
+    }
+
+    bool triggerCandidateActionIfCurrent(int idx, const std::string &candidateText,
+                                        int actionId, const std::string &actionText,
+                                        const std::string &actionIcon) {
+        // Validation and dispatch stay in this single native call, so a queued
+        // key/page update cannot replace the candidate between these steps.
+        const auto actions = getCandidateActionsIfCurrent(idx, candidateText);
+        if (!actions) return false;
+        for (const auto &action : *actions) {
+            if (!action.isSeparator && action.id == actionId &&
+                action.text == actionText && action.icon == actionIcon) {
+                triggerCandidateAction(idx, actionId);
+                return true;
+            }
+        }
+        return false;
     }
 
     void triggerCandidateAction(int idx, int actionIdx) {
@@ -1312,6 +1366,45 @@ JNIEXPORT void JNICALL
 Java_org_fxboomk_fcitx5_android_core_Fcitx_triggerFcitxCandidateAction(JNIEnv *env, jclass clazz, jint idx, jint action_idx) {
     RETURN_IF_NOT_RUNNING
     Fcitx::Instance().triggerCandidateAction(idx, action_idx);
+}
+
+namespace {
+
+std::string utf8FromByteArray(JNIEnv *env, jbyteArray bytes) {
+    std::string text(env->GetArrayLength(bytes), '\0');
+    env->GetByteArrayRegion(bytes, 0, static_cast<jsize>(text.size()),
+                           reinterpret_cast<jbyte *>(text.data()));
+    return text;
+}
+
+} // namespace
+
+extern "C"
+JNIEXPORT jobjectArray JNICALL
+Java_org_fxboomk_fcitx5_android_core_Fcitx_getFcitxCandidateActionsIfCurrent(
+        JNIEnv *env, jclass clazz, jint idx, jbyteArray candidate_text) {
+    RETURN_VALUE_IF_NOT_RUNNING(nullptr)
+    const auto actions = Fcitx::Instance().getCandidateActionsIfCurrent(
+            idx, utf8FromByteArray(env, candidate_text));
+    if (!actions) return nullptr;
+    const auto size = static_cast<jsize>(actions->size());
+    jobjectArray array = env->NewObjectArray(size, GlobalRef->CandidateAction, nullptr);
+    for (jsize i = 0; i < size; i++) {
+        auto obj = JRef(env, fcitxCandidateActionToObject(env, (*actions)[i]));
+        env->SetObjectArrayElement(array, i, obj);
+    }
+    return array;
+}
+
+extern "C"
+JNIEXPORT jboolean JNICALL
+Java_org_fxboomk_fcitx5_android_core_Fcitx_triggerFcitxCandidateActionIfCurrent(
+        JNIEnv *env, jclass clazz, jint idx, jbyteArray candidate_text,
+        jint action_id, jbyteArray action_text, jbyteArray action_icon) {
+    RETURN_VALUE_IF_NOT_RUNNING(false)
+    return Fcitx::Instance().triggerCandidateActionIfCurrent(
+            idx, utf8FromByteArray(env, candidate_text), action_id,
+            utf8FromByteArray(env, action_text), utf8FromByteArray(env, action_icon));
 }
 
 extern "C"

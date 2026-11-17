@@ -219,13 +219,9 @@ abstract class BaseExpandedCandidateWindow<T : BaseExpandedCandidateWindow<T>> :
         holder.itemView.setOnClickListener {
             fcitx.launchOnReady { it.select(holder.idx) }
         }
-        holder.itemView.setOnLongClickListener {
-            inputView.showCandidateActionMenu(holder.idx, holder.text, holder.ui.root)
-            true
-        }
-        // Deliberately no bindCandidateGesture here: the expanded candidate area must keep
-        // vertical drags free for scrolling the candidate list. Decompose ("拆字") and
-        // reset-frequency ("重置词频") remain available through the long-press action menu.
+        inputView.bindCandidateGesture(
+            holder.ui.root, holder.idx, holder.text, allowDirectionalActions = false
+        )
     }
 
     fun recycleCandidateViewHolder(holder: CandidateViewHolder) {

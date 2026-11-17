@@ -63,6 +63,19 @@ object FcitxDaemon {
             override suspend fun refreshImEntry() = realFcitx.refreshImEntry()
 
             override suspend fun setCandidateCursor(idx: Int) = realFcitx.setCandidateCursor(idx)
+
+            override suspend fun getCandidateActionsIfCurrent(idx: Int, candidateText: String) =
+                realFcitx.getCandidateActionsIfCurrent(idx, candidateText)
+
+            override suspend fun triggerCandidateActionIfCurrent(
+                idx: Int,
+                candidateText: String,
+                actionId: Int,
+                actionText: String,
+                actionIcon: String,
+            ) = realFcitx.triggerCandidateActionIfCurrent(
+                idx, candidateText, actionId, actionText, actionIcon,
+            )
         }
     }
 

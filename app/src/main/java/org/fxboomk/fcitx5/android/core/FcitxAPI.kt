@@ -138,6 +138,16 @@ interface FcitxAPI {
 
     suspend fun getCandidateActions(idx: Int): Array<CandidateAction>
     suspend fun triggerCandidateAction(idx: Int, actionIdx: Int)
+    /** Null means the displayed candidate is no longer current; an empty array is a valid candidate. */
+    suspend fun getCandidateActionsIfCurrent(idx: Int, candidateText: String): Array<CandidateAction>?
+    /** Check the current candidate and action together before committing a held popup choice. */
+    suspend fun triggerCandidateActionIfCurrent(
+        idx: Int,
+        candidateText: String,
+        actionId: Int,
+        actionText: String,
+        actionIcon: String,
+    ): Boolean
 
     suspend fun setCandidatePagingMode(mode: Int)
     suspend fun offsetCandidatePage(delta: Int)

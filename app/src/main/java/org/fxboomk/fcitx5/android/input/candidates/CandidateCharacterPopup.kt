@@ -22,7 +22,8 @@ import kotlin.math.roundToInt
 internal class CandidateCharacterPopup(
     private val anchor: View,
     private val characters: List<String>,
-    private val theme: Theme
+    private val theme: Theme,
+    private val onSelect: ((Int) -> Unit)? = null
 ) {
     private val density = anchor.resources.displayMetrics.density
     private fun dp(value: Float) = (value * density).roundToInt()
@@ -69,6 +70,12 @@ internal class CandidateCharacterPopup(
                     setTextColor(theme.popupTextColor)
                     typeface = FontProviders.resolveTypeface("popup_key_font", typeface)
                     text = characters.getOrNull(characterIndex).orEmpty()
+                    if (characterIndex < characters.size && onSelect != null) {
+                        contentDescription = text
+                        setOnClickListener {
+                            if (isShowing) onSelect.invoke(characterIndex)
+                        }
+                    }
                 }
                 addView(cell, GridLayout.LayoutParams(
                     GridLayout.spec(visualRow),
@@ -85,7 +92,7 @@ internal class CandidateCharacterPopup(
     }
 
     private val window = PopupWindow(content, popupWidth, popupHeight, false).apply {
-        isTouchable = false
+        isTouchable = onSelect != null
         isOutsideTouchable = false
         isClippingEnabled = true
         animationStyle = 0
@@ -107,9 +114,10 @@ internal class CandidateCharacterPopup(
 
     fun updateFocus(anchorX: Float, anchorY: Float) {
         if (!isShowing) return
-        val location = IntArray(2).also(anchor::getLocationInWindow)
-        val popupX = location[0] + anchorX - popupLeft
-        val popupY = location[1] + anchorY - popupTop
+        val location = IntArray(2).also(anchor::getLocationOnScreen)
+        val contentLocation = IntArray(2).also(content::getLocationOnScreen)
+        val popupX = location[0] + anchorX - contentLocation[0]
+        val popupY = location[1] + anchorY - contentLocation[1]
         if (!isInsideCandidateCharacterPopup(popupX, popupY, popupWidth, popupHeight)) {
             clearFocus()
             return
@@ -126,9 +134,12 @@ internal class CandidateCharacterPopup(
         markFocused(target)
     }
 
-    fun selectedCharacter(): String? = focusedIndex?.let(characters::getOrNull)
+    fun selectedIndex(): Int? = focusedIndex.takeIf { isShowing }
+
+    fun selectedCharacter(): String? = selectedIndex()?.let(characters::getOrNull)
 
     fun dismiss() {
+        clearFocus()
         window.dismiss()
     }
 
@@ -149,6 +160,7 @@ internal class CandidateCharacterPopup(
 
     private fun markFocused(index: Int) {
         characterViews.getOrNull(index)?.apply {
+            isSelected = true
             background = focusedBackground
             setTextColor(theme.genericActiveForegroundColor)
         }
@@ -156,6 +168,7 @@ internal class CandidateCharacterPopup(
 
     private fun markInactive(index: Int) {
         characterViews.getOrNull(index)?.apply {
+            isSelected = false
             background = null
             setTextColor(theme.popupTextColor)
         }

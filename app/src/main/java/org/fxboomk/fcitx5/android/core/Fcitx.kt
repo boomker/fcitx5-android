@@ -262,6 +262,29 @@ class Fcitx(private val context: Context) : FcitxAPI, FcitxLifecycleOwner {
     override suspend fun triggerCandidateAction(idx: Int, actionIdx: Int) =
         withFcitxContext { triggerFcitxCandidateAction(idx, actionIdx) }
 
+    override suspend fun getCandidateActionsIfCurrent(
+        idx: Int,
+        candidateText: String,
+    ): Array<CandidateAction>? = withFcitxContext {
+        getFcitxCandidateActionsIfCurrent(idx, candidateText.encodeToByteArray())
+    }
+
+    override suspend fun triggerCandidateActionIfCurrent(
+        idx: Int,
+        candidateText: String,
+        actionId: Int,
+        actionText: String,
+        actionIcon: String,
+    ): Boolean = withFcitxContext {
+        triggerFcitxCandidateActionIfCurrent(
+            idx,
+            candidateText.encodeToByteArray(),
+            actionId,
+            actionText.encodeToByteArray(),
+            actionIcon.encodeToByteArray(),
+        )
+    }
+
     override suspend fun setCandidatePagingMode(mode: Int) =
         withFcitxContext { setFcitxCandidatePagingMode(mode) }
 
@@ -460,6 +483,19 @@ class Fcitx(private val context: Context) : FcitxAPI, FcitxLifecycleOwner {
 
         @JvmStatic
         external fun triggerFcitxCandidateAction(idx: Int, actionIdx: Int)
+
+        // UTF-8 bytes preserve supplementary emoji when comparing native text.
+        @JvmStatic
+        external fun getFcitxCandidateActionsIfCurrent(idx: Int, candidateText: ByteArray): Array<CandidateAction>?
+
+        @JvmStatic
+        external fun triggerFcitxCandidateActionIfCurrent(
+            idx: Int,
+            candidateText: ByteArray,
+            actionId: Int,
+            actionText: ByteArray,
+            actionIcon: ByteArray,
+        ): Boolean
 
         @JvmStatic
         external fun setFcitxCandidatePagingMode(mode: Int)

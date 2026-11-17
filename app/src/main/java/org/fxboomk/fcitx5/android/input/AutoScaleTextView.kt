@@ -10,6 +10,11 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.RectF
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.StaticLayout
+import android.text.TextPaint
+import android.text.style.ForegroundColorSpan
 import android.util.AttributeSet
 import android.view.Gravity
 import android.widget.TextView
@@ -82,6 +87,11 @@ class AutoScaleTextView @JvmOverloads constructor(
 
     private lateinit var text: String
 
+    private data class ForegroundSpan(val start: Int, val end: Int, val color: Int, val flags: Int)
+
+    private lateinit var foregroundSpans: List<ForegroundSpan>
+    private var styledLayout: StaticLayout? = null
+
     private var needsMeasureText = true
     private val fontMetrics = Paint.FontMetrics()
     private val textBounds = Rect()
@@ -137,12 +147,14 @@ class AutoScaleTextView @JvmOverloads constructor(
         super.setTextSize(unit, size)
         needsMeasureText = true
         needsCalculateTransform = true
+        styledLayout = null
     }
 
     override fun setTypeface(tf: Typeface?) {
         super.setTypeface(tf)
         needsMeasureText = true
         needsCalculateTransform = true
+        styledLayout = null
     }
 
     internal fun renderedGlyphBounds(): RectF {
@@ -181,13 +193,43 @@ class AutoScaleTextView @JvmOverloads constructor(
 
     override fun setText(charSequence: CharSequence?, bufferType: BufferType) {
         // setText can be called in super constructor
-        if (!::text.isInitialized || charSequence == null || !text.contentEquals(charSequence)) {
+        val textChanged = !::text.isInitialized || charSequence == null || !text.contentEquals(charSequence)
+        val colors = (charSequence as? Spanned)?.let { source ->
+            source.getSpans(0, source.length, ForegroundColorSpan::class.java).mapNotNull { span ->
+                val start = source.getSpanStart(span).coerceAtLeast(0)
+                val end = source.getSpanEnd(span).coerceAtMost(source.length)
+                if (start < end) {
+                    ForegroundSpan(start, end, span.foregroundColor, source.getSpanFlags(span))
+                } else {
+                    null
+                }
+            }
+        }.orEmpty()
+        val colorsChanged = !::foregroundSpans.isInitialized || foregroundSpans != colors
+        if (textChanged) {
             needsMeasureText = true
             needsCalculateTransform = true
             text = charSequence?.toString() ?: ""
             requestLayout()
+        }
+        if (textChanged || colorsChanged) {
+            foregroundSpans = colors
+            styledLayout = null
             invalidate()
         }
+    }
+
+    private fun foregroundLayout(paint: Paint): StaticLayout = styledLayout ?: run {
+        // Copy only foreground colors; the existing font and glyph measurement stay authoritative.
+        val formatted = SpannableString(text).apply {
+            foregroundSpans.forEach { span ->
+                setSpan(ForegroundColorSpan(span.color), span.start, span.end, span.flags)
+            }
+        }
+        StaticLayout.Builder.obtain(
+            formatted, 0, formatted.length, TextPaint(paint),
+            ceil(paint.measureText(text)).toInt().coerceAtLeast(1)
+        ).setIncludePad(false).setMaxLines(1).build().also { styledLayout = it }
     }
 
     override fun getText(): CharSequence {
@@ -355,11 +397,23 @@ class AutoScaleTextView @JvmOverloads constructor(
         }
         val paint = paint
         paint.color = currentTextColor
+        val wholeForeground = foregroundSpans.singleOrNull()?.takeIf {
+            it.start == 0 && it.end == text.length
+        }
+        wholeForeground?.let { paint.color = it.color }
         canvas.withSave {
             translate(scrollX.toFloat(), scrollY.toFloat())
             translate(baselineX, baselineY)
             scale(textScaleX, textScaleY)
-            drawText(text, 0f, 0f, paint)
+            if (foregroundSpans.isEmpty() || wholeForeground != null) {
+                drawText(text, 0f, 0f, paint)
+            } else {
+                val layout = foregroundLayout(paint)
+                layout.paint.set(paint)
+                // Match the custom view's baseline and physical-left origin, including RTL text.
+                translate(-layout.getLineLeft(0), -layout.getLineBaseline(0).toFloat())
+                layout.draw(this)
+            }
         }
     }
 
