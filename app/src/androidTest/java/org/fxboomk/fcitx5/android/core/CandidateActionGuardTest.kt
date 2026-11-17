@@ -11,6 +11,7 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.first
@@ -20,6 +21,9 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
 import org.fxboomk.fcitx5.android.daemon.FcitxDaemon
+import org.fxboomk.fcitx5.android.input.keyboard.KeyAction
+import org.fxboomk.fcitx5.android.input.keyboard.NumLockState
+import org.fxboomk.fcitx5.android.input.keyboard.selectCandidateForDigit
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -29,6 +33,86 @@ import org.junit.Test
 
 /** Exercises the shipped pinyin engine and checked JNI calls in a sensitive test context. */
 class CandidateActionGuardTest {
+    @Test
+    fun softDigitActionsSelectTheVisibleEmojiHeadRatherThanItsFoldedAlternative() = withPinyin {
+        digitActionFactories.forEach { actionFor ->
+            val choice = foldedChoice("kaishi", "▶️", "🔛")
+            assertTrue("The folded head must have a numeric selection key", choice.index in 0..8)
+            val digit = '1' + choice.index
+            expectCommit(choice.head.text) {
+                assertTrue(selectCandidateForDigit(actionFor(digit)))
+            }
+            assertTrue("Selecting the visible emoji must finish composition", isEmpty())
+        }
+    }
+
+    @Test
+    fun foldedAlternativesDoNotConsumeTheFollowingVisibleCandidateNumber() = withPinyin {
+        digitActionFactories.forEach { actionFor ->
+            val choice = foldedChoice("kaishi", "▶️", "🔛")
+            val index = choice.index + 1
+            assertTrue("The following visible candidate must have a numeric selection key", index in 0..8)
+            val following = getCandidates(index, 1).single()
+            assertFalse("The folded alternative must not occupy a visible slot", following.text == choice.action.text)
+            expectCommit(following.text) {
+                assertTrue(selectCandidateForDigit(actionFor('1' + index)))
+            }
+        }
+    }
+
+    @Test
+    fun zeroSelectsTheTenthVisibleNativeCandidateForEverySoftDigitRepresentation() = withPinyin {
+        digitActionFactories.forEach { actionFor ->
+            typePinyin("shi")
+            val candidates = getCandidates(0, 10)
+            assertEquals("The single-syllable fixture must expose ten candidates", 10, candidates.size)
+            expectCommit(candidates[9].text) {
+                assertTrue(selectCandidateForDigit(actionFor('0')))
+            }
+            // Prediction candidates may remain after a complete commit. Only
+            // the two preedits describe whether the input syllable is unfinished.
+            withTimeout(EVENT_TIMEOUT_MS) {
+                while (clientPreeditCached.isNotEmpty() || inputPanelCached.preedit.isNotEmpty()) {
+                    delay(10)
+                }
+            }
+            assertTrue("Selecting a complete syllable must finish composition",
+                clientPreeditCached.isEmpty() && inputPanelCached.preedit.isEmpty())
+        }
+    }
+
+    @Test
+    fun softDigitsWithoutNativeCandidatesKeepTheirNormalInputPath() = withPinyin {
+        reset()
+        assertTrue(getCandidates(0, 1).isEmpty())
+        assertNoCommit {
+            digitActionFactories.forEach { actionFor ->
+                assertFalse("No native candidate means the caller must input the digit normally",
+                    selectCandidateForDigit(actionFor('3')))
+            }
+        }
+    }
+
+    @Test
+    fun modifiedDigitsAndKeyReleasesCannotSelectANativeCandidate() = withPinyin {
+        foldedChoice("kaishi", "▶️", "🔛")
+        val before = getCandidates(0, 10).toList()
+        val modifiers = listOf(KeyState.Shift, KeyState.Ctrl, KeyState.Alt, KeyState.Meta)
+        assertNoCommit {
+            modifiers.forEach { modifier ->
+                val states = KeyStates(KeyState.Virtual, modifier)
+                assertFalse(selectCandidateForDigit(KeyAction.FcitxKeyAction("2", states = states)))
+                assertFalse(selectCandidateForDigit(KeyAction.SymAction(
+                    KeySym(FcitxKeyMapping.FcitxKey_KP_2),
+                    KeyStates(KeyState.Virtual, KeyState.NumLock, modifier)
+                )))
+            }
+            assertFalse(selectCandidateForDigit(KeyAction.FcitxKeyAction("2", up = true)))
+        }
+        assertEquals("Rejected numeric actions must preserve the displayed list", before, getCandidates(0, 10).toList())
+        assertFalse("Rejected numeric actions must preserve composition", isEmpty())
+    }
+
     @Test
     fun supplementaryActionTextPassesTheRealNativeGuardAndCommits() = withPinyin {
         val choice = foldedChoice("kaishi", "▶️", "🔛")
@@ -120,6 +204,14 @@ class CandidateActionGuardTest {
         val head: CandidateWord,
         val action: CandidateAction
     )
+
+    private suspend fun FcitxAPI.typePinyin(input: String) {
+        reset()
+        input.forEach { key ->
+            sendKey(key.toString(), states = KeyStates.Virtual.states)
+            sendKey(key.toString(), states = KeyStates.Virtual.states, up = true)
+        }
+    }
 
     private suspend fun FcitxAPI.foldedChoice(
         input: String,
@@ -235,6 +327,13 @@ class CandidateActionGuardTest {
     }
 
     private companion object {
+        val digitActionFactories: List<(Char) -> KeyAction> = listOf(
+            { KeyAction.FcitxKeyAction(it.toString()) },
+            { KeyAction.SymAction(KeySym(FcitxKeyMapping.FcitxKey_KP_0 + (it - '0')), NumLockState) },
+            { KeyAction.CommitAction(it.toString()) },
+            { KeyAction.CommitAction("\u0000$it") },
+        )
+
         const val CLIENT_NAME = "CandidateActionGuardTest"
         const val TEST_CONTEXT_UID = -180117
         const val PINYIN = "pinyin"

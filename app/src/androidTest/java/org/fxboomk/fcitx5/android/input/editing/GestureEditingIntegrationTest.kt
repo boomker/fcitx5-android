@@ -26,7 +26,15 @@ import androidx.test.platform.app.InstrumentationRegistry
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.CompletableDeferred
 import androidx.preference.PreferenceManager
+import java.io.File
+import kotlinx.coroutines.withTimeout
 import org.fxboomk.fcitx5.android.R
+import org.fxboomk.fcitx5.android.core.CapabilityFlag
+import org.fxboomk.fcitx5.android.core.CapabilityFlags
+import org.fxboomk.fcitx5.android.core.FcitxAPI
+import org.fxboomk.fcitx5.android.core.FcitxKeyMapping
+import org.fxboomk.fcitx5.android.core.KeyStates
+import org.fxboomk.fcitx5.android.core.KeySym
 import org.fxboomk.fcitx5.android.data.clipboard.ClipboardManager
 import org.fxboomk.fcitx5.android.data.clipboard.ClipboardSearchCategory
 import org.fxboomk.fcitx5.android.input.predict.AiSuggestionStripComponent
@@ -47,7 +55,11 @@ import org.fxboomk.fcitx5.android.input.keyboard.MacroAction
 import org.fxboomk.fcitx5.android.input.keyboard.MacroStep
 import org.fxboomk.fcitx5.android.input.FcitxInputMethodService
 import org.fxboomk.fcitx5.android.input.keyboard.BaseKeyboard
+import org.fxboomk.fcitx5.android.input.keyboard.CommonKeyActionListener
+import org.fxboomk.fcitx5.android.input.keyboard.KeyAction
+import org.fxboomk.fcitx5.android.input.keyboard.KeyActionListener
 import org.fxboomk.fcitx5.android.input.keyboard.KeyView
+import org.fxboomk.fcitx5.android.input.keyboard.NumLockState
 import org.fxboomk.fcitx5.android.input.keyboard.SpaceSwipeIdleBehavior
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.data.theme.ThemeManager
@@ -60,6 +72,155 @@ class GestureEditingIntegrationTest {
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
     private val context = instrumentation.targetContext
     private val density = context.resources.displayMetrics.density
+
+    @Test
+    fun softDigitActionsSelectVisibleCandidatesAndSkipFoldedEmoji() = withPinyinEditor { editor, service ->
+        digitActions.forEach { (action, source) ->
+            listOf(2, 3).forEach { digit ->
+                val digitAction = action(digit)
+                runFcitxJob(service) { reset() }
+                onMain { editor.editableText.clear() }
+                await { service.currentInputSelection.start == 0 && service.currentInputSelection.end == 0 }
+                runFcitxJob(service) { reset() }
+                val candidates = runFcitxJob(service) {
+                    assertEquals("Input method changed before $digitAction from $source", "pinyin", currentIme().uniqueName)
+                    "kaishi".forEach { key ->
+                        sendKey(key.toString(), states = KeyStates.Virtual.states)
+                    }
+                    getCandidates(0, 16)
+                }
+                val engineState = runFcitxJob(service) {
+                    "ime=${currentIme().uniqueName}, clientPreedit='$clientPreeditCached', " +
+                        "panelPreedit='${inputPanelCached.preedit}'"
+                }
+                var editorText = ""
+                onMain { editorText = editor.text.toString() }
+                val diagnostics = "$digitAction from $source (digit=$digit): $engineState, " +
+                    "candidates=${candidates.take(10).toList()}, editor='$editorText'"
+                assertTrue("Missing the visible kaishi symbol candidate: $diagnostics", candidates.size >= 3)
+                assertEquals(diagnostics, "▶️", candidates[1].text)
+                assertEquals(diagnostics, "…", candidates[1].comment)
+                assertTrue("The folded alternative must not occupy the next numeric slot: $diagnostics",
+                    candidates[2].text != "🔛")
+                await { service.hasVisibleNativeCandidates() }
+
+                dispatchSoftDigit(service, digitAction, source)
+
+                val expected = candidates[digit - 1].text
+                awaitEditorText(editor, expected, digitAction, source)
+                instrumentation.waitForIdleSync()
+                onMain { assertEquals("The digit must not be appended after selecting a candidate",
+                    expected, editor.text.toString()) }
+                assertTrue("Selecting a complete candidate must finish composition",
+                    runFcitxJob(service) {
+                        clientPreeditCached.isEmpty() && inputPanelCached.preedit.isEmpty()
+                    })
+            }
+        }
+    }
+
+    @Test
+    fun softDigitActionsWithoutCandidatesStillInsertTheDigit() = withPinyinEditor { editor, service ->
+        digitActions.forEach { (action, source) ->
+            runFcitxJob(service) { reset() }
+            onMain { editor.editableText.clear() }
+            await { service.currentInputSelection.start == 0 && service.currentInputSelection.end == 0 }
+            runFcitxJob(service) {
+                reset()
+                assertEquals("Input method changed before ${action(2)} from $source", "pinyin", currentIme().uniqueName)
+            }
+            await { !service.hasVisibleNativeCandidates() }
+
+            val digitAction = action(2)
+            dispatchSoftDigit(service, digitAction, source)
+
+            awaitEditorText(editor, "2", digitAction, source)
+            instrumentation.waitForIdleSync()
+            onMain { assertEquals("2", editor.text.toString()) }
+        }
+    }
+
+    private val digitActions: List<Pair<(Int) -> KeyAction, KeyActionListener.Source>> = listOf(
+        Pair({ digit -> KeyAction.FcitxKeyAction(digit.toString()) }, KeyActionListener.Source.Popup),
+        Pair({ digit -> KeyAction.SymAction(KeySym(FcitxKeyMapping.FcitxKey_KP_0 + digit), NumLockState) },
+            KeyActionListener.Source.Keyboard),
+        Pair({ digit -> KeyAction.CommitAction(digit.toString()) }, KeyActionListener.Source.Keyboard),
+    )
+
+    private fun awaitEditorText(editor: EditText, expected: String, action: KeyAction, source: KeyActionListener.Source) {
+        try {
+            await { editor.text.toString() == expected }
+        } catch (timeout: AssertionError) {
+            var actual = ""
+            onMain { actual = editor.text.toString() }
+            assertEquals("Soft digit action $action from $source committed unexpected text", expected, actual)
+            throw timeout
+        }
+    }
+
+    private fun dispatchSoftDigit(
+        service: FcitxInputMethodService,
+        action: KeyAction,
+        source: KeyActionListener.Source
+    ) {
+        onMain {
+            val inputView = requireNotNull(service.inputView)
+            val field = inputView.javaClass.getDeclaredField("commonKeyActionListener").apply { isAccessible = true }
+            (field.get(inputView) as CommonKeyActionListener).listener.onKeyAction(action, source)
+        }
+        // Wait behind the listener's serialized job before checking editor callbacks on Main.
+        runFcitxJob(service) { Unit }
+    }
+
+    private fun withPinyinEditor(block: (EditText, FcitxInputMethodService) -> Unit) = withEditor(retryKeyboardShow = true) { editor, service ->
+        val storage = context.createDeviceProtectedStorageContext()
+        val profile = File(storage.getExternalFilesDir(null) ?: storage.filesDir, "config/profile")
+        val originalProfile = profile.takeIf(File::exists)?.readBytes()
+        val (originalEnabled, originalIme) = runFcitxJob(service) {
+            enabledIme().map { it.uniqueName } to currentIme().uniqueName
+        }
+        val originalFlags = CapabilityFlags.fromEditorInfo(requireNotNull(service.currentInputEditorInfo))
+        val enabled = (listOf("keyboard-us") + originalEnabled + "pinyin").distinct()
+        try {
+            runFcitxJob(service) {
+                if (enabled != originalEnabled) setEnabledIme(enabled.toTypedArray())
+                activateIme("pinyin")
+                assertEquals("pinyin", currentIme().uniqueName)
+                setCapFlags(CapabilityFlags(originalFlags.flags or CapabilityFlag.Sensitive.flag))
+                reset()
+            }
+            block(editor, service)
+        } finally {
+            try {
+                runFcitxJob(service) {
+                    reset()
+                    try {
+                        if (enabled != originalEnabled) setEnabledIme(originalEnabled.toTypedArray())
+                        if (originalIme in originalEnabled) activateIme(originalIme)
+                    } finally {
+                        setCapFlags(originalFlags)
+                    }
+                }
+            } finally {
+                if (originalProfile != null) profile.writeBytes(originalProfile)
+                else if (profile.exists()) assertTrue(profile.delete())
+            }
+        }
+    }
+
+    private fun <T> runFcitxJob(service: FcitxInputMethodService, block: suspend FcitxAPI.() -> T): T {
+        val result = CompletableDeferred<T>()
+        onMain {
+            service.postFcitxJob {
+                try {
+                    result.complete(block())
+                } catch (error: Throwable) {
+                    result.completeExceptionally(error)
+                }
+            }
+        }
+        return runBlocking { withTimeout(10_000) { result.await() } }
+    }
 
     @Test
     fun spaceSwipeEntersSelectionAndStrokesExtendShrinkAndDeleteRealText() = withEditor { editor, service ->
@@ -882,7 +1043,7 @@ class GestureEditingIntegrationTest {
 
     private fun actionButtons(popup: PopupWindow) = popup.contentView.allViews.filterIsInstance<TextEditingButton>().toList()
 
-    private fun withEditor(block: (EditText, FcitxInputMethodService) -> Unit) {
+    private fun withEditor(retryKeyboardShow: Boolean = false, block: (EditText, FcitxInputMethodService) -> Unit) {
         val prefs = AppPrefs.getInstance().keyboard
         val oldIdle = prefs.spaceSwipeIdleBehavior.getValue()
         val oldHaptic = prefs.hapticOnRepeat.getValue()
@@ -909,7 +1070,16 @@ class GestureEditingIntegrationTest {
             onMain {
                 activity.getSystemService(InputMethodManager::class.java).showSoftInput(editor, InputMethodManager.SHOW_IMPLICIT)
             }
-            await { runningService()?.inputView?.isShown == true }
+            var nextShowAttempt = SystemClock.uptimeMillis() + 500
+            await {
+                val shown = runningService()?.inputView?.isShown == true
+                if (!shown && retryKeyboardShow && SystemClock.uptimeMillis() >= nextShowAttempt) {
+                    activity.getSystemService(InputMethodManager::class.java)
+                        .showSoftInput(editor, InputMethodManager.SHOW_IMPLICIT)
+                    nextShowAttempt = SystemClock.uptimeMillis() + 500
+                }
+                shown
+            }
             val service = requireNotNull(runningService())
             await { editor.isShown && editor.hasWindowFocus() && service.currentInputEditorInfo?.fieldId == editor.id }
             onMain { service.postFcitxJob { reset() } }

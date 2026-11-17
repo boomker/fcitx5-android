@@ -218,6 +218,7 @@ class CommonKeyActionListener :
                             meta = action.states.meta,
                         ) -> {}
                         else -> service.postFcitxJob {
+                            if (selectCandidateForDigit(action)) return@postFcitxJob
                             val returnSym = when (action.act) {
                                 "Return" -> FcitxKeyMapping.FcitxKey_Return
                                 "KP_Enter" -> FcitxKeyMapping.FcitxKey_KP_Enter
@@ -231,6 +232,7 @@ class CommonKeyActionListener :
                     }
                 }
                 is SymAction -> service.postFcitxJob {
+                    if (selectCandidateForDigit(action)) return@postFcitxJob
                     when {
                         action.sym.keyCode == KeyEvent.KEYCODE_ESCAPE && aiSuggestionStrip.hasVisibleSuggestions() -> {
                             service.lifecycleScope.launch { aiSuggestionStrip.dismissVisibleSuggestions() }
@@ -319,16 +321,11 @@ class CommonKeyActionListener :
                     }
                 }
                 is CommitAction -> service.postFcitxJob {
-                    // 检查是否是数字副字符划动选择候选的特殊标记 "\0<digit>"
-                    if (action.text.startsWith('\u0000') && action.text.length == 2) {
-                        val digitChar = action.text[1]
-                        if (digitChar.isDigit()) {
-                            // 数字 1-9 对应索引 0-8，数字 0 对应索引 9
-                            val candidateIndex = if (digitChar == '0') 9 else digitChar.digitToInt() - 1
-                            select(candidateIndex)
-                            return@postFcitxJob
-                        }
-                    }
+                    if (selectCandidateForDigit(action)) return@postFcitxJob
+                    // A swipe may have captured the old numeric marker before candidates disappeared.
+                    val actionText = if (candidateSelectionIndex(action) != null) {
+                        action.text.removePrefix("\u0000")
+                    } else action.text
 
                     // 正常的 CommitAction 处理
                     val text = if (action.followPunctuationMode) {
@@ -336,12 +333,12 @@ class CommonKeyActionListener :
                             CapabilityFlags.fromEditorInfo(it).has(CapabilityFlag.Password)
                         } ?: false
                         resolveSwipePunctuation(
-                            action.text,
+                            actionText,
                             currentIme(),
                             isPassword,
                             SwipeSymbolMappingStore.current()
                         )
-                    } else action.text
+                    } else actionText
                     commitAndReset()
                     service.lifecycleScope.launch { service.commitText(text) }
                 }
