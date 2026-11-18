@@ -1084,7 +1084,7 @@
     <string name="pinyin_config_sentence_count">文の数</string>
     <string name="pinyin_config_long_word_hint">長い単語のしきい値</string>
     <string name="pinyin_config_partial_sp_length">ピンイン省略入力の開始文字数</string>
-    <string name="pinyin_config_partial_sp_length_summary">部分一致を開始する最小入力文字数（2～4、既定値は 4）。双拼の部分一致を有効にする必要があります。</string>
+    <string name="pinyin_config_partial_sp_length_summary">省略入力を有効にする最小入力文字数（0～4）。0 で無効になります。</string>
     <string name="pinyin_config_prediction">予測を有効にする</string>
     <string name="pinyin_config_keep_context">コンテキストを保持</string>
     <string name="pinyin_config_learning">学習</string>
@@ -1113,7 +1113,6 @@
     <string name="pinyin_config_fuzzy_inner_short">短い内部セグメント</string>
     <string name="pinyin_config_fuzzy_lowercase">小文字の一致</string>
     <string name="pinyin_config_fuzzy_partial_final">韻母の一部に一致</string>
-    <string name="pinyin_config_fuzzy_partial_sp">双拼の一部に一致</string>
     <string name="pinyin_config_fuzzy_correction">隣接キー補正</string>
     <string name="pinyin_config_fuzzy_correction_summary">26 キーの QWERTY 配列で隣接キーの誤入力を補正します。18 キー配列では無効です。</string>
     <string name="pinyin_config_fuzzy_common_typo_summary">よくあるピンインの誤入力との一致を試みます。</string>
@@ -1121,7 +1120,6 @@
     <string name="pinyin_config_fuzzy_inner_short_summary">qie → qi’e のように、短いピンインでも分割できます。</string>
     <string name="pinyin_config_fuzzy_lowercase_summary">1 つの小文字もその英字として照合します（例: xguang → X光）。オフの場合は Xguang と入力します。</string>
     <string name="pinyin_config_fuzzy_partial_final_summary">e から en、eng、ei のように、短い韻母を長い韻母に一致させます。</string>
-    <string name="pinyin_config_fuzzy_partial_sp_summary">入力が設定した文字数（既定値は 4）に達すると、双拼の部分一致を許可します。</string>
     <string name="pinyin_config_commit_preedit">未確定入力を確定</string>
     <!-- Addon display names -->
     <string name="addon_unicode_name">文字セット拡張</string>
@@ -1279,7 +1277,7 @@
     <string name="clipboard_suggestion_timeout_summary">0 は候補を無効にし、-1 はタイムアウトなしを意味します。</string>
     <string name="import_phrases_failed">定型文をインポートできませんでした</string>
     <string name="export_phrases_failed">定型文をエクスポートできませんでした</string>
-    <string name="shuangpin_keyboard_layout">キーボード配列</string>
+    <string name="shuangpin_keyboard_layout">配列</string>
     <string name="shuangpin_keyboard_layout_full">26 キー</string>
     <string name="shuangpin_keyboard_layout_compact18">18 キー（グループ双拼）</string>
     <string name="shuangpin_layout_variant">キーボード配列</string>

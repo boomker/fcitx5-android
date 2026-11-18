@@ -1083,7 +1083,7 @@
     <string name="pinyin_config_sentence_count">Satzanzahl</string>
     <string name="pinyin_config_long_word_hint">Schwellenwert für lange Wörter</string>
     <string name="pinyin_config_partial_sp_length">Mindestlänge für Pinyin-Abkürzungen</string>
-    <string name="pinyin_config_partial_sp_length_summary">Mindesteingabelänge in Tasten (2–4; Standard: 4). Die teilweise Shuangpin-Übereinstimmung muss aktiviert sein.</string>
+    <string name="pinyin_config_partial_sp_length_summary">Mindesteingabelänge in Tasten (0–4); 0 deaktiviert Abkürzungen.</string>
     <string name="pinyin_config_prediction">Vorhersage aktivieren</string>
     <string name="pinyin_config_keep_context">Kontext beibehalten</string>
     <string name="pinyin_config_learning">Lernen</string>
@@ -1112,7 +1112,6 @@
     <string name="pinyin_config_fuzzy_inner_short">Kurzes inneres Segment</string>
     <string name="pinyin_config_fuzzy_lowercase">Übereinstimmung mit Kleinbuchstaben</string>
     <string name="pinyin_config_fuzzy_partial_final">Teilweise Finale abgleichen</string>
-    <string name="pinyin_config_fuzzy_partial_sp">Teilweise Shuangpin abgleichen</string>
     <string name="pinyin_config_fuzzy_correction">Korrektur benachbarter Tasten</string>
     <string name="pinyin_config_fuzzy_correction_summary">Korrigiert Tippfehler auf benachbarten QWERTY-Tasten bei Layouts mit 26 Tasten; bei Layouts mit 18 Tasten deaktiviert.</string>
     <string name="pinyin_config_fuzzy_common_typo_summary">Versucht, häufige Pinyin-Fehlschreibungen abzugleichen.</string>
@@ -1120,7 +1119,6 @@
     <string name="pinyin_config_fuzzy_inner_short_summary">Erlaubt Teilungen in kürzeren Pinyin-Silben, z. B. qie → qi’e.</string>
     <string name="pinyin_config_fuzzy_lowercase_summary">Ordnet einen einzelnen Kleinbuchstaben zusätzlich dem lateinischen Buchstaben zu, z. B. xguang → X光; deaktiviert Xguang eingeben.</string>
     <string name="pinyin_config_fuzzy_partial_final_summary">Erlaubt, dass ein Anfangsfinale mit längeren Finalen wie e, en, eng oder ei übereinstimmt.</string>
-    <string name="pinyin_config_fuzzy_partial_sp_summary">Erlaubt teilweise Shuangpin-Übereinstimmung, sobald die Eingabe die eingestellte Länge erreicht (Standard: 4).</string>
     <string name="pinyin_config_commit_preedit">Vorbearbeitung übernehmen</string>
     <!-- Addon display names -->
     <string name="addon_unicode_name">Zeichensatzerweiterungen</string>
@@ -1277,7 +1275,7 @@
     <string name="clipboard_suggestion_timeout_summary">0 deaktiviert Hinweise; -1 bedeutet kein Zeitlimit.</string>
     <string name="import_phrases_failed">Häufige Texte konnten nicht importiert werden</string>
     <string name="export_phrases_failed">Häufige Texte konnten nicht exportiert werden</string>
-    <string name="shuangpin_keyboard_layout">Tastaturlayout</string>
+    <string name="shuangpin_keyboard_layout">Tastenanordnung</string>
     <string name="shuangpin_keyboard_layout_full">26 Tasten</string>
     <string name="shuangpin_keyboard_layout_compact18">18 Tasten (gruppiertes Shuangpin)</string>
     <string name="shuangpin_layout_variant">Tastaturlayout</string>

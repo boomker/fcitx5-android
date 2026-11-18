@@ -1078,7 +1078,7 @@
     <string name="pinyin_config_sentence_count">句子数量</string>
     <string name="pinyin_config_long_word_hint">长词提示长度</string>
     <string name="pinyin_config_partial_sp_length">简拼起始长度</string>
-    <string name="pinyin_config_partial_sp_length_summary">输入至少多少个按键后生效（2～4，默认 4），需开启“部分双拼匹配”。</string>
+    <string name="pinyin_config_partial_sp_length_summary">输入长度达到设定值时启用简拼（0～4），0 为禁用。</string>
     <string name="pinyin_config_prediction">启用联想</string>
     <string name="pinyin_config_keep_context">保留上下文</string>
     <string name="pinyin_config_learning">学习</string>
@@ -1107,7 +1107,6 @@
     <string name="pinyin_config_fuzzy_inner_short">短拼音分割</string>
     <string name="pinyin_config_fuzzy_lowercase">小写字母匹配</string>
     <string name="pinyin_config_fuzzy_partial_final">匹配不完整韵母</string>
-    <string name="pinyin_config_fuzzy_partial_sp">部分双拼匹配</string>
     <string name="pinyin_config_fuzzy_correction">邻键纠错</string>
     <string name="pinyin_config_fuzzy_correction_summary">按 QWERTY 布局纠正邻键误触，仅适用于 26 键布局，18 键布局禁用。</string>
     <string name="pinyin_config_fuzzy_common_typo_summary">尝试匹配常见的拼音误拼。</string>
@@ -1115,7 +1114,6 @@
     <string name="pinyin_config_fuzzy_inner_short_summary">允许较短拼音的音节内分割，例如 qie → qi\'e。</string>
     <string name="pinyin_config_fuzzy_lowercase_summary">将单个小写英文字母也按字母本身匹配字母词条，例如 xguang → X光；关闭后需输入 Xguang。</string>
     <string name="pinyin_config_fuzzy_partial_final_summary">仅输入韵母开头时也尝试补全，例如 e 可匹配 en、eng、ei。</string>
-    <string name="pinyin_config_fuzzy_partial_sp_summary">输入长度达到设定值（默认 4）时，允许按部分双拼编码匹配。</string>
     <string name="pinyin_config_commit_preedit">提交预编辑</string>
     <!-- 附加组件显示名称 -->
     <string name="addon_unicode_name">字符集扩展</string>
@@ -1283,7 +1281,7 @@
     <string name="clipboard_suggestion_timeout_summary">设为 0 禁用提示，-1 表示永不超时。</string>
     <string name="import_phrases_failed">无法导入常用语</string>
     <string name="export_phrases_failed">无法导出常用语</string>
-    <string name="shuangpin_keyboard_layout">键盘布局</string>
+    <string name="shuangpin_keyboard_layout">配列</string>
     <string name="shuangpin_keyboard_layout_full">26 键</string>
     <string name="shuangpin_keyboard_layout_compact18">18 键</string>
     <string name="shuangpin_layout_variant">配列</string>

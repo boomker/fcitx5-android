@@ -12,6 +12,7 @@
 #include <fcitx/inputmethodmanager.h>
 #include <string>
 #include <vector>
+#include "../../../../../lib/fcitx5-chinese-addons/src/main/cpp/fcitx5-chinese-addons/im/pinyin/pinyinconfigmigration.h"
 
 // Compile the real frontend in one translation unit: helper-types.h currently
 // defines PagedCandidateEntity::Empty alongside its declarations.
@@ -19,6 +20,37 @@
 
 int main() {
   using namespace fcitx;
+  for (const bool enabled : {false, true}) {
+    RawConfig legacy;
+    legacy.setValueByPath("PartialSpLength", "3");
+    legacy.setValueByPath("Fuzzy/PartialSp", enabled ? "True" : "False");
+    migrateAbbreviationConfig(legacy);
+    FCITX_ASSERT(legacy.get("PartialSpLength")->value() == (enabled ? "3" : "0"));
+    FCITX_ASSERT(!legacy.get("Fuzzy/PartialSp"));
+    migrateAbbreviationConfig(legacy);
+    FCITX_ASSERT(legacy.get("PartialSpLength")->value() == (enabled ? "3" : "0"));
+  }
+  RawConfig legacyPinyin;
+  legacyPinyin.setValueByPath("PartialSpLength", "4");
+  legacyPinyin.setValueByPath("Fuzzy/PartialSp", "False");
+  migrateAbbreviationConfig(legacyPinyin, true);
+  FCITX_ASSERT(legacyPinyin.get("PartialSpLength")->value() == "2");
+  legacyPinyin.setValueByPath("PartialSpLength", "0");
+  migrateAbbreviationConfig(legacyPinyin, true);
+  FCITX_ASSERT(legacyPinyin.get("PartialSpLength")->value() == "0");
+  RawConfig defaultPinyin;
+  migrateAbbreviationConfig(defaultPinyin, true);
+  FCITX_ASSERT(defaultPinyin.get("PartialSpLength")->value() == "2");
+  RawConfig implicitDisabled;
+  migrateAbbreviationConfig(implicitDisabled);
+  FCITX_ASSERT(!implicitDisabled.get("PartialSpLength"));
+  implicitDisabled.setValueByPath("PartialSpLength", "4");
+  migrateAbbreviationConfig(implicitDisabled);
+  FCITX_ASSERT(implicitDisabled.get("PartialSpLength")->value() == "0");
+  implicitDisabled.setValueByPath("AbbreviationConfigMigrated", "True");
+  implicitDisabled.setValueByPath("PartialSpLength", "4");
+  migrateAbbreviationConfig(implicitDisabled);
+  FCITX_ASSERT(implicitDisabled.get("PartialSpLength")->value() == "4");
   const std::string addonBuild = TEST_CHINESE_ADDONS_BINARY_DIR;
   setupTestingEnvironment(addonBuild, {"bin"},
                           {addonBuild + "/test", addonBuild + "/im",
@@ -71,6 +103,25 @@ int main() {
       frontend.keyEvent(key, true, 0);
     };
     sendCompact(static_cast<KeySym>(0x0200e101));
+    const auto currentConfig = [&instance, ic]() {
+      RawConfig result;
+      instance.inputMethodEngine(ic)->getConfigForInputMethod(
+          *instance.inputMethodEntry(ic))->save(result);
+      return result;
+    };
+    FCITX_ASSERT(currentConfig().get("Fuzzy/NG_GN")->value() == "False");
+    FCITX_ASSERT(currentConfig().get("CompactTypoDefaultApplied")->value() == "True");
+    FCITX_ASSERT(!currentConfig().get("Fuzzy/PartialSp"));
+    RawConfig explicitTypo;
+    explicitTypo.setValueByPath("Fuzzy/NG_GN", "True");
+    instance.inputMethodEngine(ic)->setConfigForInputMethod(
+        *instance.inputMethodEntry(ic), explicitTypo);
+    sendCompact(static_cast<KeySym>(0x0200e100));
+    sendCompact(static_cast<KeySym>(0x0200e101));
+    FCITX_ASSERT(currentConfig().get("Fuzzy/NG_GN")->value() == "True");
+    explicitTypo.setValueByPath("Fuzzy/NG_GN", "False");
+    instance.inputMethodEngine(ic)->setConfigForInputMethod(
+        *instance.inputMethodEntry(ic), explicitTypo);
     for (int index : {16, 5, 10, 14}) {
       sendCompact(static_cast<KeySym>(0x0200e000 + index));
     }

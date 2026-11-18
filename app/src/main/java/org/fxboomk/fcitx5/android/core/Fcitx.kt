@@ -24,6 +24,8 @@ import org.fxboomk.fcitx5.android.data.clipboard.db.ClipboardEntry
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.data.pinyin.CustomShuangpinSchemeStore
 import org.fxboomk.fcitx5.android.data.pinyin.ShuangpinSchemeMigration
+import org.fxboomk.fcitx5.android.input.keyboard.ShuangpinKeyboardLayout
+import org.fxboomk.fcitx5.android.input.keyboard.ShuangpinKeyboardLayouts
 import org.fxboomk.fcitx5.android.utils.ImmutableGraph
 import org.fxboomk.fcitx5.android.utils.Locales
 import org.fxboomk.fcitx5.android.utils.appContext
@@ -216,7 +218,12 @@ class Fcitx(private val context: Context) : FcitxAPI, FcitxLifecycleOwner {
         withFcitxContext { setFcitxAddonSubConfig(addon, path, config) }
 
     override suspend fun getImConfig(key: String) = withFcitxContext {
-        getFcitxInputMethodConfig(key) ?: RawConfig()
+        val config = getFcitxInputMethodConfig(key) ?: return@withFcitxContext RawConfig()
+        if (applyCompactTypoDefault(config, ShuangpinKeyboardLayouts.read(key) ==
+                ShuangpinKeyboardLayout.Compact18)) {
+            setFcitxInputMethodConfig(key, config.findByName("cfg") ?: config)
+            getFcitxInputMethodConfig(key) ?: config
+        } else config
     }
 
     override suspend fun setImConfig(key: String, config: RawConfig) = withFcitxContext {

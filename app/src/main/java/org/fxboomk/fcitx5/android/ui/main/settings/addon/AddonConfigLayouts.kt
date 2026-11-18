@@ -225,7 +225,6 @@ private object PinyinConfigLayout {
         "Inner",
         "InnerShort",
         "LowerCaseMatchLetter",
-        "PartialSp",
         "PartialFinal"
     )
 
@@ -269,8 +268,7 @@ private object PinyinConfigLayout {
         "Inner" to R.string.pinyin_config_fuzzy_inner_summary,
         "InnerShort" to R.string.pinyin_config_fuzzy_inner_short_summary,
         "LowerCaseMatchLetter" to R.string.pinyin_config_fuzzy_lowercase_summary,
-        "PartialFinal" to R.string.pinyin_config_fuzzy_partial_final_summary,
-        "PartialSp" to R.string.pinyin_config_fuzzy_partial_sp_summary
+        "PartialFinal" to R.string.pinyin_config_fuzzy_partial_final_summary
     )
 
     private val fuzzyTitleOverrides = mapOf(
@@ -279,7 +277,6 @@ private object PinyinConfigLayout {
         "InnerShort" to R.string.pinyin_config_fuzzy_inner_short,
         "LowerCaseMatchLetter" to R.string.pinyin_config_fuzzy_lowercase,
         "PartialFinal" to R.string.pinyin_config_fuzzy_partial_final,
-        "PartialSp" to R.string.pinyin_config_fuzzy_partial_sp,
         "Correction" to R.string.pinyin_config_fuzzy_correction
     )
 
