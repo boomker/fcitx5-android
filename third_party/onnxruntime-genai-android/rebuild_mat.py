@@ -1,13 +1,19 @@
-"""Rebuild the telemetry SDK used by GenAI 0.17.0 with 16 KB ELF alignment.
-
-Usage:
-    python3 rebuild_mat.py --input <official .aar> --output <aligned .aar> \
-        --sdk <android sdk> --zipalign <zipalign>
-
-Verification (used when the source AAR cannot be downloaded, e.g. offline CI):
-    python3 rebuild_mat.py --verify --input <official .aar> --output <aligned .aar> \
-        --sdk <android sdk> --zipalign <zipalign>
 """
+Rebuild the telemetry SDK used by GenAI 0.17.0 with 16 KB ELF alignment.
+
+Rebuild (maintainer only; see prebuilt/README.md for the official input):
+
+    python3 rebuild_mat.py --rebuild --input <official .aar> --output <aligned .aar> \
+        --sdk <android sdk> --zipalign <zipalign>
+
+Verify the committed AAR (no network, no NDK/CMake):
+
+    python3 rebuild_mat.py --verify --output <aligned .aar>
+
+Gradle publishes the AAR in prebuilt/ after checking its SHA-256 and the
+16 KB ELF LOAD alignment of the native libraries for both supported ABIs.
+"""
+
 
 import argparse
 import hashlib
@@ -17,17 +23,18 @@ import platform
 import shutil
 import struct
 import subprocess
-import sys
 import time
 import urllib.request
 import zipfile
 from pathlib import Path
 
 SDK_VERSION = "3.10.267.1"
-# Pinned by ONNX Runtime GenAI v0.17.0/cmake/deps.txt.
-SDK_SHA1 = "9d29169b8e51157d44a24a0d6cf6847260ea2efc"
-SDK_URL = f"https://github.com/microsoft/cpp_client_telemetry/archive/refs/tags/v{SDK_VERSION}.zip"
+# The source version is pinned by GenAI v0.17.0/cmake/deps.txt.
+SDK_SHA256 = "1b24aad80106357e7757c6a40ebd3fd5921bad09d8215104f3d7b098b131bfc0"
+SDK_URL = f"https://codeload.github.com/microsoft/cpp_client_telemetry/zip/refs/tags/v{SDK_VERSION}"
+UPSTREAM_AAR_SHA256 = "f8b28a9ce448d97e0d5ab9614eae018a4d994d739de84e9fc5f9ff3b6673dd50"
 ABIS = ("arm64-v8a", "x86_64")
+LIBRARIES = ("libmat.so", "libonnxruntime-genai.so", "libonnxruntime-genai-jni.so")
 NATIVE_SOURCE = Path(__file__).resolve().parent / "mat-native"
 
 
@@ -41,16 +48,16 @@ def digest(path):
 
 def fetch_sdk(work):
     archive = work / f"cpp_client_telemetry-{SDK_VERSION}.zip"
-    if not archive.is_file() or hashlib.sha1(archive.read_bytes()).hexdigest() != SDK_SHA1:
+    if not archive.is_file() or digest(archive) != SDK_SHA256:
         for attempt in range(3):
             try:
                 with urllib.request.urlopen(SDK_URL, timeout=60) as response:
                     data = response.read()
-                if hashlib.sha1(data).hexdigest() != SDK_SHA1:
+                if hashlib.sha256(data).hexdigest() != SDK_SHA256:
                     raise RuntimeError("Telemetry source archive checksum mismatch")
                 archive.write_bytes(data)
                 break
-            except Exception:
+            except (OSError, RuntimeError):
                 if attempt == 2:
                     raise
                 time.sleep(2)
@@ -113,70 +120,60 @@ def sdk_paths(args):
     sdk = args.sdk.resolve()
     suffix = ".exe" if platform.system() == "Windows" else ""
     ndk = sdk / "ndk" / args.ndk_version
-    # CI also uses SDK CMake 3.22.1; the standalone telemetry build needs only 3.22.
-    cmake_dir = sdk / "cmake" / args.cmake_version / "bin"
-    if not (cmake_dir / f"cmake{suffix}").is_file():
-        installed = [p for p in (sdk / "cmake").iterdir()
-                     if p.is_dir() and tuple(int(v) for v in p.name.split(".")) >= (3, 22)
-                     and (p / "bin" / f"cmake{suffix}").is_file()]
-        if not installed:
-            raise RuntimeError("Android SDK CMake 3.22 or newer is required")
-        cmake_dir = max(installed, key=lambda p: tuple(int(v) for v in p.name.split("."))) / "bin"
+    # Any CMake 3.22+ under the SDK works for the standalone telemetry build.
+    installed = []
+    for candidate in (sdk / "cmake").iterdir():
+        if not candidate.is_dir() or not (candidate / "bin" / f"cmake{suffix}").is_file():
+            continue
+        try:
+            version = tuple(int(part) for part in candidate.name.split("."))
+        except ValueError:
+            continue
+        if version >= (3, 22):
+            installed.append((version, candidate / "bin"))
+    if not installed:
+        raise RuntimeError("Android SDK CMake 3.22 or newer is required")
+    cmake_dir = max(installed)[1]
     hosts = {"Windows": "windows-x86_64", "Darwin": "darwin-x86_64", "Linux": "linux-x86_64"}
     nm = ndk / "toolchains/llvm/prebuilt" / hosts[platform.system()] / "bin" / f"llvm-nm{suffix}"
-    if "--verify" not in sys.argv:
-        # Verification never downloads the SDK, so its tools may be absent.
-        for tool in (cmake_dir / f"cmake{suffix}", cmake_dir / f"ninja{suffix}", nm,
-                     args.zipalign, ndk / "source.properties"):
-            if not tool.is_file():
-                raise RuntimeError(f"Required Android SDK tool is missing: {tool}")
+    # The publish-only --verify path never builds, so its tools may be absent.
+    for tool in (cmake_dir / f"cmake{suffix}", cmake_dir / f"ninja{suffix}", nm,
+                 args.zipalign, ndk / "source.properties"):
+        if not tool.is_file():
+            raise RuntimeError(f"Required Android SDK tool is missing: {tool}")
     return ndk, cmake_dir, nm, suffix
 
 
-def fingerprint(args):
-    ndk, cmake_dir, _, _ = sdk_paths(args)
-    return hashlib.sha256(
-        (digest(args.input) + args.ndk_version + cmake_dir.parent.name + digest(ndk / "source.properties")
-         + digest(Path(__file__)) + "".join(digest(p) for p in sorted(NATIVE_SOURCE.iterdir()))).encode()
-    ).hexdigest()
-
-
 def verify(args):
-    """Check that the cached AAR was built from this input and is 16 KB aligned."""
-    if not (args.output.is_file() and args.marker.is_file()):
-        raise RuntimeError(f"Rebuilt AAR is missing: {args.output}")
-    marker = json.loads(args.marker.read_text())
-    if marker.get("fingerprint") != fingerprint(args) or marker.get("sha256") != digest(args.output):
+    """Check the artifact checksum and the native libraries for both ABIs."""
+    marker_path = args.output.with_name(args.output.name + ".alignment.json")
+    for required in (args.output, marker_path):
+        if not required.is_file():
+            raise RuntimeError(f"Required prebuilt file is missing: {required}")
+    marker = json.loads(marker_path.read_text(encoding="utf-8"))
+    if marker.get("sha256") != digest(args.output):
         raise RuntimeError(f"Rebuilt AAR does not match its marker: {args.output}")
-    if sorted(marker.get("abis", {})) != sorted(ABIS):
-        raise RuntimeError(f"Rebuilt AAR is missing ABIs: {args.output}")
+    if set(marker.get("abis", {})) != set(ABIS):
+        raise RuntimeError(f"Alignment marker must report {', '.join(ABIS)}: {marker_path}")
     with zipfile.ZipFile(args.output) as aar:
-        for abi in ABIS:
-            entry = f"jni/{abi}/libmat.so"
-            if entry not in aar.namelist():
-                raise RuntimeError(f"Rebuilt AAR is missing {entry}")
-            check_alignment_bytes(aar.read(entry), entry)
-    print("Verified cached 16 KB telemetry AAR")
-    print(json.dumps(marker["abis"], indent=2))
+        libraries = {name for name in aar.namelist() if name.startswith("jni/") and name.endswith(".so")}
+        required = {f"jni/{abi}/{library}" for abi in ABIS for library in LIBRARIES}
+        if missing := required - libraries:
+            raise RuntimeError(f"Rebuilt AAR is missing native libraries: {sorted(missing)}")
+        for library in sorted(libraries):
+            check_alignment_bytes(aar.read(library), library)
+    print(f"Verified SHA-256 and 16 KB ELF alignment for {', '.join(ABIS)}")
 
 
 def rebuild(args):
     args.input = args.input.resolve()
     args.output = args.output.resolve()
-    args.marker = args.output.with_name(args.output.name + ".alignment.json")
-    if args.verify:
-        verify(args)
-        return
+    if args.input == args.output or digest(args.input) != UPSTREAM_AAR_SHA256:
+        raise RuntimeError(f"Expected the unmodified Microsoft GenAI 0.17.0 AAR as input: {args.input}")
     ndk, cmake_dir, nm, suffix = sdk_paths(args)
     cmake = cmake_dir / f"cmake{suffix}"
     ninja = cmake_dir / f"ninja{suffix}"
-    current_fingerprint = fingerprint(args)
-    if args.output.is_file() and args.marker.is_file():
-        cached = json.loads(args.marker.read_text())
-        if cached.get("fingerprint") == current_fingerprint and cached.get("sha256") == digest(args.output):
-            print("Verified cached 16 KB telemetry AAR")
-            return
-    work = args.output.parent / "mat-build"
+    work = NATIVE_SOURCE.parent / "build" / "mat-rebuild"
     work.mkdir(parents=True, exist_ok=True)
     source = fetch_sdk(work)
     original_dir = work / "original"
@@ -203,13 +200,18 @@ def rebuild(args):
             subprocess.run([str(cmake), "--build", str(build), "--target", "mat", "--parallel",
                             str(min(os.cpu_count() or 2, 6))], check=True)
             rebuilt = build / "matsdk/lib/libmat.so"
+            stripped = build / "libmat.so"
+            strip = nm.with_name(f"llvm-strip{suffix}")
+            subprocess.run([str(strip), "--strip-debug", "-o", str(stripped), str(rebuilt)], check=True)
+            rebuilt = stripped
             check_alignment(rebuilt)
             report[abi] = verify_symbols(nm, original_mat, rebuilt, [p for p in libraries if p != original_mat])
             rebuilt_libraries[f"jni/{abi}/libmat.so"] = rebuilt
         repacked = work / "repacked.aar"
         with zipfile.ZipFile(repacked, "w") as output:
             for entry in original.infolist():
-                data = rebuilt_libraries[entry.filename].read_bytes() if entry.filename in rebuilt_libraries else original.read(entry)
+                data = (rebuilt_libraries[entry.filename].read_bytes()
+                        if entry.filename in rebuilt_libraries else original.read(entry))
                 output.writestr(entry, data)
     aligned = work / "aligned.aar"
     subprocess.run([str(args.zipalign), "-f", "-P", "16", "4", str(repacked), str(aligned)], check=True)
@@ -219,18 +221,36 @@ def rebuild(args):
         for entry in original.namelist():
             if entry not in rebuilt_libraries and original.read(entry) != output.read(entry):
                 raise RuntimeError(f"Non-telemetry artifact changed: {entry}")
+    args.output.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(aligned, args.output)
-    args.marker.write_text(json.dumps({"fingerprint": current_fingerprint, "sha256": digest(args.output), "abis": report}, indent=2) + "\n")
+    args.output.with_name(args.output.name + ".alignment.json").write_text(
+        json.dumps({"sha256": digest(args.output), "abis": report}, indent=2) + "\n", encoding="utf-8")
+    verify(args)
+    print("Rebuilt 16 KB telemetry AAR")
     print(json.dumps(report, indent=2))
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--input", type=Path, required=True)
-    parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--sdk", type=Path, required=True)
+def main() -> None:
+    parser = argparse.ArgumentParser(description="16 KB telemetry AAR for ONNX Runtime GenAI")
+    parser.add_argument("--output", type=Path, required=True,
+                        help="the committed AAR; its marker is <output>.alignment.json")
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--verify", action="store_true", help="re-hash and re-check the committed AAR")
+    mode.add_argument("--rebuild", action="store_true", help="rebuild libmat.so from the official AAR")
+    parser.add_argument("--input", type=Path, help="official AAR (--rebuild only)")
+    parser.add_argument("--sdk", type=Path, help="Android SDK root (--rebuild only)")
     parser.add_argument("--ndk-version", default="28.0.13004108")
-    parser.add_argument("--cmake-version", default="3.31.6")
-    parser.add_argument("--zipalign", type=Path, required=True)
-    parser.add_argument("--verify", action="store_true")
-    rebuild(parser.parse_args())
+    parser.add_argument("--zipalign", type=Path, help="zipalign binary (--rebuild only)")
+    args = parser.parse_args()
+    if args.rebuild:
+        if args.input is None:
+            parser.error("--rebuild requires --input")
+        if args.sdk is None or args.zipalign is None:
+            parser.error("--rebuild requires --sdk and --zipalign")
+        rebuild(args)
+    else:
+        verify(args)
+
+
+if __name__ == "__main__":
+    main()

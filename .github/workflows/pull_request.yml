@@ -69,9 +69,8 @@ jobs:
         with:
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
 
-      # 先把第三方 AAR 发布到本地 .local-thirdparty-artifacts：GitHub Packages 上只有 0.13.1，
-      # 固定的 0.15.0 从未发布过，直连必然 401/404。settings.gradle.kts 检测到该目录后会优先
-      # 本地解析，所以不传 -PgithubPackagesRepository（Windows Git Bash 的 $PWD 拼 file:// 会解析错）。
+      # 从 checkout 校验并发布预编译 AAR，PR 构建不需要 GitHub Packages。
+      # Gradle 会识别本地仓库目录，避免在 Windows 上用 $PWD 手动拼接 file://。
       - name: Publish third-party artifacts locally
         shell: bash
         run: |

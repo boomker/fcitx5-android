@@ -1,2 +1,3 @@
-/build/
+# Only the versioned prebuilt AAR may be checked in, not other AARs or rebuild outputs.
+!/prebuilt/onnxruntime-genai-android-0.17.0-f5a.1.aar
 __pycache__/

@@ -1,0 +1,29 @@
+{
+  "sha256": "48b9f8c93c2222de086d33f4137840ae2f928b08734e049233b68db39222caec",
+  "abis": {
+    "arm64-v8a": {
+      "original_exports": 2236,
+      "rebuilt_exports": 2334,
+      "unused_export_differences": [
+        "_ZNSt6__ndk110adopt_lockE",
+        "_ZNSt6__ndk110defer_lockE",
+        "_ZNSt6__ndk111try_to_lockE",
+        "_ZNSt6__ndk112system_error6__initERKNS_10error_codeENS_12basic_stringIcNS_11char_traitsIcEENS_9allocatorIcEEEE",
+        "_ZNSt6__ndk113allocator_argE",
+        "_ZNSt6__ndk16locale2id6__initEv"
+      ]
+    },
+    "x86_64": {
+      "original_exports": 2230,
+      "rebuilt_exports": 2328,
+      "unused_export_differences": [
+        "_ZNSt6__ndk110adopt_lockE",
+        "_ZNSt6__ndk110defer_lockE",
+        "_ZNSt6__ndk111try_to_lockE",
+        "_ZNSt6__ndk112system_error6__initERKNS_10error_codeENS_12basic_stringIcNS_11char_traitsIcEENS_9allocatorIcEEEE",
+        "_ZNSt6__ndk113allocator_argE",
+        "_ZNSt6__ndk16locale2id6__initEv"
+      ]
+    }
+  }
+}

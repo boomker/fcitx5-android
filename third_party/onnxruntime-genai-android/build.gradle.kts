@@ -1,8 +1,3 @@
-import java.net.HttpURLConnection
-import java.net.URL
-import java.security.MessageDigest
-import org.gradle.api.Project
-
 plugins {
     base
     `maven-publish`
@@ -38,118 +33,18 @@ fun Project.githubPackagesToken(): String =
 fun isFileBackedRepository(url: String): Boolean = url.startsWith("file:", ignoreCase = true)
 
 val artifactName = "onnxruntime-genai-android"
-val upstreamVersion = "0.17.0"
-val upstreamArtifactFileName = "$artifactName-$upstreamVersion.aar"
 val artifactFileName = "$artifactName-$version.aar"
-val artifactSha256 = "f8b28a9ce448d97e0d5ab9614eae018a4d994d739de84e9fc5f9ff3b6673dd50"
-val artifactUrl =
-    "https://github.com/microsoft/onnxruntime-genai/releases/download/v$upstreamVersion/$upstreamArtifactFileName"
-val rawDownloadedArtifact = layout.buildDirectory.file("downloads/raw/$upstreamArtifactFileName")
-val downloadedArtifact = layout.buildDirectory.file("downloads/$artifactFileName")
-val alignmentMarker = layout.buildDirectory.file("downloads/$artifactFileName.alignment.json")
+val prebuiltArtifact = layout.projectDirectory.file("prebuilt/$artifactFileName")
+val alignmentMarker = layout.projectDirectory.file("prebuilt/$artifactFileName.alignment.json")
+val verifier = layout.projectDirectory.file("rebuild_mat.py")
 
-fun sha256(file: File): String {
-    val digest = MessageDigest.getInstance("SHA-256")
-    file.inputStream().use { input ->
-        val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
-        while (true) {
-            val read = input.read(buffer)
-            if (read < 0) break
-            digest.update(buffer, 0, read)
-        }
-    }
-    return digest.digest().joinToString("") { "%02x".format(it) }
-}
-
-fun requireExpectedSha256(file: File) {
-    val actual = sha256(file)
-    check(actual == artifactSha256) {
-        "Unexpected SHA-256 for $upstreamArtifactFileName: expected $artifactSha256, got $actual"
-    }
-}
-
-fun androidSdkDirectory(): File {
-    val sdk = providers.environmentVariable("ANDROID_HOME").orNull?.trim().orEmpty()
-        .ifBlank { providers.environmentVariable("ANDROID_SDK_ROOT").orNull?.trim().orEmpty() }
-        .ifBlank {
-            rootProject.rootDir.resolve("local.properties").takeIf { it.isFile }
-                ?.readLines()
-                ?.firstOrNull { it.startsWith("sdk.dir=") }
-                ?.substringAfter('=')
-                ?.replace("\\:", ":")
-                ?.trim()
-                .orEmpty()
-        }
-    check(sdk.isNotEmpty()) { "Android SDK path is required to align the ONNX Runtime AAR" }
-    return File(sdk)
-}
-
-fun zipAlignExecutable(): File {
-    val sdk = androidSdkDirectory()
-    val buildToolsDir = sdk.resolve("build-tools")
-        .listFiles()
-        ?.filter { it.isDirectory }
-        ?.maxByOrNull { it.name }
-        ?: error("No Android build-tools installation found under $sdk")
-    val executable = File(buildToolsDir, if (System.getProperty("os.name").startsWith("Windows")) "zipalign.exe" else "zipalign")
-    check(executable.isFile) { "zipalign not found at ${executable.absolutePath}" }
-    return executable
-}
-
-val downloadOrtGenAiAar = tasks.register("downloadOrtGenAiAar") {
-    inputs.file("rebuild_mat.py")
-    inputs.dir("mat-native")
-    val ndkVersion = providers.environmentVariable("NDK_VERSION")
-        .orElse(providers.gradleProperty("ndkVersion")).orElse("28.0.13004108")
-    val cmakeVersion = providers.environmentVariable("CMAKE_VERSION")
-        .orElse(providers.gradleProperty("cmakeVersion")).orElse("3.31.6")
-    inputs.property("ndkVersion", ndkVersion)
-    inputs.property("cmakeVersion", cmakeVersion)
-    outputs.files(downloadedArtifact, alignmentMarker)
-    notCompatibleWithConfigurationCache(
-        "This publishing-only task performs an HTTP download from a Gradle script action."
-    )
-    doLast {
-        val target = downloadedArtifact.get().asFile
-        val raw = rawDownloadedArtifact.get().asFile
-        raw.parentFile.mkdirs()
-        if (raw.exists() && raw.length() > 0L) {
-            runCatching { requireExpectedSha256(raw) }.onFailure { raw.delete() }
-        }
-        if (!raw.exists() || raw.length() == 0L) {
-            val connection = (URL(artifactUrl).openConnection() as HttpURLConnection).apply {
-                connectTimeout = 15_000
-                readTimeout = 60_000
-                instanceFollowRedirects = true
-            }
-            try {
-                check(connection.responseCode in 200..299) {
-                    "Download failed (${connection.responseCode}): $artifactUrl"
-                }
-                connection.inputStream.use { input ->
-                    raw.outputStream().use { output -> input.copyTo(output) }
-                }
-            } catch (failure: Throwable) {
-                raw.delete()
-                throw failure
-            } finally {
-                connection.disconnect()
-            }
-        }
-        requireExpectedSha256(raw)
-        target.parentFile.mkdirs()
-        // zipalign handles archive offsets; rebuilding mat also fixes its ELF LOAD segments.
-        val python = providers.gradleProperty("pythonExecutable").orNull
-            ?: if (System.getProperty("os.name").startsWith("Windows")) "python" else "python3"
-        val result = ProcessBuilder(
-            python, projectDir.resolve("rebuild_mat.py").absolutePath,
-            "--input", raw.absolutePath, "--output", target.absolutePath,
-            "--sdk", androidSdkDirectory().absolutePath,
-            "--ndk-version", ndkVersion.get(), "--cmake-version", cmakeVersion.get(),
-            "--zipalign", zipAlignExecutable().absolutePath
-        ).inheritIO().start().waitFor()
-        check(result == 0) { "Telemetry rebuild failed for $artifactFileName (exit code $result)" }
-    }
+val verifyOrtGenAiAar = tasks.register<Exec>("verifyOrtGenAiAar") {
+    group = "third party"
+    description = "Verifies the checksum and ELF alignment of the checked-in AAR before publishing."
+    inputs.files(prebuiltArtifact, alignmentMarker, verifier)
+    executable = providers.gradleProperty("pythonExecutable").orNull
+        ?: if (System.getProperty("os.name").startsWith("Windows")) "python" else "python3"
+    args(verifier.asFile, "--verify", "--output", prebuiltArtifact.asFile)
 }
 
 publishing {
@@ -171,9 +66,9 @@ publishing {
             groupId = project.group.toString()
             artifactId = artifactName
             version = project.version.toString()
-            artifact(downloadedArtifact) {
+            artifact(prebuiltArtifact.asFile) {
                 extension = "aar"
-                builtBy(downloadOrtGenAiAar)
+                builtBy(verifyOrtGenAiAar)
             }
             pom {
                 name.set("ONNX Runtime GenAI Android")
