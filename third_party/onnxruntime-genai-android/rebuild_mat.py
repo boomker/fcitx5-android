@@ -1,18 +1,27 @@
-"""Rebuild the same telemetry SDK used by GenAI 0.17.0 with 16 KB ELF alignment."""
+"""Rebuild the telemetry SDK used by GenAI 0.17.0 with 16 KB ELF alignment.
+
+Usage:
+    python3 rebuild_mat.py --input <official .aar> --output <aligned .aar> \
+        --sdk <android sdk> --zipalign <zipalign>
+
+Verification (used when the source AAR cannot be downloaded, e.g. offline CI):
+    python3 rebuild_mat.py --verify --input <official .aar> --output <aligned .aar> \
+        --sdk <android sdk> --zipalign <zipalign>
+"""
 
 import argparse
 import hashlib
 import json
 import os
-from pathlib import Path
 import platform
 import shutil
 import struct
 import subprocess
+import sys
 import time
 import urllib.request
 import zipfile
-
+from pathlib import Path
 
 SDK_VERSION = "3.10.267.1"
 # Pinned by ONNX Runtime GenAI v0.17.0/cmake/deps.txt.
@@ -23,7 +32,11 @@ NATIVE_SOURCE = Path(__file__).resolve().parent / "mat-native"
 
 
 def digest(path):
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    sha = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            sha.update(chunk)
+    return sha.hexdigest()
 
 
 def fetch_sdk(work):
@@ -53,9 +66,12 @@ def fetch_sdk(work):
 
 
 def check_alignment(path):
-    data = path.read_bytes()
+    check_alignment_bytes(path.read_bytes(), path)
+
+
+def check_alignment_bytes(data, name):
     if data[:6] != b"\x7fELF\x02\x01":
-        raise RuntimeError(f"Expected a little-endian ELF64 library: {path}")
+        raise RuntimeError(f"Expected a little-endian ELF64 library: {name}")
     header = struct.unpack_from("<16sHHIQQQIHHHHHH", data)
     loads = 0
     for index in range(header[10]):
@@ -63,9 +79,9 @@ def check_alignment(path):
         if segment[0] == 1:
             loads += 1
             if segment[7] < 16384 or segment[2] % 16384 != segment[3] % 16384:
-                raise RuntimeError(f"ELF LOAD segment is not 16 KB aligned: {path}")
+                raise RuntimeError(f"ELF LOAD segment is not 16 KB aligned: {name}")
     if not loads:
-        raise RuntimeError(f"ELF has no LOAD segments: {path}")
+        raise RuntimeError(f"ELF has no LOAD segments: {name}")
 
 
 def symbols(nm, path, defined):
@@ -93,36 +109,71 @@ def verify_symbols(nm, original, rebuilt, other_libraries):
     return {"original_exports": len(old), "rebuilt_exports": len(new), "unused_export_differences": sorted(missing)}
 
 
-def rebuild(args):
-    args.input = args.input.resolve()
-    args.output = args.output.resolve()
+def sdk_paths(args):
     sdk = args.sdk.resolve()
+    suffix = ".exe" if platform.system() == "Windows" else ""
     ndk = sdk / "ndk" / args.ndk_version
-    cmake_dir = sdk / "cmake" / args.cmake_version / "bin"
-    executable_suffix = ".exe" if platform.system() == "Windows" else ""
     # CI also uses SDK CMake 3.22.1; the standalone telemetry build needs only 3.22.
-    if not (cmake_dir / f"cmake{executable_suffix}").is_file():
+    cmake_dir = sdk / "cmake" / args.cmake_version / "bin"
+    if not (cmake_dir / f"cmake{suffix}").is_file():
         installed = [p for p in (sdk / "cmake").iterdir()
                      if p.is_dir() and tuple(int(v) for v in p.name.split(".")) >= (3, 22)
-                     and (p / "bin" / f"cmake{executable_suffix}").is_file()]
+                     and (p / "bin" / f"cmake{suffix}").is_file()]
         if not installed:
             raise RuntimeError("Android SDK CMake 3.22 or newer is required")
         cmake_dir = max(installed, key=lambda p: tuple(int(v) for v in p.name.split("."))) / "bin"
-    cmake = cmake_dir / f"cmake{executable_suffix}"
-    ninja = cmake_dir / f"ninja{executable_suffix}"
     hosts = {"Windows": "windows-x86_64", "Darwin": "darwin-x86_64", "Linux": "linux-x86_64"}
-    nm = ndk / "toolchains/llvm/prebuilt" / hosts[platform.system()] / "bin" / f"llvm-nm{executable_suffix}"
-    for tool in (cmake, ninja, nm, args.zipalign):
-        if not tool.is_file():
-            raise RuntimeError(f"Required Android SDK tool is missing: {tool}")
-    fingerprint = hashlib.sha256(
+    nm = ndk / "toolchains/llvm/prebuilt" / hosts[platform.system()] / "bin" / f"llvm-nm{suffix}"
+    if "--verify" not in sys.argv:
+        # Verification never downloads the SDK, so its tools may be absent.
+        for tool in (cmake_dir / f"cmake{suffix}", cmake_dir / f"ninja{suffix}", nm,
+                     args.zipalign, ndk / "source.properties"):
+            if not tool.is_file():
+                raise RuntimeError(f"Required Android SDK tool is missing: {tool}")
+    return ndk, cmake_dir, nm, suffix
+
+
+def fingerprint(args):
+    ndk, cmake_dir, _, _ = sdk_paths(args)
+    return hashlib.sha256(
         (digest(args.input) + args.ndk_version + cmake_dir.parent.name + digest(ndk / "source.properties")
          + digest(Path(__file__)) + "".join(digest(p) for p in sorted(NATIVE_SOURCE.iterdir()))).encode()
     ).hexdigest()
-    marker = args.output.with_name(args.output.name + ".alignment.json")
-    if args.output.is_file() and marker.is_file():
-        cached = json.loads(marker.read_text())
-        if cached.get("fingerprint") == fingerprint and cached.get("sha256") == digest(args.output):
+
+
+def verify(args):
+    """Check that the cached AAR was built from this input and is 16 KB aligned."""
+    if not (args.output.is_file() and args.marker.is_file()):
+        raise RuntimeError(f"Rebuilt AAR is missing: {args.output}")
+    marker = json.loads(args.marker.read_text())
+    if marker.get("fingerprint") != fingerprint(args) or marker.get("sha256") != digest(args.output):
+        raise RuntimeError(f"Rebuilt AAR does not match its marker: {args.output}")
+    if sorted(marker.get("abis", {})) != sorted(ABIS):
+        raise RuntimeError(f"Rebuilt AAR is missing ABIs: {args.output}")
+    with zipfile.ZipFile(args.output) as aar:
+        for abi in ABIS:
+            entry = f"jni/{abi}/libmat.so"
+            if entry not in aar.namelist():
+                raise RuntimeError(f"Rebuilt AAR is missing {entry}")
+            check_alignment_bytes(aar.read(entry), entry)
+    print("Verified cached 16 KB telemetry AAR")
+    print(json.dumps(marker["abis"], indent=2))
+
+
+def rebuild(args):
+    args.input = args.input.resolve()
+    args.output = args.output.resolve()
+    args.marker = args.output.with_name(args.output.name + ".alignment.json")
+    if args.verify:
+        verify(args)
+        return
+    ndk, cmake_dir, nm, suffix = sdk_paths(args)
+    cmake = cmake_dir / f"cmake{suffix}"
+    ninja = cmake_dir / f"ninja{suffix}"
+    current_fingerprint = fingerprint(args)
+    if args.output.is_file() and args.marker.is_file():
+        cached = json.loads(args.marker.read_text())
+        if cached.get("fingerprint") == current_fingerprint and cached.get("sha256") == digest(args.output):
             print("Verified cached 16 KB telemetry AAR")
             return
     work = args.output.parent / "mat-build"
@@ -169,7 +220,7 @@ def rebuild(args):
             if entry not in rebuilt_libraries and original.read(entry) != output.read(entry):
                 raise RuntimeError(f"Non-telemetry artifact changed: {entry}")
     shutil.copyfile(aligned, args.output)
-    marker.write_text(json.dumps({"fingerprint": fingerprint, "sha256": digest(args.output), "abis": report}, indent=2) + "\n")
+    args.marker.write_text(json.dumps({"fingerprint": current_fingerprint, "sha256": digest(args.output), "abis": report}, indent=2) + "\n")
     print(json.dumps(report, indent=2))
 
 
@@ -181,4 +232,5 @@ if __name__ == "__main__":
     parser.add_argument("--ndk-version", default="28.0.13004108")
     parser.add_argument("--cmake-version", default="3.31.6")
     parser.add_argument("--zipalign", type=Path, required=True)
+    parser.add_argument("--verify", action="store_true")
     rebuild(parser.parse_args())
