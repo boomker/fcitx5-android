@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "org.fxboomk.fcitx5.android.thirdparty"
-version = "0.17.0-f5a.1"
+version = "0.20.0-f5a.1"
 
 fun Project.githubPackagesRepositoryUrl(): String {
     val explicit = providers.gradleProperty("githubPackagesRepository").orNull?.trim().orEmpty()

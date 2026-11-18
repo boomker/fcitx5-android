@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-// From ONNX Runtime GenAI v0.17.0/cmake/telemetry/android_telemetry_bridge.cpp.
+// From ONNX Runtime GenAI v0.20.0/cmake/telemetry/android_telemetry_bridge.cpp.
 
 #include "http/HttpClient_Android.hpp"
 

@@ -1,0 +1,19 @@
+name: ONNX Runtime version check
+
+on:
+  schedule:
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check-stable-versions:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Fetch source code
+        uses: actions/checkout@v7
+
+      - name: Check official stable versions
+        run: python3 .github/scripts/check_onnxruntime_versions.py

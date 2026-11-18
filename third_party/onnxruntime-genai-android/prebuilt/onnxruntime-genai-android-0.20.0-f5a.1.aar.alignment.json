@@ -1,9 +1,14 @@
 {
-  "sha256": "48b9f8c93c2222de086d33f4137840ae2f928b08734e049233b68db39222caec",
+  "sha256": "ced88f9ca90717e39f82d187d41a5c5be5d2c483763134405b25a86e1f6082ed",
+  "upstream_aar_sha256": "2922d8ab70739432204518032f22bbdeab39889c45fc57f3a91cb2f0d04eea78",
+  "telemetry_sdk_version": "3.10.310.1",
   "abis": {
     "arm64-v8a": {
-      "original_exports": 2236,
-      "rebuilt_exports": 2334,
+      "original_exports": 2225,
+      "rebuilt_exports": 2246,
+      "required_genai_jni_exports": [
+        "Java_com_microsoft_applications_events_HttpClient_isDeviceIdCollectionEnabled"
+      ],
       "unused_export_differences": [
         "_ZNSt6__ndk110adopt_lockE",
         "_ZNSt6__ndk110defer_lockE",
@@ -14,8 +19,11 @@
       ]
     },
     "x86_64": {
-      "original_exports": 2230,
-      "rebuilt_exports": 2328,
+      "original_exports": 2219,
+      "rebuilt_exports": 2240,
+      "required_genai_jni_exports": [
+        "Java_com_microsoft_applications_events_HttpClient_isDeviceIdCollectionEnabled"
+      ],
       "unused_export_differences": [
         "_ZNSt6__ndk110adopt_lockE",
         "_ZNSt6__ndk110defer_lockE",

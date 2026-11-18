@@ -1,5 +1,5 @@
 """
-Rebuild the telemetry SDK used by GenAI 0.17.0 with 16 KB ELF alignment.
+Rebuild the telemetry SDK used by GenAI 0.20.0 with 16 KB ELF alignment.
 
 Rebuild (maintainer only; see prebuilt/README.md for the official input):
 
@@ -28,13 +28,17 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
-SDK_VERSION = "3.10.267.1"
-# The source version is pinned by GenAI v0.17.0/cmake/deps.txt.
-SDK_SHA256 = "1b24aad80106357e7757c6a40ebd3fd5921bad09d8215104f3d7b098b131bfc0"
+SDK_VERSION = "3.10.310.1"
+# The source version is pinned by GenAI v0.20.0/cmake/telemetry.cmake.
+SDK_SHA256 = "d4156d1268c68140eb432d4650cd913349db719f2572e7c4be03d39b40781022"
 SDK_URL = f"https://codeload.github.com/microsoft/cpp_client_telemetry/zip/refs/tags/v{SDK_VERSION}"
-UPSTREAM_AAR_SHA256 = "f8b28a9ce448d97e0d5ab9614eae018a4d994d739de84e9fc5f9ff3b6673dd50"
+UPSTREAM_AAR_SHA256 = "2922d8ab70739432204518032f22bbdeab39889c45fc57f3a91cb2f0d04eea78"
 ABIS = ("arm64-v8a", "x86_64")
 LIBRARIES = ("libmat.so", "libonnxruntime-genai.so", "libonnxruntime-genai-jni.so")
+NEW_TELEMETRY_JNI_EXPORTS = frozenset({
+    # GenAI 0.20.0's Java HttpClient constructor calls this JNI method.
+    "Java_com_microsoft_applications_events_HttpClient_isDeviceIdCollectionEnabled",
+})
 NATIVE_SOURCE = Path(__file__).resolve().parent / "mat-native"
 
 
@@ -103,7 +107,12 @@ def verify_symbols(nm, original, rebuilt, other_libraries):
     old = symbols(nm, original, True)
     new = symbols(nm, rebuilt, True)
     missing = old - new
-    sdk_missing = {name for name in missing if not name.startswith("_ZNSt6__ndk1")}
+    if absent := NEW_TELEMETRY_JNI_EXPORTS - old:
+        raise RuntimeError(f"GenAI 0.20.0 AAR is missing required telemetry JNI exports: {sorted(absent)}")
+    if absent := NEW_TELEMETRY_JNI_EXPORTS - new:
+        raise RuntimeError(f"Rebuilt telemetry is missing required GenAI JNI exports: {sorted(absent)}")
+    sdk_missing = {name for name in missing
+                   if not name.startswith("_ZNSt6__ndk1") and name not in NEW_TELEMETRY_JNI_EXPORTS}
     if sdk_missing:
         raise RuntimeError(f"Telemetry SDK exports were lost: {sorted(sdk_missing)}")
     for library in other_libraries:
@@ -113,7 +122,12 @@ def verify_symbols(nm, original, rebuilt, other_libraries):
             raise RuntimeError(f"{library.name} imports missing telemetry symbols: {sorted(absent)}")
     # Toolchain upgrades can change unused, statically bundled libc++ internals.
     # Record every difference rather than treating it as a telemetry API change.
-    return {"original_exports": len(old), "rebuilt_exports": len(new), "unused_export_differences": sorted(missing)}
+    return {
+        "original_exports": len(old),
+        "rebuilt_exports": len(new),
+        "required_genai_jni_exports": sorted(NEW_TELEMETRY_JNI_EXPORTS),
+        "unused_export_differences": sorted(missing),
+    }
 
 
 def sdk_paths(args):
@@ -151,10 +165,19 @@ def verify(args):
         if not required.is_file():
             raise RuntimeError(f"Required prebuilt file is missing: {required}")
     marker = json.loads(marker_path.read_text(encoding="utf-8"))
+    if marker.get("upstream_aar_sha256") != UPSTREAM_AAR_SHA256:
+        raise RuntimeError(f"Alignment marker does not identify the official GenAI 0.20.0 AAR: {marker_path}")
+    if marker.get("telemetry_sdk_version") != SDK_VERSION:
+        raise RuntimeError(f"Alignment marker must use telemetry SDK {SDK_VERSION}: {marker_path}")
     if marker.get("sha256") != digest(args.output):
         raise RuntimeError(f"Rebuilt AAR does not match its marker: {args.output}")
-    if set(marker.get("abis", {})) != set(ABIS):
+    abi_report = marker.get("abis", {})
+    if set(abi_report) != set(ABIS):
         raise RuntimeError(f"Alignment marker must report {', '.join(ABIS)}: {marker_path}")
+    for abi in ABIS:
+        required_symbols = set(abi_report[abi].get("required_genai_jni_exports", []))
+        if not NEW_TELEMETRY_JNI_EXPORTS.issubset(required_symbols):
+            raise RuntimeError(f"Alignment marker is missing the GenAI JNI exports for {abi}: {marker_path}")
     with zipfile.ZipFile(args.output) as aar:
         libraries = {name for name in aar.namelist() if name.startswith("jni/") and name.endswith(".so")}
         required = {f"jni/{abi}/{library}" for abi in ABIS for library in LIBRARIES}
@@ -169,7 +192,7 @@ def rebuild(args):
     args.input = args.input.resolve()
     args.output = args.output.resolve()
     if args.input == args.output or digest(args.input) != UPSTREAM_AAR_SHA256:
-        raise RuntimeError(f"Expected the unmodified Microsoft GenAI 0.17.0 AAR as input: {args.input}")
+        raise RuntimeError(f"Expected the unmodified Microsoft GenAI 0.20.0 AAR as input: {args.input}")
     ndk, cmake_dir, nm, suffix = sdk_paths(args)
     cmake = cmake_dir / f"cmake{suffix}"
     ninja = cmake_dir / f"ninja{suffix}"
@@ -224,7 +247,14 @@ def rebuild(args):
     args.output.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(aligned, args.output)
     args.output.with_name(args.output.name + ".alignment.json").write_text(
-        json.dumps({"sha256": digest(args.output), "abis": report}, indent=2) + "\n", encoding="utf-8")
+        json.dumps({
+            "sha256": digest(args.output),
+            "upstream_aar_sha256": UPSTREAM_AAR_SHA256,
+            "telemetry_sdk_version": SDK_VERSION,
+            "abis": report,
+        }, indent=2) + "\n",
+        encoding="utf-8",
+    )
     verify(args)
     print("Rebuilt 16 KB telemetry AAR")
     print(json.dumps(report, indent=2))
