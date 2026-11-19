@@ -265,7 +265,48 @@ class Shuangpin18PreeditTest {
     }
 
     @Test
-    fun returnAndShiftReturnFollowTheDisplayOptionInBothLayouts() {
+    fun plainReturnCommitsTypedKeysWhen26KeyPreeditShowsFullPinyin() =
+        withIme(XIAOHE, completePinyin = true) {
+            mode(false)
+            press("j")
+            press("y")
+            awaitPreedit("jun")
+            assertTrue("Highlighting the first candidate failed", setCandidateCursor(0))
+            coroutineScope {
+                val commit = async(start = CoroutineStart.UNDISPATCHED) {
+                    withTimeout(EVENT_TIMEOUT_MS) {
+                        eventFlow.filterIsInstance<FcitxEvent.CommitStringEvent>().first().data.text
+                    }
+                }
+                press("Return")
+                assertEquals("jy", commit.await())
+            }
+            awaitPreedit("")
+        }
+
+    @Test
+    fun plainReturnKeepsCompactLayoutBehaviorForOrdinaryKeyEvents() =
+        withIme(XIAOHE, completePinyin = true) {
+            for (key in listOf("Return", "KP_Enter")) {
+                mode(true)
+                press("j")
+                press("y")
+                awaitPreedit("jun")
+                coroutineScope {
+                    val commit = async(start = CoroutineStart.UNDISPATCHED) {
+                        withTimeout(EVENT_TIMEOUT_MS) {
+                            eventFlow.filterIsInstance<FcitxEvent.CommitStringEvent>().first().data.text
+                        }
+                    }
+                    press(key)
+                    assertEquals("jun", commit.await())
+                }
+                awaitPreedit("")
+            }
+        }
+
+    @Test
+    fun returnAndShiftReturnCommitTheExpectedEncodingForEachLayout() {
         for (completePinyin in listOf(false, true)) {
             withIme(XIAOHE, completePinyin = completePinyin) {
                 for (compact in listOf(true, false)) {
@@ -287,8 +328,13 @@ class Shuangpin18PreeditTest {
                                     }
                                 }
                                 press("Return", shift = separated)
-                                val boundary = if (!separated) "" else if (explicitSeparator) "'" else " "
-                                assertEquals("ni" + boundary + if (completePinyin) "hao" else "hc", commit.await())
+                                val expected = when {
+                                    separated && !explicitSeparator -> "ni " + visible.substring(2)
+                                    separated -> visible
+                                    compact -> visible.replace("'", "")
+                                    else -> input
+                                }
+                                assertEquals(expected, commit.await())
                             }
                         }
                     }
