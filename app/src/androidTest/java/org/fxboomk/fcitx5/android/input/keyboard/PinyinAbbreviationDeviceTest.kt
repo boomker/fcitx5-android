@@ -52,7 +52,7 @@ class PinyinAbbreviationDeviceTest {
     }
 
     @Test
-    fun shuangpinThresholdsAndSingleKeyException() = withIme(XIAOHE) {
+    fun shuangpinThresholdsAndSingleKeyException() = withIme(XIAOHE, fresh = true) {
         assertEquals("0", getImConfig(XIAOHE)["cfg"]["PartialSpLength"].value)
         configureMatching(XIAOHE)
         for (minimum in 0..4) {
@@ -61,6 +61,48 @@ class PinyinAbbreviationDeviceTest {
             assertCandidate("nihc", "你好", true)
             assertCandidate("nh", "你好", minimum in 1..2)
             assertCandidate("wum", "为什么", minimum in 1..3)
+        }
+    }
+
+    @Test
+    fun terminalCompletionRemainsAvailableAcrossAbbreviationThresholds() = runBlocking {
+        for (name in listOf("pinyin", XIAOHE)) {
+            withIme(name) {
+                configureMatching(name)
+                for (minimum in 0..4) {
+                    setOptions(name, "PartialSpLength" to minimum.toString())
+                    assertCandidate("n", "你", true)
+                    assertCandidate("nih", "你好", true)
+                    // h becomes an interior initial, then a terminal completion again.
+                    type("n")
+                    assertEquals("$name/$minimum retained an interior abbreviation",
+                        minimum > 0, candidates().contains("你好"))
+                    press("BackSpace")
+                    assertTrue("$name/$minimum lost terminal completion after deletion",
+                        candidates().contains("你好"))
+                }
+                setOptions(name, "PartialSpLength" to "0")
+                assertCandidate("n'h", "你好", false)
+            }
+        }
+    }
+
+    @Test
+    fun selectedPrefixesKeepTheCompletionAndAbbreviationBoundary() = runBlocking {
+        for (name in listOf("pinyin", XIAOHE)) {
+            withIme(name) {
+                configureMatching(name)
+                setOptions(name, "PartialSpLength" to "0")
+                type(if (name == XIAOHE) "nihcnihn" else "nihaonihn")
+                val prefix = candidates().indexOf("你好")
+                assertTrue("$name lost the selectable prefix", prefix >= 0)
+                assertTrue(select(prefix))
+                assertFalse("$name retained the remaining interior abbreviation",
+                    candidates().contains("你好"))
+                press("BackSpace")
+                assertTrue("$name lost completion after the selected prefix",
+                    candidates().contains("你好"))
+            }
         }
     }
 
