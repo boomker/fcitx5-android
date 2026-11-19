@@ -23,6 +23,9 @@ import org.mechdancer.dependency.manager.managedHandler
 import splitties.dimensions.dp
 import splitties.views.horizontalPadding
 
+internal fun supportsPreeditSyllables(entry: InputMethodEntry?): Boolean =
+    entry?.addon == "pinyin" && ShuangpinKeyboardLayouts.supports(entry.uniqueName)
+
 class PreeditComponent : UniqueComponent<PreeditComponent>(), Dependent, InputBroadcastReceiver,
     ManagedHandler by managedHandler() {
 
@@ -51,7 +54,7 @@ class PreeditComponent : UniqueComponent<PreeditComponent>(), Dependent, InputBr
                 service.postFcitxJob {
                     val actualIme = currentIme()
                     if (actualIme.uniqueName == expectedIme &&
-                        ShuangpinKeyboardLayouts.isCompact(actualIme) && inputPanelCached === panel &&
+                        supportsPreeditSyllables(actualIme) && inputPanelCached === panel &&
                         inputPanelCached.tabs.any { it == action }
                     ) {
                         triggerCandidateListTabAction(action.id)
@@ -83,7 +86,7 @@ class PreeditComponent : UniqueComponent<PreeditComponent>(), Dependent, InputBr
 
     override fun onInputPanelUpdate(data: FcitxEvent.InputPanelEvent.Data) {
         currentPanel = data
-        ui.update(data, ShuangpinKeyboardLayouts.isCompact(currentIme))
+        ui.update(data, supportsPreeditSyllables(currentIme))
         // Only show if shouldDisplay is true
         ui.root.visibility = if (shouldDisplay && ui.visible) View.VISIBLE else View.INVISIBLE
     }
@@ -94,7 +97,7 @@ class PreeditComponent : UniqueComponent<PreeditComponent>(), Dependent, InputBr
             currentPanel = FcitxEvent.InputPanelEvent.Data()
         }
         currentIme = ime
-        ui.update(currentPanel, ShuangpinKeyboardLayouts.isCompact(ime))
+        ui.update(currentPanel, supportsPreeditSyllables(ime))
         ui.root.visibility = if (shouldDisplay && ui.visible) View.VISIBLE else View.INVISIBLE
     }
 }

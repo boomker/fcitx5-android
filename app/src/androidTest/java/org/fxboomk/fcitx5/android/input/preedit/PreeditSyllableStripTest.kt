@@ -17,8 +17,11 @@ import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.core.CandidateAction
 import org.fxboomk.fcitx5.android.core.FcitxEvent
 import org.fxboomk.fcitx5.android.core.FormattedText
+import org.fxboomk.fcitx5.android.core.InputMethodEntry
 import org.fxboomk.fcitx5.android.data.theme.ThemePreset
 import org.fxboomk.fcitx5.android.input.candidates.expanded.CandidateTabActionsAdapter
+import org.fxboomk.fcitx5.android.input.keyboard.ShuangpinKeyboardLayout
+import org.fxboomk.fcitx5.android.input.keyboard.ShuangpinKeyboardLayouts
 import org.junit.Assert.*
 import org.junit.Test
 import splitties.dimensions.dp
@@ -26,6 +29,63 @@ import splitties.dimensions.dp
 class PreeditSyllableStripTest {
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
     private val context = instrumentation.targetContext
+
+    @Test
+    fun syllableControlsSupportFullAndCompactShuangpinOnly() = onMain {
+        for (name in listOf("shuangpin", "shuangpin-xiaohe", "shuangpin-ms", "shuangpin-my-scheme")) {
+            val ime = entry(name)
+            assertEquals(ShuangpinKeyboardLayout.Full,
+                ShuangpinKeyboardLayouts.read(name, emptySet()))
+            assertTrue(supportsPreeditSyllables(ime))
+            assertEquals(ShuangpinKeyboardLayout.Compact18,
+                ShuangpinKeyboardLayouts.read(name, setOf(name)))
+            assertTrue(supportsPreeditSyllables(ime))
+        }
+        assertFalse(supportsPreeditSyllables(null))
+        assertFalse(supportsPreeditSyllables(entry("pinyin")))
+        assertFalse(supportsPreeditSyllables(entry("shuangpin-")))
+        assertFalse(supportsPreeditSyllables(entry("shuangpin-xiaohe", "rime")))
+        assertFalse(supportsPreeditSyllables(entry("keyboard-us", "keyboard")))
+    }
+
+    @Test
+    fun fullShuangpinChoicesFitInlineOrExpandAboveAndRejectOldActionsAfterAnImeSwitch() = onMain {
+        var keyboardWidth = context.dp(1000)
+        val row = PreeditRowUi(context, ThemePreset.MaterialLight, setupTextView = {},
+            availableWidth = { keyboardWidth })
+        val data = panel("fm", arrayOf(action(7, "fen"), action(11, "feng")))
+        val picks = mutableListOf<Int>()
+        row.syllables.onSelect = { action, _ -> picks += action.id }
+        row.update(data, supportsPreeditSyllables(entry("shuangpin-xiaohe")))
+        measureAndLayout(row)
+        keyboardWidth = naturalInlineWidth(row)
+        measureAndLayout(row)
+        assertEquals(View.VISIBLE, row.syllables.visibility)
+        assertSame(row.codeRow, row.syllables.parent)
+        assertEquals(View.GONE, row.expandButton.visibility)
+        labels(row.syllables).single { it.text.toString() == "fen" }.performClick()
+        assertEquals(listOf(7), picks)
+
+        keyboardWidth--
+        measureAndLayout(row)
+        assertEquals(View.GONE, row.syllables.visibility)
+        assertEquals(View.VISIBLE, row.expandButton.visibility)
+        row.expandButton.performClick()
+        measureAndLayout(row)
+        assertSame(row.expandedSyllables, row.syllables.parent)
+        assertTrue(row.expandedSyllables.bottom < row.codeRow.top)
+        val oldFeng = labels(row.syllables).single { it.text.toString() == "feng" }
+        oldFeng.performClick()
+        assertEquals(listOf(7, 11), picks)
+
+        row.update(data, supportsPreeditSyllables(entry("pinyin")))
+        measureAndLayout(row)
+        assertEquals(View.GONE, row.syllables.visibility)
+        assertEquals(View.GONE, row.expandedSyllables.visibility)
+        assertEquals(View.GONE, row.expandButton.visibility)
+        oldFeng.performClick()
+        assertEquals(listOf(7, 11), picks)
+    }
 
     @Test
     fun stripOffersEveryPendingLowercaseSyllableAction() = onMain {
@@ -574,6 +634,9 @@ class PreeditSyllableStripTest {
     private fun action(id: Int, text: String, checked: Boolean = false,
                        separator: Boolean = false, checkable: Boolean = false) =
         CandidateAction(id, text, separator, "", checkable, checked)
+
+    private fun entry(name: String, addon: String = "pinyin") =
+        InputMethodEntry(name, name, "", "", "", "zh_CN", addon, false)
 
     private fun onMain(block: () -> Unit) = instrumentation.runOnMainSync(block)
 }
