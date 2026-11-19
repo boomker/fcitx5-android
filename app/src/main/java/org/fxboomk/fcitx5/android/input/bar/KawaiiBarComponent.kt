@@ -287,7 +287,7 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         val hasVisible = hasVisibleCandidateContent(horizontalCandidate.adapter.candidates)
         syncCandidateBarState(!hasVisible)
         syncExpandedCandidateState(
-            hasExpandableCandidates = hasVisible &&
+            hasExpandableCandidates = horizontalCandidate.hasExpandableDeferredCandidates() || hasVisible &&
                 (
                     horizontalCandidate.adapter.total == -1 ||
                         horizontalCandidate.adapter.total >
@@ -305,7 +305,7 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
             // in the inline preedit) visible while preedit is non-empty, even if no
             // candidate matches the code
             usesInlineCompositionArea && barStateMachine.getBooleanState(PreeditEmpty) == false -> false
-            else -> candidateEmpty
+            else -> candidateSurfaceIsEmpty(candidateEmpty, horizontalCandidate.hasExpandableDeferredCandidates())
         }
         barStateMachine.push(CandidatesUpdated, CandidateEmpty to effectiveEmpty)
     }

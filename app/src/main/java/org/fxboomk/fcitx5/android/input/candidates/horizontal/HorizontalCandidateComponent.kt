@@ -7,6 +7,7 @@
 package org.fxboomk.fcitx5.android.input.candidates.horizontal
 
 import android.content.res.Configuration
+import android.graphics.Rect
 import android.graphics.drawable.ShapeDrawable
 import android.graphics.drawable.shapes.RectShape
 import android.view.View.MeasureSpec
@@ -38,6 +39,7 @@ import org.fxboomk.fcitx5.android.data.prefs.ManagedPreference
 import org.fxboomk.fcitx5.android.input.bar.KawaiiBarComponent
 import org.fxboomk.fcitx5.android.input.bar.hasVisibleCandidateContent
 import org.fxboomk.fcitx5.android.input.broadcast.InputBroadcastReceiver
+import org.fxboomk.fcitx5.android.input.broadcast.PreeditEmptyStateComponent
 import org.fxboomk.fcitx5.android.input.candidates.CandidateItemUi
 import org.fxboomk.fcitx5.android.input.candidates.CandidateViewHolder
 import org.fxboomk.fcitx5.android.input.candidates.isCandidateVisibleToUser
@@ -199,6 +201,8 @@ class HorizontalCandidateComponent :
     private val inputView by manager.inputView()
     private val theme by manager.theme()
     private val bar: KawaiiBarComponent by manager.must()
+    private val preeditState: PreeditEmptyStateComponent by manager.must()
+    private val firstPageCandidates = FirstPageCandidateTracker()
 
     private val fillStyle by AppPrefs.getInstance().keyboard.horizontalCandidateStyle
     private val toolbarDynamicHeightPref = AppPrefs.getInstance().keyboard.toolbarDynamicHeight
@@ -271,6 +275,7 @@ class HorizontalCandidateComponent :
         val total: Int = 0,
         val indexOffset: Int = 0,
         val activeIndex: Int = -1,
+        val excludedIndices: Set<Int> = emptySet(),
     )
 
     private var nativeCandidateSnapshot = NativeCandidateSnapshot()
@@ -279,17 +284,23 @@ class HorizontalCandidateComponent :
     /** Absolute engine cursor, kept locally while the UI can highlight AI items. */
     private var engineNativeCursorIndex = -1
     private var displayedCalculatorIndex = -1
+    var excludedNativeCandidateIndices: Set<Int> = emptySet()
+        private set
+    private var nextNativeCandidateStart = 0
 
     private data class RowWindow(
         val start: Int,
         val candidates: Array<CandidateWord>,
+        val excludedIndices: Set<Int>,
     )
 
     private data class ForwardRowShiftSnapshot(
         val currentStart: Int,
         val currentCandidates: Array<CandidateWord>,
+        val currentExcludedIndices: Set<Int>,
         val nextStart: Int,
         val nextLimit: Int,
+        val nextExcludedIndices: Set<Int>,
     )
 
     private data class CandidateWordRowPlacement(
@@ -320,16 +331,61 @@ class HorizontalCandidateComponent :
     val expandedCandidateOffset = _expandedCandidateOffset.asSharedFlow()
 
     private fun refreshExpanded() {
-        val consumedCount = adapter.indexOffset + displayedNativeCount
-        _expandedCandidateOffset.tryEmit(consumedCount)
+        _expandedCandidateOffset.tryEmit(nextNativeCandidateStart)
         bar.syncExpandedCandidateState(hasExpandableCandidates = hasExpandableCandidates)
     }
 
     private fun resetRowWindowState() {
         rowWindowHistory.clear()
+        excludedNativeCandidateIndices = emptySet()
+        nextNativeCandidateStart = 0
     }
 
-    fun hasRowSwipeCandidates(): Boolean = pagedCandidateFlowActive && adapter.candidates.isNotEmpty()
+    private fun nativeIndexAt(position: Int): Int =
+        adapter.candidates[position].nativeIndex.takeIf { it >= 0 }
+            ?: (position + adapter.indexOffset)
+
+    internal fun mappedNativeCandidateAt(position: Int): CandidateWord? =
+        adapter.candidates.getOrNull(position)?.takeIf {
+            position < displayedNativeCount && it.nativeIndex >= 0
+        }
+
+    internal fun wasCandidateOnFirstPage(nativeIndex: Int): Boolean? {
+        recordFirstPageCandidates()
+        return firstPageCandidates.contains(nativeIndex, lastPagedData?.hasPrev == true)
+    }
+
+    private fun recordFirstPageCandidates() {
+        if (preeditState.isEmpty || nativeCandidateSnapshot.indexOffset != 0 ||
+            rowWindowHistory.isNotEmpty() || lastPagedData?.hasPrev == true ||
+            nativeCandidateSnapshot.candidates.isEmpty() || !view.isCandidateVisibleToUser()) return
+        if (view.hasPendingAdapterUpdates() || (displayedNativeCount > 0 && view.childCount == 0)) return
+        val visible = HashSet<Int>()
+        val bounds = Rect()
+        var boundNativeChildren = 0
+        for (index in 0 until view.childCount) {
+            val child = view.getChildAt(index)
+            val holder = view.getChildViewHolder(child) as? CandidateViewHolder ?: continue
+            val position = holder.bindingAdapterPosition
+            if (position !in 0 until displayedNativeCount || !child.isCandidateVisibleToUser()) continue
+            if (holder.candidate != adapter.candidates.getOrNull(position) ||
+                holder.idx != nativeIndexAt(position)) return
+            boundNativeChildren++
+            if (child.getLocalVisibleRect(bounds) && bounds.left <= 0 && bounds.top <= 0 &&
+                bounds.right >= child.width && bounds.bottom >= child.height) {
+                visible.add(holder.idx)
+            }
+        }
+        if (displayedNativeCount > 0 && boundNativeChildren == 0) return
+        firstPageCandidates.record(visible, isFirstPage = true)
+    }
+
+    override fun onPreeditEmptyStateUpdate(empty: Boolean) {
+        if (empty) firstPageCandidates.clear() else view.post { recordFirstPageCandidates() }
+    }
+
+    fun hasRowSwipeCandidates(): Boolean = pagedCandidateFlowActive &&
+        (adapter.candidates.isNotEmpty() || hasExpandedNativeCandidates)
 
     fun hasCandidates(): Boolean = adapter.candidates.isNotEmpty()
 
@@ -343,7 +399,7 @@ class HorizontalCandidateComponent :
             adapter.candidates.size,
         ) ?: return false
         return view.isPredictionCandidateVisible(
-            position, position + adapter.indexOffset, adapter.candidates[position]
+            position, nativeIndexAt(position), adapter.candidates[position]
         )
     }
 
@@ -359,7 +415,7 @@ class HorizontalCandidateComponent :
             adapter.candidates.size,
         ) ?: return false
         if (selectByDigitKey(position + 1)) return true
-        val index = position + adapter.indexOffset
+        val index = nativeIndexAt(position)
         val expected = lastPagedData ?: return false
         service.postFcitxJob {
             if (!service.hardwarePredictionSession.isSuppressed) selectPrediction(index, expected)
@@ -375,7 +431,11 @@ class HorizontalCandidateComponent :
 
     fun hasExpandedNativeCandidates(): Boolean = hasExpandedNativeCandidates
 
+    fun hasExpandableDeferredCandidates(): Boolean = hasExpandedNativeCandidates &&
+        nativeCandidateSnapshot.candidates.any { it.isDeferredFallback }
+
     fun clearPredictionCandidates() {
+        firstPageCandidates.clear()
         clearNativeCandidateFlow()
         resetRowWindowState()
         updateNativeCandidateSnapshot(emptyArray(), 0, 0, -1)
@@ -400,7 +460,7 @@ class HorizontalCandidateComponent :
         // on a native item, synchronize the engine cursor from its last known
         // absolute position so native → AI → native transitions remain correct.
         if (syncEngine && pagedCandidateFlowActive && nextIndex < displayedNativeCount) {
-            val targetIndex = nativeCandidateSnapshot.indexOffset + nextIndex
+            val targetIndex = nativeIndexAt(nextIndex)
             val currentIndex = engineNativeCursorIndex.takeIf { it >= 0 }
                 ?: (nativeCandidateSnapshot.indexOffset + nativeCandidateSnapshot.activeIndex)
             val indexDelta = targetIndex - currentIndex
@@ -424,12 +484,13 @@ class HorizontalCandidateComponent :
             inputView.commitAiSuggestionFromUi(adapter.candidates[idx].text)
             return true
         }
-        service.postFcitxJob { select(idx + adapter.indexOffset) }
+        val nativeIndex = nativeIndexAt(idx)
+        service.postFcitxJob { select(nativeIndex) }
         return true
     }
 
     internal fun highlightedNativeCandidateIndex(): Int? =
-        effectiveActiveCandidateIndex().takeIf { it in 0 until displayedNativeCount }?.plus(adapter.indexOffset)
+        effectiveActiveCandidateIndex().takeIf { it in 0 until displayedNativeCount }?.let(::nativeIndexAt)
 
     internal fun highlightedCandidateText(): String? =
         effectiveActiveCandidateIndex().takeIf { it in 0 until displayedNativeCount }
@@ -437,8 +498,8 @@ class HorizontalCandidateComponent :
 
     /**
      * Commit the displayed item carrying the index label [digit] (1-9) when it is the
-     * calculator result or an AI prediction. Native candidate positions return false so
-     * the digit key keeps flowing to fcitx for engine-side selection.
+     * calculator result, an AI prediction, or a native item moved for recovery. Other
+     * native positions keep flowing to fcitx for engine-side selection.
      */
     fun selectByDigitKey(digit: Int): Boolean {
         val position = digit - 1
@@ -450,6 +511,11 @@ class HorizontalCandidateComponent :
         if (isAiCandidatePosition(position)) {
             if (!hasVisiblePredictionCandidate(digit)) return false
             inputView.commitAiSuggestionFromUi(adapter.candidates[position].text)
+            return true
+        }
+        val nativeIndex = nativeIndexAt(position)
+        if (nativeIndex != position + adapter.indexOffset) {
+            service.postFcitxJob { select(nativeIndex) }
             return true
         }
         return false
@@ -543,12 +609,41 @@ class HorizontalCandidateComponent :
         return if (count == candidates.size) candidates else candidates.copyOfRange(0, count)
     }
 
+    private fun nativeRowCandidates(): Array<CandidateWord> {
+        val snapshot = nativeCandidateSnapshot
+        val initialRow = snapshot.indexOffset == 0 && rowWindowHistory.isEmpty()
+        val candidates = nativeCandidatesAfterConsumedFallbacks(
+            snapshot.candidates, snapshot.indexOffset, snapshot.excludedIndices, initialRow,
+        )
+        if (initialRow && candidates.any { it.isFallback }) {
+            val dividerWidth = dividerDrawable.intrinsicWidth
+            val maxSpanCount = maxSpanCountPref.getValue().coerceAtLeast(1)
+            val minWidth = if (fillStyle == AutoFillWidth) {
+                (view.width / maxSpanCount - dividerWidth).coerceAtLeast(0)
+            } else 0
+            val row = placeFallbackCandidateInRow(
+                candidates = candidates.mapIndexed { index, candidate ->
+                    candidate.copy(nativeIndex = candidate.nativeIndex.takeIf { it >= 0 } ?: index)
+                }.toTypedArray(),
+                availableWidth = view.width - view.paddingLeft - view.paddingRight,
+                dividerWidth = dividerWidth,
+                maxCandidateCount = if (fillStyle == NeverFillWidth) Int.MAX_VALUE else maxSpanCount,
+            ) { measuredCandidateWidth(it, minWidth) }
+            if (row.isNotEmpty()) return row
+        }
+        return normalizedSingleRowCandidates(candidates)
+    }
+
     private fun aiSuggestionCandidate(text: String) = CandidateWord("", text, "", false)
 
     private fun placeAiSuggestionsAfterNative(
         nativeCandidates: Array<CandidateWord>,
         suggestions: List<String> = aiSuggestions,
     ): CandidateWordRowPlacement {
+        if (nativeCandidates.any { it.isFallback }) {
+            // Recovery keeps the last visible slot; suggestions remain expandable.
+            return CandidateWordRowPlacement(nativeCandidates, visibleAiCount = 0)
+        }
         val availableWidth = (view.width - view.paddingLeft - view.paddingRight).coerceAtLeast(1)
         val maxSpanCount = maxSpanCountPref.getValue()
         val layoutMinWidth = when (fillStyle) {
@@ -581,19 +676,14 @@ class HorizontalCandidateComponent :
         withContext(Dispatchers.Main.immediate) {
             if (!hasRowSwipeCandidates()) return@withContext null
             val currentStart = nativeCandidateSnapshot.indexOffset
-            val currentCandidates = normalizedSingleRowCandidates(
-                nativeCandidateSnapshot.candidates
-            ).copyOf()
-            val nextStart = nextCandidateRowStart(
-                currentStart,
-                nativeCandidateSnapshot.candidates.size,
-                currentCandidates.size,
-            )
+            val currentCandidates = nativeCandidateSnapshot.candidates.copyOf()
             ForwardRowShiftSnapshot(
                 currentStart = currentStart,
                 currentCandidates = currentCandidates,
-                nextStart = nextStart,
-                nextLimit = candidateFetchBatchSize()
+                currentExcludedIndices = nativeCandidateSnapshot.excludedIndices,
+                nextStart = nextNativeCandidateStart,
+                nextLimit = candidateFetchBatchSize(),
+                nextExcludedIndices = excludedNativeCandidateIndices,
             )
         }
 
@@ -606,13 +696,14 @@ class HorizontalCandidateComponent :
             if (nextCandidates.isEmpty()) return false
             withContext(Dispatchers.Main.immediate) {
                 rowWindowHistory.addLast(
-                    RowWindow(snapshot.currentStart, snapshot.currentCandidates)
+                    RowWindow(snapshot.currentStart, snapshot.currentCandidates, snapshot.currentExcludedIndices)
                 )
                 renderCandidateWindow(
                     nextCandidates,
                     -1,
                     snapshot.nextStart,
-                    activeCandidateIndex(0, normalizedSingleRowCandidates(nextCandidates).size)
+                    activeCandidateIndex(0, normalizedSingleRowCandidates(nextCandidates).size),
+                    snapshot.nextExcludedIndices,
                 )
                 true
             }
@@ -626,7 +717,8 @@ class HorizontalCandidateComponent :
                     previous.candidates,
                     -1,
                     previous.start,
-                    activeCandidateIndex(0, normalizedSingleRowCandidates(previous.candidates).size)
+                    activeCandidateIndex(0, normalizedSingleRowCandidates(previous.candidates).size),
+                    previous.excludedIndices,
                 )
                 true
             }
@@ -640,6 +732,10 @@ class HorizontalCandidateComponent :
                 super.onBindViewHolder(holder, position)
                 holder.itemView.updateLayoutParams<FlexboxLayoutManager.LayoutParams> {
                     minWidth = layoutMinWidth
+                    maxWidth = if (holder.candidate.isFallback) {
+                        (view.width - view.paddingLeft - view.paddingRight - dividerDrawable.intrinsicWidth)
+                            .coerceAtLeast(1)
+                    } else Int.MAX_VALUE
                     flexGrow = layoutFlexGrow
                 }
                 if (position == activeIndex) {
@@ -711,6 +807,8 @@ class HorizontalCandidateComponent :
                     }
                 }
                 refreshExpanded()
+                recordFirstPageCandidates()
+                view.post { recordFirstPageCandidates() }
             }
         }
     }
@@ -728,9 +826,16 @@ class HorizontalCandidateComponent :
         object : RecyclerView(context) {
             override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
                 super.onSizeChanged(w, h, oldw, oldh)
+                if (w != oldw) {
+                    firstPageCandidates.clear()
+                    post { recordFirstPageCandidates() }
+                }
                 if (fillStyle == AutoFillWidth) {
                     val maxSpanCount = maxSpanCountPref.getValue()
                     layoutMinWidth = w / maxSpanCount - dividerDrawable.intrinsicWidth
+                }
+                if (w != oldw && nativeCandidateSnapshot.candidates.any { it.isFallback || it.isDeferredFallback }) {
+                    post { renderCurrentCandidates() }
                 }
             }
         }.apply {
@@ -747,6 +852,7 @@ class HorizontalCandidateComponent :
             pendingLegacyCandidateUpdate?.let(view::removeCallbacks)
             pendingLegacyCandidateUpdate = null
             if (data.candidates.isEmpty()) {
+                firstPageCandidates.clear()
                 updateNativeCandidateSnapshot(emptyArray(), 0, 0, -1)
                 renderCurrentCandidates()
             }
@@ -761,6 +867,7 @@ class HorizontalCandidateComponent :
             nativeCandidateSnapshot.indexOffset != 0
         ) {
             activeCandidateOverride = null
+            firstPageCandidates.clear()
         }
         val activeIndex = activeCandidateIndex(0, normalizedSingleRowCandidates(candidates).size)
         updateNativeCandidateSnapshot(
@@ -787,15 +894,17 @@ class HorizontalCandidateComponent :
         }
         lastPagedData = data
         val candidates = data.candidates
+        if (!data.hasPrev && !nativeCandidateSnapshot.candidates.contentEquals(candidates)) {
+            firstPageCandidates.clear()
+        }
         if (!nativeCandidateSnapshot.candidates.contentEquals(candidates) ||
             nativeCandidateSnapshot.indexOffset != 0
         ) {
             activeCandidateOverride = null
         }
         resetRowWindowState()
-        val activeIndex = activeCandidateIndex(data.cursorIndex, normalizedSingleRowCandidates(candidates).size)
-        renderCandidateWindow(candidates, -1, 0, activeIndex)
-        engineNativeCursorIndex = activeIndex
+        renderCandidateWindow(candidates, -1, 0, data.cursorIndex)
+        engineNativeCursorIndex = data.cursorIndex
     }
 
     // memo of the last rendered inputs; identical inputs produce no new render work
@@ -823,6 +932,11 @@ class HorizontalCandidateComponent :
             lastRenderedFillStyle == fillStyle &&
             lastRenderedCandidates.contentEquals(candidates)
         ) {
+            // A deferred-only engine list can change while the visible row stays empty.
+            if (candidates.isEmpty()) {
+                bar.syncCandidateBarState(candidateEmpty = true)
+                refreshExpanded()
+            }
             return
         }
         lastRenderedTotal = total
@@ -880,8 +994,9 @@ class HorizontalCandidateComponent :
         total: Int,
         indexOffset: Int,
         activeIndex: Int,
+        excludedIndices: Set<Int> = emptySet(),
     ) {
-        updateNativeCandidateSnapshot(candidates, total, indexOffset, activeIndex)
+        updateNativeCandidateSnapshot(candidates, total, indexOffset, activeIndex, excludedIndices)
         renderCurrentCandidates()
     }
 
@@ -890,12 +1005,14 @@ class HorizontalCandidateComponent :
         total: Int,
         indexOffset: Int,
         activeIndex: Int,
+        excludedIndices: Set<Int> = emptySet(),
     ) {
         nativeCandidateSnapshot = NativeCandidateSnapshot(
             candidates = candidates,
             total = total,
             indexOffset = indexOffset,
             activeIndex = activeIndex,
+            excludedIndices = excludedIndices,
         )
     }
 
@@ -911,9 +1028,18 @@ class HorizontalCandidateComponent :
         displayedAiStartIndex = -1
         displayedCalculatorIndex = -1
 
-        val normalizedNative = normalizedSingleRowCandidates(nativeCandidateSnapshot.candidates)
+        val normalizedNative = nativeRowCandidates()
+        val continuation = nativeCandidateContinuation(
+            nativeCandidateSnapshot.indexOffset, normalizedNative, nativeCandidateSnapshot.excludedIndices,
+        )
+        nextNativeCandidateStart = continuation.nextOffset
+        excludedNativeCandidateIndices = continuation.excludedIndices
+        val nativeActiveIndex = nativeCandidateSnapshot.indexOffset + nativeCandidateSnapshot.activeIndex
+        val displayedActiveIndex = displayedNativeCandidateIndex(
+            nativeActiveIndex, normalizedNative, nativeCandidateSnapshot.indexOffset,
+        )
         displayedNativeCount = normalizedNative.size
-        hasExpandedNativeCandidates = hasMoreNativeCandidates(displayedNativeCount)
+        hasExpandedNativeCandidates = hasMoreNativeCandidates(continuation)
 
         val extraSuggestions = buildList {
             calculatorSuggestion?.let(::add)
@@ -944,7 +1070,7 @@ class HorizontalCandidateComponent :
             updateCandidates(
                 placement.candidates,
                 nativeCandidateSnapshot.total,
-                nativeCandidateSnapshot.activeIndex.takeIf {
+                displayedActiveIndex.takeIf {
                     it >= 0 || normalizedNative.isNotEmpty()
                 } ?: activeCandidateIndex(0, placement.candidates.size),
                 nativeCandidateSnapshot.indexOffset,
@@ -961,7 +1087,7 @@ class HorizontalCandidateComponent :
         updateCandidates(
             renderedCandidates,
             nativeCandidateSnapshot.total,
-            nativeCandidateSnapshot.activeIndex.takeIf {
+            displayedActiveIndex.takeIf {
                 it >= 0 || normalizedNative.isNotEmpty()
             } ?: activeCandidateIndex(0, renderedCandidates.size),
             nativeCandidateSnapshot.indexOffset,
@@ -993,13 +1119,14 @@ class HorizontalCandidateComponent :
         )
     }
 
-    private fun hasMoreNativeCandidates(visibleNativeCount: Int): Boolean {
+    private fun hasMoreNativeCandidates(continuation: NativeCandidateContinuation): Boolean {
         if (nativeCandidateSnapshot.candidates.isEmpty()) return false
-        val consumedCount = nativeCandidateSnapshot.indexOffset + visibleNativeCount
-        return nativeCandidateSnapshot.total == -1 || nativeCandidateSnapshot.total > consumedCount
+        return nativeCandidateSnapshot.total == -1 || nativeCandidateSnapshot.total >
+            continuation.nextOffset + continuation.excludedIndices.size
     }
 
     override fun onStartInput(info: EditorInfo, capFlags: CapabilityFlags, restarting: Boolean) {
+        firstPageCandidates.clear()
         clearNativeCandidateFlow()
         resetRowWindowState()
         updateNativeCandidateSnapshot(emptyArray(), 0, 0, -1)

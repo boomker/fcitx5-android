@@ -175,7 +175,8 @@ abstract class BaseExpandedCandidateWindow<T : BaseExpandedCandidateWindow<T>> :
                 CandidatesPagingSource(
                     fcitx,
                     total = horizontalCandidate.adapter.total,
-                    offset = adapter.offset
+                    offset = adapter.offset,
+                    excludedIndices = horizontalCandidate.excludedNativeCandidateIndices,
                 )
             }
         )
@@ -196,7 +197,7 @@ abstract class BaseExpandedCandidateWindow<T : BaseExpandedCandidateWindow<T>> :
         updateTabs(fcitx.runImmediately { inputPanelCached })
         offsetJob = service.lifecycleScope.launch {
             horizontalCandidate.expandedCandidateOffset.collect {
-                if (it <= 0 && !shouldKeepExpandedForAiSuggestion()) {
+                if (it <= 0 && !horizontalCandidate.hasNativeCandidates() && !shouldKeepExpandedForAiSuggestion()) {
                     windowManager.attachWindow(KeyboardWindow)
                 } else {
                     candidateLayout.resetPosition()

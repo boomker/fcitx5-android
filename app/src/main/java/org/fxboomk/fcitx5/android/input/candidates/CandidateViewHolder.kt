@@ -23,7 +23,7 @@ class CandidateViewHolder(val ui: CandidateItemUi) : RecyclerView.ViewHolder(ui.
     var lastFlexGrow = Float.NaN
 
     fun update(newIndex: Int, newCandidate: CandidateWord) {
-        idx = newIndex
+        idx = newCandidate.nativeIndex.takeIf { it >= 0 } ?: newIndex
         if (candidate != newCandidate) {
             candidate = newCandidate
             ui.updateCandidate(newCandidate)

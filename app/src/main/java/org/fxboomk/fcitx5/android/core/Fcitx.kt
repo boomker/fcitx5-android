@@ -266,8 +266,14 @@ class Fcitx(private val context: Context) : FcitxAPI, FcitxLifecycleOwner {
     override suspend fun getCandidateActions(idx: Int): Array<CandidateAction> =
         withFcitxContext { getFcitxCandidateActions(idx) ?: emptyArray() }
 
-    override suspend fun triggerCandidateAction(idx: Int, actionIdx: Int) =
-        withFcitxContext { triggerFcitxCandidateAction(idx, actionIdx) }
+    override suspend fun triggerCandidateAction(idx: Int, actionIdx: Int, isOnFirstPage: Boolean?) =
+        withFcitxContext {
+            triggerFcitxCandidateAction(idx, actionIdx, when (isOnFirstPage) {
+                true -> 1
+                false -> 0
+                null -> -1
+            })
+        }
 
     override suspend fun getCandidateActionsIfCurrent(
         idx: Int,
@@ -489,7 +495,7 @@ class Fcitx(private val context: Context) : FcitxAPI, FcitxLifecycleOwner {
         external fun getFcitxCandidateActions(idx: Int): Array<CandidateAction>?
 
         @JvmStatic
-        external fun triggerFcitxCandidateAction(idx: Int, actionIdx: Int)
+        external fun triggerFcitxCandidateAction(idx: Int, actionIdx: Int, isOnFirstPage: Int)
 
         // UTF-8 bytes preserve supplementary emoji when comparing native text.
         @JvmStatic

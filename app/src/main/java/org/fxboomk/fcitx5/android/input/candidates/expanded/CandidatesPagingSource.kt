@@ -10,7 +10,12 @@ import org.fxboomk.fcitx5.android.core.CandidateWord
 import org.fxboomk.fcitx5.android.daemon.FcitxConnection
 import timber.log.Timber
 
-class CandidatesPagingSource(val fcitx: FcitxConnection, val total: Int, val offset: Int) :
+class CandidatesPagingSource(
+    val fcitx: FcitxConnection,
+    val total: Int,
+    val offset: Int,
+    private val excludedIndices: Set<Int> = emptySet(),
+) :
     PagingSource<Int, CandidateWord>() {
 
     override suspend fun load(params: LoadParams<Int>): LoadResult<Int, CandidateWord> {
@@ -21,13 +26,18 @@ class CandidatesPagingSource(val fcitx: FcitxConnection, val total: Int, val off
         val candidates = fcitx.runOnReady {
             getCandidates(startIndex, pageSize)
         }
-        val prevKey = if (startIndex >= pageSize) startIndex - pageSize else null
+        val prevKey = if (startIndex > offset) (startIndex - pageSize).coerceAtLeast(offset) else null
+        val endIndex = startIndex + candidates.size
         val nextKey = if (total > 0) {
-            if (startIndex + pageSize + 1 >= total) null else startIndex + pageSize
+            if (candidates.isEmpty() || endIndex >= total) null else endIndex
         } else {
-            if (candidates.size < pageSize) null else startIndex + pageSize
+            if (candidates.size < pageSize) null else endIndex
         }
-        return LoadResult.Page(candidates.toList(), prevKey, nextKey)
+        val remaining = candidates.mapIndexedNotNull { index, candidate ->
+            val nativeIndex = startIndex + index
+            candidate.copy(nativeIndex = nativeIndex).takeUnless { nativeIndex in excludedIndices }
+        }
+        return LoadResult.Page(remaining, prevKey, nextKey)
     }
 
     // always reload from beginning

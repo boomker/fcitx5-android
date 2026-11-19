@@ -45,7 +45,7 @@ public:
     void setCapabilityFlags(uint64_t flag);
     std::vector<CandidateEntity> getCandidates(int offset, int limit);
     std::vector<CandidateActionEntity> getCandidateActions(int idx);
-    void triggerCandidateAction(int idx, int actionIdx);
+    void triggerCandidateAction(int idx, int actionIdx, int isOnFirstPage);
     void triggerTabAction(int idx);
     void deleteSurrounding(int before, int after);
     void showToast(const std::string &s);

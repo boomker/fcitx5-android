@@ -67,6 +67,12 @@ object FcitxDaemon {
             override suspend fun getCandidateActionsIfCurrent(idx: Int, candidateText: String) =
                 realFcitx.getCandidateActionsIfCurrent(idx, candidateText)
 
+            override suspend fun triggerCandidateAction(
+                idx: Int,
+                actionIdx: Int,
+                isOnFirstPage: Boolean?,
+            ) = realFcitx.triggerCandidateAction(idx, actionIdx, isOnFirstPage)
+
             override suspend fun triggerCandidateActionIfCurrent(
                 idx: Int,
                 candidateText: String,

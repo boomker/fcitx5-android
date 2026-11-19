@@ -744,11 +744,12 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
 
     /** Trigger the engine's forget/reset-frequency action on the candidate at [nativeIndex]. */
     private fun forgetHighlightedCandidate(nativeIndex: Int) {
+        val isOnFirstPage = inputView?.wasCandidateOnFirstPage(nativeIndex)
         postFcitxJob {
             val action = getCandidateActions(nativeIndex).firstOrNull {
                 !it.isSeparator && it.text.isCandidateFrequencyResetActionText()
             } ?: return@postFcitxJob
-            triggerCandidateAction(nativeIndex, action.id)
+            triggerCandidateAction(nativeIndex, action.id, isOnFirstPage)
         }
     }
 

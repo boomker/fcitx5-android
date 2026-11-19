@@ -13,6 +13,10 @@ import org.fxboomk.fcitx5.android.utils.BuildTransitionEvent
 import org.fxboomk.fcitx5.android.utils.EventStateMachine
 import org.fxboomk.fcitx5.android.utils.TransitionBuildBlock
 
+/** Keep the expand button's parent surface available for an intentionally empty first row. */
+internal fun candidateSurfaceIsEmpty(candidateEmpty: Boolean, hasExpandableDeferredCandidates: Boolean): Boolean =
+    candidateEmpty && !hasExpandableDeferredCandidates
+
 internal fun nextKawaiiBarStateOnCandidatesUpdated(
     currentState: KawaiiBarStateMachine.State,
     candidateEmpty: Boolean,

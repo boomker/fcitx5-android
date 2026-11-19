@@ -292,24 +292,35 @@ public:
         return actions;
     }
 
-    void triggerCandidateAction(const int idx, const int actionIdx) {
+    void triggerCandidateAction(const int idx, const int actionIdx, const int isOnFirstPage) {
         const auto &list = inputPanel().candidateList();
         if (!list) return;
         const auto &actionable = list->toActionable();
         if (!actionable) return;
+        const auto trigger = [&](const CandidateWord &candidate) {
+            if (auto *contextual = dynamic_cast<ContextualActionableCandidateList *>(actionable)) {
+                CandidateActionContext context;
+                if (isOnFirstPage == 0 || isOnFirstPage == 1) {
+                    context.isOnFirstPage = isOnFirstPage == 1;
+                }
+                contextual->triggerAction(candidate, actionIdx, context);
+            } else {
+                actionable->triggerAction(candidate, actionIdx);
+            }
+        };
         if (idx >= list->size()) {
             const auto &bulk = list->toBulk();
             if (bulk) {
                 try {
                     const auto &c = bulk->candidateFromAll(idx);
-                    actionable->triggerAction(c, actionIdx);
+                    trigger(c);
                 } catch (const std::exception &e) {
                     FCITX_WARN() << "triggerCandidateAction(" << idx << ") failed:" << e.what();
                 }
             }
         } else {
             const auto &c = list->candidate(idx);
-            actionable->triggerAction(c, actionIdx);
+            trigger(c);
         }
     }
 
@@ -360,12 +371,12 @@ private:
 
     CandidateEntity candidateEntity(const CandidateWord &candidate) {
         return CandidateEntity("", filterString(candidate.text()),
-                               filterString(candidate.comment()), candidate.spaceBetweenComment());
+                               filterString(candidate.comment()), candidate.spaceBetweenComment(), candidate.isFallback(), candidate.isDeferredFallback());
     }
 
     CandidateEntity candidateEntityWithLabel(const Text &label, const CandidateWord &candidate) {
         return CandidateEntity(filterString(label), filterString(candidate.text()),
-                               filterString(candidate.comment()), candidate.spaceBetweenComment());
+                               filterString(candidate.comment()), candidate.spaceBetweenComment(), candidate.isFallback(), candidate.isDeferredFallback());
     }
 };
 
@@ -545,9 +556,9 @@ std::vector<CandidateActionEntity> AndroidFrontend::getCandidateActions(const in
     return activeIC_->getCandidateAction(idx);
 }
 
-void AndroidFrontend::triggerCandidateAction(const int idx, const int actionIdx) {
+void AndroidFrontend::triggerCandidateAction(const int idx, const int actionIdx, const int isOnFirstPage) {
     if (!activeIC_) return;
-    activeIC_->triggerCandidateAction(idx, actionIdx);
+    activeIC_->triggerCandidateAction(idx, actionIdx, isOnFirstPage);
 }
 
 void AndroidFrontend::triggerTabAction(const int idx) {

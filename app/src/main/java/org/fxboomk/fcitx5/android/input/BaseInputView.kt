@@ -79,8 +79,8 @@ abstract class BaseInputView(
             }
         }
 
-    private fun triggerCandidateAction(idx: Int, actionIdx: Int) {
-        fcitx.runIfReady { triggerCandidateAction(idx, actionIdx) }
+    private fun triggerCandidateAction(idx: Int, actionIdx: Int, isOnFirstPage: Boolean? = null) {
+        fcitx.runIfReady { triggerCandidateAction(idx, actionIdx, isOnFirstPage) }
     }
 
     private fun commitCandidateCharacter(character: String) {
@@ -395,13 +395,14 @@ abstract class BaseInputView(
     }
 
     private fun resetCandidateFrequency(idx: Int) {
+        val isOnFirstPage = service.inputView?.wasCandidateOnFirstPage(idx)
         service.lifecycleScope.launch {
             val triggered = runCatching {
                 fcitx.runOnReady {
                     val action = getCandidateActions(idx).firstOrNull {
                         !it.isSeparator && it.text.isCandidateFrequencyResetActionText()
                     } ?: return@runOnReady false
-                    triggerCandidateAction(idx, action.id)
+                    triggerCandidateAction(idx, action.id, isOnFirstPage)
                     true
                 }
             }.getOrDefault(false)
@@ -465,7 +466,10 @@ abstract class BaseInputView(
             }
             actions.forEach { action ->
                 menu.item(action.text) {
-                    triggerCandidateAction(idx, action.id)
+                    val isOnFirstPage = if (action.text.isCandidateFrequencyResetActionText()) {
+                        service.inputView?.wasCandidateOnFirstPage(idx)
+                    } else null
+                    triggerCandidateAction(idx, action.id, isOnFirstPage)
                 }
             }
             setOnDismissListener {

@@ -113,6 +113,8 @@ public:
     std::string text;
     std::string comment;
     bool spaceBetweenComment;
+    bool isFallback = false;
+    bool isDeferredFallback = false;
 
     explicit CandidateEntity(std::string label, std::string text, std::string comment) :
             label(std::move(label)),
@@ -120,12 +122,14 @@ public:
             comment(std::move(comment)),
             spaceBetweenComment(true) {}
 
-    explicit CandidateEntity(std::string label, std::string text, std::string comment, bool spaceBetweenComment)
+    explicit CandidateEntity(std::string label, std::string text, std::string comment, bool spaceBetweenComment, bool isFallback = false, bool isDeferredFallback = false)
             :
             label(std::move(label)),
             text(std::move(text)),
             comment(std::move(comment)),
-            spaceBetweenComment(spaceBetweenComment) {}
+            spaceBetweenComment(spaceBetweenComment),
+            isFallback(isFallback),
+            isDeferredFallback(isDeferredFallback) {}
 };
 
 class PagedCandidateEntity {

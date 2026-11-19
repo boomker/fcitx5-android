@@ -1588,6 +1588,9 @@ class InputView(
     internal fun highlightedNativeCandidateIndex(): Int? =
         horizontalCandidate.highlightedNativeCandidateIndex()
 
+    internal fun wasCandidateOnFirstPage(nativeIndex: Int): Boolean? =
+        horizontalCandidate.wasCandidateOnFirstPage(nativeIndex)
+
     internal fun highlightedCandidateText(): String? =
         horizontalCandidate.highlightedCandidateText()
 

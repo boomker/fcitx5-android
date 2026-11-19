@@ -108,6 +108,13 @@ class CommonKeyActionListener :
         }
     }
 
+    private suspend fun FcitxAPI.selectDisplayedCandidateForDigit(action: KeyAction): Boolean =
+        selectCandidateForDigit(action) { index ->
+            withContext(Dispatchers.Main.immediate) {
+                horizontalCandidate.mappedNativeCandidateAt(index)
+            }
+        }
+
     private fun FcitxAPI.hasNativePredictionCandidatesVisible(): Boolean =
         service.hasVisibleNativeCandidates() &&
             clientPreeditCached.isEmpty() &&
@@ -218,7 +225,7 @@ class CommonKeyActionListener :
                             meta = action.states.meta,
                         ) -> {}
                         else -> service.postFcitxJob {
-                            if (selectCandidateForDigit(action)) return@postFcitxJob
+                            if (selectDisplayedCandidateForDigit(action)) return@postFcitxJob
                             val returnSym = when (action.act) {
                                 "Return" -> FcitxKeyMapping.FcitxKey_Return
                                 "KP_Enter" -> FcitxKeyMapping.FcitxKey_KP_Enter
@@ -232,7 +239,7 @@ class CommonKeyActionListener :
                     }
                 }
                 is SymAction -> service.postFcitxJob {
-                    if (selectCandidateForDigit(action)) return@postFcitxJob
+                    if (selectDisplayedCandidateForDigit(action)) return@postFcitxJob
                     when {
                         action.sym.keyCode == KeyEvent.KEYCODE_ESCAPE && aiSuggestionStrip.hasVisibleSuggestions() -> {
                             service.lifecycleScope.launch { aiSuggestionStrip.dismissVisibleSuggestions() }
@@ -321,7 +328,7 @@ class CommonKeyActionListener :
                     }
                 }
                 is CommitAction -> service.postFcitxJob {
-                    if (selectCandidateForDigit(action)) return@postFcitxJob
+                    if (selectDisplayedCandidateForDigit(action)) return@postFcitxJob
                     // A swipe may have captured the old numeric marker before candidates disappeared.
                     val actionText = if (candidateSelectionIndex(action) != null) {
                         action.text.removePrefix("\u0000")

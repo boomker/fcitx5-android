@@ -5,6 +5,7 @@
 package org.fxboomk.fcitx5.android.input.keyboard
 
 import org.fxboomk.fcitx5.android.core.FcitxAPI
+import org.fxboomk.fcitx5.android.core.CandidateWord
 import org.fxboomk.fcitx5.android.core.FcitxKeyMapping
 import org.fxboomk.fcitx5.android.core.KeyState
 
@@ -34,13 +35,28 @@ internal fun candidateSelectionIndex(action: KeyAction): Int? {
     }
 }
 
-internal suspend fun FcitxAPI.selectCandidateForDigit(action: KeyAction): Boolean {
+internal suspend fun FcitxAPI.selectCandidateForDigit(
+    action: KeyAction,
+    displayedCandidateAt: suspend (Int) -> CandidateWord? = { null },
+): Boolean {
     val index = candidateSelectionIndex(action) ?: return false
     // Inspect the engine on the serialized key path, rather than a possibly older UI snapshot.
     if (getCandidates(0, 1).isEmpty()) return false
-    // The frontend resolves the displayed candidate order and the current paging mode.
+    val displayed = displayedCandidateAt(index)
+    val mappedIndex = displayed?.nativeIndex?.takeIf { it >= 0 }
+    if (mappedIndex != null) {
+        val current = getCandidates(mappedIndex, 1).firstOrNull()
+        // The UI may still show the previous panel while this serialized key waits.
+        // Ignore only presentation indices/labels, which differ between bulk and paged events.
+        if (current == null || current.text != displayed.text ||
+            current.comment != displayed.comment ||
+            current.spaceBetweenComment != displayed.spaceBetweenComment ||
+            current.isFallback != displayed.isFallback ||
+            current.isDeferredFallback != displayed.isDeferredFallback) return true
+    }
+    // The native frontend resolves the current paging mode.
     // Folded symbols are actions, so they never occupy a numbered candidate slot.
-    select(index)
+    select(mappedIndex ?: index)
     // An out-of-range selection key must not commit the first candidate plus a literal digit.
     return true
 }

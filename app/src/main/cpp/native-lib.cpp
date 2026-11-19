@@ -631,8 +631,8 @@ public:
         return false;
     }
 
-    void triggerCandidateAction(int idx, int actionIdx) {
-        return p_frontend->call<fcitx::IAndroidFrontend::triggerCandidateAction>(idx, actionIdx);
+    void triggerCandidateAction(int idx, int actionIdx, int isOnFirstPage = -1) {
+        return p_frontend->call<fcitx::IAndroidFrontend::triggerCandidateAction>(idx, actionIdx, isOnFirstPage);
     }
 
     void setCandidatePagingMode(int mode) {
@@ -1363,9 +1363,9 @@ Java_org_fxboomk_fcitx5_android_core_Fcitx_getFcitxCandidateActions(JNIEnv *env,
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_org_fxboomk_fcitx5_android_core_Fcitx_triggerFcitxCandidateAction(JNIEnv *env, jclass clazz, jint idx, jint action_idx) {
+Java_org_fxboomk_fcitx5_android_core_Fcitx_triggerFcitxCandidateAction(JNIEnv *env, jclass clazz, jint idx, jint action_idx, jint is_on_first_page) {
     RETURN_IF_NOT_RUNNING
-    Fcitx::Instance().triggerCandidateAction(idx, action_idx);
+    Fcitx::Instance().triggerCandidateAction(idx, action_idx, is_on_first_page);
 }
 
 namespace {

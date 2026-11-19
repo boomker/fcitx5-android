@@ -20,6 +20,61 @@ import org.junit.Test
 
 class CandidateDigitSelectionTest {
     @Test
+    fun `soft digits select the displayed recovery native index`() = runBlocking {
+        val native = Array(8) { CandidateWord("", "词$it", "", isFallback = it == 4) }
+        val row = arrayOf(native[0].copy(nativeIndex = 0), native[1].copy(nativeIndex = 1),
+            native[4].copy(nativeIndex = 4))
+        val selected = mutableListOf<Int>()
+        val api = Proxy.newProxyInstance(
+            FcitxAPI::class.java.classLoader, arrayOf(FcitxAPI::class.java)
+        ) { _, method, args ->
+            when (method.name) {
+                "getCandidates" -> native.drop(args[0] as Int).take(args[1] as Int).toTypedArray()
+                "select" -> {
+                    selected += args[0] as Int
+                    true
+                }
+                else -> error("Unexpected Fcitx call: ${method.name}")
+            }
+        } as FcitxAPI
+        listOf(
+            KeyAction.FcitxKeyAction("3"), KeyAction.FcitxKeyAction("KP_3"),
+            KeyAction.SymAction(KeySym('3'.code)), KeyAction.CommitAction("3"),
+            KeyAction.CommitAction("\u00003"),
+        ).forEach { action ->
+            assertTrue(api.selectCandidateForDigit(action) { row.getOrNull(it) })
+        }
+        assertEquals(List(5) { 4 }, selected)
+    }
+
+    @Test
+    fun `stale displayed recovery cannot select a changed engine candidate`() = runBlocking {
+        var native = Array(5) { CandidateWord("", "新$it", "", isFallback = it == 4) }
+        val stale = CandidateWord("", "旧词", "", isFallback = true, nativeIndex = 4)
+        val selected = mutableListOf<Int>()
+        val api = Proxy.newProxyInstance(
+            FcitxAPI::class.java.classLoader, arrayOf(FcitxAPI::class.java)
+        ) { _, method, args ->
+            when (method.name) {
+                "getCandidates" -> native.drop(args[0] as Int).take(args[1] as Int).toTypedArray()
+                "select" -> { selected += args[0] as Int; true }
+                else -> error("Unexpected Fcitx call: ${method.name}")
+            }
+        } as FcitxAPI
+        assertTrue(api.selectCandidateForDigit(KeyAction.CommitAction("3")) { stale })
+        assertTrue(selected.isEmpty())
+        val adaptive = native[4].copy(isFallback = false, nativeIndex = 4)
+        native[4] = adaptive.copy(isDeferredFallback = true, nativeIndex = -1)
+        assertTrue(api.selectCandidateForDigit(KeyAction.CommitAction("3")) { adaptive })
+        assertTrue("A changed reset state must invalidate an old visible target", selected.isEmpty())
+        native = emptyArray()
+        assertFalse(api.selectCandidateForDigit(KeyAction.CommitAction("3")) {
+            error("Empty engine must reject mapping before reading UI")
+        })
+        assertTrue(selected.isEmpty())
+    }
+
+    @Test
     fun `out of range selection is consumed but an empty candidate list keeps digit input`() = runBlocking {
         var candidates = arrayOf(CandidateWord("", "词", "", false))
         val selected = mutableListOf<Int>()

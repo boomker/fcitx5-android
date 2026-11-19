@@ -64,7 +64,7 @@ FCITX_ADDON_DECLARE_FUNCTION(AndroidFrontend, getCandidateActions,
                              std::vector<CandidateActionEntity>(const int))
 
 FCITX_ADDON_DECLARE_FUNCTION(AndroidFrontend, triggerCandidateAction,
-                             void(const int, const int))
+                             void(const int, const int, const int))
 
 FCITX_ADDON_DECLARE_FUNCTION(AndroidFrontend, triggerTabAction,
                              void(const int))
