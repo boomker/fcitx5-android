@@ -1,6 +1,6 @@
 [submodule "lib/fcitx5/src/main/cpp/fcitx5"]
 	path = lib/fcitx5/src/main/cpp/fcitx5
-	url = https://github.com/fcitx/fcitx5.git
+	url = https://github.com/boomker/fcitx5.git
 [submodule "lib/fcitx5/src/main/cpp/prebuilt"]
 	path = lib/fcitx5/src/main/cpp/prebuilt
 	url = https://github.com/boomker/f5a-prebuilt.git
