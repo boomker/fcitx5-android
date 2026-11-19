@@ -1037,6 +1037,10 @@
     <string name="pinyin_config_shuangpin_profile">雙拼方案</string>
     <string name="pinyin_config_english_candidates">英文候選</string>
     <string name="pinyin_config_symbol_candidates">符號候選</string>
+    <string name="pinyin_config_fold_symbols">摺疊表情</string>
+    <string name="pinyin_config_fold_symbols_summary">將同組表情和符號摺疊為一個候選，其餘可展開選擇；關閉時逐個顯示。</string>
+    <string name="pinyin_config_shuangpin_initial_fuzzy">簡拼模糊</string>
+    <string name="pinyin_config_shuangpin_initial_fuzzy_summary">雙拼簡拼允許 z/zh、c/ch、s/sh 模糊比對（常見鍵位為 v/z、i/c、u/s）。</string>
     <string name="pinyin_config_chaizi_candidates">拆字候選</string>
     <string name="pinyin_config_stroke_candidates">筆畫候選</string>
     <string name="pinyin_config_extension_b">擴展 B 字集</string>

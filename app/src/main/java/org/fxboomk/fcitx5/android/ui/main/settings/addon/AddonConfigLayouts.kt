@@ -99,6 +99,7 @@ private object PinyinConfigLayout {
                 "PreeditCursorPositionAtBeginning",
                 "PinyinInPreedit",
                 "ShowShuangpinMode",
+                "ShuangpinInitialFuzzy",
                 "PreeditMode",
                 "ShuangpinProfile",
                 "PartialSpLength"
@@ -109,6 +110,7 @@ private object PinyinConfigLayout {
             listOf(
                 "SpellEnabled",
                 "SymbolsEnabled",
+                "FoldSymbolCandidates",
                 "ChaiziEnabled",
                 "StrokeCandidateEnabled",
                 "ExtBEnabled",
@@ -294,12 +296,16 @@ private object PinyinConfigLayout {
             titleOverrides = (if (shortTitles) titleOverrides else emptyMap()) +
                 mapOf(
                     "PreeditMode" to R.string.preedit_style,
-                    "PartialSpLength" to R.string.pinyin_config_partial_sp_length
+                    "PartialSpLength" to R.string.pinyin_config_partial_sp_length,
+                    "ShuangpinInitialFuzzy" to R.string.pinyin_config_shuangpin_initial_fuzzy,
+                    "FoldSymbolCandidates" to R.string.pinyin_config_fold_symbols
                 ),
             summaryOverrides = mapOf(
                 "PreeditCursorPositionAtBeginning" to
                     R.string.pinyin_config_cursor_at_start_summary,
-                "PartialSpLength" to R.string.pinyin_config_partial_sp_length_summary
+                "PartialSpLength" to R.string.pinyin_config_partial_sp_length_summary,
+                "ShuangpinInitialFuzzy" to R.string.pinyin_config_shuangpin_initial_fuzzy_summary,
+                "FoldSymbolCandidates" to R.string.pinyin_config_fold_symbols_summary
             ),
             entryTitleOverrides = if (shortTitles) {
                 mapOf(

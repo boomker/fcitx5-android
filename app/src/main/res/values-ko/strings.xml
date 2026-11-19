@@ -1078,6 +1078,10 @@
     <string name="pinyin_config_shuangpin_profile">쌍핀 프로필</string>
     <string name="pinyin_config_english_candidates">영어 후보</string>
     <string name="pinyin_config_symbol_candidates">기호 후보</string>
+    <string name="pinyin_config_fold_symbols">이모지 접기</string>
+    <string name="pinyin_config_fold_symbols_summary">같은 그룹의 이모지와 기호를 하나의 후보로 묶고 펼쳐서 나머지를 선택합니다. 끄면 각각 표시합니다.</string>
+    <string name="pinyin_config_shuangpin_initial_fuzzy">약식 입력 유사 일치</string>
+    <string name="pinyin_config_shuangpin_initial_fuzzy_summary">쌍병 약식 입력에서 z/zh, c/ch, s/sh를 서로 일치시킵니다(일반적인 키: v/z, i/c, u/s).</string>
     <string name="pinyin_config_chaizi_candidates">자이 후보</string>
     <string name="pinyin_config_stroke_candidates">필획 후보</string>
     <string name="pinyin_config_extension_b">확장 B 집합</string>

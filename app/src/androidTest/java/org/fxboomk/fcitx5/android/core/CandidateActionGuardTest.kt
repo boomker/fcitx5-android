@@ -34,6 +34,40 @@ import org.junit.Test
 /** Exercises the shipped pinyin engine and checked JNI calls in a sensitive test context. */
 class CandidateActionGuardTest {
     @Test
+    fun symbolFoldingCanBeSwitchedOffAndPersistsAcrossReloads() = withPinyin {
+        val option = getImConfig(PINYIN)["desc"].findRecursively("FoldSymbolCandidates")
+        assertNotNull("The symbol-folding switch must be visible", option)
+        assertEquals("False", option!!["DefaultValue"].value)
+        for (enabled in listOf(false, true, false)) {
+            reset()
+            val value = if (enabled) "True" else "False"
+            setImConfig(PINYIN, RawConfig().apply {
+                getOrCreate("FoldSymbolCandidates").value = value
+            })
+            reloadConfig()
+            assertEquals(value, getImConfig(PINYIN)["cfg"]["FoldSymbolCandidates"].value)
+            if (enabled) {
+                foldedChoice("kaishi", "▶️", "🔛")
+            } else {
+                typePinyin("kaishi")
+                val candidates = getCandidates(0, CANDIDATE_LIMIT)
+                val headIndex = candidates.indexOfFirst { it.text == "▶️" }
+                val alternativeIndex = candidates.indexOfFirst { it.text == "🔛" }
+                assertTrue("The emoji head must remain visible", headIndex >= 0)
+                assertTrue("Unfolded emoji must occupy their own visible slots",
+                    alternativeIndex == headIndex + 1)
+                assertFalse("Unfolded emoji must not display a folding marker",
+                    candidates[headIndex].comment == "…")
+                assertTrue("Unfolded emoji must not offer hidden alternatives",
+                    getCandidateActionsIfCurrent(headIndex, candidates[headIndex].text)
+                        .orEmpty().none { it.icon == FOLDED_SYMBOL_ICON })
+                expectCommit("🔛") { assertTrue(select(alternativeIndex)) }
+                assertTrue("Selecting an unfolded emoji must finish composition", isEmpty())
+            }
+        }
+    }
+
+    @Test
     fun softDigitActionsSelectTheVisibleEmojiHeadRatherThanItsFoldedAlternative() = withPinyin {
         digitActionFactories.forEach { actionFor ->
             val choice = foldedChoice("kaishi", "▶️", "🔛")
@@ -225,7 +259,7 @@ class CandidateActionGuardTest {
         }
         val candidates = getCandidates(0, CANDIDATE_LIMIT)
         val index = candidates.indexOfFirst { it.text == headText }
-        assertTrue("Missing $headText for $input; respect the current SymbolsEnabled setting: " +
+        assertTrue("Missing $headText for $input: " +
             candidates.take(12).map { it.text }, index >= 0)
         val head = candidates[index]
         assertEquals("The front-page run must be folded", "…", head.comment)
@@ -277,8 +311,11 @@ class CandidateActionGuardTest {
                     val storage = InstrumentationRegistry.getInstrumentation().targetContext
                         .createDeviceProtectedStorageContext()
                     val root = storage.getExternalFilesDir(null) ?: storage.filesDir
-                    val profileFile = File(root, "config/profile")
-                    val originalProfile = profileFile.takeIf(File::exists)?.readBytes()
+                    val originalFiles = listOf(
+                        File(root, "config/profile"),
+                        File(root, "config/conf/pinyin.conf"),
+                        File(root, "config/conf/pinyin/$PINYIN.conf")
+                    ).associateWith { it.takeIf(File::exists)?.readBytes() }
                     val enabled = (listOf("keyboard-us") + originalEnabled + PINYIN).distinct()
                     var activated = false
                     try {
@@ -290,6 +327,10 @@ class CandidateActionGuardTest {
                         activateIme(PINYIN)
                         assertEquals(PINYIN, currentIme().uniqueName)
                         reset()
+                        setImConfig(PINYIN, RawConfig().apply {
+                            getOrCreate("SymbolsEnabled").value = "True"
+                            getOrCreate("FoldSymbolCandidates").value = "True"
+                        })
                         body()
                     } finally {
                         withContext(NonCancellable) {
@@ -312,10 +353,12 @@ class CandidateActionGuardTest {
                                     }
                                 }
                             } finally {
-                                // Group activation can save profile defaults. Keep exact bytes,
-                                // including the absence of a profile file before the test.
-                                if (originalProfile != null) profileFile.writeBytes(originalProfile)
-                                else if (profileFile.exists()) assertTrue(profileFile.delete())
+                                // Restore exact profile/configuration bytes, including absent files.
+                                originalFiles.forEach { (file, bytes) ->
+                                    if (bytes != null) file.writeBytes(bytes)
+                                    else if (file.exists()) assertTrue(file.delete())
+                                }
+                                reloadConfig()
                             }
                         }
                     }
@@ -325,6 +368,9 @@ class CandidateActionGuardTest {
             FcitxDaemon.disconnect(CLIENT_NAME)
         }
     }
+
+    private fun RawConfig.findRecursively(key: String): RawConfig? =
+        if (name == key) this else subItems.orEmpty().firstNotNullOfOrNull { it.findRecursively(key) }
 
     private companion object {
         val digitActionFactories: List<(Char) -> KeyAction> = listOf(

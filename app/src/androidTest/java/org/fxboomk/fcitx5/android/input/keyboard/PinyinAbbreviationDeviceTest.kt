@@ -9,6 +9,7 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.core.CapabilityFlag
 import org.fxboomk.fcitx5.android.core.CapabilityFlags
 import org.fxboomk.fcitx5.android.core.FcitxAPI
@@ -17,6 +18,7 @@ import org.fxboomk.fcitx5.android.core.KeySym
 import org.fxboomk.fcitx5.android.core.RawConfig
 import org.fxboomk.fcitx5.android.daemon.FcitxDaemon
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
+import org.fxboomk.fcitx5.android.ui.main.settings.addon.AddonConfigLayouts
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -61,6 +63,92 @@ class PinyinAbbreviationDeviceTest {
             assertCandidate("nihc", "你好", true)
             assertCandidate("nh", "你好", minimum in 1..2)
             assertCandidate("wum", "为什么", minimum in 1..3)
+        }
+    }
+
+    @Test
+    fun shuangpinInitialFuzzyIsOptionalAndPersistsAcrossReloads() = withIme(XIAOHE, fresh = true) {
+        val initial = getImConfig(XIAOHE)
+        val option = initial["desc"].findRecursively("ShuangpinInitialFuzzy")
+        assertNotNull("The shuangpin initial-fuzzy switch must be visible", option)
+        assertEquals("False", option!!["DefaultValue"].value)
+        val fold = initial["desc"].findRecursively("FoldSymbolCandidates")
+        assertNotNull("The symbol-folding switch must be visible", fold)
+        assertEquals("False", fold!!["DefaultValue"].value)
+
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val layout = requireNotNull(AddonConfigLayouts.getForInputMethod(context, XIAOHE))
+        assertEquals(R.string.pinyin_config_shuangpin_initial_fuzzy,
+            layout.titleOverrides["ShuangpinInitialFuzzy"])
+        assertEquals(R.string.pinyin_config_shuangpin_initial_fuzzy_summary,
+            layout.summaryOverrides["ShuangpinInitialFuzzy"])
+        assertEquals(R.string.pinyin_config_fold_symbols,
+            layout.titleOverrides["FoldSymbolCandidates"])
+        assertEquals(R.string.pinyin_config_fold_symbols_summary,
+            layout.summaryOverrides["FoldSymbolCandidates"])
+        assertTrue(layout.sections.single { it.title == R.string.pinyin_config_section_input }
+            .options.contains("ShuangpinInitialFuzzy"))
+        assertTrue(layout.sections.single { it.title == R.string.pinyin_config_section_candidates }
+            .options.contains("FoldSymbolCandidates"))
+
+        configureMatching(XIAOHE)
+        setOptions(XIAOHE, "PartialSpLength" to "2",
+            "Fuzzy/C_CH" to "False", "Fuzzy/S_SH" to "False", "Fuzzy/Z_ZH" to "False")
+        val words = listOf(
+            Triple("vq", "zq", "正确"), Triple("iq", "cq", "出去"),
+            Triple("uq", "sq", "社区"), Triple("zj", "vj", "自己"),
+            Triple("ch", "ih", "才华"), Triple("sm", "um", "扫描")
+        )
+        for (enabled in listOf(false, true, false)) {
+            val value = if (enabled) "True" else "False"
+            setOptions(XIAOHE, "ShuangpinInitialFuzzy" to value)
+            reloadConfig()
+            assertEquals(value, getImConfig(XIAOHE)["cfg"]["ShuangpinInitialFuzzy"].value)
+            for ((exact, alternate, word) in words) {
+                assertCandidate(exact, word, true)
+                assertCandidate(alternate, word, enabled)
+            }
+        }
+    }
+
+    @Test
+    fun shuangpinInitialFuzzyDoesNotEnableFullSyllableFuzziness() = withIme(XIAOHE) {
+        configureMatching(XIAOHE)
+        setOptions(XIAOHE, "PartialSpLength" to "0", "ShuangpinInitialFuzzy" to "False",
+            "Fuzzy/C_CH" to "False", "Fuzzy/S_SH" to "False", "Fuzzy/Z_ZH" to "False")
+        val exactCandidates = mutableMapOf<String, List<String>>()
+        for (input in listOf("va", "za", "ia", "ca", "ua", "sa")) {
+            reset()
+            type(input)
+            val words = candidates()
+            assertTrue("The full syllable $input must have candidates", words.isNotEmpty())
+            exactCandidates[input] = words
+        }
+        setOptions(XIAOHE, "ShuangpinInitialFuzzy" to "True")
+        for ((input, words) in exactCandidates) {
+            reset()
+            type(input)
+            assertEquals("Automatic initial matching must not change full syllable $input",
+                words, candidates())
+        }
+        setOptions(XIAOHE, "ShuangpinInitialFuzzy" to "False",
+            "Fuzzy/C_CH" to "True", "Fuzzy/S_SH" to "True", "Fuzzy/Z_ZH" to "True")
+        for (input in listOf("za", "ca", "sa")) {
+            reset()
+            type(input)
+            assertFalse("Explicit fuzzy options must still affect full syllable $input",
+                exactCandidates.getValue(input) == candidates())
+        }
+    }
+
+    @Test
+    fun fullPinyinKeepsAutomaticInitialMatchingWithShuangpinOptionHidden() = withIme("pinyin") {
+        assertEquals(null, getImConfig("pinyin")["desc"].findRecursively("ShuangpinInitialFuzzy"))
+        configureMatching("pinyin")
+        setOptions("pinyin", "PartialSpLength" to "3", "Fuzzy/S_SH" to "False")
+        for (enabled in listOf("False", "True")) {
+            setOptions("pinyin", "ShuangpinInitialFuzzy" to enabled)
+            assertCandidate("wsm", "为什么", true)
         }
     }
 

@@ -1191,6 +1191,10 @@
     <string name="pinyin_config_shuangpin_profile">Shuangpin profile</string>
     <string name="pinyin_config_english_candidates">English candidates</string>
     <string name="pinyin_config_symbol_candidates">Symbol candidates</string>
+    <string name="pinyin_config_fold_symbols">Fold emoji</string>
+    <string name="pinyin_config_fold_symbols_summary">Group matching emoji and symbols into one candidate; expand it to choose the rest. Show each separately when off.</string>
+    <string name="pinyin_config_shuangpin_initial_fuzzy">Fuzzy abbreviations</string>
+    <string name="pinyin_config_shuangpin_initial_fuzzy_summary">For shuangpin abbreviations, match z/zh, c/ch and s/sh interchangeably (commonly v/z, i/c and u/s).</string>
     <string name="pinyin_config_chaizi_candidates">Chaizi candidates</string>
     <string name="pinyin_config_stroke_candidates">Stroke candidates</string>
     <string name="pinyin_config_extension_b">Extension B set</string>
