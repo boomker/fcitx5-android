@@ -57,7 +57,7 @@ class Shuangpin26PreeditTest {
     }
 
     @Test
-    fun invalidPairOffersOneFirstPageCorrectionWithoutChangingItsCode() = withIme {
+    fun invalidPairOffersOneFirstPageCorrectionWithoutChangingItsCode() = withIme(isolateCorrection = true) {
         setImConfig(XIAOHE, getImConfig(XIAOHE)["cfg"].deepCopy().apply {
             getOrCreate("Fuzzy").getOrCreate("Correction").value = "None"
         })
@@ -207,18 +207,36 @@ class Shuangpin26PreeditTest {
 
     private fun withIme(
         uniqueName: String = XIAOHE,
+        isolateCorrection: Boolean = false,
         body: suspend FcitxAPI.() -> Unit,
     ) = runBlocking {
         val clientName = "Shuangpin26PreeditTest-$uniqueName"
         val connection = FcitxDaemon.connect(clientName)
+        val app = InstrumentationRegistry.getInstrumentation().targetContext
+            .createDeviceProtectedStorageContext()
+        val root = app.getExternalFilesDir(null) ?: app.filesDir
+        var originalCorrectionFiles: Map<File, ByteArray?>? = null
         try {
+            if (isolateCorrection) {
+                withTimeout(READY_TIMEOUT_MS) { connection.runOnReady { assertTrue(isReady) } }
+                FcitxDaemon.stopFcitx()
+                try {
+                    val files = listOf(
+                        File(root, "data/pinyin/shuangpin.history"),
+                        File(root, "data/pinyin/shuangpin-placement.conf"),
+                    )
+                    originalCorrectionFiles = files.associateWith { it.takeIf(File::isFile)?.readBytes() }
+                    files.forEach { file ->
+                        if (file.exists()) assertTrue("Could not isolate ${file.name}", file.delete())
+                    }
+                } finally {
+                    FcitxDaemon.startFcitx()
+                }
+            }
             withTimeout(READY_TIMEOUT_MS) {
                 connection.runOnReady {
                     val originalEnabled = enabledIme().map { it.uniqueName }
                     val originalIme = currentIme().uniqueName
-                    val app = InstrumentationRegistry.getInstrumentation().targetContext
-                        .createDeviceProtectedStorageContext()
-                    val root = app.getExternalFilesDir(null) ?: app.filesDir
                     val originalFiles = listOf(
                         File(root, "config/profile"),
                         File(root, "config/conf/pinyin/$uniqueName.conf"),
@@ -278,7 +296,24 @@ class Shuangpin26PreeditTest {
                 }
             }
         } finally {
-            FcitxDaemon.disconnect(clientName)
+            withContext(NonCancellable) {
+                try {
+                    originalCorrectionFiles?.let { files ->
+                        FcitxDaemon.stopFcitx()
+                        try {
+                            files.forEach { (file, bytes) ->
+                                if (bytes != null) file.writeBytes(bytes)
+                                else if (file.exists()) assertTrue("Could not remove ${file.name}", file.delete())
+                            }
+                        } finally {
+                            FcitxDaemon.startFcitx()
+                        }
+                        withTimeout(READY_TIMEOUT_MS) { connection.runOnReady { assertTrue(isReady) } }
+                    }
+                } finally {
+                    FcitxDaemon.disconnect(clientName)
+                }
+            }
         }
     }
 
