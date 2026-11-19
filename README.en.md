@@ -12,7 +12,7 @@ This fork mainly strengthens two areas:
 
 ## Recent Updates
 
-The following summarizes the 66 commits from November 11 through November 19, 2026, grouped by theme (merge commits excluded):
+The following summarizes the 54 commits from November 11 through November 19, 2026, grouped by theme (merge commits excluded):
 
 - Shuangpin correction and fallback candidates:
   - Added Shuangpin neighbor-key correction: codes that cannot be matched generate up to three correction candidates ordered by preference from adjacent-key relationships, with learning, forgetting, and reset interfaces, without changing the input code, fuzzy options, or the shared dictionary.
@@ -28,12 +28,13 @@ The following summarizes the 66 commits from November 11 through November 19, 20
   - The preedit syllable strip confirms syllables in order; from the third syllable the inline strip collapses into a panel opened from a button at the right of the code line, and it closes automatically when the phrase shortens or syllables disappear.
   - Long codes now use a single-line scrollable viewport that follows the caret horizontally and can be dragged back; unselected and unavailable accessibility states plus both lowercase display modes are covered.
   - Both 26-key and 18-key compact Shuangpin layouts now support syllable selection through the strip (previously only the compact layout did).
-  - Fuzzy correction is disabled on the compact keyboard, and composing-state overrides now depend on whether a preedit exists; abbreviation matching is configured as a 0–4 length threshold, and the separate "partial Shuangpin matching" switch was removed.
+  - Fuzzy correction is disabled on the compact keyboard, and composing-state overrides now depend on whether a preedit exists; abbreviation matching uses a 0 (off) or 2–4 length threshold, a single key always counts as completion, and the separate "partial Shuangpin matching" switch was removed.
 
 - Candidates and input behavior:
   - Candidates are reordered and capped on the first page by type (single characters, phrases, English, emoji), so phrases, rare English, and runs of emoji no longer crowd the front; two-code Shuangpin keeps this syllable's single characters first and shows at most one emoji.
   - Digit selection now shares one path across regular digit keys, the numpad, and direct text commits, and emoji folded into a candidate action no longer take a digit index.
-  - Return syncs the locally highlighted candidate to the engine before committing and uses the decoded key to commit the raw code; Shift+Return on compact Shuangpin controls the separator.
+  - Return syncs the locally highlighted candidate to the engine before committing; on 26-key Shuangpin a plain Return now commits the raw keys, compact/grouped Shuangpin keeps committing the highlighted candidate, and Shift+Return controls the separator.
+  - An unfinished final syllable and explicitly confirmed syllable boundaries always offer completion candidates, regardless of the abbreviation switch or threshold; appending a letter turns it into an interior abbreviation, deleting restores terminal completion, and match offsets stay absolute after a prefix is selected.
   - The expanded candidate bar's Return key now follows the key icon theme instead of the Gboard override.
 
 - Theme, settings, and status bar:
@@ -50,7 +51,7 @@ The following summarizes the 66 commits from November 11 through November 19, 20
 - Build and dependencies:
   - ONNX Runtime Android was upgraded to 1.32.0 and ONNX Runtime GenAI Android to 0.20.0-f5a.1; a weekly version-check workflow was added.
   - The GenAI prebuilt is now published from a verified in-repo AAR that checks SHA-256, both ABIs, and 16 KB LOAD alignment of `libmat.so`; `rebuild_mat.py` gained an offline `--verify` mode that needs no NDK/CMake.
-  - Synced the fcitx5, libime, and fcitx5-chinese-addons submodules to the Shuangpin correction and fallback-candidate implementation.
+  - Synced the fcitx5, libime, and fcitx5-chinese-addons submodules to the Shuangpin correction, fallback-candidate, and terminal-syllable completion implementation.
 
 ## Highlights
 
