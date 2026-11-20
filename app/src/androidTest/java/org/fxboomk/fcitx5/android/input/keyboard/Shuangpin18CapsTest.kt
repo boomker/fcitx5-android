@@ -44,6 +44,55 @@ class Shuangpin18CapsTest {
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
 
     @Test
+    fun compactPopupLowercaseUsesLiteralProtocolOnlyForPopupLetters() = withKeyboard { scene ->
+        onMain {
+            for ((group, letter) in listOf("io" to "i", "io" to "o", "jk" to "j",
+                "y" to "y", "v" to "v")) {
+                val action = selectPopupAction(scene, group, KeyAction.FcitxKeyAction(letter))
+                assertTrue("A lowercase popup did not use the literal protocol", action is KeyAction.SymAction)
+                action as KeyAction.SymAction
+                assertEquals(0x0200E400 + (letter.single() - 'a'), action.sym.sym)
+                assertTrue(action.states.has(KeyState.Virtual))
+                assertFalse(action.states.has(KeyState.Shift))
+                assertFalse(action.states.has(KeyState.CapsLock))
+                assertFalse(scene.actions.any { it is KeyAction.CommitAction })
+            }
+            for (text in listOf("I", "6")) {
+                val action = KeyAction.FcitxKeyAction(text)
+                assertEquals(action, selectPopupAction(scene, "io", action))
+            }
+
+            val ordinary = KeyAction.FcitxKeyAction("i")
+            scene.actions.clear()
+            dispatchAction(scene.keyboard, ordinary, KeyActionListener.Source.Keyboard)
+            assertEquals(ordinary, scene.actions.last())
+        }
+    }
+
+    @Test
+    fun literalPopupProtocolDoesNotLeakIntoOtherLayoutsOrInputMethods() = withKeyboard { scene ->
+        onMain {
+            val lowercase = KeyAction.FcitxKeyAction("i")
+            ShuangpinKeyboardLayouts.write(XIAOHE, ShuangpinKeyboardLayout.Full)
+            layout(scene.keyboard)
+            assertEquals(lowercase, selectPopupAction(scene, "i", lowercase))
+
+            ShuangpinKeyboardLayouts.write(XIAOHE, ShuangpinKeyboardLayout.Compact18)
+            layout(scene.keyboard)
+            assertTrue(caps(scene.keyboard).performLongClick())
+            layout(scene.keyboard)
+            assertUppercase26(scene.keyboard)
+            assertEquals(lowercase, selectPopupAction(scene, "I", lowercase))
+
+            scene.keyboard.onInputMethodUpdate(entry(XIAOHE, "keyboard"))
+            layout(scene.keyboard)
+            scene.actions.clear()
+            dispatchAction(scene.keyboard, lowercase, KeyActionListener.Source.Popup)
+            assertEquals(lowercase, scene.actions.last())
+        }
+    }
+
+    @Test
     fun predictionCandidatesKeepCapsAcrossPreeditTransitionsAndUppercaseInput() = withKeyboard { scene ->
         onMain {
             scene.keyboard.onCompositionStateChanged(composing = true, hasPreedit = false)
@@ -622,6 +671,44 @@ class Shuangpin18CapsTest {
 
     private fun textKey(keyboard: TextKeyboard, label: String): TextKeyView =
         keyboard.allViews.filterIsInstance<TextKeyView>().single { it.mainText.text.toString() == label }
+
+    private fun selectPopupAction(
+        scene: Scene,
+        keyLabel: String,
+        action: KeyAction.FcitxKeyAction,
+    ): KeyAction {
+        val key = textKey(scene.keyboard, keyLabel)
+        var shown = false
+        scene.keyboard.popupActionListener = PopupActionListener { popup ->
+            when (popup) {
+                is PopupAction.ShowKeyboardAction -> {
+                    assertEquals(key.id, popup.viewId)
+                    shown = true
+                }
+                is PopupAction.TriggerAction -> popup.outAction = action
+                else -> Unit
+            }
+        }
+        try {
+            key.performLongClick()
+            assertTrue("The letter key did not open its popup", shown)
+            scene.actions.clear()
+            val handled = requireNotNull(key.onGestureListener).onGesture(key, CustomGestureView.Event(
+                CustomGestureView.GestureType.Up, false, key.width / 2f, key.height / 2f,
+                0, 0, 0, 0,
+            ))
+            assertTrue("The popup selection did not reach the keyboard", handled)
+            return scene.actions.last()
+        } finally {
+            scene.keyboard.popupActionListener = null
+        }
+    }
+
+    private fun dispatchAction(keyboard: TextKeyboard, action: KeyAction, source: KeyActionListener.Source) {
+        // Exercise the protected input boundary without changing production visibility.
+        TextKeyboard::class.java.getDeclaredMethod("onAction", KeyAction::class.java, KeyActionListener.Source::class.java)
+            .apply { isAccessible = true }.invoke(keyboard, action, source)
+    }
 
     private fun labels(keyboard: TextKeyboard): List<String> =
         keyboard.allViews.filterIsInstance<TextKeyView>().map { it.mainText.text.toString() }.toList()

@@ -675,6 +675,14 @@ class TextKeyboard private constructor(
                     }
                 }
                 KeyActionListener.Source.Popup -> {
+                    if (activeIme?.addon == "pinyin" &&
+                        ShuangpinKeyboardLayouts.supports(activeIme.uniqueName) &&
+                        layoutState.layoutVariant(activeIme) == ShuangpinKeyboardLayout.Compact18 &&
+                        !layoutState.useUppercaseLayout && !action.up &&
+                        action.states == KeyStates.Virtual
+                    ) {
+                        transformed = Shuangpin18Keys.literalAction(action.act) ?: action
+                    }
                     if (capsState == CapsState.Once) {
                         switchCapsState()
                     }

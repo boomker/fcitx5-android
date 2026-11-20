@@ -66,6 +66,7 @@ internal object Shuangpin18Keys {
     private const val CONFIG_COMMIT = 0x0200E202
     private const val CONFIG_CHARACTER_BASE = 0x0200E210
     private const val REPRESENTATIVE_KEYSYM_BASE = 0x0200E300
+    private const val LITERAL_KEYSYM_BASE = 0x0200E400
     private const val GROUP_CHARACTERS = "abcdefghijklmnopqrstuvwxyz;"
 
     val groups = listOf(
@@ -149,6 +150,12 @@ internal object Shuangpin18Keys {
     }
 
     private fun virtualAction(sym: Int) = KeyAction.SymAction(KeySym(sym), KeyStates.Virtual)
+
+    /** Popup letters compose literally instead of being decoded as shuangpin. */
+    fun literalAction(text: String): KeyAction.SymAction? =
+        text.singleOrNull()?.takeIf { it in 'a'..'z' }?.let {
+            virtualAction(LITERAL_KEYSYM_BASE + (it - 'a'))
+        }
 
     fun modeAction(compact: Boolean): KeyAction.SymAction = KeyAction.SymAction(
         KeySym(MODE_KEYSYM_BASE + if (compact) 1 else 0), KeyStates.Virtual

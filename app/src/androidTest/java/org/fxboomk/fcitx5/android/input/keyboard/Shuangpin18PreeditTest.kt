@@ -306,6 +306,148 @@ class Shuangpin18PreeditTest {
         }
 
     @Test
+    fun popupLowercaseStaysLiteralUntilEnterCommitsIt() {
+        for (completePinyin in listOf(false, true)) {
+            withIme(XIAOHE, completePinyin = completePinyin) {
+                for (enter in listOf("Return", "KP_Enter")) {
+                    val input = "iojy" + "abcdefghijklmnopqrstuvwxyz".repeat(3)
+                    coroutineScope {
+                        val commit = async(start = CoroutineStart.UNDISPATCHED) {
+                            withTimeout(EVENT_TIMEOUT_MS) {
+                                eventFlow.filterIsInstance<FcitxEvent.CommitStringEvent>().first().data.text
+                            }
+                        }
+                        input.forEachIndexed { index, letter ->
+                            literal(letter.toString())
+                            awaitPreedit(input.take(index + 1))
+                            assertEquals(index + 1, clientPreeditCached.cursor)
+                            assertTrue("Literal lowercase offered Chinese candidates",
+                                getCandidates(0, CANDIDATE_LIMIT).isEmpty())
+                            assertFalse("A popup letter committed before Enter", commit.isCompleted)
+                        }
+                        press(enter)
+                        assertEquals(input, commit.await())
+                    }
+                    awaitPreedit("")
+                    grouped("nihc")
+                    awaitPreedit(if (completePinyin) "ni hao" else "ni hc")
+                    assertEquals("你好", getCandidates(0, CANDIDATE_LIMIT).first().text)
+                    reset()
+                }
+            }
+        }
+    }
+
+    @Test
+    fun popupLowercaseCanBeEditedAndClearedWithoutLeakingItsMode() {
+        for (completePinyin in listOf(false, true)) {
+            withIme(XIAOHE, completePinyin = completePinyin) {
+                "iojy".forEach { literal(it.toString()) }
+                awaitPreedit("iojy")
+                moveCursor(2)
+                awaitClient("cursor inside the literal code") { it.cursor == 2 }
+                press("BackSpace")
+                awaitPreedit("ijy")
+                assertEquals(1, clientPreeditCached.cursor)
+                literal("v")
+                awaitPreedit("ivjy")
+                assertEquals(2, clientPreeditCached.cursor)
+                moveCursor(4)
+                awaitClient("cursor at the end of the literal code") { it.cursor == 4 }
+                repeat(4) { press("BackSpace") }
+                awaitPreedit("")
+                grouped("nihc")
+                awaitPreedit(if (completePinyin) "ni hao" else "ni hc")
+                assertEquals("你好", getCandidates(0, CANDIDATE_LIMIT).first().text)
+
+                reset()
+                literal("v")
+                awaitPreedit("v")
+                reset()
+                awaitPreedit("")
+                grouped("nihc")
+                awaitPreedit(if (completePinyin) "ni hao" else "ni hc")
+                assertEquals("你好", getCandidates(0, CANDIDATE_LIMIT).first().text)
+            }
+        }
+    }
+
+    @Test
+    fun popupLowercaseFinishesOrdinaryCompositionBeforeStartingItsOwnBuffer() =
+        withIme(XIAOHE, completePinyin = true) {
+            for (partiallySelected in listOf(false, true)) {
+                reset()
+                mode(true)
+                val oldCommit = if (partiallySelected) {
+                    "nihc".forEach { press(it.toString()) }
+                    awaitPreedit("ni hao")
+                    val index = getCandidates(0, CANDIDATE_LIMIT).indexOfFirst { it.text == "你" }
+                    assertTrue("Partial candidate 你 is missing", index >= 0)
+                    assertTrue("Partial selection was rejected", select(index))
+                    awaitPreedit("你hao")
+                    "你" + getCandidates(0, CANDIDATE_LIMIT).first().text
+                } else {
+                    press("j")
+                    press("y")
+                    awaitPreedit("jun")
+                    getCandidates(0, CANDIDATE_LIMIT).first().text
+                }
+                coroutineScope {
+                    val commit = async(start = CoroutineStart.UNDISPATCHED) {
+                        withTimeout(EVENT_TIMEOUT_MS) {
+                            eventFlow.filterIsInstance<FcitxEvent.CommitStringEvent>().first().data.text
+                        }
+                    }
+                    literal("i")
+                    assertEquals("The old composition was not finished before literal input",
+                        oldCommit, commit.await())
+                }
+                awaitPreedit("i")
+                assertTrue(getCandidates(0, CANDIDATE_LIMIT).isEmpty())
+                coroutineScope {
+                    val commit = async(start = CoroutineStart.UNDISPATCHED) {
+                        withTimeout(EVENT_TIMEOUT_MS) {
+                            eventFlow.filterIsInstance<FcitxEvent.CommitStringEvent>().first().data.text
+                        }
+                    }
+                    press("Return")
+                    assertEquals("i", commit.await())
+                }
+                awaitPreedit("")
+                assertTrue("The old composition returned after literal commit",
+                    getCandidates(0, CANDIDATE_LIMIT).isEmpty())
+            }
+        }
+
+    @Test
+    fun repeatedCompactLayoutNotificationsKeepPopupLowercaseInPreedit() = withIme(XIAOHE) {
+        coroutineScope {
+            val commit = async(start = CoroutineStart.UNDISPATCHED) {
+                withTimeout(EVENT_TIMEOUT_MS) {
+                    eventFlow.filterIsInstance<FcitxEvent.CommitStringEvent>().first().data.text
+                }
+            }
+            literal("i")
+            awaitPreedit("i")
+            mode(true)
+            Shuangpin18Keys.configurationActions(GROUPS.sorted()).forEach { action ->
+                sendKey(action.sym, action.states)
+                sendKey(action.sym, action.states, up = true)
+            }
+            mode(true)
+            awaitPreedit("i")
+            assertTrue(getCandidates(0, CANDIDATE_LIMIT).isEmpty())
+            assertFalse("A repeated compact-layout notification committed the literal buffer", commit.isCompleted)
+            literal("o")
+            awaitPreedit("io")
+            assertFalse("Continuing popup lowercase committed before Enter", commit.isCompleted)
+            press("Return")
+            assertEquals("io", commit.await())
+        }
+        awaitPreedit("")
+    }
+
+    @Test
     fun returnAndShiftReturnCommitTheExpectedEncodingForEachLayout() {
         for (completePinyin in listOf(false, true)) {
             withIme(XIAOHE, completePinyin = completePinyin) {
@@ -463,6 +605,12 @@ class Shuangpin18PreeditTest {
         val sym = KeySym(if (compact) 0x0200E101 else 0x0200E100)
         sendKey(sym, KeyStates.Virtual)
         sendKey(sym, KeyStates.Virtual, up = true)
+    }
+
+    private suspend fun FcitxAPI.literal(text: String) {
+        val action = requireNotNull(Shuangpin18Keys.literalAction(text))
+        sendKey(action.sym, action.states)
+        sendKey(action.sym, action.states, up = true)
     }
 
     private suspend fun FcitxAPI.press(key: String, shift: Boolean = false) {
