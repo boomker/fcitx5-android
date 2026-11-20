@@ -1044,6 +1044,8 @@
     <string name="pinyin_config_chaizi_candidates">拆字候選</string>
     <string name="pinyin_config_stroke_candidates">筆畫候選</string>
     <string name="pinyin_config_extension_b">擴展 B 字集</string>
+    <string name="pinyin_config_annotation">候選拼音標註</string>
+    <string name="pinyin_config_annotation_summary">設定何時在候選註解中顯示拼音。</string>
     <string name="pinyin_config_page_size">每頁候選數</string>
     <string name="pinyin_config_phrase_limit">詞組候選數</string>
     <string name="pinyin_config_sentence_count">句子數量</string>

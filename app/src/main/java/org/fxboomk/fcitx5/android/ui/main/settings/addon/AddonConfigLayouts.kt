@@ -114,6 +114,7 @@ private object PinyinConfigLayout {
                 "ChaiziEnabled",
                 "StrokeCandidateEnabled",
                 "ExtBEnabled",
+                "PinyinAnnotation",
                 "PageSize",
                 "WordCandidateLimit",
                 "Number of sentence",
@@ -298,14 +299,16 @@ private object PinyinConfigLayout {
                     "PreeditMode" to R.string.preedit_style,
                     "PartialSpLength" to R.string.pinyin_config_partial_sp_length,
                     "ShuangpinInitialFuzzy" to R.string.pinyin_config_shuangpin_initial_fuzzy,
-                    "FoldSymbolCandidates" to R.string.pinyin_config_fold_symbols
+                    "FoldSymbolCandidates" to R.string.pinyin_config_fold_symbols,
+                    "PinyinAnnotation" to R.string.pinyin_config_annotation
                 ),
             summaryOverrides = mapOf(
                 "PreeditCursorPositionAtBeginning" to
                     R.string.pinyin_config_cursor_at_start_summary,
                 "PartialSpLength" to R.string.pinyin_config_partial_sp_length_summary,
                 "ShuangpinInitialFuzzy" to R.string.pinyin_config_shuangpin_initial_fuzzy_summary,
-                "FoldSymbolCandidates" to R.string.pinyin_config_fold_symbols_summary
+                "FoldSymbolCandidates" to R.string.pinyin_config_fold_symbols_summary,
+                "PinyinAnnotation" to R.string.pinyin_config_annotation_summary
             ),
             entryTitleOverrides = if (shortTitles) {
                 mapOf(

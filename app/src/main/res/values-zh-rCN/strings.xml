@@ -1077,6 +1077,8 @@
     <string name="pinyin_config_chaizi_candidates">拆字候选</string>
     <string name="pinyin_config_stroke_candidates">笔画候选</string>
     <string name="pinyin_config_extension_b">扩展 B 字集</string>
+    <string name="pinyin_config_annotation">候选拼音标注</string>
+    <string name="pinyin_config_annotation_summary">设置何时在候选注释中显示拼音。</string>
     <string name="pinyin_config_page_size">每页候选数</string>
     <string name="pinyin_config_phrase_limit">词组候选数</string>
     <string name="pinyin_config_sentence_count">句子数量</string>

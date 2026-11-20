@@ -1083,6 +1083,8 @@
     <string name="pinyin_config_chaizi_candidates">拆字候補</string>
     <string name="pinyin_config_stroke_candidates">筆画候補</string>
     <string name="pinyin_config_extension_b">拡張 B セット</string>
+    <string name="pinyin_config_annotation">候補のピンイン表記</string>
+    <string name="pinyin_config_annotation_summary">候補の注釈にピンインを表示するタイミングを選択します。</string>
     <string name="pinyin_config_page_size">ページサイズ</string>
     <string name="pinyin_config_phrase_limit">フレーズ数の上限</string>
     <string name="pinyin_config_sentence_count">文の数</string>

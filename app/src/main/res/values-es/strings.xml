@@ -1084,6 +1084,8 @@
     <string name="pinyin_config_chaizi_candidates">Candidatos de chaizi</string>
     <string name="pinyin_config_stroke_candidates">Candidatos por trazos</string>
     <string name="pinyin_config_extension_b">Conjunto de extensión B</string>
+    <string name="pinyin_config_annotation">Pinyin en candidatos</string>
+    <string name="pinyin_config_annotation_summary">Elige cuándo mostrar pinyin en los comentarios de los candidatos.</string>
     <string name="pinyin_config_page_size">Tamaño de página</string>
     <string name="pinyin_config_phrase_limit">Límite de frases</string>
     <string name="pinyin_config_sentence_count">Número de frases</string>
