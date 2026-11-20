@@ -17,6 +17,7 @@ import androidx.navigation.fragment.NavHostFragment
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.PreferenceGroup
+import androidx.preference.SwitchPreference
 import androidx.recyclerview.widget.RecyclerView
 import androidx.test.platform.app.InstrumentationRegistry
 import kotlinx.coroutines.runBlocking
@@ -24,7 +25,9 @@ import kotlinx.coroutines.withTimeoutOrNull
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.daemon.FcitxDaemon
 import org.fxboomk.fcitx5.android.data.pinyin.CustomShuangpinSchemeStore
+import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.ui.main.MainActivity
+import org.fxboomk.fcitx5.android.ui.main.settings.addon.AddonConfigLayouts
 import org.fxboomk.fcitx5.android.ui.main.settings.im.CustomShuangpinFragment
 import org.fxboomk.fcitx5.android.ui.main.settings.im.CustomShuangpinMappingFragment
 import org.fxboomk.fcitx5.android.utils.CollapsiblePreferenceCategory
@@ -283,6 +286,61 @@ class SettingsSearchNavigationTest {
                     0,
                     darkened
                 )
+            }
+        }
+    }
+
+    @Test
+    fun shuangpinInitialFuzzyRowDisablesForItsOwnCompactLayout() {
+        val inputMethod = "shuangpin-xiaohe"
+        val otherInputMethod = "shuangpin-ms"
+        val layouts = AppPrefs.getInstance().internal.compactShuangpinInputMethods
+        val original = layouts.getValue()
+        val hadSavedLayouts = layouts.sharedPreferences.contains(layouts.key)
+        try {
+            val fullLayout = original - inputMethod + otherInputMethod
+            onMain { layouts.setValue(fullLayout) }
+            withActivity { activity ->
+                val layout = requireNotNull(AddonConfigLayouts.getForInputMethod(context, inputMethod))
+                val section = layout.sections.indexOfFirst { it.title == R.string.pinyin_config_section_input }
+                val option = "ShuangpinInitialFuzzy"
+                onMain {
+                    requireNotNull(navHost(activity)).navController.navigateWithAnim(
+                        SettingsRoute.ConfigSection("Xiaohe", inputMethod, false, section,
+                            context.getString(R.string.pinyin_config_section_input))
+                    )
+                }
+                fun fragment() = navHost(activity)?.childFragmentManager
+                    ?.primaryNavigationFragment as? ConfigSectionFragment
+                fun rowTitle(): View? {
+                    val list = fragment()?.listView ?: return null
+                    val position = (list.adapter as? PreferenceGroup.PreferencePositionCallback)
+                        ?.getPreferenceAdapterPosition(option) ?: return null
+                    return list.findViewHolderForAdapterPosition(position)?.itemView
+                        ?.findViewById(android.R.id.title)
+                }
+                assertTrue("A different scheme's 18-key layout must leave the row enabled", waitUntil {
+                    onMain { rowTitle()?.isEnabled == true }
+                })
+                val checked = onMain { requireNotNull(fragment()?.findPreference<SwitchPreference>(option)).isChecked }
+
+                onMain { layouts.setValue(fullLayout + inputMethod) }
+                assertTrue("The 18-key layout must disable the visible row", waitUntil {
+                    onMain {
+                        fragment()?.findPreference<SwitchPreference>(option)?.isEnabled == false &&
+                            rowTitle()?.isEnabled == false
+                    }
+                })
+                onMain { layouts.setValue(fullLayout) }
+                assertTrue("The 26-key layout must re-enable the row", waitUntil {
+                    onMain { rowTitle()?.isEnabled == true }
+                })
+                onMain { assertEquals(checked, fragment()?.findPreference<SwitchPreference>(option)?.isChecked) }
+            }
+        } finally {
+            onMain {
+                if (hadSavedLayouts) layouts.setValue(original)
+                else layouts.sharedPreferences.edit().remove(layouts.key).apply()
             }
         }
     }
