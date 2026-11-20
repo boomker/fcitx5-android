@@ -36,13 +36,28 @@ import org.junit.Test
 /** Exercise scoped correction learning while restoring every touched user-data file. */
 class ShuangpinCorrectionLearningTest {
     @Test
-    fun repeatedCorrectionSelectionsPromoteItToTheFirstCandidate() = withIsolatedLearning { scene ->
+    fun repeatedCorrectionSelectionsPromoteGraduallyBehindALegalCandidate() = withIsolatedLearning { scene ->
         val correction = scene.initialCorrection()
-        repeat(3) { scene.choose(CODE, correction) }
-        val candidates = scene.candidates(CODE)
-        assertEquals("The chosen correction did not reach first place", correction, candidates.first().identity())
-        assertFalse("A learned correction retained the initial-placement hint", candidates.first().isFallback)
-        assertFalse("A learned correction retained an off-page override", candidates.first().isDeferredFallback)
+        val initial = scene.candidates(CODE)
+        val initialIndex = initial.indexOfFirst { it.identity() == correction }
+        val leadingLegal = initial.first().identity()
+        repeat(2) {
+            scene.choose(CODE, correction)
+            assertTrue("The first two choices gave the correction an early promotion",
+                scene.assertAdaptive(CODE, correction) >= initialIndex)
+        }
+
+        scene.choose(CODE, correction)
+        val thirdIndex = scene.assertAdaptive(CODE, correction)
+        assertTrue("Three confirmations did not begin a bounded promotion", thirdIndex in 1 until initialIndex)
+        repeat(2) { scene.choose(CODE, correction) }
+        val fifthIndex = scene.assertAdaptive(CODE, correction)
+        assertTrue("Five confirmations did not gradually improve the correction's rank", fifthIndex in 1 until thirdIndex)
+        repeat(12) { scene.choose(CODE, correction) }
+        val seventeenthIndex = scene.assertAdaptive(CODE, correction)
+        assertTrue("Repeated confirmations stopped improving the correction's rank", seventeenthIndex <= fifthIndex)
+        assertEquals("Correction learning displaced the leading legal candidate", leadingLegal,
+            scene.candidates(CODE).first().identity())
     }
 
     @Test
@@ -76,7 +91,7 @@ class ShuangpinCorrectionLearningTest {
         scene.activate(XIAOHE)
         val correction = scene.initialCorrection()
         repeat(3) { scene.choose(CODE, correction) }
-        assertEquals(correction, scene.candidates(CODE).first().identity())
+        scene.assertAdaptive(CODE, correction)
 
         assertEquals("Learning fm leaked into another raw code", sameSchemeOtherCode,
             scene.initialCorrection(OTHER_CODE))
@@ -89,15 +104,13 @@ class ShuangpinCorrectionLearningTest {
     fun savedLearningSurvivesANativeEngineRestart() = withIsolatedLearning { scene ->
         val correction = scene.initialCorrection()
         repeat(3) { scene.choose(CODE, correction) }
-        assertEquals(correction, scene.candidates(CODE).first().identity())
+        val learnedIndex = scene.assertAdaptive(CODE, correction)
         scene.api { reset(); saveNonRimeState() }
         assertTrue("The scoped history was not saved", scene.historyFile.isFile && scene.historyFile.length() > 0)
         scene.restart()
 
-        val candidates = scene.candidates(CODE)
-        assertEquals("Restart lost the learned correction order", correction, candidates.first().identity())
-        assertFalse("Restart lost the code's learning record", candidates.first().isFallback)
-        assertFalse("Restart introduced an off-page override", candidates.first().isDeferredFallback)
+        assertEquals("Restart lost the learned correction order", learnedIndex,
+            scene.assertAdaptive(CODE, correction))
     }
 
     @Test
@@ -105,10 +118,11 @@ class ShuangpinCorrectionLearningTest {
         val correction = scene.initialCorrection()
         val otherCorrection = scene.initialCorrection(OTHER_CODE)
         repeat(2) { scene.choose(OTHER_CODE, otherCorrection) }
+        val otherIndex = scene.assertAdaptive(OTHER_CODE, otherCorrection)
         repeat(3) { scene.choose(CODE, correction) }
         val learned = scene.candidates(CODE)
         val index = learned.indexOfFirst { it.identity() == correction }
-        assertEquals(correction, learned.first().identity())
+        assertTrue("The correction displaced the leading legal candidate", index > 0)
         assertFalse(learned[index].isFallback)
         scene.api {
             val actions = getCandidateActions(index)
@@ -119,9 +133,8 @@ class ShuangpinCorrectionLearningTest {
 
         assertEquals("Forgetting the correction did not restore its initial placement", correction,
             scene.initialCorrection())
-        val other = scene.candidates(OTHER_CODE)
-        assertEquals("Forgetting fm erased another code's learning", otherCorrection, other.first().identity())
-        assertFalse(other.first().isFallback)
+        assertEquals("Forgetting fm erased another code's learning", otherIndex,
+            scene.assertAdaptive(OTHER_CODE, otherCorrection))
     }
 
     @Test
@@ -219,14 +232,14 @@ class ShuangpinCorrectionLearningTest {
     fun choosingADeferredCorrectionFromTheBulkListRestoresAdaptiveRanking() = withIsolatedLearning { scene ->
         val correction = scene.initialCorrection()
         scene.resetCorrection(CODE, correction)
-        scene.assertDeferred(CODE, correction)
+        val deferredIndex = scene.assertDeferred(CODE, correction)
         // choose() searches the complete native list, including candidates after page one.
         scene.choose(CODE, correction)
-        val candidates = scene.candidates(CODE)
-        assertEquals("An explicit later-page selection did not resume learning", correction,
-            candidates.first().identity())
-        assertFalse("The default-placement override survived an explicit selection", candidates.first().isFallback)
-        assertFalse("The off-page override survived an explicit selection", candidates.first().isDeferredFallback)
+        val firstIndex = scene.assertAdaptive(CODE, correction)
+        assertTrue("An explicit later-page selection did not clear the placement override", firstIndex < deferredIndex)
+        repeat(2) { scene.choose(CODE, correction) }
+        assertTrue("Further confirmations did not resume gradual learning",
+            scene.assertAdaptive(CODE, correction) < firstIndex)
     }
 
     @Test
@@ -297,22 +310,26 @@ class ShuangpinCorrectionLearningTest {
             group.size >= 2)
         assertTrue("The static-frequency fallback disappeared", group.any { it.identity() == frequencyChoice })
         assertTrue("The real model lost 商 -> 店 context coverage", group.any { it.text == "店" })
+        val contextualChoice = group.single { it.isFallback }.identity()
         val alternative = group.first { it.isDeferredFallback }.identity()
+        val identities = group.map { it.identity() }.toSet()
 
         // The complete-list item consumes fm, not just its first initial.
-        scene.chooseCurrent(alternative)
-        val learned = scene.candidates(CODE)
-        assertEquals("Selecting a hidden alternative did not learn its same-code preference", alternative,
-            learned.first().identity())
-        assertFalse(learned.first().isFallback)
-        assertFalse(learned.first().isDeferredFallback)
-
-        val competingContext = if (alternative.text == frequencyChoice.text) MERCHANT else QUALITY
-        val differentContext = scene.contextualCandidates(competingContext)
-        assertEquals("A different context overrode an explicit same-code choice", alternative,
-            differentContext.first().identity())
-        assertFalse(differentContext.first().isFallback)
-        assertFalse(differentContext.first().isDeferredFallback)
+        repeat(2) {
+            scene.chooseCurrent(alternative)
+            val learned = scene.contextualCandidates(MERCHANT)
+            val mainIndex = learned.indexOfFirst { it.identity() == contextualChoice }
+            val retained = learned.filter { it.identity() in identities }
+            assertEquals("A hidden selection removed a useful correction route", identities,
+                retained.map { it.identity() }.toSet())
+            assertBoundedUniqueCorrectionGroup(retained)
+            assertTrue("A correction displaced the leading legal candidate", mainIndex > 0)
+            assertFalse("The hidden selection did not create a same-code learning record",
+                learned[mainIndex].isFallback)
+            assertFalse("The reliable context lost its primary correction", learned[mainIndex].isDeferredFallback)
+            assertTrue("The first two hidden choices overrode reliable context",
+                learned.single { it.identity() == alternative }.isDeferredFallback)
+        }
     }
 
     @Test
@@ -349,8 +366,7 @@ class ShuangpinCorrectionLearningTest {
         val correction = assertDefaultCorrectionGroup(scene.contextualCandidates(MERCHANT))
             .single { it.isFallback }.identity()
         scene.chooseCurrent(correction)
-        scene.rankCorrectionBehindOrdinaryWords(correction, 5)
-        val ranked = scene.contextualCandidates(MERCHANT)
+        val ranked = scene.rankCorrectionBehindOrdinaryWords(correction, 5, prefix = MERCHANT)
         val mainIndex = ranked.indexOfFirst { it.identity() == correction }
         assertTrue("The premise requires the learned main correction off-page", mainIndex >= 5)
         assertFalse(ranked[mainIndex].isDeferredFallback)
@@ -367,13 +383,20 @@ class ShuangpinCorrectionLearningTest {
 
         val selected = group.last().identity()
         scene.chooseCurrent(selected)
-        val adaptive = scene.candidates(CODE)
+        val adaptive = scene.contextualCandidates(MERCHANT)
         val selectedIndex = adaptive.indexOfFirst { it.identity() == selected }
         assertTrue("Selecting a tail alternative removed it", selectedIndex >= 0)
-        assertFalse("A tail alternative retained the default override", adaptive[selectedIndex].isFallback)
-        assertFalse("A tail alternative retained the group tail override", adaptive[selectedIndex].isDeferredFallback)
+        val identities = group.map { it.identity() }.toSet()
+        val adaptiveGroup = adaptive.withIndex().filter { it.value.identity() in identities }
+        assertEquals("An alternative selection removed another group member", identities,
+            adaptiveGroup.map { it.value.identity() }.toSet())
+        assertBoundedUniqueCorrectionGroup(adaptiveGroup.map { it.value })
+        val main = adaptiveGroup.filter { !it.value.isDeferredFallback }
+        assertEquals("A tail alternative did not restore one adaptive group primary", 1, main.size)
+        assertFalse("A tail alternative retained the default override", main.single().value.isFallback)
+        assertTrue("A tail alternative displaced the leading legal candidate", main.single().index > 0)
         assertTrue("Explicit choice left the main word locked behind all legal candidates",
-            selectedIndex < adaptive.indexOfLast { !it.isDeferredFallback })
+            main.single().index < adaptive.indexOfLast { !it.isDeferredFallback })
     }
 
     @Test
@@ -651,17 +674,25 @@ class ShuangpinCorrectionLearningTest {
         suspend fun rankCorrectionBehindOrdinaryWords(
             correction: CandidateIdentity,
             count: Int,
+            prefix: ContextPrefix? = null,
         ): List<CandidateWord> {
-            val baseline = candidates(CODE)
+            suspend fun choices() = if (prefix == null) candidates(CODE) else contextualCandidates(prefix)
+            val baseline = choices()
             val alternatives = baseline.filter { candidate ->
                 !candidate.isFallback && candidate.text.length == 2 &&
                     candidate.text.all { it in '㐀'..'鿿' } &&
                     baseline.count { it.text == candidate.text } == 1
             }.map { it.identity() }.take(count)
             assertEquals("The test requires distinct complete-input ordinary words", count, alternatives.size)
-            repeat(2) { choose(CODE, correction) }
-            for (alternative in alternatives) repeat(4) { choose(CODE, alternative) }
-            return candidates(CODE)
+            repeat(2) {
+                choices()
+                chooseCurrent(correction)
+            }
+            for (alternative in alternatives) repeat(4) {
+                choices()
+                chooseCurrent(alternative)
+            }
+            return choices()
         }
 
         suspend fun assertLast(
@@ -694,6 +725,16 @@ class ShuangpinCorrectionLearningTest {
             assertTrue("The correction group exceeded its bounded size", group.size in 1..3)
             assertEquals("Correction alternatives contain duplicate characters", group.size,
                 group.map { it.text }.distinct().size)
+            return index
+        }
+
+        suspend fun assertAdaptive(code: String, correction: CandidateIdentity): Int {
+            val candidates = candidates(code)
+            val index = candidates.indexOfFirst { it.identity() == correction }
+            assertTrue("The learned correction disappeared: $candidates", index >= 0)
+            assertTrue("The correction displaced the leading legal candidate: $candidates", index > 0)
+            assertFalse("A learned correction retained its initial-placement hint", candidates[index].isFallback)
+            assertFalse("A learned correction retained a manual off-page override", candidates[index].isDeferredFallback)
             return index
         }
 
@@ -860,8 +901,11 @@ class ShuangpinCorrectionLearningTest {
                 assertTrue("Selecting $candidate failed", select(index))
                 assertEquals("Selection did not commit the entire expected word", committedText, committed.await())
             }
-            awaitCode { it.isEmpty() }
-            assertTrue("A complete selection left an unfinished input panel", isEmpty())
+            // The exact commit and native panel state are the completion contract:
+            // the shared UI-preedit cache is not a per-selection synchronization barrier.
+            val nativeEmpty = isEmpty()
+            assertTrue("A complete selection left an unfinished input panel (UI preedit: '$clientPreeditCached')",
+                nativeEmpty)
         }
     }
 }
