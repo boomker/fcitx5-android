@@ -1078,7 +1078,7 @@
     <string name="pinyin_config_fold_symbols">Emojis bündeln</string>
     <string name="pinyin_config_fold_symbols_summary">Passende Emojis und Symbole zu einem Kandidaten bündeln; weitere lassen sich aufklappen. Ausgeschaltet erscheinen alle einzeln.</string>
     <string name="pinyin_config_shuangpin_initial_fuzzy">Unscharfe Abkürzungen</string>
-    <string name="pinyin_config_shuangpin_initial_fuzzy_summary">Bei Shuangpin-Abkürzungen z/zh, c/ch und s/sh austauschbar erkennen (häufige Tasten: v/z, i/c und u/s).</string>
+    <string name="pinyin_config_shuangpin_initial_fuzzy_summary">Bei Shuangpin-Abkürzungen z/zh, c/ch und s/sh austauschbar erkennen.</string>
     <string name="pinyin_config_chaizi_candidates">Chaizi-Kandidaten</string>
     <string name="pinyin_config_stroke_candidates">Strich-Kandidaten</string>
     <string name="pinyin_config_extension_b">Erweiterung B</string>

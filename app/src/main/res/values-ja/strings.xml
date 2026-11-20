@@ -1079,7 +1079,7 @@
     <string name="pinyin_config_fold_symbols">絵文字を折りたたむ</string>
     <string name="pinyin_config_fold_symbols_summary">同じグループの絵文字と記号を1つの候補にまとめ、展開して残りを選択できます。オフの場合は個別に表示します。</string>
     <string name="pinyin_config_shuangpin_initial_fuzzy">略式入力の曖昧一致</string>
-    <string name="pinyin_config_shuangpin_initial_fuzzy_summary">双拼の略式入力で z/zh、c/ch、s/sh の曖昧一致を許可します（一般的なキーは v/z、i/c、u/s）。</string>
+    <string name="pinyin_config_shuangpin_initial_fuzzy_summary">双拼の略式入力で z/zh、c/ch、s/sh の曖昧一致を許可します。</string>
     <string name="pinyin_config_chaizi_candidates">拆字候補</string>
     <string name="pinyin_config_stroke_candidates">筆画候補</string>
     <string name="pinyin_config_extension_b">拡張 B セット</string>

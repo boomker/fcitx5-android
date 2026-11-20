@@ -1080,7 +1080,7 @@
     <string name="pinyin_config_fold_symbols">Сворачивать эмодзи</string>
     <string name="pinyin_config_fold_symbols_summary">Объединять эмодзи и символы одной группы в один кандидат; остальные доступны при раскрытии. При отключении каждый отображается отдельно.</string>
     <string name="pinyin_config_shuangpin_initial_fuzzy">Нечёткие сокращения</string>
-    <string name="pinyin_config_shuangpin_initial_fuzzy_summary">В сокращениях шуанпинь считать z/zh, c/ch и s/sh взаимозаменяемыми (обычные клавиши: v/z, i/c и u/s).</string>
+    <string name="pinyin_config_shuangpin_initial_fuzzy_summary">В сокращениях шуанпинь считать z/zh, c/ch и s/sh взаимозаменяемыми.</string>
     <string name="pinyin_config_chaizi_candidates">Кандидаты чайцзы</string>
     <string name="pinyin_config_stroke_candidates">Кандидаты по чертам</string>
     <string name="pinyin_config_extension_b">Набор расширения B</string>
