@@ -1,0 +1,7000 @@
+# Each character's stroke order as the mainland writes it (《现代汉语通用字笔顺规范》, 《通用规范汉字表》),
+# each stroke by its shape (《GB13000.1字符集汉字折笔规范》): a line a character, `字  shapes  note`,
+# tab-separated, the shapes a space between. A shape is written as Unicode names it in the CJK Strokes
+# block (CJK STROKE HZG ㇆); its kind, the standard's stroke-order number (1 横 2 竖 3 撇 4 点 5 折), follows
+# from it, and the checks, stroke typing and rime-stroke go by the kinds:
+#
+#   1 横  H 横 一   T 提 ㇀
+#   2 竖  S 竖 丨   SG 竖钩 亅
+#   3 撇  P 撇 丿
+#   4 点  D 点 丶   N 捺 ㇏
+#   5 折  HZ 横折 ㇕   HP 横撇 ㇇   HG 横钩 ㇖   HZG 横折钩 ㇆   HZT 横折提 ㇊   HZW 横折弯 ㇍
+#         HZZ 横折折 ㇅   HXG 横斜钩 ㇤   HZWG 横折弯钩 ㇈   HPWG 横撇弯钩 ㇌   HZZP 横折折撇 ㇋
+#         HZZZG 横折折折钩 ㇡   HZZZ 横折折折 ㇎   SZ 竖折 ㇗   SW 竖弯 ㇄   ST 竖提 ㇙
+#         SZP 竖折撇 ㇥   SZZ 竖折折 ㇞   SWG 竖弯钩 ㇟   SZWG 竖折折钩 ㇉ (Unicode: 竖折弯钩)
+#         PZ 撇折 ㇜   PD 撇点 ㇛   WG 弯钩 ㇁   XG 斜钩 ㇂   BXG 卧钩 ㇃
+#
+# The note says why the character's strokes are not as many as Unihan's kTotalStrokes counts, or why
+# rime-stroke has none of its orders of these kinds; the build fails on a character either is so of
+# without one, and on a note with nothing to say why of: a note is no place for a line's history
+# (ime-dict-tool charinfo). Kept by hand from here on: a wrong stroke is corrected in place (git keeps
+# what it was). The card shows it (CharCard, StrokeShape): ㇤ and ㇥ as ⺄ and ㄣ, which Android's Noto
+# Sans CJK (2.004) has not.
+#
+# First taken from cnchar's src/cnchar/plugin/order/dict/stroke-order-jian.json (github.com/theajack/cnchar,
+# commit b8397db3e08e88ebbf8acf92b5cbab1a7e4c1550, 6,939 simplified characters), where it came from it
+# does not say; corrected since by this project against the standard. cnchar writes some shapes alike
+# (横撇 and 横钩, 竖折 and 竖弯, 斜钩 and 卧钩, …); they were told apart by the part of the character a
+# stroke is in (冖 宀 欠 饣 尔 虍 买 皮 疋's 横钩, 又 夕 子 水's 横撇; 心's 卧钩; 四 西 酉's 竖弯; 风 飞 气
+# 卂's 横斜钩, else 横折弯钩: 九 乙 几), and the standard's table's example characters where it says
+# otherwise (敢's 横折; 互 彑 牙 发 夅 舛 韋's 竖折, cnchar's 撇折; 鸠's 横折提), lexicon/tools/
+# stroke_shapes.py's rules; run again, it shows by a diff what was corrected by hand since.
+# A stroke's shape is 楷体's as taught. The standard, GF 2001-2001 (its table's example characters, and by
+# them each with the same part), is what it is checked by; but it analyses 宋体, and a shape 宋体's only
+# is not followed: 心's 卧钩 (楷体's), 辶's 横折折撇 (it has 达 a 横折), 要's 横折 (its 横折钩), 执's 丸's
+# 横折弯钩 (its 横斜钩).
+# cnchar's licence, as the MIT licence asks:
+#
+# The MIT License (MIT)
+#
+# Copyright (c) 2017 - present theajack <theajack@qq.com>
+#
+# All rights reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+一	H
+丁	H SG
+七	H SWG
+万	H HZG P
+丈	H P N
+三	H H H
+上	S H H
+下	H S D
+丌	H P S
+不	H P S D
+与	H SZWG H
+丐	H S H SZWG
+丑	HZ S H H
+专	H H SZP D
+且	S HZ H H H
+丕	H P S D H
+世	H S S H SZ
+丘	P S H S H
+丙	H S HZG P D
+业	S S D P H
+丛	P D P N H
+东	H PZ SG P D
+丝	PZ PZ PZ PZ H
+丞	HP SG HP P N H
+丢	P H S H PZ D
+两	H S HZG P D P D
+严	H S S D P H P
+丧	H S D P H ST P N
+个	P N S
+丫	D P S
+中	S HZ H S
+丰	H H H S
+串	S HZ H S HZ H S
+临	S S P H D S HZ S H
+丸	P HZWG D
+丹	P HZG D H
+为	D P HZG D
+主	D H H S H
+丽	H S HZG D S HZG D
+举	D D P H P N H H S
+乂	P N
+乃	HZZZG P
+久	P HP N
+乇	P H SWG
+么	P PZ D
+义	D P N
+之	D HP N
+乌	P HZG SZWG H
+乍	P H S H H
+乎	P D P H SG
+乏	P D HP N
+乐	P SZ SG P D
+乒	P S H S H P
+乓	P S H S H D
+乔	P H P N P S
+乖	P H S S H T P SWG
+乘	P H S S H T P SWG P N
+乙	HZWG
+乜	HZG SWG
+九	P HZWG
+乞	P H HZWG
+也	HZG S SWG
+习	HZG D T
+乡	PZ PZ P
+书	HZ HZG S D
+乩	S H S HZ H SWG
+买	HG D D H P D
+乱	P H S S HZ H SWG
+乳	P D D P HP SG T SWG
+乾	H S S HZ H H H S P H HZWG
+了	HP SG
+予	HP D HG SG
+争	P HP HZ H H SG
+事	H S HZ H HZ H H SG
+二	H H
+亍	H H SG
+于	H H SG
+亏	H H SZWG
+云	H H PZ D
+互	H SZ HP H
+亓	H H P S
+五	H S HZ H
+井	H H P S
+亘	H S HZ H H H
+亚	H S S D P H
+些	S H S T P SWG H H
+亟	HP SG S HZ H HP D H
+亡	D H SZ
+亢	D H P HZWG
+交	D H P D P N
+亥	D H PZ P P D
+亦	D H P SG P D
+产	D H D P H P
+亨	D H S HZ H HP SG
+亩	D H S HZ H S H
+享	D H S HZ H HP SG H
+京	D H S HZ H SG P D
+亭	D H S HZ H D HG H SG
+亮	D H S HZ H D HG P HZWG
+亲	D H D P H H SG P D
+亳	D H S HZ H D HG P H SWG
+亵	D H H SG T P HZWG D P ST P N
+人	P N
+亻	P S
+亿	P S HZWG
+什	P S H S
+仁	P S H H
+仂	P S HZG P
+仃	P S H SG
+仄	H P P N
+仅	P S HP N
+仆	P S S D
+仇	P S P HZWG
+仉	P S P HZWG
+今	P N D HP
+介	P N P S
+仍	P S HZZZG P
+从	P D P N
+仑	P N P SWG
+仓	P N HZG SWG
+仔	P S HP SG H
+仕	P S H S H
+他	P S HZG S SWG
+仗	P S H P N
+付	P S H SG D
+仙	P S S SZ S
+仝	P N H S H
+仞	P S HZG P D
+仟	P S P H S
+仡	P S P H HZWG
+代	P S H XG D
+令	P N D HP D
+以	ST D P D
+仨	P S H H H
+仪	P S D P N
+仫	P S P PZ D
+们	P S D S HZG
+仰	P S P ST HZG S
+仲	P S S HZ H S
+仳	P S H ST P SWG
+仵	P S P H H S
+件	P S P H H S
+价	P S P N P S
+任	P S P H S H
+份	P S P N HZG P
+仿	P S D H HZG P
+企	P N S H S H
+伉	P S D H P HZWG
+伊	P S HZ H H P
+伍	P S H S HZ H
+伎	P S H S HP N
+伏	P S H P N D
+伐	P S H XG P D
+休	P S H S P N
+众	P N P D P N
+优	P S H P SWG D
+伙	P S D P P N
+会	P N H H PZ D
+伛	P S H P D SZ
+伞	P N D P H S
+伟	P S H H HZG S
+传	P S H H SZP D
+伢	P S H SZ SG P
+伤	P S P H HZG P
+伥	P S P H ST N
+伦	P S P N P SWG
+伧	P S P N HZG SWG
+伪	P S D P HZG D
+伫	P S D D HG H
+伯	P S P S HZ H H
+估	P S H S S HZ H
+伲	P S HZ H P P SWG
+伴	P S D P H H S
+伶	P S P N D HP D
+伸	P S S HZ H H S
+伺	P S HZG H S HZ H
+似	P S ST D P D
+伽	P S HZG P S HZ H
+佃	P S S HZ H S H
+但	P S S HZ H H H
+佈	P S H P S HZG S
+位	P S D H D P H
+低	P S P ST H XG D
+住	P S D H H S H
+佐	P S H P H S H
+佑	P S H P S HZ H
+体	P S H S P N H
+佔	P S S H S HZ H
+何	P S H S HZ H SG
+佗	P S D D HG P SWG
+佘	P N H H SG P D
+余	P N H H SG P D
+佚	P S P H H P N
+佛	P S HZ H SZWG P S
+作	P S P H S H H
+佝	P S P HZG S HZ H
+佞	P S H H PD P H
+佟	P S P HP N D D
+你	P S P HG SG P D
+佣	P S P HZG H H S
+佤	P S H ST HZWG D
+佥	P N H D D P H
+佧	P S S H H S D
+佩	P S P HZWG H S HZG S
+佬	P S H S H P P SWG
+佯	P S D P H H H S
+佰	P S H P S HZ H H
+佳	P S H S H H S H
+佴	P S H S S H H H
+佶	P S H S H S HZ H
+佺	P S P N H H S H
+佻	P S P D T SWG P D
+佼	P S D H P D P N
+佾	P S P N S HZG H H
+使	P S H S HZ H P N
+侃	P S S HZ H P S SWG
+侄	P S H PZ D H S H
+侈	P S P HP D P HP D
+侉	P S H P N H H SZWG
+例	P S H P HP D S SG
+侍	P S H S H H SG D
+侏	P S P H H S P N
+侑	P S H P S HZG H H
+侔	P S PZ D P H H S
+侗	P S S HZG H S HZ H
+供	P S H S S H P D
+依	P S D H P ST P N
+侠	P S H D P H P N
+侣	P S S HZ H S HZ H
+侥	P S H XG P H P SWG
+侦	P S S H S HZ P D
+侧	P S S HZ P D S SG
+侨	P S P H P N P S
+侩	P S P N H H PZ D
+侪	P S D H P N P S
+侬	P S D HG P ST P N
+侮	P S P H SZ HZG D H D
+侯	P S HZ H P H H P N
+侵	P S HZ H H D HG HP N
+便	P S H S HZ H H P N
+促	P S S HZ H S H P N
+俄	P S P H SG T XG P D
+俅	P S H SG D T P N D
+俊	P S PZ D P D P HP N
+俎	P D P D S HZ H H H
+俏	P S S D P S HZG H H
+俐	P S P H S P D S SG
+俑	P S HP D S HZG H H S
+俗	P S P D P N S HZ H
+俘	P S P D D P HP SG H
+俚	P S S HZ H H S H H
+俜	P S S HZ H S H H SZWG
+保	P S S HZ H H S P N
+俞	P N H S HZG H H S SG
+俟	P S PZ D P H H P N
+信	P S D H H H S HZ H
+俣	P S S HZ H H H P N
+俦	P S H H H P H SG D
+俨	P S H S S D P H P
+俩	P S H S HZG P D P D
+俪	P S H S HZG D S HZG D
+俭	P S P N H D D P H
+修	P S S P HP N P P P
+俯	P S D H P P S H SG D
+俱	P S S HZ H H H H P D
+俳	P S S H H H S H H H
+俶	P S S H H SG P D HP N
+俸	P S H H H P N H H S
+俺	P S H P N S HZ H H SWG
+俾	P S P S HZ H H P H S
+倌	P S D D HG S HZ H HZ H
+倍	P S D H D P H S HZ H
+倏	P S S P HP N H P D D
+倒	P S H PZ D H S T S SG
+倓	P S D P P D D P P N
+倔	P S HZ H P SZ S S SZ S
+倘	P S S D P S HZG S HZ H
+候	P S S HZ H P H H P N
+倚	P S H P D H S HZ H SG
+倜	P S P HZG H S H S HZ H
+借	P S H S S H S HZ H H
+倡	P S S HZ H H S HZ H H
+倥	P S D D HG P D H S H
+倦	P S D P H H P N HZG SWG
+倨	P S HZ H P H S S HZ H
+倩	P S H H S H S HZG H H
+倪	P S P S H HZ H H P SWG
+倬	P S S H S HZ H H H S
+倭	P S P H S P N PD P H
+倮	P S S HZ H H H S P N
+债	P S H H S H S HZ P D
+值	P S H S S HZ H H H H
+倾	P S H ST H P S HZ P D
+偃	P S H S HZ H H PD P H SZ
+假	P S HZ H S H H HZ H HP N
+偈	P S S HZ H H P HZG P D SZ
+偌	P S H S S H P S HZ H
+偎	P S S HZ H S H H ST P N
+偏	P S D HZ H P S HZG H S S
+偕	P S H ST P SWG P S HZ H H
+做	P S H S S HZ H P H P N
+停	P S D H S HZ H D HG H SG
+健	P S HZ H H H H S HZZP N
+偬	P S P HZG P P D D BXG D D
+偲	P S S HZ H S H D BXG D D
+偶	P S S HZ H H S HZG S T D
+偷	P S P N H S HZG H H S SG
+偻	P S D P H S P N PD P H
+偾	P S H S H S S S HZ P D
+偿	P S S D P D HG H H PZ D
+傀	P S P S HZ H H P SWG PZ D
+傅	P S H S HZ H H S D H SG D
+傈	P S H S HZ S S H H S P N
+傍	P S D H D P D HG D H HZG P
+傣	P S H H H P N SG D T P D
+傥	P S S D P D HG S HZ H P SWG
+傧	P S D D HG P S H S H P D
+储	P S D HZT H S H P S HZ H H
+傩	P S HP D P S D H H H S H
+催	P S S SZ S P S D H H H S H
+傲	P S H H S H HZG P P H P N
+傺	P S P HP D D HP N H H SG P D
+傻	P S P S HZ P D H P D P HP N
+像	P S P HP S HZ H P WG P P P N
+僖	P S H S H S HZ H D P H S HZ H
+僚	P S H P N D P S HZ H H SG P D
+僦	P S D H S HZ H SG P D H P SWG D
+僧	P S D P S HZ S D P H S HZ H H
+僬	P S P S D H H H S H D D D D
+僭	P S H PZ P ST H PZ P SWG S HZ H H
+僮	P S D H D P H S HZ H H S H H
+僰	H S HZ S P D H S HZ S P D P N
+僳	P S H S HZ S S H D P H S P N
+僵	P S H S HZ H S H H S HZ H S H H
+僻	P S HZ H P S HZ H D H D P H H S
+儆	P S H S S P HZG S HZ H P H P N
+儇	P S S HZ S S H H S HZ H P ST P N
+儋	P S P HP H P P D D H H H S HZ H
+儒	P S H D HG S D D D D H P S HZG S S
+儡	P S S HZ H S H S HZ H S H S HZ H S H
+儿	P SWG
+兀	H P SWG
+允	PZ D P SWG
+元	H H P SWG
+兄	S HZ H P SWG
+充	D H PZ D P SWG
+兆	P D T SWG P D
+先	P H S H P SWG
+光	S D P H P SWG
+克	H S S HZ H P SWG
+免	P HP S HZ H P SWG
+兑	D P S HZ H P SWG
+兔	P HP S HZ H P SWG D
+兕	S HZW S HZ H P SWG
+兖	D H P D PZ D P SWG
+党	S D P D HG S HZ H P SWG
+兜	P S HZ H H P ST HZ H P SWG
+兢	H S S HZ H P ST H S S HZ H P SWG
+入	P N
+全	P N H H S H
+八	P N
+公	P N PZ D
+六	D H P D
+兮	P N H SZWG
+兰	D P H H H
+共	H S S H P D
+关	D P H H P N
+兴	D D P H P D
+兵	P S H S H P D
+其	H S S H H H P D
+具	S HZ H H H H P D
+典	S HZ H S S H P D
+兹	D P H PZ PZ D PZ PZ D
+养	D P H H H P N P S
+兼	D P H HZ H H S S P N
+兽	D P S HZ H S H H S HZ H
+冀	S H T P SWG S HZ H S H H S S H P D
+冁	D P S HZ H H H S HZ H P H S S H ST P N
+冂	S HZG
+内	S HZG P D
+冇	H P S HZG
+冈	S HZG P D
+冉	S HZG S H H
+册	P HZG P HZG H
+再	H S HZG S H H
+冒	S HZ H H S HZ H H H
+冕	S HZ H H P HP S HZ H P SWG
+冖	D HG
+冗	D HG P HZWG
+写	D HG H SZWG H
+军	D HG H PZ H S
+农	D HG P ST P N
+冠	D HG H H P SWG H SG D
+冢	D HG H P WG P P D P N
+冤	D HG P HP S HZ H P SWG D
+冥	D HG S HZ H H D H P D
+冬	P HP N D D
+冯	D T HZ SZWG H
+冰	D T SG HP P N
+冱	D T H SZ HP H
+冲	D T S HZ H S
+决	D T HZ H P N
+况	D T S HZ H P SWG
+冶	D T PZ D S HZ H
+冷	D T P N D HP D
+冻	D T H PZ SG P D
+冼	D T P H S H P SWG
+冽	D T H P HP D S SG
+净	D T P HP HZ H H SG
+凄	D T H HZ H H S PD P H
+准	D T P S D H H H S H
+凇	D T H S P D P N PZ D
+凉	D T D H S HZ H SG P D
+凋	D T P HZG H S H S HZ H
+凌	D T H S H P D P HP N
+减	D T H P H S HZ H XG P D
+凑	D T H H H P N H H P D
+凛	D T D H S HZ S HZ H H H H SG P D
+凝	D T P SWG P H H P D HP D HG S H P N
+几	P HZWG
+凡	P HZWG D
+凤	P HXG HP D
+凫	P HZG D SZWG P HZWG
+凭	P S P H S H P HZWG
+凯	S SZ S HZ H ST P HZWG
+凰	P HZWG P S HZ H H H H S H
+凳	HP D P P N H S HZ H D P H P HZWG
+凵	SZ S
+凶	P D SZ S
+凸	S H S HZZZ H
+凹	S HZZ S HZ H
+出	SZ S S SZ S
+击	H H S SZ S
+凼	SG HP P D SZ S
+函	HP SG D T P D SZ S
+凿	S S D P H D P H H S SZ S
+刀	HZG P
+刁	HZG T
+刃	HZG P D
+分	P N HZG P
+切	H ST HZG P
+刈	P D S SG
+刊	H H S S SG
+刍	P HP HZ H H
+刎	P HZG P P S SG
+刑	H H P S S SG
+划	H XG P D S SG
+刖	P HZG H H S SG
+列	H P HP D S SG
+刘	D H P D S SG
+则	S HZ P D S SG
+刚	S HZG P D S SG
+创	P D HZG SWG S SG
+初	D HP S P D HZG P
+删	P HZG P HZG H S SG
+判	D P H H P S SG
+刨	P HZG HZ H SWG S SG
+利	P H S P D S SG
+别	S HZ H HZG P S SG
+刭	HP D H S T S SG
+刮	P H S S HZ H S SG
+到	H PZ D H S T S SG
+刳	H P D H H SZWG S SG
+制	P H H S HZG S S SG
+刷	HZ H P S HZG S S SG
+券	D P H H P N HZG P
+刹	P D H SG P D S SG
+刺	H S HZG S P D S SG
+刻	D H PZ P P D S SG
+刽	P D H H PZ D S SG
+刿	S SZ S P HP D S SG
+剀	S SZ S HZ H ST S SG
+剁	P HZW H S P D S SG
+剂	D H P D P S S SG
+剃	D P HZ H SZWG S P S SG
+削	S D P S HZG H H S SG
+剌	H S HZ H S P D S SG
+前	D P H S HZG H H S SG
+剎	P D H S P D D S SG
+剐	S HZ H S HZG P D S SG
+剑	P D H D D P T S SG
+剔	S HZ H H P HZG P P S SG
+剖	D H D P H S HZ H S SG
+剜	D D HG P HP D HZG ST S SG
+剞	H P D H S HZ H SG S SG
+剡	D P P D D P P D S SG
+剥	HZ H H SG D T P D S SG
+剧	HZ H P H S S HZ H S SG
+剩	P H S S H T P SWG P D S SG
+剪	D P H S HZG H H S SG HZG P
+副	H S HZ H S HZ H S H S SG
+割	D D HG H H H S S HZ H S SG
+剽	H S HZ S S H H H SG P D S SG
+剿	PD PD PD S HZ H H H S P D S SG
+劁	P S D H H H S H D D D D S SG
+劂	H P D P H SZ S P P HG P D S SG
+劈	HZ H P S HZ H D H D P H H S HZG P
+劐	H S S P S D H H H S H HP D S SG
+劓	P S HZ H H H S HZ H S H H P S S SG
+力	HZG P
+劝	HP D HZG P
+办	HZG P D D
+功	H S T HZG P
+加	HZG P S HZ H
+务	P HP N HZG P
+劢	H HZG P HZG P
+劣	S P D P HZG P
+动	H H PZ D HZG P
+助	S HZ H H T HZG P
+努	PD P H HP N HZG P
+劫	H S H PZ D HZG P
+劬	P HZG S HZ H HZG P
+劭	HZG P S HZ H HZG P
+励	H P H HZG P HZG P
+劲	HP D H S T HZG P
+劳	H S S D HG HZG P
+劵	D P H H P N HZG P
+劼	H S H S HZ H HZG P
+劾	D H PZ P P D HZG P
+势	H SG T P HZWG D HZG P
+勃	H S D HG HP SG T HZG P
+勇	HP D S HZ H H S HZG P
+勉	P HP S HZ H P SWG HZG P
+勋	S HZ H S HZ P D HZG P
+勐	HP SG H S HZ S S T HZG P
+勒	H S S H S HZ H H S HZG P
+勖	S HZ H H S HZ H H H HZG P
+勘	H S S H H H P D SZ HZG P
+募	H S S S HZ H H H P N HZG P
+勠	HZ D T HZ D T P D P P P HZG P
+勤	H S S H S HZ H H H S T HZG P
+勰	HZG P HZG P HZG P S HZ H S H D BXG D D
+勹	P HZG
+勺	P HZG D
+勾	P HZG PZ D
+勿	P HZG P P
+匀	P HZG D T
+包	P HZG HZ H SWG
+匆	P HZG P P D
+匈	P HZG P D SZ S
+匍	P HZG H S HZG H H S D
+匏	H P D H H SZWG P HZG HZ H SWG
+匐	P HZG H S HZ H S HZ H S H
+匕	P SWG
+化	P S P SWG
+北	S H T P SWG
+匙	S HZ H H H S H P N P SWG
+匝	H S HZG S SZ
+匠	H P P H S SZ
+匡	H H H S H SZ
+匣	H S HZ H H S SZ
+匦	H H PZ S T P HZWG SZ
+匪	H S H H H S H H H SZ
+匮	H S HZ H S H S HZ P D SZ
+匹	H P SW SZ
+区	H P D SZ
+医	H P H H P D SZ
+匾	H D HZ H P S HZG H S S SZ
+匿	H H S S H P S HZ H SZ
+十	H S
+千	P H S
+卅	H P S S
+升	P H P S
+午	P H H S
+卉	H S H P S
+半	D P H H S
+华	P S P SWG H S
+协	H S HZG P D D
+卑	P S HZ H H P H S
+卒	D H P D P D H S
+卓	S H S HZ H H H S
+单	D P S HZ H H H S
+卖	H S HG D D H P D
+南	H S S HZG D P H H S
+博	H S H S HZ H H S D H SG D
+卜	S D
+卞	D H S D
+卟	S HZ H S D
+占	S H S HZ H
+卡	S H H S D
+卢	S H HZ H P
+卣	S H S HZ HZ H H
+卤	S H S HZ P D H
+卦	H S H H S T S D
+卧	H S HZ H S SZ S D
+卫	HZG S H
+卮	P P H HZG SWG
+卯	P ST P HZG S
+印	P ST H HZG S
+危	P HP H P HZG SWG
+即	HZ H H ST D HZG S
+却	H S H PZ D HZG S
+卵	P ST D P HZG S D
+卷	D P H H P N HZG SWG
+卸	P H H S H S T HZG S
+卺	HP SG HP P N H HZG SWG
+卿	P ST P HZ H H ST D HZG S
+厂	H P
+厄	H P HZG SWG
+厅	H P H SG
+历	H P HZG P
+厉	H P H HZG P
+压	H P H S H D
+厌	H P H P N D
+厍	H P H PZ H S
+厕	H P S HZ P D S SG
+厘	H P S HZ H H S H H
+厚	H P S HZ H H HP SG H
+厝	H P H S S H S HZ H H
+原	H P P S HZ H H SG P D
+厢	H P H S P D S HZ H H H
+厣	H P H P N D S HZ H H S
+厥	H P D P H SZ S P P HG P N
+厦	H P H P S HZ H H H P HP N
+厨	H P H S HZ H D P T H SG D
+厩	H P HZ H H ST D H PZ P SWG
+厮	H P H S S H H H P D P P H S
+厶	PZ D
+去	H S H PZ D
+县	S HZ H H H PZ D
+叁	PZ D H P N H H H
+参	PZ D H P N P P P
+又	HP N
+叉	HP N D
+及	P HZZP N
+友	H P HP N
+双	HP D HP N
+反	P P HP N
+发	SZ P HP N D
+叒	HP D HP D HP N
+叔	S H H SG P D HP N
+叕	HP D HP D HP D HP N
+取	H S S H H T HP N
+受	P D D P D HG HP N
+变	D H S S P D HP N
+叙	P D H H SG P D HP N
+叛	D P H H P P P HP N
+叟	P S H HZ H H S HP N
+叠	HP D HP D HP D D HG S HZ H H H
+叡	S H D HG H P D P N S HZ H H H HP N
+口	S HZ H
+古	H S S HZ H
+句	P HZG S HZ H
+另	S HZ H HZG P
+叨	S HZ H HZG P
+叩	S HZ H HZG S
+只	S HZ H P D
+叫	S HZ H ST S
+召	HZG P S HZ H
+叭	S HZ H P N
+叮	S HZ H H SG
+可	H S HZ H SG
+台	PZ D S HZ H
+叱	S HZ H P SWG
+史	S HZ H P N
+右	H P S HZ H
+叵	H S HZ H SZ
+叶	S HZ H H S
+号	S HZ H H SZWG
+司	HZG H S HZ H
+叹	S HZ H HP N
+叻	S HZ H HZG P
+叼	S HZ H HZG T
+叽	S HZ H P HZWG
+吁	S HZ H H H SG
+吃	S HZ H P H HZWG
+各	P HP N S HZ H
+吆	S HZ H PZ PZ D
+合	P N H S HZ H
+吉	H S H S HZ H
+吊	S HZ H S HZG S
+吋	S HZ H H SG D
+同	S HZG H S HZ H
+名	P HP D S HZ H
+后	P P H S HZ H
+吏	H S HZ H P N
+吐	S HZ H H S H
+向	P S HZG S HZ H
+吒	S HZ H P H SWG
+吓	S HZ H H S D
+吕	S HZ H S HZ H
+吖	S HZ H D P S
+吗	S HZ H HZ SZWG H
+君	HZ H H P S HZ H
+吝	D H P N S HZ H
+吞	H H P N S HZ H
+吟	S HZ H P N D HP
+吠	S HZ H H P N D
+吡	S HZ H H ST P SWG
+吣	S HZ H D BXG D D
+否	H P S D S HZ H
+吧	S HZ H HZ S H SWG
+吨	S HZ H H SZ S SWG
+吩	S HZ H P N HZG P
+含	P N D HP S HZ H
+听	S HZ H P P H S
+吭	S HZ H D H P HZWG
+吮	S HZ H PZ D P SWG
+启	D HZ H P S HZ H
+吱	S HZ H H S HP N
+吲	S HZ H HZ H SZWG S
+吴	S HZ H H H P N
+吵	S HZ H S P D P
+吸	S HZ H P HZZP N
+吹	S HZ H P HG P N
+吻	S HZ H P HZG P P
+吼	S HZ H HP SG T SWG
+吾	H S HZ H S HZ H
+呀	S HZ H H SZ SG P
+呃	S HZ H H P HZG SWG
+呆	S HZ H H S P N
+呈	S HZ H H H S H
+告	P H S H S HZ H
+呋	S HZ H H H P N
+呎	S HZ H HZ H P N
+呐	S HZ H S HZG P D
+呒	S HZ H H H P SWG
+呓	S HZ H H S S HZWG
+呔	S HZ H H P N D
+呕	S HZ H H P D SZ
+呖	S HZ H H P HZG P
+呗	S HZ H S HZ P D
+员	S HZ H S HZ P D
+呙	S HZ H S HZG P D
+呛	S HZ H P N HZG SWG
+呜	S HZ H P HZG SZWG H
+呢	S HZ H HZ H P P SWG
+呤	S HZ H P N D HP D
+呦	S HZ H PZ PZ D HZG P
+周	P HZG H S H S HZ H
+呱	S HZ H P P ST D N
+呲	S HZ H S H S T P SWG
+味	S HZ H H H S P N
+呵	S HZ H H S HZ H SG
+呶	S HZ H PD P H HP N
+呷	S HZ H S HZ H H S
+呸	S HZ H H P S D H
+呻	S HZ H S HZ H H S
+呼	S HZ H P D P H SG
+命	P N H S HZ H HZG S
+咀	S HZ H S HZ H H H
+咂	S HZ H H S HZG S SZ
+咄	S HZ H SZ S S SZ S
+咆	S HZ H P HZG HZ H SWG
+咋	S HZ H P H S H H
+和	P H S P D S HZ H
+咎	P HP N S D S HZ H
+咏	S HZ H D HZG HP P N
+咐	S HZ H P S H SG D
+咒	S HZ H S HZ H P HZWG
+咔	S HZ H S H H S D
+咕	S HZ H H S S HZ H
+咖	S HZ H HZG P S HZ H
+咘	S HZ H H P S HZG S
+咙	S HZ H H P SWG P D
+咚	S HZ H P HP N D D
+咛	S HZ H D D HG H SG
+咝	S HZ H PZ PZ PZ PZ H
+咣	S HZ H S D P H P SWG
+咤	S HZ H D D HG P H SWG
+咦	S HZ H H HZ H SZWG P N
+咧	S HZ H H P HP D S SG
+咨	D T P HG P N S HZ H
+咩	S HZ H D P H H H S
+咪	S HZ H D P H S P N
+咫	HZ H P N S HZ H P D
+咬	S HZ H D H P D P N
+咭	S HZ H H S H S HZ H
+咯	S HZ H P HP N S HZ H
+咱	S HZ H P S HZ H H H
+咲	S HZ H D P H H P N
+咳	S HZ H D H PZ P P D
+咴	S HZ H H P D P P N
+咸	H P H S HZ H XG P D
+咻	S HZ H P S H S P N
+咽	S HZ H S HZ H P D H
+咿	S HZ H P S HZ H H P
+哀	D H S HZ H P ST P N
+品	S HZ H S HZ H S HZ H
+哂	S HZ H H S HZ P SW H
+哄	S HZ H H S S H P D
+哆	S HZ H P HP D P HP D
+哇	S HZ H H S H H S H
+哈	S HZ H P N H S HZ H
+哉	H S H S HZ H XG P D
+哌	S HZ H P P P ST P N
+响	S HZ H P S HZG S HZ H
+哎	S HZ H H S S P N
+哏	S HZ H HZ H H ST P N
+哐	S HZ H H H H S H SZ
+哑	S HZ H H S S D P H
+哒	S HZ H H P D D HZZP N
+哓	S HZ H H XG P H P SWG
+哔	S HZ H H ST P SWG H S
+哕	S HZ H S SZ S P HP D
+哗	S HZ H P S P SWG H S
+哙	S HZ H P N H H PZ D
+哚	S HZ H P HZW H S P N
+哜	S HZ H D H P N P S
+哝	S HZ H D HG P ST P N
+哞	S HZ H PZ D P H H S
+哟	S HZ H PZ PZ T P HZG D
+哥	H S HZ H S H S HZ H SG
+哦	S HZ H P H SG T XG P D
+哧	S HZ H H S H P SG P D
+哨	S HZ H S D P S HZG H H
+哩	S HZ H S HZ H H S H H
+哪	S HZ H HZG H H P HPWG S
+哭	S HZ H S HZ H H P N D
+哮	S HZ H H S H P HP SG H
+哲	H SG T P P H S S HZ H
+哳	S HZ H H SG T P P H S
+哺	S HZ H H S HZG H H S D
+哼	S HZ H D H S HZ H HP SG
+哽	S HZ H H S HZ H H P N
+哿	HZG P S HZ H H S HZ H SG
+唁	S HZ H D H H H S HZ H
+唆	S HZ H PZ D P D P HP N
+唇	H P H H ST P N S HZ H
+唉	S HZ H PZ D P H H P N
+唏	S HZ H P D H P S HZG S
+唐	D H P HZ H H S S HZ H
+唑	S HZ H P D P D H S H
+唔	S HZ H H S HZ H S HZ H
+唛	S HZ H H H S H P HP N
+唠	S HZ H H S S D HG HZG P
+唢	S HZ H S D P S HZ P D
+唣	S HZ H P S HZ H H H SWG
+唤	S HZ H P HP S HZ H P N
+唧	S HZ H HZ H H ST D HZG S
+唪	S HZ H H H H P N H H S
+唬	S HZ H S H HG P H SWG P HZWG
+售	P S D H H H S H S HZ H
+唯	S HZ H P S D H H H S H
+唰	S HZ H HZ H P S HZG S S SG
+唱	S HZ H S HZ H H S HZ H H
+唳	S HZ H D HZ H P H P N D
+唷	S HZ H D H PZ D S HZG H H
+唼	S HZ H D H D P H PD P H
+唾	S HZ H P H S H S S H H
+唿	S HZ H P HZG P P D BXG D D
+啁	S HZ H P HZG H S H S HZ H
+啃	S HZ H S H S H S HZG H H
+啄	S HZ H H P WG P P D P N
+商	D H D P S HZG P D S HZ H
+啉	S HZ H H S P D H S P N
+啊	S HZ H HPWG S H S HZ H SG
+啐	S HZ H D H P D P D H S
+啕	S HZ H P HZG P H H S SZ S
+啖	S HZ H D P P D D P P N
+啜	S HZ H HP D HP D HP D HP N
+啟	D HZ H P S HZ H P H P N
+啡	S HZ H S H H H S H H H
+啤	S HZ H P S HZ H H P H S
+啥	S HZ H P N H H S S HZ H
+啦	S HZ H H SG T D H D P H
+啧	S HZ H H H S H S HZ P D
+啪	S HZ H H SG T P S HZ H H
+啬	H S D P H S HZ S HZ H H
+啭	S HZ H H PZ S T H H SZP D
+啮	S HZ H S H S H P D SZ S
+啰	S HZ H S HZ S S H P HP D
+啲	S HZ H P S HZ H H P HZG D
+啵	S HZ H D D T HG P S HP N
+啶	S HZ H D D HG H S H P N
+啷	S HZ H D HZ H H ST D HPWG S
+啸	S HZ H HZ H H S P S P D
+啻	D H D P D HG S HZG S S HZ H
+啼	S HZ H D H D P D HG S HZG S
+啾	S HZ H P H S P D D P P N
+喀	S HZ H D D HG P HP N S HZ H
+喁	S HZ H S HZ H H S HZG S T D
+喂	S HZ H S HZ H S H H ST P N
+喃	S HZ H H S S HZG D P H H S
+善	D P H H H S D P H S HZ H
+喆	H S H S HZ H H S H S HZ H
+喇	S HZ H H S HZ H S P D S SG
+喈	S HZ H H ST P SWG P S HZ H H
+喉	S HZ H P S HZ H P H H P N
+喊	S HZ H H P H S HZ H XG P D
+喋	S HZ H H S S H SZ H S P N
+喏	S HZ H H S S H P S HZ H
+喑	S HZ H D H D P H S HZ H H
+喔	S HZ H HZ H P H PZ D H S H
+喘	S HZ H S SZ S H P S HZG S S
+喙	S HZ H SZ HP H P WG P P P N
+喜	H S H S HZ H D P H S HZ H
+喝	S HZ H S HZ H H P HZG P D SZ
+喟	S HZ H S HZ H S H S HZG H H
+喧	S HZ H D D HG H S HZ H H H
+喱	S HZ H H P S HZ H H S H H
+喳	S HZ H H S P N S HZ H H H
+喵	S HZ H H S S S HZ H S H
+喷	S HZ H H S H S S S HZ P D
+喹	S HZ H H P N H S H H S H
+喻	S HZ H P N H S HZG H H S SG
+喽	S HZ H D P H S P N PD P H
+喾	D D P D HG P H S H S HZ H
+嗄	S HZ H H P S HZ H H H P HP N
+嗅	S HZ H P S HZ H H H H P N D
+嗉	S HZ H H H S H PZ PZ D SG P D
+嗌	S HZ H D P H P D S HZ S S H
+嗍	S HZ H D P H SZ S P P HZG H H
+嗑	S HZ H H S H PZ D S HZ S S H
+嗒	S HZ H H S S P N H S HZ H
+嗓	S HZ H HP D HP D HP D H S P N
+嗔	S HZ H H S S HZ H H H H P D
+嗖	S HZ H P S H HZ H H S HP N
+嗜	S HZ H H S H P P SWG S HZ H H
+嗝	S HZ H H S HZ H S HZG D P H S
+嗞	S HZ H D P H PZ PZ D PZ PZ D
+嗟	S HZ H D P H H H P H S H
+嗡	S HZ H P N PZ D HZG D T HZG D T
+嗣	S HZ H S HZG H S S HZG H S HZ H
+嗤	S HZ H SZ S S H S HZ H S H D
+嗥	S HZ H P S HZ H H H P N H S
+嗦	S HZ H H S D HG PZ PZ D SG P D
+嗨	S HZ H D D T P H SZ HZG D H D
+嗪	S HZ H H H H P N P H S P D
+嗫	S HZ H H S S H H H HP D HP N
+嗬	S HZ H H S S P S H S HZ H SG
+嗯	S HZ H S HZ H P D H D BXG D D
+嗲	S HZ H P D P N P HP D P HP D
+嗳	S HZ H P D D P D HG H P HP N
+嗵	S HZ H HP D S HZG H H S D HZZP N
+嗷	S HZ H H H S H HZG P P H P N
+嗽	S HZ H H S HZ H S P D P HG P N
+嗾	S HZ H D H HZG P P H P H H P N
+嘀	S HZ H D H D P S HZG H S S HZ H
+嘁	S HZ H H P S H H SG P D XG P D
+嘈	S HZ H H S HZ H S S H S HZ H H
+嘉	H S H S HZ H D P H HZG P S HZ H
+嘌	S HZ H H S HZ S S H H H SG P D
+嘎	S HZ H H P S HZ H H H H XG P D
+嘏	H S S HZ H HZ H S H H HZ H HP N
+嘘	S HZ H S H HG P H SWG S S D P H
+嘚	S HZ H P P S S HZ H H H H SG D
+嘛	S HZ H D H P H S P D H S P N
+嘞	S HZ H H S S H S HZ H H S HZG P
+嘟	S HZ H H S H P S HZ H H HPWG S
+嘣	S HZ H S SZ S P HZG H H P HZG H H
+嘤	S HZ H S HZ P D S HZ P D PD P H
+嘧	S HZ H D D HG D BXG D P D S SZ S
+嘬	S HZ H S HZ H H H S S H H T HP N
+嘭	S HZ H H S H S HZ H D P T P P P
+嘱	S HZ H HZ H P P S HZ H S HZG S T D
+嘲	S HZ H H S S HZ H H H S P HZG H H
+嘴	S HZ H S H S T P SWG P HP P HZG H H S
+嘶	S HZ H H S S H H H P D P P H S
+嘹	S HZ H H P N D P S HZ H H SG P D
+嘻	S HZ H H S H S HZ H D P H S HZ H
+嘿	S HZ H S HZ D P H S H H D D D D
+噁	S HZ H H S H SZZ SZZ H S H D BXG D D
+噌	S HZ H D P S HZ S D P H S HZ H H
+噍	S HZ H P S D H H H S H D D D D
+噎	S HZ H H S H D HG H S HZ H D P H
+噔	S HZ H HP D P P N H S HZ H D P H
+噗	S HZ H S S D P H D P H H H P N
+噘	S HZ H H P D P H SZ S P P HG P N
+噙	S HZ H P N D H P D SZ S S HZG PZ D
+噜	S HZ H P HP S HZ H S H H S HZ H H
+噢	S HZ H P S HZ D P H S P D H P N
+噤	S HZ H H S P D H S P N H H SG P D
+器	S HZ H S HZ H H P N D S HZ H S HZ H
+噩	H S S HZ H S HZ H H S HZ H S HZ H H
+噪	S HZ H S HZ H S HZ H S HZ H H S P N
+噫	S HZ H D H D P H S HZ H H D BXG D D
+噬	S HZ H P H D P H D H S P D P D H
+噱	S HZ H S H HG P H SWG H P WG P P P N
+噶	S HZ H H S S S HZ H H P HZG P D SZ
+噻	S HZ H D D HG H H S S H P N H S H
+噼	S HZ H HZ H P S HZ H D H D P H H S
+嚅	S HZ H H D HG S D D D D H P S HZG S S
+嚆	S HZ H H S S D H S HZ H S HZG S HZ H
+嚎	S HZ H D H S HZ H D HG H P WG P P P N
+嚏	S HZ H H S D HG S HZ H S H HG S H P N
+嚓	S HZ H D D HG P HP D D HP N H H SG P D
+嚣	S HZ H S HZ H H P S HZ P D S HZ H S HZ H
+嚯	S HZ H H D HG S D D D D P S D H H H S H
+嚷	S HZ H D H S HZ H S HZ H H H S S H P ST P N
+嚼	S HZ H P D D P S HZ S S H HZ H H ST D H SG D
+囊	H S HZ H S D HG S HZ H S HZ H H H S S H P ST P N
+囍	H S H S HZ H D P H S HZ H H S H S HZ H D P H S HZ H
+囔	S HZ H H S HZ H S D HG S HZ H S HZ H H H S S H P ST P N
+囗	S HZ H
+囚	S HZ P D H
+四	S HZ P SW H
+囝	S HZ HP SG H H
+回	S HZ S HZ H H
+囟	P S HZ P D H
+因	S HZ H P D H
+囡	S HZ PD P H H
+团	S HZ H SG P H
+囤	S HZ H SZ S SWG H
+囧	S HZ P D S HZ H
+囫	S HZ P HZG P P H
+园	S HZ H H P SWG H
+囯	S HZ H H S H H
+困	S HZ H S P D H
+囱	P S HZ P HP D H
+围	S HZ H H HZG S H
+囵	S HZ P N P SWG H
+囹	S HZ P N D HP D H
+固	S HZ H S S HZ H H
+国	S HZ H H S H D H
+图	S HZ P HP N D D H
+囿	S HZ H P S HZG H H H
+圃	S HZ H S HZG H H S D H
+圄	S HZ H S HZ H S HZ H H
+圆	S HZ S HZ H S HZ P D H
+圈	S HZ D P H H P N HZG SWG H
+圉	S HZ H S H D P H H S H
+圊	S HZ H H S H S HZG H H H
+圏	S HZ D P H H P N HZ H SWG H
+圜	S HZ S HZ S S H H S HZ H P ST P D H
+土	H S H
+圣	HP N H S H
+在	H P S H S H
+圩	H S T H H SG
+圪	H S T P H HZWG
+圬	H S T H H SZWG
+圭	H S H H S H
+圮	H S T HZ H SWG
+圯	H S T HZ H SWG
+地	H S T HZG S SWG
+圳	H S T P S S
+圹	H S T D H P
+场	H S T HZZZG P P
+圻	H S T P P H S
+圾	H S T P HZZP N
+址	H S T S H S H
+坂	H S T P P HP N
+均	H S T P HZG D T
+坊	H S T D H HZG P
+坌	P N HZG P H S H
+坍	H S T P HZG D H
+坎	H S T P HG P N
+坏	H S T H P S D
+坐	P D P D H S H
+坑	H S T D H P HZWG
+块	H S T HZ H P N
+坚	S S HP N H S H
+坛	H S T H H PZ D
+坜	H S T H P HZG P
+坝	H S T S HZ P D
+坞	H S T P HZG SZWG H
+坟	H S T D H P N
+坠	HPWG S P N H S H
+坡	H S T HG P S HP N
+坤	H S T S HZ H H S
+坦	H S T S HZ H H H
+坨	H S T D D HG P SWG
+坩	H S T H S S H H
+坪	H S T H D P H S
+坫	H S T S H S HZ H
+坭	H S T HZ H P P SWG
+坯	H S T H P S D H
+坳	H S T PZ PZ D HZG P
+坶	H S T SZ HZG D H D
+坷	H S T H S HZ H SG
+坻	H S T P ST H XG D
+坼	H S T P P H S D
+垂	P H S H S S H H
+垃	H S T D H D P H
+垄	H P SWG P D H S H
+垅	H S T H P SWG P D
+垆	H S T S H HZ H P
+型	H H P S S SG H S H
+垌	H S T S HZG H S HZ H
+垒	PZ D PZ D PZ D H S H
+垓	H S T D H PZ P P D
+垕	P P H S HZ H H S H
+垚	H S H H S T H S H
+垛	H S T P HZW H S P N
+垟	H S T D P H H H S
+垠	H S T HZ H H ST P N
+垡	P S H XG P D H S H
+垢	H S T P P H S HZ H
+垣	H S T H S HZ H H H
+垤	H S T H PZ D H S H
+垦	HZ H H ST P N H S H
+垧	H S T P S HZG S HZ H
+垩	H S S D P H H S H
+垫	H SG T P HZWG D H S H
+垭	H S T H S S D P H
+垮	H S T H P N H H SZWG
+垲	H S T S SZ S HZ H SWG
+垴	H S T D H P D SZ S
+垵	H S T D D HG PD P H
+垸	H S T D D HG H H P SWG
+埂	H S T H S HZ H H P N
+埃	H S T PZ D P H H P N
+埇	H S T HP D S HZG H H S
+埈	H S T PZ D P D P HP N
+埋	H S T S HZ H H S H H
+城	H S T H P HZG XG P D
+埏	H S T P S H SZ HZZP N
+埒	H S T P D D P H SG D
+埔	H S T H S HZG H H S D
+埕	H S T S HZ H H H S H
+埗	H S T S H S H S P P
+埘	H S T S HZ H H H SG D
+埙	H S T S HZ H S HZ P D
+埚	H S T S HZ H S HZG P D
+埝	H S T P N D HP D BXG D D
+域	H S T H S HZ H T XG P D
+埠	H S T P S HZ H HZ H H S
+埤	H S T P S HZ H H P H S
+埭	H S T HZ H H SG D T P N
+埯	H S T H P N S HZ H H SWG
+埴	H S T H S S HZ H H H H
+埸	H S T S HZ H H P HZG P P
+培	H S T D H D P H S HZ H
+基	H S S H H H P N H S H
+埼	H S T H P D H S HZ H SG
+埽	H S T HZ H H D HG S HZG S
+堀	H S T HZ H P SZ S S SZ S
+堂	S D P D HG S HZ H H S H
+堃	D H HZG P D H HZG P H S H
+堆	H S T P S D H H H S H
+堇	H S S H S HZ H H H S H
+堉	H S T D H PZ D S HZG H H
+堋	H S T P HZG H H P HZG H H
+堌	H S T S HZ H S S HZ H H
+堍	H S T P HP S HZ H P SWG D
+堑	H PZ S T P P H S H S H
+堕	HPWG S H P S HZG H H H S H
+堙	H S T H S HZ S S H H S H
+堞	H S T H S S H SZ H S P N
+堠	H S T P S HZ H P H H P N
+堡	P S S HZ H H S P N H S H
+堤	H S T S HZ H H H S H P N
+堪	H S T H S S H H H P D SZ
+堰	H S T H S HZ H H PD P H SZ
+堵	H S T H S H P S HZ H H
+堺	H S T S HZ H S H P N P S
+塄	H S T S HZ S S H D H HZG P
+塌	H S T S HZ H H HZG D T HZG D T
+塍	P HZG H H D P H H P N H S H
+塑	D P H SZ S P P HZG H H H S H
+塔	H S T H S S P N H S HZ H
+塘	H S T D H P HZ H H S S HZ H
+塚	H S T D HG H P WG P P D P N
+塞	D D HG H H S S H P N H S H
+塥	H S T H S HZ H S HZG D P H S
+填	H S T H S S HZ H H H H P D
+塬	H S T H P P S HZ H H SG P D
+塱	D HZ H H ST D P HZG H H H S H
+塾	D H S HZ H HP SG T P HZWG D H S H
+墀	H S T HZ H P S D T P D P H H S
+墁	H S T S HZ H H S HZ S S H HP N
+境	H S T D H D P H S HZ H H P SWG
+墅	S HZ H H S H T HP D HG SG H S H
+墉	H S T D H P HZ H H S HZG H H S
+墒	H S T D H D P S HZG P D S HZ H
+墓	H S S S HZ H H H P N H S H
+墙	H S T H S D P H S HZ S HZ H H
+墚	H S T D D T HZG P D D H S P N
+增	H S T D P S HZ S D P H S HZ H H
+墟	H S T S H HG P H SWG S S D P H
+墨	S HZ D P H S H H D D D D H S H
+墩	H S T D H S HZ H HP SG T P H P N
+墼	H S HZ H H H S SZ S P HZW HP N H S H
+壁	HZ H P S HZ H D H D P H H S H S H
+壅	D H PZ PZ P P S D H H H S H H S H
+壑	S H D HG H P D P N S HZ H HP N H S H
+壕	H S T D H S HZ H D HG H P WG P P P N
+壤	H S T D H S HZ H S HZ H H H S S H P ST P N
+士	H S H
+壬	P H S H
+壮	D T S H S H
+声	H S H HZ S H P
+壳	H S H D HG P HZWG
+壶	H S H D HG S S D P H
+壹	H S H D HG H S HZ H D P H
+处	P HP N S D
+备	P HP N S HZ H S H
+复	P H S HZ H H P HP N
+夏	H P S HZ H H H P HP N
+夔	D P H P S HZ H H H S H S T HZ H SWG P D P HP N
+夕	P HP D
+外	P HP D S D
+夙	P HXG H P HP D
+多	P HP D P HP D
+夜	D H P S P HP D N
+够	P HZG S HZ H P HP D P HP D
+夤	P HP D D D HG H S HZ H S H P D
+夥	S HZ H H H S P D P HP D P HP D
+大	H P N
+天	H H P N
+太	H P N D
+夫	H H P N
+夭	P H P N
+央	S HZ H P N
+夯	H P N HZG P
+失	P H H P N
+头	D D H P D
+夷	H HZ H SZWG P N
+夸	H P N H H SZWG
+夹	H D P H P N
+夺	H P N H SG D
+夼	H P N P S S
+奁	H P N H P D SZ
+奂	P HP S HZ H P N
+奄	H P N S HZ H H SWG
+奇	H P D H S HZ H SG
+奈	H P N H H SG P D
+奉	H H H P N H H S
+奋	H P N S HZ H S H
+奎	H P N H S H H S H
+奏	H H H P N H H P D
+契	H H H S HZG P H P N
+奔	H P N H S H P S
+奕	D H P SG P D H P N
+奖	D T S P HP D H P N
+套	H P N H S H H H PZ D
+奘	SZ S H P H S H H P N
+奚	P D D P PZ PZ D H P N
+奠	D P H S HZ P SW H H H P N
+奢	H P N H S H P S HZ H H
+奥	P S HZ D P H S P D H P N
+奭	H H P S HZ H H H P S HZ H H P N
+女	PD P H
+奴	PD P H HP N
+奵	PD P H H SG
+奶	PD P H HZZZG P
+奸	PD P H H H S
+她	PD P H HZG S SWG
+好	PD P H HP SG H
+妁	PD P H P HZG D
+如	PD P H S HZ H
+妃	PD P H HZ H SWG
+妄	D H SZ PD P H
+妆	D T S PD P H
+妇	PD P H HZ H H
+妈	PD P H HZ SZWG H
+妊	PD P H P H S H
+妍	PD P H H H P S
+妒	PD P H D HZ H P
+妓	PD P H H S HP N
+妖	PD P H P H P N
+妗	PD P H P N D HP
+妙	PD P H S P D P
+妞	PD P H HZ S H H
+妣	PD P H H ST P SWG
+妤	PD P H HP D HG SG
+妥	P D D P PD P H
+妨	PD P H D H HZG P
+妩	PD P H H H P SWG
+妪	PD P H H P D SZ
+妫	PD P H D P HZG D
+妮	PD P H HZ H P P SWG
+妯	PD P H S HZ H S H
+妲	PD P H S HZ H H H
+妹	PD P H H H S P N
+妻	H HZ H H S PD P H
+妾	D H D P H PD P H
+姆	PD P H SZ HZG D H D
+姈	PD P H P N D HP D
+姊	PD P H P SZWG S P
+始	PD P H PZ D S HZ H
+姐	PD P H S HZ H H H
+姑	PD P H H S S HZ H
+姒	PD P H ST D P D
+姓	PD P H P H H S H
+委	P H S P N PD P H
+姗	PD P H P HZG P HZG H
+姘	PD P H D P H H P S
+姚	PD P H P D T SWG P D
+姜	D P H H S H PD P H
+姝	PD P H P H H S P N
+姣	PD P H D H P D P N
+姥	PD P H H S H P P SWG
+姨	PD P H H HZ H SZWG P N
+姬	PD P H H S S HZ H S SZ
+姮	PD P H H S HZ H H H
+姹	PD P H D D HG P H SWG
+姻	PD P H S HZ H P D H
+姿	D T P HG P N PD P H
+威	H P H PD P H XG P D
+娃	PD P H H S H H S H
+娄	D P H S P N PD P H
+娅	PD P H H S S D P H
+娆	PD P H H XG P H P SWG
+娇	PD P H P H P N P S
+娈	D H S S P D PD P H
+娉	PD P H S HZ H S H H SZWG
+娌	PD P H S HZ H H S H H
+娑	D D T S P D P PD P H
+娓	PD P H HZ H P P H H SWG
+娘	PD P H D HZ H H ST P N
+娜	PD P H HZG H H P HPWG S
+娟	PD P H S HZ H S HZG H H
+娠	PD P H H P H H ST P N
+娣	PD P H D P HZ H SZWG S P
+娥	PD P H P H SG T XG P D
+娩	PD P H P HP S HZ H P SWG
+娭	PD P H PZ D P H H P N
+娱	PD P H S HZ H H H P N
+娲	PD P H S HZ H S HZG P D
+娴	PD P H D S HZG H S P D
+娶	H S S H H T HP N PD P H
+娼	PD P H S HZ H H S HZ H H
+婀	PD P H HPWG S H S HZ H SG
+婆	D D T HG P S HP N PD P H
+婉	PD P H D D HG P HP D HZG SWG
+婊	PD P H H H S H P ST P N
+婕	PD P H H HZ H H S H P N
+婚	PD P H P ST H XG S HZ H H
+婢	PD P H P S HZ H H P H S
+婧	PD P H H H S H S HZG H H
+婪	H S P D H S P N PD P H
+婴	S HZ P D S HZ P D PD P H
+婵	PD P H D P S HZ H H H S
+婶	PD P H D D HG S HZ H H S
+婷	PD P H D H S HZ H D HG H SG
+婺	HP D HG SG P P H P N PD P H
+婿	PD P H HG S H P N S HZG H H
+媒	PD P H H S S H H H S P N
+媚	PD P H HZ S H P S HZ H H H
+媛	PD P H P D D P H H P HP N
+媪	PD P H S HZ H H S HZ S S H
+媲	PD P H P S HZ P D H H ST P SWG
+媳	PD P H P S HZ H H H D BXG D D
+媵	P HZG H H D P H H P N PD P H
+媸	PD P H SZ S S H S HZ H S H D
+媾	PD P H H H S S H S HZG H S H
+嫁	PD P H D D HG H P WG P P P N
+嫂	PD P H P S H HZ H H S HP N
+嫉	PD P H D H P D T P H H P N
+嫌	PD P H D P H HZ H H S S P N
+嫒	PD P H P D D P D HG H P HP N
+嫔	PD P H D D HG P S H S H P D
+嫖	PD P H H S HZ S S H H H SG P D
+嫘	PD P H S HZ H S H PZ PZ D SG P D
+嫚	PD P H S HZ H H S HZ S S H HP N
+嫜	PD P H D H D P H S HZ H H H S
+嫠	H H S P D P H P N H P PD P H
+嫡	PD P H D H D P S HZG H S S HZ H
+嫣	PD P H H S H S H H SZWG D D D D
+嫦	PD P H S D P D HG S HZ H S HZG S
+嫩	PD P H H S HZ H S P D P H P N
+嫫	PD P H H S S S HZ H H H P N
+嫱	PD P H H S D P H S HZ S HZ H H
+嬅	PD P H H S S H H S S H H S
+嬉	PD P H H S H S HZ H D P H S HZ H
+嬖	HZ H P S HZ H D H D P H H S PD P H
+嬗	PD P H D H S HZ S HZ H H S HZ H H H
+嬛	PD P H S HZ S S H H S HZ H P ST P N
+嬢	PD P H D H P D H H S S H P ST P N
+嬲	S HZ H S H HZG P PD P H S HZ H S H HZG P
+嬴	D H SZ S HZ H P HZG H H PD P H P HZWG D
+嬷	PD P H D H P H S P D H S P N P PZ D
+孀	PD P H H D HG S D D D D H S P D S HZ H H H
+孃	PD P H D H S HZ H S HZ H H H S S H P ST P N
+子	HP SG H
+孑	HP SG T
+孓	HP SG N
+孔	HP SG T SWG
+孕	HZZZG P HP SG H
+孖	HP SG T HP SG H
+字	D D HG HP SG H
+存	H P S HP SG H
+孙	HP SG T SG P D
+孚	P D D P HP SG H
+孛	H S D HG HP SG H
+孜	HP SG T P H P N
+孝	H S H P HP SG H
+孟	HP SG H S HZ S S H
+孢	HP SG T P HZG HZ H SWG
+季	P H S P N HP SG H
+孤	HP SG T P P ST D N
+孥	PD P H HP N HP SG H
+学	D D P D HG HP SG H
+孩	HP SG T D H PZ P P D
+孪	D H S S P D HP SG H
+孬	H P S D PD P H HP SG H
+孰	D H S HZ H HP SG T P HZWG D
+孱	HZ H P HP SG H HP SG T HP SG H
+孳	D P H PZ PZ D PZ PZ D HP SG H
+孵	P ST D P HZG S D P D D P HP SG H
+孺	HP SG T H D HG S D D D D H P S HZG S S
+孽	H S S P S HZ H HZ H D H D P H H S HP SG H
+宁	D D HG H SG
+它	D D HG P SWG
+宄	D D HG P HZWG
+宅	D D HG P H SWG
+宇	D D HG H H SG
+守	D D HG H SG D
+安	D D HG PD P H
+宋	D D HG H S P N
+完	D D HG H H P SWG
+宏	D D HG H P PZ D
+宓	D D HG D BXG D P D
+宕	D D HG H P S HZ H
+宗	D D HG H H SG P D
+官	D D HG S HZ H HZ H
+宙	D D HG S HZ H S H
+定	D D HG H S H P N
+宛	D D HG P HP D HZG SWG
+宜	D D HG S HZ H H H
+宝	D D HG H H S H D
+实	D D HG D D H P D
+宠	D D HG H P SWG P D
+审	D D HG S HZ H H S
+客	D D HG P HP N S HZ H
+宣	D D HG H S HZ H H H
+室	D D HG H PZ D H S H
+宥	D D HG H P S HZG H H
+宦	D D HG H S HZ H S SZ
+宪	D D HG P H S H P SWG
+宫	D D HG S HZ H S HZ H
+宰	D D HG D H D P H H S
+害	D D HG H H H S S HZ H
+宴	D D HG S HZ H H PD P H
+宵	D D HG S D P S HZG H H
+家	D D HG H P WG P P P N
+宸	D D HG H P H H ST P N
+容	D D HG P D P N S HZ H
+宽	D D HG H S S S HZ P SWG
+宾	D D HG P S H S H P D
+宿	D D HG P S H P S HZ H H
+寂	D D HG S H H SG P D HP N
+寄	D D HG H P D H S HZ H SG
+寅	D D HG H S HZ H S H P D
+密	D D HG D BXG D P D S SZ S
+寇	D D HG H H P SWG S H HP D
+富	D D HG H S HZ H S HZ H S H
+寐	D D HG SZ S H P H H S P N
+寒	D D HG H H S S H P N D D
+寓	D D HG S HZ H H S HZG S T D
+寝	D D HG D T S HZ H H D HG HP N
+寞	D D HG H S S S HZ H H H P N
+察	D D HG P HP D D HP N H H SG P D
+寡	D D HG H P S HZ H H H P N HZG P
+寤	D D HG SZ S H P H S HZ H S HZ H
+寥	D D HG HZ D T HZ D T P N P P P
+寨	D D HG H H S S H P N H SG P D
+寮	D D HG H P N D P S HZ H H SG P D
+寰	D D HG S HZ S S H H S HZ H P ST P N
+寸	H SG D
+对	HP D H SG D
+寺	H S H H SG D
+寻	HZ H H H SG D
+导	HZ H SWG H SG D
+寿	H H H P H SG D
+封	H S H H S T H SG D
+射	P S HZG H H H P H SG D
+将	D T S P HP D H SG D
+尉	HZ H P H H SG P D H SG D
+尊	D P H S HZ P SW H H H SG D
+小	SG P D
+少	S P D P
+尔	P HG SG P D
+尕	HZZZG P SG P D
+尖	S P D H P N
+尘	S P D H S H
+尚	S D P S HZG S HZ H
+尜	S P D H P N SG P D
+尝	S D P D HG H H PZ D
+尢	H P SWG
+尤	H P SWG D
+尥	H P SWG P HZG D
+尧	H XG P H P SWG
+尬	H P SWG P N P S
+就	D H S HZ H SG P D H P SWG D
+尴	H P SWG S S P H D S HZ S S H
+尸	HZ H P
+尹	HZ H H P
+尺	HZ H P N
+尻	HZ H P P HZWG
+尼	HZ H P P SWG
+尽	HZ H P N D D
+尾	HZ H P P H H SWG
+尿	HZ H P SG HP P N
+局	HZ H P HZG S HZ H
+屁	HZ H P H ST P SWG
+层	HZ H P H H PZ D
+居	HZ H P H S S HZ H
+屈	HZ H P SZ S S SZ S
+屉	HZ H P H S S H SZ
+届	HZ H P S HZ H S H
+屋	HZ H P H PZ D H S H
+屌	HZ H P S HZ H S HZG S
+屎	HZ H P D P H S P N
+屏	HZ H P D P H H P S
+屐	HZ H P P P S H S HP N
+屑	HZ H P S D P S HZG H H
+展	HZ H P H S S H ST P N
+屙	HZ H P HPWG S H S HZ H SG
+属	HZ H P P S HZ H S HZG S T D
+屠	HZ H P H S H P S HZ H H
+屡	HZ H P D P H S P N PD P H
+屣	HZ H P P P S S H S H S H P N
+履	HZ H P P P S P H S HZ H H P HP N
+屦	HZ H P P P S D P H S P N PD P H
+屯	H SZ S SWG
+山	S SZ S
+屹	S SZ S P H HZWG
+屺	S SZ S HZ H SWG
+屾	S SZ S S SZ S
+屿	S SZ S H SZWG H
+岀	S SZ S S SZ S
+岁	S SZ S P HP D
+岂	S SZ S HZ H SWG
+岈	S SZ S H SZ SG P
+岌	S SZ S P HZZP N
+岍	S SZ S H H P S
+岐	S SZ S H S HP N
+岑	S SZ S P N D HP
+岔	P N HZG P S SZ S
+岖	S SZ S H P D SZ
+岗	S SZ S S HZG P D
+岘	S SZ S S HZ P SWG
+岙	P H P N S SZ S
+岚	S SZ S P HXG P D
+岛	P HZG D SZWG S SZ S
+岜	S SZ S HZ S H SWG
+岢	S SZ S H S HZ H SG
+岣	S SZ S P HZG S HZ H
+岩	S SZ S H P S HZ H
+岫	S SZ S S HZ H S H
+岬	S SZ S S HZ H H S
+岭	S SZ S P N D HP D
+岱	P S H XG D S SZ S
+岳	P S H S H S SZ S
+岵	S SZ S H S S HZ H
+岷	S SZ S HZ H ST H XG
+岸	S SZ S H P H H S
+岽	S SZ S H PZ SG P D
+岿	S SZ S S P HZ H H
+峁	S SZ S P ST P HZG S
+峄	S SZ S HP N H H S
+峋	S SZ S P HZG S HZ H H
+峒	S SZ S S HZG H S HZ H
+峙	S SZ S H S H H SG D
+峡	S SZ S H D P H P N
+峤	S SZ S P H P N P S
+峥	S SZ S P HP HZ H H SG
+峦	D H S S P D S SZ S
+峨	S SZ S P H SG T XG P D
+峪	S SZ S P D P N S HZ H
+峭	S SZ S S D P S HZG H H
+峯	S SZ S P HP N H H H S
+峰	S SZ S P HP N H H H S
+峻	S SZ S PZ D P D P HP N
+崀	S SZ S D HZ H H ST P N
+崂	S SZ S H S S D HG HZG P
+崃	S SZ S H D P H S P N
+崆	S SZ S D D HG P D H S H
+崇	S SZ S D D HG H H SG P D
+崎	S SZ S H P D H S HZ H SG
+崑	S SZ S S HZ H H H ST P SWG
+崔	S SZ S P S D H H H S H
+崖	S SZ S H P H S H H S H
+崛	S SZ S HZ H P SZ S S SZ S
+崞	S SZ S D H S HZ H HP SG H
+崤	S SZ S P D H P S HZG H H
+崦	S SZ S H P N S HZ H H SWG
+崧	S SZ S H S P D P N PZ D
+崩	S SZ S P HZG H H P HZG H H
+崭	S SZ S H PZ S T P P H S
+崮	S SZ S S HZ H S S HZ H H
+崴	S SZ S H P H PD P H XG P D
+崽	S SZ S S HZ H S H D BXG D D
+崾	S SZ S H S HZ S S H PD P H
+嵇	P H S P D H P SWG D S SZ S
+嵊	S SZ S P H S S H T P SWG P N
+嵋	S SZ S HZ S H P S HZ H H H
+嵌	S SZ S H S S H H P HG P N
+嵘	S SZ S H S S D HG H S P N
+嵛	S SZ S P N H S HZG H H S SG
+嵝	S SZ S D P H S P N PD P H
+嵩	S SZ S D H S HZ H S HZG S HZ H
+嵫	S SZ S D P H PZ PZ D PZ PZ D
+嵬	S SZ S P S HZ H H P SWG PZ D
+嵯	S SZ S D P H H H P H S H
+嵴	S SZ S D T P D P N S HZG H H
+嶂	S SZ S D H D P H S HZ H H H S
+嶙	S SZ S D P H S P N P HP D H SZ S
+嶝	S SZ S HP D P P N H S HZ H D P H
+嶷	S SZ S P SWG P H H P D HP D HG S H P N
+巅	S SZ S H S S HZ H H H H P D H P S HZ P D
+巍	S SZ S P H S P D PD P H P S HZ H H P SWG PZ D
+巛	PD PD PD
+川	P S S
+州	D P D S D S
+巡	PD PD PD D HZZP N
+巢	PD PD PD S HZ H H H S P N
+工	H S H
+左	H P H S H
+巧	H S T H SZWG
+巨	H HZ H SZ
+巩	H S T P HZWG D
+巫	H S P D P D H
+差	D P H H H P H S H
+巯	HP D H S T D H PZ D P S SWG
+己	HZ H SWG
+已	HZ H SWG
+巳	HZ H SWG
+巴	HZ S H SWG
+巷	H S S H P N HZ H SWG
+巽	HZ H SWG HZ H SWG H S S H P D
+巾	S HZG S
+巿	H S HZG S
+币	P S HZG S
+市	D H S HZG S
+布	H P S HZG S
+帅	S P S HZG S
+帆	S HZG S P HZWG D
+师	S P H S HZG S
+希	P D H P S HZG S
+帏	S HZG S H H HZG S
+帐	S HZG S P H ST N
+帑	PD P H HP N S HZG S
+帔	S HZG S HG P S HP N
+帕	S HZG S P S HZ H H
+帖	S HZG S S H S HZ H
+帘	D D HG P D S HZG S
+帙	S HZG S P H H P N
+帚	HZ H H D HG S HZG S
+帛	P S HZ H H S HZG S
+帜	S HZG S S HZ H P D
+帝	D H D P D HG S HZG S
+带	H S S S D HG S HZG S
+帧	S HZG S S H S HZ P D
+席	D H P H S S H S HZG S
+帮	H H H P HPWG S S HZG S
+帱	S HZG S H H H P H SG D
+帷	S HZG S P S D H H H S H
+常	S D P D HG S HZ H S HZG S
+帻	S HZG S H H S H S HZ P D
+帼	S HZG S S HZ H H S H D H
+帽	S HZG S S HZ H H S HZ H H H
+幂	D HG S HZ H H H P N S HZG S
+幄	S HZG S HZ H P H PZ D H S H
+幅	S HZG S H S HZ H S HZ H S H
+幌	S HZG S S HZ H H S D P H P SWG
+幔	S HZG S S HZ H H S HZ S S H HP N
+幕	H S S S HZ H H H P N S HZG S
+幛	S HZG S D H D P H S HZ H H H S
+幞	S HZG S S S D P H D P H H H P N
+幡	S HZG S P D P H S P N S HZ H S H
+幢	S HZG S D H D P H S HZ H H S H H
+干	H H S
+平	H D P H S
+年	P H H S H S
+并	D P H H P S
+幸	H S H D P H H S
+幺	PZ PZ D
+幻	PZ PZ D HZG
+幼	PZ PZ D HZG P
+幽	S PZ PZ D PZ PZ D SZ S
+广	D H P
+庀	D H P P SWG
+庄	D H P H S H
+庆	D H P H P N
+庇	D H P H ST P SWG
+床	D H P H S P N
+庋	D H P H S HP N
+序	D H P HP D HG SG
+庐	D H P D HZ H P
+庑	D H P H H P SWG
+库	D H P H PZ H S
+应	D H P D D P H
+底	D H P P ST H XG D
+庖	D H P P HZG HZ H SWG
+店	D H P S H S HZ H
+庙	D H P S HZ H S H
+庚	D H P HZ H H P N
+府	D H P P S H SG D
+庞	D H P H P SWG P D
+废	D H P SZ P HP N D
+庠	D H P D P H H H S
+庥	D H P P S H S P N
+度	D H P H S S H HP N
+座	D H P P D P D H S H
+庭	D H P P H S H HZZP N
+庳	D H P P S HZ H H P H S
+庵	D H P H P N S HZ H H SWG
+庶	D H P H S S H D D D D
+康	D H P HZ H H SG D T P N
+庸	D H P HZ H H S HZG H H S
+庹	D H P H S S H HZ H P N
+庾	D H P P S H HZ H H P N
+廉	D H P D P H HZ H H S S P N
+廊	D H P D HZ H H ST D HPWG S
+廑	D H P H S S H S HZ H H H S H
+廒	D H P H H S H HZG P P H P N
+廓	D H P D H S HZ H HP SG T HPWG S
+廖	D H P HZ D T HZ D T P N P P P
+廛	D H P S HZ H H S H H P D H S H
+廨	D H P P HP P HZG H H S HZG P P H H S
+廪	D H P D H S HZ S HZ H H H H SG P D
+延	P S H SZ HZZP N
+廷	P H S H HZZP N
+建	HZ H H H H S HZZP N
+廾	H P S
+廿	H S S H
+开	H H P S
+弁	PZ D H P S
+异	HZ H SWG H P S
+弃	D H PZ D H P S
+弄	H H S H H P S
+弈	D H P SG P D H P S
+弊	D P S HZG S P D P H P N H P S
+弋	H XG D
+式	H H S T XG D
+弑	P D H SG P D H H S T XG D
+弓	HZ H SZWG
+引	HZ H SZWG S
+弗	HZ H SZWG P S
+弘	HZ H SZWG PZ D
+弛	HZ H SZWG HZG S SWG
+弟	D P HZ H SZWG S P
+张	HZ H SZWG P H ST N
+弢	HZ H SZWG SZ S S HP N
+弥	HZ H SZWG P HG SG P D
+弦	HZ H SZWG D H PZ PZ D
+弧	HZ H SZWG P P ST D N
+弩	PD P H HP N HZ H SZWG
+弪	HZ H SZWG HP D H S H
+弭	HZ H SZWG H S S H H H
+弯	D H S S P D HZ H SZWG
+弱	HZ H SZWG D T HZ H SZWG D T
+弹	HZ H SZWG D P S HZ H H H S
+强	HZ H SZWG S HZ H S HZ H S H D
+弼	HZ H SZWG H P S HZ H H HZ H SZWG
+彀	H S H D HG H HZ H SZWG P HZW HP N
+归	S P HZ H H
+当	S D P HZ H H
+录	HZ H H SG D T P N
+彖	SZ HP H P WG P P P N
+彗	H H H S H H H S HZ H H
+彘	SZ HP H H ST P H H P D P SWG
+彝	SZ HP H D P H S P D PZ PZ D SG P D H P S
+形	H H P S P P P
+彤	P HZG D H P P P
+彦	D H D P H P P P P
+彧	H S HZ H T XG P P P D
+彩	P D D P H S P D P P P
+彪	S H HG P H SWG P HZWG P P P
+彬	H S P D H S P D P P P
+彭	H S H S HZ H D P T P P P
+彰	D H D P H S HZ H H H S P P P
+影	S HZ H H D H S HZ H SG P D P P P
+彷	P P S D H HZG P
+役	P P S P HZW HP N
+彻	P P S H ST HZG P
+彼	P P S HG P S HP N
+往	P P S D H H S H
+征	P P S H S H S H
+徂	P P S S HZ H H H
+径	P P S HP D H S H
+待	P P S H S H H SG D
+徇	P P S P HZG S HZ H H
+很	P P S HZ H H ST P N
+徉	P P S D P H H H S
+徊	P P S S HZ S HZ H H
+律	P P S HZ H H H H S
+後	P P S PZ PZ D P HP N
+徐	P P S P N H H SG P D
+徒	P P S H S H S H P N
+徕	P P S H D P H S P N
+得	P P S S HZ H H H H SG D
+徘	P P S S H H H S H H H
+徙	P P S S H S H S H P N
+徜	P P S S D P S HZG S HZ H
+御	P P S P H H S H S T HZG S
+徨	P P S P S HZ H H H H S H
+復	P P S P H S HZ H H P HP N
+循	P P S P P H S S HZ H H H
+徭	P P S P D D P P H H S SZ S
+微	P P S S SZ S H P HZT P H P N
+徳	P P S H S S HZ S S H D BXG D D
+徵	P P S S SZ S H H H S H P H P N
+德	P P S H S S HZ S S H H D BXG D D
+徼	P P S P S HZ H H D H HZG P P H P N
+徽	P P S S SZ S H PZ PZ D SG P D P H P N
+心	D BXG D D
+必	D BXG D P D
+忆	D D S HZWG
+忉	D D S HZG P
+忌	HZ H SWG D BXG D D
+忍	HZG P D D BXG D D
+忏	D D S P H S
+忐	S H H D BXG D D
+忑	H S D D BXG D D
+忒	H D BXG D D XG D
+忖	D D S H SG D
+志	H S H D BXG D D
+忘	D H SZ D BXG D D
+忙	D D S D H SZ
+忝	H H P N SG D D D
+忠	S HZ H S D BXG D D
+忡	D D S S HZ H S
+忤	D D S P H H S
+忧	D D S H P SWG D
+忪	D D S P N PZ D
+快	D D S HZ H P N
+忭	D D S D H S D
+忮	D D S H S HP N
+忱	D D S D HG P SWG
+念	P N D HP D BXG D D
+忸	D D S HZ S H H
+忻	D D S P P H S
+忽	P HZG P P D BXG D D
+忾	D D S P H H HXG
+忿	P N HZG P D BXG D D
+怀	D D S H P S D
+态	H P N D D BXG D D
+怂	P D P N D BXG D D
+怃	D D S H H P SWG
+怄	D D S H P D SZ
+怅	D D S P H ST N
+怆	D D S P N HZG SWG
+怊	D D S HZG P S HZ H
+怍	D D S P H S H H
+怎	P H S H H D BXG D D
+怏	D D S S HZ H P N
+怒	PD P H HP N D BXG D D
+怔	D D S H S H S H
+怕	D D S P S HZ H H
+怖	D D S H P S HZG S
+怙	D D S H S S HZ H
+怛	D D S S HZ H H H
+怜	D D S P N D HP D
+思	S HZ H S H D BXG D D
+怠	PZ D S HZ H D BXG D D
+怡	D D S PZ D S HZ H
+急	P HP HZ H H D BXG D D
+怦	D D S H D P H S
+性	D D S P H H S H
+怨	P HP D HZG SWG D BXG D D
+怩	D D S HZ H P P SWG
+怪	D D S HP N H S H
+怫	D D S HZ H SZWG P S
+怯	D D S H S H PZ D
+怵	D D S H S P N D
+怹	P S HZG S SWG D BXG D D
+总	D P S HZ H D BXG D D
+怼	HP D H SG D D BXG D D
+怿	D D S HP N H H S
+恁	P S P H S H D BXG D D
+恂	D D S P HZG S HZ H H
+恃	D D S H S H H SG D
+恆	D D S H S HZ D D H
+恋	D H S S P D D BXG D D
+恍	D D S S D P H P SWG
+恐	H S T P HZWG D D BXG D D
+恒	D D S H S HZ H H H
+恕	PD P H S HZ H D BXG D D
+恙	D P H H S H D BXG D D
+恚	H S H H S H D BXG D D
+恝	H H H S HZG P D BXG D D
+恢	D D S H P D P P N
+恣	D T P HG P N D BXG D D
+恤	D D S P S HZ S S H
+恧	H P S HZG S S D BXG D D
+恨	D D S HZ H H ST P N
+恩	S HZ H P D H D BXG D D
+恪	D D S P HP N S HZ H
+恫	D D S S HZG H S HZ H
+恬	D D S P H S S HZ H
+恭	H S S H P N SG D D D
+息	P S HZ H H H D BXG D D
+恰	D D S P N H S HZ H
+恳	HZ H H ST P N D BXG D D
+恶	H S S D P H D BXG D D
+恸	D D S H H PZ D HZG P
+恹	D D S H P H P N D
+恺	D D S S SZ S HZ H SWG
+恻	D D S S HZ P D S SG
+恼	D D S D H P D SZ S
+恽	D D S D HG H PZ H S
+恿	HP D S HZG H H S D BXG D D
+悃	D D S S HZ H S P D H
+悄	D D S S D P S HZG H H
+悉	P D P H S P N D BXG D D
+悌	D D S D P HZ H SZWG S P
+悍	D D S S HZ H H H H S
+悒	D D S S HZ H HZ S H SWG
+悔	D D S P H SZ HZG D H D
+悖	D D S H S D HG HP SG H
+悚	D D S H S HZ H S P N
+悛	D D S PZ D P D P HP N
+悝	D D S S HZ H H S H H
+悟	D D S H S HZ H S HZ H
+悠	P S S P H P N D BXG D D
+患	S HZ H S HZ H S D BXG D D
+悦	D D S D P S HZ H P SWG
+您	P S P HG SG P D D BXG D D
+悫	H S H D HG P HZWG D BXG D D
+悬	S HZ H H H PZ D D BXG D D
+悭	D D S S S HP N H S H
+悯	D D S D S HZG D H P D
+悱	D D S S H H H S H H H
+悲	S H H H S H H H D BXG D D
+悴	D D S D H P D P D H S
+悸	D D S P H S P N HP SG H
+悻	D D S H S H D P H H S
+悼	D D S S H S HZ H H H S
+情	D D S H H S H S HZG H H
+惆	D D S P HZG H S H S HZ H
+惇	D D S D H S HZ H HP SG H
+惊	D D S D H S HZ H SG P D
+惋	D D S D D HG P HP D HZG SWG
+惑	H S HZ H T XG P D D BXG D D
+惕	D D S S HZ H H P HZG P P
+惘	D D S S HZG D P H D H SZ
+惚	D D S P HZG P P D BXG D D
+惜	D D S H S S H S HZ H H
+惝	D D S S D P S HZG S HZ H
+惟	D D S P S D H H H S H
+惠	H S HZ H H S H D D BXG D D
+惦	D D S D H P S H S HZ H
+惧	D D S S HZ H H H H P D
+惨	D D S PZ D H P N P P P
+惩	P P S H S H S H D BXG D D
+惫	P HP N S HZ H S H D BXG D D
+惬	D D S H H D P H P D SZ
+惭	D D S H PZ S T P P H S
+惮	D D S D P S HZ H H H S
+惯	D D S SZ HZ S H S HZ P D
+惰	D D S H P H S H S HZG H H
+想	H S P D S HZ H H H D BXG D D
+惴	D D S S SZ S H P S HZG S S
+惶	D D S P S HZ H H H H S H
+惹	H S S H P S HZ H D BXG D D
+惺	D D S S HZ H H P H H S H
+愀	D D S P H S P D D P P N
+愁	P H S P D D P P N D BXG D D
+愆	P P S D D T H H SG D BXG D D
+愈	P N H S HZG H H S SG D BXG D D
+愉	D D S P N H S HZG H H S SG
+愍	HZ H ST H XG P H P N D BXG D D
+愎	D D S P H S HZ H H P HP N
+意	D H D P H S HZ H H D BXG D D
+愕	D D S S HZ H S HZ H H H SZWG
+愚	S HZ H H S HZG S T D D BXG D D
+感	H P H S HZ H XG P D D BXG D D
+愠	D D S S HZ H H S HZ S S H
+愣	D D S S HZ S S H D H HZG P
+愤	D D S H S H S S S HZ P D
+愦	D D S S HZ H S H S HZ P D
+愧	D D S P S HZ H H P SWG PZ D
+愫	D D S H H S H PZ PZ D SG P D
+愿	H P P S HZ H H SG P D D BXG D D
+慈	D P H PZ PZ D PZ PZ D D BXG D D
+慊	D D S D P H HZ H H S S P N
+慌	D D S H S S D H SZ P S SWG
+慎	D D S H S S HZ H H H H P D
+慑	D D S H S S H H H HP D HP N
+慕	H S S S HZ H H H P N SG D D D
+慜	P H SZ HZ D H D P H P N D BXG D D
+慝	H H S S H P S HZ H SZ D BXG D D
+慢	D D S S HZ H H S HZ S S H HP N
+慧	H H H S H H H S HZ H H D BXG D D
+慨	D D S HZ H H ST D H PZ P SWG
+慰	HZ H P H H SG P D H SG D D BXG D D
+慵	D D S D H P HZ H H S HZG H H S
+慷	D D S D H P HZ H H SG D T P N
+憋	D P S HZG S P D P H P N D BXG D D
+憎	D D S D P S HZ S D P H S HZ H H
+憔	D D S P S D H H H S H D D D D
+憝	D H S HZ H HP SG T P H P N D BXG D D
+憧	D D S D H D P H S HZ H H S H H
+憨	HZ H S S H H T P H P N D BXG D D
+憩	P H S S HZ H P S HZ H H H D BXG D D
+憬	D D S S HZ H H D H S HZ H SG P D
+憷	D D S H S P D H S P D HG S H P N
+憾	D D S H P H S HZ H XG P D D BXG D D
+懂	D D S H S S P H S HZ H H S H H
+懈	D D S P HP P HZG H H S HZG P P H H S
+懊	D D S P S HZ D P H S P D H P N
+懋	H S P D HP D HG SG P H S P N D BXG D D
+懑	D D T H S S H S HZG P D P D D BXG D D
+懒	D D S H S HZ H S P D P HP S HZ P D
+懔	D D S D H S HZ S HZ H H H H SG P D
+懦	D D S H D HG S D D D D H P S HZG S S
+懵	D D S H S S S HZ S S H D HG S HZ H H H
+懿	H S H D HG H S HZ H D P T D T P HG P N D BXG D D
+戆	D H D P H S HZ H H H S P HP N H S H S HZ P D D BXG D D
+戈	H XG P D
+戉	H ST XG P D
+戊	H P XG P D
+戋	H H XG P D
+戌	H P H XG P D
+戍	H P D XG P D
+戎	H H P XG P D
+戏	HP D H XG P D
+成	H P HZG XG P D
+我	P H SG T XG P D
+戒	H H P S XG P D
+戕	SZ S H P H XG P D
+或	H S HZ H T XG P D
+戗	P D HZG SWG H XG P D
+战	S H S HZ H H XG P D
+戚	H P S H H SG P D XG P D
+戛	H P S HZ H H H H XG P D
+戟	H S S HZ H H H S H XG P D
+戡	H S S H H H P D SZ H XG P D
+戢	S HZ H H S S H H T XG P D
+戤	HZZZG P HP D S HZ S S T H XG P D
+戥	S HZ H H P H H S T H XG P D
+截	H S H P S D H H H S H XG P D
+戬	H S S D P H S HZ H H H XG P D
+戮	HZ D T HZ D T P D P P P H XG P D
+戳	HZ D T HZ D T P S D H H H S H H XG P D
+戴	H S H S HZ H S H H S S H P D XG P D
+户	D HZ H P
+戽	D HZ H P D D H S
+戾	D HZ H P H P N D
+房	D HZ H P D H HZG P
+所	P P HZ H P P H S
+扁	D HZ H P S HZG H S S
+扃	D HZ H P S HZG S HZ H
+扇	D HZ H P HZG D T HZG D T
+扈	D HZ H P S HZ H HZ S H SWG
+扉	D HZ H P S H H H S H H H
+手	P H H SG
+才	H SG P
+扎	H SG T SWG
+扑	H SG T S D
+扒	H SG T P N
+打	H SG T H SG
+扔	H SG T HZZZG P
+托	H SG T P H SWG
+扛	H SG T H S H
+扣	H SG T S HZ H
+扦	H SG T P H S
+执	H SG T P HZWG D
+扩	H SG T D H P
+扪	H SG T D S HZG
+扫	H SG T HZ H H
+扬	H SG T HZZZG P P
+扭	H SG T HZ S H H
+扮	H SG T P N HZG P
+扯	H SG T S H S H
+扰	H SG T H P SWG D
+扳	H SG T P P HP N
+扶	H SG T H H P N
+批	H SG T H ST P SWG
+扼	H SG T H P HZG SWG
+找	H SG T H XG P D
+承	HP SG H H H HP P N
+技	H SG T H S HP N
+抄	H SG T S P D P
+抉	H SG T HZ H P N
+把	H SG T HZ S H SWG
+抑	H SG T P ST HZG S
+抒	H SG T HP D HG SG
+抓	H SG T P P S N
+投	H SG T P HZW HP N
+抖	H SG T D D H S
+抗	H SG T D H P HZWG
+折	H SG T P P H S
+抚	H SG T H H P SWG
+抛	H SG T P HZWG HZG P
+抟	H SG T H H SZP D
+抠	H SG T H P D SZ
+抡	H SG T P N P SWG
+抢	H SG T P N HZG SWG
+护	H SG T D HZ H P
+报	H SG T HZG S HP N
+抨	H SG T H D P H S
+披	H SG T HG P S HP N
+抬	H SG T PZ D S HZ H
+抱	H SG T P HZG HZ H SWG
+抵	H SG T P ST H XG D
+抹	H SG T H H S P N
+抻	H SG T S HZ H H S
+押	H SG T S HZ H H S
+抽	H SG T S HZ H S H
+抿	H SG T HZ H ST H XG
+拂	H SG T HZ H SZWG P S
+拄	H SG T D H H S H
+担	H SG T S HZ H H H
+拆	H SG T P P H S D
+拇	H SG T SZ HZG D H D
+拈	H SG T S H S HZ H
+拉	H SG T D H D P H
+拊	H SG T P S H SG D
+拌	H SG T D P H H S
+拍	H SG T P S HZ H H
+拎	H SG T P N D HP D
+拐	H SG T S HZ H HZG P
+拒	H SG T H HZ H SZ
+拓	H SG T H P S HZ H
+拔	H SG T H P HP N D
+拖	H SG T P H HZG S SWG
+拗	H SG T PZ PZ D HZG P
+拘	H SG T P HZG S HZ H
+拙	H SG T SZ S S SZ S
+拚	H SG T PZ D H P S
+招	H SG T HZG P S HZ H
+拜	P H H P H H H H S
+拟	H SG T ST D P D
+拢	H SG T H P SWG P D
+拣	H SG T H PZ HZG P D
+拥	H SG T P HZG H H S
+拦	H SG T D P H H H
+拧	H SG T D D HG H SG
+拨	H SG T SZ P HP N D
+择	H SG T HP N H H S
+括	H SG T P H S S HZ H
+拭	H SG T H H S T XG D
+拮	H SG T H S H S HZ H
+拯	H SG T HP SG HP P N H
+拱	H SG T H S S H P D
+拳	D P H H P N P H H SG
+拴	H SG T P N H H S H
+拶	H SG T PD PD PD P HP D
+拷	H SG T H S H P H SZWG
+拼	H SG T D P H H P S
+拽	H SG T S HZ H H XG P
+拾	H SG T P N H S HZ H
+拿	P N H S HZ H P H H SG
+持	H SG T H S H H SG D
+挂	H SG T H S H H S H
+指	H SG T P SWG S HZ H H
+挈	H H H S HZG P P H H SG
+按	H SG T D D HG PD P H
+挎	H SG T H P N H H SZWG
+挑	H SG T P D T SWG P D
+挖	H SG T D D HG P D HZWG
+挚	H SG T P HZWG D P H H SG
+挛	D H S S P D P H H SG
+挝	H SG T H SG D D HZZP N
+挞	H SG T H P D D HZZP N
+挟	H SG T H D P H P N
+挠	H SG T H XG P H P SWG
+挡	H SG T S D P HZ H H
+挢	H SG T P H P N P S
+挣	H SG T P HP HZ H H SG
+挤	H SG T D H P N P S
+挥	H SG T D HG H PZ H S
+挨	H SG T PZ D P H H P N
+挪	H SG T HZG H H P HPWG S
+挫	H SG T P D P D H S H
+振	H SG T H P H H ST P N
+挲	D D T S P D P P H H SG
+挹	H SG T S HZ H HZ S H SWG
+挺	H SG T P H S H HZZP N
+挽	H SG T P HP S HZ H P SWG
+捂	H SG T H S HZ H S HZ H
+捃	H SG T HZ H H P S HZ H
+捅	H SG T HP D S HZG H H S
+捆	H SG T S HZ H S P D H
+捉	H SG T S HZ H S H P N
+捋	H SG T P D D P H SG D
+捌	H SG T S HZ H HZG P S SG
+捍	H SG T S HZ H H H H S
+捎	H SG T S D P S HZG H H
+捏	H SG T S HZ H H H S H
+捐	H SG T S HZ H S HZG H H
+捕	H SG T H S HZG H H S D
+捞	H SG T H S S D HG HZG P
+损	H SG T S HZ H S HZ P D
+捡	H SG T P N H D D P H
+换	H SG T P HP S HZ H P N
+捣	H SG T P HZG D SZWG S SZ S
+捧	H SG T H H H P N H H S
+捩	H SG T D HZ H P H P N D
+捭	H SG T P S HZ H H P H S
+据	H SG T HZ H P H S S HZ H
+捯	H SG T H PZ D H S T S SG
+捱	H SG T H P H S H H S H
+捶	H SG T P H S H S S H H
+捷	H SG T H HZ H H S H P N
+捺	H SG T H P N H H SG P D
+捻	H SG T P N D HP D BXG D D
+掀	H SG T P P H S P HG P N
+掂	H SG T D H P S H S HZ H
+掇	H SG T HP D HP D HP D HP N
+授	H SG T P D D P D HG HP N
+掉	H SG T S H S HZ H H H S
+掊	H SG T D H D P H S HZ H
+掌	S D P D HG S HZ H P H H SG
+掎	H SG T H P D H S HZ H SG
+掏	H SG T P HZG P H H S SZ S
+掐	H SG T P HP P S H HZ H H
+排	H SG T S H H H S H H H
+掖	H SG T D H P S P HP D N
+掘	H SG T HZ H P SZ S S SZ S
+掠	H SG T D H S HZ H SG P D
+採	H SG T P D D P H S P N
+探	H SG T D HG P D H S P N
+掣	P H H S HZG S S SG P H H SG
+接	H SG T D H D P H PD P H
+控	H SG T D D HG P D H S H
+推	H SG T P S D H H H S H
+掩	H SG T H P N S HZ H H SWG
+措	H SG T H S S H S HZ H H
+掬	H SG T P HZG D P H S P D
+掭	H SG T H H P N SG D D D
+掮	H SG T D HZ H P S HZG H H
+掰	P H H P P N HZG P P H H SG
+掳	H SG T S H HG P H SWG HZG P
+掴	H SG T S HZ H H S H D H
+掷	H SG T D P H H P D HPWG S
+掸	H SG T D P S HZ H H H S
+掺	H SG T PZ D H P N P P P
+掼	H SG T SZ HZ S H S HZ P D
+掾	H SG T SZ HP H P WG P P P N
+揄	H SG T P N H S HZG H H S SG
+揆	H SG T HP D P P N H H P D
+揉	H SG T HP D HG SG P H S P N
+揍	H SG T H H H P N H H P D
+揎	H SG T D D HG H S HZ H H H
+描	H SG T H S S S HZ H S H
+提	H SG T S HZ H H H S H P N
+插	H SG T P H S P S H HZ H H
+揖	H SG T S HZ H H S S H H H
+揞	H SG T D H D P H S HZ H H
+揠	H SG T H S HZ H H PD P H SZ
+握	H SG T HZ H P H PZ D H S H
+揣	H SG T S SZ S H P S HZG S S
+揩	H SG T H ST P SWG P S HZ H H
+揪	H SG T P H S P D D P P N
+揭	H SG T S HZ H H P HZG P D SZ
+揲	H SG T H S S H SZ H S P N
+援	H SG T P D D P H H P HP N
+揶	H SG T H S S H H T HPWG S
+揸	H SG T H S P N S HZ H H H
+揽	H SG T S S P H D S HZ P SWG
+揿	H SG T P H H H ST P HG P N
+搀	H SG T P HP S HZ H P SWG D D
+搁	H SG T D S HZG P HP N S HZ H
+搂	H SG T D P H S P N PD P H
+搅	H SG T D D P D HG S HZ P SWG
+搋	H SG T P P S H HG P H SWG P HZWG
+搌	H SG T HZ H P H S S H ST P N
+搏	H SG T H S HZ H H S D H SG D
+搐	H SG T D H PZ PZ D S HZ H S H
+搓	H SG T D P H H H P H S H
+搔	H SG T HP N D S HZ H S H D
+搛	H SG T D P H HZ H H S S P N
+搜	H SG T P S H HZ H H S HP N
+搞	H SG T D H S HZ H S HZG S HZ H
+搠	H SG T D P H SZ S P P HZG H H
+搡	H SG T HP D HP D HP D H S P N
+搦	H SG T HZ H SZWG D T HZ H SZWG D T
+搪	H SG T D H P HZ H H S S HZ H
+搬	H SG T P P HZG D H D P HZW HP N
+搭	H SG T H S S P N H S HZ H
+搴	D D HG H H S S H P N P H H SG
+携	H SG T P S D H H H S H HZZZG P
+搽	H SG T H S S P N H SG P D
+搿	P H H P P D H S HZ H P H H SG
+摁	H SG T S HZ H P D H D BXG D D
+摄	H SG T H S S H H H HP D HP N
+摅	H SG T S H HG P H SWG D BXG D D
+摆	H SG T S HZ S S H H S H PZ D
+摇	H SG T P D D P P H H S SZ S
+摈	H SG T D D HG P S H S H P D
+摊	H SG T HP D P S D H H H S H
+摒	H SG T HZ H P D P H H P S
+摔	H SG T D H PZ PZ D D T P D H S
+摘	H SG T D H D P S HZG H S S HZ H
+摞	H SG T S HZ H S H PZ PZ D SG P D
+摧	H SG T S SZ S P S D H H H S H
+摩	D H P H S P D H S P N P H H SG
+摭	H SG T D H P H S S H D D D D
+摸	H SG T H S S S HZ H H H P N
+摹	H S S S HZ H H H P N P H H SG
+摺	H SG T HZ D T HZ D T P S HZ H H
+撂	H SG T S HZ H S H P HP N S HZ H
+撄	H SG T S HZ P D S HZ P D PD P H
+撅	H SG T H P D P H SZ S P P HG P N
+撇	H SG T D P S HZG S P D P H P N
+撑	H SG T S D P D HG S HZ H P H H SG
+撒	H SG T H S S H S HZG H H P H P N
+撕	H SG T H S S H H H P D P P H S
+撖	H SG T HZ H S S H H T P H P N
+撙	H SG T D P H S HZ P SW H H H SG D
+撞	H SG T D H D P H S HZ H H S H H
+撤	H SG T D H PZ D S HZG H H P H P N
+撩	H SG T H P N D P S HZ H H SG P D
+撬	H SG T P H H SWG P H H ST P H H SWG
+播	H SG T P D P H S P N S HZ H S H
+撮	H SG T S HZ H H H S S H H T HP N
+撰	H SG T HZ H SWG HZ H SWG H S S H P D
+撵	H SG T H H P D H H P N H PZ H S
+撷	H SG T H S H S HZ H H P S HZ P D
+撸	H SG T P HP S HZ H S H H S HZ H H
+撺	H SG T D D HG P D S HZ H S HZ H S
+撼	H SG T H P H S HZ H XG P D D BXG D D
+擀	H SG T H S S HZ H H H S P N H H S
+擂	H SG T H D HG S D D D D S HZ H S H
+擅	H SG T D H S HZ S HZ H H S HZ H H H
+操	H SG T S HZ H S HZ H S HZ H H S P N
+擎	H S S P HZG S HZ H P H P N P H H SG
+擐	H SG T S HZ S S H H S HZ H P ST P N
+擒	H SG T P N D H P D SZ S S HZG PZ D
+擗	H SG T HZ H P S HZ H D H D P H H S
+擘	HZ H P S HZ H D H D P H H S P H H SG
+擞	H SG T D P H S P D PD P H P H P N
+擢	H SG T HZ D T HZ D T P S D H H H S H
+擤	H SG T P S HZ H H H S HZ H S H H P S
+擦	H SG T D D HG P HP D D HP N H H SG P D
+攀	H S P D P D P D H S P D H P N P H H SG
+攉	H SG T H D HG S D D D D P S D H H H S H
+攒	H SG T P H S H P ST P H S H P SWG S HZ P D
+攘	H SG T D H S HZ H S HZ H H H S S H P ST P N
+攥	H SG T P H D P H D S HZ H H H H P N PZ PZ D SG P D
+攫	H SG T S HZ H H H S HZ H H H P S D H H H S H HP N
+攮	H SG T H S HZ H S D HG S HZ H S HZ H H H S S H P ST P N
+支	H S HP N
+攴	S H HP N
+攵	P H P N
+收	ST S P H P N
+攸	P S S P H P N
+改	HZ H ST P H P N
+攻	H S T P H P N
+放	D H HZG P P H P N
+政	H S H S T P H P N
+故	H S S HZ H P H P N
+效	D H P D P D P H P N
+敉	D P H S P D P H P N
+敌	P H S S HZ H P H P N
+敏	P H SZ HZG D H D P H P N
+救	H SG D T P D D P H P N
+敕	H S HZ H S P D P H P N
+敖	H H S H HZG P P H P N
+教	H S H P HP SG T P H P N
+敛	P D H D D P T P H P N
+敝	D P S HZG S P D P H P N
+敞	S D P S HZG S HZ H P H P N
+敢	HZ H S S H H T P H P N
+散	H S S H S HZG H H P H P N
+敦	D H S HZ H HP SG T P H P N
+敫	P S HZ H H D H HZG P P H P N
+敬	H S S P HZG S HZ H P H P N
+数	D P H S P D PD P H P H P N
+敲	D H S HZ H S HZG S HZ H S H HP N
+整	H S HZ H S P D P H P N H S H S H
+敷	H S HZ H H S D D H HZG P P H P N
+文	D H P N
+斋	D H P N H P S HZG S S
+斌	D H P D H H S H S T XG D
+斐	S H H H S H H H D H P N
+斑	H H S T D H P D H H S H
+斓	D H P D D S HZG H S HZ D P H S P D
+斗	D D H S
+料	D P H S P D D D H S
+斛	P HP P HZG H H S D D H S
+斜	P D H H SG P D D D H S
+斟	H S S H H H P D SZ D D H S
+斡	H S S HZ H H H S P N D D H S
+斤	P P H S
+斥	P P H S D
+斧	P D P N P P H S
+斩	H PZ S T P P H S
+斫	H P S HZ H P P H S
+断	D P H S P D SZ P P H S
+斯	H S S H H H P D P P H S
+新	D H D P H H SG P D P P H S
+方	D H HZG P
+於	D H HZG P P N D D
+施	D H HZG P P H HZG S SWG
+旁	D H D P D HG D H HZG P
+旃	D H HZG P P H P HZG D H
+旄	D H HZG P P H P H H SWG
+旅	D H HZG P P H P ST P N
+旆	D H HZG P P H H S HZG S
+旋	D H HZG P P H HG S H P N
+旌	D H HZG P P H P H H S H
+旎	D H HZG P P H HZ H P P SWG
+族	D H HZG P P H P H H P N
+旒	D H HZG P P H D H PZ D P S SWG
+旖	D H HZG P P H H P D H S HZ H SG
+旗	D H HZG P P H H S S H H H P D
+无	H H P SWG
+既	HZ H H ST D H PZ P SWG
+日	S HZ H H
+旦	S HZ H H H
+旧	S S HZ H H
+旨	P SWG S HZ H H
+早	S HZ H H H S
+旬	P HZG S HZ H H
+旭	P HZWG S HZ H H
+旮	P HZWG S HZ H H
+旯	S HZ H H P HZWG
+旰	S HZ H H H H S
+旱	S HZ H H H H S
+时	S HZ H H H SG D
+旷	S HZ H H D H P
+旸	S HZ H H HZZZG P P
+旺	S HZ H H H H S H
+旻	S HZ H H D H P N
+旼	S HZ H H D H P N
+昀	S HZ H H P HZG D T
+昂	S HZ H H P ST HZG S
+昃	S HZ H H H P P N
+昆	S HZ H H H ST P SWG
+昇	S HZ H H P H P S
+昉	S HZ H H D H HZG P
+昊	S HZ H H H H P N
+昌	S HZ H H S HZ H H
+明	S HZ H H P HZG H H
+昏	P ST H XG S HZ H H
+易	S HZ H H P HZG P P
+昔	H S S H S HZ H H
+昕	S HZ H H P P H S
+昙	S HZ H H H H PZ D
+昝	P HP N S D S HZ H H
+星	S HZ H H P H H S H
+映	S HZ H H S HZ H P N
+春	H H H P N S HZ H H
+昧	S HZ H H H H S P N
+昨	S HZ H H P H S H H
+昭	S HZ H H HZG P S HZ H
+是	S HZ H H H S H P N
+昱	S HZ H H D H D P H
+昳	S HZ H H P H H P N
+昴	S HZ H H P ST P HZG S
+昵	S HZ H H HZ H P P SWG
+昶	D HZG HP P N S HZ H H
+昺	S HZ H H H S HZG P D
+昼	HZ H P N S HZ H H H
+显	S HZ H H S S D P H
+晁	S HZ H H P D T SWG P D
+晃	S HZ H H S D P H P SWG
+晋	H S S D P H S HZ H H
+晌	S HZ H H P S HZG S HZ H
+晏	S HZ H H D D HG PD P H
+晒	S HZ H H H S HZ P SW H
+晓	S HZ H H H XG P H P SWG
+晔	S HZ H H P S P SWG H S
+晕	S HZ H H D HG H PZ H S
+晖	S HZ H H D HG H PZ H S
+晗	S HZ H H P N D HP S HZ H
+晚	S HZ H H P HP S HZ H P SWG
+晞	S HZ H H P D H P S HZG S
+晟	S HZ H H H P HZG XG P D
+晡	S HZ H H H S HZG H H S D
+晤	S HZ H H H S HZ H S HZ H
+晦	S HZ H H P H SZ HZG D H D
+晨	S HZ H H H P H H ST P N
+普	D P H S S D P H S HZ H H
+景	S HZ H H D H S HZ H SG P D
+晰	S HZ H H H S P D P P H S
+晴	S HZ H H H H S H S HZG H H
+晶	S HZ H H S HZ H H S HZ H H
+晷	S HZ H H P HP N S D S HZ H
+智	P H H P D S HZ H S HZ H H
+晾	S HZ H H D H S HZ H SG P D
+暂	H PZ S T P P H S S HZ H H
+暄	S HZ H H D D HG H S HZ H H H
+暇	S HZ H H HZ H S H H HZ H HP N
+暌	S HZ H H HP D P P N H H P D
+暐	S HZ H H HZ S H S HZ H H SZ S
+暑	S HZ H H H S H P S HZ H H
+暖	S HZ H H P D D P H H P HP N
+暗	S HZ H H D H D P H S HZ H H
+暝	S HZ H H D HG S HZ H H D H P D
+暧	S HZ H H P D D P D HG H P HP N
+暨	HZ H H ST D H PZ P SWG S HZ H H H
+暮	H S S S HZ H H H P N S HZ H H
+暴	S HZ H H H S S H P N SG D T P D
+暹	S HZ H H P S D H H H S H D HZZP N
+暾	S HZ H H D H S HZ H HP SG T P H P N
+曈	S HZ H H D H D P H S HZ H H S H H
+曌	S HZ H H P HZG H H D D HG P D H S H
+曙	S HZ H H S HZ S S H H S H P S HZ H H
+曛	S HZ H H P H S HZ D P H S H H D D D D
+曜	S HZ H H HZ D T HZ D T P S D H H H S H
+曝	S HZ H H S HZ H H H S S H P N SG D T P D
+曦	S HZ H H D P H H S H P H S P D H SZWG XG P D
+曩	S HZ H H D H S HZ H S HZ H H H S S H P ST P N
+曰	S HZ H H
+曲	S HZ H S S H
+曳	S HZ H H XG P
+更	H S HZ H H P N
+曷	S HZ H H P HZG P D SZ
+曹	H S HZ H S S H S HZ H H
+曼	S HZ H H S HZ S S H HP N
+曾	D P S HZ S D P H S HZ H H
+替	H H P D H H P N S HZ H H
+最	S HZ H H H S S H H T HP N
+月	P HZG H H
+有	H P S HZG H H
+朊	P HZG H H H H P SWG
+朋	P HZG H H P HZG H H
+服	P HZG H H HZG S HP N
+朐	P HZG H H P HZG S HZ H
+朔	D P H SZ S P P HZG H H
+朕	P HZG H H D P H H P N
+朗	D HZ H H ST D P HZG H H
+望	D H ST P HZG H H H H S H
+朝	H S S HZ H H H S P HZG H H
+期	H S S H H H P D P HZG H H
+朦	P HZG H H H S S D HG H H P WG P P P N
+木	H S P N
+未	H H S P N
+末	H H S P N
+本	H S P N H
+札	H S P D SWG
+术	H S P N D
+朱	P H H S P N
+朴	H S P D S D
+朵	P HZW H S P N
+机	H S P D P HZWG
+朽	H S P D H SZWG
+杀	P D H SG P D
+杂	P HZWG H SG P D
+权	H S P D HP N
+杆	H S P D H H S
+杈	H S P D HP N D
+杉	H S P D P P P
+杌	H S P D H P SWG
+李	H S P N HP SG H
+杏	H S P N S HZ H
+材	H S P D H SG P
+村	H S P D H SG D
+杓	H S P D P HZG D
+杖	H S P D H P N
+杜	H S P D H S H
+杞	H S P D HZ H SWG
+束	H S HZ H S P N
+杠	H S P D H S H
+条	P HP N H SG P D
+来	H D P H S P N
+杨	H S P D HZZZG P P
+杩	H S P D HZ SZWG H
+杪	H S P D S P D P
+杭	H S P D D H P HZWG
+杯	H S P D H P S D
+杰	H S P N D D D D
+杲	S HZ H H H S P N
+杳	H S P N S HZ H H
+杵	H S P D P H H S
+杷	H S P D HZ S H SWG
+杼	H S P D HP D HG SG
+松	H S P D P N PZ D
+板	H S P D P P HP N
+极	H S P D P HZZP N
+构	H S P D P HZG PZ D
+枇	H S P D H ST P SWG
+枉	H S P D H H S H
+枋	H S P D D H HZG P
+析	H S P D P P H S
+枕	H S P D D HG P SWG
+林	H S P D H S P N
+枘	H S P D S HZG P D
+枚	H S P D P H P N
+果	S HZ H H H S P N
+枝	H S P D H S HP N
+枞	H S P D P D P N
+枢	H S P D H P D SZ
+枣	H S HZ S P N D D
+枥	H S P D H P HZG P
+枧	H S P D S HZ P SWG
+枨	H S P D P H ST N
+枪	H S P D P N HZG SWG
+枫	H S P D P HXG P D
+枭	P HZG D SZWG H S P N
+枯	H S P D H S S HZ H
+枰	H S P D H D P H S
+枳	H S P D S HZ H P D
+枵	H S P D S HZ H H SZWG
+架	HZG P S HZ H H S P N
+枷	H S P D HZG P S HZ H
+枸	H S P D P HZG S HZ H
+柁	H S P D D D HG P SWG
+柃	H S P D P N D HP D
+柄	H S P D H S HZG P D
+柏	H S P D P S HZ H H
+某	H S S H H H S P N
+柑	H S P D H S S H H
+柒	D D T H SWG H S P N
+染	D D T P HZWG H S P N
+柔	HP D HG SG P H S P N
+柘	H S P D H P S HZ H
+柙	H S P D S HZ H H S
+柚	H S P D S HZ H S H
+柜	H S P D H HZ H SZ
+柝	H S P D P P H S D
+柞	H S P D P H S H H
+柠	H S P D D D HG H SG
+柢	H S P D P ST H XG D
+查	H S P N S HZ H H H
+柩	H S P D H P HP D SZ
+柬	H S HZ D P H S P N
+柯	H S P D H S HZ H SG
+柰	H S P N H H SG P D
+柱	H S P D D H H S H
+柳	H S P D P ST P HZG S
+柴	S H S T P SWG H S P N
+査	H S P N S HZ H H H
+柽	H S P D HP N H S H
+柿	H S P D D H S HZG S
+栀	H S P D P P H HZG SWG
+栃	H S P D P P H HZG P
+栅	H S P D P HZG P HZG H
+标	H S P D H H SG P D
+栈	H S P D H H XG P D
+栉	H S P D H S S HZG S
+栊	H S P D H P SWG P D
+栋	H S P D H PZ SG P D
+栌	H S P D S H HZ H P
+栎	H S P D P SZ SG P D
+栏	H S P D D P H H H
+树	H S P D HP D H SG D
+栓	H S P D P N H H S H
+栖	H S P D H S HZ P SW H
+栗	H S HZ S S H H S P N
+栝	H S P D P H S S HZ H
+校	H S P D D H P D P N
+栢	H S P D H P S HZ H H
+栩	H S P D HZG D T HZG D T
+株	H S P D P H H S P N
+栲	H S P D H S H P H SZWG
+栳	H S P D H S H P P SWG
+样	H S P D D P H H H S
+核	H S P D D H PZ P P D
+根	H S P D HZ H H ST P N
+格	H S P D P HP N S HZ H
+栽	H S H H S P D XG P D
+栾	D H S S P D H S P N
+桀	P HP D H SZ S H S P N
+桁	H S P D P P S H H SG
+桂	H S P D H S H H S H
+桃	H S P D P D T SWG P D
+桄	H S P D S D P H P SWG
+桅	H S P D P HP H P HZG SWG
+框	H S P D H H H S H SZ
+案	D D HG PD P H H S P N
+桉	H S P D D D HG PD P H
+桊	D P H H P N H S P N
+桌	S H S HZ H H H S P N
+桎	H S P D H PZ D H S H
+桐	H S P D S HZG H S HZ H
+桑	HP D HP D HP D H S P N
+桓	H S P D H S HZ H H H
+桔	H S P D H S H S HZ H
+桕	H S P D P S H HZ H H
+桠	H S P D H S S D P H
+桡	H S P D H XG P H P SWG
+桢	H S P D S H S HZ P D
+档	H S P D S D P HZ H H
+桤	H S P D S SZ S HZ H SWG
+桥	H S P D P H P N P S
+桦	H S P D P S P SWG H S
+桧	H S P D P N H H PZ D
+桨	D T S P HP D H S P N
+桩	H S P D D H P H S H
+桫	H S P D D D T S P D P
+桴	H S P D P D D P HP SG H
+桶	H S P D HP D S HZG H H S
+桷	H S P D P HP P HZG H H S
+梁	D D T HZG P D D H S P N
+梃	H S P D P H S H HZZP N
+梅	H S P D P H SZ HZG D H D
+梆	H S P D H H H P HPWG S
+梏	H S P D P H S H S HZ H
+梓	H S P D D H D P H H S
+梗	H S P D H S HZ H H P N
+梢	H S P D S D P S HZG H H
+梦	H S P D H S P N P HP D
+梧	H S P D H S HZ H S HZ H
+梨	P H S P D S SG H S P N
+梭	H S P D PZ D P D P HP N
+梯	H S P D D P HZ H SZWG S P
+械	H S P D H H P S XG P D
+梳	H S P D D H PZ D P S SWG
+梵	H S P D H S P N P HZWG D
+检	H S P D P N H D D P H
+棂	H S P D HZ H H D P P N
+棉	H S P D P S HZ H H S HZG S
+棋	H S P D H S S H H H P D
+棍	H S P D S HZ H H H ST P SWG
+棒	H S P D H H H P N H H S
+棕	H S P D D D HG H H SG P D
+棘	H S HZG S P D H S HZG S P N
+棚	H S P D P HZG H H P HZG H H
+棠	S D P D HG S HZ H H S P N
+棣	H S P D HZ H H SG D T P N
+棪	H S P D D P P D D P P N
+森	H S P N H S P D H S P N
+棰	H S P D P H S H S S H H
+棱	H S P D H S H P D P HP N
+棵	H S P D S HZ H H H S P N
+棹	H S P D S H S HZ H H H S
+棺	H S P D D D HG S HZ H HZ H
+棻	H S S P D HZG P H S P N
+棼	H S P D H S P D P N HZG P
+椁	H S P D D H S HZ H HP SG H
+椅	H S P D H P D H S HZ H SG
+椋	H S P D D H S HZ H SG P D
+植	H S P D H S S HZ H H H H
+椎	H S P D P S D H H H S H
+椐	H S P D HZ H P H S S HZ H
+椒	H S P D S H H SG P D HP N
+椟	H S P D H S HG D D H P D
+椠	H PZ S T P P H S H S P N
+椤	H S P D S HZ S S H P HP D
+椪	H S P D D P H S S D P H
+椭	H S P D HPWG S H P S HZG H H
+椰	H S P D H S S H H T HPWG S
+椴	H S P D P S H H T P HZW HP N
+椹	H S P D H S S H H H P D SZ
+椽	H S P D SZ HP H P WG P P P N
+椿	H S P D H H H P N S HZ H H
+楂	H S P D H S P N S HZ H H H
+楔	H S P D H H H S HZG P H P N
+楗	H S P D HZ H H H H S HZZP N
+楚	H S P D H S P D HG S H P N
+楝	H S P D H S HZ D P H S P N
+楞	H S P D S HZ S S H D H HZG P
+楠	H S P D H S S HZG D P H H S
+楣	H S P D HZ S H P S HZ H H H
+楦	H S P D D D HG H S HZ H H H
+楫	H S P D S HZ H H S S H H H
+楮	H S P D H S H P S HZ H H
+楱	H S P D H H H P N H H P D
+楷	H S P D H ST P SWG P S HZ H H
+楸	H S P D P H S P D D P P N
+楹	H S P D HZZZG P HP D S HZ S S H
+楼	H S P D D P H S P N PD P H
+榀	H S P D S HZ H S HZ H S HZ H
+概	H S P D HZ H H ST D H PZ P SWG
+榄	H S P D S S P H D S HZ P SWG
+榅	H S P D S HZ H H S HZ S S H
+榆	H S P D P N H S HZG H H S SG
+榇	H S P D D H D P H H SG P D
+榈	H S P D D S HZG S HZ H S HZ H
+榉	H S P D D D P H P N H H S
+榊	H S P D D HP S D S HZ H H S
+榍	H S P D HZ H P S D P S HZG H H
+榔	H S P D D HZ H H ST D HPWG S
+榕	H S P D D D HG P D P N S HZ H
+榘	P H H P D H HZ H SZ H S P N
+榛	H S P D H H H P N P H S P D
+榜	H S P D D H D P D HG D H HZG P
+榧	H S P D H S H H H S H H H SZ
+榨	H S P D D D HG P D P H S H H
+榫	H S P D P S D H H H S H H S
+榭	H S P D P S HZG H H H P H SG D
+榱	H S P D D H S HZ H H P ST P N
+榴	H S P D P ST D HZG P S HZ H S H
+榷	H S P D D HG P S D H H H S H
+榻	H S P D S HZ H H HZG D T HZG D T
+槁	H S P D D H S HZ H S HZG S HZ H
+槃	P P HZG D H D P HZW HP D H S P N
+槊	D P H SZ S P P HZG H H H S P N
+槌	H S P D P S HZ H HZ H D HZZP N
+槎	H S P D D P H H H P H S H
+槐	H S P D P S HZ H H P SWG PZ D
+槔	H S P D P S HZ H H H P N H S
+槙	H S P D H S S HZ H H H H P D
+槛	H S P D S S P H D S HZ S S H
+槟	H S P D D D HG P S H S H P D
+槠	H S P D D HZT H S H P S HZ H H
+槭	H S P D H P S H H SG P D XG P D
+槲	H S P D P HP P HZG H H S D D H S
+槽	H S P D H S HZ H S S H S HZ H H
+槿	H S P D H S S H S HZ H H H S H
+樊	H S P D P D P D H S P D H P N
+樋	H S P D HP D S HZG H H S D HZZP N
+樑	H S P D D D T HZG P D D H S P N
+樗	H S P D H D HG S D D D D H H SZWG
+樘	H S P D S D P D HG S HZ H H S H
+樟	H S P D D H D P H S HZ H H H S
+模	H S P D H S S S HZ H H H P N
+樨	H S P D HZ H P S D T P D P H H S
+横	H S P D H S S H S HZ H S H P D
+樯	H S P D H S D P H S HZ S HZ H H
+樱	H S P D S HZ P D S HZ P D PD P H
+樵	H S P D P S D H H H S H D D D D
+樽	H S P D D P H S HZ P SW H H H SG D
+樾	H S P D H S H S H P N H ST XG P D
+橄	H S P D HZ H S S H H T P H P N
+橇	H S P D P H H SWG P H H ST P H H SWG
+橐	H S HZ H S D HG H P S HZ H H S P N
+橘	H S P D HP D HG SG P S HZG P D S HZ H
+橙	H S P D HP D P P N H S HZ H D P H
+橛	H S P D H P D P H SZ S P P HG P N
+橡	H S P D P HP S HZ H P WG P P P N
+橥	P WG P H S H P S HZ H H H S P N
+橱	H S P D H P H S HZ H D P T H SG D
+橹	H S P D P HP S HZ H S H H S HZ H H
+橼	H S P D PZ PZ T SZ HP H P WG P P P N
+檀	H S P D D H S HZ S HZ H H S HZ H H H
+檄	H S P D P S HZ H H D H HZG P P H P N
+檎	H S P D P N D H P D SZ S S HZG PZ D
+檐	H S P D P HP H P P D D H H H S HZ H
+檑	H S P D H D HG S D D D D S HZ H S H
+檗	HZ H P S HZ H D H D P H H S H S P N
+檠	H S S P HZG S HZ H P H P D H S P N
+檩	H S P D D H S HZ S HZ H H H H SG P D
+檫	H S P D D D HG P HP D D HP N H H SG P D
+檬	H S P D H S S D HG H H P WG P P P N
+欠	P HG P N
+次	D T P HG P N
+欢	HP D P HG P N
+欣	P P H S P HG P N
+欤	H SZWG T P HG P N
+欧	H P D SZ P HG P N
+欲	P D P D S HZ H P HG P N
+欷	P D H P S HZG S P HG P N
+欹	H P D H S HZ H SG P HG P N
+欺	H S S H H H P D P HG P N
+款	H S H H H SG P D P HG P N
+歃	P H S P S H HZ H H P HG P N
+歆	D H D P H S HZ H H P HG P N
+歇	S HZ H H P HZG P D SZ P HG P N
+歉	D P H HZ H H S S P D P HG P N
+歌	H S HZ H S H S HZ H SG P HG P N
+歙	P D H S HZ H HZG D T HZG D T P HG P N
+止	S H S H
+正	H S H S H
+此	S H S T P SWG
+步	S H S H S P P
+武	H H S H S T XG D
+歧	S H S T H S HP N
+歪	H P S D H S H S H
+歹	H P HP D
+死	H P HP D P SWG
+歼	H P HP D P H S
+殁	H P HP D P HZW HP N
+殂	H P HP D S HZ H H H
+殃	H P HP D S HZ H P N
+殄	H P HP D P N P P P
+殆	H P HP D PZ D S HZ H
+殇	H P HP D P H HZZZG P P
+殉	H P HP D P HZG S HZ H H
+殊	H P HP D P H H S P N
+残	H P HP D H H XG P D
+殍	H P HP D P D D P HP SG H
+殒	H P HP D S HZ H S HZ P D
+殓	H P HP D P N H D D P H
+殖	H P HP D H S S HZ H H H H
+殚	H P HP D D P S HZ H H H S
+殛	H P HP D HG SG S HZ H HP D H
+殡	H P HP D D D HG P S H S H P D
+殪	H P HP D H S H D HG H S HZ H D P H
+殳	P HZW HP N
+殴	H P D SZ P HZW HP N
+段	P S H H T P HZW HP N
+殷	P P HZ H H HZG P HZW HP N
+殿	HZ H P H S S H P D P HZW HP N
+毁	P S H HZ H H H S T P HZW HP N
+毂	H S H D HG H PZ S T P HZW HP N
+毅	D H D P H P WG P P P D P HZW HP N
+毋	SZ HZG P H
+母	SZ HZG D H D
+每	P H SZ HZG D H D
+毑	SZ HZG D H D HZG S SWG
+毒	H H S H SZ HZG D H D
+毓	P H SZ HZG D H D D H PZ D P S SWG
+比	H ST P SWG
+毕	H ST P SWG H S
+毖	H ST P SWG D BXG D P D
+毗	S HZ H S H H ST P SWG
+毙	H ST P SWG H P HP D P SWG
+毛	P H H SWG
+毡	P H H SWG S H S HZ H
+毪	P H H SWG PZ D P H H S
+毫	D H S HZ H D HG P H H SWG
+毯	P H H SWG D P P D D P P D
+毳	P H H SWG P H H ST P H H SWG
+毵	PZ D H P D P P P P H H SWG
+毹	P D H S HZG H H S SG P H H SWG
+毽	P H H SWG HZ H H H H S HZZP N
+氅	S D P S HZG S HZ H P H P N P H H SWG
+氆	P H H SWG D P H S S D P H S HZ H H
+氇	P H H SWG P HP S HZ H S H H S HZ H H
+氍	S HZ H H H S HZ H H H P S D H H H S H P H H SWG
+氏	P ST H XG
+氐	P ST H XG D
+民	HZ H ST H XG
+氓	D H SZ HZ H ST H XG
+气	P H H HXG
+氕	P H H HXG P
+氖	P H H HXG HZZZG P
+氘	P H H HXG P S
+氙	P H H HXG S SZ S
+氚	P H H HXG P S S
+氛	P H H HXG P N HZG P
+氟	P H H HXG HZ H SZWG P S
+氡	P H H HXG P HP N D D
+氢	P H H HXG HP D H S H
+氤	P H H HXG S HZ H P D H
+氦	P H H HXG D H PZ P P D
+氧	P H H HXG D P H H H S
+氨	P H H HXG D D HG PD P H
+氩	P H H HXG H S S D P H
+氪	P H H HXG H S S HZ H P SWG
+氮	P H H HXG D P P D D P P D
+氯	P H H HXG HZ H H SG D T P D
+氰	P H H HXG H H S H S HZG H H
+氲	P H H HXG S HZ H H S HZ S S H
+水	SG HP P N
+永	D HZG HP P N
+氹	HZWG SG HP P D
+氽	P N SG HP P N
+汀	D D T H SG
+汁	D D T H S
+求	H SG D T P N D
+汆	P N SG HP P N
+汇	D D T H SZ
+汉	D D T HP N
+汊	D D T HP N D
+汐	D D T P HP D
+汔	D D T P H HZWG
+汕	D D T S SZ S
+汗	D D T H H S
+汛	D D T HXG H S
+汜	D D T HZ H SWG
+汝	D D T PD P H
+汞	H S H SG HP P N
+江	D D T H S H
+池	D D T HZG S SWG
+污	D D T H H SZWG
+汤	D D T HZZZG P P
+汨	D D T S HZ H H
+汩	D D T S HZ H H
+汪	D D T H H S H
+汰	D D T H P N D
+汲	D D T P HZZP N
+汴	D D T D H S D
+汶	D D T D H P N
+汹	D D T P D SZ S
+汽	D D T P H H HXG
+汾	D D T P N HZG P
+沁	D D T D BXG D D
+沂	D D T P P H S
+沃	D D T P H P N
+沅	D D T H H P SWG
+沆	D D T D H P HZWG
+沈	D D T D HG P SWG
+沉	D D T D HG P HZWG
+沌	D D T H SZ S SWG
+沏	D D T H ST HZG P
+沐	D D T H S P N
+沓	SG HP P N S HZ H H
+沔	D D T H S SZ HZG
+沕	D D T P HZG P P
+沙	D D T S P D P
+沛	D D T H S HZG S
+沟	D D T P HZG PZ D
+没	D D T P HZW HP N
+沣	D D T H H H S
+沤	D D T H P D SZ
+沥	D D T H P HZG P
+沦	D D T P N P SWG
+沧	D D T P N HZG SWG
+沩	D D T D P HZG D
+沪	D D T D HZ H P
+沫	D D T H H S P N
+沭	D D T H S P N D
+沮	D D T S HZ H H H
+沱	D D T D D HG P SWG
+沲	D D T P H HZG S SWG
+河	D D T H S HZ H SG
+沸	D D T HZ H SZWG P S
+油	D D T S HZ H S H
+治	D D T PZ D S HZ H
+沼	D D T HZG P S HZ H
+沽	D D T H S S HZ H
+沾	D D T S H S HZ H
+沿	D D T P HZW S HZ H
+泃	D D T P HZG S HZ H
+泄	D D T H S S H SZ
+泅	D D T S HZ P D H
+泉	P S HZ H H SG HP P N
+泊	D D T P S HZ H H
+泌	D D T D BXG D P D
+泐	D D T HPWG S HZG P
+泓	D D T HZ H SZWG PZ D
+泔	D D T H S S H H
+法	D D T H S H PZ D
+泖	D D T P ST P HZG S
+泗	D D T S HZ P SW H
+泛	D D T P D HP N
+泞	D D T D D HG H SG
+泠	D D T P N D HP D
+泡	D D T P HZG HZ H SWG
+波	D D T HG P S HP N
+泣	D D T D H D P H
+泥	D D T HZ H P P SWG
+注	D D T D H H S H
+泪	D D T S HZ H H H
+泫	D D T D H PZ PZ D
+泮	D D T D P H H S
+泯	D D T HZ H ST H XG
+泰	H H H P N SG D T P D
+泱	D D T S HZ H P N
+泳	D D T D HZG HP P N
+泵	H P S HZ H SG HP P N
+泶	D D P D HG SG HP P N
+泷	D D T H P SWG P D
+泸	D D T S H HZ H P
+泺	D D T P SZ SG P D
+泻	D D T D HG H SZWG H
+泼	D D T SZ P HP N D
+泽	D D T HP N H H S
+泾	D D T HP D H S H
+洁	D D T H S H S HZ H
+洄	D D T S HZ S HZ H H
+洇	D D T S HZ H P D H
+洋	D D T D P H H H S
+洌	D D T H P HP D S SG
+洎	D D T P S HZ H H H
+洒	D D T H S HZ P SW H
+洗	D D T P H S H P SWG
+洙	D D T P H H S P N
+洚	D D T P HP N H SZ S
+洛	D D T P HP N S HZ H
+洞	D D T S HZG H S HZ H
+津	D D T HZ H H H H S
+洧	D D T H P S HZG H H
+洪	D D T H S S H P D
+洫	D D T P S HZ S S H
+洮	D D T P D T SWG P D
+洱	D D T H S S H H H
+洲	D D T D P D S D S
+洳	D D T PD P H S HZ H
+洵	D D T P HZG S HZ H H
+洸	D D T S D P H P SWG
+洹	D D T H S HZ H H H
+洺	D D T P HP D S HZ H
+活	D D T P H S S HZ H
+洼	D D T H S H H S H
+洽	D D T P N H S HZ H
+派	D D T P P P ST P N
+流	D D T D H PZ D P S SWG
+浃	D D T H D P H P N
+浅	D D T H H XG P D
+浆	D T S P HP D SG HP P N
+浇	D D T H XG P H P SWG
+浈	D D T S H S HZ P D
+浊	D D T S HZ H S H D
+测	D D T S HZ P D S SG
+浍	D D T P N H H PZ D
+济	D D T D H P N P S
+浏	D D T D H P D S SG
+浐	D D T D H D P H P
+浑	D D T D HG H PZ H S
+浒	D D T D HZT P H H S
+浓	D D T D HG P ST P N
+浔	D D T HZ H H H SG D
+浕	D D T HZ H P N D D
+浙	D D T H SG T P P H S
+浚	D D T PZ D P D P HP N
+浜	D D T P S H S H P D
+浞	D D T S HZ H S H P N
+浠	D D T P D H P S HZG S
+浣	D D T D D HG H H P SWG
+浦	D D T H S HZG H H S D
+浩	D D T P H S H S HZ H
+浪	D D T D HZ H H ST P N
+浮	D D T P D D P HP SG H
+浯	D D T H S HZ H S HZ H
+浴	D D T P D P N S HZ H
+海	D D T P H SZ HZG D H D
+浸	D D T HZ H H D HG HP N
+浼	D D T P HP S HZ H P SWG
+涂	D D T P N H H SG P D
+涅	D D T S HZ H H H S H
+消	D D T S D P S HZG H H
+涉	D D T S H S H S P P
+涌	D D T HP D S HZG H H S
+涎	D D T P S H SZ HZZP N
+涑	D D T H S HZ H S P N
+涓	D D T S HZ H S HZG H H
+涔	D D T S SZ S P N D HP
+涕	D D T D P HZ H SZWG S P
+涛	D D T H H H P H SG D
+涝	D D T H S S D HG HZG P
+涞	D D T H D P H S P N
+涟	D D T H PZ H S D HZZP N
+涠	D D T S HZ H H HZG S H
+涡	D D T S HZ H S HZG P D
+涣	D D T P HP S HZ H P N
+涤	D D T P HP N H SG P D
+润	D D T D S HZG H H S H
+涧	D D T D S HZG S HZ H H
+涨	D D T HZ H SZWG P H ST N
+涩	D D T HZG P D S H S H
+涪	D D T D H D P H S HZ H
+涫	D D T D D HG S HZ H HZ H
+涮	D D T HZ H P S HZG S S SG
+涯	D D T H P H S H H S H
+液	D D T D H P S P HP D N
+涵	D D T HP SG D T P D SZ S
+涸	D D T S HZ H S S HZ H H
+涿	D D T H P WG P P D P N
+淀	D D T D D HG H S H P N
+淄	D D T PD PD PD S HZ H S H
+淅	D D T H S P D P P H S
+淆	D D T P D H P S HZG H H
+淇	D D T H S S H H H P D
+淋	D D T H S P D H S P N
+淌	D D T S D P S HZG S HZ H
+淑	D D T S H H SG P D HP N
+淖	D D T S H S HZ H H H S
+淘	D D T P HZG P H H S SZ S
+淙	D D T D D HG H H SG P D
+淝	D D T P HZG H H HZ S H SWG
+淞	D D T H S P D P N PZ D
+淠	D D T S HZ H S H H P S
+淡	D D T D P P D D P P N
+淤	D D T D H HZG P P N D D
+淦	D D T P N H H S D P H
+淫	D D T P D D P P H S H
+淬	D D T D H P D P D H S
+淮	D D T P S D H H H S H
+深	D D T D HG P D H S P N
+淳	D D T D H S HZ H HP SG H
+混	D D T S HZ H H H ST P SWG
+淹	D D T H P N S HZ H H SWG
+添	D D T H H P N SG D D D
+淼	SG HP P N SG HP P D SG HP P N
+清	D D T H H S H S HZG H H
+渊	D D T P D P H S P D S
+渌	D D T HZ H H SG D T P N
+渍	D D T H H S H S HZ P D
+渎	D D T H S HG D D H P D
+渐	D D T H PZ S T P P H S
+渑	D D T S HZ H S HZ H H SWG
+渔	D D T P HP S HZ H S H H
+渖	D D T D D HG S HZ H H S
+渗	D D T PZ D H P N P P P
+渚	D D T H S H P S HZ H H
+渝	D D T P N H S HZG H H S SG
+渠	D D T H HZ H SZ H S P N
+渡	D D T D H P H S S H HP N
+渣	D D T H S P N S HZ H H H
+渤	D D T H S D HG HP SG T HZG P
+渥	D D T HZ H P H PZ D H S H
+温	D D T S HZ H H S HZ S S H
+渫	D D T H S S H SZ H S P N
+渭	D D T S HZ H S H S HZG H H
+港	D D T H S S H P N HZ H SWG
+渲	D D T D D HG H S HZ H H H
+渴	D D T S HZ H H P HZG P D SZ
+游	D D T D H HZG P P H HP SG H
+渺	D D T S HZ H H H S P D P
+湃	D D T P H H P H H H H S
+湄	D D T HZ S H P S HZ H H H
+湉	D D T D D S P H S S HZ H
+湍	D D T S SZ S H P S HZG S S
+湎	D D T H P S HZ S S H H H
+湓	D D T P N HZG P S HZ S S H
+湔	D D T D P H S HZG H H S SG
+湖	D D T H S S HZ H P HZG H H
+湘	D D T H S P D S HZ H H H
+湛	D D T H S S H H H P D SZ
+湟	D D T P S HZ H H H H S H
+湫	D D T P H S P D D P P N
+湮	D D T H S HZ S S H H S H
+湾	D D T D H S S P D HZ H SZWG
+湿	D D T S HZ H H S S D P H
+溃	D D T S HZ H S H S HZ P D
+溅	D D T S HZ P D H H XG P D
+溆	D D T P D H H SG P D HP N
+溉	D D T HZ H H ST D H PZ P SWG
+溏	D D T D H P HZ H H S S HZ H
+源	D D T H P P S HZ H H SG P D
+溘	D D T H S H PZ D S HZ S S H
+溜	D D T P ST D HZG P S HZ H S H
+溟	D D T D HG S HZ H H D H P D
+溢	D D T D P H P D S HZ S S H
+溥	D D T H S HZ H H S D H SG D
+溧	D D T H S HZ S S H H S P N
+溪	D D T P D D P PZ PZ D H P N
+溯	D D T D P H SZ S P P HZG H H
+溱	D D T H H H P N P H S P D
+溲	D D T P S H HZ H H S HP N
+溴	D D T P S HZ H H H H P N D
+溶	D D T D D HG P D P N S HZ H
+溷	D D T S HZ H P WG P P P D H
+溺	D D T HZ H SZWG D T HZ H SZWG D T
+溻	D D T S HZ H H HZG D T HZG D T
+溽	D D T H P H H ST P N H SG D
+滁	D D T HPWG S P N H H SG P D
+滂	D D T D H D P D HG D H HZG P
+滇	D D T H S S HZ H H H H P D
+滋	D D T D P H PZ PZ D PZ PZ D
+滏	D D T P D P N H H S D P H
+滑	D D T S HZ HZ D HG S HZG H H
+滓	D D T D D HG D H D P H H S
+滔	D D T P D D P P S H HZ H H
+滕	P HZG H H D P H H P N SG D T P D
+滗	D D T P H D P H D P H H SWG
+滘	D D T D HG P D H S H S HZ H
+滚	D D T D H P D PZ D P ST P N
+滞	D D T H S S S D HG S HZG S
+滟	D D T H H H S P HP HZ S H SWG
+滠	D D T H S S H H H HP D HP N
+满	D D T H S S H S HZG P D P D
+滢	D D T H S S D HG H H S H D
+滤	D D T S H HG P H SWG D BXG D D
+滥	D D T S S P H D S HZ S S H
+滦	D D T D H S S P D H S P N
+滨	D D T D D HG P S H S H P D
+滩	D D T HP D P S D H H H S H
+滴	D D T D H D P S HZG H S S HZ H
+滹	D D T S H HG P H SWG P D P H SG
+漂	D D T H S HZ S S H H H SG P D
+漆	D D T H S P D P N SG D T P D
+漈	D D T P HP D D HP N H H SG P D
+漉	D D T D H P HZ S S H H ST P SWG
+漏	D D T HZ H P H S HZG S D D D D
+漓	D D T D H P D SZ S S HZG PZ D
+演	D D T D D HG H S HZ H S H P D
+漕	D D T H S HZ H S S H S HZ H H
+漖	D D T H S H P HP SG T P H P N
+漠	D D T H S S S HZ H H H P N
+漤	D D T H S P D H S P N PD P H
+漩	D D T D H HZG P P H HG S H P N
+漪	D D T P WG P H P D H S HZ H SG
+漫	D D T S HZ H H S HZ S S H HP N
+漭	D D T H S S H P N D H P S
+漯	D D T S HZ H S H PZ PZ D SG P D
+漱	D D T H S HZ H S P D P HG P N
+漳	D D T D H D P H S HZ H H H S
+漶	D D T S HZ H S HZ H S D BXG D D
+漷	D D T D H S HZ H HP SG T HPWG S
+漾	D D T D P H H S H D HZG HP P N
+潆	D D T H S S D HG PZ PZ D SG P D
+潇	D D T H S S HZ H H S P S P D
+潋	D D T P D H D D P T P H P N
+潍	D D T PZ PZ T P S D H H H S H
+潘	D D T P D P H S P N S HZ H S H
+潜	D D T H H P D H H P N S HZ H H
+潞	D D T S HZ H S H S T P HP N S HZ H
+潟	D D T P S H HZ H H P HZG D D D D
+潢	D D T H S S H S HZ H S H P D
+潦	D D T H P N D P S HZ H H SG P D
+潭	D D T H S HZ S S H S HZ H H H S
+潮	D D T H S S HZ H H H S P HZG H H
+潲	D D T P H S P D S D P S HZG H H
+潴	D D T P WG P H S H P S HZ H H
+潸	D D T H S P D H S P N S HZG H H
+潺	D D T HZ H P HP SG H HP SG T HP SG H
+潼	D D T D H D P H S HZ H H S H H
+澂	D D T S SZ S H H H S H P H P N
+澄	D D T HP D P P N H S HZ H D P H
+澈	D D T D H PZ D S HZG H H P H P N
+澉	D D T HZ H S S H H T P H P N
+澌	D D T H S S H H H P D P P H S
+澍	D D T H S H S HZ H D P T H SG D
+澎	D D T H S H S HZ H D P T P P P
+澜	D D T D S HZG H S HZ D P H S P D
+澡	D D T S HZ H S HZ H S HZ H H S P N
+澧	D D T S HZ H S S H H S HZ H D P H
+澳	D D T P S HZ D P H S P D H P N
+澶	D D T D H S HZ S HZ H H S HZ H H H
+澹	D D T P HP H P P D D H H H S HZ H
+激	D D T P S HZ H H D H HZG P P H P N
+濂	D D T D H P D P H HZ H H S S P N
+濉	D D T S HZ H H H P S D H H H S H
+濑	D D T H S HZ H S P D P HP S HZ P D
+濒	D D T S H S H S P P H P S HZ P D
+濛	D D T H S S D HG H H P WG P P P N
+濞	D D T P S HZ H H H S HZ H S H H P S
+濠	D D T D H S HZ H D HG H P WG P P P N
+濡	D D T H D HG S D D D D H P S HZG S S
+濮	D D T P S S S D P H D P H H H P N
+濯	D D T HZ D T HZ D T P S D H H H S H
+瀍	D D T D H P S HZ H H S H H P D H S H
+瀑	D D T S HZ H H H S S H P N SG D T P D
+瀚	D D T H S S HZ H H H S P N HZG D T HZG D T
+瀛	D D T D H SZ S HZ H P HZG H H PD P H P HZWG D
+瀣	D D T S H P HP D HP N S H H H S H H H H
+瀵	D D T D P H S P N S HZ H S H H S S H P D
+瀹	D D T P N H S HZ H S HZ H S HZ H S HZG H S S
+灌	D D T H S S S HZ H S HZ H P S D H H H S H
+灏	D D T S HZ H H D H S HZ H SG P D H P S HZ P D
+灞	D D T H D HG S D D D D H S S H S HZ H H S P HZG H H
+火	D P P N
+灭	H D P P N
+灯	D P P D H SG
+灰	H P D P P N
+灵	HZ H H D P P N
+灶	D P P D H S H
+灸	P HP D D P P N
+灼	D P P D P HZG D
+灾	D D HG D P P N
+灿	D P P D S SZ S
+炀	D P P D HZZZG P P
+炅	S HZ H H D P P N
+炉	D P P D D HZ H P
+炊	D P P D P HG P N
+炎	D P P D D P P N
+炒	D P P D S P D P
+炔	D P P D HZ H P N
+炕	D P P D D H P HZWG
+炖	D P P D H SZ S SWG
+炘	D P P D P P H S
+炙	P HP D D D P P N
+炜	D P P D H H HZG S
+炝	D P P D P N HZG SWG
+炤	D P P D HZG P S HZ H
+炫	D P P D D H PZ PZ D
+炬	D P P D H HZ H SZ
+炭	S SZ S H P D P P N
+炮	D P P D P HZG HZ H SWG
+炯	D P P D S HZG S HZ H
+炱	PZ D S HZ H D P P N
+炳	D P P D H S HZG P D
+炷	D P P D D H H S H
+炸	D P P D P H S H H
+点	S H S HZ H D D D D
+炻	D P P D H P S HZ H
+炼	D P P D H PZ HZG P D
+炽	D P P D S HZ H P D
+烀	D P P D P D P H SG
+烁	D P P D P SZ SG P D
+烂	D P P D D P H H H
+烃	D P P D HP D H S H
+烈	H P HP D S SG D D D D
+烊	D P P D D P H H H S
+烘	D P P D H S S H P D
+烙	D P P D P HP N S HZ H
+烛	D P P D S HZ H S H D
+烜	D P P D H S HZ H H H
+烟	D P P D S HZ H P D H
+烤	D P P D H S H P H SZWG
+烦	D P P D H P S HZ P D
+烧	D P P D H XG P H P SWG
+烨	D P P D P S P SWG H S
+烩	D P P D P N H H PZ D
+烫	D D T HZZZG P P D P P N
+烬	D P P D HZ H P N D D
+热	H SG T P HZWG D D D D D
+烯	D P P D P D H P S HZG S
+烷	D P P D D D HG H H P SWG
+烹	D H S HZ H HP SG D D D D
+烽	D P P D P HP N H H H S
+焉	H S H S H H SZWG D D D D
+焊	D P P D S HZ H H H H S
+焐	D P P D H S HZ H S HZ H
+焓	D P P D P N D HP S HZ H
+焕	D P P D P HP S HZ H P N
+焖	D P P D D S HZG D BXG D D
+焗	D P P D HZ H P HZG S HZ H
+焘	H H H P H SG D D D D D
+焙	D P P D D H D P H S HZ H
+焚	H S P D H S P D D P P N
+焜	D P P D S HZ H H H ST P SWG
+焦	P S D H H H S H D D D D
+焯	D P P D S H S HZ H H H S
+焰	D P P D P HP P S H HZ H H
+焱	D P P N D P P D D P P N
+然	P HP D D H P N D D D D D
+煅	D P P D P S H H T P HZW HP N
+煊	D P P D D D HG H S HZ H H H
+煌	D P P D P S HZ H H H H S H
+煎	D P H S HZG H H S SG D D D D
+煜	D P P D S HZ H H D H D P H
+煞	P HP HZ H H P H P N D D D D
+煤	D P P D H S S H H H S P N
+煦	S HZ H H P HZG S HZ H D D D D
+照	S HZ H H HZG P S HZ H D D D D
+煨	D P P D S HZ H S H H ST P N
+煮	H S H P S HZ H H D D D D
+煲	P S S HZ H H S P D D P P N
+煳	D P P D H S S HZ H P HZG H H
+煸	D P P D D HZ H P S HZG H S S
+煺	D P P D HZ H H ST P D D HZZP N
+煽	D P P D D HZ H P HZG D T HZG D T
+熄	D P P D P S HZ H H H D BXG D D
+熊	PZ D S HZG H H P SWG P SWG D D D D
+熏	P H S HZ D P H S H H D D D D
+熔	D P P D D D HG P D P N S HZ H
+熘	D P P D P ST D HZG P S HZ H S H
+熙	H S S HZ H S SZ HZ H SWG D D D D
+熟	D H S HZ H HP SG T P HZWG D D D D D
+熠	D P P D HZ D T HZ D T P S HZ H H
+熨	HZ H P H H SG P D H SG D D P P N
+熬	H H S H HZG P P H P N D D D D
+熳	D P P D S HZ H H S HZ S S H HP N
+熵	D P P D D H D P S HZG P D S HZ H
+熹	H S H S HZ H D P H S HZ H D D D D
+燃	D P P D P HP D D H P N D D D D D
+燊	D P P D D P P D D P P D H S P N
+燎	D P P D H P N D P S HZ H H SG P D
+燔	D P P D P D P H S P N S HZ H S H
+燕	H S S H S HZ H S H T P SWG D D D D
+燚	D P P D D P P D D P P D D P P N
+燠	D P P D P S HZ D P H S P D H P N
+燥	D P P D S HZ H S HZ H S HZ H H S P N
+燧	D P P D D P H P WG P P P D D HZZP N
+燮	D H H H S HZ H D P P D D P P D HP N
+燹	H P WG P P P D H P WG P P P D D P P N
+爆	D P P D S HZ H H H S S H P N SG D T P D
+爝	D P P D P D D P S HZ S S H HZ H H ST D H SG D
+爨	P S H H S HZ H S HZ H HZ H H D HG H S P D H S P D H P N D P P D
+爪	P P S N
+爬	P P S N HZ S H SWG
+爰	P D D P H H P HP N
+爱	P D D P D HG H P HP N
+爵	P D D P S HZ S S H HZ H H ST D H SG D
+父	P D P N
+爷	P D P N HZG S
+爸	P D P N HZ S H SWG
+爹	P D P N P HP D P HP D
+爻	P D P N
+爽	H P D P D P D P D P N
+爿	SZ S H P
+片	P S H HZ
+版	P S H HZ P P HP N
+牌	P S H HZ P S HZ H H P H S
+牍	P S H HZ H S HG D D H P D
+牒	P S H HZ H S S H SZ H S P N
+牖	P S H HZ D HZ H P H S HZG H H S D
+牙	H SZ SG P
+牛	P H H S
+牝	P H S T P SWG
+牟	PZ D P H H S
+牡	P H S T H S H
+牢	D D HG P H H S
+牦	P H S T P H H SWG
+牧	P H S T P H P N
+物	P H S T P HZG P P
+牮	P S H XG D P H H S
+牯	P H S T H S S HZ H
+牲	P H S T P H H S H
+牵	H P D D HG P H H S
+特	P H S T H S H H SG D
+牺	P H S T H S HZ P SW H
+牾	P H S T H S HZ H S HZ H
+牿	P H S T P H S H S HZ H
+犀	HZ H P S D T P D P H H S
+犁	P H S P D S SG P H H S
+犄	P H S T H P D H S HZ H SG
+犇	P H H S P H S T P H H S
+犊	P H S T H S HG D D H P D
+犋	P H S T S HZ H H H H P D
+犍	P H S T HZ H H H H S HZZP N
+犏	P H S T D HZ H P S HZG H S S
+犒	P H S T D H S HZ H S HZG S HZ H
+犟	HZ H SZWG S HZ H S HZ H S H D P H H S
+犬	H P N D
+犯	P WG P HZG SWG
+犰	P WG P P HZWG
+犴	P WG P H H S
+状	D T S H P N D
+犷	P WG P D H P
+犸	P WG P HZ SZWG H
+犹	P WG P H P SWG D
+狁	P WG P PZ D P SWG
+狂	P WG P H H S H
+狃	P WG P HZ S H H
+狄	P WG P D P P N
+狈	P WG P S HZ P D
+狍	P WG P P HZG HZ H SWG
+狎	P WG P S HZ H H S
+狐	P WG P P P ST D N
+狒	P WG P HZ H SZWG P S
+狗	P WG P P HZG S HZ H
+狙	P WG P S HZ H H H
+狞	P WG P D D HG H SG
+狠	P WG P HZ H H ST P N
+狡	P WG P D H P D P N
+狨	P WG P H H P XG P D
+狩	P WG P D D HG H SG D
+独	P WG P S HZ H S H D
+狭	P WG P H D P H P N
+狮	P WG P S P H S HZG S
+狯	P WG P P N H H PZ D
+狰	P WG P P HP HZ H H SG
+狱	P WG P D HZT H P N D
+狲	P WG P HP SG T SG P D
+狳	P WG P P N H H SG P D
+狴	P WG P H ST P SWG H S H
+狷	P WG P S HZ H S HZG H H
+狸	P WG P S HZ H H S H H
+狺	P WG P D H H H S HZ H
+狻	P WG P PZ D P D P HP N
+狼	P WG P D HZ H H ST P N
+猁	P WG P P H S P D S SG
+猃	P WG P P N H D D P H
+猊	P WG P P S H HZ H H P SWG
+猎	P WG P H S S H S HZ H H
+猓	P WG P S HZ H H H S P N
+猕	P WG P HZ H SZWG P HG SG P D
+猖	P WG P S HZ H H S HZ H H
+猗	P WG P H P D H S HZ H SG
+猛	P WG P HP SG H S HZ S S H
+猜	P WG P H H S H S HZG H H
+猝	P WG P D H P D P D H S
+猞	P WG P P N H H S S HZ H
+猡	P WG P S HZ S S H P HP D
+猢	P WG P H S S HZ H P HZG H H
+猥	P WG P S HZ H S H H ST P N
+猩	P WG P S HZ H H P H H S H
+猪	P WG P H S H P S HZ H H
+猫	P WG P H S S S HZ H S H
+猬	P WG P S HZ H S H S HZG H H
+献	H S S HZG D P H H S H P N D
+猱	P WG P HP D HG SG P H S P N
+猴	P WG P P S HZ H P H H P N
+猷	D P H S HZ P SW H H H P N D
+猸	P WG P HZ S H P S HZ H H H
+猹	P WG P H S P N S HZ H H H
+猾	P WG P S HZ HZ D HG S HZG H H
+猿	P WG P H S H S HZ H P ST P N
+獍	P WG P D H D P H S HZ H H P SWG
+獐	P WG P D H D P H S HZ H H H S
+獒	H H S H HZG P P H P D H P N D
+獗	P WG P H P D P H SZ S P P HG P N
+獠	P WG P H P N D P S HZ H H SG P D
+獬	P WG P P HP P HZG H H S HZG P P H H S
+獭	P WG P H S HZ H S P D P HP S HZ P D
+獯	P WG P P H S HZ D P H S H H D D D D
+獴	P WG P H S S D HG H H P WG P P P N
+獾	P WG P H S S S HZ H S HZ H P S D H H H S H
+玄	D H PZ PZ D
+率	D H PZ PZ D D T P D H S
+玉	H H S H D
+王	H H S H
+玎	H H S T H SG
+玏	H H S T HZG P
+玑	H H S T P HZWG
+玖	H H S T P HP N
+玙	H H S T H SZWG H
+玛	H H S T HZ SZWG H
+玟	H H S T D H P N
+玢	H H S T P N HZG P
+玥	H H S T P HZG H H
+玩	H H S T H H P SWG
+玫	H H S T P H P N
+玮	H H S T H H HZG S
+环	H H S T H P S D
+现	H H S T S HZ P SWG
+玲	H H S T P N D HP D
+玳	H H S T P S H XG D
+玷	H H S T S H S HZ H
+玹	H H S T D H PZ PZ D
+玺	P HG SG P D H H S H D
+玻	H H S T HG P S HP N
+珀	H H S T P S HZ H H
+珂	H H S T H S HZ H SG
+珅	H H S T S HZ H H S
+珈	H H S T HZG P S HZ H
+珉	H H S T HZ H ST H XG
+珊	H H S T P HZG P HZG H
+珍	H H S T P N P P P
+珏	H H S T H H S H D
+珐	H H S T H S H PZ D
+珑	H H S T H P SWG P D
+珙	H H S T H S S H P D
+珞	H H S T P HP N S HZ H
+珠	H H S T P H H S P N
+珣	H H S T P HZG S HZ H H
+珥	H H S T H S S H H H
+珧	H H S T P D T SWG P D
+珩	H H S T P P S H H SG
+珪	H H S T H S H H S H
+班	H H S T D P H H S H
+珮	H H S T P HZWG H S HZG S
+珲	H H S T D HG H PZ H S
+珵	H H S T S HZ H H H S H
+珺	H H S T HZ H H P S HZ H
+珽	H H S T P H S H HZZP N
+球	H H S T H SG D T P N D
+琅	H H S T D HZ H H ST P N
+理	H H S T S HZ H H S H H
+琇	H H S T P H S P N HZZZG P
+琉	H H S T D H PZ D P S SWG
+琊	H H S T H SZ SG P HPWG S
+琍	H H S T P H S P D S SG
+琎	H H S T H H P S D HZZP N
+琏	H H S T H PZ H S D HZZP N
+琐	H H S T S D P S HZ P D
+琚	H H S T HZ H P H S S HZ H
+琛	H H S T D HG P D H S P N
+琢	H H S T H P WG P P D P N
+琥	H H S T S H HG P H SWG P HZWG
+琦	H H S T H P D H S HZ H SG
+琨	H H S T S HZ H H H ST P SWG
+琪	H H S T H S S H H H P D
+琬	H H S T D D HG P HP D HZG SWG
+琮	H H S T D D HG H H SG P D
+琰	H H S T D P P D D P P N
+琳	H H S T H S P D H S P N
+琴	H H S H H H S H P N D HP
+琵	H H S H H H S H H ST P SWG
+琶	H H S H H H S H HZ S H SWG
+琹	H H S H H H S H H S P N
+琼	H H S T D H S HZ H SG P D
+瑀	H H S T P S HZ H S HZG S T D
+瑁	H H S T S HZ H H S HZ H H H
+瑄	H H S T D D HG H S HZ H H H
+瑕	H H S T HZ H S H H HZ H HP N
+瑗	H H S T P D D P H H P HP N
+瑙	H H S T PD PD PD P S HZ P D H
+瑚	H H S T H S S HZ H P HZG H H
+瑛	H H S T H S S S HZ H P N
+瑜	H H S T P N H S HZG H H S SG
+瑞	H H S T S SZ S H P S HZG S S
+瑟	H H S H H H S H D BXG D P D
+瑭	H H S T D H P HZ H H S S HZ H
+瑰	H H S T P S HZ H H P SWG PZ D
+瑶	H H S T P D D P P H H S SZ S
+瑷	H H S T P D D P D HG H P HP N
+瑾	H H S T H S S H S HZ H H H S H
+璀	H H S T S SZ S P S D H H H S H
+璁	H H S T P S HZ P HP D H D BXG D D
+璃	H H S T D H P D SZ S S HZG PZ D
+璇	H H S T D H HZG P P H HG S H P N
+璋	H H S T D H D P H S HZ H H H S
+璎	H H S T S HZ P D S HZ P D PD P H
+璐	H H S T S HZ H S H S T P HP N S HZ H
+璘	H H S T D P H S P N P HP D H SZ S
+璜	H H S T H S S H S HZ H S H P D
+璞	H H S T S S D P H D P H H H P N
+璟	H H S T S HZ H H D H S HZ H SG P D
+璠	H H S T P D P H S P N S HZ H S H
+璧	HZ H P S HZ H D H D P H H S H H S H D
+璨	H H S T S H P HP D HP D D P H S P N
+璩	H H S T S H HG P H SWG H P WG P P P N
+璺	P S H H S HZ H S HZ H HZ H H D HG H H S H D
+瓒	H H S T P H S H P ST P H S H P SWG S HZ P D
+瓜	P P ST D N
+瓞	P P ST D N P H H P D
+瓠	H P N H H SZWG P P ST D N
+瓢	H S HZ S S H H H SG P D P P ST D N
+瓣	D H D P H H P P P ST D N D H D P H H S
+瓤	D H S HZ H S HZ H H H S S H P ST P D P P ST D N
+瓦	H ST HZWG D
+瓮	P N PZ D H ST HZWG D
+瓯	H P D SZ H ST HZWG D
+瓴	P D D HP D H ST HZWG D
+瓶	D P H H P S H ST HZWG D
+瓷	D T P HG P N H ST HZWG D
+瓿	D H D P H S HZ H H ST HZWG D
+甄	H S HZ S S H H S T H ST HZWG D
+甍	H S S S HZ S S H D HG H ST HZWG D
+甏	H S H S HZ H D P T P P P H ST HZWG D
+甑	D P S HZ S D P H S HZ H H H ST HZWG D
+甓	HZ H P S HZ H D H D P H H S H ST HZWG D
+甘	H S S H H
+甙	H H S S H H XG D
+甚	H S S H H H P D SZ
+甜	P H S S HZ H H S S H H
+生	P H H S H
+產	D H P D H P P H H S H
+甥	P H H S T S HZ H S H HZG P
+甦	H S HZ H H P N P H H S H
+用	P HZG H H S
+甩	P HZG H H SWG
+甪	P P HZG H H S
+甫	H S HZG H H S D
+甬	HP D S HZG H H S
+甭	H P S D P HZG H H S
+甯	D D HG D BXG D D S HZG H H S
+田	S HZ H S H
+由	S HZ H S H
+甲	S HZ H H S
+申	S HZ H H S
+电	S HZ H H SWG
+男	S HZ H S H HZG P
+甸	P HZG S HZ H S H
+町	S HZ H S H H SG
+画	H S HZ H S H SZ S
+甾	PD PD PD S HZ H S H
+畀	S HZ H S H H P S
+畅	S HZ H H S HZZZG P P
+畈	S HZ H S H P P HP N
+畋	S HZ H S H P H P N
+界	S HZ H S H P N P S
+畎	S HZ H S H H P N D
+畏	S HZ H S H H ST P N
+畑	D P P D S HZ H S H
+畔	S HZ H S H D P H H S
+留	P ST D HZG P S HZ H S H
+畚	PZ D H P N S HZ H S H
+畛	S HZ H S H P N P P P
+畜	D H PZ PZ D S HZ H S H
+略	S HZ H S H P HP N S HZ H
+畦	S HZ H S H H S H H S H
+番	P D P H S P N S HZ H S H
+畬	P N H H SG P D S HZ H S H
+畲	P N H H SG P D S HZ H S H
+畴	S HZ H S H H H H P H SG D
+畸	S HZ H S H H P D H S HZ H SG
+畹	S HZ H S H D D HG P HP D HZG SWG
+畿	PZ PZ D PZ PZ D H S HZ H S H XG P D
+疃	S HZ H S H D H D P H S HZ H H S H H
+疆	HZ H SZWG H S T H S HZ H S H H S HZ H S H H
+疋	HG S H P N
+疍	HG S H P N S HZ H H H
+疏	HG S H S T D H PZ D P S SWG
+疑	P SWG P H H P D HP D HG S H P N
+疔	D H P D T H SG
+疖	D H P D T HZG S
+疗	D H P D T HP SG
+疙	D H P D T P H HZWG
+疚	D H P D T P HP N
+疝	D H P D T S SZ S
+疟	D H P D T H SZ H
+疠	D H P D T H HZG P
+疡	D H P D T HZZZG P P
+疣	D H P D T H P SWG D
+疤	D H P D T HZ S H SWG
+疥	D H P D T P N P S
+疫	D H P D T P HZW HP N
+疬	D H P D T H P HZG P
+疮	D H P D T P N HZG SWG
+疯	D H P D T P HXG P D
+疰	D H P D T D H H S H
+疱	D H P D T P HZG HZ H SWG
+疲	D H P D T HG P S HP N
+疳	D H P D T H S S H H
+疴	D H P D T H S HZ H SG
+疵	D H P D T S H S T P SWG
+疸	D H P D T S HZ H H H
+疹	D H P D T P N P P P
+疼	D H P D T P HP N D D
+疽	D H P D T S HZ H H H
+疾	D H P D T P H H P N
+痂	D H P D T HZG P S HZ H
+痃	D H P D T D H PZ PZ D
+痄	D H P D T P H S H H
+病	D H P D T H S HZG P D
+症	D H P D T H S H S H
+痈	D H P D T P HZG H H S
+痉	D H P D T HP D H S H
+痊	D H P D T P N H H S H
+痍	D H P D T H HZ H SZWG P N
+痒	D H P D T D P H H H S
+痔	D H P D T H S H H SG D
+痕	D H P D T HZ H H ST P N
+痖	D H P D T H S S D P H
+痘	D H P D T H S HZ H D P H
+痛	D H P D T HP D S HZG H H S
+痞	D H P D T H P S D S HZ H
+痢	D H P D T P H S P D S SG
+痣	D H P D T H S H D BXG D D
+痤	D H P D T P D P D H S H
+痦	D H P D T H S HZ H S HZ H
+痧	D H P D T D D T S P D P
+痨	D H P D T H S S D HG HZG P
+痪	D H P D T P HP S HZ H P N
+痫	D H P D T D S HZG H S P D
+痰	D H P D T D P P D D P P N
+痱	D H P D T S H H H S H H H
+痴	D H P D T P H H P D S HZ H
+痹	D H P D T S HZ H S H H P S
+痼	D H P D T S HZ H S S HZ H H
+痿	D H P D T P H S P N PD P H
+瘀	D H P D T D H HZG P P N D D
+瘁	D H P D T D H P D P D H S
+瘃	D H P D T H P WG P P D P N
+瘅	D H P D T D P S HZ H H H S
+瘊	D H P D T P S HZ H P H H P N
+瘌	D H P D T H S HZ H S P D S SG
+瘐	D H P D T P S H HZ H H P N
+瘕	D H P D T HZ H S H H HZ H HP N
+瘗	D H P D T H D P H P N H S H
+瘘	D H P D T D P H S P N PD P H
+瘙	D H P D T HP N D S HZ H S H D
+瘛	D H P D T H H H S HZG P D BXG D D
+瘟	D H P D T S HZ H H S HZ S S H
+瘠	D H P D T D T P D P N S HZG H H
+瘢	D H P D T P P HZG D H D P HZW HP N
+瘤	D H P D T P ST D HZG P S HZ H S H
+瘥	D H P D T D P H H H P H S H
+瘦	D H P D T P S H HZ H H S HP N
+瘩	D H P D T H S S P N H S HZ H
+瘪	D H P D T P S HZ H H H P N P SWG
+瘫	D H P D T HP D P S D H H H S H
+瘭	D H P D T H S HZ S S H H H SG P D
+瘰	D H P D T S HZ H S H PZ PZ D SG P D
+瘳	D H P D T HZ D T HZ D T P N P P P
+瘴	D H P D T D H D P H S HZ H H H S
+瘵	D H P D T P HP D D HP N H H SG P D
+瘸	D H P D T HZG P S HZ H S HZG P D P D
+瘼	D H P D T H S S S HZ H H H P N
+瘾	D H P D T HPWG S P HP HZ H H D BXG D D
+瘿	D H P D T S HZ P D S HZ P D PD P H
+癀	D H P D T H S S H S HZ H S H P D
+癃	D H P D T HPWG S P HP N H P H H S H
+癌	D H P D T S HZ H S HZ H S HZ H S SZ S
+癍	D H P D T H H S T D H P D H H S H
+癔	D H P D T D H D P H S HZ H H D BXG D D
+癖	D H P D T HZ H P S HZ H D H D P H H S
+癜	D H P D T HZ H P H S S H P D P HZW HP N
+癞	D H P D T H S HZ H S P D P HP S HZ P D
+癣	D H P D T P HP S HZ H S H T D P H H H S
+癫	D H P D T H S S HZ H H H H P D H P S HZ P D
+癯	D H P D T S HZ H H H S HZ H H H P S D H H H S H
+癸	HP D P P N H H P D
+登	HP D P P N H S HZ H D P H
+白	P S HZ H H
+百	H P S HZ H H
+皂	P S HZ H H H SWG
+的	P S HZ H H P HZG D
+皆	H ST P SWG P S HZ H H
+皇	P S HZ H H H H S H
+皈	P S HZ H H P P HP N
+皋	P S HZ H H H P N H S
+皎	P S HZ H H D H P D P N
+皑	P S HZ H H S SZ S HZ H SWG
+皓	P S HZ H H P H S H S HZ H
+皖	P S HZ H H D D HG H H P SWG
+皙	H S P D P P H S P S HZ H H
+皤	P S HZ H H P D P H S P N S HZ H S H
+皮	HG P S HP N
+皱	P HP HZ H H HG P S HP N
+皲	D HG H PZ S T HG P S HP N
+皴	PZ D P D P HP D HG P S HP N
+皿	S HZ S S H
+盂	H H SG S HZ S S H
+盅	S HZ H S S HZ S S H
+盆	P N HZG P S HZ S S H
+盈	HZZZG P HP D S HZ S S H
+益	D P H P D S HZ S S H
+盍	H S H PZ D S HZ S S H
+盎	S HZ H P N S HZ S S H
+盏	H H XG P D S HZ S S H
+盐	H S T S D S HZ S S H
+监	S S P H D S HZ S S H
+盒	P N H S HZ H S HZ S S H
+盔	H P D P P N S HZ S S H
+盖	D P H H S H S HZ S S H
+盗	D T P HG P N S HZ S S H
+盘	P P HZG D H D S HZ S S H
+盛	H P HZG XG P D S HZ S S H
+盟	S HZ H H P HZG H H S HZ S S H
+盥	P S H H SG HP P D HZ H H S HZ S S H
+目	S HZ H H H
+盯	S HZ H H H H SG
+盱	S HZ H H H H H SG
+盲	D H SZ S HZ H H H
+直	H S S HZ H H H H
+相	H S P D S HZ H H H
+盹	S HZ H H H H SZ S SWG
+盼	S HZ H H H P N HZG P
+盾	P P H S S HZ H H H
+省	S P D P S HZ H H H
+眄	S HZ H H H H S SZ HZG
+眇	S HZ H H H S P D P
+眈	S HZ H H H D HG P SWG
+眉	HZ S H P S HZ H H H
+看	P H H P S HZ H H H
+眍	S HZ H H H H P D SZ
+眙	S HZ H H H PZ D S HZ H
+眚	P H H S H S HZ H H H
+真	H S S HZ H H H H P D
+眠	S HZ H H H HZ H ST H XG
+眢	P HP D HZG SWG S HZ H H H
+眦	S HZ H H H S H S T P SWG
+眨	S HZ H H H P D HP N
+眩	S HZ H H H D H PZ PZ D
+眭	S HZ H H H H S H H S H
+眯	S HZ H H H D P H S P N
+眵	S HZ H H H P HP D P HP D
+眶	S HZ H H H H H H S H SZ
+眷	D P H H P N S HZ H H H
+眸	S HZ H H H PZ D P H H S
+眺	S HZ H H H P D T SWG P D
+眼	S HZ H H H HZ H H ST P N
+着	D P H H H P S HZ H H H
+睁	S HZ H H H P HP HZ H H SG
+睃	S HZ H H H PZ D P D P HP N
+睇	S HZ H H H D P HZ H SZWG S P
+睐	S HZ H H H H D P H S P N
+睑	S HZ H H H P N H D D P H
+睚	S HZ H H H H P H S H H S H
+睛	S HZ H H H H H S H S HZG H H
+睡	S HZ H H H P H S H S S H H
+睢	S HZ H H H P S D H H H S H
+督	S H H S P D HP N S HZ H H H
+睥	S HZ H H H P S HZ H H P H S
+睦	S HZ H H H H S H P D H S H
+睨	S HZ H H H P S H HZ H H P SWG
+睫	S HZ H H H H HZ H H S H P N
+睬	S HZ H H H P D D P H S P N
+睹	S HZ H H H H S H P S HZ H H
+睽	S HZ H H H HP D P P N H H P D
+睾	P S HZ S S H H S H D P H H S
+睿	S H D HG H P D P N S HZ H H H
+瞀	HP D HG SG P P H P N S HZ H H H
+瞄	S HZ H H H H S S S HZ H S H
+瞅	S HZ H H H P H S P D D P P N
+瞌	S HZ H H H H S H PZ D S HZ S S H
+瞍	S HZ H H H P S H HZ H H S HP N
+瞎	S HZ H H H D D HG H H H S S HZ H
+瞑	S HZ H H H D HG S HZ H H D H P D
+瞒	S HZ H H H H S S H S HZG P D P D
+瞟	S HZ H H H H S HZ S S H H H SG P D
+瞠	S HZ H H H S D P D HG S HZ H H S H
+瞢	H S S S HZ S S H D HG S HZ H H H
+瞥	D P S HZG S P D P H P N S HZ H H H
+瞧	S HZ H H H P S D H H H S H D D D D
+瞩	S HZ H H H HZ H P P S HZ H S HZG S T D
+瞪	S HZ H H H HP D P P N H S HZ H D P H
+瞬	S HZ H H H P D D P D HG P HP D H SZ S
+瞭	S HZ H H H H P N D P S HZ H H SG P D
+瞰	S HZ H H H HZ H S S H H T P H P N
+瞳	S HZ H H H D H D P H S HZ H H S H H
+瞵	S HZ H H H D P H S P N P HP D H SZ S
+瞻	S HZ H H H P HP H P P D D H H H S HZ H
+瞽	H S H S HZ H D P T H S HP N S HZ H H H
+瞿	S HZ H H H S HZ H H H P S D H H H S H
+矍	S HZ H H H S HZ H H H P S D H H H S H HP N
+矗	H S S HZ H H H H H S S HZ H H H T H S S HZ H H H H
+矛	HP D HG SG P
+矜	HP D HG SG P P N D HP
+矢	P H H P N
+矣	PZ D P H H P N
+知	P H H P D S HZ H
+矧	P H H P D HZ H SZWG S
+矩	P H H P D H HZ H SZ
+矫	P H H P D P H P N P S
+矬	P H H P D P D P D H S H
+短	P H H P D H S HZ H D P H
+矮	P H H P D P H S P N PD P H
+石	H P S HZ H
+矶	H P S HZ H P HZWG
+矸	H P S HZ H H H S
+矽	H P S HZ H P HP D
+矾	H P S HZ H P HZWG D
+矿	H P S HZ H D H P
+砀	H P S HZ H HZZZG P P
+码	H P S HZ H HZ SZWG H
+砂	H P S HZ H S P D P
+砉	H H H S H P S HZ H
+砌	H P S HZ H H ST HZG P
+砍	H P S HZ H P HG P N
+砑	H P S HZ H H SZ SG P
+砒	H P S HZ H H ST P SWG
+研	H P S HZ H H H P S
+砖	H P S HZ H H H SZP D
+砗	H P S HZ H H PZ H S
+砘	H P S HZ H H SZ S SWG
+砚	H P S HZ H S HZ P SWG
+砜	H P S HZ H P HXG P D
+砝	H P S HZ H H S H PZ D
+砟	H P S HZ H P H S H H
+砣	H P S HZ H D D HG P SWG
+砥	H P S HZ H P ST H XG D
+砦	S H S T P SWG H P S HZ H
+砧	H P S HZ H S H S HZ H
+砩	H P S HZ H HZ H SZWG P S
+砬	H P S HZ H D H D P H
+砭	H P S HZ H P D HP N
+砰	H P S HZ H H D P H S
+破	H P S HZ H HG P S HP N
+砷	H P S HZ H S HZ H H S
+砸	H P S HZ H H S HZG S SZ
+砹	H P S HZ H H S S P N
+砺	H P S HZ H H P H HZG P
+砻	H P SWG P D H P S HZ H
+砼	H P S HZ H P N H S H
+砾	H P S HZ H P SZ SG P D
+础	H P S HZ H SZ S S SZ S
+硅	H P S HZ H H S H H S H
+硇	H P S HZ H P S HZ P D H
+硌	H P S HZ H P HP N S HZ H
+硎	H P S HZ H H H P S S SG
+硐	H P S HZ H S HZG H S HZ H
+硒	H P S HZ H H S HZ P SW H
+硕	H P S HZ H H P S HZ P D
+硖	H P S HZ H H D P H P N
+硗	H P S HZ H H XG P H P SWG
+硚	H P S HZ H P H P N P S
+硝	H P S HZ H S D P S HZG H H
+硪	H P S HZ H P H SG T XG P D
+硫	H P S HZ H D H PZ D P S SWG
+硬	H P S HZ H H S HZ H H P N
+硭	H P S HZ H H S S D H SZ
+确	H P S HZ H P HP P HZG H H S
+硷	H P S HZ H P N H D D P H
+硼	H P S HZ H P HZG H H P HZG H H
+碁	H S S H H H P N H P S HZ H
+碇	H P S HZ H D D HG H S H P N
+碉	H P S HZ H P HZG H S H S HZ H
+碌	H P S HZ H HZ H H SG D T P N
+碍	H P S HZ H S HZ H H H H SG D
+碎	H P S HZ H D H P D P D H S
+碑	H P S HZ H P S HZ H H P H S
+碓	H P S HZ H P S D H H H S H
+碗	H P S HZ H D D HG P HP D HZG SWG
+碘	H P S HZ H S HZ H S S H P D
+碚	H P S HZ H D H D P H S HZ H
+碛	H P S HZ H H H S H S HZ P D
+碜	H P S HZ H PZ D H P N P P P
+碟	H P S HZ H H S S H SZ H S P N
+碡	H P S HZ H H H S H SZ HZG D H D
+碣	H P S HZ H S HZ H H P HZG P D SZ
+碥	H P S HZ H D HZ H P S HZG H S S
+碧	H H S T P S HZ H H H P S HZ H
+碰	H P S HZ H D P H S S D P H
+碱	H P S HZ H H P H S HZ H XG P D
+碲	H P S HZ H D H D P D HG S HZG S
+碳	H P S HZ H S SZ S H P D P P N
+碴	H P S HZ H H S P N S HZ H H H
+碹	H P S HZ H D D HG H S HZ H H H
+碾	H P S HZ H HZ H P H S S H ST P N
+磁	H P S HZ H D P H PZ PZ D PZ PZ D
+磅	H P S HZ H D H D P D HG D H HZG P
+磉	H P S HZ H HP D HP D HP D H S P N
+磊	H P S HZ H H P S HZ H H P S HZ H
+磋	H P S HZ H D P H H H P H S H
+磐	P P HZG D H D P HZW HP N H P S HZ H
+磔	H P S HZ H P HP D H SZ S H S P N
+磕	H P S HZ H H S H PZ D S HZ S S H
+磙	H P S HZ H D H P D PZ D P ST P N
+磡	H P S HZ H H S S H H H P D SZ HZG P
+磨	D H P H S P D H S P N H P S HZ H
+磬	H S H HZ S H P P HZW HP D H P S HZ H
+磲	H P S HZ H D D T H HZ H SZ H S P N
+磴	H P S HZ H HP D P P N H S HZ H D P H
+磷	H P S HZ H D P H S P N P HP D H SZ S
+磺	H P S HZ H H S S H S HZ H S H P D
+礁	H P S HZ H P S D H H H S H D D D D
+礅	H P S HZ H D H S HZ H HP SG T P H P N
+礓	H P S HZ H H S HZ H S H H S HZ H S H H
+礞	H P S HZ H H S S D HG H H P WG P P P D
+礤	H P S HZ H H S S P HP D D HP N H H SG P D
+礴	H P S HZ H H S S D D T H S HZ H H S D H SG D
+示	H H SG P D
+礼	D HP S D SWG
+社	D HP S D H S H
+祀	D HP S D HZ H SWG
+祁	D HP S D HPWG S
+祆	D HP S D H H P N
+祇	D HP S D P ST H XG
+祈	D HP S D P P H S
+祉	D HP S D S H S H
+祎	D HP S D H H HZG S
+祐	D HP S D H P S HZ H
+祓	D HP S D H P HP N D
+祖	D HP S D S HZ H H H
+祗	D HP S D P ST H XG D
+祚	D HP S D P H S H H
+祛	D HP S D H S H PZ D
+祜	D HP S D H S S HZ H
+祝	D HP S D S HZ H P SWG
+神	D HP S D S HZ H H S
+祟	SZ S S SZ S H H SG P D
+祠	D HP S D HZG H S HZ H
+祢	D HP S D P HG SG P D
+祥	D HP S D D P H H H S
+祧	D HP S D P D T SWG P D
+票	H S HZ S S H H H SG P D
+祭	P HP D D HP N H H SG P D
+祯	D HP S D S H S HZ P D
+祷	D HP S D H H H P H SG D
+祸	D HP S D S HZ H S HZG P D
+祺	D HP S D H S S H H H P D
+禀	D H S HZ S HZ H H H H SG P D
+禁	H S P D H S P N H H SG P D
+禄	D HP S D HZ H H SG D T P N
+禅	D HP S D D P S HZ H H H S
+禊	D HP S D H H H S HZG P H P N
+福	D HP S D H S HZ H S HZ H S H
+禚	D HP S D D P H H S H D D D D
+禤	D HP S D S HZ S S H HZG D T HZG D T
+禧	D HP S D H S H S HZ H D P H S HZ H
+禳	D HP S D D H S HZ H S HZ H H H S S H P ST P N
+禹	P S HZ H S HZG S T D
+禺	S HZ H H S HZG S T D
+离	D H P D SZ S S HZG PZ D
+禽	P N D H P D SZ S S HZG PZ D
+禾	P H S P N
+秀	P H S P N HZZZG P
+私	P H S P D PZ D
+秃	P H S P N P HZWG
+秆	P H S P D H H S
+秉	P H HZ H H S P N
+秋	P H S P D D P P N
+种	P H S P D S HZ H S
+科	P H S P D D D H S
+秒	P H S P D S P D P
+秕	P H S P D H ST P SWG
+秘	P H S P D D BXG D P D
+租	P H S P D S HZ H H H
+秣	P H S P D H H S P N
+秤	P H S P D H D P H S
+秦	H H H P N P H S P D
+秧	P H S P D S HZ H P N
+秩	P H S P D P H H P N
+秫	P H S P D H S P N D
+秭	P H S P D P SZWG S P
+积	P H S P D S HZ H P D
+称	P H S P D P HG SG P D
+秸	P H S P D H S H S HZ H
+移	P H S P D P HP D P HP D
+秽	P H S P D S SZ S P HP D
+稀	P H S P D P D H P S HZG S
+稂	P H S P D D HZ H H ST P N
+稃	P H S P D P D D P HP SG H
+稆	P H S P D S HZ H S HZ H
+程	P H S P D S HZ H H H S H
+稍	P H S P D S D P S HZG H H
+税	P H S P D D P S HZ H P SWG
+稔	P H S P D P N D HP D BXG D D
+稗	P H S P D P S HZ H H P H S
+稚	P H S P D P S D H H H S H
+稞	P H S P D S HZ H H H S P N
+稠	P H S P D P HZG H S H S HZ H
+稣	P HP S HZ H S H T P H S P N
+稳	P H S P D P HP HZ H H D BXG D D
+稷	P H S P D S HZ H S H P D P HP N
+稹	P H S P D H S S HZ H H H H P D
+稻	P H S P D P D D P P S H HZ H H
+稼	P H S P D D D HG H P WG P P P N
+稽	P H S P D H P SWG D P SWG S HZ H H
+稿	P H S P D D H S HZ H S HZG S HZ H
+穆	P H S P D P S HZ H H S P D P P P
+穑	P H S P D H S D P H S HZ S HZ H H
+穗	P H S P D H S HZ H H S H D D BXG D D
+穰	P H S P D D H S HZ H S HZ H H H S S H P ST P N
+穴	D D HG P N
+究	D D HG P D P HZWG
+穷	D D HG P D HZG P
+穸	D D HG P D P HP D
+穹	D D HG P D HZ H SZWG
+空	D D HG P D H S H
+穿	D D HG P D H SZ SG P
+窀	D D HG P D H SZ S SWG
+突	D D HG P D H P N D
+窃	D D HG P D H ST HZG P
+窄	D D HG P D P H S H H
+窆	D D HG P D P D HP N
+窈	D D HG P D PZ PZ D HZG P
+窍	D D HG P D H S T H SZWG
+窑	D D HG P D P H H S SZ S
+窒	D D HG P D H PZ D H S H
+窕	D D HG P D P D T SWG P D
+窖	D D HG P D P H S H S HZ H
+窗	D D HG P D P S HZ P HP D H
+窘	D D HG P D HZ H H P S HZ H
+窜	D D HG P D S HZ H S HZ H S
+窝	D D HG P D S HZ H S HZG P D
+窟	D D HG P D HZ H P SZ S S SZ S
+窠	D D HG P D S HZ H H H S P N
+窣	D D HG P D D H P D P D H S
+窥	D D HG P D H H P D S HZ P SWG
+窦	D D HG P D H S HG D D H P D
+窨	D D HG P D D H D P H S HZ H H
+窬	D D HG P D P N H S HZG H H S SG
+窭	D D HG P D D P H S P N PD P H
+窳	D D HG P D P P ST D D P P ST D N
+窸	D D HG P D P D P H S P N D BXG D D
+窿	D D HG P D HPWG S P HP N H P H H S H
+立	D H D P H
+竑	D H D P T H P PZ D
+竖	S S HP N D H D P H
+站	D H D P T S H S HZ H
+竞	D H D P H S HZ H P SWG
+竟	D H D P H S HZ H H P SWG
+章	D H D P H S HZ H H H S
+竣	D H D P T PZ D P D P HP N
+童	D H D P H S HZ H H S H H
+竦	D H D P T H S HZ H S P N
+竭	D H D P T S HZ H H P HZG P D SZ
+端	D H D P T S SZ S H P S HZG S S
+竹	P H S P H SG
+竺	P H D P H D H H
+竽	P H D P H D H H SG
+竿	P H D P H D H H S
+笃	P H D P H D HZ SZWG H
+笄	P H D P H D H H P S
+笆	P H D P H D HZ S H SWG
+笈	P H D P H D P HZZP N
+笊	P H D P H D P P S N
+笋	P H D P H D HZ H H P
+笏	P H D P H D P HZG P P
+笑	P H D P H D P H P N
+笔	P H D P H D P H H SWG
+笕	P H D P H D S HZ P SWG
+笙	P H D P H D P H H S H
+笛	P H D P H D S HZ H S H
+笞	P H D P H D PZ D S HZ H
+笠	P H D P H D D H D P H
+笤	P H D P H D HZG P S HZ H
+笥	P H D P H D HZG H S HZ H
+符	P H D P H D P S H SG D
+笨	P H D P H D H S P N H
+笪	P H D P H D S HZ H H H
+笫	P H D P H D P SZWG S P
+第	P H D P H D HZ H SZWG S P
+笮	P H D P H D P H S H H
+笱	P H D P H D P HZG S HZ H
+笳	P H D P H D HZG P S HZ H
+笸	P H D P H D H S HZ H SZ
+笺	P H D P H D H H XG P D
+笼	P H D P H D H P SWG P D
+笾	P H D P H D HZG P D HZZP N
+筅	P H D P H D P H S H P SWG
+筇	P H D P H D H S T HPWG S
+等	P H D P H D H S H H SG D
+筋	P H D P H D P HZG H H HZG P
+筌	P H D P H D P N H H S H
+筏	P H D P H D P S H XG P D
+筐	P H D P H D H H H S H SZ
+筑	P H D P H D H S T P HZWG D
+筒	P H D P H D S HZG H S HZ H
+答	P H D P H D P N H S HZ H
+策	P H D P H D H S HZG S P N
+筘	P H D P H D H SG T S HZ H
+筚	P H D P H D H ST P SWG H S
+筛	P H D P H D S P H S HZG S
+筝	P H D P H D P HP HZ H H SG
+筠	P H D P H D H S T P HZG D T
+筢	P H D P H D H SG T HZ S H SWG
+筮	P H D P H D H S P D P D H
+筱	P H D P H D P S S P H P N
+筲	P H D P H D S D P S HZG H H
+筵	P H D P H D P S H SZ HZZP N
+筷	P H D P H D D D S HZ H P N
+筹	P H D P H D H H H P H SG D
+筻	P H D P H D H S HZ H H P N
+签	P H D P H D P N H D D P H
+简	P H D P H D D S HZG S HZ H H
+箅	P H D P H D S HZ H S H H P S
+箍	P H D P H D H SG T H S HZG S SZ
+箐	P H D P H D H H S H S HZG H H
+箔	P H D P H D D D T P S HZ H H
+箕	P H D P H D H S S H H H P D
+算	P H D P H D S HZ H H H H P S
+箜	P H D P H D D D HG P D H S H
+箝	P H D P H D H SG T H S S H H
+管	P H D P H D D D HG S HZ H HZ H
+箢	P H D P H D D D HG P HP D HZG SWG
+箦	P H D P H D H H S H S HZ P D
+箧	P H D P H D H H D P H P D SZ
+箨	P H D P H D H SG T HP N H H S
+箩	P H D P H D S HZ S S H P HP D
+箪	P H D P H D D P S HZ H H H S
+箫	P H D P H D HZ H H S P S P D
+箬	P H D P H D H S S H P S HZ H
+箭	P H D P H D D P H S HZG H H S SG
+箱	P H D P H D H S P D S HZ H H H
+箴	P H D P H D H P H S HZ H XG P D
+箸	P H D P H D H S H P S HZ H H
+篁	P H D P H D P S HZ H H H H S H
+篆	P H D P H D SZ HP H P WG P P P N
+篇	P H D P H D D HZ H P S HZG H S S
+篌	P H D P H D P S HZ H P H H P N
+篑	P H D P H D S HZ H S H S HZ P D
+篓	P H D P H D D P H S P N PD P H
+篙	P H D P H D D H S HZ H S HZG S HZ H
+篚	P H D P H D H S H H H S H H H SZ
+篝	P H D P H D H H S S H S HZG S H H
+篡	P H D P H D S HZ H H H H P N PZ D
+篥	P H D P H D H S HZ S S H H S P N
+篦	P H D P H D P S HZ P D H H ST P SWG
+篪	P H D P H D P P S H HG P H SWG P HZWG
+篮	P H D P H D S S P H D S HZ S S H
+篱	P H D P H D D H P D SZ S S HZG PZ D
+篷	P H D P H D P HP N H H H S D HZZP N
+篼	P H D P H D P S HZ H H P ST HZ H P SWG
+篾	P H D P H D S HZ S S H H P D XG P D
+簇	P H D P H D D H HZG P P H P H H P N
+簋	P H D P H D HZ H H ST P N S HZ S S H
+簌	P H D P H D H S HZ H S P D P HG P N
+簏	P H D P H D D H P HZ S S H H ST P SWG
+簕	P H D P H D H S S H S HZ H H S HZG P
+簖	P H D P H D D P H S P D SZ P P H S
+簟	P H D P H D H S HZ S S H S HZ H H H S
+簦	P H D P H D HP D P P N H S HZ H D P H
+簧	P H D P H D H S S H S HZ H S H P D
+簪	P H D P H D H PZ P ST H PZ P SWG S HZ H H
+簸	P H D P H D H S S H H H P D HG P S HP N
+簿	P H D P H D D D T H S HZ H H S D H SG D
+籀	P H D P H D H SG T P ST D HZG P S HZ H S H
+籁	P H D P H D H S HZ H S P D P HP S HZ P D
+籍	P H D P H D H H H S P D H S S H S HZ H H
+米	D P H S P N
+籴	P N D P H S P N
+类	D P H S P D H P N
+籼	D P H S P D S SZ S
+籽	D P H S P D HP SG H
+粉	D P H S P D P N HZG P
+粑	D P H S P D HZ S H SWG
+粒	D P H S P D D H D P H
+粕	D P H S P D P S HZ H H
+粗	D P H S P D S HZ H H H
+粘	D P H S P D S H S HZ H
+粜	SZ S S SZ S D P H S P N
+粝	D P H S P D H P H HZG P
+粞	D P H S P D H S HZ P SW H
+粟	H S HZ S S H D P H S P N
+粢	D T P HG P N D P H S P N
+粤	P S HZ D P H S P D H H SZWG
+粥	HZ H SZWG D P H S P D HZ H SZWG
+粪	D P H S P N H S S H P D
+粮	D P H S P D D HZ H H ST P N
+粱	D D T HZG P D D D P H S P N
+粲	S H P HP D HP D D P H S P N
+粳	D P H S P D H S HZ H H P N
+粹	D P H S P D D H P D P D H S
+粼	D P H S P D P HP D H SZ S PD PD
+粽	D P H S P D D D HG H H SG P D
+精	D P H S P D H H S H S HZG H H
+粿	D P H S P D S HZ H H H S P N
+糁	D P H S P D PZ D H P N P P P
+糅	D P H S P D HP D HG SG P H S P N
+糇	D P H S P D P S HZ H P H H P N
+糈	D P H S P D HG S H P N S HZG H H
+糊	D P H S P D H S S HZ H P HZG H H
+糌	D P H S P D P HP N S D S HZ H H
+糍	D P H S P D D P H PZ PZ D PZ PZ D
+糕	D P H S P D D P H H S H D D D D
+糖	D P H S P D D H P HZ H H S S HZ H
+糗	D P H S P D P S HZ H H H H P N D
+糙	D P H S P D P H S H S HZ H D HZZP N
+糜	D H P H S P D H S P N D P H S P N
+糟	D P H S P D H S HZ H S S H S HZ H H
+糠	D P H S P D D H P HZ H H SG D T P N
+糨	D P H S P D HZ H SZWG S HZ H S HZ H S H D
+糯	D P H S P D H D HG S D D D D H P S HZG S S
+糸	PZ PZ D SG P D
+系	P PZ PZ D SG P D
+紊	D H P N PZ PZ D SG P D
+素	H H S H PZ PZ D SG P D
+索	H S D HG PZ PZ D SG P D
+紧	S S HP N PZ PZ D SG P D
+紫	S H S T P SWG PZ PZ D SG P D
+累	S HZ H S H PZ PZ D SG P D
+絮	PD P H S HZ H PZ PZ D SG P D
+絷	H SG T P HZWG D PZ PZ D SG P D
+綦	H S S H H H P N PZ PZ D SG P D
+綮	D HZ H P P H P N PZ PZ D SG P D
+縻	D H P H S P D H S P N PZ PZ D SG P D
+繁	P H SZ HZG D H D P H P N PZ PZ D SG P D
+繇	P D D P P H H S SZ S P PZ PZ D SG P D
+纂	P H D P H D S HZ H H H H P N PZ PZ D SG P D
+纛	H H S H SZ HZ D H D S HZ H H H H SG P D P PZ PZ D SG P D
+纠	PZ PZ T ST S
+纡	PZ PZ T H H SG
+红	PZ PZ T H S H
+纣	PZ PZ T H SG D
+纤	PZ PZ T P H S
+纥	PZ PZ T P H HZWG
+约	PZ PZ T P HZG D
+级	PZ PZ T P HZZP N
+纨	PZ PZ T P HZWG D
+纩	PZ PZ T D H P
+纪	PZ PZ T HZ H SWG
+纫	PZ PZ T HZG P D
+纬	PZ PZ T H H HZG S
+纭	PZ PZ T H H PZ D
+纯	PZ PZ T H SZ S SWG
+纰	PZ PZ T H ST P SWG
+纱	PZ PZ T S P D P
+纲	PZ PZ T S HZG P D
+纳	PZ PZ T S HZG P D
+纵	PZ PZ T P D P N
+纶	PZ PZ T P N P SWG
+纷	PZ PZ T P N HZG P
+纸	PZ PZ T P ST H XG
+纹	PZ PZ T D H P N
+纺	PZ PZ T D H HZG P
+纽	PZ PZ T HZ S H H
+纾	PZ PZ T HP D HG SG
+线	PZ PZ T H H XG P D
+绀	PZ PZ T H S S H H
+绁	PZ PZ T H S S H SZ
+绂	PZ PZ T H P HP N D
+练	PZ PZ T H PZ HZG P D
+组	PZ PZ T S HZ H H H
+绅	PZ PZ T S HZ H H S
+细	PZ PZ T S HZ H S H
+织	PZ PZ T S HZ H P D
+终	PZ PZ T P HP N D D
+绉	PZ PZ T P HP HZ H H
+绊	PZ PZ T D P H H S
+绋	PZ PZ T HZ H SZWG P S
+绌	PZ PZ T SZ S S SZ S
+绍	PZ PZ T HZG P S HZ H
+绎	PZ PZ T HP N H H S
+经	PZ PZ T HP D H S H
+绐	PZ PZ T PZ D S HZ H
+绑	PZ PZ T H H H P HPWG S
+绒	PZ PZ T H H P XG P D
+结	PZ PZ T H S H S HZ H
+绔	PZ PZ T H P N H H SZWG
+绕	PZ PZ T H XG P H P SWG
+绗	PZ PZ T P P S H H SG
+绘	PZ PZ T P N H H PZ D
+给	PZ PZ T P N H S HZ H
+绚	PZ PZ T P HZG S HZ H H
+绛	PZ PZ T P HP N H SZ S
+络	PZ PZ T P HP N S HZ H
+绝	PZ PZ T P HP HZ S H SWG
+绞	PZ PZ T D H P D P N
+统	PZ PZ T D H PZ D P SWG
+绠	PZ PZ T H S HZ H H P N
+绡	PZ PZ T S D P S HZG H H
+绢	PZ PZ T S HZ H S HZG H H
+绣	PZ PZ T P H S P N HZZZG P
+绥	PZ PZ T P D D P PD P H
+绦	PZ PZ T P HP N H SG P D
+继	PZ PZ T D P H S P D SZ
+绨	PZ PZ T D P HZ H SZWG S P
+绩	PZ PZ T H H S H S HZ P D
+绪	PZ PZ T H S H P S HZ H H
+绫	PZ PZ T H S H P D P HP N
+续	PZ PZ T H S HG D D H P D
+绮	PZ PZ T H P D H S HZ H SG
+绯	PZ PZ T S H H H S H H H
+绰	PZ PZ T S H S HZ H H H S
+绱	PZ PZ T S D P S HZG S HZ H
+绲	PZ PZ T S HZ H H H ST P SWG
+绳	PZ PZ T S HZ H S HZ H H SWG
+维	PZ PZ T P S D H H H S H
+绵	PZ PZ T P S HZ H H S HZG S
+绶	PZ PZ T P D D P D HG HP N
+绷	PZ PZ T P HZG H H P HZG H H
+绸	PZ PZ T P HZG H S H S HZ H
+绺	PZ PZ T P HP N S D S HZ H
+绻	PZ PZ T D P H H P N HZG SWG
+综	PZ PZ T D D HG H H SG P D
+绽	PZ PZ T D D HG H S H P N
+绾	PZ PZ T D D HG S HZ H HZ H
+绿	PZ PZ T HZ H H SG D T P N
+缀	PZ PZ T HP D HP D HP D HP N
+缁	PZ PZ T PD PD PD S HZ H S H
+缂	PZ PZ T H S S H S HZ H H S
+缃	PZ PZ T H S P D S HZ H H H
+缄	PZ PZ T H P H S HZ H XG P D
+缅	PZ PZ T H P S HZ S S H H H
+缆	PZ PZ T S S P H D S HZ P SWG
+缇	PZ PZ T S HZ H H H S H P N
+缈	PZ PZ T S HZ H H H S P D P
+缉	PZ PZ T S HZ H H S S H H H
+缋	PZ PZ T S HZ H S H S HZ P D
+缌	PZ PZ T S HZ H S H D BXG D D
+缍	PZ PZ T P H S H S S H H
+缎	PZ PZ T P S H H T P HZW HP N
+缏	PZ PZ T P S H S HZ H H P N
+缑	PZ PZ T P S HZ H P H H P N
+缒	PZ PZ T P S HZ H HZ H D HZZP N
+缓	PZ PZ T P D D P H H P HP N
+缔	PZ PZ T D H D P D HG S HZG S
+缕	PZ PZ T D P H S P N PD P H
+编	PZ PZ T D HZ H P S HZG H S S
+缗	PZ PZ T HZ H ST H XG S HZ H H
+缘	PZ PZ T SZ HP H P WG P P P N
+缙	PZ PZ T H S S D P H S HZ H H
+缚	PZ PZ T H S HZ H H S D H SG D
+缛	PZ PZ T H P H H ST P N H SG D
+缜	PZ PZ T H S S HZ H H H H P D
+缝	PZ PZ T P HP N H H H S D HZZP N
+缟	PZ PZ T D H S HZ H S HZG S HZ H
+缠	PZ PZ T D H P S HZ H H S H H
+缡	PZ PZ T D H P D SZ S S HZG PZ D
+缢	PZ PZ T D P H P D S HZ S S H
+缣	PZ PZ T D P H HZ H H S S P N
+缤	PZ PZ T D D HG P S H S H P D
+缥	PZ PZ T H S HZ S S H H H SG P D
+缦	PZ PZ T S HZ H H S HZ S S H HP N
+缧	PZ PZ T S HZ H S H PZ PZ D SG P D
+缨	PZ PZ T S HZ P D S HZ P D PD P H
+缩	PZ PZ T D D HG P S H P S HZ H H
+缪	PZ PZ T HZ D T HZ D T P N P P P
+缫	PZ PZ T PD PD PD S HZ H H H S P N
+缬	PZ PZ T H S H S HZ H H P S HZ P D
+缭	PZ PZ T H P N D P S HZ H H SG P D
+缮	PZ PZ T D P H H H S D P H S HZ H
+缯	PZ PZ T D P S HZ S D P H S HZ H H
+缰	PZ PZ T H S HZ H S H H S HZ H S H H
+缱	PZ PZ T S HZ H S H S HZ H HZ H D HZZP N
+缲	PZ PZ T S HZ H S HZ H S HZ H H S P N
+缳	PZ PZ T S HZ S S H H S HZ H P ST P N
+缴	PZ PZ T P S HZ H H D H HZG P P H P N
+缵	PZ PZ T P H S H P ST P H S H P SWG S HZ P D
+缶	P H H S SZ S
+缸	P H H S SZ S H S H
+缺	P H H S SZ S HZ H P N
+罂	S HZ P D S HZ P D P H H S SZ S
+罄	H S H HZ S H P P HZW HP D P H H S SZ S
+罅	P H H S SZ S S H HG P H SWG P D P H SG
+罍	S HZ H S H S HZ H S H S HZ H S H P H H S SZ S
+罐	P H H S SZ S H S S S HZ H S HZ H P S D H H H S H
+网	S HZG P D P D
+罔	S HZG D P H D H SZ
+罕	D HG P D H H S
+罗	S HZ S S H P HP D
+罘	S HZ S S H H P S D
+罚	S HZ S S H D HZT S SG
+罟	S HZ S S H H S S HZ H
+罡	S HZ S S H H S H S H
+罢	S HZ S S H H S H PZ D
+罨	S HZ S S H H P N S HZ H H SWG
+罩	S HZ S S H S H S HZ H H H S
+罪	S HZ S S H S H H H S H H H
+置	S HZ S S H H S S HZ H H H H
+罱	S HZ S S H H S S HZG D P H H S
+署	S HZ S S H H S H P S HZ H H
+罴	S HZ S S H H S H PZ D D D D D
+罹	S HZ S S H D D S P S D H H H S H
+罾	S HZ S S H D P S HZ S D P H S HZ H H
+羁	S HZ S S H H S S H S HZ H H S HZ SZWG H
+羊	D P H H H S
+羌	D P H H H P SWG
+美	D P H H S H H P N
+羔	D P H H S H D D D D
+羚	D P H H H P P N D HP D
+羝	D P H H H P P ST H XG D
+羞	D P H H H P HZ S H H
+羟	D P H H H P HP D H S H
+羡	D P H H S H D T P HG P N
+群	HZ H H P S HZ H D P H H H S
+羧	D P H H H P PZ D P D P HP N
+羯	D P H H H P S HZ H H P HZG P D SZ
+羰	D P H H H P S SZ S H P D P P N
+羲	D P H H S H P H S P D H SZWG XG P D
+羸	D H SZ S HZ H P HZG H H D P H H H S P HZWG D
+羹	D P H H S H D D D D D P H H S H H P N
+羼	HZ H P D P H H H S D P H H H P D P H H H S
+羽	HZG D T HZG D T
+羿	HZ D T HZ D T H P S
+翀	HZG D T HZG D T S HZ H S
+翁	P N PZ D HZG D T HZG D T
+翃	H P PZ D HZG D T HZG D T
+翅	H S HP N HZG D T HZG D T
+翊	D H D P T HZG D T HZG D T
+翌	HZ D T HZ D T D H D P H
+翎	P D D HP D HZG D T HZG D T
+翔	D P H H H P HZG D T HZG D T
+翕	P N H S HZ H HZG D T HZG D T
+翘	H XG P H P SWG HZG D T HZG D T
+翚	HZ D T HZ D T D HG H PZ H S
+翟	HZ D T HZ D T P S D H H H S H
+翠	HZ D T HZ D T D H P D P D H S
+翡	S H H H S H H H HZG D T HZG D T
+翥	H S H P S HZ H H HZG D T HZG D T
+翦	D P H S HZG H H S SG HZG D T HZG D T
+翩	D HZ H P S HZG H S S HZG D T HZG D T
+翮	H S HZ H S HZG D P H S HZG D T HZG D T
+翰	H S S HZ H H H S P N HZG D T HZG D T
+翱	P S HZ H H H P D H S HZG D T HZG D T
+翳	H P H H P D SZ P HZW HP N HZG D T HZG D T
+翻	P D P H S P D S HZ H S H HZG D T HZG D T
+翼	HZ D T HZ D T S HZ H S H H S S H P D
+耀	S D P H P ST HZ D T HZ D T P S D H H H S H
+老	H S H P P SWG
+考	H S H P H SZWG
+耄	H S H P P SWG P H H SWG
+者	H S H P S HZ H H
+耆	H S H P P SWG S HZ H H
+耋	H S H P P SWG H PZ D H S H
+而	H P S HZG S S
+耍	H P S HZG S S PD P H
+耐	H P S HZG S S H SG D
+耒	H H H S P N
+耔	H H H S P D HP SG H
+耕	H H H S P D H H P S
+耖	H H H S P D S P D P
+耗	H H H S P D P H H SWG
+耘	H H H S P D H H PZ D
+耙	H H H S P D HZ S H SWG
+耜	H H H S P D S HZ H HZ H
+耠	H H H S P D P N H S HZ H
+耢	H H H S P D H S S D HG HZG P
+耥	H H H S P D S D P S HZG S HZ H
+耦	H H H S P D S HZ H H S HZG S T D
+耧	H H H S P D D P H S P N PD P H
+耨	H H H S P D H P H H ST P N H SG D
+耩	H H H S P D H H S S H S HZG S H H
+耪	H H H S P D D H D P D HG D H HZG P
+耱	H H H S P D D H P H S P D H S P N H P S HZ H
+耳	H S S H H H
+耵	H S S H H T H SG
+耶	H S S H H T HPWG S
+耷	H P N H S S H H H
+耸	P D P N H S S H H H
+耻	H S S H H T S H S H
+耽	H S S H H T D HG P SWG
+耿	H S S H H T D P P N
+聂	H S S H H H HP D HP N
+聃	H S S H H T S HZG S H H
+聆	H S S H H T P N D HP D
+聊	H S S H H T P ST P HZG S
+聋	H P SWG P D H S S H H H
+职	H S S H H T S HZ H P D
+聍	H S S H H T D D HG H SG
+聒	H S S H H T P H S S HZ H
+联	H S S H H T D P H H P N
+聘	H S S H H T S HZ H S H H SZWG
+聚	H S S H H T HP D P S P P P N
+聩	H S S H H T S HZ H S H S HZ P D
+聪	H S S H H T D P S HZ H D BXG D D
+聱	H H S H HZG P P H P N H S S H H H
+聿	HZ H H H H S
+肀	HZ H H S
+肃	HZ H H S P S P D
+肄	P SWG P H H P D HZ H H H H S
+肆	H S H H H PZ D HZ H H H H S
+肇	D HZ H P P H P N HZ H H H H S
+肉	S HZG P D P D
+肋	P HZG H H HZG P
+肌	P HZG H H P HZWG
+肓	D H SZ S HZG H H
+肖	S D P S HZG H H
+肘	P HZG H H H SG D
+肚	P HZG H H H S H
+肛	P HZG H H H S H
+肜	P HZG H H P P P
+肝	P HZG H H H H S
+肟	P HZG H H H H SZWG
+肠	P HZG H H HZZZG P P
+股	P HZG H H P HZW HP N
+肢	P HZG H H H S HP N
+肤	P HZG H H H H P N
+肥	P HZG H H HZ S H SWG
+肩	D HZ H P S HZG H H
+肪	P HZG H H D H HZG P
+肫	P HZG H H H SZ S SWG
+肭	P HZG H H S HZG P D
+肮	P HZG H H D H P HZWG
+肯	S H S H S HZG H H
+肱	P HZG H H H P PZ D
+育	D H PZ D S HZG H H
+肴	P D H P S HZG H H
+肷	P HZG H H P HG P N
+肺	P HZG H H H S HZG S
+肼	P HZG H H H H P S
+肽	P HZG H H H P N D
+肾	S S HP N S HZG H H
+肿	P HZG H H S HZ H S
+胀	P HZG H H P H ST N
+胁	P HZG H H HZG P D D
+胂	P HZG H H S HZ H H S
+胃	S HZ H S H S HZG H H
+胄	S HZ H S H S HZG H H
+胆	P HZG H H S HZ H H H
+背	S H T P SWG S HZG H H
+胍	P HZG H H P P ST D N
+胎	P HZG H H PZ D S HZ H
+胖	P HZG H H D P H H S
+胗	P HZG H H P N P P P
+胙	P HZG H H P H S H H
+胚	P HZG H H H P S D H
+胛	P HZG H H S HZ H H S
+胜	P HZG H H P H H S H
+胝	P HZG H H P ST H XG D
+胞	P HZG H H P HZG HZ H SWG
+胡	H S S HZ H P HZG H H
+胤	P PZ PZ D S HZG H H SWG
+胥	HG S H P N S HZG H H
+胧	P HZG H H H P SWG P D
+胨	P HZG H H H PZ SG P D
+胩	P HZG H H S H H S D
+胪	P HZG H H S H HZ H P
+胫	P HZG H H HP D H S H
+胬	PD P H HP N S HZG P D P D
+胭	P HZG H H S HZ H P D H
+胯	P HZG H H H P N H H SZWG
+胰	P HZG H H H HZ H SZWG P N
+胱	P HZG H H S D P H P SWG
+胲	P HZG H H D H PZ P P D
+胳	P HZG H H P HP N S HZ H
+胴	P HZG H H S HZG H S HZ H
+胶	P HZG H H D H P D P N
+胸	P HZG H H P HZG P D SZ S
+胺	P HZG H H D D HG PD P H
+胼	P HZG H H D P H H P S
+能	PZ D S HZG H H P SWG P SWG
+脂	P HZG H H P SWG S HZ H H
+脆	P HZG H H P HP H P HZG SWG
+脉	P HZG H H D HZG HP P N
+脊	D T P D P N S HZG H H
+脍	P HZG H H P N H H PZ D
+脎	P HZG H H P D H SG P D
+脏	P HZG H H D H P H S H
+脐	P HZG H H D H P N P S
+脑	P HZG H H D H P D SZ S
+脒	P HZG H H D P H S P N
+脓	P HZG H H D HG P ST P N
+脔	D H S S P D S HZG P D P D
+脖	P HZG H H H S D HG HP SG H
+脘	P HZG H H D D HG H H P SWG
+脚	P HZG H H H S H PZ D HZG S
+脞	P HZG H H P D P D H S H
+脩	P S S P HP N S HZG H H
+脬	P HZG H H P D D P HP SG H
+脯	P HZG H H H S HZG H H S D
+脱	P HZG H H D P S HZ H P SWG
+脲	P HZG H H HZ H P SG HP P N
+脶	P HZG H H S HZ H S HZG P D
+脸	P HZG H H P N H D D P H
+脾	P HZG H H P S HZ H H P H S
+腆	P HZG H H S HZ H S S H P D
+腈	P HZG H H H H S H S HZG H H
+腊	P HZG H H H S S H S HZ H H
+腋	P HZG H H D H P S P HP D N
+腌	P HZG H H H P N S HZ H H SWG
+腐	D H P P S H SG D S HZG P D P D
+腑	P HZG H H D H P P S H SG D
+腓	P HZG H H S H H H S H H H
+腔	P HZG H H D D HG P D H S H
+腕	P HZG H H D D HG P HP D HZG SWG
+腙	P HZG H H D D HG H H SG P D
+腚	P HZG H H D D HG H S H P N
+腠	P HZG H H H H H P N H H P D
+腥	P HZG H H S HZ H H P H H S H
+腧	P HZG H H P N H S HZG H H S SG
+腩	P HZG H H H S S HZG D P H H S
+腭	P HZG H H S HZ H S HZ H H H SZWG
+腮	P HZG H H S HZ H S H D BXG D D
+腰	P HZG H H H S HZ S S H PD P H
+腱	P HZG H H HZ H H H H S HZZP N
+腴	P HZG H H P S H HZ H H P N
+腹	P HZG H H P H S HZ H H P HP N
+腺	P HZG H H P S HZ H H SG HP P N
+腻	P HZG H H H H H S HZ P D XG D
+腼	P HZG H H H P S HZ S S H H H
+腽	P HZG H H S HZ H H S HZ S S H
+腾	P HZG H H D P H H P N HZ SZWG H
+腿	P HZG H H HZ H H ST P D D HZZP N
+膀	P HZG H H D H D P D HG D H HZG P
+膂	D H HZG P P H P ST P N S HZG H H
+膈	P HZG H H H S HZ H S HZG D P H S
+膊	P HZG H H H S HZ H H S D H SG D
+膏	D H S HZ H D HG S HZ H S HZG H H
+膑	P HZG H H D D HG P S H S H P D
+膘	P HZG H H H S HZ S S H H H SG P D
+膛	P HZG H H S D P D HG S HZ H H S H
+膜	P HZG H H H S S S HZ H H H P N
+膝	P HZG H H H S P D P N SG D T P D
+膣	P HZG H H D D HG P D H PZ D H S H
+膦	P HZG H H D P H S P N P HP D H SZ S
+膨	P HZG H H H S H S HZ H D P T P P P
+膪	P HZG H H D H D P D HG S HZG S S HZ H
+膳	P HZG H H D P H H H S D P H S HZ H
+膺	D H P P S P S D H H H S H S HZG H H
+膻	P HZG H H D H S HZ S HZ H H S HZ H H H
+臀	HZ H P H S S H P D P HZW HP N S HZG H H
+臁	P HZG H H D H P D P H HZ H H S S P N
+臂	HZ H P S HZ H D H D P H H S S HZG H H
+臃	P HZG H H D H PZ PZ P P S D H H H S H
+臆	P HZG H H D H D P H S HZ H H D BXG D D
+臊	P HZG H H S HZ H S HZ H S HZ H H S P N
+臌	P HZG H H H S H S HZ H D P T H S HP N
+臣	H S HZ H S SZ
+臧	H P SZ H P H S HZ H S SZ XG P D
+自	P S HZ H H H
+臬	P S HZ H H H H S P N
+臭	P S HZ H H H H P N D
+至	H PZ D H S H
+致	H PZ D H S T P H P N
+臻	H PZ D H S T H H H P N P H S P D
+臼	P S H HZ H H
+臾	P S H HZ H H P N
+舀	P D D P P S H HZ H H
+舁	P S H HZ H H H P S
+舂	H H H P N P S H HZ H H
+舄	P S H HZ H H P HZG D D D D
+舅	P S H HZ H H S HZ H S H HZG P
+舆	P S H H H PZ H S HZ H H H P D
+舌	P H S S HZ H
+舍	P N H H S S HZ H
+舐	P H S S HZ H P ST H XG
+舒	P D H H S S HZ H HP D HG SG
+舔	P H S S HZ H H H P N SG D D D
+舛	P HP D H SZ S
+舜	P D D P D HG P HP D H SZ S
+舞	P H H S S S S H P HP D H SZ S
+舟	P P HZG D H D
+舡	P P HZG D H D H S H
+舢	P P HZG D H D S SZ S
+舣	P P HZG D H D D P N
+舨	P P HZG D H D P P HP N
+航	P P HZG D H D D H P HZWG
+舫	P P HZG D H D D H HZG P
+般	P P HZG D H D P HZW HP N
+舭	P P HZG D H D H ST P SWG
+舯	P P HZG D H D S HZ H S
+舰	P P HZG D H D S HZ P SWG
+舱	P P HZG D H D P N HZG SWG
+舳	P P HZG D H D S HZ H S H
+舴	P P HZG D H D P H S H H
+舵	P P HZG D H D D D HG P SWG
+舶	P P HZG D H D P S HZ H H
+舷	P P HZG D H D D H PZ PZ D
+舸	P P HZG D H D H S HZ H SG
+船	P P HZG D H D P HZW S HZ H
+舻	P P HZG D H D S H HZ H P
+舾	P P HZG D H D H S HZ P SW H
+艄	P P HZG D H D S D P S HZG H H
+艇	P P HZG D H D P H S H HZZP N
+艉	P P HZG D H D HZ H P P H H SWG
+艋	P P HZG D H D HP SG H S HZ S S H
+艏	P P HZG D H D D P H P S HZ H H H
+艘	P P HZG D H D P S H HZ H H S HP N
+艚	P P HZG D H D H S HZ H S S H S HZ H H
+艟	P P HZG D H D D H D P H S HZ H H S H H
+艨	P P HZG D H D H S S D HG H H P WG P P P N
+艮	HZ H H ST P N
+良	D HZ H H ST P N
+艰	HP D HZ H H ST P N
+色	P HP HZ S H SWG
+艳	H H H S P HP HZ S H SWG
+艴	HZ H SZWG P S P HP HZ S H SWG
+艺	H S S HZWG
+艽	H S S P HZWG
+艾	H S S P N
+艿	H S S HZZZG P
+节	H S S HZG S
+芃	H S S P HZWG D
+芄	H S S P HZWG D
+芈	S H S H H H S
+芊	H S S P H S
+芋	H S S H H SG
+芍	H S S P HZG D
+芎	H S S HZ H SZWG
+芏	H S S H S H
+芑	H S S HZ H SWG
+芒	H S S D H SZ
+芗	H S S PZ PZ P
+芘	H S S H ST P SWG
+芙	H S S H H P N
+芜	H S S H H P SWG
+芝	H S S D HP N
+芟	H S S P HZW HP N
+芡	H S S P HG P N
+芤	H S S HP SG T SWG
+芥	H S S P N P S
+芦	H S S D HZ H P
+芨	H S S P HZZP N
+芩	H S S P N D HP
+芪	H S S P ST H XG
+芫	H S S H H P SWG
+芬	H S S P N HZG P
+芭	H S S HZ S H SWG
+芮	H S S S HZG P D
+芯	H S S D BXG D D
+芰	H S S H S HP N
+花	H S S P S P SWG
+芳	H S S D H HZG P
+芴	H S S P HZG P P
+芷	H S S S H S H
+芸	H S S H H PZ D
+芹	H S S P P H S
+芽	H S S H SZ SG P
+芾	H S S H S HZG S
+苁	H S S P D P N
+苄	H S S D H S D
+苇	H S S H H HZG S
+苈	H S S H P HZG P
+苊	H S S H P HZG SWG
+苋	H S S S HZ P SWG
+苌	H S S P H ST N
+苍	H S S P N HZG SWG
+苎	H S S D D HG H
+苏	H S S HZG P D D
+苑	H S S P HP D HZG SWG
+苒	H S S S HZG S H H
+苓	H S S P N D HP D
+苔	H S S PZ D S HZ H
+苕	H S S HZG P S HZ H
+苗	H S S S HZ H S H
+苘	H S S S HZG S HZ H
+苛	H S S H S HZ H SG
+苜	H S S S HZ H H H
+苞	H S S P HZG HZ H SWG
+苟	H S S P HZG S HZ H
+苠	H S S HZ H ST H XG
+苡	H S S ST D P D
+苣	H S S H HZ H SZ
+苤	H S S H P S D H
+若	H S S H P S HZ H
+苦	H S S H S S HZ H
+苫	H S S S H S HZ H
+苯	H S S H S P N H
+英	H S S S HZ H P N
+苴	H S S S HZ H H H
+苷	H S S H S S H H
+苹	H S S H D P H S
+苻	H S S P S H SG D
+茁	H S S SZ S S SZ S
+茂	H S S H P XG P D
+范	H S S D D T HZG SWG	通用规范汉字表 counts the mainland's 艹 as 3 strokes; Unihan's kTotalStrokes counts it as 4
+茄	H S S HZG P S HZ H
+茅	H S S HP D HG SG P
+茆	H S S P ST P HZG S
+茇	H S S H P HP N D
+茈	H S S S H S T P SWG
+茉	H S S H H S P N
+茌	H S S P S H S H
+茎	H S S HP D H S H
+茏	H S S H P SWG P D
+茑	H S S P HZG D SZWG H
+茔	H S S D HG H S H	通用规范汉字表 counts the mainland's 艹 as 3 strokes; Unihan's kTotalStrokes counts it as 4
+茕	H S S D HG HXG H S
+茗	H S S P HP D S HZ H
+茚	H S S P ST H HZG S
+茛	H S S HZ H H ST P N
+茜	H S S H S HZ P SW H
+茧	H S S S HZ H S H D
+茨	H S S D T P HG P N
+茫	H S S D D T D H SZ
+茬	H S S H P S H S H
+茭	H S S D H P D P N
+茯	H S S P S H P N D
+茱	H S S P H H S P N
+茳	H S S D D T H S H
+茴	H S S S HZ S HZ H H
+茵	H S S S HZ H P D H
+茶	H S S P N H SG P D
+茸	H S S H S S H H H
+茹	H S S PD P H S HZ H
+茺	H S S D H PZ D P SWG
+茼	H S S S HZG H S HZ H
+荀	H S S P HZG S HZ H H
+荃	H S S P N H H S H
+荆	H S S H H P S S SG
+荇	H S S P P S H H SG
+草	H S S S HZ H H H S
+荏	H S S P S P H S H
+荐	H S S H P S HP SG H
+荑	H S S H HZ H SZWG P N
+荒	H S S D H SZ P S SWG
+荔	H S S HZG P HZG P HZG P
+荚	H S S H D P H P N
+荛	H S S H XG P H P SWG
+荜	H S S H ST P SWG H S
+荞	H S S P H P N P S
+荟	H S S P N H H PZ D
+荠	H S S D H P N P S
+荡	H S S D D T HZZZG P P
+荣	H S S D HG H S P N
+荤	H S S D HG H PZ H S
+荥	H S S D HG SG HP P N	通用规范汉字表 counts the mainland's 艹 as 3 strokes; Unihan's kTotalStrokes counts it as 4
+荦	H S S D HG P H H S	通用规范汉字表 counts the mainland's 艹 as 3 strokes; Unihan's kTotalStrokes counts it as 4
+荧	H S S D HG D P P N	通用规范汉字表 counts the mainland's 艹 as 3 strokes; Unihan's kTotalStrokes counts it as 4
+荨	H S S HZ H H H SG D
+荩	H S S HZ H P N D D
+荪	H S S HP SG T SG P D
+荫	H S S HPWG S P HZG H H
+荬	H S S HG D D H P D
+荭	H S S PZ PZ T H S H
+荮	H S S PZ PZ T H SG D
+药	H S S PZ PZ T P HZG D
+荷	H S S P S H S HZ H SG
+荸	H S S H S D HG HP SG H
+荻	H S S P WG P D P P N
+荼	H S S P N H H SG P D
+荽	H S S P D D P PD P H
+莅	H S S P S D H D P H
+莆	H S S H S HZG H H S D
+莉	H S S P H S P D S SG
+莎	H S S D D T S P D P
+莒	H S S S HZ H S HZ H
+莓	H S S P H SZ HZG D H D
+莘	H S S D H D P H H S
+莛	H S S P H S H HZZP N
+莜	H S S P S S P H P N
+莞	H S S D D HG H H P SWG
+莠	H S S P H S P N HZZZG P
+莨	H S S D HZ H H ST P N
+莩	H S S P D D P HP SG H
+莪	H S S P H SG T XG P D
+莫	H S S S HZ H H H P N
+莰	H S S H S T P HG P N
+莱	H S S H D P H S P N
+莲	H S S H PZ H S D HZZP N
+莳	H S S S HZ H H H SG D
+莴	H S S S HZ H S HZG P D
+莶	H S S P N H D D P H
+获	H S S P WG P H P N D
+莸	H S S P WG P H P SWG D
+莹	H S S D HG H H S H D	通用规范汉字表 counts the mainland's 艹 as 3 strokes; Unihan's kTotalStrokes counts it as 4
+莺	H S S D HG P HZG D SZWG H
+莼	H S S PZ PZ T H SZ S SWG
+莽	H S S H P N D H P S
+菀	H S S D D HG P HP D HZG SWG
+菁	H S S H H S H S HZG H H
+菂	H S S P S HZ H H P HZG D
+菅	H S S D D HG S HZ H HZ H
+菇	H S S PD P H H S S HZ H
+菊	H S S P HZG D P H S P D
+菌	H S S S HZ P H S P D H
+菏	H S S D D T H S HZ H SG
+菔	H S S P HZG H H HZG S HP N
+菖	H S S S HZ H H S HZ H H
+菘	H S S H S P D P N PZ D
+菜	H S S P D D P H S P N
+菝	H S S H SG T H P HP N D
+菟	H S S P HP S HZ H P SWG D
+菠	H S S D D T HG P S HP N
+菡	H S S HP SG D T P D SZ S
+菥	H S S H S P D P P H S
+菩	H S S D H D P H S HZ H
+菪	H S S D D HG H P S HZ H
+菰	H S S HP SG T P P ST D N
+菱	H S S H S H P D P HP N
+菲	H S S S H H H S H H H
+菸	H S S D H HZG P P N D D
+菹	H S S D D T S HZ H H H
+菽	H S S S H H SG P D HP N
+萁	H S S H S S H H H P D
+萃	H S S D H P D P D H S
+萄	H S S P HZG P H H S SZ S
+萆	H S S P S HZ H H P H S
+萋	H S S H HZ H H S PD P H
+萌	H S S S HZ H H P HZG H H
+萍	H S S D D T H D P H S
+萎	H S S P H S P N PD P H
+萏	H S S P HP P S H HZ H H
+萑	H S S P S D H H H S H
+萘	H S S H P N H H SG P D
+萜	H S S S HZG S S H S HZ H
+萝	H S S S HZ S S H P HP D
+萤	H S S D HG S HZ H S H D
+营	H S S D HG S HZ H S HZ H
+萦	H S S D HG PZ PZ D SG P D	通用规范汉字表 counts the mainland's 艹 as 3 strokes; Unihan's kTotalStrokes counts it as 4
+萧	H S S HZ H H S P S P D
+萨	H S S HPWG S D H D P H P
+萩	H S S P H S P D D P P N
+萱	H S S D D HG H S HZ H H H
+萸	H S S P S H HZ H H P N
+萼	H S S S HZ H S HZ H H H SZWG
+落	H S S D D T P HP N S HZ H
+葆	H S S P S S HZ H H S P N
+葑	H S S H S H H S T H SG D
+著	H S S H S H P S HZ H H
+葙	H S S H S P D S HZ H H H
+葚	H S S H S S H H H P D SZ
+葛	H S S S HZ H H P HZG P D SZ
+葜	H S S H H H S HZG P H P N
+葡	H S S P HZG H S HZG H H S D
+董	H S S P H S HZ H H S H H
+葩	H S S P S HZ H H HZ S H SWG
+葫	H S S H S S HZ H P HZG H H
+葬	H S S H P HP D P SWG H P S
+葭	H S S HZ H S H H HZ H HP N
+葱	H S S P HZG P P D D BXG D D
+葳	H S S H P H PD P H XG P D
+葵	H S S HP D P P N H H P D
+葶	H S S D H S HZ H D HG H SG
+葸	H S S S HZ H S H D BXG D D
+葺	H S S S HZ H H S S H H H
+蒂	H S S D H D P D HG S HZG S
+蒇	H S S H P S HZ P D XG P D
+蒈	H S S H ST P SWG P S HZ H H
+蒉	H S S S HZ H S H S HZ P D
+蒋	H S S D T S P HP D H SG D
+蒌	H S S D P H S P N PD P H
+蒎	H S S D D T P P P ST P N
+蒗	H S S D D T D HZ H H ST P N
+蒙	H S S D HG H H P WG P P P N
+蒜	H S S H H SG P D H H SG P D
+蒡	H S S D H D P D HG D H HZG P
+蒯	H S S P HZG H H P HZG H H S SG
+蒲	H S S D D T H S HZG H H S D
+蒴	H S S D P H SZ S P P HZG H H
+蒸	H S S HP SG HP P N H D D D D
+蒹	H S S D P H HZ H H S S P N
+蒺	H S S D H P D T P H H P N
+蒽	H S S S HZ H P D H D BXG D D
+蒿	H S S D H S HZ H S HZG S HZ H
+蓁	H S S H H H P N P H S P D
+蓄	H S S D H PZ PZ D S HZ H S H
+蓉	H S S D D HG P D P N S HZ H
+蓊	H S S P N PZ D HZG D T HZG D T
+蓍	H S S H S H P P SWG S HZ H H
+蓐	H S S H P H H ST P N H SG D
+蓑	H S S D H S HZ H H P ST P N
+蓓	H S S P S D H D P H S HZ H
+蓖	H S S P S HZ P D H H ST P SWG
+蓝	H S S S S P H D S HZ S S H
+蓟	H S S P HP S HZ H S H T S SG
+蓠	H S S D H P D SZ S S HZG PZ D
+蓢	H S S D HZ H H ST D P HZG H H
+蓣	H S S HP D HG SG H P S HZ P D
+蓥	H S S D HG P N H H S D P H
+蓦	H S S S HZ H H H P N HZ SZWG H
+蓬	H S S P HP N H H H S D HZZP N
+蓰	H S S P P S S H S H S H P N
+蓼	H S S HZ D T HZ D T P N P P P
+蓿	H S S D D HG P S H P S HZ H H
+蔌	H S S H S HZ H S P D P HG P N
+蔑	H S S S HZ S S H H P D XG P D
+蔓	H S S S HZ H H S HZ S S H HP N
+蔗	H S S D H P H S S H D D D D
+蔚	H S S HZ H P H H SG P D H SG D
+蔟	H S S D H HZG P P H P H H P N
+蔡	H S S P HP D D HP N H H SG P D
+蔫	H S S H S H S H H SZWG D D D D
+蔬	H S S HG S H S T D H PZ D P S SWG
+蔷	H S S H S D P H S HZ S HZ H H
+蔸	H S S P S HZ H H P ST HZ H P SWG
+蔹	H S S P N H D D P T P H P N
+蔺	H S S D S HZG P S D H H H S H
+蔻	H S S D D HG H H P SWG S H HP D
+蔼	H S S D HZT S HZ H H P HZG P D SZ
+蔽	H S S D P S HZG S P D P H P N
+蕃	H S S P D P H S P N S HZ H S H
+蕈	H S S H S HZ S S H S HZ H H H S
+蕉	H S S P S D H H H S H D D D D
+蕊	H S S D BXG D D D BXG D D D BXG D D
+蕖	H S S D D T H HZ H SZ H S P N
+蕗	H S S S HZ H S H S T P HP N S HZ H
+蕙	H S S H S HZ H H S H D D BXG D D
+蕞	H S S S HZ H H H S S H H T HP N
+蕤	H S S H P WG P P P N P H H S H
+蕨	H S S H P D P H SZ S P P HG P N
+蕲	H S S D P S HZ H H H S P P H S
+蕴	H S S PZ PZ T S HZ H H S HZ S S H
+蕹	H S S D H PZ PZ P P S D H H H S H
+蕺	H S S S HZ H H S S H H T XG P D
+蕻	H S S H S H H H PZ D H S S H P D
+蕾	H S S H D HG S D D D D S HZ H S H
+薄	H S S D D T H S HZ H H S D H SG D
+薅	H S S PD P H H P H H ST P N H SG D
+薇	H S S P P S S SZ S H P HZT P H P N
+薏	H S S D H D P H S HZ H H D BXG D D
+薛	H S S P S HZ H HZ H D H D P H H S
+薜	H S S HZ H P S HZ H D H D P H H S
+薤	H S S H P HP D S H H H S H H H H
+薨	H S S S HZ S S H D HG H P HP D P SWG
+薪	H S S D H D P H H SG P D P P H S
+薮	H S S D P H S P D PD P H P H P N
+薯	H S S S HZ S S H H S H P S HZ H H
+薰	H S S P H S HZ D P H S H H D D D D
+薷	H S S H D HG S D D D D H P S HZG S S
+薹	H S S H S H S HZ H D HG H PZ D H S H
+藁	H S S D H S HZ H S HZG S HZ H H S P N
+藉	H S S H H H S P D H S S H S HZ H H
+藏	H S S H P SZ H P H S HZ H S SZ XG P D
+藐	H S S P D D P WG P P P S HZ H H P SWG
+藓	H S S P HP S HZ H S H T D P H H H S
+藕	H S S H H H S P D S HZ H H S HZG S T D
+藜	H S S P H S P D P HZG P P N SG D T P D
+藠	H S S P S HZ H H P S HZ H H P S HZ H H
+藤	H S S P HZG H H D P H H P N SG D T P D
+藩	H S S D D T P D P H S P N S HZ H S H
+藻	H S S D D T S HZ H S HZ H S HZ H H S P N
+藿	H S S H D HG S D D D D P S D H H H S H
+蘅	H S S P P S P HP S HZ H S H H P D H H SG
+蘑	H S S D H P H S P D H S P N H P S HZ H
+蘖	H S S P S HZ H HZ H D H D P H H S H S P N
+蘧	H S S S H HG P H SWG H P WG P P P D D HZZP N
+蘩	H S S P H SZ HZ D H D P H P N PZ PZ D SG P D
+蘸	H S S H S HZ P SW H H P S D H H H S H D D D D
+蘼	H S S D H P H S P D H S P N S H H H S H H H
+虍	S H HG P H SWG
+虎	S H HG P H SWG P HZWG
+虏	S H HG P H SWG HZG P
+虐	S H HG P H SWG H SZ H
+虑	S H HG P H SWG D BXG D D
+虔	S H HG P H SWG D H P N
+虚	S H HG P H SWG S S D P H
+虞	S H HG P H SWG S HZ H H H P N
+虢	P D D P H SG D S H HG P H SWG P HZWG
+虫	S HZ H S H D
+虬	S HZ H S H D SWG
+虮	S HZ H S H D P HZWG
+虱	HXG P S HZ H S H D
+虹	S HZ H S H D H S H
+虺	H P SWG S HZ H S H D
+虻	S HZ H S H D D H SZ
+虼	S HZ H S H D P H HZWG
+虽	S HZ H S HZ H S H D
+虾	S HZ H S H D H S D
+虿	H HZG P S HZ H S H D
+蚀	P HG ST S HZ H S H D
+蚁	S HZ H S H D D P N
+蚂	S HZ H S H D HZ SZWG H
+蚊	S HZ H S H D D H P N
+蚋	S HZ H S H D S HZG P D
+蚌	S HZ H S H D H H H S
+蚍	S HZ H S H D H ST P SWG
+蚓	S HZ H S H D HZ H SZWG S
+蚕	H H P N S HZ H S H D
+蚜	S HZ H S H D H SZ SG P
+蚝	S HZ H S H D P H H SWG
+蚣	S HZ H S H D P N PZ D
+蚤	HP N D S HZ H S H D
+蚧	S HZ H S H D P N P S
+蚨	S HZ H S H D H H P N
+蚩	SZ S S H S HZ H S H D
+蚪	S HZ H S H D D D H S
+蚬	S HZ H S H D S HZ P SWG
+蚯	S HZ H S H D P S H S H
+蚰	S HZ H S H D S HZ H S H
+蚱	S HZ H S H D P H S H H
+蚴	S HZ H S H D PZ PZ D HZG P
+蚵	S HZ H S H D H S HZ H SG
+蚶	S HZ H S H D H S S H H
+蚺	S HZ H S H D S HZG S H H
+蛀	S HZ H S H D D H H S H
+蛄	S HZ H S H D H S S HZ H
+蛆	S HZ H S H D S HZ H H H
+蛇	S HZ H S H D D D HG P SWG
+蛉	S HZ H S H D P N D HP D
+蛊	S HZ H S H D S HZ S S H
+蛋	HG S H P N S HZ H S H D
+蛎	S HZ H S H D H P H HZG P
+蛏	S HZ H S H D HP N H S H
+蛐	S HZ H S H D S HZ H S S H
+蛑	S HZ H S H D PZ D P H H S
+蛔	S HZ H S H D S HZ S HZ H H
+蛘	S HZ H S H D D P H H H S
+蛙	S HZ H S H D H S H H S H
+蛛	S HZ H S H D P H H S P N
+蛞	S HZ H S H D P H S S HZ H
+蛟	S HZ H S H D D H P D P N
+蛤	S HZ H S H D P N H S HZ H
+蛩	H S T P HZWG D S HZ H S H D
+蛭	S HZ H S H D H PZ D H S H
+蛮	D H S S P D S HZ H S H D
+蛰	H SG T P HZWG D S HZ H S H D
+蛱	S HZ H S H D H D P H P N
+蛲	S HZ H S H D H XG P H P SWG
+蛳	S HZ H S H D S P H S HZG S
+蛴	S HZ H S H D D H P N P S
+蛸	S HZ H S H D S D P S HZG H H
+蛹	S HZ H S H D HP D S HZG H H S
+蛾	S HZ H S H D P H SG T XG P D
+蜀	S HZ S S H P HZG S HZ H S H D
+蜂	S HZ H S H D P HP N H H H S
+蜃	H P H H ST P N S HZ H S H D
+蜇	H SG T P P H S S HZ H S H D
+蜈	S HZ H S H D S HZ H H H P N
+蜉	S HZ H S H D P D D P HP SG H
+蜊	S HZ H S H D P H S P D S SG
+蜍	S HZ H S H D P N H H SG P D
+蜒	S HZ H S H D P S H SZ HZZP N
+蜓	S HZ H S H D P H S H HZZP N
+蜕	S HZ H S H D D P S HZ H P SWG
+蜗	S HZ H S H D S HZ H S HZG P D
+蜘	S HZ H S H D P H H P D S HZ H
+蜚	S H H H S H H H S HZ H S H D
+蜜	D D HG D BXG D P D S HZ H S H D
+蜞	S HZ H S H D H S S H H H P D
+蜡	S HZ H S H D H S S H S HZ H H
+蜢	S HZ H S H D HP SG H S HZ S S H
+蜣	S HZ H S H D D P H H H P SWG
+蜥	S HZ H S H D H S P D P P H S
+蜩	S HZ H S H D P HZG H S H S HZ H
+蜮	S HZ H S H D H S HZ H T XG P D
+蜱	S HZ H S H D P S HZ H H P H S
+蜴	S HZ H S H D S HZ H H P HZG P P
+蜷	S HZ H S H D D P H H P N HZG SWG
+蜻	S HZ H S H D H H S H S HZG H H
+蜾	S HZ H S H D S HZ H H H S P N
+蜿	S HZ H S H D D D HG P HP D HZG SWG
+蝇	S HZ H S H D S HZ H S HZ H H SWG
+蝈	S HZ H S H D S HZ H H S H D H
+蝉	S HZ H S H D D P S HZ H H H S
+蝌	S HZ H S H D P H S P D D D H S
+蝎	S HZ H S H D S HZ H H P HZG P D SZ
+蝓	S HZ H S H D P N H S HZG H H S SG
+蝗	S HZ H S H D P S HZ H H H H S H
+蝙	S HZ H S H D D HZ H P S HZG H S S
+蝠	S HZ H S H D H S HZ H S HZ H S H
+蝣	S HZ H S H D D H HZG P P H HP SG H
+蝤	S HZ H S H D D P H S HZ P SW H H
+蝥	HP D HG SG P P H P N S HZ H S H D
+蝮	S HZ H S H D P H S HZ H H P HP N
+蝰	S HZ H S H D H P N H S H H S H
+蝴	S HZ H S H D H S S HZ H P HZG H H
+蝶	S HZ H S H D H S S H SZ H S P N
+蝻	S HZ H S H D H S S HZG D P H H S
+蝼	S HZ H S H D D P H S P N PD P H
+蝽	S HZ H S H D H H H P N S HZ H H
+蝾	S HZ H S H D H S S D HG H S P N
+螂	S HZ H S H D D HZ H H ST D HPWG S
+螃	S HZ H S H D D H D P D HG D H HZG P
+螅	S HZ H S H D P S HZ H H H D BXG D D
+螈	S HZ H S H D H P P S HZ H H SG P D
+螋	S HZ H S H D P S H HZ H H S HP N
+融	H S HZ H S HZG D P H S S HZ H S H D
+螓	S HZ H S H D H H H P N P H S P D
+螗	S HZ H S H D D H P HZ H H S S HZ H
+螟	S HZ H S H D D HG S HZ H H D H P D
+螨	S HZ H S H D H S S H S HZG P D P D
+螫	H S H P SG P D P H P N S HZ H S H D
+螬	S HZ H S H D H S HZ H S S H S HZ H H
+螭	S HZ H S H D D H P D SZ S S HZG PZ D
+螯	H H S H HZG P P H P N S HZ H S H D
+螳	S HZ H S H D S D P D HG S HZ H H S H
+螵	S HZ H S H D H S HZ S S H H H SG P D
+螺	S HZ H S H D S HZ H S H PZ PZ D SG P D
+螽	P HP N D D S HZ H S H D S HZ H S H D
+蟀	S HZ H S H D D H PZ PZ D D T P D H S
+蟆	S HZ H S H D H S S S HZ H H H P N
+蟊	HP D HG SG P S HZ H S H D S HZ H S H D
+蟋	S HZ H S H D P D P H S P N D BXG D D
+蟑	S HZ H S H D D H D P H S HZ H H H S
+蟒	S HZ H S H D H S S H P N D H P S
+蟓	S HZ H S H D P HP S HZ H P WG P P P N
+蟛	S HZ H S H D H S H S HZ H D P T P P P
+蟠	S HZ H S H D P D P H S P N S HZ H S H
+蟥	S HZ H S H D H S S H S HZ H S H P D
+蟪	S HZ H S H D H S HZ H H S H D D BXG D D
+蟮	S HZ H S H D D P H H H S D P H S HZ H
+蟹	P HP P HZG H H S HZG P P H H S S HZ H S H D
+蟾	S HZ H S H D P HP H P P D D H H H S HZ H
+蠃	D H SZ S HZ H P HZG H H S HZ H S H D P HZWG D
+蠊	S HZ H S H D D H P D P H HZ H H S S P N
+蠓	S HZ H S H D H S S D HG H H P WG P P P N
+蠕	S HZ H S H D H D HG S D D D D H P S HZG S S
+蠖	S HZ H S H D H S S P S D H H H S H HP N
+蠛	S HZ H S H D H S S S HZ S S H H P D XG P D
+蠡	SZ HP H P WG P P P N S HZ H S H D S HZ H S H D
+蠢	H H H P N S HZ H H S HZ H S H D S HZ H S H D
+蠲	D P H P D S HZ S S T S HZ S S H P HZG S HZ H S H D
+蠹	H S HZ H S D HG H P S HZ H S HZ H S H D S HZ H S H D
+蠼	S HZ H S H D S HZ H H H S HZ H H H P S D H H H S H HP N
+血	P S HZ S S H
+衄	P S HZ S S T HZ S H H
+衅	P S HZ S S T D P H H S
+行	P P S H H SG
+衍	P P S D D T H H SG
+衔	P P S P H H H ST H H SG
+街	P P S H S H H S T H H SG
+衙	P P S H S HZ H S HZ H H H SG
+衡	P P S P HP S HZ H S H H P D H H SG
+衢	P P S S HZ H H H S HZ H H H P S D H H H S H H H SG
+衣	D H P ST P N
+补	D HP S P D S D
+表	H H S H P ST P N
+衩	D HP S P D HP N D
+衫	D HP S P D P P P
+衬	D HP S P D H SG D
+衮	D H P D PZ D P ST P N
+衰	D H S HZ H H P ST P N
+衲	D HP S P D S HZG P D
+衷	D H S HZ H S P ST P N
+衽	D HP S P D P H S H
+衾	P N D HP D H P ST P N
+衿	D HP S P D P N D HP
+袁	H S H S HZ H P ST P N
+袂	D HP S P D HZ H P N
+袄	D HP S P D P H P N
+袅	P HZG D SZWG D H P ST P N
+袈	HZG P S HZ H D H P ST P N
+袋	P S H XG D D H P ST P N
+袍	D HP S P D P HZG HZ H SWG
+袒	D HP S P D S HZ H H H
+袖	D HP S P D S HZ H S H
+袜	D HP S P D H H S P N
+袢	D HP S P D D P H H S
+袤	D H HP D HG SG P P ST P N
+被	D HP S P D HG P S HP N
+袭	H P SWG P D D H P ST P N
+袱	D HP S P D P S H P N D
+袷	D HP S P D P N H S HZ H
+袼	D HP S P D P HP N S HZ H
+裁	H S H D H P ST P D XG P D
+裂	H P HP D S SG D H P ST P N
+装	D T S H S H D H P ST P N
+裆	D HP S P D S D P HZ H H
+裉	D HP S P D HZ H H ST P N
+裎	D HP S P D S HZ H H H S H
+裒	D H P S H HZ H H P ST P N
+裔	D H P ST P N S HZG P D S HZ H
+裕	D HP S P D P D P N S HZ H
+裘	H S D T P D D D H P ST P N
+裙	D HP S P D HZ H H P S HZ H
+裟	D D T S P D P D H P ST P N
+裢	D HP S P D H PZ H S D HZZP N
+裣	D HP S P D P N H D D P H
+裤	D HP S P D D H P H PZ H S
+裥	D HP S P D D S HZG S HZ H H
+裨	D HP S P D P S HZ H H P H S
+裰	D HP S P D HP D HP D HP D HP N
+裱	D HP S P D H H S H P ST P N
+裳	S D P D HG S HZ H D H P ST P N
+裴	S H H H S H H H D H P ST P N
+裸	D HP S P D S HZ H H H S P N
+裹	D H S HZ H H H S P D P ST P N
+裼	D HP S P D S HZ H H P HZG P P
+製	P H H S HZG S S SG D H P ST P N
+裾	D HP S P D HZ H P H S S HZ H
+褂	D HP S P D H S H H S T S D
+褊	D HP S P D D HZ H P S HZG H S S
+褐	D HP S P D S HZ H H P HZG P D SZ
+褒	D H P S S HZ H H S P D P ST P N
+褓	D HP S P D P S S HZ H H S P N
+褙	D HP S P D S H T P SWG S HZG H H
+褚	D HP S P D H S H P S HZ H H
+褛	D HP S P D D P H S P N PD P H
+褡	D HP S P D H S S P N H S HZ H
+褥	D HP S P D H P H H ST P N H SG D
+褪	D HP S P D HZ H H ST P D D HZZP N
+褫	D HP S P D P P S H HG P H SWG P HZWG
+褰	D D HG H H S S H P N D H P ST P N
+褴	D HP S P D S S P H D S HZ S S H
+褶	D HP S P D HZ D T HZ D T P S HZ H H
+襁	D HP S P D HZ H SZWG S HZ H S HZ H S H D
+襄	D H S HZ H S HZ H H H S S H P ST P N
+襞	HZ H P S HZ H D H D P H H S D H P ST P N
+襟	D HP S P D H S P D H S P N H H SG P D
+襦	D HP S P D H D HG S D D D D H P S HZG S S
+襻	D HP S P D H S P D P D P D H S P D H P N P H H SG
+西	H S HZ P SW H
+要	H S HZ S S H PD P H
+覃	H S HZ S S H S HZ H H H S
+覆	H S HZ S S H P P S P H S HZ H H P HP N
+见	S HZ P SWG
+观	HP D S HZ P SWG
+规	H H P D S HZ P SWG
+觅	P D D P S HZ P SWG
+视	D HP S D S HZ P SWG
+觇	S H S HZ H S HZ P SWG
+览	S S P H D S HZ P SWG
+觉	D D P D HG S HZ P SWG
+觊	S SZ S HZ H ST S HZ P SWG
+觋	H S P D P D T S HZ P SWG
+觌	H S HG D D H P D S HZ P SWG
+觎	P D H S HZG H H S SG S HZ P SWG
+觏	H H S S H S HZG S H H S HZ P SWG
+觐	H S S H S HZ H H H S T S HZ P SWG
+觑	S H HG P H SWG S S D P T S HZ P SWG
+角	P HP P HZG H H S
+觖	P HP P HZG H H S HZ H P N
+觚	P HP P HZG H H S P P ST D N
+觜	S H S T P SWG P HP P HZG H H S
+觞	P HP P HZG H H S P H HZZZG P P
+解	P HP P HZG H H S HZG P P H H S
+觥	P HP P HZG H H S S D P H P SWG
+触	P HP P HZG H H S S HZ H S H D
+觫	P HP P HZG H H S H S HZ H S P N
+觯	P HP P HZG H H S D P S HZ H H H S
+觳	H S H D HG H P HP P HZG H H S P HZW HP N
+言	D H H H S HZ H
+訇	P HZG D H H H S HZ H
+託	D H H H S HZ H P H SWG
+註	D H H H S HZ H D H H S H
+訾	S H S T P SWG D H H H S HZ H
+詈	S HZ S S H D H H H S HZ H
+詹	P HP H P P D D H H H S HZ H
+誉	D D P H P N D H H H S HZ H
+誊	D P H H P N D H H H S HZ H
+誓	H SG T P P H S D H H H S HZ H
+謇	D D HG H H S S H P N D H H H S HZ H
+謦	H S H HZ S H P P HZW HP D D H H H S HZ H
+警	H S S P HZG S HZ H P H P N D H H H S HZ H
+譬	HZ H P S HZ H D H D P H H S D H H H S HZ H
+计	D HZT H S
+订	D HZT H SG
+讣	D HZT S D
+认	D HZT P N
+讥	D HZT P HZWG
+讦	D HZT H H S
+讧	D HZT H S H
+讨	D HZT H SG D
+让	D HZT S H H
+讪	D HZT S SZ S
+讫	D HZT P H HZWG
+训	D HZT P S S
+议	D HZT D P N
+讯	D HZT HXG H S
+记	D HZT HZ H SWG
+讲	D HZT H H P S
+讳	D HZT H H HZG S
+讴	D HZT H P D SZ
+讵	D HZT H HZ H SZ
+讶	D HZT H SZ SG P
+讷	D HZT S HZG P D
+许	D HZT P H H S
+讹	D HZT P S P SWG
+论	D HZT P N P SWG
+讼	D HZT P N PZ D
+讽	D HZT P HXG P D
+设	D HZT P HZW HP N
+访	D HZT D H HZG P
+诀	D HZT HZ H P N
+证	D HZT H S H S H
+诂	D HZT H S S HZ H
+诃	D HZT H S HZ H SG
+评	D HZT H D P H S
+诅	D HZT S HZ H H H
+识	D HZT S HZ H P D
+诈	D HZT P H S H H
+诉	D HZT P P H S D
+诊	D HZT P N P P P
+诋	D HZT P ST H XG D
+诌	D HZT P HP HZ H H
+词	D HZT HZG H S HZ H
+诎	D HZT SZ S S SZ S
+诏	D HZT HZG P S HZ H
+译	D HZT HP N H H S
+诒	D HZT PZ D S HZ H
+诓	D HZT H H H S H SZ
+诔	D HZT H H H S P N
+试	D HZT H H S T XG D
+诖	D HZT H S H H S H
+诗	D HZT H S H H SG D
+诘	D HZT H S H S HZ H
+诙	D HZT H P D P P N
+诚	D HZT H P HZG XG P D
+诛	D HZT P H H S P N
+诜	D HZT P H S H P SWG
+话	D HZT P H S S HZ H
+诞	D HZT P S H SZ HZZP N
+诟	D HZT P P H S HZ H
+诠	D HZT P N H H S H
+诡	D HZT P HP H P HZG SWG
+询	D HZT P HZG S HZ H H
+诣	D HZT P SWG S HZ H H
+诤	D HZT P HP HZ H H SG
+该	D HZT D H PZ P P D
+详	D HZT D P H H H S
+诧	D HZT D D HG P H SWG
+诨	D HZT D HG H PZ H S
+诩	D HZT HZG D T HZG D T
+诫	D HZT H H P S XG P D
+诬	D HZT H S P D P D H
+语	D HZT H S HZ H S HZ H
+诮	D HZT S D P S HZG H H
+误	D HZT S HZ H H H P N
+诰	D HZT P H S H S HZ H
+诱	D HZT P H S P N HZZZG P
+诲	D HZT P H SZ HZG D H D
+诳	D HZT P WG P H H S H
+说	D HZT D P S HZ H P SWG
+诵	D HZT HP D S HZG H H S
+诶	D HZT PZ D P H H P N
+请	D HZT H H S H S HZG H H
+诸	D HZT H S H P S HZ H H
+诹	D HZT H S S H H T HP N
+诺	D HZT H S S H P S HZ H
+读	D HZT H S HG D D H P D
+诼	D HZT H P WG P P D P N
+诽	D HZT S H H H S H H H
+课	D HZT S HZ H H H S P N
+诿	D HZT P H S P N PD P H
+谀	D HZT P S H HZ H H P N
+谁	D HZT P S D H H H S H
+谂	D HZT P N D HP D BXG D D
+调	D HZT P HZG H S H S HZ H
+谄	D HZT P HP P S H HZ H H
+谅	D HZT D H S HZ H SG P D
+谆	D HZT D H S HZ H HP SG H
+谇	D HZT D H P D P D H S
+谈	D HZT D P P D D P P N
+谊	D HZT D D HG S HZ H H H
+谋	D HZT H S S H H H S P N
+谌	D HZT H S S H H H P D SZ
+谍	D HZT H S S H SZ H S P N
+谎	D HZT H S S D H SZ P S SWG
+谏	D HZT H S HZ D P H S P N
+谐	D HZT H ST P SWG P S HZ H H
+谑	D HZT S H HG P H SWG H SZ H
+谒	D HZT S HZ H H P HZG P D SZ
+谓	D HZT S HZ H S H S HZG H H
+谔	D HZT S HZ H S HZ H H H SZWG
+谕	D HZT P N H S HZG H H S SG
+谖	D HZT P D D P H H P HP N
+谗	D HZT P HP S HZ H P SWG D D
+谘	D HZT D T P HG P N S HZ H
+谙	D HZT D H D P H S HZ H H
+谚	D HZT D H D P H P P P P
+谛	D HZT D H D P D HG S HZG S
+谜	D HZT D P H S P D D HZZP N
+谝	D HZT D HZ H P S HZG H S S
+谞	D HZT HG S H P N S HZG H H
+谟	D HZT H S S S HZ H H H P N
+谠	D HZT S D P D HG S HZ H P SWG
+谡	D HZT S HZ H S H P D P HP N
+谢	D HZT P S HZG H H H P H SG D
+谣	D HZT P D D P P H H S SZ S
+谤	D HZT D H D P D HG D H HZG P
+谥	D HZT D P H P D S HZ S S H
+谦	D HZT D P H HZ H H S S P N
+谧	D HZT D BXG D P D S HZ S S H
+谨	D HZT H S S H S HZ H H H S H
+谩	D HZT S HZ H H S HZ S S H HP N
+谪	D HZT D H D P S HZG H S S HZ H
+谫	D HZT D P H S HZG H H S SG HZG P
+谬	D HZT HZ D T HZ D T P N P P P
+谭	D HZT H S HZ S S H S HZ H H H S
+谮	D HZT H PZ P ST H PZ P SWG S HZ H H
+谯	D HZT P S D H H H S H D D D D
+谰	D HZT D S HZG H S HZ D P H S P D
+谱	D HZT D P H S S D P H S HZ H H
+谲	D HZT HP D HG SG P S HZG P D S HZ H
+谳	D HZT H S S HZG D P H H S H P N D
+谴	D HZT S HZ H S H S HZ H HZ H D HZZP N
+谵	D HZT P HP H P P D D H H H S HZ H
+谶	D HZT P D P D H S H H H S H H H T XG P D
+谷	P D P N S HZ H
+豁	D D HG H H H S S HZ H P D P N S HZ H
+豆	H S HZ H D P H
+豇	H S HZ H D P T H S H
+豉	H S HZ H D P T H S HP N
+豌	H S HZ H D P T D D HG P HP D HZG SWG
+豕	H P WG P P P N
+豚	P HZG H H H P WG P P P N
+象	P HP S HZ H P WG P P P N
+豢	D P H H P N H P WG P P P D
+豪	D H S HZ H D HG H P WG P P P N
+豫	HP D HG SG P HP S HZ H P WG P P P N
+豳	S H P WG P P P D H P WG P P P D SZ S
+豸	P D D P WG P P
+豹	P D D P WG P P P HZG D
+豺	P D D P WG P P H SG P
+貂	P D D P WG P P HZG P S HZ H
+貅	P D D P WG P P P S H S P N
+貉	P D D P WG P P P HP N S HZ H
+貊	P D D P WG P P H P S HZ H H
+貌	P D D P WG P P P S HZ H H P SWG
+貔	P D D P WG P P P S HZ P D H H ST P SWG
+貘	P D D P WG P P H S S S HZ H H H P N
+贇	D H P D H H S H S T XG D S HZ H H H P D
+贝	S HZ P D
+贞	S H S HZ P D
+负	P HP S HZ P D
+贠	PZ D S HZ P D
+贡	H S H S HZ P D
+财	S HZ P D H SG P
+责	H H S H S HZ P D
+贤	S S HP N S HZ P D
+败	S HZ P D P H P N
+账	S HZ P D P H ST N
+货	P S P SWG S HZ P D
+质	P P H S S HZ P D
+贩	S HZ P D P P HP N
+贪	P N D HP S HZ P D
+贫	P N HZG P S HZ P D
+贬	S HZ P D P D HP N
+购	S HZ P D P HZG PZ D
+贮	S HZ P D D D HG H
+贯	SZ HZ S H S HZ P D
+贰	H H H S HZ P D XG D
+贱	S HZ P D H H XG P D
+贲	H S H S S S HZ P D
+贳	H S S H SZ S HZ P D
+贴	S HZ P D S H S HZ H
+贵	S HZ H S H S HZ P D
+贶	S HZ P D S HZ H P SWG
+贷	P S H XG D S HZ P D
+贸	P ST D HZG P S HZ P D
+费	HZ H SZWG P S S HZ P D
+贺	HZG P S HZ H S HZ P D
+贻	S HZ P D PZ D S HZ H
+贼	S HZ P D H H P XG P D
+贽	H SG T P HZWG D S HZ P D
+贾	H S HZ S S H S HZ P D
+贿	S HZ P D H P S HZG H H
+赀	S H S T P SWG S HZ P D
+赁	P S P H S H S HZ P D
+赂	S HZ P D P HP N S HZ H
+赃	S HZ P D D H P H S H
+资	D T P HG P N S HZ P D
+赅	S HZ P D D H PZ P P D
+赆	S HZ P D HZ H P N D D
+赇	S HZ P D H SG D T P D D
+赈	S HZ P D H P H H ST P N
+赉	H D P H S P N S HZ P D
+赊	S HZ P D P N H H SG P D
+赋	S HZ P D H H S H S T XG D
+赌	S HZ P D H S H P S HZ H H
+赍	H S P D P D D HG S HZ P D
+赎	S HZ P D H S HG D D H P D
+赏	S D P D HG S HZ H S HZ P D
+赐	S HZ P D S HZ H H P HZG P P
+赓	D H P HZ H H P N S HZ P D
+赔	S HZ P D D H D P H S HZ H
+赕	S HZ P D D P P D D P P N
+赖	H S HZ H S P D P HP S HZ P D
+赘	H H S H HZG P P H P N S HZ P D
+赙	S HZ P D H S HZ H H S D H SG D
+赚	S HZ P D D P H HZ H H S S P N
+赛	D D HG H H S S H P N S HZ P D
+赜	H S S HZ H S SZ H H S H S HZ P D
+赝	H P P S P S D H H H S H S HZ P D
+赞	P H S H P ST P H S H P SWG S HZ P D
+赟	D H P D H H S H S T XG D S HZ P D
+赠	S HZ P D D P S HZ S D P H S HZ H H
+赡	S HZ P D P HP H P P D D H H H S HZ H
+赢	D H SZ S HZ H P HZG H H S HZ P D P HZWG D
+赣	D H D P H S HZ H H H S P HP N H S H S HZ P D
+赤	H S H P SG P D
+赦	H S H P SG P D P H P N
+赧	H S H P SG P D HZG S HP N
+赫	H S H P SG P D H S H P SG P D
+赭	H S H P SG P D H S H P S HZ H H
+走	H S H S H P N
+赳	H S H S H P N ST S
+赴	H S H S H P N S D
+赵	H S H S H P N P D
+赶	H S H S H P N H H S
+起	H S H S H P N HZ H SWG
+趁	H S H S H P N P N P P P
+趄	H S H S H P N S HZ H H H
+超	H S H S H P N HZG P S HZ H
+越	H S H S H P N H ST XG P D
+趋	H S H S H P N P HP HZ H H
+趑	H S H S H P N D T P HG P D
+趔	H S H S H P N H P HP D S SG
+趟	H S H S H P N S D P S HZG S HZ H
+趣	H S H S H P N H S S H H T HP D
+趱	H S H S H P N P H S H P ST P H S H P SWG S HZ P D
+足	S HZ H S H P N
+趴	S HZ H S H S T P N
+趵	S HZ H S H S T P HZG D
+趸	H HZG P S HZ H S H P N
+趺	S HZ H S H S T H H P N
+趼	S HZ H S H S T H H P S
+趾	S HZ H S H S T S H S H
+趿	S HZ H S H S T P HZZP N
+跃	S HZ H S H S T P H P N
+跄	S HZ H S H S T P N HZG SWG
+跆	S HZ H S H S T PZ D S HZ H
+跋	S HZ H S H S T H P HP N D
+跌	S HZ H S H S T P H H P N
+跎	S HZ H S H S T D D HG P SWG
+跏	S HZ H S H S T HZG P S HZ H
+跑	S HZ H S H S T P HZG HZ H SWG
+跖	S HZ H S H S T H P S HZ H
+跗	S HZ H S H S T P S H SG D
+跚	S HZ H S H S T P HZG P HZG H
+跛	S HZ H S H S T HG P S HP N
+距	S HZ H S H S T H HZ H SZ
+跞	S HZ H S H S T P SZ SG P D
+跟	S HZ H S H S T HZ H H ST P N
+跣	S HZ H S H S T P H S H P SWG
+跤	S HZ H S H S T D H P D P N
+跨	S HZ H S H S T H P N H H SZWG
+跪	S HZ H S H S T P HP H P HZG SWG
+跫	H S T P HZWG D S HZ H S H P N
+跬	S HZ H S H S T H S H H S H
+路	S HZ H S H S T P HP N S HZ H
+跳	S HZ H S H S T P D T SWG P D
+践	S HZ H S H S T H H XG P D
+跶	S HZ H S H S T H P D D HZZP N
+跷	S HZ H S H S T H XG P H P SWG
+跸	S HZ H S H S T H ST P SWG H S
+跹	S HZ H S H S T P H S D HZZP N
+跺	S HZ H S H S T P HZW H S P N
+跻	S HZ H S H S T D H P N P S
+跽	S HZ H S H S T HZ H SWG D BXG D D
+踅	H SG T P P H S S HZ H S H P N
+踉	S HZ H S H S T D HZ H H ST P N
+踊	S HZ H S H S T HP D S HZG H H S
+踌	S HZ H S H S T H H H P H SG D
+踏	S HZ H S H S T SG HP P N S HZ H H
+踔	S HZ H S H S T S H S HZ H H H S
+踝	S HZ H S H S T S HZ H H H S P N
+踞	S HZ H S H S T HZ H P H S S HZ H
+踟	S HZ H S H S T P H H P D S HZ H
+踢	S HZ H S H S T S HZ H H P HZG P P
+踣	S HZ H S H S T D H D P H S HZ H
+踩	S HZ H S H S T P D D P H S P N
+踪	S HZ H S H S T D D HG H H SG P D
+踬	S HZ H S H S T P P H S S HZ P D
+踮	S HZ H S H S T D H P S H S HZ H
+踯	S HZ H S H S T D P H H P D HPWG S
+踱	S HZ H S H S T D H P H S S H HP N
+踵	S HZ H S H S T P H S HZ H H S H H
+踹	S HZ H S H S T S SZ S H P S HZG S S
+踺	S HZ H S H S T HZ H H H H S HZZP N
+踽	S HZ H S H S T P S HZ H S HZG S T D
+蹀	S HZ H S H S T H S S H SZ H S P N
+蹁	S HZ H S H S T D HZ H P S HZG H S S
+蹂	S HZ H S H S T HP D HG SG P H S P N
+蹄	S HZ H S H S T D H D P D HG S HZG S
+蹇	D D HG H H S S H P N S HZ H S H P N
+蹈	S HZ H S H S T P D D P P S H HZ H H
+蹉	S HZ H S H S T D P H H H P H S H
+蹊	S HZ H S H S T P D D P PZ PZ D H P N
+蹋	S HZ H S H S T S HZ H H HZG D T HZG D T
+蹑	S HZ H S H S T H S S H H H HP D HP N
+蹒	S HZ H S H S T H S S H S HZG P D P D
+蹙	H P S H H SG P D XG P D S HZ H S H P N
+蹚	S HZ H S H S T S D P D HG S HZ H H S H
+蹦	S HZ H S H S T S SZ S P HZG H H P HZG H H
+蹩	D P S HZG S P D P H P N S HZ H S H P N
+蹬	S HZ H S H S T HP D P P N H S HZ H D P H
+蹭	S HZ H S H S T D P S HZ S D P H S HZ H H
+蹯	S HZ H S H S T P D P H S P N S HZ H S H
+蹰	S HZ H S H S T H P H S HZ H D P T H SG D
+蹲	S HZ H S H S T D P H S HZ P SW H H H SG D
+蹴	S HZ H S H S T D H S HZ H SG P D H P SWG D
+蹶	S HZ H S H S T H P D P H SZ S P P HG P N
+蹼	S HZ H S H S T S S D P H D P H H H P N
+蹿	S HZ H S H S T D D HG P D S HZ H S HZ H S
+躁	S HZ H S H S T S HZ H S HZ H S HZ H H S P N
+躅	S HZ H S H S T S HZ S S H P HZG S HZ H S H D
+躇	S HZ H S H S T H S S H S H P S HZ H H
+躏	S HZ H S H S T H S S D S HZG P S D H H H S H
+躐	S HZ H S H S T PD PD PD S HZ P D H ST D D ST D D XG
+躔	S HZ H S H S T D H P S HZ H H S H H P D H S H
+躜	S HZ H S H S T P H S H P ST P H S H P SWG S HZ P D
+躞	S HZ H S H S T D H H H S HZ H D P P D D P P D HP N
+身	P S HZG H H H P
+躬	P S HZG H H H P HZ H SZWG
+躯	P S HZG H H H P H P D SZ
+躲	P S HZG H H H P P HZW H S P N
+躺	P S HZG H H H P S D P S HZG S HZ H
+軎	H S HZ H H H S S HZ H
+车	H PZ H S
+轧	H PZ S T SWG
+轨	H PZ S T P HZWG
+轩	H PZ S T H H S
+轫	H PZ S T HZG P D
+转	H PZ S T H H SZP D
+轭	H PZ S T H P HZG SWG
+轮	H PZ S T P N P SWG
+软	H PZ S T P HG P N
+轰	H PZ H S HP D HP N
+轱	H PZ S T H S S HZ H
+轲	H PZ S T H S HZ H SG
+轳	H PZ S T S H HZ H P
+轴	H PZ S T S HZ H S H
+轵	H PZ S T S HZ H P D
+轶	H PZ S T P H H P N
+轷	H PZ S T P D P H SG
+轸	H PZ S T P N P P P
+轹	H PZ S T P SZ SG P D
+轺	H PZ S T HZG P S HZ H
+轻	H PZ S T HP D H S H
+轼	H PZ S T H H S T XG D
+载	H S H H PZ S T XG P D
+轾	H PZ S T H PZ D H S H
+轿	H PZ S T P H P N P S
+辁	H PZ S T P N H H S H
+辂	H PZ S T P HP N S HZ H
+较	H PZ S T D H P D P N
+辄	H PZ S T H S S H H T SWG
+辅	H PZ S T H S HZG H H S D
+辆	H PZ S T H S HZG P D P D
+辇	H H P D H H P N H PZ H S
+辈	S H H H S H H H H PZ H S
+辉	S D P H P ST D HG H PZ H S
+辊	H PZ S T S HZ H H H ST P SWG
+辋	H PZ S T S HZG D P H D H SZ
+辍	H PZ S T HP D HP D HP D HP N
+辎	H PZ S T PD PD PD S HZ H S H
+辏	H PZ S T H H H P N H H P D
+辐	H PZ S T H S HZ H S HZ H S H
+辑	H PZ S T S HZ H H S S H H H
+输	H PZ S T P N H S HZG H H S SG
+辔	PZ PZ T H PZ H S PZ PZ T S HZ H
+辕	H PZ S T H S H S HZ H P ST P N
+辖	H PZ S T D D HG H H H S S HZ H
+辗	H PZ S T HZ H P H S S H ST P N
+辘	H PZ S T D H P HZ S S H H ST P SWG
+辙	H PZ S T D H PZ D S HZG H H P H P N
+辚	H PZ S T D P H S P N P HP D H SZ S
+辛	D H D P H H S
+辜	H S S HZ H D H D P H H S
+辞	P H S S HZ H D H D P H H S
+辟	HZ H P S HZ H D H D P H H S
+辣	D H D P H H P H S HZ H S P N
+辨	D H D P H H P D P D H D P H H S
+辩	D H D P H H P D HZT D H D P H H S
+辫	D H D P H H P PZ PZ T D H D P H H S
+辰	H P H H ST P N
+辱	H P H H ST P N H SG D
+边	HZG P D HZZP N
+辽	HP SG D HZZP N
+达	H P D D HZZP N
+迁	P H S D HZZP N
+迂	H H SG D HZZP N
+迄	P H HZWG D HZZP N
+迅	HXG H S D HZZP N
+过	H SG D D HZZP N
+迈	H HZG P D HZZP N
+迎	P ST HZG S D HZZP N
+运	H H PZ D D HZZP N
+近	P P H S D HZZP N
+迓	H SZ SG P D HZZP N
+返	P P HP D D HZZP N
+迕	P H H S D HZZP N
+还	H P S D D HZZP N
+这	D H P D D HZZP N
+进	H H P S D HZZP N
+远	H H P SWG D HZZP N
+违	H H HZG S D HZZP N
+连	H PZ H S D HZZP N
+迟	HZ H P D D HZZP N
+迢	HZG P S HZ H D HZZP N
+迤	P H HZG S SWG D HZZP N
+迥	S HZG S HZ H D HZZP N
+迦	HZG P S HZ H D HZZP N
+迨	PZ D S HZ H D HZZP N
+迩	P HG SG P D D HZZP N
+迪	S HZ H S H D HZZP N
+迫	P S HZ H H D HZZP N
+迭	P H H P D D HZZP N
+迮	P H S H H D HZZP N
+述	H S P D D D HZZP N
+迳	HP D H S H D HZZP N
+迷	D P H S P D D HZZP N
+迸	D P H H P S D HZZP N
+迹	D H P SG P D D HZZP N
+追	P S HZ H HZ H D HZZP N
+退	HZ H H ST P D D HZZP N
+送	D P H H P D D HZZP N
+适	P H S S HZ H D HZZP N
+逃	P D T SWG P D D HZZP N
+逄	P HP N H SZ S D HZZP N
+逅	P P H S HZ H D HZZP N
+逆	D P H SZ S P D HZZP N
+选	P H S H P SWG D HZZP N
+逊	HP SG T SG P D D HZZP N
+逋	H S HZG H H S D D HZZP N
+逍	S D P S HZG H H D HZZP N
+透	P H S P N HZZZG P D HZZP N
+逐	H P WG P P P D D HZZP N
+逑	H SG D T P D D D HZZP N
+递	D P HZ H SZWG S P D HZZP N
+途	P N H H SG P D D HZZP N
+逖	P WG P D P P D D HZZP N
+逗	H S HZ H D P H D HZZP N
+通	HP D S HZG H H S D HZZP N
+逛	P WG P H H S H D HZZP N
+逝	H SG T P P H S D HZZP N
+逞	S HZ H H H S H D HZZP N
+速	H S HZ H S P D D HZZP N
+造	P H S H S HZ H D HZZP N
+逡	PZ D P D P HP D D HZZP N
+逢	P HP N H H H S D HZZP N
+逦	H S HZG D S HZG D D HZZP N
+逭	D D HG S HZ H HZ H D HZZP N
+逮	HZ H H SG D T P D D HZZP N
+逯	HZ H H SG D T P D D HZZP N
+逵	H S H P D H S H D HZZP N
+逶	P H S P D PD P H D HZZP N
+逸	P HP S HZ H P SWG D D HZZP N
+逻	S HZ S S H P HP D D HZZP N
+逼	H S HZ H S HZ H S H D HZZP N
+逾	P N H S HZG H H S SG D HZZP N
+遁	P P H S S HZ H H H D HZZP N
+遂	D P H P WG P P P D D HZZP N
+遄	S SZ S H P S HZG S S D HZZP N
+遇	S HZ H H S HZG S T D D HZZP N
+遍	D HZ H P S HZG H S S D HZZP N
+遏	S HZ H H P HZG P D SZ D HZZP N
+遐	HZ H S H H HZ H HP D D HZZP N
+遑	P S HZ H H H H S H D HZZP N
+遒	D P H S HZ P SW H H D HZZP N
+道	D P H P S HZ H H H D HZZP N
+遗	S HZ H S H S HZ P D D HZZP N
+遘	H H S S H S HZG S H H D HZZP N
+遛	P ST D HZG P S HZ H S H D HZZP N
+遢	S HZ H H HZG D T HZG D T D HZZP N
+遣	S HZ H S H S HZ H HZ H D HZZP N
+遥	P D D P P H H S SZ S D HZZP N
+遨	H H S H HZG P P H P D D HZZP N
+遭	H S HZ H S S H S HZ H H D HZZP N
+遮	D H P H S S H D D D D D HZZP N
+遴	D P H S P D P HP D H SZ S D HZZP N
+遵	D P H S HZ P SW H H H SG D D HZZP N
+遽	S H HG P H SWG H P WG P P P D D HZZP N
+避	HZ H P S HZ H D H D P H H S D HZZP N
+邀	P S HZ H H D H HZG P P H P D D HZZP N
+邂	P HP P HZG H H S HZG P P H H S D HZZP N
+邃	D D HG P D D P H P WG P P P D D HZZP N
+邈	P D D P WG P P P S HZ H H P SWG D HZZP N
+邋	PD PD PD S HZ P D H ST D D ST D D XG D HZZP N
+邑	S HZ H HZ S H SWG
+邓	HP D HPWG S
+邕	PD PD PD S HZ H HZ S H SWG
+邗	H H S HPWG S
+邙	D H SZ HPWG S
+邛	H S T HPWG S
+邝	D H P HPWG S
+邡	D H HZG P HPWG S
+邢	H H P S HPWG S
+那	HZG H H P HPWG S
+邦	H H H P HPWG S
+邨	H SZ S ST HPWG S
+邪	H SZ SG P HPWG S
+邬	P HZG SZWG T HPWG S
+邮	S HZ H S H HPWG S
+邯	H S S H H HPWG S
+邰	PZ D S HZ H HPWG S
+邱	P S H S T HPWG S
+邳	H P S D T HPWG S
+邴	H S HZG P D HPWG S
+邵	HZG P S HZ H HPWG S
+邶	S H T H ST HPWG S
+邸	P ST H XG D HPWG S
+邹	P HP HZ H H HPWG S
+邺	S S D P T HPWG S
+邻	P D D HP D HPWG S
+邾	P H H S P D HPWG S
+郁	H P S HZG H H HPWG S
+郄	P D H P PZ D HPWG S
+郅	H PZ D H S T HPWG S
+郇	P HZG S HZ H H HPWG S
+郊	D H P D P D HPWG S
+郎	D HZ H H ST D HPWG S
+郏	H D P H P D HPWG S
+郐	P D H H PZ D HPWG S
+郑	D P H H P D HPWG S
+郓	D HG H PZ S T HPWG S
+郗	P D H P S HZG S HPWG S
+郛	P D D P HP SG T HPWG S
+郜	P H S H S HZ H HPWG S
+郝	H S H P SG P D HPWG S
+郡	HZ H H P S HZ H HPWG S
+郢	S HZ H H H S T HPWG S
+郦	H S HZG D S HZG D HPWG S
+郧	S HZ H S HZ P D HPWG S
+部	D H D P H S HZ H HPWG S
+郫	P S HZ H H P H S HPWG S
+郭	D H S HZ H HP SG T HPWG S
+郯	D P P D D P P D HPWG S
+郴	H S P D H S P D HPWG S
+郸	D P S HZ H H H S HPWG S
+都	H S H P S HZ H H HPWG S
+郾	H S HZ H H PD P H SZ HPWG S
+鄂	S HZ H S HZ H H H SZWG HPWG S
+鄄	H S HZ S S H H S T HPWG S
+鄙	S HZ H H S S HZ S HZ H H HPWG S
+鄞	H S S H S HZ H H H S T HPWG S
+鄠	H D HG S D D D D H H SZWG HPWG S
+鄢	H S H S H H SZWG D D D D HPWG S
+鄣	D H D P H S HZ H H H S HPWG S
+鄯	D P H H H S D P H S HZ H HPWG S
+鄱	P D P H S P D S HZ H S H HPWG S
+鄹	H S S H H T HP D P S P P P D HPWG S
+酃	H D HG S D D D D S HZ H S HZ H S HZ H HPWG S
+酆	S H H H S H H H S SZ S H S HZ H D P T HPWG S
+酉	H S HZ P SW H H
+酊	H S HZ P SW H H H SG
+酋	D P H S HZ P SW H H
+酌	H S HZ P SW H H P HZG D
+配	H S HZ P SW H H HZ H SWG
+酎	H S HZ P SW H H H SG D
+酏	H S HZ P SW H H HZG S SWG
+酐	H S HZ P SW H H H H S
+酒	D D T H S HZ P SW H H
+酗	H S HZ P SW H H P D SZ S
+酚	H S HZ P SW H H P N HZG P
+酝	H S HZ P SW H H H H PZ D
+酞	H S HZ P SW H H H P N D
+酡	H S HZ P SW H H D D HG P SWG
+酢	H S HZ P SW H H P H S H H
+酣	H S HZ P SW H H H S S H H
+酤	H S HZ P SW H H H S S HZ H
+酥	H S HZ P SW H H P H S P N
+酩	H S HZ P SW H H P HP D S HZ H
+酪	H S HZ P SW H H P HP N S HZ H
+酬	H S HZ P SW H H D P D S D S
+酮	H S HZ P SW H H S HZG H S HZ H
+酯	H S HZ P SW H H P SWG S HZ H H
+酰	H S HZ P SW H H P H S H P SWG
+酱	D T S P HP D H S HZ P SW H H
+酲	H S HZ P SW H H S HZ H H H S H
+酴	H S HZ P SW H H P N H H SG P D
+酵	H S HZ P SW H H H S H P HP SG H
+酶	H S HZ P SW H H P H SZ HZG D H D
+酷	H S HZ P SW H H P H S H S HZ H
+酸	H S HZ P SW H H PZ D P D P HP N
+酹	H S HZ P SW H H P D D P H SG D
+酽	H S HZ P SW H H H S S D P H P
+酾	H S HZ P SW H H H S HZG D S HZG D
+酿	H S HZ P SW H H D HZ H H ST P N
+醅	H S HZ P SW H H D H D P H S HZ H
+醇	H S HZ P SW H H D H S HZ H HP SG H
+醉	H S HZ P SW H H D H P D P D H S
+醋	H S HZ P SW H H H S S H S HZ H H
+醌	H S HZ P SW H H S HZ H H H ST P SWG
+醍	H S HZ P SW H H S HZ H H H S H P N
+醐	H S HZ P SW H H H S S HZ H P HZG H H
+醑	H S HZ P SW H H HG S H P N S HZG H H
+醒	H S HZ P SW H H S HZ H H P H H S H
+醚	H S HZ P SW H H D P H S P D D HZZP N
+醛	H S HZ P SW H H H S S P N H H S H
+醢	H S HZ P SW H H H P S HZ H S HZ S S H
+醣	H S HZ P SW H H D H P HZ H H S S HZ H
+醪	H S HZ P SW H H HZ D T HZ D T P N P P P
+醭	H S HZ P SW H H S S D P H D P H H H P N
+醮	H S HZ P SW H H P S D H H H S H D D D D
+醯	H S HZ P SW H H D H PZ D P S SWG S HZ S S H
+醴	H S HZ P SW H H S HZ H S S H H S HZ H D P H
+醵	H S HZ P SW H H S H HG P H SWG H P WG P P P N
+醺	H S HZ P SW H H P H S HZ D P H S H H D D D D
+釆	P D P H S P N
+采	P D D P H S P N
+釉	P D P H S P D S HZ H S H
+释	P D P H S P D HP N H H S
+里	S HZ H H S H H
+重	P H S HZ H H S H H
+野	S HZ H H S H T HP D HG SG
+量	S HZ H H H S HZ H H S H H
+金	P N H H S D P H
+釜	P D P N H H S D P H
+鉴	S S P H D P N H H S D P H
+銎	H S T P HZWG D P N H H S D P H
+銮	D H S S P D P N H H S D P H
+鋆	H S T P HZG D T P N H H S D P H
+鋈	D D T P H P D P N H H S D P H
+鋐	P D H H S D P T D D HG H P PZ D
+錤	P D H H S D P T H S S H H H P D
+錾	H PZ S T P P H S P N H H S D P H
+鍪	HP D HG SG P P H P D P N H H S D P H
+鎏	D D T D H PZ D P S SWG P N H H S D P H
+鏊	H H S H HZG P P H P D P N H H S D P H
+鏖	D H P HZ S S H H ST P SWG P N H H S D P H
+鐾	HZ H P S HZ H D H D P H H S P N H H S D P H
+鑫	P N H H S D P H P N H H S D P T P N H H S D P H
+钅	P H H H ST
+钆	P H H H ST SWG
+钇	P H H H ST HZWG
+针	P H H H ST H S
+钉	P H H H ST H SG
+钊	P H H H ST S SG
+钋	P H H H ST S D
+钌	P H H H ST HP SG
+钍	P H H H ST H S H
+钎	P H H H ST P H S
+钏	P H H H ST P S S
+钐	P H H H ST P P P
+钒	P H H H ST P HZWG D
+钓	P H H H ST P HZG D
+钔	P H H H ST D S HZG
+钕	P H H H ST PD P H
+钗	P H H H ST HP N D
+钙	P H H H ST H S H SZWG
+钚	P H H H ST H P S D
+钛	P H H H ST H P N D
+钜	P H H H ST H HZ H SZ
+钝	P H H H ST H SZ S SWG
+钞	P H H H ST S P D P
+钟	P H H H ST S HZ H S
+钠	P H H H ST S HZG P D
+钡	P H H H ST S HZ P D
+钢	P H H H ST S HZG P D
+钣	P H H H ST P P HP N
+钤	P H H H ST P N D HP
+钥	P H H H ST P HZG H H
+钦	P H H H ST P HG P N
+钧	P H H H ST P HZG D T
+钨	P H H H ST P HZG SZWG H
+钩	P H H H ST P HZG PZ D
+钪	P H H H ST D H P HZWG
+钫	P H H H ST D H HZG P
+钬	P H H H ST D P P N
+钭	P H H H ST D D H S
+钮	P H H H ST HZ S H H
+钯	P H H H ST HZ S H SWG
+钰	P H H H ST H H S H D
+钱	P H H H ST H H XG P D
+钲	P H H H ST H S H S H
+钳	P H H H ST H S S H H
+钴	P H H H ST H S S HZ H
+钵	P H H H ST H S P N H
+钶	P H H H ST H S HZ H SG
+钷	P H H H ST H S HZ H SZ
+钸	P H H H ST H P S HZG S
+钹	P H H H ST H P HP N D
+钺	P H H H ST H ST XG P D
+钻	P H H H ST S H S HZ H
+钼	P H H H ST S HZ H H H
+钽	P H H H ST S HZ H H H
+钾	P H H H ST S HZ H H S
+钿	P H H H ST S HZ H S H
+铀	P H H H ST S HZ H S H
+铁	P H H H ST P H H P N
+铂	P H H H ST P S HZ H H
+铃	P H H H ST P N D HP D
+铄	P H H H ST P SZ SG P D
+铅	P H H H ST P HZW S HZ H
+铆	P H H H ST P ST P HZG S
+铈	P H H H ST D H S HZG S
+铉	P H H H ST D H PZ PZ D
+铊	P H H H ST D D HG P SWG
+铋	P H H H ST D BXG D P D
+铌	P H H H ST HZ H P P SWG
+铍	P H H H ST HG P S HP N
+铎	P H H H ST HP N H H S
+铐	P H H H ST H S H P H SZWG
+铑	P H H H ST H S H P P SWG
+铒	P H H H ST H S S H H H
+铕	P H H H ST H P S HZG H H
+铖	P H H H ST H P HZG XG P D
+铗	P H H H ST H D P H P N
+铘	P H H H ST H SZ SG P HPWG S
+铙	P H H H ST H XG P H P SWG
+铛	P H H H ST S D P HZ H H
+铜	P H H H ST S HZG H S HZ H
+铝	P H H H ST S HZ H S HZ H
+铞	P H H H ST S HZ H S HZG S
+铟	P H H H ST S HZ H P D H
+铠	P H H H ST S SZ S HZ H SWG
+铡	P H H H ST S HZ P D S SG
+铢	P H H H ST P H H S P N
+铣	P H H H ST P H S H P SWG
+铤	P H H H ST P H S H HZZP N
+铥	P H H H ST P H S H PZ D
+铧	P H H H ST P S P SWG H S
+铨	P H H H ST P N H H S H
+铩	P H H H ST P D H SG P D
+铪	P H H H ST P N H S HZ H
+铫	P H H H ST P D T SWG P D
+铬	P H H H ST P HP N S HZ H
+铭	P H H H ST P HP D S HZ H
+铮	P H H H ST P HP HZ H H SG
+铯	P H H H ST P HP HZ S H SWG
+铰	P H H H ST D H P D P N
+铱	P H H H ST D H P ST P N
+铲	P H H H ST D H D P H P
+铳	P H H H ST D H PZ D P SWG
+铴	P H H H ST D D T HZZZG P P
+铵	P H H H ST D D HG PD P H
+银	P H H H ST HZ H H ST P N
+铷	P H H H ST PD P H S HZ H
+铸	P H H H ST H H H P H SG D
+铹	P H H H ST H S S D HG HZG P
+铺	P H H H ST H S HZG H H S D
+铼	P H H H ST H D P H S P N
+铽	P H H H ST H D BXG D D XG D
+链	P H H H ST H PZ H S D HZZP N
+铿	P H H H ST S S HP N H S H
+销	P H H H ST S D P S HZG H H
+锁	P H H H ST S D P S HZ P D
+锂	P H H H ST S HZ H H S H H
+锃	P H H H ST S HZ H H H S H
+锄	P H H H ST S HZ H H T HZG P
+锅	P H H H ST S HZ H S HZG P D
+锆	P H H H ST P H S H S HZ H
+锇	P H H H ST P H SG T XG P D
+锈	P H H H ST P H S P N HZZZG P
+锉	P H H H ST P D P D H S H
+锊	P H H H ST P D D P H SG D
+锋	P H H H ST P HP N H H H S
+锌	P H H H ST D H D P H H S
+锍	P H H H ST D H PZ D P S SWG
+锎	P H H H ST D S HZG H H P S
+锏	P H H H ST D S HZG S HZ H H
+锐	P H H H ST D P S HZ H P SWG
+锑	P H H H ST D P HZ H SZWG S P
+锒	P H H H ST D HZ H H ST P N
+锓	P H H H ST HZ H H D HG HP N
+锔	P H H H ST HZ H P HZG S HZ H
+锕	P H H H ST HPWG S H S HZ H SG
+锖	P H H H ST H H S H S HZG H H
+锗	P H H H ST H S H P S HZ H H
+锘	P H H H ST H S S H P S HZ H
+错	P H H H ST H S S H S HZ H H
+锚	P H H H ST H S S S HZ H S H
+锛	P H H H ST H P N H S H P S
+锝	P H H H ST S HZ H H H H SG D
+锞	P H H H ST S HZ H H H S P N
+锟	P H H H ST S HZ H H H ST P SWG
+锡	P H H H ST S HZ H H P HZG P P
+锢	P H H H ST S HZ H S S HZ H H
+锣	P H H H ST S HZ S S H P HP D
+锤	P H H H ST P H S H S S H H
+锥	P H H H ST P S D H H H S H
+锦	P H H H ST P S HZ H H S HZG S
+锨	P H H H ST P P H S P HG P N
+锩	P H H H ST D P H H P N HZG SWG
+锪	P H H H ST P HZG P P D BXG D D
+锫	P H H H ST D H D P H S HZ H
+锬	P H H H ST D P P D D P P N
+锭	P H H H ST D D HG H S H P N
+键	P H H H ST HZ H H H H S HZZP N
+锯	P H H H ST HZ H P H S S HZ H
+锰	P H H H ST HP SG H S HZ S S H
+锱	P H H H ST PD PD PD S HZ H S H
+锲	P H H H ST H H H S HZG P H P N
+锴	P H H H ST H ST P SWG P S HZ H H
+锵	P H H H ST D T S P HP D H SG D
+锶	P H H H ST S HZ H S H D BXG D D
+锷	P H H H ST S HZ H S HZ H H H SZWG
+锸	P H H H ST P H S P S H HZ H H
+锹	P H H H ST P H S P D D P P N
+锺	P H H H ST P H S HZ H H H S H
+锻	P H H H ST P S H H T P HZW HP N
+锼	P H H H ST P S H HZ H H S HP N
+锾	P H H H ST P D D P H H P HP N
+锿	P H H H ST D H S HZ H P ST P N
+镀	P H H H ST D H P H S S H HP N
+镁	P H H H ST D P H H S H H P N
+镂	P H H H ST D P H S P N PD P H
+镄	P H H H ST HZ H SZWG P S S HZ P D
+镅	P H H H ST HZ S H P S HZ H H H
+镆	P H H H ST H S S S HZ H H H P N
+镇	P H H H ST H S S HZ H H H H P D
+镉	P H H H ST H S HZ H S HZG D P H S
+镊	P H H H ST H S S H H H HP D HP N
+镌	P H H H ST P S D H H H S H HZZZG P
+镍	P H H H ST P S HZ H H H H S P N
+镎	P H H H ST P N H S HZ H P H H SG
+镏	P H H H ST P ST D HZG P S HZ H S H
+镐	P H H H ST D H S HZ H S HZG S HZ H
+镑	P H H H ST D H D P D HG D H HZG P
+镒	P H H H ST D P H P D S HZ S S H
+镓	P H H H ST D D HG H P WG P P P N
+镔	P H H H ST D D HG P S H S H P D
+镕	P H H H ST D D HG P D P N S HZ H
+镖	P H H H ST H S HZ S S H H H SG P D
+镗	P H H H ST S D P D HG S HZ H H S H
+镘	P H H H ST S HZ H H S HZ S S H HP N
+镙	P H H H ST S HZ H S H PZ PZ D SG P D
+镛	P H H H ST D H P HZ H H S HZG H H S
+镜	P H H H ST D H D P H S HZ H H P SWG
+镝	P H H H ST D H D P S HZG H S S HZ H
+镞	P H H H ST D H HZG P P H P H H P N
+镟	P H H H ST D H HZG P P H HG S H P N
+镡	P H H H ST H S HZ S S H S HZ H H H S
+镢	P H H H ST H P D P H SZ S P P HG P N
+镣	P H H H ST H P N D P S HZ H H SG P D
+镤	P H H H ST S S D P H D P H H H P N
+镥	P H H H ST P HP S HZ H S H H S HZ H H
+镦	P H H H ST D H S HZ H HP SG T P H P N
+镧	P H H H ST D S HZG H S HZ D P H S P D
+镨	P H H H ST D P H S S D P H S HZ H H
+镩	P H H H ST D D HG P D S HZ H S HZ H S
+镪	P H H H ST HZ H SZWG S HZ H S HZ H S H D
+镫	P H H H ST HP D P P N H S HZ H D P H
+镬	P H H H ST H S S P S D H H H S H HP N
+镭	P H H H ST H D HG S D D D D S HZ H S H
+镯	P H H H ST S HZ S S H P HZG S HZ H S H D
+镰	P H H H ST D H P D P H HZ H H S S P N
+镱	P H H H ST D H D P H S HZ H H D BXG D D
+镲	P H H H ST D D HG P HP D D HP N H H SG P D
+镳	P H H H ST D H P HZ S S H H ST P SWG D D D D
+镶	P H H H ST D H S HZ H S HZ H H H S S H P ST P N
+长	P H ST N
+门	D S HZG
+闩	D S HZG H
+闪	D S HZG P D
+闫	D S HZG H H H
+闭	D S HZG H SG P
+问	D S HZG S HZ H
+闯	D S HZG HZ SZWG H
+闰	D S HZG H H S H
+闱	D S HZG H H HZG S
+闲	D S HZG H S P D
+闳	D S HZG H P PZ D
+间	D S HZG S HZ H H
+闵	D S HZG D H P D
+闶	D S HZG D H P HZWG
+闷	D S HZG D BXG D D
+闸	D S HZG S HZ H H S
+闹	D S HZG D H S HZG S
+闺	D S HZG H S H H S H
+闻	D S HZG H S S H H H
+闼	D S HZG H P D D HZZP N
+闽	D S HZG S HZ H S H D
+闾	D S HZG S HZ H S HZ H
+闿	D S HZG S SZ S HZ H SWG
+阀	D S HZG P S H XG P D
+阁	D S HZG P HP N S HZ H
+阂	D S HZG D H PZ P P D
+阃	D S HZG S HZ H S P D H
+阄	D S HZG P HP S HZ H H SWG
+阅	D S HZG D P S HZ H P SWG
+阆	D S HZG D HZ H H ST P D
+阈	D S HZG H S HZ H T XG P D
+阉	D S HZG H P N S HZ H H SWG
+阊	D S HZG S HZ H H S HZ H H
+阋	D S HZG P S H HZ H H P SWG
+阌	D S HZG P D D P D HG HP D
+阍	D S HZG P ST H XG S HZ H H
+阎	D S HZG P HP P S H HZ H H
+阏	D S HZG D H HZG P P N D D
+阐	D S HZG D P S HZ H H H S
+阑	D S HZG H S HZ D P H S P D
+阒	D S HZG S HZ H H H H P D D
+阔	D S HZG D D T P H S S HZ H
+阕	D S HZG HP D P P N H H P D
+阖	D S HZG H S H PZ D S HZ S S H
+阗	D S HZG H S S HZ H H H H P D
+阙	D S HZG D P H SZ S P P HG P D
+阚	D S HZG HZ H S S H H T P H P D
+阜	P S HZ H HZ H H S
+队	HPWG S P N
+阡	HPWG S P H S
+阢	HPWG S H P SWG
+阪	HPWG S P P HP N
+阮	HPWG S H H P SWG
+阱	HPWG S H H P S
+防	HPWG S D H HZG P
+阳	HPWG S S HZ H H
+阴	HPWG S P HZG H H
+阵	HPWG S H PZ H S
+阶	HPWG S P N P S
+阻	HPWG S S HZ H H H
+阼	HPWG S P H S H H
+阽	HPWG S S H S HZ H
+阿	HPWG S H S HZ H SG
+陀	HPWG S D D HG P SWG
+陂	HPWG S HG P S HP N
+附	HPWG S P S H SG D
+际	HPWG S H H SG P D
+陆	HPWG S H H S SZ S
+陇	HPWG S H P SWG P D
+陈	HPWG S H PZ SG P D
+陉	HPWG S HP D H S H
+陋	HPWG S H S HZG P D SZ
+陌	HPWG S H P S HZ H H
+降	HPWG S P HP N H SZ S
+限	HPWG S HZ H H ST P N
+陔	HPWG S D H PZ P P D
+陕	HPWG S H D P H P N
+陛	HPWG S H ST P SWG H S H
+陞	HPWG S P H P S H S H
+陟	HPWG S S H S H S P P
+陡	HPWG S H S H S H P N
+院	HPWG S D D HG H H P SWG
+除	HPWG S P N H H SG P D
+陧	HPWG S S HZ H H H S H
+陨	HPWG S S HZ H S HZ P D
+险	HPWG S P N H D D P H
+陪	HPWG S D H D P H S HZ H
+陬	HPWG S H S S H H T HP N
+陲	HPWG S P H S H S S H H
+陴	HPWG S P S HZ H H P H S
+陵	HPWG S H S H P D P HP N
+陶	HPWG S P HZG P H H S SZ S
+陷	HPWG S P HP P S H HZ H H
+隅	HPWG S S HZ H H S HZG S T D
+隆	HPWG S P HP N H P H H S H
+隈	HPWG S S HZ H S H H ST P N
+隋	HPWG S H P H S H S HZG H H
+隍	HPWG S P S HZ H H H H S H
+随	HPWG S H P S HZG H H D HZZP N
+隐	HPWG S P HP HZ H H D BXG D D
+隔	HPWG S H S HZ H S HZG D P H S
+隗	HPWG S P S HZ H H P SWG PZ D
+隘	HPWG S D P H P D S HZ S S H
+隙	HPWG S S P D S HZ H H SG P D
+障	HPWG S D H D P H S HZ H H H S
+隧	HPWG S D P H P WG P P P D D HZZP N
+隰	HPWG S S HZ H H PZ PZ D PZ PZ D D D D D
+隳	HPWG S H P H S H S HZG H H P N SG D D D
+隶	HZ H H SG D T P N
+隹	P S D H H H S H
+隼	P S D H H H S H H S
+隽	P S D H H H S H HZZZG P
+难	HP D P S D H H H S H
+雀	S P D P S D H H H S H
+雁	H P P S P S D H H H S H
+雄	H P PZ D P S D H H H S H
+雅	H SZ SG P P S D H H H S H
+集	P S D H H H S H H S P N
+雇	D HZ H P P S D H H H S H
+雉	P H H P D P S D H H H S H
+雌	S H S T H ST P S D H H H S H
+雍	D H PZ PZ P P S D H H H S H
+雎	S HZ H H T P S D H H H S H
+雏	P HP HZ H H P S D H H H S H
+雒	P HP D S HZ H P S D H H H S H
+雕	P HZG H S H S HZ H P S D H H H S H
+雠	P S D H H H S H D HZT P S D H H H S H
+雨	H S HZG S D D D D
+雩	H D HG S D D D D H H SZWG
+雪	H D HG S D D D D HZ H H
+雯	H D HG S D D D D D H P N
+雳	H D HG S D D D D H P HZG P
+零	H D HG S D D D D P N D HP D
+雷	H D HG S D D D D S HZ H S H
+雹	H D HG S D D D D P HZG HZ H SWG
+雾	H D HG S D D D D P HP N HZG P
+需	H D HG S D D D D H P S HZG S S
+霁	H D HG S D D D D D H P N P S
+霄	H D HG S D D D D S D P S HZG H H
+霆	H D HG S D D D D P H S H HZZP N
+震	H D HG S D D D D H P H H ST P N
+霈	H D HG S D D D D D D T H S HZG S
+霉	H D HG S D D D D P H SZ HZG D H D
+霍	H D HG S D D D D P S D H H H S H
+霎	H D HG S D D D D D H D P H PD P H
+霏	H D HG S D D D D S H H H S H H H
+霑	H D HG S D D D D D D T S H S HZ H
+霓	H D HG S D D D D P S H HZ H H P SWG
+霖	H D HG S D D D D H S P D H S P N
+霜	H D HG S D D D D H S P D S HZ H H H
+霞	H D HG S D D D D HZ H S H H HZ H HP N
+霪	H D HG S D D D D D D T P D D P P H S H
+霭	H D HG S D D D D D HZT S HZ H H P HZG P D SZ
+霰	H D HG S D D D D H S S H S HZG H H P H P N
+露	H D HG S D D D D S HZ H S H S T P HP N S HZ H
+霸	H D HG S D D D D H S S H S HZ H H S P HZG H H
+霹	H D HG S D D D D HZ H P S HZ H D H D P H H S
+霾	H D HG S D D D D P D D P WG P P S HZ H H S H H
+青	H H S H S HZG H H
+靓	H H S H S HZG H H S HZ P SWG
+靖	D H D P T H H S H S HZG H H
+静	H H S H S HZG H H P HP HZ H H SG
+靛	H H S H S HZG H H D D HG H S H P N
+非	S H H H S H H H
+靠	P H S H S HZ H S H H H S H H H
+靡	D H P H S P D H S P N S H H H S H H H
+面	H P S HZ S S H H H
+靥	H P H P N D H P S HZ S S H H H
+革	H S S H S HZ H H S
+靳	H S S H S HZ H H S P P H S
+靴	H S S H S HZ H H S P S P SWG
+靶	H S S H S HZ H H S HZ S H SWG
+靼	H S S H S HZ H H S S HZ H H H
+鞅	H S S H S HZ H H S S HZ H P N
+鞋	H S S H S HZ H H S H S H H S H
+鞍	H S S H S HZ H H S D D HG PD P H
+鞑	H S S H S HZ H H S H P D D HZZP N
+鞒	H S S H S HZ H H S P H P N P S
+鞔	H S S H S HZ H H S P HP S HZ H P SWG
+鞘	H S S H S HZ H H S S D P S HZG H H
+鞠	H S S H S HZ H H S P HZG D P H S P D
+鞣	H S S H S HZ H H S HP D HG SG P H S P N
+鞫	H S S H S HZ H H S P HZG D H H H S HZ H
+鞭	H S S H S HZ H H S P S H S HZ H H P N
+鞯	H S S H S HZ H H S H S S H P S HP SG H
+鞲	H S S H S HZ H H S H H S S H S HZG S H H
+鞴	H S S H S HZ H H S H S S H P S HZG H H S
+韡	HZ S H S HZ H H SZ S H S S H H S S H H S
+韦	H H HZG S
+韧	H H HZG S HZG P D
+韩	H S S HZ H H H S H H HZG S
+韪	S HZ H H H S H P N H H HZG S
+韫	H H HZG S S HZ H H S HZ S S H
+韬	H H HZG S P D D P P S H HZ H H
+韭	S H H H S H H H H
+音	D H D P H S HZ H H
+韵	D H D P H S HZ H H P HZG D T
+韶	D H D P H S HZ H H HZG P S HZ H
+頔	S HZ H S H H P S HZ H H H P D
+頫	P D T ST P D H P S HZ H H H P D
+页	H P S HZ P D
+顶	H SG H P S HZ P D
+顷	H ST H P S HZ P D
+顸	H H S H P S HZ P D
+项	H S T H P S HZ P D
+顺	P S S H P S HZ P D
+须	P P P H P S HZ P D
+顼	H H S T H P S HZ P D
+顽	H H P ST H P S HZ P D
+顾	H P HZG ST H P S HZ P D
+顿	H SZ S ST H P S HZ P D
+颀	P P H S H P S HZ P D
+颁	P D HZG P H P S HZ P D
+颂	P D PZ D H P S HZ P D
+颃	D H P HZT H P S HZ P D
+预	HP D HG SG H P S HZ P D
+颅	S H HZ H P H P S HZ P D
+领	P D D HP D H P S HZ P D
+颇	HG P S HP D H P S HZ P D
+颈	HP D H S T H P S HZ P D
+颉	H S H S HZ H H P S HZ P D
+颊	H D P H P D H P S HZ P D
+颌	P D H S HZ H H P S HZ P D
+颍	P SWG SG HP P D H P S HZ P D
+颏	D H PZ P P D H P S HZ P D
+颐	H S S HZ H S SZ H P S HZ P D
+频	S H S H S P P H P S HZ P D
+颓	P H S P D P HZT H P S HZ P D
+颔	P D D HP S HZ H H P S HZ P D
+颖	P SWG P H S P D H P S HZ P D
+颗	S HZ H H H S P D H P S HZ P D
+题	S HZ H H H S H P N H P S HZ P D
+颚	S HZ H S HZ H H H SZWG H P S HZ P D
+颛	S SZ S H P S HZG S S H P S HZ P D
+颜	D H D P H P P P P H P S HZ P D
+额	D D HG P HP D S HZ H H P S HZ P D
+颞	H S S H H H HP D HP D H P S HZ P D
+颟	H S S H S HZG P D P D H P S HZ P D
+颠	H S S HZ H H H H P D H P S HZ P D
+颡	HP D HP D HP D H S P D H P S HZ P D
+颢	S HZ H H D H S HZ H SG P D H P S HZ P D
+颤	D H S HZ S HZ H H S HZ H H T H P S HZ P D
+颥	H D HG S D D D D H P S HZG S S H P S HZ P D
+颦	S H S H S P P H P S HZ P D P S HZ H H P H S
+颧	H S S S HZ H S HZ H P S D H H H S H H P S HZ P D
+风	P HXG P D
+飏	P HXG P D HZZZG P P
+飑	P HXG P D P HZG HZ H SWG
+飒	D H D P T P HXG P D
+飓	P HXG P D S HZ H H H H P D
+飕	P HXG P D P S H HZ H H S HP D
+飘	H S HZ S S H H H SG P D P HXG P D
+飙	H P D D H P D D H P D D P HXG P D
+飚	P HXG P D D P P D D P P D D P P D
+飞	HXG P D
+食	P N D HZ H H ST P D
+飧	P HP D P N D HZ H H ST P N
+飨	PZ PZ P P N D HZ H H ST P D
+餍	H P H P D D P N D HZ H H ST P D
+餐	S H P HP D HP D P N D HZ H H ST P D
+餮	H P HP D P N P P P P N D HZ H H ST P D
+饔	D H PZ PZ P P S D H H H S H P N D HZ H H ST P D
+饕	S HZ H H SZWG S H HG P H SWG P HZWG P N D HZ H H ST P D
+饥	P HG ST P HZWG
+饧	P HG ST HZZZG P P
+饨	P HG ST H SZ S SWG
+饩	P HG ST P H H HXG
+饪	P HG ST P H S H
+饫	P HG ST P H P N
+饬	P HG ST P H HZG P
+饭	P HG ST P P HP N
+饮	P HG ST P HG P N
+饯	P HG ST H H XG P D
+饰	P HG ST P H S HZG S
+饱	P HG ST P HZG HZ H SWG
+饲	P HG ST HZG H S HZ H
+饴	P HG ST PZ D S HZ H
+饵	P HG ST H S S H H H
+饶	P HG ST H XG P H P SWG
+饷	P HG ST P S HZG S HZ H
+饸	P HG ST P N H S HZ H
+饹	P HG ST P HP N S HZ H
+饺	P HG ST D H P D P N
+饼	P HG ST D P H H P S
+饽	P HG ST H S D HG HP SG H
+饿	P HG ST P H SG T XG P D
+馀	P HG ST P N H H SG P D
+馁	P HG ST P D D P PD P H
+馃	P HG ST S HZ H H H S P N
+馄	P HG ST S HZ H H H ST P SWG
+馅	P HG ST P HP P S H HZ H H
+馆	P HG ST D D HG S HZ H HZ H
+馇	P HG ST H S P N S HZ H H H
+馈	P HG ST S HZ H S H S HZ P D
+馊	P HG ST P S H HZ H H S HP N
+馋	P HG ST P HP S HZ H P SWG D D
+馍	P HG ST H S S S HZ H H H P N
+馏	P HG ST P ST D HZG P S HZ H S H
+馐	P HG ST D P H H H P HZ S H H
+馑	P HG ST H S S H S HZ H H H S H
+馒	P HG ST S HZ H H S HZ S S H HP N
+馓	P HG ST H S S H S HZG H H P H P N
+馔	P HG ST HZ H ST HZ H SWG H S S H P D
+馕	P HG ST H S HZ H S D HG S HZ H S HZ H H H S S H P ST P N
+首	D P H P S HZ H H H
+馗	P HZWG D P H P S HZ H H H
+馘	D P H P S HZ H H H H S HZ H T XG P D
+香	P H S P N S HZ H H
+馡	P H S P N S HZ H H S H H H S H H H
+馥	P H S P D S HZ H H P H S HZ H H P HP N
+馨	H S H HZ S H P P HZW HP D P H S P N S HZ H H
+马	HZ SZWG H
+驭	HZ SZWG T HP N
+驮	HZ SZWG T H P N
+驯	HZ SZWG T P S S
+驰	HZ SZWG T HZG S SWG
+驱	HZ SZWG T H P D SZ
+驳	HZ SZWG T P D P N
+驴	HZ SZWG T D HZ H P
+驵	HZ SZWG T S HZ H H H
+驶	HZ SZWG T S HZ H P N
+驷	HZ SZWG T S HZ P SW H
+驸	HZ SZWG T P S H SG D
+驹	HZ SZWG T P HZG S HZ H
+驺	HZ SZWG T P HP HZ H H
+驻	HZ SZWG T D H H S H
+驼	HZ SZWG T D D HG P SWG
+驽	PD P H HP N HZ SZWG H
+驾	HZG P S HZ H HZ SZWG H
+驿	HZ SZWG T HP N H H S
+骀	HZ SZWG T PZ D S HZ H
+骁	HZ SZWG T H XG P H P SWG
+骂	S HZ H S HZ H HZ SZWG H
+骄	HZ SZWG T P H P N P S
+骅	HZ SZWG T P S P SWG H S
+骆	HZ SZWG T P HP N S HZ H
+骇	HZ SZWG T D H PZ P P D
+骈	HZ SZWG T D P H H P S
+骊	HZ SZWG T H S HZG D S HZG D
+骋	HZ SZWG T S HZ H S H H SZWG
+验	HZ SZWG T P N H D D P H
+骏	HZ SZWG T PZ D P D P HP N
+骐	HZ SZWG T H S S H H H P D
+骑	HZ SZWG T H P D H S HZ H SG
+骒	HZ SZWG T S HZ H H H S P N
+骓	HZ SZWG T P S D H H H S H
+骖	HZ SZWG T PZ D H P N P P P
+骗	HZ SZWG T D HZ H P S HZG H S S
+骘	HPWG S S H S H S P P HZ SZWG H
+骚	HZ SZWG T HP N D S HZ H S H D
+骛	HP D HG SG P P H P N HZ SZWG H
+骜	H H S H HZG P P H P N HZ SZWG H
+骝	HZ SZWG T P ST D HZG P S HZ H S H
+骞	D D HG H H S S H P N HZ SZWG H
+骟	HZ SZWG T D HZ H P HZG D T HZG D T
+骠	HZ SZWG T H S HZ S S H H H SG P D
+骡	HZ SZWG T S HZ H S H PZ PZ D SG P D
+骢	HZ SZWG T P S HZ P HP D H D BXG D D
+骣	HZ SZWG T HZ H P HP SG H HP SG T HP SG H
+骤	HZ SZWG T H S S H H T HP D P S P P P N
+骥	HZ SZWG T S H T P SWG S HZ H S H H S S H P D
+骧	HZ SZWG T D H S HZ H S HZ H H H S S H P ST P N
+骨	S HZ HZ D HG S HZG H H	通用规范汉字表 counts the mainland's glyph, 9 strokes; Unihan's kTotalStrokes counts Taiwan's, 10
+骰	S HZ HZ D HG S HZG H H P HZW HP N
+骱	S HZ HZ D HG S HZG H H P N P S
+骶	S HZ HZ D HG S HZG H H P ST H XG D
+骷	S HZ HZ D HG S HZG H H H S S HZ H
+骸	S HZ HZ D HG S HZG H H D H PZ P P D
+骺	S HZ HZ D HG S HZG H H P P H S HZ H
+骼	S HZ HZ D HG S HZG H H P HP N S HZ H
+髀	S HZ HZ D HG S HZG H H P S HZ H H P H S
+髁	S HZ HZ D HG S HZG H H S HZ H H H S P N
+髂	S HZ HZ D HG S HZG H H D D HG P HP N S HZ H
+髅	S HZ HZ D HG S HZG H H D P H S P N PD P H
+髋	S HZ HZ D HG S HZG H H D D HG H S S S HZ P SWG
+髌	S HZ HZ D HG S HZG H H D D HG P S H S H P D
+髑	S HZ HZ D HG S HZG H H S HZ S S H P HZG S HZ H S H D
+髓	S HZ HZ D HG S HZG H H H P H S H S HZG H H D HZZP N
+高	D H S HZ H S HZG S HZ H
+髟	H S H H H PZ D P P P
+髡	H S H H H PZ D P P P H P SWG
+髦	H S H H H PZ D P P P P H H SWG
+髫	H S H H H PZ D P P P HZG P S HZ H
+髭	H S H H H PZ D P P P S H S T P SWG
+髯	H S H H H PZ D P P P S HZG S H H
+髹	H S H H H PZ D P P P P S H S P N
+髻	H S H H H PZ D P P P H S H S HZ H
+鬃	H S H H H PZ D P P P D D HG H H SG P D
+鬈	H S H H H PZ D P P P D P H H P N HZG SWG
+鬏	H S H H H PZ D P P P P H S P D D P P N
+鬓	H S H H H PZ D P P P D D HG P S H S H P D
+鬟	H S H H H PZ D P P P S HZ S S H H S HZ H P ST P N
+鬣	H S H H H PZ D P P P PD PD PD S HZ P D H ST D D ST D D XG
+鬯	P D D D D D SZ S P SWG
+鬲	H S HZ H S HZG D P H S
+鬻	HZ H SZWG D P H S P D HZ H SZWG H S HZ H S HZG D P H S
+鬼	P S HZ H H P SWG PZ D
+魁	P S HZ H H P SWG PZ D D D H S
+魂	H H PZ D P S HZ H H P SWG PZ D
+魃	P S HZ H H P SWG PZ D H P HP D D
+魄	P S HZ H H P S HZ H H P SWG PZ D
+魅	P S HZ H H P SWG PZ D H H S P N
+魇	H P H P N D P S HZ H H P SWG PZ D
+魈	P S HZ H H P SWG PZ D S D P S HZG H H
+魉	P S HZ H H P SWG PZ D H S HZG P D P D
+魍	P S HZ H H P SWG PZ D S HZG D P H D H SZ
+魏	P H S P D PD P H P S HZ H H P SWG PZ D
+魑	P S HZ H H P SWG PZ D D H P D SZ S S HZG PZ D
+魔	D H P H S P D H S P N P S HZ H H P SWG PZ D
+鱀	HZ H H ST D H SZ P SWG P HP S HZ H S H D D D D
+鱼	P HP S HZ H S H H
+鱿	P HP S HZ H S H T H P SWG D
+鲁	P HP S HZ H S H H S HZ H H
+鲂	P HP S HZ H S H T D H HZG P
+鲅	P HP S HZ H S H T H P HP N D
+鲆	P HP S HZ H S H T H D P H S
+鲇	P HP S HZ H S H T S H S HZ H
+鲈	P HP S HZ H S H T S H HZ H P
+鲋	P HP S HZ H S H T P S H SG D
+鲍	P HP S HZ H S H T P HZG HZ H SWG
+鲎	D D P D HG P HP S HZ H S H H
+鲐	P HP S HZ H S H T PZ D S HZ H
+鲑	P HP S HZ H S H T H S H H S H
+鲒	P HP S HZ H S H T H S H S HZ H
+鲔	P HP S HZ H S H T H P S HZG H H
+鲕	P HP S HZ H S H T H P S HZG S S
+鲚	P HP S HZ H S H T D H P N P S
+鲛	P HP S HZ H S H T D H P D P N
+鲜	P HP S HZ H S H T D P H H H S
+鲞	D P H H P N P HP S HZ H S H H
+鲟	P HP S HZ H S H T HZ H H H SG D
+鲠	P HP S HZ H S H T H S HZ H H P N
+鲡	P HP S HZ H S H T H S HZG D S HZG D
+鲢	P HP S HZ H S H T H PZ H S D HZZP N
+鲣	P HP S HZ H S H T S S HP N H S H
+鲤	P HP S HZ H S H T S HZ H H S H H
+鲥	P HP S HZ H S H T S HZ H H H SG D
+鲦	P HP S HZ H S H T P HP N H SG P D
+鲧	P HP S HZ H S H T P PZ PZ D SG P D
+鲨	D D T S P D P P HP S HZ H S H H
+鲩	P HP S HZ H S H T D D HG H H P SWG
+鲫	P HP S HZ H S H T HZ H H ST D HZG S
+鲭	P HP S HZ H S H T H H S H S HZG H H
+鲮	P HP S HZ H S H T H S H P D P HP N
+鲰	P HP S HZ H S H T H S S H H T HP N
+鲱	P HP S HZ H S H T S H H H S H H H
+鲲	P HP S HZ H S H T S HZ H H H ST P SWG
+鲳	P HP S HZ H S H T S HZ H H S HZ H H
+鲴	P HP S HZ H S H T S HZ H S S HZ H H
+鲵	P HP S HZ H S H T P S H HZ H H P SWG
+鲶	P HP S HZ H S H T P N D HP D BXG D D
+鲷	P HP S HZ H S H T P HZG H S H S HZ H
+鲸	P HP S HZ H S H T D H S HZ H SG P D
+鲺	P HP S HZ H S H T HXG H S HZ H S H D
+鲻	P HP S HZ H S H T PD PD PD S HZ H S H
+鲼	P HP S HZ H S H T H S H S S S HZ P D
+鲽	P HP S HZ H S H T H S S H SZ H S P N
+鳃	P HP S HZ H S H T S HZ H S H D BXG D D
+鳄	P HP S HZ H S H T S HZ H S HZ H H H SZWG
+鳅	P HP S HZ H S H T P H S P D D P P N
+鳆	P HP S HZ H S H T P H S HZ H H P HP N
+鳇	P HP S HZ H S H T P S HZ H H H H S H
+鳊	P HP S HZ H S H T D HZ H P S HZG H S S
+鳋	P HP S HZ H S H T HP N D S HZ H S H D
+鳌	H H S H HZG P P H P N P HP S HZ H S H H
+鳍	P HP S HZ H S H T H S H P P SWG S HZ H H
+鳎	P HP S HZ H S H T S HZ H H HZG D T HZG D T
+鳏	P HP S HZ H S H T S HZ S S H S P P D D
+鳐	P HP S HZ H S H T P D D P P H H S SZ S
+鳓	P HP S HZ H S H T H S S H S HZ H H S HZG P
+鳔	P HP S HZ H S H T H S HZ S S H H H SG P D
+鳕	P HP S HZ H S H T H D HG S D D D D HZ H H
+鳖	D P S HZG S P D P H P N P HP S HZ H S H H
+鳗	P HP S HZ H S H T S HZ H H S HZ S S H HP N
+鳘	P H SZ HZ D H D P H P N P HP S HZ H S H H
+鳙	P HP S HZ H S H T D H P HZ H H S HZG H H S
+鳜	P HP S HZ H S H T H P D P H SZ S P P HG P N
+鳝	P HP S HZ H S H T D P H H H S D P H S HZ H
+鳞	P HP S HZ H S H T D P H S P N P HP D H SZ S
+鳟	P HP S HZ H S H T D P H S HZ P SW H H H SG D
+鳢	P HP S HZ H S H T S HZ H S S H H S HZ H D P H
+鸟	P HZG D SZWG H
+鸠	P HZT P HZG D SZWG H
+鸡	HP D P HZG D SZWG H
+鸢	H XG D P HZG D SZWG H
+鸣	S HZ H P HZG D SZWG H
+鸥	H P D SZ P HZG D SZWG H
+鸦	H SZ SG P P HZG D SZWG H
+鸨	P SWG H S P HZG D SZWG H
+鸩	D HG P ST P HZG D SZWG H
+鸪	H S S HZ H P HZG D SZWG H
+鸫	H PZ SG P D P HZG D SZWG H
+鸬	S H HZ H P P HZG D SZWG H
+鸭	S HZ H H S P HZG D SZWG H
+鸮	S HZ H H SZWG P HZG D SZWG H
+鸯	S HZ H P N P HZG D SZWG H
+鸱	P ST H XG D P HZG D SZWG H
+鸲	P HZG S HZ H P HZG D SZWG H
+鸳	P HP D HZG SWG P HZG D SZWG H
+鸵	P HZG D SZWG T D D HG P SWG
+鸶	PZ PZ PZ PZ H P HZG D SZWG H
+鸷	H SG T P HZWG D P HZG D SZWG H
+鸸	H P S HZG S S P HZG D SZWG H
+鸹	P H S S HZ H P HZG D SZWG H
+鸺	P S H S P D P HZG D SZWG H
+鸽	P D H S HZ H P HZG D SZWG H
+鸾	D H S S P D P HZG D SZWG H
+鸿	D D T H S T P HZG D SZWG H
+鹀	H S P D P D T P HZG D SZWG H
+鹁	H S D HG HP SG T P HZG D SZWG H
+鹂	H S HZG D S HZG D P HZG D SZWG H
+鹃	S HZ H S HZG H H P HZG D SZWG H
+鹄	P H S H S HZ H P HZG D SZWG H
+鹅	P H SG T XG P D P HZG D SZWG H
+鹆	P D P D S HZ H P HZG D SZWG H
+鹇	D S HZG H S P D P HZG D SZWG H
+鹈	D P HZ H SZWG S P P HZG D SZWG H
+鹉	H H S H S T XG D P HZG D SZWG H
+鹊	H S S H S HZ H H P HZG D SZWG H
+鹋	H S S S HZ H S H P HZG D SZWG H
+鹌	H P D S HZ H H ST P HZG D SZWG H
+鹎	P S HZ H H P H S P HZG D SZWG H
+鹏	P HZG H H P HZG H H P HZG D SZWG H
+鹑	D H S HZ H HP SG T P HZG D SZWG H
+鹕	H S S HZ H P HZG H H P HZG D SZWG H
+鹗	S HZ H S HZ H H H SZWG P HZG D SZWG H
+鹘	S HZ HZ D HG S HZG H H P HZG D SZWG H
+鹚	D P H PZ PZ D PZ PZ D P HZG D SZWG H
+鹛	HZ S H P S HZ H H H P HZG D SZWG H
+鹜	HP D HG SG P P H P N P HZG D SZWG H
+鹞	P D D P P H H S SZ S P HZG D SZWG H
+鹣	D P H HZ H H S S P D P HZG D SZWG H
+鹤	D HG P S D H H H S H P HZG D SZWG H
+鹦	S HZ P D S HZ P D PD P H P HZG D SZWG H
+鹧	D H P H S S H D D D D P HZG D SZWG H
+鹨	HZ D T HZ D T P D P P P P HZG D SZWG H
+鹩	H P N D P S HZ H H SG P D P HZG D SZWG H
+鹪	P S D H H H S H D D D D P HZG D SZWG H
+鹫	D H S HZ H SG P D H P SWG D P HZG D SZWG H
+鹬	HP D HG SG P S HZG P D S HZ H P HZG D SZWG H
+鹭	S HZ H S H S T P HP N S HZ H P HZG D SZWG H
+鹮	S HZ S S H H S HZ H P ST P D P HZG D SZWG H
+鹰	D H P P S P S D H H H S H P HZG D SZWG H
+鹱	P HZG D SZWG T H S S P S D H H H S H HP N
+鹳	H S S S HZ H S HZ H P S D H H H S H P HZG D SZWG H
+鹾	S H S HZ P D H D P H H H P H S H
+鹿	D H P HZ S S H H ST P SWG
+麂	D H P HZ S S H H ST P SWG P HZWG
+麇	D H P HZ S S H H ST P SWG P H S P N
+麈	D H P HZ S S H H ST P SWG D H H S H
+麋	D H P HZ S S H H ST P SWG D P H S P N
+麒	D H P HZ S S H H ST H ST H S S H H H P D
+麓	H S P D H S P N D H P HZ S S H H ST P SWG
+麝	D H P HZ S S H H ST P SWG P S HZG H H H P H SG D
+麟	D H P HZ S S H H ST H ST D P H S P N P HP D H SZ S
+麦	H H S H P HP N
+麴	H S P D P D P D P HP D P HZG D P H S P D
+麸	H H S H P HP D H H P N
+麻	D H P H S P D H S P N
+麽	D H P H S P D H S P N P PZ D
+麾	D H P H S P D H S P N P H H SWG
+黄	H S S H S HZ H S H P D
+黉	D D P D HG H S S H S HZ H S H P D
+黍	P H S P D P N SG D T P D
+黎	P H S P D P HZG P P N SG D T P D
+黏	P H S P D P D SG D T P D S H S HZ H
+黑	S HZ D P H S H H D D D D
+黔	S HZ D P H S H T D D D D P N D HP
+默	S HZ D P H S H T D D D D H P N D
+黛	P S H XG D S HZ D P H S H H D D D D
+黜	S HZ D P H S H T D D D D SZ S S SZ S
+黝	S HZ D P H S H T D D D D PZ PZ D HZG P
+黟	S HZ D P H S H T D D D D P HP D P HP D
+黠	S HZ D P H S H T D D D D H S H S HZ H
+黢	S HZ D P H S H T D D D D PZ D P D P HP N
+黥	S HZ D P H S H T D D D D D H S HZ H SG P D
+黧	P H S P D P HZG P S HZ D P H S H H D D D D
+黩	S HZ D P H S H T D D D D H S HG D D H P D
+黪	S HZ D P H S H T D D D D PZ D H P N P P P
+黯	S HZ D P H S H T D D D D D H D P H S HZ H H
+黹	S S D P H D P S HZG S P D
+黻	S S D P H D P S HZG S P D H P HP N D
+黼	S S D P H D P S HZG S P D H S HZG H H S D
+黾	S HZ H S HZ H H SWG
+鼋	H H P SWG S HZ H S HZ H H SWG
+鼍	S HZ H S HZ H S HZ H S H H S HZ H S HZ H H SWG
+鼎	S HZ H H H SZZ H P S H S HZ
+鼐	HZZZG P S HZ H H H SZZ H P S H S HZ
+鼓	H S H S HZ H D P T H S HP N
+鼗	P D T SWG P D H S H S HZ H D P T H S HP N
+鼙	H S H S HZ H D P T H S HP N P S HZ H H P H S
+鼠	P S H HZ H H ST D D ST D D XG
+鼢	P S H HZ H H ST D D ST D D XG P N HZG P
+鼬	P S H HZ H H ST D D ST D D XG S HZ H S H
+鼯	P S H HZ H H ST D D ST D D XG H S HZ H S HZ H
+鼷	P S H HZ H H ST D D ST D D XG P D D P PZ PZ D H P N
+鼹	P S H HZ H H ST D D ST D D XG S HZ H H D D HG PD P H
+鼻	P S HZ H H H S HZ H S H H P S
+鼽	P S HZ H H H S HZ H S H H P S P HZWG
+鼾	P S HZ H H H S HZ H S H H P S H H S
+齄	P S HZ H H H S HZ H S H H P S H S P N S HZ H H H
+齉	P S HZ H H H S HZ H S H H P S H S HZ H S D HG S HZ H S HZ H H H S S H P ST P N
+齐	D H P N P S
+齑	D H P N P S S H H H S H H H H
+齿	S H S H P D SZ S
+龀	S H S H P D SZ S P SWG
+龃	S H S H P D SZ S S HZ H H H
+龄	S H S H P D SZ S P N D HP D
+龅	S H S H P D SZ S P HZG HZ H SWG
+龆	S H S H P D SZ S HZG P S HZ H
+龇	S H S H P D SZ S S H S T P SWG
+龈	S H S H P D SZ S HZ H H ST P N
+龉	S H S H P D SZ S H S HZ H S HZ H
+龊	S H S H P D SZ S S HZ H S H P N
+龋	S H S H P D SZ S P S HZ H S HZG S T D
+龌	S H S H P D SZ S HZ H P H PZ D H S H
+龑	D H D P H S HZG H H H SZZ H SWG H H H H H P N
+龙	H P SWG P D
+龚	H P SWG P D H S S H P D
+龛	P N H S HZ H H P SWG P D
+龟	P HP S HZ H H SWG
+龠	P N H S HZ H S HZ H S HZ H S HZG H S S
+龢	P D H S HZ H S HZ H S HZ H S HZG H S S P H S P N

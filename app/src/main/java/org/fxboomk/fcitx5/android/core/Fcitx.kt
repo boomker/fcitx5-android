@@ -263,6 +263,9 @@ class Fcitx(private val context: Context) : FcitxAPI, FcitxLifecycleOwner {
     override suspend fun getCandidates(offset: Int, limit: Int): Array<CandidateWord> =
         withFcitxContext { getFcitxCandidates(offset, limit) ?: emptyArray() }
 
+    override suspend fun getWubiCodes(text: String): Array<String> =
+        withFcitxContext { getFcitxWubiCodes(text.encodeToByteArray()) ?: emptyArray() }
+
     override suspend fun getExpandedCandidates(
         offset: Int,
         limit: Int,
@@ -513,6 +516,9 @@ class Fcitx(private val context: Context) : FcitxAPI, FcitxLifecycleOwner {
 
         @JvmStatic
         external fun getFcitxCandidates(offset: Int, limit: Int): Array<CandidateWord>?
+
+        @JvmStatic
+        external fun getFcitxWubiCodes(text: ByteArray): Array<String>?
 
         @JvmStatic
         external fun getFcitxExpandedCandidates(

@@ -1,0 +1,3 @@
+# Keep empty TSV columns and upstream dictionary whitespace intact.
+app/src/main/assets/candidate-card/characters.tsv whitespace=-blank-at-eol
+app/src/main/assets/candidate-card/chaizi-jt.txt whitespace=-blank-at-eol

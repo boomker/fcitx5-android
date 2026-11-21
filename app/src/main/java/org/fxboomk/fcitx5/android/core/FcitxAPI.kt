@@ -136,6 +136,9 @@ interface FcitxAPI {
 
     suspend fun getCandidates(offset: Int, limit: Int): Array<CandidateWord>
 
+    /** Built-in Wubi full code, followed by one full code per Unicode code point. */
+    suspend fun getWubiCodes(text: String): Array<String> = emptyArray()
+
     /** Expanded presentation after the actual horizontal row, with original engine indices. */
     suspend fun getExpandedCandidates(
         offset: Int,

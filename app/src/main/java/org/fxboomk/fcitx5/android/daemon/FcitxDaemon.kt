@@ -64,6 +64,8 @@ object FcitxDaemon {
 
             override suspend fun setCandidateCursor(idx: Int) = realFcitx.setCandidateCursor(idx)
 
+            override suspend fun getWubiCodes(text: String) = realFcitx.getWubiCodes(text)
+
             override suspend fun getExpandedCandidates(
                 offset: Int,
                 limit: Int,

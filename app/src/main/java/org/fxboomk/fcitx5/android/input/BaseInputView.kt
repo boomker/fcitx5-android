@@ -6,6 +6,9 @@
 @file:Suppress("ClickableViewAccessibility")
 package org.fxboomk.fcitx5.android.input
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
@@ -28,7 +31,9 @@ import org.fxboomk.fcitx5.android.daemon.FcitxConnection
 import org.fxboomk.fcitx5.android.data.InputFeedbacks
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.data.theme.Theme
+import org.fxboomk.fcitx5.android.input.candidates.CandidateCardContent
 import org.fxboomk.fcitx5.android.input.candidates.CandidateCharacterPopup
+import org.fxboomk.fcitx5.android.input.candidates.CandidateInfoPopup
 import org.fxboomk.fcitx5.android.input.candidates.candidateCharacters
 import org.fxboomk.fcitx5.android.input.candidates.candidateEdgeCharacters
 import org.fxboomk.fcitx5.android.input.candidates.foldedSymbolActions
@@ -93,6 +98,10 @@ abstract class BaseInputView(
     }
 
     private var candidateCharacterPopup: CandidateCharacterPopup? = null
+    private var candidateInfoPopup: CandidateInfoPopup? = null
+    private var candidateInfoRequestJob: Job? = null
+    private var candidateInfoRequestAnchor: View? = null
+    private var candidateInfoRequestVersion = 0L
     private var candidateActionRequestJob: Job? = null
     private var candidateActionRequestAnchor: View? = null
     private var candidateActionRequestVersion = 0L
@@ -118,7 +127,7 @@ abstract class BaseInputView(
             val actions = fcitx.runOnReady { getCandidateActionsIfCurrent(idx, candidateText) }
             if (version != candidateActionRequestVersion || !view.isAttachedToWindow) return@launch
             candidateActionRequestJob = null
-            if (actions != null) onLoaded(actions)
+            onLoaded(actions ?: emptyArray<CandidateAction>())
         }
     }
 
@@ -169,6 +178,7 @@ abstract class BaseInputView(
         allowDirectionalActions: Boolean = true
     ) {
         view.cancelGestures()
+        dismissCandidateInfoPopup(view)
         if (candidateActionRequestAnchor === view) {
             cancelCandidateActionRequest(view)
             dismissCandidateCharacterPopup()
@@ -295,6 +305,7 @@ abstract class BaseInputView(
                     downY = event.y
                     lastX = event.x
                     lastY = event.y
+                    dismissCandidateInfoPopup()
                     dismissCandidateCharacterPopup()
                     false
                 }
@@ -380,6 +391,7 @@ abstract class BaseInputView(
 
     fun unbindCandidateGesture(view: CustomGestureView) {
         view.cancelGestures()
+        dismissCandidateInfoPopup(view)
         cancelCandidateActionRequest(view)
         dismissCandidateCharacterPopup()
         view.setOnTouchListener(null)
@@ -392,6 +404,16 @@ abstract class BaseInputView(
     private fun dismissCandidateCharacterPopup() {
         candidateCharacterPopup?.dismiss()
         candidateCharacterPopup = null
+    }
+
+    private fun dismissCandidateInfoPopup(anchor: View? = null) {
+        if (anchor != null && candidateInfoRequestAnchor !== anchor) return
+        candidateInfoRequestVersion++
+        candidateInfoRequestJob?.cancel()
+        candidateInfoRequestJob = null
+        candidateInfoRequestAnchor = null
+        candidateInfoPopup?.dismiss()
+        candidateInfoPopup = null
     }
 
     private fun resetCandidateFrequency(idx: Int) {
@@ -421,6 +443,7 @@ abstract class BaseInputView(
     fun showCandidateActionMenu(idx: Int, text: String, view: View) {
         candidateActionMenu?.dismiss()
         candidateActionMenu = null
+        dismissCandidateInfoPopup()
         dismissCandidateCharacterPopup()
         loadCandidateActions(idx, text, view) { actions ->
             showCandidateActions(idx, text, view, actions)
@@ -439,7 +462,6 @@ abstract class BaseInputView(
             return
         }
         val edgeCharacters = text.candidateEdgeCharacters()
-        if (actions.isEmpty() && edgeCharacters == null) return
         InputFeedbacks.hapticFeedback(view, longPress = true)
         candidateActionMenu = PopupMenu(themedContext, view).apply {
             menu.add(buildSpannedString {
@@ -456,6 +478,9 @@ abstract class BaseInputView(
             }).apply {
                 isEnabled = false
             }
+            menu.item(R.string.candidate_card_details) {
+                showCandidateInfo(text, view)
+            }
             edgeCharacters?.let { characters ->
                 menu.item(R.string.commit_first_candidate_character) {
                     commitCandidateCharacter(characters.first)
@@ -465,7 +490,12 @@ abstract class BaseInputView(
                 }
             }
             actions.forEach { action ->
-                menu.item(action.text) {
+                val label = when (action.text) {
+                    "Pin to top as custom phrase", "以自定义词组的方式置顶", "作為自訂字詞置頂",
+                    "Закрепить вверху как пользовательскую фразу" -> context.getString(R.string.pin_candidate)
+                    else -> action.text
+                }
+                menu.item(label) {
                     val isOnFirstPage = if (action.text.isCandidateFrequencyResetActionText()) {
                         service.inputView?.wasCandidateOnFirstPage(idx)
                     } else null
@@ -477,6 +507,59 @@ abstract class BaseInputView(
             }
             show()
         }
+    }
+
+    private fun showCandidateInfo(candidateText: String, view: View) {
+        candidateActionMenu?.dismiss()
+        candidateActionMenu = null
+        dismissCandidateInfoPopup()
+        dismissCandidateCharacterPopup()
+        candidateInfoRequestAnchor = view
+        val requestVersion = candidateInfoRequestVersion
+        val (ime, preedit) = fcitx.runImmediately {
+            inputMethodEntryCached to if (inputMethodEntryCached.addon == "pinyin") {
+                inputPanelCached.preedit.toString().ifBlank { clientPreeditCached.toString() }
+            } else null
+        }
+        candidateInfoRequestJob = service.lifecycleScope.launch {
+            try {
+                val wubiCodes = if (ime.addon == "table" && ime.uniqueName == "wbx") {
+                    fcitx.runOnReady { getWubiCodes(candidateText) }.toList().ifEmpty { listOf("") }
+                } else emptyList()
+                val card = withContext(Dispatchers.IO) {
+                    CandidateCardContent.load(context, candidateText, preedit, wubiCodes)
+                }
+                if (requestVersion != candidateInfoRequestVersion || !view.isAttachedToWindow) return@launch
+
+                val popup = CandidateInfoPopup(
+                    anchor = view,
+                    card = card,
+                    theme = theme,
+                    onCommit = { content ->
+                        dismissCandidateInfoPopup()
+                        commitCandidateCharacter(content)
+                    },
+                    onCopy = ::copyCandidateText,
+                    onDismiss = {
+                        candidateInfoPopup = null
+                        candidateInfoRequestAnchor = null
+                    }
+                )
+                candidateInfoPopup = popup
+                popup.show()
+            } finally {
+                if (requestVersion == candidateInfoRequestVersion) {
+                    candidateInfoRequestJob = null
+                    if (candidateInfoPopup == null) candidateInfoRequestAnchor = null
+                }
+            }
+        }
+    }
+
+    private fun copyCandidateText(text: String) {
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return
+        clipboard.setPrimaryClip(ClipData.newPlainText(text, text))
+        context.toast(R.string.candidate_card_copied)
     }
 
     protected fun getNavBarBottomInset(windowInsets: WindowInsets): Int {
@@ -514,6 +597,7 @@ abstract class BaseInputView(
     override fun onDetachedFromWindow() {
         cancelCandidateActionRequest()
         candidateActionMenu?.dismiss()
+        dismissCandidateInfoPopup()
         dismissCandidateCharacterPopup()
         handleEvents = false
         super.onDetachedFromWindow()

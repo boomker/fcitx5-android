@@ -32,6 +32,7 @@
 #include <fcitx-utils/eventdispatcher.h>
 #include <fcitx-utils/standardpath.h>
 #include <fcitx-utils/stringutils.h>
+#include <fcitx-utils/utf8.h>
 #include <fcitx-config/iniparser.h>
 
 #include <quickphrase_public.h>
@@ -39,6 +40,7 @@
 #include <clipboard_public.h>
 
 #include <libime/pinyin/pinyindictionary.h>
+#include <libime/table/tablebaseddictionary.h>
 
 #include <boost/iostreams/device/file_descriptor.hpp>
 #include <boost/iostreams/stream_buffer.hpp>
@@ -571,6 +573,36 @@ public:
 
     std::vector<CandidateEntity> getCandidates(int offset, int limit) {
         return p_frontend->call<fcitx::IAndroidFrontend::getCandidates>(offset, limit);
+    }
+
+    std::vector<std::string> getWubiCodes(const std::string &text) {
+        if (text.empty() || !fcitx::utf8::validate(text)) return {};
+        auto file = fcitx::StandardPaths::global().open(
+                fcitx::StandardPathsType::PkgData, "table/wbx.main.dict");
+        if (!file.isValid()) {
+            FCITX_WARN() << "Cannot open table/wbx.main.dict for Wubi codes";
+            return {};
+        }
+        try {
+            boost::iostreams::stream_buffer<boost::iostreams::file_descriptor_source>
+                    buffer(file.fd(), boost::iostreams::file_descriptor_flags::never_close_handle);
+            std::istream in(&buffer);
+            libime::TableBasedDictionary dict;
+            dict.load(in, libime::TableFormat::Binary);
+            std::vector<std::string> result(1);
+            for (const auto character : fcitx::utf8::MakeUTF8StringViewRange(text)) {
+                result.emplace_back(dict.reverseLookup(character));
+            }
+            if (result.size() == 2) {
+                result.front() = result[1];
+            } else {
+                dict.generate(text, result.front());
+            }
+            return result;
+        } catch (const std::exception &error) {
+            FCITX_WARN() << "Cannot read Wubi codes: " << error.what();
+            return {};
+        }
     }
 
     std::vector<CandidateEntity> getExpandedCandidates(int offset, int limit, int firstHiddenIndex,
@@ -1440,6 +1472,19 @@ std::string utf8FromByteArray(JNIEnv *env, jbyteArray bytes) {
 }
 
 } // namespace
+
+extern "C"
+JNIEXPORT jobjectArray JNICALL
+Java_org_fxboomk_fcitx5_android_core_Fcitx_getFcitxWubiCodes(
+        JNIEnv *env, jclass clazz, jbyteArray text) {
+    RETURN_VALUE_IF_NOT_RUNNING(nullptr)
+    const auto codes = Fcitx::Instance().getWubiCodes(utf8FromByteArray(env, text));
+    auto array = env->NewObjectArray(static_cast<jsize>(codes.size()), GlobalRef->String, nullptr);
+    for (jsize i = 0; i < static_cast<jsize>(codes.size()); ++i) {
+        env->SetObjectArrayElement(array, i, *JString(env, codes[i]));
+    }
+    return array;
+}
 
 extern "C"
 JNIEXPORT jobjectArray JNICALL

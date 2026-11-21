@@ -7,15 +7,20 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Rect
 import android.os.SystemClock
 import android.text.Spanned
 import android.text.style.ForegroundColorSpan
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.FrameLayout
 import android.widget.PopupMenu
+import android.widget.PopupWindow
+import android.widget.ScrollView
 import android.widget.TextView
+import androidx.core.view.allViews
 import androidx.test.platform.app.InstrumentationRegistry
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -25,10 +30,13 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.core.CandidateAction
 import org.fxboomk.fcitx5.android.core.CandidateWord
 import org.fxboomk.fcitx5.android.core.FcitxAPI
 import org.fxboomk.fcitx5.android.core.FcitxEvent
+import org.fxboomk.fcitx5.android.core.FormattedText
+import org.fxboomk.fcitx5.android.core.InputMethodEntry
 import org.fxboomk.fcitx5.android.daemon.FcitxConnection
 import org.fxboomk.fcitx5.android.data.theme.Theme
 import org.fxboomk.fcitx5.android.data.theme.ThemePreset
@@ -148,6 +156,237 @@ class CandidateSymbolPopupTest {
     }
 
     @Test
+    fun nonHighlightedCandidateKeepsDetailsWhenNativeLookupDoesNotMatch() = withSession { session ->
+        session.onMain {
+            session.input.bindCandidateGesture(session.anchor, 2, "你好")
+        }
+        session.open()
+        session.releaseAtAnchor()
+        instrumentation.waitForIdleSync()
+        session.onMain {
+            val menu = requireNotNull(session.menu()).menu
+            assertEquals("你好", menu.getItem(0).title.toString())
+            assertEquals(session.anchor.context.getString(org.fxboomk.fcitx5.android.R.string.candidate_card_details),
+                menu.getItem(1).title.toString())
+            assertEquals(0, session.clicks)
+        }
+    }
+
+    @Test
+    fun unicodeRowsAppearForEachCharacterAndAreIncludedInCopyAndCommit() = withSession { session ->
+        val context = session.anchor.context
+        val characters = listOf("银", "行", "〇", "𠀀", "𳑹", "豈")
+        val expectedPoints = listOf("U+94F6", "U+884C", "U+3007", "U+20000", "U+33479", "U+F900")
+        val card = CandidateCardContent.load(context, characters.joinToString(""))
+        var copied: String? = null
+        var committed: String? = null
+        lateinit var popup: CandidateInfoPopup
+        session.onMain {
+            popup = CandidateInfoPopup(
+                anchor = session.anchor,
+                card = card,
+                theme = ThemePreset.MaterialLight,
+                onCopy = { copied = it },
+                onCommit = { committed = it },
+                onDismiss = {},
+            )
+            popup.show()
+        }
+        instrumentation.waitForIdleSync()
+        try {
+            session.onMain {
+                val window = CandidateInfoPopup::class.java.getDeclaredField("window")
+                    .apply { isAccessible = true }.get(popup) as PopupWindow
+                val labels = window.contentView.allViews.filterIsInstance<TextView>().toList()
+                val scroll = window.contentView.allViews.filterIsInstance<ScrollView>().single()
+                val body = scroll.getChildAt(0) as ViewGroup
+                assertEquals(card.text, (body.getChildAt(0) as TextView).text.toString())
+                val phraseReading = (body.getChildAt(1) as TextView).text.toString()
+                assertTrue(phraseReading.startsWith("yín háng "))
+                val unicodeRows = characters.map { candidateUnicodeDescription(context, it) }
+                assertEquals(unicodeRows, labels.map { it.text.toString() }.filter { it in unicodeRows })
+                unicodeRows.zip(expectedPoints).forEach { (row, point) -> assertTrue(row.contains(point)) }
+                labels.single { it.text == context.getString(R.string.candidate_card_copy) }.performClick()
+                labels.single { it.text == context.getString(R.string.candidate_card_commit) }.performClick()
+                assertNotNull(copied)
+                assertEquals(copied, committed)
+                assertEquals(listOf(card.text, phraseReading), requireNotNull(copied).lines().take(2))
+                unicodeRows.forEach { assertTrue(requireNotNull(copied).lines().contains(it)) }
+            }
+        } finally {
+            session.onMain { popup.dismiss() }
+        }
+    }
+
+    @Test
+    fun detailsConstrainPinyinFromThePanelOrClientOnlyInAPinyinScheme() {
+        val candidate = "很行"
+        val context = instrumentation.targetContext
+        val fallback = CandidateCardContent.load(context, candidate).phraseReading
+        assertFalse("The fixture must distinguish the constrained reading", fallback == "hěn xíng")
+        for (source in listOf("panel", "client", "other-table")) {
+            withSession { session ->
+                val pinyin = FormattedText(arrayOf("hen xing"), intArrayOf(0), 8)
+                session.connection.ime = session.connection.ime.copy(
+                    uniqueName = if (source == "other-table") "cangjie" else "pinyin",
+                    addon = if (source == "other-table") "table" else "pinyin",
+                )
+                if (source == "client") {
+                    session.connection.clientPreedit = pinyin
+                } else {
+                    session.connection.panel = session.connection.panel.copy(preedit = pinyin)
+                }
+                session.connection.wubiCodes = arrayOf("unexpected", "unexpected", "unexpected")
+                val popup = session.showDetails(candidate)
+                session.onMain {
+                    val scroll = session.detailWindow(popup).contentView.allViews
+                        .filterIsInstance<ScrollView>().single()
+                    val body = scroll.getChildAt(0) as ViewGroup
+                    assertEquals(source, if (source == "other-table") fallback else "hěn xíng",
+                        (body.getChildAt(1) as TextView).text.toString())
+                    assertFalse(scroll.allViews.filterIsInstance<TextView>()
+                        .any { "unexpected" in it.text })
+                    assertTrue(session.connection.wubiRequests.isEmpty())
+                }
+            }
+        }
+    }
+
+    @Test
+    fun builtInWubiDetailsLoadWholeCandidateAndPerCharacterCodes() = withSession { session ->
+        val context = session.anchor.context
+        session.connection.ime = session.connection.ime.copy(uniqueName = "wbx", addon = "table")
+        session.connection.wubiCodes = arrayOf("wqvb", "wqiy", "vbg")
+        val popup = session.showDetails("你好")
+        session.onMain {
+            assertEquals(listOf("你好"), session.connection.wubiRequests)
+            val labels = session.detailWindow(popup).contentView.allViews
+                .filterIsInstance<TextView>().map { it.text.toString() }.toList()
+            for (code in session.connection.wubiCodes) {
+                assertTrue(labels.contains(context.getString(R.string.candidate_card_wubi_code, code)))
+            }
+        }
+    }
+
+    @Test
+    fun polyphonicSingleReadingsAndWubiCodesAreIncludedInFullCopyAndCommit() {
+        for ((candidate, codes) in listOf(
+            "行" to listOf("tfhh", "tfhh"),
+            "你好" to listOf("wqvb", "wqiy", "vbg"),
+        )) {
+            withSession { session ->
+                val context = session.anchor.context
+                val card = CandidateCardContent.load(context, candidate, wubiCodes = codes)
+                var copied: String? = null
+                var committed: String? = null
+                lateinit var popup: CandidateInfoPopup
+                session.onMain {
+                    popup = CandidateInfoPopup(
+                        anchor = session.anchor,
+                        card = card,
+                        theme = ThemePreset.MaterialLight,
+                        onCopy = { copied = it },
+                        onCommit = { committed = it },
+                        onDismiss = {},
+                    )
+                    popup.show()
+                }
+                instrumentation.waitForIdleSync()
+                try {
+                    session.onMain {
+                        val window = session.detailWindow(popup)
+                        val labels = window.contentView.allViews.filterIsInstance<TextView>().toList()
+                        val scroll = window.contentView.allViews.filterIsInstance<ScrollView>().single()
+                        val visibleRows = scroll.allViews.filterIsInstance<TextView>()
+                            .map { it.text.toString() }.toList()
+                        assertEquals(candidate, visibleRows[0])
+                        assertEquals(card.phraseReading, visibleRows[1])
+                        assertEquals(context.getString(R.string.candidate_card_wubi_code, codes[0]), visibleRows[2])
+                        if (candidate == "行") {
+                            assertEquals(setOf("háng", "xíng"), visibleRows[1].split(" / ").toSet())
+                        } else {
+                            for (code in codes.drop(1)) {
+                                assertTrue(visibleRows.contains(context.getString(R.string.candidate_card_wubi_code, code)))
+                            }
+                        }
+                        labels.single { it.text == context.getString(R.string.candidate_card_copy) }.performClick()
+                        labels.single { it.text == context.getString(R.string.candidate_card_commit) }.performClick()
+                        assertEquals(visibleRows.joinToString("\n"), copied)
+                        assertEquals(copied, committed)
+                    }
+                } finally {
+                    session.onMain { popup.dismiss() }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun longCandidateKeepsItsLastCharacterAndActionsReachableInAWideCard() = withSession { session ->
+        val candidate = "中华人民共和国".repeat(5) + "〇𳑹"
+        session.onMain {
+            session.input.bindCandidateGesture(session.anchor, 2, candidate)
+        }
+        session.open()
+        session.releaseAtAnchor()
+        val detailLabel = session.anchor.context.getString(R.string.candidate_card_details)
+        val deadline = SystemClock.uptimeMillis() + 5_000
+        val automation = instrumentation.uiAutomation
+        var clicked: Boolean
+        do {
+            val action = automation.rootInActiveWindow?.findAccessibilityNodeInfosByText(detailLabel)
+                ?.firstOrNull { it.text?.toString() == detailLabel }
+            clicked = generateSequence(action) { it.parent }.firstOrNull { it.isClickable }
+                ?.performAction(AccessibilityNodeInfo.ACTION_CLICK) == true
+            if (!clicked) SystemClock.sleep(50)
+        } while (!clicked && SystemClock.uptimeMillis() < deadline)
+        assertTrue("Could not open the detail action from the long-press menu", clicked)
+
+        val field = BaseInputView::class.java.getDeclaredField("candidateInfoPopup").apply { isAccessible = true }
+        val popupDeadline = SystemClock.uptimeMillis() + 5_000
+        var popup: CandidateInfoPopup? = null
+        do {
+            instrumentation.waitForIdleSync()
+            session.onMain { popup = field.get(session.input) as CandidateInfoPopup? }
+            if (popup != null) break
+            SystemClock.sleep(25)
+        } while (SystemClock.uptimeMillis() < popupDeadline)
+        val shown = checkNotNull(popup) { "The long candidate's detail card did not open" }
+        val window = CandidateInfoPopup::class.java.getDeclaredField("window")
+            .apply { isAccessible = true }.get(shown) as PopupWindow
+        instrumentation.waitForIdleSync()
+        session.onMain {
+            assertTrue(shown.isShowing)
+            val frame = Rect().also(session.anchor::getWindowVisibleDisplayFrame)
+            val card = window.contentView
+            val cardBounds = Rect()
+            assertTrue(card.getGlobalVisibleRect(cardBounds))
+            assertTrue(card.width >= frame.width() * 0.90)
+            assertEquals(card.height, cardBounds.height())
+
+            val scroll = card.allViews.filterIsInstance<ScrollView>().single()
+            val body = scroll.getChildAt(0) as ViewGroup
+            val phraseReading = (body.getChildAt(1) as TextView).text.toString()
+            assertTrue(phraseReading.startsWith("zhōng huá rén mín gòng hé guó "))
+            assertEquals(37, phraseReading.split(' ').size)
+            assertTrue(scroll.canScrollVertically(1))
+            scroll.scrollTo(0, body.height)
+            val rows = scroll.allViews.filterIsInstance<TextView>().toList()
+            assertTrue(rows.any { "U+3007" in it.text })
+            val lastRow = rows.single { "U+33479" in it.text }
+            assertTrue(lastRow.getGlobalVisibleRect(Rect()))
+            assertFalse(scroll.canScrollVertically(1))
+
+            val cancel = card.allViews.filterIsInstance<TextView>()
+                .single { it.text == session.anchor.context.getString(R.string.cancel) }
+            assertTrue(cancel.getGlobalVisibleRect(Rect()))
+            assertTrue(cancel.performClick())
+            assertFalse(shown.isShowing)
+            assertEquals(0, session.clicks)
+        }
+    }
+
+    @Test
     fun delayedOrdinaryLongPressStillShowsItsMenuAfterRelease() {
         listOf(true, false).forEach { allowDirectionalActions ->
             withSession { session ->
@@ -172,7 +411,7 @@ class CandidateSymbolPopupTest {
                     val menu = requireNotNull(session.menu()).menu
                     val labels = (0 until menu.size()).map { menu.getItem(it).title.toString() }
                     assertTrue(labels.contains("Forget candidate"))
-                    assertTrue(labels.contains("Pin to top as custom phrase"))
+                    assertTrue(labels.contains(session.anchor.context.getString(org.fxboomk.fcitx5.android.R.string.pin_candidate)))
                     assertEquals(0, session.clicks)
                 }
             }
@@ -418,6 +657,28 @@ class CandidateSymbolPopupTest {
             BaseInputView::class.java.getDeclaredField("candidateActionMenu")
                 .apply { isAccessible = true }.get(input) as PopupMenu?
 
+        fun showDetails(candidate: String): CandidateInfoPopup {
+            onMain {
+                BaseInputView::class.java.getDeclaredMethod("showCandidateInfo", String::class.java, View::class.java)
+                    .apply { isAccessible = true }.invoke(input, candidate, anchor)
+            }
+            val field = BaseInputView::class.java.getDeclaredField("candidateInfoPopup")
+                .apply { isAccessible = true }
+            val deadline = SystemClock.uptimeMillis() + 5_000
+            do {
+                instrumentation.waitForIdleSync()
+                var popup: CandidateInfoPopup? = null
+                onMain { popup = field.get(input) as CandidateInfoPopup? }
+                popup?.let { return it }
+                SystemClock.sleep(25)
+            } while (SystemClock.uptimeMillis() < deadline)
+            error("The detail card did not open for $candidate")
+        }
+
+        fun detailWindow(popup: CandidateInfoPopup): PopupWindow =
+            CandidateInfoPopup::class.java.getDeclaredField("window")
+                .apply { isAccessible = true }.get(popup) as PopupWindow
+
         fun labels(): List<TextView> {
             val shown = requireNotNull(popup())
             val content = CandidateCharacterPopup::class.java.getDeclaredField("content")
@@ -505,6 +766,11 @@ class CandidateSymbolPopupTest {
         val committed = mutableListOf<String>()
         var candidateText = "▶️"
         var requests = 0
+        var ime = InputMethodEntry("test")
+        var panel = FcitxEvent.InputPanelEvent.Data()
+        var clientPreedit = FormattedText.Empty
+        var wubiCodes = emptyArray<String>()
+        val wubiRequests = mutableListOf<String>()
         var actions = arrayOf(
             CandidateAction(0, "Forget candidate", false, "", false, false),
             CandidateAction(100, "🔛", false, "folded-symbol", false, false),
@@ -514,6 +780,13 @@ class CandidateSymbolPopupTest {
             FcitxAPI::class.java.classLoader, arrayOf(FcitxAPI::class.java)
         ) { _, method, args ->
             when (method.name) {
+                "getInputMethodEntryCached" -> ime
+                "getInputPanelCached" -> panel
+                "getClientPreeditCached" -> clientPreedit
+                "getWubiCodes" -> {
+                    wubiRequests += args[0] as String
+                    wubiCodes
+                }
                 "getCandidateActions" -> {
                     requests++
                     actions
