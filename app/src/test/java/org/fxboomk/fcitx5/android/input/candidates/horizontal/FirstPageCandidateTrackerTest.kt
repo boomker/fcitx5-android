@@ -71,4 +71,19 @@ class FirstPageCandidateTrackerTest {
         tracker.record(setOf(0), true)
         assertTrue(tracker.contains(0)!!)
     }
+
+    @Test
+    fun `recorded first page snapshot stays isolated across paging and clear`() {
+        val tracker = FirstPageCandidateTracker()
+        assertTrue(tracker.recordedIndices().isEmpty())
+        tracker.record(setOf(0, 2, 9), true)
+        val snapshot = tracker.recordedIndices() as MutableSet<Int>
+        snapshot.remove(9)
+        tracker.record(setOf(3, 4, 5), false)
+        assertEquals(setOf(0, 2, 9), tracker.recordedIndices())
+        assertEquals(true, tracker.contains(9))
+        tracker.clear()
+        assertTrue(tracker.recordedIndices().isEmpty())
+        assertNull(tracker.contains(9))
+    }
 }

@@ -143,6 +143,8 @@ public:
 
     jclass Candidate;
     jmethodID CandidateInit;
+    jclass CandidateViewportSnapshot;
+    jmethodID CandidateViewportSnapshotInit;
 
     explicit GlobalRefSingleton(JavaVM *jvm_) : jvm(jvm_) {
         JNIEnv *env;
@@ -195,7 +197,10 @@ public:
         CandidateActionInit = env->GetMethodID(CandidateAction, "<init>", "(ILjava/lang/String;ZLjava/lang/String;ZZ)V");
 
         Candidate = reinterpret_cast<jclass>(env->NewGlobalRef(env->FindClass("org/fxboomk/fcitx5/android/core/CandidateWord")));
-        CandidateInit = env->GetMethodID(Candidate, "<init>", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZZZ)V");
+        CandidateInit = env->GetMethodID(Candidate, "<init>", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZZZILjava/lang/String;ILjava/lang/String;II)V");
+
+        CandidateViewportSnapshot = reinterpret_cast<jclass>(env->NewGlobalRef(env->FindClass("org/fxboomk/fcitx5/android/core/CandidateViewportSnapshot")));
+        CandidateViewportSnapshotInit = env->GetMethodID(CandidateViewportSnapshot, "<init>", "(JZI[Lorg/fxboomk/fcitx5/android/core/CandidateWord;)V");
     }
 
     [[nodiscard]] JEnv AttachEnv() const { return JEnv(jvm); }

@@ -43,12 +43,13 @@ internal fun nativeCandidatesAfterConsumedFallbacks(
     if (isInitialRow) {
         if (candidates.none { it.isDeferredFallback }) return candidates
         return candidates.mapIndexedNotNull { index, candidate ->
-            candidate.copy(nativeIndex = indexOffset + index).takeUnless { it.isDeferredFallback }
+            val nativeIndex = candidate.nativeIndex.takeIf { it >= 0 } ?: (indexOffset + index)
+            candidate.copy(nativeIndex = nativeIndex).takeUnless { it.isDeferredFallback }
         }.toTypedArray()
     }
     if (excludedIndices.isEmpty()) return candidates
     return candidates.mapIndexedNotNull { index, candidate ->
-        val nativeIndex = indexOffset + index
+        val nativeIndex = candidate.nativeIndex.takeIf { it >= 0 } ?: (indexOffset + index)
         candidate.copy(nativeIndex = nativeIndex).takeUnless { nativeIndex in excludedIndices }
     }.toTypedArray()
 }

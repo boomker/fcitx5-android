@@ -60,6 +60,15 @@ FCITX_ADDON_DECLARE_FUNCTION(AndroidFrontend, setCapabilityFlags,
 FCITX_ADDON_DECLARE_FUNCTION(AndroidFrontend, getCandidates,
                              std::vector<CandidateEntity>(const int, const int))
 
+FCITX_ADDON_DECLARE_FUNCTION(AndroidFrontend, getExpandedCandidates,
+                             std::vector<CandidateEntity>(int, int, int, const std::vector<int> &))
+
+FCITX_ADDON_DECLARE_FUNCTION(AndroidFrontend, getCandidateViewportSnapshot,
+                             CandidateViewportEntity(int))
+
+FCITX_ADDON_DECLARE_FUNCTION(AndroidFrontend, setCandidateViewportIfCurrent,
+                             bool(std::int64_t, int, const std::vector<int> &, int))
+
 FCITX_ADDON_DECLARE_FUNCTION(AndroidFrontend, getCandidateActions,
                              std::vector<CandidateActionEntity>(const int))
 

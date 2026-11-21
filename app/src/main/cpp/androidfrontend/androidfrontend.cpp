@@ -14,10 +14,27 @@
 #include <fcitx-utils/event.h>
 
 #include "androidfrontend.h"
+#include "expandedcandidateorder.h"
+#include <atomic>
+#include <stdexcept>
+#include <string_view>
+#include <unordered_map>
+#include <unordered_set>
+
+FCITX_ADDON_DECLARE_FUNCTION(PinyinEngine, candidateViewportPolicyEnabled,
+                             bool(fcitx::InputContext *))
+FCITX_ADDON_DECLARE_FUNCTION(PinyinEngine, candidateViewportGeneration,
+                             std::uint64_t(fcitx::InputContext *))
+FCITX_ADDON_DECLARE_FUNCTION(PinyinEngine, setCandidateViewport,
+                             bool(fcitx::InputContext *, int,
+                                  const std::vector<const fcitx::CandidateWord *> &,
+                                  const fcitx::CandidateWord *, bool))
 
 namespace fcitx {
 
 namespace {
+std::atomic<std::int64_t> candidateRevisionSequence{0};
+
 class CandidateSelectionGuard {
 public:
     explicit CandidateSelectionGuard(bool &selectingCandidate)
@@ -62,6 +79,12 @@ bool isReturnKey(const Key &key) {
 } // namespace
 
 class AndroidInputContext : public InputContextV2 {
+    std::int64_t candidateRevision_ = 0;
+    std::weak_ptr<CandidateList> revisionCandidateList_;
+    std::uint64_t viewportGeneration_ = 0;
+    std::weak_ptr<CandidateList> viewportCandidateList_;
+    int viewportCandidateTotal_ = -1;
+
 public:
     AndroidInputContext(AndroidFrontend *frontend,
                         InputContextManager &inputContextManager,
@@ -140,6 +163,9 @@ public:
     }
 
     void updateCandidatesBulk() {
+        candidateRevision_ = ++candidateRevisionSequence;
+        revisionCandidateList_ = inputPanel().candidateList();
+        viewportGeneration_ = currentViewportGeneration().value_or(0);
         std::vector<CandidateEntity> candidates;
         int total = 0;
         const auto &list = inputPanel().candidateList();
@@ -171,6 +197,9 @@ public:
     }
 
     void updateCandidatesPaged() {
+        candidateRevision_ = ++candidateRevisionSequence;
+        revisionCandidateList_ = inputPanel().candidateList();
+        viewportGeneration_ = currentViewportGeneration().value_or(0);
         const auto &list = inputPanel().candidateList();
         if (!list) {
             frontend_->updatePagedCandidate(PagedCandidateEntity::Empty);
@@ -186,10 +215,22 @@ public:
             hasNext = pageable->hasNext();
         }
         int size = list->size();
+        std::unordered_map<const CandidateWord *, int> nativeIndices;
+        if (usesCandidateViewportPolicy()) {
+            const auto *bulk = list->toBulk();
+            const int total = bulk ? bulk->totalSize() : -1;
+            for (int i = 0; i < total; ++i) {
+                nativeIndices.emplace(&bulk->candidateFromAll(i), i);
+            }
+        }
         std::vector<CandidateEntity> candidates;
         candidates.reserve(size);
         for (int i = 0; i < size; i++) {
-            candidates.emplace_back(candidateEntityWithLabel(list->label(i), list->candidate(i)));
+            const auto &word = list->candidate(i);
+            auto candidate = candidateEntityWithLabel(list->label(i), word);
+            const auto index = nativeIndices.find(&word);
+            if (index != nativeIndices.end()) candidate.nativeIndex = index->second;
+            candidates.push_back(std::move(candidate));
         }
         PagedCandidateEntity paged(candidates, cursorIndex, layoutHint, hasPrev, hasNext);
         frontend_->updatePagedCandidate(paged);
@@ -263,13 +304,242 @@ public:
         return candidates;
     }
 
+    AddonInstance *candidateViewportAddon() {
+        const auto *entry = frontend_->instance()->inputMethodEntry(this);
+        if (!entry || entry->addon() != "pinyin") return nullptr;
+        return frontend_->instance()->addonManager().addon("pinyin", true);
+    }
+
+    bool usesCandidateViewportPolicy() {
+        auto *addon = candidateViewportAddon();
+        if (!addon) return false;
+        try {
+            return addon->call<IPinyinEngine::candidateViewportPolicyEnabled>(this) &&
+                   currentViewportGeneration().has_value();
+        } catch (const std::runtime_error &error) {
+            // Older optional Pinyin addons do not expose this presentation API.
+            if (std::string_view(error.what()) == IPinyinEngine::candidateViewportPolicyEnabled::Name::data()) {
+                return false;
+            }
+            throw;
+        }
+    }
+
+    std::optional<std::uint64_t> currentViewportGeneration() {
+        auto *addon = candidateViewportAddon();
+        if (!addon) return std::nullopt;
+        try {
+            return addon->call<IPinyinEngine::candidateViewportGeneration>(this);
+        } catch (const std::runtime_error &error) {
+            if (std::string_view(error.what()) == IPinyinEngine::candidateViewportGeneration::Name::data()) {
+                return std::nullopt;
+            }
+            throw;
+        }
+    }
+
+    void synchronizeCandidateRevision() {
+        const auto list = inputPanel().candidateList();
+        const auto generation = currentViewportGeneration().value_or(0);
+        if (candidateRevision_ == 0 || revisionCandidateList_.lock() != list ||
+            viewportGeneration_ != generation) {
+            candidateRevision_ = ++candidateRevisionSequence;
+            revisionCandidateList_ = list;
+            viewportGeneration_ = generation;
+        }
+    }
+
+    CandidateViewportEntity getCandidateViewportSnapshot(int limit) {
+        CandidateViewportEntity snapshot;
+        synchronizeCandidateRevision();
+        const auto list = inputPanel().candidateList();
+        snapshot.revision = candidateRevision_;
+        viewportCandidateList_ = list;
+        viewportCandidateTotal_ = -1;
+        if (!list || limit <= 0) return snapshot;
+        const auto *bulk = list->toBulk();
+        snapshot.total = bulk ? bulk->totalSize() : list->size();
+        viewportCandidateTotal_ = snapshot.total;
+        snapshot.foldingEnabled = bulk && snapshot.total >= 0 && usesCandidateViewportPolicy();
+        if (!snapshot.foldingEnabled) {
+            snapshot.candidates = getCandidates(0, limit);
+            for (size_t i = 0; i < snapshot.candidates.size(); ++i) {
+                snapshot.candidates[i].nativeIndex = static_cast<int>(i);
+            }
+            return snapshot;
+        }
+
+        std::vector<const CandidateWord *> words;
+        std::unordered_map<const CandidateWord *, int> indices;
+        words.reserve(snapshot.total);
+        for (int i = 0; i < snapshot.total; ++i) {
+            const auto *word = &bulk->candidateFromAll(i);
+            words.push_back(word);
+            indices.emplace(word, i);
+        }
+        std::unordered_map<const CandidateWord *, int> sources;
+        std::unordered_map<const CandidateWord *, int> counts;
+        int orphanSource = snapshot.total;
+        const auto *actionable = list->toActionable();
+        for (const auto *word : words) {
+            const auto *source = word->sourceCandidate();
+            if (!source) continue;
+            if (!sources.contains(source)) {
+                const auto index = indices.find(source);
+                sources.emplace(source, index == indices.end() ? orphanSource++ : index->second);
+            }
+            counts[source]++;
+            if (actionable) {
+                for (const auto &action : actionable->candidateActions(*word)) {
+                    if (action.icon() == "folded-symbol") counts[source]++;
+                }
+            }
+        }
+        const int end = std::min(limit, snapshot.total);
+        snapshot.candidates.reserve(end);
+        for (int i = 0; i < end; ++i) {
+            auto candidate = candidateEntity(*words[i]);
+            candidate.nativeIndex = i;
+            if (const auto *source = words[i]->sourceCandidate()) {
+                candidate.symbolSourceId = sources.at(source);
+                candidate.symbolCount = counts.at(source);
+            }
+            snapshot.candidates.push_back(std::move(candidate));
+        }
+        return snapshot;
+    }
+
+    bool setCandidateViewportIfCurrent(std::int64_t revision, int firstPageSize,
+                                      const std::vector<int> &firstPageIndices, int firstSymbolIndex) {
+        synchronizeCandidateRevision();
+        const auto list = inputPanel().candidateList();
+        const auto snapshotList = viewportCandidateList_.lock();
+        const auto *bulk = list ? list->toBulk() : nullptr;
+        auto *addon = candidateViewportAddon();
+        if (revision != candidateRevision_ || !snapshotList || snapshotList != list ||
+            !bulk || bulk->totalSize() != viewportCandidateTotal_ || !addon ||
+            !usesCandidateViewportPolicy()) return false;
+        const int total = bulk->totalSize();
+        const bool automatic = firstPageSize == 0;
+        if (automatic) {
+            if (!firstPageIndices.empty() || firstSymbolIndex != -2) return false;
+        } else if (firstPageSize < 1 || firstPageSize > total || firstPageIndices.empty() ||
+                   firstPageIndices.size() > static_cast<size_t>(firstPageSize) || firstSymbolIndex < -1) {
+            return false;
+        }
+        std::vector<const CandidateWord *> firstPage;
+        std::unordered_set<int> seen;
+        int symbols = 0;
+        for (const int index : firstPageIndices) {
+            if (index < 0 || index >= total || !seen.insert(index).second) return false;
+            const auto *word = &bulk->candidateFromAll(index);
+            firstPage.push_back(word);
+            if (word->sourceCandidate()) symbols++;
+        }
+        const CandidateWord *symbolSource = nullptr;
+        if (firstSymbolIndex >= 0) {
+            if (firstSymbolIndex >= total || !seen.contains(firstSymbolIndex) || symbols != 1) return false;
+            symbolSource = bulk->candidateFromAll(firstSymbolIndex).sourceCandidate();
+            if (!symbolSource) return false;
+        } else if (!automatic && symbols != 0) {
+            return false;
+        }
+        const bool accepted = addon->call<IPinyinEngine::setCandidateViewport>(
+                this, firstPageSize, firstPage, symbolSource, automatic);
+        synchronizeCandidateRevision();
+        return accepted;
+    }
+
+    std::vector<CandidateEntity> getExpandedCandidates(
+            int offset, int limit, int firstHiddenIndex,
+            const std::vector<int> &excludedIndices) {
+        if (offset < firstHiddenIndex || firstHiddenIndex < 0 || limit <= 0) return {};
+        const auto &list = inputPanel().candidateList();
+        if (!list) return {};
+        const auto *bulk = list->toBulk();
+        const int total = bulk ? bulk->totalSize() : -1;
+        const auto *entry = frontend_->instance()->inputMethodEntry(this);
+        if (total < 0 || !entry || entry->addon() != "pinyin") {
+            auto candidates = getCandidates(offset, limit);
+            for (size_t i = 0; i < candidates.size(); ++i) {
+                candidates[i].nativeIndex = offset + static_cast<int>(i);
+            }
+            return candidates;
+        }
+
+        std::vector<const CandidateWord *> words;
+        std::unordered_map<const CandidateWord *, int> indices;
+        words.reserve(total);
+        indices.reserve(total);
+        for (int i = 0; i < total; ++i) {
+            const auto *candidate = &bulk->candidateFromAll(i);
+            words.push_back(candidate);
+            indices.emplace(candidate, i);
+        }
+        std::vector<int> sources(total, -1);
+        for (int i = 0; i < total; ++i) {
+            const auto source = indices.find(words[i]->sourceCandidate());
+            if (source != indices.end()) sources[i] = source->second;
+        }
+        const auto order = expandedCandidateOrder(sources, firstHiddenIndex, excludedIndices);
+        const size_t start = static_cast<size_t>(offset - firstHiddenIndex);
+        std::vector<CandidateEntity> projected;
+        projected.reserve(order.size());
+        const auto *actionable = list->toActionable();
+        for (size_t i = 0; i < order.size(); ++i) {
+            const int index = order[i];
+            auto candidate = candidateEntity(*words[index]);
+            candidate.nativeIndex = index;
+            const int source = sources[index];
+            std::vector<CandidateAction> foldedActions;
+            if (source >= 0 && source < index && sources[source] < 0) {
+                const bool sourceExcluded =
+                        std::find(excludedIndices.begin(), excludedIndices.end(), source) != excludedIndices.end();
+                const bool sourceHidden = source >= firstHiddenIndex && !sourceExcluded;
+                // Every item in this presentation is beyond the actual first
+                // page, even when its source still fits in the horizontal bar.
+                if (candidate.comment == "…" && actionable) {
+                    auto actions = actionable->candidateActions(*words[index]);
+                    for (auto &action : actions) {
+                        if (action.icon() == "folded-symbol") foldedActions.push_back(std::move(action));
+                    }
+                }
+                if (!foldedActions.empty()) candidate.displayComment = "";
+                if (sourceHidden && (candidate.comment != "…" || !foldedActions.empty())) {
+                    candidate.displayComment = "";
+                } else if (!sourceHidden && (candidate.comment.empty() || !foldedActions.empty()) &&
+                           (sourceExcluded ||
+                            firstHiddenIndex + static_cast<int>(projected.size()) != source + 1)) {
+                    candidate.displayComment = "(" + filterString(words[source]->text()) + ")";
+                    candidate.spaceBetweenComment = false;
+                }
+            }
+            projected.push_back(candidate);
+            for (const auto &action : foldedActions) {
+                auto alternative = candidate;
+                alternative.text = action.text();
+                alternative.selectionActionId = action.id();
+                alternative.actionSourceText = candidate.text;
+                projected.push_back(std::move(alternative));
+            }
+        }
+        // Folded alternatives add presentation positions, not engine indices.
+        // Slice after expanding them so later pages cannot drop tail candidates.
+        const size_t end = std::min(projected.size(), start + static_cast<size_t>(limit));
+        std::vector<CandidateEntity> candidates;
+        if (start >= end) return candidates;
+        candidates.reserve(end - start);
+        for (size_t i = start; i < end; ++i) candidates.push_back(std::move(projected[i]));
+        return candidates;
+    }
+
     std::vector<CandidateActionEntity> getCandidateAction(const int idx) {
         std::vector<CandidateActionEntity> actions;
         const auto &list = inputPanel().candidateList();
         if (list) {
             const auto &actionable = list->toActionable();
             if (actionable) {
-                if (idx >= list->size()) {
+                if (usesCandidateViewportPolicy() || idx >= list->size()) {
                     const auto &bulk = list->toBulk();
                     if (bulk) {
                         try {
@@ -308,7 +578,7 @@ public:
                 actionable->triggerAction(candidate, actionIdx);
             }
         };
-        if (idx >= list->size()) {
+        if (usesCandidateViewportPolicy() || idx >= list->size()) {
             const auto &bulk = list->toBulk();
             if (bulk) {
                 try {
@@ -518,7 +788,7 @@ void AndroidFrontend::notifyDeletingInputContext(AndroidInputContext *ic) {
 bool AndroidFrontend::selectCandidate(int idx) {
     if (!activeIC_) return false;
     CandidateSelectionGuard guard(selectingCandidate_);
-    if (pagingMode_) {
+    if (pagingMode_ && !activeIC_->usesCandidateViewportPolicy()) {
         return activeIC_->selectCandidatePaged(idx);
     } else {
         return activeIC_->selectCandidateBulk(idx);
@@ -530,9 +800,8 @@ bool AndroidFrontend::setCandidateCursor(int idx) {
     const auto &list = activeIC_->inputPanel().candidateList();
     if (!list) return false;
     try {
-        // Match selectCandidate's page-relative indices, including absolute
-        // indices from an expanded candidate window beyond the current page.
-        if (pagingMode_ && idx < list->size()) {
+        // Normalized viewports use bulk identities even for a sparse page.
+        if (pagingMode_ && !activeIC_->usesCandidateViewportPolicy() && idx < list->size()) {
             auto *cursor = list->toCursorModifiable();
             if (!cursor) return false;
             cursor->setCursorIndex(idx);
@@ -626,6 +895,24 @@ void AndroidFrontend::setCandidateListCallback(const CandidateListCallback &call
 std::vector<CandidateEntity> AndroidFrontend::getCandidates(const int offset, const int limit) {
     if (!activeIC_) return {};
     return activeIC_->getCandidates(offset, limit);
+}
+
+std::vector<CandidateEntity> AndroidFrontend::getExpandedCandidates(
+        int offset, int limit, int firstHiddenIndex,
+        const std::vector<int> &excludedIndices) {
+    if (!activeIC_) return {};
+    return activeIC_->getExpandedCandidates(offset, limit, firstHiddenIndex, excludedIndices);
+}
+
+CandidateViewportEntity AndroidFrontend::getCandidateViewportSnapshot(int limit) {
+    if (!activeIC_) return {};
+    return activeIC_->getCandidateViewportSnapshot(limit);
+}
+
+bool AndroidFrontend::setCandidateViewportIfCurrent(
+        std::int64_t revision, int firstPageSize, const std::vector<int> &firstPageIndices, int firstSymbolIndex) {
+    if (!activeIC_) return false;
+    return activeIC_->setCandidateViewportIfCurrent(revision, firstPageSize, firstPageIndices, firstSymbolIndex);
 }
 
 void AndroidFrontend::deleteSurrounding(const int before, const int after) {

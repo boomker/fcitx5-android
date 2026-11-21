@@ -13,6 +13,8 @@
 #include <fcitx/inputmethodentry.h>
 #include <fcitx/candidatelist.h>
 
+#include <cstdint>
+#include <optional>
 #include <utility>
 
 class InputMethodStatus {
@@ -115,6 +117,12 @@ public:
     bool spaceBetweenComment;
     bool isFallback = false;
     bool isDeferredFallback = false;
+    int nativeIndex = -1;
+    std::optional<std::string> displayComment;
+    int selectionActionId = -1;
+    std::optional<std::string> actionSourceText;
+    int symbolSourceId = -1;
+    int symbolCount = 0;
 
     explicit CandidateEntity(std::string label, std::string text, std::string comment) :
             label(std::move(label)),
@@ -130,6 +138,14 @@ public:
             spaceBetweenComment(spaceBetweenComment),
             isFallback(isFallback),
             isDeferredFallback(isDeferredFallback) {}
+};
+
+class CandidateViewportEntity {
+public:
+    std::int64_t revision = 0;
+    bool foldingEnabled = false;
+    int total = -1;
+    std::vector<CandidateEntity> candidates;
 };
 
 class PagedCandidateEntity {

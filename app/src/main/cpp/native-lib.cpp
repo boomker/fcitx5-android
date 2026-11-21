@@ -573,6 +573,22 @@ public:
         return p_frontend->call<fcitx::IAndroidFrontend::getCandidates>(offset, limit);
     }
 
+    std::vector<CandidateEntity> getExpandedCandidates(int offset, int limit, int firstHiddenIndex,
+                                                      const std::vector<int> &excludedIndices) {
+        return p_frontend->call<fcitx::IAndroidFrontend::getExpandedCandidates>(
+                offset, limit, firstHiddenIndex, excludedIndices);
+    }
+
+    CandidateViewportEntity getCandidateViewportSnapshot(int limit) {
+        return p_frontend->call<fcitx::IAndroidFrontend::getCandidateViewportSnapshot>(limit);
+    }
+
+    bool setCandidateViewportIfCurrent(std::int64_t revision, int firstPageSize,
+                                      const std::vector<int> &firstPageIndices, int firstSymbolIndex) {
+        return p_frontend->call<fcitx::IAndroidFrontend::setCandidateViewportIfCurrent>(
+                revision, firstPageSize, firstPageIndices, firstSymbolIndex);
+    }
+
     std::vector<CandidateActionEntity> getCandidateActions(int idx) {
         auto actions = std::vector<CandidateActionEntity>();
         for (const auto &a: p_frontend->call<fcitx::IAndroidFrontend::getCandidateActions>(idx)) {
@@ -1340,6 +1356,52 @@ Java_org_fxboomk_fcitx5_android_core_Fcitx_getFcitxCandidates(JNIEnv *env, jclas
     auto candidates = Fcitx::Instance().getCandidates(static_cast<int>(offset), static_cast<int>(limit));
     int size = static_cast<int>(candidates.size());
     jobjectArray array = env->NewObjectArray(size, GlobalRef->Candidate, nullptr);
+    for (int i = 0; i < size; i++) {
+        auto obj = JRef(env, candidateEntityToObject(env, candidates[i]));
+        env->SetObjectArrayElement(array, i, obj);
+    }
+    return array;
+}
+
+extern "C"
+JNIEXPORT jobject JNICALL
+Java_org_fxboomk_fcitx5_android_core_Fcitx_getFcitxCandidateViewportSnapshot(
+        JNIEnv *env, jclass clazz, jint limit) {
+    RETURN_VALUE_IF_NOT_RUNNING(nullptr)
+    return candidateViewportEntityToObject(env, Fcitx::Instance().getCandidateViewportSnapshot(limit));
+}
+
+extern "C"
+JNIEXPORT jboolean JNICALL
+Java_org_fxboomk_fcitx5_android_core_Fcitx_setFcitxCandidateViewportIfCurrent(
+        JNIEnv *env, jclass clazz, jlong revision, jint firstPageSize,
+        jintArray firstPageIndices, jint firstSymbolIndex) {
+    RETURN_VALUE_IF_NOT_RUNNING(false)
+    std::vector<int> indices;
+    if (firstPageIndices) {
+        const auto size = env->GetArrayLength(firstPageIndices);
+        indices.resize(size);
+        if (size > 0) env->GetIntArrayRegion(firstPageIndices, 0, size, indices.data());
+    }
+    return Fcitx::Instance().setCandidateViewportIfCurrent(revision, firstPageSize, indices, firstSymbolIndex);
+}
+
+extern "C"
+JNIEXPORT jobjectArray JNICALL
+Java_org_fxboomk_fcitx5_android_core_Fcitx_getFcitxExpandedCandidates(
+        JNIEnv *env, jclass clazz, jint offset, jint limit, jint firstHiddenIndex, jintArray excludedIndices) {
+    RETURN_VALUE_IF_NOT_RUNNING(nullptr)
+    std::vector<int> excluded;
+    if (excludedIndices) {
+        const auto size = env->GetArrayLength(excludedIndices);
+        excluded.resize(size);
+        if (size > 0) {
+            env->GetIntArrayRegion(excludedIndices, 0, size, excluded.data());
+        }
+    }
+    const auto candidates = Fcitx::Instance().getExpandedCandidates(offset, limit, firstHiddenIndex, excluded);
+    const auto size = static_cast<int>(candidates.size());
+    auto array = env->NewObjectArray(size, GlobalRef->Candidate, nullptr);
     for (int i = 0; i < size; i++) {
         auto obj = JRef(env, candidateEntityToObject(env, candidates[i]));
         env->SetObjectArrayElement(array, i, obj);

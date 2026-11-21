@@ -9,6 +9,18 @@ if(NOT EXISTS "${CHINESE_ADDONS_BINARY_DIR}/test/inputmethod/shuangpin.conf")
 endif()
 
 add_executable(testandroidfrontend testandroidfrontend.cpp)
+add_executable(testexpandedcandidateorder testexpandedcandidateorder.cpp)
+target_compile_features(testexpandedcandidateorder PRIVATE cxx_std_20)
+add_executable(testexpandedcandidatefrontend testexpandedcandidatefrontend.cpp)
+target_compile_features(testexpandedcandidatefrontend PRIVATE cxx_std_20)
+get_filename_component(CHINESE_ADDONS_TEST_SOURCE_DIR
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../../lib/fcitx5-chinese-addons/src/main/cpp/fcitx5-chinese-addons"
+    ABSOLUTE)
+target_compile_definitions(testexpandedcandidatefrontend PRIVATE
+    FCITX_GETTEXT_DOMAIN="fcitx5-android"
+    TEST_CHINESE_ADDONS_BINARY_DIR="${CHINESE_ADDONS_BINARY_DIR}"
+    TEST_CHINESE_ADDONS_SOURCE_DIR="${CHINESE_ADDONS_TEST_SOURCE_DIR}")
+target_link_libraries(testexpandedcandidatefrontend PRIVATE Fcitx5::Core)
 target_compile_features(testandroidfrontend PRIVATE cxx_std_20)
 target_compile_definitions(testandroidfrontend PRIVATE
     FCITX_GETTEXT_DOMAIN="fcitx5-android"
@@ -17,3 +29,5 @@ target_link_libraries(testandroidfrontend PRIVATE Fcitx5::Core)
 
 enable_testing()
 add_test(NAME testandroidfrontend COMMAND testandroidfrontend)
+add_test(NAME testexpandedcandidateorder COMMAND testexpandedcandidateorder)
+add_test(NAME testexpandedcandidatefrontend COMMAND testexpandedcandidatefrontend)

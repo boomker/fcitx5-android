@@ -199,16 +199,17 @@ class CandidateItemUi(
         val altFg = if (highlighted) activeForegroundColor else theme.candidateCommentColor
         renderIndexLabelColor()
         text.setTextColor(fg)
+        val comment = currentCandidate.displayComment ?: currentCandidate.comment
         text.text = buildSpannedString {
             color(fg) {
                 append(currentCandidate.text)
             }
-            if (currentCandidate.comment.isNotBlank()) {
+            if (comment.isNotBlank()) {
                 if (currentCandidate.spaceBetweenComment) {
                     append(" ")
                 }
                 color(altFg) {
-                    append(currentCandidate.comment)
+                    append(comment)
                 }
             }
         }

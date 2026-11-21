@@ -136,6 +136,29 @@ interface FcitxAPI {
 
     suspend fun getCandidates(offset: Int, limit: Int): Array<CandidateWord>
 
+    /** Expanded presentation after the actual horizontal row, with original engine indices. */
+    suspend fun getExpandedCandidates(
+        offset: Int,
+        limit: Int,
+        firstHiddenIndex: Int,
+        excludedIndices: IntArray = intArrayOf(),
+    ): Array<CandidateWord> = getCandidates(offset, limit)
+
+    /** Probe a current native presentation without changing candidate order or selection. */
+    suspend fun getCandidateViewportSnapshot(limit: Int): CandidateViewportSnapshot =
+        CandidateViewportSnapshot.Empty
+
+    /**
+     * Apply a first-page layout only while [revision] still belongs to the active input context.
+     * Size zero and symbol index -2 restore the configured floating-page policy.
+     */
+    suspend fun setCandidateViewportIfCurrent(
+        revision: Long,
+        firstPageSize: Int,
+        firstPageIndices: IntArray,
+        firstSymbolIndex: Int,
+    ): Boolean = false
+
     suspend fun getCandidateActions(idx: Int): Array<CandidateAction>
     suspend fun triggerCandidateAction(idx: Int, actionIdx: Int, isOnFirstPage: Boolean? = null)
     /** Null means the displayed candidate is no longer current; an empty array is a valid candidate. */

@@ -218,11 +218,30 @@ abstract class BaseExpandedCandidateWindow<T : BaseExpandedCandidateWindow<T>> :
 
     fun bindCandidateUiViewHolder(holder: CandidateViewHolder) {
         holder.itemView.setOnClickListener {
-            fcitx.launchOnReady { it.select(holder.idx) }
+            val candidate = holder.candidate
+            val nativeIndex = holder.idx
+            fcitx.launchOnReady {
+                val sourceText = candidate.actionSourceText
+                if (candidate.selectionActionId >= 0) {
+                    if (sourceText != null) {
+                        it.triggerCandidateActionIfCurrent(
+                            nativeIndex, sourceText, candidate.selectionActionId,
+                            candidate.text, "folded-symbol",
+                        )
+                    }
+                } else {
+                    it.select(nativeIndex)
+                }
+            }
         }
-        inputView.bindCandidateGesture(
-            holder.ui.root, holder.idx, holder.text, allowDirectionalActions = false
-        )
+        if (holder.candidate.comment == "…" && holder.candidate.displayComment != null) {
+            // These alternatives are already unfolded outside the first page.
+            inputView.unbindCandidateGesture(holder.ui.root)
+        } else {
+            inputView.bindCandidateGesture(
+                holder.ui.root, holder.idx, holder.text, allowDirectionalActions = false
+            )
+        }
     }
 
     fun recycleCandidateViewHolder(holder: CandidateViewHolder) {

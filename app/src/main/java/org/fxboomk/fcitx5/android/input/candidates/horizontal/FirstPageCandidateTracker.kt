@@ -16,6 +16,8 @@ internal class FirstPageCandidateTracker {
         indices = null
     }
 
+    fun recordedIndices(): Set<Int> = indices?.toSet().orEmpty()
+
     fun contains(nativeIndex: Int, nativePageHasPrevious: Boolean = false): Boolean? =
         if (nativePageHasPrevious) false else indices?.contains(nativeIndex)
 }

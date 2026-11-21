@@ -22,19 +22,16 @@ class CandidatesPagingSource(
         // use candidate index for key, null means load from beginning (with offset)
         val startIndex = params.key ?: offset
         val pageSize = params.loadSize
-        Timber.d("getCandidates(offset=$startIndex, limit=$pageSize)")
+        Timber.d("getExpandedCandidates(offset=$startIndex, limit=$pageSize, firstHiddenIndex=$offset)")
         val candidates = fcitx.runOnReady {
-            getCandidates(startIndex, pageSize)
+            getExpandedCandidates(startIndex, pageSize, offset, excludedIndices.toIntArray())
         }
         val prevKey = if (startIndex > offset) (startIndex - pageSize).coerceAtLeast(offset) else null
         val endIndex = startIndex + candidates.size
-        val nextKey = if (total > 0) {
-            if (candidates.isEmpty() || endIndex >= total) null else endIndex
-        } else {
-            if (candidates.size < pageSize) null else endIndex
-        }
+        // The expanded presentation can include folded alternatives beyond the native total.
+        val nextKey = if (candidates.size < pageSize) null else endIndex
         val remaining = candidates.mapIndexedNotNull { index, candidate ->
-            val nativeIndex = startIndex + index
+            val nativeIndex = candidate.nativeIndex.takeIf { it >= 0 } ?: (startIndex + index)
             candidate.copy(nativeIndex = nativeIndex).takeUnless { nativeIndex in excludedIndices }
         }
         return LoadResult.Page(remaining, prevKey, nextKey)

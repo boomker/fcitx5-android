@@ -19,10 +19,13 @@ class FcitxDaemonApiDelegateTest {
             false,
             javaClass.classLoader,
         )
+        val forwards = delegate.declaredMethods
         val missing = FcitxAPI::class.java.methods.filter { method ->
-            Modifier.isAbstract(method.modifiers) &&
-                Modifier.isAbstract(delegate.getMethod(method.name, *method.parameterTypes).modifiers)
+            !Modifier.isStatic(method.modifiers) && forwards.none {
+                it.name == method.name && it.parameterTypes.contentEquals(method.parameterTypes)
+            }
         }
-        assertTrue("Daemon has no concrete forwarding methods: $missing", missing.isEmpty())
+        // Inheriting a default API body can silently bypass the real engine.
+        assertTrue("Daemon has no declared forwarding methods: $missing", missing.isEmpty())
     }
 }

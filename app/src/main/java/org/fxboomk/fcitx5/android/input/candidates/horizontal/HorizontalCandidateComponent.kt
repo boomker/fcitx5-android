@@ -18,13 +18,18 @@ import androidx.core.text.bold
 import androidx.core.text.buildSpannedString
 import androidx.core.text.color
 import androidx.core.view.updateLayoutParams
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.flexbox.FlexboxLayoutManager
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.yield
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.core.CapabilityFlags
 import org.fxboomk.fcitx5.android.core.CandidateWord
@@ -43,6 +48,7 @@ import org.fxboomk.fcitx5.android.input.broadcast.PreeditEmptyStateComponent
 import org.fxboomk.fcitx5.android.input.candidates.CandidateItemUi
 import org.fxboomk.fcitx5.android.input.candidates.CandidateViewHolder
 import org.fxboomk.fcitx5.android.input.candidates.isCandidateVisibleToUser
+import org.fxboomk.fcitx5.android.input.candidates.floating.FloatingCandidatesMode
 import org.fxboomk.fcitx5.android.input.candidates.expanded.decoration.FlexboxVerticalDecoration
 import org.fxboomk.fcitx5.android.input.candidates.horizontal.HorizontalCandidateMode.AlwaysFillWidth
 import org.fxboomk.fcitx5.android.input.candidates.horizontal.HorizontalCandidateMode.AutoFillWidth
@@ -279,6 +285,26 @@ class HorizontalCandidateComponent :
     )
 
     private var nativeCandidateSnapshot = NativeCandidateSnapshot()
+    private data class ViewportGeometry(
+        val width: Int,
+        val availableWidth: Int,
+        val spanCount: Int,
+        val style: HorizontalCandidateMode,
+        val inline: Boolean,
+        val textSize: Float,
+        val typeface: Any?,
+    )
+    private var viewportProbeJob: Job? = null
+    private var viewportProbeVersion = 0L
+    private var viewportInputVersion = 0L
+    private var viewportPanel: FcitxEvent.InputPanelEvent.Data? = null
+    private var viewportProbeSource: NativeCandidateSnapshot? = null
+    private var viewportProbeGeometry: ViewportGeometry? = null
+    private var completedViewportSource: NativeCandidateSnapshot? = null
+    private var completedViewportGeometry: ViewportGeometry? = null
+    private var completedViewportInputVersion = -1L
+    private var viewportApplying = false
+    private var viewportPolicyActive = false
     /** UI-owned highlight. Engine events may omit the cursor and must not reset it. */
     private var activeCandidateOverride: Int? = null
     /** Absolute engine cursor, kept locally while the UI can highlight AI items. */
@@ -381,7 +407,28 @@ class HorizontalCandidateComponent :
     }
 
     override fun onPreeditEmptyStateUpdate(empty: Boolean) {
-        if (empty) firstPageCandidates.clear() else view.post { recordFirstPageCandidates() }
+        if (empty) {
+            firstPageCandidates.clear()
+            viewportInputVersion++
+            completedViewportSource = null
+            viewportProbeJob?.cancel()
+        } else {
+            view.post {
+                recordFirstPageCandidates()
+                requestCandidateViewportProbe()
+            }
+        }
+    }
+
+    override fun onInputPanelUpdate(data: FcitxEvent.InputPanelEvent.Data) {
+        val previous = viewportPanel
+        viewportPanel = data
+        if (previous == null || !previous.preedit.spanEquals(data.preedit) ||
+            previous.preedit.cursor != data.preedit.cursor || !previous.tabs.contentEquals(data.tabs)) {
+            viewportInputVersion++
+            completedViewportSource = null
+            requestCandidateViewportProbe()
+        }
     }
 
     fun hasRowSwipeCandidates(): Boolean = pagedCandidateFlowActive &&
@@ -465,7 +512,11 @@ class HorizontalCandidateComponent :
                 ?: (nativeCandidateSnapshot.indexOffset + nativeCandidateSnapshot.activeIndex)
             val indexDelta = targetIndex - currentIndex
             if (indexDelta != 0) {
-                service.postCandidateCursorNavigation(indexDelta)
+                if (viewportPolicyActive) {
+                    service.postFcitxJob { setCandidateCursor(targetIndex) }
+                } else {
+                    service.postCandidateCursorNavigation(indexDelta)
+                }
                 engineNativeCursorIndex = targetIndex
             }
         }
@@ -473,6 +524,7 @@ class HorizontalCandidateComponent :
     }
 
     fun selectActiveCandidate(): Boolean {
+        if (viewportApplying) return false
         val idx = effectiveActiveCandidateIndex()
         if (idx !in adapter.candidates.indices) return false
         if (isCalculatorCandidatePosition(idx)) {
@@ -502,6 +554,7 @@ class HorizontalCandidateComponent :
      * native positions keep flowing to fcitx for engine-side selection.
      */
     fun selectByDigitKey(digit: Int): Boolean {
+        if (viewportApplying) return false
         val position = digit - 1
         if (position !in adapter.candidates.indices) return false
         if (isCalculatorCandidatePosition(position)) {
@@ -611,9 +664,18 @@ class HorizontalCandidateComponent :
 
     private fun nativeRowCandidates(): Array<CandidateWord> {
         val snapshot = nativeCandidateSnapshot
-        val initialRow = snapshot.indexOffset == 0 && rowWindowHistory.isEmpty()
+        val initialRow = snapshot.indexOffset == 0 && rowWindowHistory.isEmpty() && lastPagedData?.hasPrev != true
+        return normalizedNativeRow(snapshot.candidates, snapshot.indexOffset, snapshot.excludedIndices, initialRow)
+    }
+
+    private fun normalizedNativeRow(
+        source: Array<CandidateWord>,
+        indexOffset: Int,
+        excludedIndices: Set<Int>,
+        initialRow: Boolean,
+    ): Array<CandidateWord> {
         val candidates = nativeCandidatesAfterConsumedFallbacks(
-            snapshot.candidates, snapshot.indexOffset, snapshot.excludedIndices, initialRow,
+            source, indexOffset, excludedIndices, initialRow,
         )
         if (initialRow && candidates.any { it.isFallback }) {
             val dividerWidth = dividerDrawable.intrinsicWidth
@@ -632,6 +694,120 @@ class HorizontalCandidateComponent :
             if (row.isNotEmpty()) return row
         }
         return normalizedSingleRowCandidates(candidates)
+    }
+
+    private fun ownsInitialViewport(): Boolean = inputView.handleEvents &&
+        AppPrefs.getInstance().candidates.mode.getValue() != FloatingCandidatesMode.Always &&
+        view.isShown && view.width > 0 && !preeditState.isEmpty &&
+        nativeCandidateSnapshot.indexOffset == 0 && rowWindowHistory.isEmpty() &&
+        lastPagedData?.hasPrev != true
+
+    private fun viewportGeometry(): ViewportGeometry {
+        measurementCandidateUi.setFontScale(if (inlineMode) INLINE_CANDIDATE_FONT_SCALE else 1f)
+        measurementCandidateUi.applyConfiguredTypeface()
+        return ViewportGeometry(
+            view.width, (view.width - view.paddingLeft - view.paddingRight).coerceAtLeast(1),
+            maxSpanCountPref.getValue().coerceAtLeast(1), fillStyle, inlineMode,
+            measurementCandidateUi.text.textSize, measurementCandidateUi.text.typeface,
+        )
+    }
+
+    private fun invalidateViewportBindings() {
+        firstPageCandidates.clear()
+        lastRenderedCandidates = null
+        for (index in 0 until view.childCount) {
+            val holder = view.getChildViewHolder(view.getChildAt(index)) as? CandidateViewHolder ?: continue
+            inputView.unbindCandidateGesture(holder.ui.root)
+        }
+    }
+
+    private fun requestCandidateViewportProbe(force: Boolean = false) {
+        if (force) completedViewportSource = null
+        if (viewportApplying) return
+        if (!ownsInitialViewport()) {
+            viewportProbeJob?.cancel()
+            return
+        }
+        val source = nativeCandidateSnapshot
+        val geometry = viewportGeometry()
+        val inputVersion = viewportInputVersion
+        if (completedViewportSource === source && completedViewportGeometry == geometry &&
+            completedViewportInputVersion == inputVersion) return
+        if (viewportProbeJob?.isActive == true && viewportProbeSource === source &&
+            viewportProbeGeometry == geometry) return
+        viewportProbeJob?.cancel()
+        val version = ++viewportProbeVersion
+        viewportProbeSource = source
+        viewportProbeGeometry = geometry
+        viewportProbeJob = service.lifecycleScope.launch {
+            fun rememberCompletedProbe() {
+                if (nativeCandidateSnapshot === source && viewportInputVersion == inputVersion) {
+                    completedViewportSource = source
+                    completedViewportGeometry = geometry
+                    completedViewportInputVersion = inputVersion
+                }
+            }
+            try {
+                var limit = candidateFetchBatchSize()
+                var snapshot = fcitx.runOnReady { getCandidateViewportSnapshot(limit) }
+                viewportPolicyActive = snapshot.foldingEnabled
+                if (!snapshot.foldingEnabled) {
+                    rememberCompletedProbe()
+                    return@launch
+                }
+                while (isActive && version == viewportProbeVersion) {
+                    if (!ownsInitialViewport() || nativeCandidateSnapshot !== source ||
+                        viewportInputVersion != inputVersion || viewportGeometry() != geometry) return@launch
+                    val minWidth = if (fillStyle == AutoFillWidth) {
+                        (view.width / geometry.spanCount - dividerDrawable.intrinsicWidth).coerceAtLeast(0)
+                    } else 0
+                    val probe = probeCandidateViewport(snapshot, geometry.availableWidth,
+                        normalizeRow = { normalizedNativeRow(it, 0, emptySet(), true) },
+                        measureCandidateWidth = { measuredCandidateWidth(it, minWidth) },
+                    )
+                    if (probe.needsMoreCandidates && snapshot.total > snapshot.candidates.size) {
+                        val nextLimit = minOf(snapshot.total.toLong(), limit.toLong() * 2).toInt()
+                        if (nextLimit > limit) {
+                            val expanded = fcitx.runOnReady { getCandidateViewportSnapshot(nextLimit) }
+                            if (expanded.revision != snapshot.revision) return@launch
+                            limit = nextLimit
+                            snapshot = expanded
+                            continue
+                        }
+                    }
+                    if (probe.candidates.isEmpty()) {
+                        rememberCompletedProbe()
+                        return@launch
+                    }
+                    viewportApplying = true
+                    invalidateViewportBindings()
+                    val accepted = fcitx.runOnReady {
+                        setCandidateViewportIfCurrent(
+                            snapshot.revision, probe.candidates.size, probe.firstPageIndices, probe.firstSymbolIndex,
+                        )
+                    }
+                    // Consume the native candidate update before old gesture bindings can resume.
+                    yield()
+                    if (accepted) {
+                        rememberCompletedProbe()
+                    } else {
+                        val current = fcitx.runOnReady { getCandidateViewportSnapshot(1) }
+                        // A same-revision rejection cannot be fixed by repeatedly applying this layout.
+                        if (current.revision == snapshot.revision) rememberCompletedProbe()
+                    }
+                    return@launch
+                }
+            } finally {
+                if (version == viewportProbeVersion) {
+                    val restoreBindings = viewportApplying
+                    viewportApplying = false
+                    viewportProbeJob = null
+                    if (ownsInitialViewport()) renderCurrentCandidates()
+                    // An unchanged native row skips adapter rebinding, but its gestures were suspended.
+                    if (restoreBindings) adapter.notifyItemRangeChanged(0, adapter.itemCount)
+                }
+            }
+        }
     }
 
     private fun aiSuggestionCandidate(text: String) = CandidateWord("", text, "", false)
@@ -674,7 +850,7 @@ class HorizontalCandidateComponent :
 
     private suspend fun captureForwardRowShiftSnapshot(): ForwardRowShiftSnapshot? =
         withContext(Dispatchers.Main.immediate) {
-            if (!hasRowSwipeCandidates()) return@withContext null
+            if (viewportApplying || !hasRowSwipeCandidates()) return@withContext null
             val currentStart = nativeCandidateSnapshot.indexOffset
             val currentCandidates = nativeCandidateSnapshot.candidates.copyOf()
             ForwardRowShiftSnapshot(
@@ -754,6 +930,7 @@ class HorizontalCandidateComponent :
                 val isCalculatorCandidate = isCalculatorCandidatePosition(position)
                 val isAiCandidate = isAiCandidatePosition(position)
                 holder.itemView.setOnClickListener {
+                    if (viewportApplying) return@setOnClickListener
                     if (isCalculatorCandidate) {
                         calculatorSuggestion?.let(inputView::commitCalculatorSuggestionFromUi)
                     } else if (isAiCandidate) {
@@ -770,7 +947,7 @@ class HorizontalCandidateComponent :
                 // The long-press action menu, decompose ("拆字") and reset-frequency ("重置词频")
                 // gestures are all owned by bindCandidateGesture. Calculator/AI candidates have no
                 // such actions, so their gesture (and long-press listener) is unbound instead.
-                if (isCalculatorCandidate || isAiCandidate) {
+                if (viewportApplying || isCalculatorCandidate || isAiCandidate) {
                     inputView.unbindCandidateGesture(holder.ui.root)
                 } else {
                     inputView.bindCandidateGesture(holder.ui.root, holder.idx, holder.text)
@@ -809,6 +986,7 @@ class HorizontalCandidateComponent :
                 refreshExpanded()
                 recordFirstPageCandidates()
                 view.post { recordFirstPageCandidates() }
+                view.post { requestCandidateViewportProbe() }
             }
         }
     }
@@ -834,8 +1012,11 @@ class HorizontalCandidateComponent :
                     val maxSpanCount = maxSpanCountPref.getValue()
                     layoutMinWidth = w / maxSpanCount - dividerDrawable.intrinsicWidth
                 }
-                if (w != oldw && nativeCandidateSnapshot.candidates.any { it.isFallback || it.isDeferredFallback }) {
-                    post { renderCurrentCandidates() }
+                if (w != oldw) {
+                    post {
+                        renderCurrentCandidates()
+                        requestCandidateViewportProbe()
+                    }
                 }
             }
         }.apply {
@@ -859,6 +1040,7 @@ class HorizontalCandidateComponent :
             return
         }
         pagedCandidateFlowActive = false
+        viewportPolicyActive = data.candidates.any { it.nativeIndex >= 0 }
         resetRowWindowState()
         lastPagedData = null
         val candidates = data.candidates
@@ -886,10 +1068,12 @@ class HorizontalCandidateComponent :
 
     override fun onPagedCandidateUpdate(data: PagedCandidateEvent.Data) {
         pagedCandidateFlowActive = true
+        viewportPolicyActive = data.candidates.any { it.nativeIndex >= 0 }
         pendingLegacyCandidateUpdate?.let(view::removeCallbacks)
         pendingLegacyCandidateUpdate = null
         if (data == lastPagedData) {
             lastPagedData = data
+            requestCandidateViewportProbe(force = true)
             return
         }
         lastPagedData = data
@@ -903,8 +1087,15 @@ class HorizontalCandidateComponent :
             activeCandidateOverride = null
         }
         resetRowWindowState()
-        renderCandidateWindow(candidates, -1, 0, data.cursorIndex)
-        engineNativeCursorIndex = data.cursorIndex
+        val nativeCursorIndex = candidates.getOrNull(data.cursorIndex)?.nativeIndex?.takeIf { it >= 0 }
+            ?: data.cursorIndex
+        val normalizedLaterPage = data.hasPrev && candidates.isNotEmpty() && candidates.all { it.nativeIndex >= 0 }
+        val indexOffset = if (normalizedLaterPage) candidates.minOf { it.nativeIndex } else 0
+        val excludedIndices = if (normalizedLaterPage) {
+            firstPageCandidates.recordedIndices().filterTo(HashSet()) { it >= indexOffset }
+        } else emptySet()
+        renderCandidateWindow(candidates, -1, indexOffset, nativeCursorIndex - indexOffset, excludedIndices)
+        engineNativeCursorIndex = nativeCursorIndex
     }
 
     // memo of the last rendered inputs; identical inputs produce no new render work
@@ -1075,6 +1266,7 @@ class HorizontalCandidateComponent :
                 } ?: activeCandidateIndex(0, placement.candidates.size),
                 nativeCandidateSnapshot.indexOffset,
             )
+            requestCandidateViewportProbe()
             return
         }
 
@@ -1092,6 +1284,7 @@ class HorizontalCandidateComponent :
             } ?: activeCandidateIndex(0, renderedCandidates.size),
             nativeCandidateSnapshot.indexOffset,
         )
+        requestCandidateViewportProbe()
     }
 
     private fun renderAiOnlyCandidates(

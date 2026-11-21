@@ -17,6 +17,10 @@ import android.view.ViewTreeObserver.OnPreDrawListener
 import android.view.WindowInsets
 import android.widget.TextView
 import androidx.annotation.Size
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.yield
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.core.CandidateWord
 import org.fxboomk.fcitx5.android.core.FcitxEvent
@@ -31,6 +35,7 @@ import org.fxboomk.fcitx5.android.input.candidates.floating.PagedCandidatesUi
 import org.fxboomk.fcitx5.android.input.candidates.floating.calculateSmartFloatingCandidatesPosition
 import org.fxboomk.fcitx5.android.input.candidates.floating.nextFloatingCandidateIndex
 import org.fxboomk.fcitx5.android.input.font.FontProviders
+import org.fxboomk.fcitx5.android.input.keyboard.CustomGestureView
 import org.fxboomk.fcitx5.android.input.preedit.PreeditUi
 import splitties.dimensions.dp
 import splitties.views.dsl.constraintlayout.below
@@ -94,6 +99,61 @@ class CandidatesView(
     private fun effectiveCandidateCursorIndex(data: FcitxEvent.PagedCandidateEvent.Data): Int =
         if (data.candidates.isEmpty()) -1
         else data.cursorIndex.coerceIn(0, data.candidates.lastIndex)
+
+    private fun nativeCandidateIndex(position: Int): Int =
+        paged.candidates.getOrNull(position)?.nativeIndex?.takeIf { it >= 0 } ?: position
+
+    private var viewportJob: Job? = null
+    private var viewportRequestVersion = 0L
+    private var viewportRevision = -1L
+    private var viewportApplying = false
+    private var viewportPolicyActive = false
+
+    private fun ownsFloatingViewport(): Boolean = handleEvents &&
+        (candidatesPrefs.mode.getValue() == FloatingCandidatesMode.Always || service.inputView?.handleEvents != true)
+
+    private fun restoreCandidateGestures() {
+        for (position in paged.candidates.indices) {
+            val child = candidatesUi.root.getChildAt(position) as? CustomGestureView ?: continue
+            if (!isCalculatorPosition(position)) {
+                bindCandidateGesture(child, nativeCandidateIndex(position), paged.candidates[position].text)
+            }
+        }
+    }
+
+    private fun requestFloatingViewport() {
+        if (!ownsFloatingViewport() || viewportApplying || viewportJob?.isActive == true) return
+        val version = ++viewportRequestVersion
+        viewportJob = service.lifecycleScope.launch {
+            var retry = false
+            try {
+                val snapshot = fcitx.runOnReady { getCandidateViewportSnapshot(1) }
+                viewportPolicyActive = snapshot.foldingEnabled
+                if (!ownsFloatingViewport() || !snapshot.foldingEnabled || snapshot.revision == viewportRevision) return@launch
+                viewportApplying = true
+                for (position in paged.candidates.indices) {
+                    (candidatesUi.root.getChildAt(position) as? CustomGestureView)?.let(::unbindCandidateGesture)
+                }
+                fcitx.runOnReady {
+                    setCandidateViewportIfCurrent(snapshot.revision, 0, intArrayOf(), -2)
+                }
+                yield()
+                viewportRevision = snapshot.revision
+                retry = ownsFloatingViewport()
+            } finally {
+                if (version == viewportRequestVersion) {
+                    val restoreBindings = viewportApplying
+                    viewportApplying = false
+                    viewportJob = null
+                    if (restoreBindings && ownsFloatingViewport()) {
+                        updateUi()
+                        restoreCandidateGestures()
+                    }
+                    if (retry) requestFloatingViewport()
+                }
+            }
+        }
+    }
 
     /**
      * The calculator result is only surfaced here in "Floating window" (Always) mode, where
@@ -205,20 +265,22 @@ class CandidatesView(
 
     private val candidatesUi = PagedCandidatesUi(
         ctx, theme, setupTextView,
-        onCandidateClick = { index ->
+        onCandidateClick = candidateClick@{ index ->
+            if (viewportApplying) return@candidateClick
             if (isCalculatorPosition(index)) {
                 commitCalculatorSuggestion()
             } else {
-                service.postFcitxJob { select(index) }
+                val nativeIndex = nativeCandidateIndex(index)
+                service.postFcitxJob { select(nativeIndex) }
             }
         },
         onCandidateAction = { index, text, view ->
             // The calculator result is an Android-side pseudo-candidate with no engine
             // actions (decompose / reset frequency), so skip the action menu for it.
-            if (!isCalculatorPosition(index)) showCandidateActionMenu(index, text, view)
+            if (!viewportApplying && !isCalculatorPosition(index)) showCandidateActionMenu(nativeCandidateIndex(index), text, view)
         },
         onBindCandidateGesture = { view, index, text ->
-            if (!isCalculatorPosition(index)) bindCandidateGesture(view, index, text)
+            if (!viewportApplying && !isCalculatorPosition(index)) bindCandidateGesture(view, nativeCandidateIndex(index), text)
         },
         onUnbindCandidateGesture = ::unbindCandidateGesture,
         onPrevPage = { fcitx.launchOnReady { it.offsetCandidatePage(-1) } },
@@ -240,14 +302,17 @@ class CandidatesView(
             is FcitxEvent.InputPanelEvent -> {
                 inputPanel = it.data
                 updateUi()
+                requestFloatingViewport()
             }
             is FcitxEvent.PagedCandidateEvent -> {
                 if (paged != it.data) {
                     activeCandidateOverride = null
                 }
                 paged = it.data
-                engineCandidateCursorIndex = effectiveCandidateCursorIndex(it.data)
+                viewportPolicyActive = paged.candidates.any { candidate -> candidate.nativeIndex >= 0 }
+                engineCandidateCursorIndex = nativeCandidateIndex(effectiveCandidateCursorIndex(it.data))
                 updateUi()
+                requestFloatingViewport()
             }
             else -> {}
         }
@@ -335,10 +400,15 @@ class CandidatesView(
         // the user's Up/Down bindings. The calculator pseudo-candidate is not an engine
         // candidate, so landing on it never drives engine cursor navigation.
         if (syncEngine && next in paged.candidates.indices) {
-            val indexDelta = next - engineCandidateCursorIndex
+            val nativeIndex = nativeCandidateIndex(next)
+            val indexDelta = nativeIndex - engineCandidateCursorIndex
             if (indexDelta != 0) {
-                service.postCandidateCursorNavigation(indexDelta)
-                engineCandidateCursorIndex = next
+                if (viewportPolicyActive) {
+                    service.postFcitxJob { setCandidateCursor(nativeIndex) }
+                } else {
+                    service.postCandidateCursorNavigation(indexDelta)
+                }
+                engineCandidateCursorIndex = nativeIndex
             }
         }
         updateUi()
@@ -346,21 +416,24 @@ class CandidatesView(
     }
 
     fun selectActiveCandidate(): Boolean {
+        if (viewportApplying) return false
         val index = currentActiveIndex()
         if (index < 0) return false
         if (isCalculatorPosition(index)) return commitCalculatorSuggestion()
         if (index !in paged.candidates.indices) return false
-        service.postFcitxJob { select(index) }
+        val nativeIndex = nativeCandidateIndex(index)
+        service.postFcitxJob { select(nativeIndex) }
         return true
     }
 
     internal fun highlightedNativeCandidateIndex(): Int? =
         (activeCandidateOverride ?: effectiveCandidateCursorIndex(paged)).takeIf {
             hasCandidates() && it in paged.candidates.indices
-        }
+        }?.let(::nativeCandidateIndex)
 
     internal fun highlightedCandidateText(): String? =
-        highlightedNativeCandidateIndex()?.let { paged.candidates.getOrNull(it)?.text }
+        (activeCandidateOverride ?: effectiveCandidateCursorIndex(paged))
+            .takeIf { it in paged.candidates.indices }?.let { paged.candidates[it].text }
 
     private var bottomInsets = 0
 

@@ -176,15 +176,41 @@ jobject fcitxCandidateActionToObject(JNIEnv *env, const CandidateActionEntity &a
 }
 
 jobject candidateEntityToObject(JNIEnv *env, const CandidateEntity &c) {
+    std::optional<JString> displayComment;
+    if (c.displayComment) {
+        displayComment.emplace(env, *c.displayComment);
+    }
+    std::optional<JString> actionSourceText;
+    if (c.actionSourceText) {
+        actionSourceText.emplace(env, *c.actionSourceText);
+    }
     auto obj = env->NewObject(GlobalRef->Candidate, GlobalRef->CandidateInit,
                               *JString(env, c.label),
                               *JString(env, c.text),
                               *JString(env, c.comment),
                               c.spaceBetweenComment,
                               c.isFallback,
-                              c.isDeferredFallback
+                              c.isDeferredFallback,
+                              c.nativeIndex,
+                              displayComment ? **displayComment : nullptr,
+                              c.selectionActionId,
+                              actionSourceText ? **actionSourceText : nullptr,
+                              c.symbolSourceId,
+                              c.symbolCount
     );
     return obj;
+}
+
+jobject candidateViewportEntityToObject(JNIEnv *env, const CandidateViewportEntity &snapshot) {
+    const auto size = static_cast<int>(snapshot.candidates.size());
+    auto candidates = JRef<jobjectArray>(env, env->NewObjectArray(size, GlobalRef->Candidate, nullptr));
+    for (int i = 0; i < size; ++i) {
+        auto candidate = JRef(env, candidateEntityToObject(env, snapshot.candidates[i]));
+        env->SetObjectArrayElement(candidates, i, candidate);
+    }
+    return env->NewObject(GlobalRef->CandidateViewportSnapshot, GlobalRef->CandidateViewportSnapshotInit,
+                          static_cast<jlong>(snapshot.revision), snapshot.foldingEnabled,
+                          snapshot.total, *candidates);
 }
 
 #endif //FCITX5_ANDROID_OBJECT_CONVERSION_H

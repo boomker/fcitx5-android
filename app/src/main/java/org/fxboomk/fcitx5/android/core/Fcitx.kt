@@ -263,6 +263,29 @@ class Fcitx(private val context: Context) : FcitxAPI, FcitxLifecycleOwner {
     override suspend fun getCandidates(offset: Int, limit: Int): Array<CandidateWord> =
         withFcitxContext { getFcitxCandidates(offset, limit) ?: emptyArray() }
 
+    override suspend fun getExpandedCandidates(
+        offset: Int,
+        limit: Int,
+        firstHiddenIndex: Int,
+        excludedIndices: IntArray,
+    ): Array<CandidateWord> = withFcitxContext {
+        getFcitxExpandedCandidates(offset, limit, firstHiddenIndex, excludedIndices) ?: emptyArray()
+    }
+
+    override suspend fun getCandidateViewportSnapshot(limit: Int): CandidateViewportSnapshot =
+        withFcitxContext {
+            getFcitxCandidateViewportSnapshot(limit) ?: CandidateViewportSnapshot.Empty
+        }
+
+    override suspend fun setCandidateViewportIfCurrent(
+        revision: Long,
+        firstPageSize: Int,
+        firstPageIndices: IntArray,
+        firstSymbolIndex: Int,
+    ): Boolean = withFcitxContext {
+        setFcitxCandidateViewportIfCurrent(revision, firstPageSize, firstPageIndices, firstSymbolIndex)
+    }
+
     override suspend fun getCandidateActions(idx: Int): Array<CandidateAction> =
         withFcitxContext { getFcitxCandidateActions(idx) ?: emptyArray() }
 
@@ -490,6 +513,25 @@ class Fcitx(private val context: Context) : FcitxAPI, FcitxLifecycleOwner {
 
         @JvmStatic
         external fun getFcitxCandidates(offset: Int, limit: Int): Array<CandidateWord>?
+
+        @JvmStatic
+        external fun getFcitxExpandedCandidates(
+            offset: Int,
+            limit: Int,
+            firstHiddenIndex: Int,
+            excludedIndices: IntArray,
+        ): Array<CandidateWord>?
+
+        @JvmStatic
+        external fun getFcitxCandidateViewportSnapshot(limit: Int): CandidateViewportSnapshot?
+
+        @JvmStatic
+        external fun setFcitxCandidateViewportIfCurrent(
+            revision: Long,
+            firstPageSize: Int,
+            firstPageIndices: IntArray,
+            firstSymbolIndex: Int,
+        ): Boolean
 
         @JvmStatic
         external fun getFcitxCandidateActions(idx: Int): Array<CandidateAction>?

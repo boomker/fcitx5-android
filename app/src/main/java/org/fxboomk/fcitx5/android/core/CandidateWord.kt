@@ -16,15 +16,26 @@ data class CandidateWord @JvmOverloads constructor(
     val isDeferredFallback: Boolean = false,
     /** Original engine index when a UI row changes candidate order. */
     val nativeIndex: Int = -1,
+    /** Presentation-only comment; [comment] retains the native candidate metadata. */
+    val displayComment: String? = null,
+    /** Folded symbol action represented as its own expanded candidate. */
+    val selectionActionId: Int = -1,
+    /** Native head text checked before selecting a projected folded symbol. */
+    val actionSourceText: String? = null,
+    /** Source identity within a [CandidateViewportSnapshot]; -1 for ordinary candidates. */
+    val symbolSourceId: Int = -1,
+    /** Complete symbol group size, including choices folded behind the visible head. */
+    val symbolCount: Int = 0,
 ) {
     fun textWithComment(): String {
+        val visibleComment = displayComment ?: comment
         return buildString {
             append(text)
-            if (comment.isNotBlank()) {
+            if (visibleComment.isNotBlank()) {
                 if (spaceBetweenComment) {
                     append(" ")
                 }
-                append(comment)
+                append(visibleComment)
             }
         }
     }

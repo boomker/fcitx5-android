@@ -44,6 +44,11 @@ public:
     [[nodiscard]] InputContext *activeInputContext() const;
     void setCapabilityFlags(uint64_t flag);
     std::vector<CandidateEntity> getCandidates(int offset, int limit);
+    std::vector<CandidateEntity> getExpandedCandidates(int offset, int limit, int firstHiddenIndex,
+                                                       const std::vector<int> &excludedIndices = {});
+    CandidateViewportEntity getCandidateViewportSnapshot(int limit);
+    bool setCandidateViewportIfCurrent(std::int64_t revision, int firstPageSize,
+                                      const std::vector<int> &firstPageIndices, int firstSymbolIndex);
     std::vector<CandidateActionEntity> getCandidateActions(int idx);
     void triggerCandidateAction(int idx, int actionIdx, int isOnFirstPage);
     void triggerTabAction(int idx);
@@ -77,6 +82,9 @@ private:
     FCITX_ADDON_EXPORT_FUNCTION(AndroidFrontend, deactivateInputContext);
     FCITX_ADDON_EXPORT_FUNCTION(AndroidFrontend, setCapabilityFlags);
     FCITX_ADDON_EXPORT_FUNCTION(AndroidFrontend, getCandidates);
+    FCITX_ADDON_EXPORT_FUNCTION(AndroidFrontend, getExpandedCandidates);
+    FCITX_ADDON_EXPORT_FUNCTION(AndroidFrontend, getCandidateViewportSnapshot);
+    FCITX_ADDON_EXPORT_FUNCTION(AndroidFrontend, setCandidateViewportIfCurrent);
     FCITX_ADDON_EXPORT_FUNCTION(AndroidFrontend, getCandidateActions);
     FCITX_ADDON_EXPORT_FUNCTION(AndroidFrontend, triggerCandidateAction);
     FCITX_ADDON_EXPORT_FUNCTION(AndroidFrontend, triggerTabAction);

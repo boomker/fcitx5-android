@@ -68,6 +68,167 @@ class CandidateActionGuardTest {
     }
 
     @Test
+    fun expandedChaSymbolsFollowTheirSourcesAndCommitByNativeIdentity() = withPinyin {
+        setImConfig(PINYIN, RawConfig().apply {
+            getOrCreate("Prediction").value = "False"
+        })
+        for (symbol in listOf("❌", "❎", "🍵")) {
+            typePinyin("cha")
+            val nativeBefore = nativeCandidates()
+            val expanded = expandedCandidates(firstHiddenIndex = 0)
+            printCandidateSnapshot("cha native ($symbol)", nativeBefore)
+            printCandidateSnapshot("cha expanded ($symbol)", expanded)
+            val fork = expanded.indexOfFirst { it.text == "叉" }
+            val tea = expanded.indexOfFirst { it.text == "茶" }
+            assertTrue("Missing 叉 for cha", fork >= 0)
+            assertTrue("Missing 茶 for cha", tea >= 0)
+            assertTrue("叉 must retain both following emoji entries", fork + 2 < expanded.size)
+            assertTrue("茶 must retain its following emoji entry", tea + 1 < expanded.size)
+            assertEquals("The first 叉 symbol must follow its source", "❌", expanded[fork + 1].text)
+            assertEquals("The second 叉 symbol must follow its head", "❎", expanded[fork + 2].text)
+            assertEquals("Tea must stay next to its own source", "🍵", expanded[tea + 1].text)
+            listOf(expanded[fork + 1], expanded[fork + 2], expanded[tea + 1]).forEach { candidate ->
+                assertEquals("Attached symbols must use compact display comments", "", candidate.displayComment)
+                assertEquals(candidate.text, candidate.textWithComment())
+                assertTrue("The presentation must retain a real native index",
+                    candidate.nativeIndex in nativeBefore.indices)
+                val original = nativeBefore[candidate.nativeIndex]
+                assertEquals("Source comments must remain intact for native guards", original.comment, candidate.comment)
+                if (candidate.selectionActionId >= 0) {
+                    assertEquals(original.text, candidate.actionSourceText)
+                } else {
+                    assertEquals(original.text, candidate.text)
+                }
+            }
+            assertEquals("Expansion must not reorder or rewrite native candidates", nativeBefore, nativeCandidates())
+            val chosen = when (symbol) {
+                "❌" -> expanded[fork + 1]
+                "❎" -> expanded[fork + 2]
+                else -> expanded[tea + 1]
+            }
+            expectCommit(symbol) { selectExpandedCandidate(chosen) }
+            assertTrue("Selecting the complete symbol must finish composition", isEmpty())
+        }
+    }
+
+    @Test
+    fun expandedFoldedAlternativesKeepJniIdentityAndGuardedActions() = withPinyin {
+        setImConfig(PINYIN, RawConfig().apply {
+            getOrCreate("Prediction").value = "False"
+        })
+        for ((input, headText, alternativeText) in listOf(
+            Triple("kaishi", "▶️", "🔛"),
+            Triple("kaixin", "😄", "😆"),
+        )) {
+            val choice = foldedChoice(input, headText, alternativeText)
+            val nativeBefore = nativeCandidates()
+            printCandidateSnapshot("$input native", nativeBefore)
+            var chosen: CandidateWord? = null
+            // In both cases the head is beyond the actual first page. The source
+            // may still be on that page, but its expanded group is unfolded.
+            for (firstHiddenIndex in listOf(choice.index, 0)) {
+                val expanded = expandedCandidates(firstHiddenIndex)
+                printCandidateSnapshot("$input expansion after $firstHiddenIndex", expanded)
+                val headPosition = expanded.indexOfFirst {
+                    it.nativeIndex == choice.index && it.selectionActionId < 0
+                }
+                assertTrue("Missing expanded head for $input", headPosition >= 0)
+                assertTrue("Missing following expanded alternative for $input", headPosition + 1 < expanded.size)
+                val head = expanded[headPosition]
+                val alternative = expanded[headPosition + 1]
+                assertEquals(alternativeText, alternative.text)
+                assertEquals("The action item must retain its head's native index", choice.index, alternative.nativeIndex)
+                assertEquals(choice.action.id, alternative.selectionActionId)
+                assertEquals("The JNI source string must retain the filtered head", choice.head.text, alternative.actionSourceText)
+                assertEquals("Native guard metadata must retain the original marker", choice.head.comment, alternative.comment)
+                assertEquals("", head.displayComment)
+                assertEquals("", alternative.displayComment)
+                assertEquals(headText, head.textWithComment())
+                assertEquals(alternativeText, alternative.textWithComment())
+                assertEquals("Two-item pages must retain the entire unfolded group and native tail",
+                    expanded, expandedCandidates(firstHiddenIndex, batchSize = 2))
+                chosen = alternative
+            }
+            assertEquals("Projecting folded choices must preserve the original native list",
+                nativeBefore, nativeCandidates())
+            assertEquals("The original first-page head keeps its folding marker", "…", choice.head.comment)
+            assertNotNull(getCandidateActionsIfCurrent(choice.index, choice.head.text))
+            expectCommit(alternativeText) { selectExpandedCandidate(requireNotNull(chosen)) }
+            assertTrue("The guarded projected action must finish composition", isEmpty())
+        }
+    }
+
+    @Test
+    fun viewportSnapshotGuardsMaterializeDeferredSymbolsAsRealNativeCandidates() = withPinyin {
+        setImConfig(PINYIN, RawConfig().apply {
+            getOrCreate("Prediction").value = "False"
+        })
+        typePinyin("kaishi")
+        assertNoCommit {
+            val before = getCandidateViewportSnapshot(CANDIDATE_LIMIT)
+            assertTrue("Symbols and folding must enable the native viewport policy", before.foldingEnabled)
+            assertTrue("The JNI snapshot must carry a live revision", before.revision > 0)
+            assertTrue("The snapshot must report its complete native size", before.total >= before.candidates.size)
+            before.candidates.forEachIndexed { index, candidate -> assertEquals(index, candidate.nativeIndex) }
+            val source = before.candidates.first { it.text == "开始" }
+            val folded = before.candidates.first { it.text == "▶️" }
+            assertEquals(-1, source.symbolSourceId)
+            assertEquals(0, source.symbolCount)
+            assertEquals(source.nativeIndex, folded.symbolSourceId)
+            assertEquals(2, folded.symbolCount)
+            assertEquals("…", folded.comment)
+
+            assertFalse("A stale revision must not change the native presentation",
+                setCandidateViewportIfCurrent(before.revision - 1, 1, intArrayOf(source.nativeIndex), -1))
+            assertFalse("Duplicate first-page IDs must be rejected",
+                setCandidateViewportIfCurrent(before.revision, 2,
+                    intArrayOf(source.nativeIndex, source.nativeIndex), -1))
+            for (badIndex in listOf(-1, before.total)) {
+                assertFalse("Out-of-range first-page ID $badIndex must be rejected",
+                    setCandidateViewportIfCurrent(before.revision, 1, intArrayOf(badIndex), -1))
+            }
+            assertFalse("An ordinary source must not be declared the first-page symbol",
+                setCandidateViewportIfCurrent(before.revision, 1,
+                    intArrayOf(source.nativeIndex), source.nativeIndex))
+            val unchanged = getCandidateViewportSnapshot(CANDIDATE_LIMIT)
+            assertEquals(before.revision, unchanged.revision)
+            assertEquals(before.candidates.toList(), unchanged.candidates.toList())
+
+            assertTrue("The source-only first page must be accepted",
+                setCandidateViewportIfCurrent(before.revision, 1, intArrayOf(source.nativeIndex), -1))
+            var after = getCandidateViewportSnapshot(CANDIDATE_LIMIT)
+            withTimeout(EVENT_TIMEOUT_MS) {
+                while (after.revision == before.revision) {
+                    delay(10)
+                    after = getCandidateViewportSnapshot(CANDIDATE_LIMIT)
+                }
+            }
+            assertTrue(after.foldingEnabled)
+            assertEquals("开始", after.candidates.first().text)
+            val choices = listOf("▶️", "🔛").map { text -> after.candidates.first { it.text == text } }
+            assertEquals("The unfolded choices must own distinct real native IDs", 2,
+                choices.map { it.nativeIndex }.toSet().size)
+            assertEquals("Deferred choices must remain contiguous",
+                choices.first().nativeIndex + 1, choices.last().nativeIndex)
+            choices.forEach { candidate ->
+                assertTrue("The symbol must be outside the source-only page", candidate.nativeIndex > 0)
+                assertEquals(after.candidates.first().nativeIndex, candidate.symbolSourceId)
+                assertEquals(2, candidate.symbolCount)
+                assertEquals(-1, candidate.selectionActionId)
+                assertNull(candidate.actionSourceText)
+                assertFalse("A real deferred choice must have no fold marker", candidate.comment.contains("…"))
+                assertEquals(candidate.text, getCandidates(candidate.nativeIndex, 1).single().text)
+                assertTrue("A real deferred choice must have no folded-symbol action",
+                    getCandidateActions(candidate.nativeIndex).none { it.icon == FOLDED_SYMBOL_ICON })
+            }
+            assertFalse("Applying the old snapshot again must be rejected",
+                setCandidateViewportIfCurrent(before.revision, 1, intArrayOf(source.nativeIndex), -1))
+            assertEquals(after.revision, getCandidateViewportSnapshot(CANDIDATE_LIMIT).revision)
+            assertFalse("Viewport changes must retain the unfinished composition", isEmpty())
+        }
+    }
+
+    @Test
     fun softDigitActionsSelectTheVisibleEmojiHeadRatherThanItsFoldedAlternative() = withPinyin {
         digitActionFactories.forEach { actionFor ->
             val choice = foldedChoice("kaishi", "▶️", "🔛")
@@ -243,7 +404,50 @@ class CandidateActionGuardTest {
         reset()
         input.forEach { key ->
             sendKey(key.toString(), states = KeyStates.Virtual.states)
-            sendKey(key.toString(), states = KeyStates.Virtual.states, up = true)
+        }
+    }
+
+    private suspend fun FcitxAPI.nativeCandidates(): List<CandidateWord> {
+        val candidates = mutableListOf<CandidateWord>()
+        while (true) {
+            val page = getCandidates(candidates.size, CANDIDATE_LIMIT)
+            candidates.addAll(page)
+            if (page.size < CANDIDATE_LIMIT) return candidates
+        }
+    }
+
+    private fun printCandidateSnapshot(label: String, candidates: List<CandidateWord>) {
+        val targets = setOf("叉", "茶", "❌", "❎", "🍵", "▶️", "🔛", "😄", "😆")
+        val selected = candidates.mapIndexedNotNull { position, candidate ->
+            if (candidate.text !in targets) return@mapIndexedNotNull null
+            "#$position ${candidate.text}: nativeIndex=${candidate.nativeIndex}, " +
+                "displayComment=${candidate.displayComment?.let { "[$it]" } ?: "null"}, " +
+                "selectionActionId=${candidate.selectionActionId}, actionSourceText=${candidate.actionSourceText}"
+        }
+        println("CandidateActionGuardTest $label: ${selected.joinToString("; ")}")
+    }
+
+    private suspend fun FcitxAPI.expandedCandidates(
+        firstHiddenIndex: Int,
+        batchSize: Int = CANDIDATE_LIMIT,
+    ): List<CandidateWord> {
+        val candidates = mutableListOf<CandidateWord>()
+        while (true) {
+            val page = getExpandedCandidates(firstHiddenIndex + candidates.size, batchSize, firstHiddenIndex)
+            candidates.addAll(page)
+            if (page.size < batchSize) return candidates
+        }
+    }
+
+    private suspend fun FcitxAPI.selectExpandedCandidate(candidate: CandidateWord) {
+        assertTrue("Expanded selection must retain a native index", candidate.nativeIndex >= 0)
+        if (candidate.selectionActionId >= 0) {
+            assertTrue(triggerCandidateActionIfCurrent(
+                candidate.nativeIndex, requireNotNull(candidate.actionSourceText),
+                candidate.selectionActionId, candidate.text, FOLDED_SYMBOL_ICON
+            ))
+        } else {
+            assertTrue(select(candidate.nativeIndex))
         }
     }
 
@@ -255,7 +459,6 @@ class CandidateActionGuardTest {
         reset()
         input.forEach { key ->
             sendKey(key.toString(), states = KeyStates.Virtual.states)
-            sendKey(key.toString(), states = KeyStates.Virtual.states, up = true)
         }
         val candidates = getCandidates(0, CANDIDATE_LIMIT)
         val index = candidates.indexOfFirst { it.text == headText }

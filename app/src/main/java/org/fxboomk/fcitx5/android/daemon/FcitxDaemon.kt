@@ -64,6 +64,25 @@ object FcitxDaemon {
 
             override suspend fun setCandidateCursor(idx: Int) = realFcitx.setCandidateCursor(idx)
 
+            override suspend fun getExpandedCandidates(
+                offset: Int,
+                limit: Int,
+                firstHiddenIndex: Int,
+                excludedIndices: IntArray,
+            ) = realFcitx.getExpandedCandidates(offset, limit, firstHiddenIndex, excludedIndices)
+
+            override suspend fun getCandidateViewportSnapshot(limit: Int) =
+                realFcitx.getCandidateViewportSnapshot(limit)
+
+            override suspend fun setCandidateViewportIfCurrent(
+                revision: Long,
+                firstPageSize: Int,
+                firstPageIndices: IntArray,
+                firstSymbolIndex: Int,
+            ) = realFcitx.setCandidateViewportIfCurrent(
+                revision, firstPageSize, firstPageIndices, firstSymbolIndex,
+            )
+
             override suspend fun getCandidateActionsIfCurrent(idx: Int, candidateText: String) =
                 realFcitx.getCandidateActionsIfCurrent(idx, candidateText)
 
