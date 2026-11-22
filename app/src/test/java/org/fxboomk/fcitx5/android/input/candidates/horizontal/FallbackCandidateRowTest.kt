@@ -38,7 +38,7 @@ class FallbackCandidateRowTest {
             val eligible = nativeCandidatesAfterConsumedFallbacks(source, 0, emptySet())
             val row = placeFallbackCandidateInRow(eligible, slots * 50, 0, slots) { 50 }
             assertEquals(1, row.count { it.nativeIndex in setOf(4, 10, 11) })
-            assertEquals(4, row.last().nativeIndex)
+            assertEquals(4, row[minOf(1, row.lastIndex)].nativeIndex)
             assertFalse(row.any { it.isDeferredFallback })
             val next = nativeCandidateContinuation(0, row, emptySet())
             val expanded = nativeCandidatesAfterConsumedFallbacks(
@@ -294,16 +294,16 @@ class FallbackCandidateRowTest {
     }
 
     @Test
-    fun `reserves actual visible last slot with original selection index`() {
+    fun `reserves the second visible slot with original selection index`() {
         val row = placeFallbackCandidateInRow(candidates(), 150, 0, 5) { 50 }
-        assertEquals(listOf(0, 1, 4), row.map { it.nativeIndex })
-        assertTrue(row.last().isFallback)
+        assertEquals(listOf(0, 4, 1), row.map { it.nativeIndex })
+        assertTrue(row[1].isFallback)
     }
 
     @Test
     fun `counts dividers before placing fallback`() {
         val row = placeFallbackCandidateInRow(candidates(), 153, 1, 5) { 50 }
-        assertEquals(listOf(0, 1, 4), row.map { it.nativeIndex })
+        assertEquals(listOf(0, 4, 1), row.map { it.nativeIndex })
         val narrower = placeFallbackCandidateInRow(candidates(), 152, 1, 5) { 50 }
         assertEquals(listOf(0, 4), narrower.map { it.nativeIndex })
     }
@@ -320,13 +320,13 @@ class FallbackCandidateRowTest {
     @Test
     fun `respects candidate count limit even when more items fit`() {
         val row = placeFallbackCandidateInRow(candidates(), 1000, 0, 3) { 50 }
-        assertEquals(listOf(0, 1, 4), row.map { it.nativeIndex })
+        assertEquals(listOf(0, 4, 1), row.map { it.nativeIndex })
     }
 
     @Test
     fun `keeps all normal prefix items when fallback starts before them`() {
         val row = placeFallbackCandidateInRow(candidates(1), 150, 0, 5) { 50 }
-        assertEquals(listOf(0, 2, 1), row.map { it.nativeIndex })
+        assertEquals(listOf(0, 1, 2), row.map { it.nativeIndex })
         assertEquals(3, nextNativeCandidateOffset(0, row, setOf(1)))
     }
 
@@ -349,8 +349,35 @@ class FallbackCandidateRowTest {
     @Test
     fun `oversized recovery content keeps one bounded slot`() {
         assertTrue(placeFallbackCandidateInRow(candidates(), 0, 0, 5) { 50 }.isEmpty())
-        assertEquals(listOf(4), placeFallbackCandidateInRow(candidates(), 49, 0, 5) { 50 }.map { it.nativeIndex })
-        assertEquals(listOf(4), placeFallbackCandidateInRow(candidates(), 50, 0, 5) { 50 }.map { it.nativeIndex })
+        assertEquals(listOf(4), placeFallbackCandidateInRow(candidates(), 1, 0, 5) { 50 }.map { it.nativeIndex })
+        assertEquals(listOf(4), placeFallbackCandidateInRow(candidates(), 100, 0, 1) { 50 }.map { it.nativeIndex })
+        assertEquals(listOf(0, 4), placeFallbackCandidateInRow(candidates(), 49, 0, 5) { 50 }.map { it.nativeIndex })
+        assertEquals(listOf(0, 4), placeFallbackCandidateInRow(candidates(), 50, 0, 5) { 50 }.map { it.nativeIndex })
+    }
+
+    @Test
+    fun `narrow and large font rows keep both native head and recovery in bounded slots`() {
+        val source = candidates().also { it[4] = it[4].copy(text = "非遗", comment = "(fei yi)") }
+        for (availableWidth in listOf(52, 100, 201)) {
+            for (divider in listOf(0, 1, 3)) {
+                val limit = fallbackCandidateRowWidthLimit(source, availableWidth, divider) {
+                    if (it.isFallback) 320 else 240
+                }
+                val row = placeFallbackCandidateInRow(source, availableWidth, divider, 5) {
+                    if (it.isFallback) 320 else 240
+                }
+                assertEquals(listOf(0, 4), row.map { it.nativeIndex })
+                assertTrue(limit * 2 + divider * 2 <= availableWidth)
+                assertTrue(row[1].isFallback)
+                assertEquals("(fei yi)", row[1].comment)
+            }
+        }
+    }
+
+    @Test
+    fun `ordinary and adaptive rows have no recovery width cap`() {
+        assertEquals(Int.MAX_VALUE, fallbackCandidateRowWidthLimit(candidates(-1), 50, 1) { 200 })
+        assertEquals(Int.MAX_VALUE, fallbackCandidateRowWidthLimit(candidates(), 200, 1) { 50 })
     }
 
     @Test
@@ -358,8 +385,8 @@ class FallbackCandidateRowTest {
         val row = placeFallbackCandidateInRow(candidates(), 150, 0, 5) { 50 }
         val nativeCursor = 4
         val displayedCursor = displayedNativeCandidateIndex(nativeCursor, row, 0)
-        assertEquals(2, displayedCursor)
-        assertEquals(-3, row[displayedCursor - 1].nativeIndex - nativeCursor)
+        assertEquals(1, displayedCursor)
+        assertEquals(-4, row[displayedCursor - 1].nativeIndex - nativeCursor)
         assertEquals(4, nativeCursor)
     }
 

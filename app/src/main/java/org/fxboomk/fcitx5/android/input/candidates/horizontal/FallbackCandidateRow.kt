@@ -6,7 +6,24 @@ package org.fxboomk.fcitx5.android.input.candidates.horizontal
 
 import org.fxboomk.fcitx5.android.core.CandidateWord
 
-/** Reserve the last complete slot only while the engine requests the default recovery hint. */
+/** Cap the first two slots together when large text would otherwise hide the recovery hint. */
+internal fun fallbackCandidateRowWidthLimit(
+    candidates: Array<CandidateWord>,
+    availableWidth: Int,
+    dividerWidth: Int,
+    measureCandidateWidth: (CandidateWord) -> Int,
+): Int {
+    val fallback = candidates.firstOrNull { it.isFallback } ?: return Int.MAX_VALUE
+    val first = candidates.firstOrNull { it !== fallback } ?: return Int.MAX_VALUE
+    val divider = dividerWidth.coerceAtLeast(0)
+    val pairWidth = measureCandidateWidth(first).coerceAtLeast(0).toLong() +
+        measureCandidateWidth(fallback).coerceAtLeast(0) + divider.toLong() * 2
+    return if (pairWidth > availableWidth) {
+        ((availableWidth - divider * 2) / 2).coerceAtLeast(1)
+    } else Int.MAX_VALUE
+}
+
+/** Reserve the second visible slot only while the engine requests the default recovery hint. */
 internal fun placeFallbackCandidateInRow(
     candidates: Array<CandidateWord>,
     availableWidth: Int,
@@ -16,20 +33,25 @@ internal fun placeFallbackCandidateInRow(
 ): Array<CandidateWord> {
     val fallback = candidates.firstOrNull { it.isFallback } ?: return candidates
     val divider = dividerWidth.coerceAtLeast(0)
-    val fallbackWidth = measureCandidateWidth(fallback).coerceAtLeast(0) + divider
     if (availableWidth <= 0 || maxCandidateCount <= 0) return emptyArray()
-    // Oversized content uses the existing horizontal overflow inside one bounded slot.
+    if (maxCandidateCount == 1 || availableWidth <= divider * 2 + 1) return arrayOf(fallback)
+    val pairWidthLimit = fallbackCandidateRowWidthLimit(
+        candidates, availableWidth, divider, measureCandidateWidth,
+    )
+    val fallbackWidth = measureCandidateWidth(fallback).coerceIn(0, pairWidthLimit) + divider
+    // Oversized first and recovery candidates each retain a bounded, scrollable slot.
     var usedWidth = fallbackWidth.coerceAtMost(availableWidth)
     val row = ArrayList<CandidateWord>()
     for (candidate in candidates) {
         if (candidate === fallback) continue
         if (row.size + 1 >= maxCandidateCount) break
-        val width = measureCandidateWidth(candidate).coerceAtLeast(0) + divider
+        val widthLimit = if (row.isEmpty()) pairWidthLimit else Int.MAX_VALUE
+        val width = measureCandidateWidth(candidate).coerceIn(0, widthLimit) + divider
         if (usedWidth + width > availableWidth) break
         row.add(candidate)
         usedWidth += width
     }
-    row.add(fallback)
+    row.add(minOf(1, row.size), fallback)
     return row.toTypedArray()
 }
 

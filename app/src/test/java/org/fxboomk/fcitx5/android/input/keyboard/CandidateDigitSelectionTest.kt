@@ -22,8 +22,8 @@ class CandidateDigitSelectionTest {
     @Test
     fun `soft digits select the displayed recovery native index`() = runBlocking {
         val native = Array(8) { CandidateWord("", "词$it", "", isFallback = it == 4) }
-        val row = arrayOf(native[0].copy(nativeIndex = 0), native[1].copy(nativeIndex = 1),
-            native[4].copy(nativeIndex = 4))
+        val row = arrayOf(native[0].copy(nativeIndex = 0), native[4].copy(nativeIndex = 4),
+            native[1].copy(nativeIndex = 1))
         val selected = mutableListOf<Int>()
         val api = Proxy.newProxyInstance(
             FcitxAPI::class.java.classLoader, arrayOf(FcitxAPI::class.java)
@@ -38,9 +38,9 @@ class CandidateDigitSelectionTest {
             }
         } as FcitxAPI
         listOf(
-            KeyAction.FcitxKeyAction("3"), KeyAction.FcitxKeyAction("KP_3"),
-            KeyAction.SymAction(KeySym('3'.code)), KeyAction.CommitAction("3"),
-            KeyAction.CommitAction("\u00003"),
+            KeyAction.FcitxKeyAction("2"), KeyAction.FcitxKeyAction("KP_2"),
+            KeyAction.SymAction(KeySym('2'.code)), KeyAction.CommitAction("2"),
+            KeyAction.CommitAction("\u00002"),
         ).forEach { action ->
             assertTrue(api.selectCandidateForDigit(action) { row.getOrNull(it) })
         }

@@ -906,12 +906,17 @@ class HorizontalCandidateComponent :
         object : HorizontalCandidateViewAdapter(theme) {
             override fun onBindViewHolder(holder: CandidateViewHolder, position: Int) {
                 super.onBindViewHolder(holder, position)
+                val availableWidth = view.width - view.paddingLeft - view.paddingRight
+                val recoveryWidthLimit = if (position <= 1) {
+                    fallbackCandidateRowWidthLimit(
+                        candidates, availableWidth, dividerDrawable.intrinsicWidth,
+                    ) { measuredCandidateWidth(it, layoutMinWidth) }
+                } else Int.MAX_VALUE
                 holder.itemView.updateLayoutParams<FlexboxLayoutManager.LayoutParams> {
-                    minWidth = layoutMinWidth
                     maxWidth = if (holder.candidate.isFallback) {
-                        (view.width - view.paddingLeft - view.paddingRight - dividerDrawable.intrinsicWidth)
-                            .coerceAtLeast(1)
-                    } else Int.MAX_VALUE
+                        minOf(recoveryWidthLimit, (availableWidth - dividerDrawable.intrinsicWidth).coerceAtLeast(1))
+                    } else recoveryWidthLimit
+                    minWidth = layoutMinWidth.coerceIn(0, maxWidth)
                     flexGrow = layoutFlexGrow
                 }
                 if (position == activeIndex) {

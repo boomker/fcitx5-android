@@ -39,20 +39,25 @@ class ShuangpinCorrectionLearningTest {
     fun repeatedCorrectionSelectionsPromoteGraduallyBehindALegalCandidate() = withIsolatedLearning { scene ->
         val correction = scene.initialCorrection()
         val initial = scene.candidates(CODE)
-        val initialIndex = initial.indexOfFirst { it.identity() == correction }
+        assertEquals("The default correction must start in the second slot", 1,
+            initial.indexOfFirst { it.identity() == correction })
         val leadingLegal = initial.first().identity()
-        repeat(2) {
-            scene.choose(CODE, correction)
-            assertTrue("The first two choices gave the correction an early promotion",
-                scene.assertAdaptive(CODE, correction) >= initialIndex)
-        }
+        scene.choose(CODE, correction)
+        // The default display slot and the learned ranking are independent.
+        // Start the promotion check after transitioning to adaptive placement.
+        val adaptiveInitialIndex = scene.assertAdaptive(CODE, correction)
+        scene.choose(CODE, correction)
+        assertTrue("The first two choices gave the correction an early promotion",
+            scene.assertAdaptive(CODE, correction) >= adaptiveInitialIndex)
 
         scene.choose(CODE, correction)
         val thirdIndex = scene.assertAdaptive(CODE, correction)
-        assertTrue("Three confirmations did not begin a bounded promotion", thirdIndex in 1 until initialIndex)
+        assertTrue("Three confirmations did not respect the bounded promotion and legal-first floor",
+            thirdIndex in 1..maxOf(1, adaptiveInitialIndex - 1))
         repeat(2) { scene.choose(CODE, correction) }
         val fifthIndex = scene.assertAdaptive(CODE, correction)
-        assertTrue("Five confirmations did not gradually improve the correction's rank", fifthIndex in 1 until thirdIndex)
+        assertTrue("Five confirmations did not respect the gradual promotion and legal-first floor",
+            fifthIndex in 1..maxOf(1, thirdIndex - 1))
         repeat(12) { scene.choose(CODE, correction) }
         val seventeenthIndex = scene.assertAdaptive(CODE, correction)
         assertTrue("Repeated confirmations stopped improving the correction's rank", seventeenthIndex <= fifthIndex)
@@ -238,8 +243,8 @@ class ShuangpinCorrectionLearningTest {
         val firstIndex = scene.assertAdaptive(CODE, correction)
         assertTrue("An explicit later-page selection did not clear the placement override", firstIndex < deferredIndex)
         repeat(2) { scene.choose(CODE, correction) }
-        assertTrue("Further confirmations did not resume gradual learning",
-            scene.assertAdaptive(CODE, correction) < firstIndex)
+        assertTrue("Further confirmations exceeded the legal-first ranking floor",
+            scene.assertAdaptive(CODE, correction) in 1..maxOf(1, firstIndex - 1))
     }
 
     @Test
@@ -663,8 +668,8 @@ class ShuangpinCorrectionLearningTest {
             assertEquals("Expected one default-placement correction for $activeScheme/$code: ${state ?: candidates}",
                 1, corrections.size)
             val correction = corrections.single()
-            assertEquals("The default correction was not at the native first-page tail",
-                minOf(4, candidates.lastIndex), correction.index)
+            assertEquals("The default correction was not in the second native slot",
+                minOf(1, candidates.lastIndex), correction.index)
             assertFalse("A default correction was also marked off-page", correction.value.isDeferredFallback)
             return correction.value.identity()
         }
@@ -732,9 +737,9 @@ class ShuangpinCorrectionLearningTest {
             assertTrue("The off-page correction was removed from the complete list: $candidates", index >= 0)
             assertTrue("The test requires five ordinary candidates before the deferred correction", candidates.size >= 6)
             assertTrue("The manual reset left the correction on the first native page: $candidates", index >= 5)
-            assertFalse("An off-page correction retained the default-tail hint", candidates[index].isFallback)
+            assertFalse("An off-page correction retained the default-placement hint", candidates[index].isFallback)
             assertTrue("The off-page correction lost its viewport-exclusion flag", candidates[index].isDeferredFallback)
-            assertTrue("A reset correction group exposed a default-tail hint", candidates.none { it.isFallback })
+            assertTrue("A reset correction group exposed a default-placement hint", candidates.none { it.isFallback })
             val group = candidates.filter { it.isDeferredFallback }
             assertTrue("The correction group exceeded its bounded size", group.size in 1..3)
             assertEquals("Correction alternatives contain duplicate characters", group.size,
@@ -825,7 +830,7 @@ class ShuangpinCorrectionLearningTest {
             val main = candidates.withIndex().filter { it.value.isFallback }
             assertEquals("Expected exactly one default homepage correction: $candidates", 1, main.size)
             assertFalse("The default main correction was marked deferred", main.single().value.isDeferredFallback)
-            assertEquals("The default main correction did not retain the native tail hint", 4, main.single().index)
+            assertEquals("The default main correction did not occupy the second native slot", 1, main.single().index)
             val group = candidates.filter { it.isFallback || it.isDeferredFallback }
             assertBoundedUniqueCorrectionGroup(group)
             val lastLegal = candidates.indexOfLast { !it.isFallback && !it.isDeferredFallback }
