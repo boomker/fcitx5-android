@@ -879,8 +879,17 @@ InputContext *AndroidFrontend::activeInputContext() const {
 void AndroidFrontend::deactivateInputContext(const int uid) {
     auto *ptr = icCache_.find(uid);
     if (!ptr) return;
-    focusGroup_.setFocusedInputContext(nullptr);
-    activeIC_ = nullptr;
+    auto *ic = ptr->get();
+    // Only release the context that is being deactivated. A late deactivation
+    // for a context that is no longer active (an IME window unbinding after
+    // another context was activated) must not drop the current context's focus
+    // or leave the frontend without an active context, which discards keys.
+    if (focusGroup_.focusedInputContext() == ic) {
+        focusGroup_.setFocusedInputContext(nullptr);
+    }
+    if (activeIC_ == ic) {
+        activeIC_ = nullptr;
+    }
 }
 
 void AndroidFrontend::setCapabilityFlags(uint64_t flag) {
