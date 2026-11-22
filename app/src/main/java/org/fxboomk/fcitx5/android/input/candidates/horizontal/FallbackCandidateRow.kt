@@ -55,6 +55,87 @@ internal fun placeFallbackCandidateInRow(
     return row.toTypedArray()
 }
 
+/** Width caps for the exact displayed row; short items keep their natural width. */
+internal fun protectedCandidateRowWidthLimits(
+    candidates: Array<CandidateWord>,
+    availableWidth: Int,
+    dividerWidth: Int,
+    measureCandidateWidth: (CandidateWord) -> Int,
+): IntArray {
+    if (candidates.isEmpty()) return IntArray(0)
+    val widths = candidates.map { measureCandidateWidth(it).coerceAtLeast(0) }
+    val budget = (availableWidth.toLong() - dividerWidth.coerceAtLeast(0).toLong() * candidates.size)
+        .coerceAtLeast(candidates.size.toLong())
+    if (widths.sumOf { it.toLong() } <= budget) return IntArray(candidates.size) { Int.MAX_VALUE }
+    var low = 1
+    var high = widths.maxOrNull()?.coerceAtLeast(1) ?: 1
+    while (low < high) {
+        val middle = low + (high - low + 1) / 2
+        if (widths.sumOf { minOf(it, middle).toLong() } <= budget) low = middle else high = middle - 1
+    }
+    return IntArray(candidates.size) { low }
+}
+
+/** Keep the best abbreviation in score order if visible, otherwise reserve the final slot. */
+internal fun placeAbbreviationCandidateInRow(
+    candidates: Array<CandidateWord>,
+    availableWidth: Int,
+    dividerWidth: Int,
+    maxCandidateCount: Int,
+    measureCandidateWidth: (CandidateWord) -> Int,
+): Array<CandidateWord> {
+    val best = candidates.firstOrNull { it.isBestAbbreviation }
+        ?: return placeFallbackCandidateInRow(
+            candidates, availableWidth, dividerWidth, maxCandidateCount, measureCandidateWidth,
+        )
+    if (availableWidth <= 0 || maxCandidateCount <= 0) return emptyArray()
+    val fallback = candidates.firstOrNull { it.isFallback }
+    val divider = dividerWidth.coerceAtLeast(0)
+    val capacity = minOf(maxCandidateCount, (availableWidth / (divider + 1)).coerceAtLeast(1))
+    if (capacity == 1) return arrayOf(fallback ?: best)
+
+    val natural = if (fallback != null) {
+        placeFallbackCandidateInRow(candidates, availableWidth, divider, capacity, measureCandidateWidth)
+    } else {
+        var occupied = 0L
+        candidates.takeWhile { candidate ->
+            val width = measureCandidateWidth(candidate).coerceAtLeast(0).toLong() + divider
+            val fits = occupied == 0L || occupied + width <= availableWidth
+            if (fits) occupied += width
+            fits
+        }.take(capacity).toTypedArray()
+    }
+    if (natural.any { it === best }) return natural
+
+    val first = candidates.firstOrNull { it !== best && it !== fallback }
+    val required = buildList {
+        if (first != null && capacity >= if (fallback != null) 3 else 2) add(first)
+        fallback?.let(::add)
+        add(best)
+    }.toTypedArray()
+    val caps = protectedCandidateRowWidthLimits(required, availableWidth, divider, measureCandidateWidth)
+    val widthOf: (CandidateWord) -> Int = { candidate ->
+        val requiredIndex = required.indexOfFirst { it === candidate }
+        val cap = caps.getOrNull(requiredIndex) ?: Int.MAX_VALUE
+        measureCandidateWidth(candidate).coerceIn(0, cap) + divider
+    }
+    var occupied = widthOf(best).toLong() + (fallback?.let(widthOf) ?: 0)
+    val row = ArrayList<CandidateWord>()
+    val reservedCount = if (fallback != null) 2 else 1
+    for (candidate in candidates) {
+        if (candidate === best || candidate === fallback) continue
+        if (row.size + reservedCount >= capacity) break
+        val width = widthOf(candidate)
+        if (occupied + width > availableWidth) break
+        row.add(candidate)
+        occupied += width
+    }
+    if (fallback != null && row.isEmpty()) return arrayOf(best, fallback)
+    fallback?.let { row.add(minOf(1, row.size), it) }
+    row.add(best)
+    return row.toTypedArray()
+}
+
 /** A new first page follows current native ranking; only later pages skip the shown hint. */
 internal fun nativeCandidatesAfterConsumedFallbacks(
     candidates: Array<CandidateWord>,
@@ -63,10 +144,12 @@ internal fun nativeCandidatesAfterConsumedFallbacks(
     isInitialRow: Boolean = indexOffset == 0,
 ): Array<CandidateWord> {
     if (isInitialRow) {
-        if (candidates.none { it.isDeferredFallback }) return candidates
+        if (candidates.none { it.isDeferredFallback || it.isAbbreviation && !it.isBestAbbreviation }) return candidates
         return candidates.mapIndexedNotNull { index, candidate ->
             val nativeIndex = candidate.nativeIndex.takeIf { it >= 0 } ?: (indexOffset + index)
-            candidate.copy(nativeIndex = nativeIndex).takeUnless { it.isDeferredFallback }
+            candidate.copy(nativeIndex = nativeIndex).takeUnless {
+                it.isDeferredFallback || it.isAbbreviation && !it.isBestAbbreviation
+            }
         }.toTypedArray()
     }
     if (excludedIndices.isEmpty()) return candidates

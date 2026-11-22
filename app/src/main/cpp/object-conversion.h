@@ -196,7 +196,9 @@ jobject candidateEntityToObject(JNIEnv *env, const CandidateEntity &c) {
                               c.selectionActionId,
                               actionSourceText ? **actionSourceText : nullptr,
                               c.symbolSourceId,
-                              c.symbolCount
+                              c.symbolCount,
+                              c.isAbbreviation,
+                              c.isBestAbbreviation
     );
     return obj;
 }

@@ -289,7 +289,9 @@ public:
                 const int end = totalSize < 0 ? last : std::min(totalSize, last);
                 for (int i = offset; i < end; i++) {
                     try {
-                        candidates.emplace_back(candidateEntity(bulk->candidateFromAll(i)));
+                        auto candidate = candidateEntity(bulk->candidateFromAll(i));
+                        candidate.nativeIndex = i;
+                        candidates.push_back(std::move(candidate));
                     } catch (const std::invalid_argument &e) {
                         break;
                     }
@@ -297,7 +299,9 @@ public:
             } else {
                 const int end = std::min(list->size(), last);
                 for (int i = offset; i < end; i++) {
-                    candidates.emplace_back(candidateEntityWithLabel(list->label(i), list->candidate(i)));
+                    auto candidate = candidateEntityWithLabel(list->label(i), list->candidate(i));
+                    candidate.nativeIndex = i;
+                    candidates.push_back(std::move(candidate));
                 }
             }
         }
@@ -405,6 +409,15 @@ public:
                 candidate.symbolCount = counts.at(source);
             }
             snapshot.candidates.push_back(std::move(candidate));
+        }
+        // Folded/deferred symbol groups can expand the ordinary prefix. Keep
+        // the protected abbreviation fetchable without discarding its native ID.
+        for (int i = end; i < snapshot.total; ++i) {
+            if (!words[i]->isBestAbbreviation()) continue;
+            auto candidate = candidateEntity(*words[i]);
+            candidate.nativeIndex = i;
+            snapshot.candidates.push_back(std::move(candidate));
+            break;
         }
         return snapshot;
     }
@@ -640,13 +653,17 @@ private:
     }
 
     CandidateEntity candidateEntity(const CandidateWord &candidate) {
-        return CandidateEntity("", filterString(candidate.text()),
-                               filterString(candidate.comment()), candidate.spaceBetweenComment(), candidate.isFallback(), candidate.isDeferredFallback());
+        auto entity = CandidateEntity("", filterString(candidate.text()),
+                                      filterString(candidate.comment()), candidate.spaceBetweenComment(), candidate.isFallback(), candidate.isDeferredFallback());
+        entity.isAbbreviation = candidate.isAbbreviation();
+        entity.isBestAbbreviation = candidate.isBestAbbreviation();
+        return entity;
     }
 
     CandidateEntity candidateEntityWithLabel(const Text &label, const CandidateWord &candidate) {
-        return CandidateEntity(filterString(label), filterString(candidate.text()),
-                               filterString(candidate.comment()), candidate.spaceBetweenComment(), candidate.isFallback(), candidate.isDeferredFallback());
+        auto entity = candidateEntity(candidate);
+        entity.label = filterString(label);
+        return entity;
     }
 };
 

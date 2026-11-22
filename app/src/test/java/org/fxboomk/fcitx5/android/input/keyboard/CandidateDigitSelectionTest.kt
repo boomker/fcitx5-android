@@ -67,6 +67,10 @@ class CandidateDigitSelectionTest {
         native[4] = adaptive.copy(isDeferredFallback = true, nativeIndex = -1)
         assertTrue(api.selectCandidateForDigit(KeyAction.CommitAction("3")) { adaptive })
         assertTrue("A changed reset state must invalidate an old visible target", selected.isEmpty())
+        val previousBest = native[4].copy(nativeIndex = 4, isAbbreviation = true, isBestAbbreviation = true)
+        native[4] = previousBest.copy(isBestAbbreviation = false)
+        assertTrue(api.selectCandidateForDigit(KeyAction.CommitAction("2")) { previousBest })
+        assertTrue("A changed abbreviation role must invalidate the visible digit target", selected.isEmpty())
         native = emptyArray()
         assertFalse(api.selectCandidateForDigit(KeyAction.CommitAction("3")) {
             error("Empty engine must reject mapping before reading UI")

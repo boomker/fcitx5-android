@@ -479,7 +479,7 @@ class HorizontalCandidateComponent :
     fun hasExpandedNativeCandidates(): Boolean = hasExpandedNativeCandidates
 
     fun hasExpandableDeferredCandidates(): Boolean = hasExpandedNativeCandidates &&
-        nativeCandidateSnapshot.candidates.any { it.isDeferredFallback }
+        nativeCandidateSnapshot.candidates.any { it.isDeferredFallback || it.isAbbreviation }
 
     fun clearPredictionCandidates() {
         firstPageCandidates.clear()
@@ -677,13 +677,13 @@ class HorizontalCandidateComponent :
         val candidates = nativeCandidatesAfterConsumedFallbacks(
             source, indexOffset, excludedIndices, initialRow,
         )
-        if (initialRow && candidates.any { it.isFallback }) {
+        if (initialRow && candidates.any { it.isFallback || it.isBestAbbreviation }) {
             val dividerWidth = dividerDrawable.intrinsicWidth
             val maxSpanCount = maxSpanCountPref.getValue().coerceAtLeast(1)
             val minWidth = if (fillStyle == AutoFillWidth) {
                 (view.width / maxSpanCount - dividerWidth).coerceAtLeast(0)
             } else 0
-            val row = placeFallbackCandidateInRow(
+            val row = placeAbbreviationCandidateInRow(
                 candidates = candidates.mapIndexed { index, candidate ->
                     candidate.copy(nativeIndex = candidate.nativeIndex.takeIf { it >= 0 } ?: index)
                 }.toTypedArray(),
@@ -816,8 +816,8 @@ class HorizontalCandidateComponent :
         nativeCandidates: Array<CandidateWord>,
         suggestions: List<String> = aiSuggestions,
     ): CandidateWordRowPlacement {
-        if (nativeCandidates.any { it.isFallback }) {
-            // Recovery keeps the last visible slot; suggestions remain expandable.
+        if (nativeCandidates.any { it.isFallback || it.isBestAbbreviation }) {
+            // Native guarantees retain their visible slots; suggestions remain expandable.
             return CandidateWordRowPlacement(nativeCandidates, visibleAiCount = 0)
         }
         val availableWidth = (view.width - view.paddingLeft - view.paddingRight).coerceAtLeast(1)
@@ -907,7 +907,12 @@ class HorizontalCandidateComponent :
             override fun onBindViewHolder(holder: CandidateViewHolder, position: Int) {
                 super.onBindViewHolder(holder, position)
                 val availableWidth = view.width - view.paddingLeft - view.paddingRight
-                val recoveryWidthLimit = if (position <= 1) {
+                val protectedNativeRow = candidates.take(displayedNativeCount).toTypedArray()
+                val recoveryWidthLimit = if (protectedNativeRow.any { it.isBestAbbreviation }) {
+                    protectedCandidateRowWidthLimits(
+                        protectedNativeRow, availableWidth, dividerDrawable.intrinsicWidth,
+                    ) { measuredCandidateWidth(it, layoutMinWidth) }.getOrElse(position) { Int.MAX_VALUE }
+                } else if (position <= 1) {
                     fallbackCandidateRowWidthLimit(
                         candidates, availableWidth, dividerDrawable.intrinsicWidth,
                     ) { measuredCandidateWidth(it, layoutMinWidth) }

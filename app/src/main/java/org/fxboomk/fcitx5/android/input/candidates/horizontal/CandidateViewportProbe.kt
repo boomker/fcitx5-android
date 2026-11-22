@@ -65,12 +65,17 @@ internal fun probeCandidateViewport(
 
     val incomplete = snapshot.total < 0 || words.size < snapshot.total
     val allKnownOrdinaryFit = row.count { it.symbolSourceId < 0 } == ordinary.size
-    // A cut through deferred groups can hide the head belonging to an earlier visible source.
-    val endsInsideSymbols = words.lastOrNull()?.symbolSourceId?.let { it >= 0 } == true
-    val consumesBoundaryRoot = row.any { it.symbolSourceId < 0 && it.nativeIndex == words.lastOrNull()?.nativeIndex }
+    // Snapshots may append a deep best abbreviation after the requested prefix.
+    // Only the contiguous native prefix can reveal an unseen adjacent symbol head.
+    var prefixLength = 0
+    while (prefixLength < words.size && words[prefixLength].nativeIndex == prefixLength) prefixLength++
+    val boundary = words.getOrNull(prefixLength - 1)
+    val endsInsideSymbols = boundary?.symbolSourceId?.let { it >= 0 } == true
+    val consumesBoundaryRoot = row.any { it.symbolSourceId < 0 && it.nativeIndex == boundary?.nativeIndex }
+    val bestAbbreviationNotLoaded = words.any { it.isAbbreviation } && words.none { it.isBestAbbreviation }
     return CandidateViewportProbe(
         row,
         firstSymbolIndex,
-        incomplete && (allKnownOrdinaryFit || endsInsideSymbols || consumesBoundaryRoot),
+        incomplete && (allKnownOrdinaryFit || endsInsideSymbols || consumesBoundaryRoot || bestAbbreviationNotLoaded),
     )
 }

@@ -44,6 +44,7 @@ int main() {
         group.inputMethodList().clear();
         group.inputMethodList().push_back(InputMethodGroupItem("keyboard-us"));
         group.inputMethodList().push_back(InputMethodGroupItem("pinyin"));
+        group.inputMethodList().push_back(InputMethodGroupItem("shuangpin"));
         group.setDefaultInputMethod("");
         instance.inputMethodManager().setGroup(std::move(group));
         AndroidFrontend frontend(&instance);
@@ -276,6 +277,47 @@ int main() {
         }
         frontend.triggerCandidateAction(detachedAlternative->nativeIndex, detachedAlternative->selectionActionId, 0);
         FCITX_ASSERT(commits.back() == "🔛");
+
+        // The best abbreviation can sit after a learned completion. A short
+        // viewport must carry both without changing bulk rank or identity.
+        instance.setCurrentInputMethod(ic, "shuangpin", true);
+        RawConfig abbreviationConfig;
+        abbreviationConfig.setValueByPath("ShuangpinProfile", "Xiaohe");
+        abbreviationConfig.setValueByPath("PartialSpLength", "3");
+        abbreviationConfig.setValueByPath("AbbreviationConfigMigrated", "True");
+        abbreviationConfig.setValueByPath("Learning", "True");
+        abbreviationConfig.setValueByPath("KeepCurrentContext", "False");
+        abbreviationConfig.setValueByPath("Prediction", "False");
+        abbreviationConfig.setValueByPath("SpellEnabled", "False");
+        abbreviationConfig.setValueByPath("SymbolsEnabled", "False");
+        abbreviationConfig.setValueByPath("ShuangpinInitialFuzzy", "False");
+        instance.inputMethodEngine(ic)->setConfigForInputMethod(
+            *instance.inputMethodEntry(ic), abbreviationConfig);
+        const auto typeAbbreviation = [&]() {
+            frontend.resetInputContext();
+            for (const char key : std::string("wum"))
+                frontend.keyEvent(Key(static_cast<KeySym>(key)), false, 0);
+        };
+        typeAbbreviation();
+        const auto beforeLearning = frontend.getCandidates(0, 1024);
+        const auto completion = std::ranges::find(beforeLearning, "雾霾", &CandidateEntity::text);
+        FCITX_ASSERT(completion != beforeLearning.end());
+        FCITX_ASSERT(frontend.selectCandidate(completion->nativeIndex));
+        FCITX_ASSERT(commits.back() == "雾霾");
+        typeAbbreviation();
+        const auto abbreviationNative = frontend.getCandidates(0, 1024);
+        FCITX_ASSERT(abbreviationNative.front().text == "雾霾");
+        const auto best = std::ranges::find_if(abbreviationNative, &CandidateEntity::isBestAbbreviation);
+        FCITX_ASSERT(best != abbreviationNative.end() && best->nativeIndex > 0);
+        const auto abbreviationSnapshot = frontend.getCandidateViewportSnapshot(1);
+        FCITX_ASSERT(abbreviationSnapshot.foldingEnabled);
+        FCITX_ASSERT(abbreviationSnapshot.candidates.size() == 2);
+        FCITX_ASSERT(abbreviationSnapshot.candidates.front().text == "雾霾");
+        FCITX_ASSERT(abbreviationSnapshot.candidates.back().nativeIndex == best->nativeIndex);
+        FCITX_ASSERT(abbreviationSnapshot.candidates.back().isBestAbbreviation);
+        FCITX_ASSERT(frontend.getCandidates(0, 1024)[best->nativeIndex].text == best->text);
+        FCITX_ASSERT(frontend.selectCandidate(best->nativeIndex));
+        FCITX_ASSERT(commits.back() == best->text);
         delete ic;
         instance.exit();
     });

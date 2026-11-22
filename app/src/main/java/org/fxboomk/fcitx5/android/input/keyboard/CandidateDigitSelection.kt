@@ -52,7 +52,9 @@ internal suspend fun FcitxAPI.selectCandidateForDigit(
             current.comment != displayed.comment ||
             current.spaceBetweenComment != displayed.spaceBetweenComment ||
             current.isFallback != displayed.isFallback ||
-            current.isDeferredFallback != displayed.isDeferredFallback) return true
+            current.isDeferredFallback != displayed.isDeferredFallback ||
+            current.isAbbreviation != displayed.isAbbreviation ||
+            current.isBestAbbreviation != displayed.isBestAbbreviation) return true
     }
     // The native frontend resolves the current paging mode.
     // Folded symbols are actions, so they never occupy a numbered candidate slot.
