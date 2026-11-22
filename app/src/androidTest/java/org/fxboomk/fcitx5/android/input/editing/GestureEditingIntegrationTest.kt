@@ -32,6 +32,7 @@ import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.core.CapabilityFlag
 import org.fxboomk.fcitx5.android.core.CapabilityFlags
 import org.fxboomk.fcitx5.android.core.FcitxAPI
+import org.fxboomk.fcitx5.android.core.RawConfig
 import org.fxboomk.fcitx5.android.core.FcitxKeyMapping
 import org.fxboomk.fcitx5.android.core.KeyStates
 import org.fxboomk.fcitx5.android.core.KeySym
@@ -63,58 +64,68 @@ import org.fxboomk.fcitx5.android.input.keyboard.NumLockState
 import org.fxboomk.fcitx5.android.input.keyboard.SpaceSwipeIdleBehavior
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.data.theme.ThemeManager
+import org.fxboomk.fcitx5.android.testing.RequireDefaultImeRule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.ClassRule
 import org.junit.Test
 
 /** Exercise real IME dispatch and an Android editor, including selection across finger lifts. */
 class GestureEditingIntegrationTest {
+    companion object {
+        @ClassRule
+        @JvmField
+        val defaultIme = RequireDefaultImeRule()
+    }
+
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
     private val context = instrumentation.targetContext
     private val density = context.resources.displayMetrics.density
 
     @Test
     fun softDigitActionsSelectVisibleCandidatesAndSkipFoldedEmoji() = withPinyinEditor { editor, service ->
-        digitActions.forEach { (action, source) ->
-            listOf(2, 3).forEach { digit ->
-                val digitAction = action(digit)
-                runFcitxJob(service) { reset() }
-                onMain { editor.editableText.clear() }
-                await { service.currentInputSelection.start == 0 && service.currentInputSelection.end == 0 }
-                runFcitxJob(service) { reset() }
-                val candidates = runFcitxJob(service) {
-                    assertEquals("Input method changed before $digitAction from $source", "pinyin", currentIme().uniqueName)
-                    "kaishi".forEach { key ->
-                        sendKey(key.toString(), states = KeyStates.Virtual.states)
+        withFoldedSymbols(service) {
+            digitActions.forEach { (action, source) ->
+                listOf(2, 3).forEach { digit ->
+                    val digitAction = action(digit)
+                    runFcitxJob(service) { reset() }
+                    onMain { editor.editableText.clear() }
+                    await { service.currentInputSelection.start == 0 && service.currentInputSelection.end == 0 }
+                    runFcitxJob(service) { reset() }
+                    val candidates = runFcitxJob(service) {
+                        assertEquals("Input method changed before $digitAction from $source", "pinyin", currentIme().uniqueName)
+                        "kaishi".forEach { key ->
+                            sendKey(key.toString(), states = KeyStates.Virtual.states)
+                        }
+                        getCandidates(0, 16)
                     }
-                    getCandidates(0, 16)
-                }
-                val engineState = runFcitxJob(service) {
-                    "ime=${currentIme().uniqueName}, clientPreedit='$clientPreeditCached', " +
-                        "panelPreedit='${inputPanelCached.preedit}'"
-                }
-                var editorText = ""
-                onMain { editorText = editor.text.toString() }
-                val diagnostics = "$digitAction from $source (digit=$digit): $engineState, " +
-                    "candidates=${candidates.take(10).toList()}, editor='$editorText'"
-                assertTrue("Missing the visible kaishi symbol candidate: $diagnostics", candidates.size >= 3)
-                assertEquals(diagnostics, "▶️", candidates[1].text)
-                assertEquals(diagnostics, "…", candidates[1].comment)
-                assertTrue("The folded alternative must not occupy the next numeric slot: $diagnostics",
-                    candidates[2].text != "🔛")
-                await { service.hasVisibleNativeCandidates() }
+                    val engineState = runFcitxJob(service) {
+                        "ime=${currentIme().uniqueName}, clientPreedit='$clientPreeditCached', " +
+                            "panelPreedit='${inputPanelCached.preedit}'"
+                    }
+                    var editorText = ""
+                    onMain { editorText = editor.text.toString() }
+                    val diagnostics = "$digitAction from $source (digit=$digit): $engineState, " +
+                        "candidates=${candidates.take(10).toList()}, editor='$editorText'"
+                    assertTrue("Missing the visible kaishi symbol candidate: $diagnostics", candidates.size >= 3)
+                    assertEquals(diagnostics, "▶️", candidates[1].text)
+                    assertEquals(diagnostics, "…", candidates[1].comment)
+                    assertTrue("The folded alternative must not occupy the next numeric slot: $diagnostics",
+                        candidates[2].text != "🔛")
+                    await { service.hasVisibleNativeCandidates() }
 
-                dispatchSoftDigit(service, digitAction, source)
+                    dispatchSoftDigit(service, digitAction, source)
 
-                val expected = candidates[digit - 1].text
-                awaitEditorText(editor, expected, digitAction, source)
-                instrumentation.waitForIdleSync()
-                onMain { assertEquals("The digit must not be appended after selecting a candidate",
-                    expected, editor.text.toString()) }
-                assertTrue("Selecting a complete candidate must finish composition",
-                    runFcitxJob(service) {
-                        clientPreeditCached.isEmpty() && inputPanelCached.preedit.isEmpty()
-                    })
+                    val expected = candidates[digit - 1].text
+                    awaitEditorText(editor, expected, digitAction, source)
+                    instrumentation.waitForIdleSync()
+                    onMain { assertEquals("The digit must not be appended after selecting a candidate",
+                        expected, editor.text.toString()) }
+                    assertTrue("Selecting a complete candidate must finish composition",
+                        runFcitxJob(service) {
+                            clientPreeditCached.isEmpty() && inputPanelCached.preedit.isEmpty()
+                        })
+                }
             }
         }
     }
@@ -172,7 +183,7 @@ class GestureEditingIntegrationTest {
         runFcitxJob(service) { Unit }
     }
 
-    private fun withPinyinEditor(block: (EditText, FcitxInputMethodService) -> Unit) = withEditor(retryKeyboardShow = true) { editor, service ->
+    private fun withPinyinEditor(block: (EditText, FcitxInputMethodService) -> Unit) = withEditor { editor, service ->
         val storage = context.createDeviceProtectedStorageContext()
         val profile = File(storage.getExternalFilesDir(null) ?: storage.filesDir, "config/profile")
         val originalProfile = profile.takeIf(File::exists)?.readBytes()
@@ -205,6 +216,32 @@ class GestureEditingIntegrationTest {
                 if (originalProfile != null) profile.writeBytes(originalProfile)
                 else if (profile.exists()) assertTrue(profile.delete())
             }
+        }
+    }
+
+    /**
+     * Symbol folding is an opt-in setting (FoldSymbolCandidates defaults to False since 6f1f2585f),
+     * so tests that expect folded emoji must enable it and restore the device configuration.
+     */
+    private fun withFoldedSymbols(service: FcitxInputMethodService, block: () -> Unit) {
+        val storage = context.createDeviceProtectedStorageContext()
+        val root = storage.getExternalFilesDir(null) ?: storage.filesDir
+        val files = listOf(File(root, "config/conf/pinyin.conf"), File(root, "config/conf/pinyin/pinyin.conf"))
+            .associateWith { it.takeIf(File::exists)?.readBytes() }
+        try {
+            runFcitxJob(service) {
+                setImConfig("pinyin", RawConfig().apply {
+                    getOrCreate("SymbolsEnabled").value = "True"
+                    getOrCreate("FoldSymbolCandidates").value = "True"
+                })
+            }
+            block()
+        } finally {
+            files.forEach { (file, bytes) ->
+                if (bytes != null) file.writeBytes(bytes)
+                else if (file.exists()) assertTrue(file.delete())
+            }
+            runFcitxJob(service) { reloadConfig() }
         }
     }
 
@@ -1043,7 +1080,7 @@ class GestureEditingIntegrationTest {
 
     private fun actionButtons(popup: PopupWindow) = popup.contentView.allViews.filterIsInstance<TextEditingButton>().toList()
 
-    private fun withEditor(retryKeyboardShow: Boolean = false, block: (EditText, FcitxInputMethodService) -> Unit) {
+    private fun withEditor(block: (EditText, FcitxInputMethodService) -> Unit) {
         val prefs = AppPrefs.getInstance().keyboard
         val oldIdle = prefs.spaceSwipeIdleBehavior.getValue()
         val oldHaptic = prefs.hapticOnRepeat.getValue()
@@ -1067,19 +1104,33 @@ class GestureEditingIntegrationTest {
                 editor.setSelection(20)
             }
             await { editor.isShown && editor.hasWindowFocus() }
-            onMain {
-                activity.getSystemService(InputMethodManager::class.java).showSoftInput(editor, InputMethodManager.SHOW_IMPLICIT)
-            }
-            var nextShowAttempt = SystemClock.uptimeMillis() + 500
-            await {
-                val shown = runningService()?.inputView?.isShown == true
-                if (!shown && retryKeyboardShow && SystemClock.uptimeMillis() >= nextShowAttempt) {
+            val showStarted = SystemClock.uptimeMillis()
+            var nextShowAttempt = showStarted
+            var showAttempts = 0
+            var showState = "not checked"
+            // Instrumentation restarts the IME process. Retry until this editor's keyboard appears;
+            // only this first-show phase gets a cold-start budget, not subsequent UI assertions.
+            await(timeoutMs = 25_000, failureMessage = {
+                "Timed out showing keyboard after ${SystemClock.uptimeMillis() - showStarted} ms; " +
+                    "attempts=$showAttempts; $showState"
+            }) {
+                val service = runningService()
+                val inputView = service?.inputView
+                val shown = inputView?.isShown == true
+                val editorMatches = service?.currentInputEditorInfo?.fieldId == editor.id
+                showState = "serviceExists=${service != null}; inputViewExists=${inputView != null}; " +
+                    "inputViewShown=$shown; editorMatches=$editorMatches; " +
+                    "editorFocused=${editor.hasWindowFocus()}"
+                if ((!shown || !editorMatches) && SystemClock.uptimeMillis() >= nextShowAttempt) {
                     activity.getSystemService(InputMethodManager::class.java)
                         .showSoftInput(editor, InputMethodManager.SHOW_IMPLICIT)
+                    showAttempts++
                     nextShowAttempt = SystemClock.uptimeMillis() + 500
                 }
-                shown
+                shown && editorMatches
             }
+            android.util.Log.i("GestureKeyboardShow",
+                "shown after ${SystemClock.uptimeMillis() - showStarted} ms; attempts=$showAttempts; $showState")
             val service = requireNotNull(runningService())
             await { editor.isShown && editor.hasWindowFocus() && service.currentInputEditorInfo?.fieldId == editor.id }
             onMain { service.postFcitxJob { reset() } }
@@ -1148,8 +1199,12 @@ class GestureEditingIntegrationTest {
         return services.values.filterIsInstance<FcitxInputMethodService>().firstOrNull()
     }
 
-    private fun await(condition: () -> Boolean) {
-        val deadline = SystemClock.uptimeMillis() + 8000
+    private fun await(
+        timeoutMs: Long = 8000,
+        failureMessage: () -> String = { "Timed out waiting for editor / IME state" },
+        condition: () -> Boolean
+    ) {
+        val deadline = SystemClock.uptimeMillis() + timeoutMs
         while (SystemClock.uptimeMillis() < deadline) {
             var result = false
             onMain { result = condition() }
@@ -1158,7 +1213,7 @@ class GestureEditingIntegrationTest {
         }
         var result = false
         onMain { result = condition() }
-        assertTrue("Timed out waiting for editor / IME state", result)
+        assertTrue(failureMessage(), result)
     }
 
     private fun onMain(block: () -> Unit) = instrumentation.runOnMainSync(block)

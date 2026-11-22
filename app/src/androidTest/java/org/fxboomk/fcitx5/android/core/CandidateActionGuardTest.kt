@@ -164,67 +164,118 @@ class CandidateActionGuardTest {
             getOrCreate("Prediction").value = "False"
         })
         typePinyin("kaishi")
-        assertNoCommit {
-            val before = getCandidateViewportSnapshot(CANDIDATE_LIMIT)
-            assertTrue("Symbols and folding must enable the native viewport policy", before.foldingEnabled)
-            assertTrue("The JNI snapshot must carry a live revision", before.revision > 0)
-            assertTrue("The snapshot must report its complete native size", before.total >= before.candidates.size)
-            before.candidates.forEachIndexed { index, candidate -> assertEquals(index, candidate.nativeIndex) }
-            val source = before.candidates.first { it.text == "开始" }
-            val folded = before.candidates.first { it.text == "▶️" }
-            assertEquals(-1, source.symbolSourceId)
-            assertEquals(0, source.symbolCount)
-            assertEquals(source.nativeIndex, folded.symbolSourceId)
-            assertEquals(2, folded.symbolCount)
-            assertEquals("…", folded.comment)
+        var failure: Throwable? = null
+        try {
+            assertNoCommit {
+                val before = getCandidateViewportSnapshot(CANDIDATE_LIMIT)
+                assertTrue("Symbols and folding must enable the native viewport policy", before.foldingEnabled)
+                assertTrue("The JNI snapshot must carry a live revision", before.revision > 0)
+                assertTrue("The snapshot must report its complete native size", before.total >= before.candidates.size)
+                before.candidates.forEachIndexed { index, candidate -> assertEquals(index, candidate.nativeIndex) }
+                val source = before.candidates.first { it.text == "开始" }
+                val folded = before.candidates.first { it.text == "▶️" }
+                assertEquals(-1, source.symbolSourceId)
+                assertEquals(0, source.symbolCount)
+                assertEquals(source.nativeIndex, folded.symbolSourceId)
+                assertEquals(2, folded.symbolCount)
+                assertEquals("…", folded.comment)
 
-            assertFalse("A stale revision must not change the native presentation",
-                setCandidateViewportIfCurrent(before.revision - 1, 1, intArrayOf(source.nativeIndex), -1))
-            assertFalse("Duplicate first-page IDs must be rejected",
-                setCandidateViewportIfCurrent(before.revision, 2,
-                    intArrayOf(source.nativeIndex, source.nativeIndex), -1))
-            for (badIndex in listOf(-1, before.total)) {
-                assertFalse("Out-of-range first-page ID $badIndex must be rejected",
-                    setCandidateViewportIfCurrent(before.revision, 1, intArrayOf(badIndex), -1))
+                assertFalse("A stale revision must not change the native presentation",
+                    setCandidateViewportIfCurrent(before.revision - 1, 1, intArrayOf(source.nativeIndex), -1))
+                assertFalse("Duplicate first-page IDs must be rejected",
+                    setCandidateViewportIfCurrent(before.revision, 2,
+                        intArrayOf(source.nativeIndex, source.nativeIndex), -1))
+                for (badIndex in listOf(-1, before.total)) {
+                    assertFalse("Out-of-range first-page ID $badIndex must be rejected",
+                        setCandidateViewportIfCurrent(before.revision, 1, intArrayOf(badIndex), -1))
+                }
+                assertFalse("An ordinary source must not be declared the first-page symbol",
+                    setCandidateViewportIfCurrent(before.revision, 1,
+                        intArrayOf(source.nativeIndex), source.nativeIndex))
+                val unchanged = getCandidateViewportSnapshot(CANDIDATE_LIMIT)
+                assertEquals(before.revision, unchanged.revision)
+                assertEquals(before.candidates.toList(), unchanged.candidates.toList())
+
+                assertTrue("The source-only first page must be accepted",
+                    setCandidateViewportIfCurrent(before.revision, 1, intArrayOf(source.nativeIndex), -1))
+                var after = getCandidateViewportSnapshot(CANDIDATE_LIMIT)
+                withTimeout(EVENT_TIMEOUT_MS) {
+                    while (after.revision == before.revision) {
+                        delay(10)
+                        after = getCandidateViewportSnapshot(CANDIDATE_LIMIT)
+                    }
+                }
+                assertTrue(after.foldingEnabled)
+                assertEquals("开始", after.candidates.first().text)
+                val choices = listOf("▶️", "🔛").map { text -> after.candidates.first { it.text == text } }
+                assertEquals("The unfolded choices must own distinct real native IDs", 2,
+                    choices.map { it.nativeIndex }.toSet().size)
+                assertEquals("Deferred choices must remain contiguous",
+                    choices.first().nativeIndex + 1, choices.last().nativeIndex)
+                choices.forEach { candidate ->
+                    assertTrue("The symbol must be outside the source-only page", candidate.nativeIndex > 0)
+                    assertEquals(after.candidates.first().nativeIndex, candidate.symbolSourceId)
+                    assertEquals(2, candidate.symbolCount)
+                    assertEquals(-1, candidate.selectionActionId)
+                    assertNull(candidate.actionSourceText)
+                    assertFalse("A real deferred choice must have no fold marker", candidate.comment.contains("…"))
+                    assertEquals(candidate.text, getCandidates(candidate.nativeIndex, 1).single().text)
+                    assertTrue("A real deferred choice must have no folded-symbol action",
+                        getCandidateActions(candidate.nativeIndex).none { it.icon == FOLDED_SYMBOL_ICON })
+                }
+                assertFalse("Applying the old snapshot again must be rejected",
+                    setCandidateViewportIfCurrent(before.revision, 1, intArrayOf(source.nativeIndex), -1))
+                assertEquals(after.revision, getCandidateViewportSnapshot(CANDIDATE_LIMIT).revision)
+                assertFalse("Viewport changes must retain the unfinished composition", isEmpty())
             }
-            assertFalse("An ordinary source must not be declared the first-page symbol",
-                setCandidateViewportIfCurrent(before.revision, 1,
-                    intArrayOf(source.nativeIndex), source.nativeIndex))
-            val unchanged = getCandidateViewportSnapshot(CANDIDATE_LIMIT)
-            assertEquals(before.revision, unchanged.revision)
-            assertEquals(before.candidates.toList(), unchanged.candidates.toList())
-
-            assertTrue("The source-only first page must be accepted",
-                setCandidateViewportIfCurrent(before.revision, 1, intArrayOf(source.nativeIndex), -1))
-            var after = getCandidateViewportSnapshot(CANDIDATE_LIMIT)
-            withTimeout(EVENT_TIMEOUT_MS) {
-                while (after.revision == before.revision) {
-                    delay(10)
-                    after = getCandidateViewportSnapshot(CANDIDATE_LIMIT)
+        } catch (error: Throwable) {
+            failure = error
+            throw error
+        } finally {
+            // The viewport capacity is runtime state of the input context and survives reset() and
+            // deactivate(); every test in this class reuses TEST_CONTEXT_UID. Restore the automatic
+            // policy (size 0, symbol index -2, as CandidatesView does) so later tests are not left
+            // with a one-candidate first page, which defers the emoji group with a "(开始)" comment.
+            withContext(NonCancellable) {
+                var cleanupFailure: Throwable? = null
+                var lastSnapshot: CandidateViewportSnapshot? = null
+                try {
+                    val restored = withTimeoutOrNull(EVENT_TIMEOUT_MS) {
+                        var accepted = false
+                        while (!accepted) {
+                            activate(TEST_CONTEXT_UID, "candidate-action-guard-test")
+                            setCapFlags(CapabilityFlags(CapabilityFlag.Preedit, CapabilityFlag.Sensitive))
+                            focus()
+                            activateIme(PINYIN)
+                            var snapshot = getCandidateViewportSnapshot(CANDIDATE_LIMIT)
+                            if (snapshot.candidates.isEmpty() || isEmpty()) {
+                                typePinyin("kaishi")
+                                snapshot = getCandidateViewportSnapshot(CANDIDATE_LIMIT)
+                            }
+                            lastSnapshot = snapshot
+                            accepted = setCandidateViewportIfCurrent(snapshot.revision, 0, intArrayOf(), -2)
+                            if (!accepted) delay(10)
+                        }
+                        true
+                    }
+                    assertTrue("Automatic viewport restoration timed out after $EVENT_TIMEOUT_MS ms " +
+                        "for context $TEST_CONTEXT_UID: $lastSnapshot", restored == true)
+                } catch (error: Throwable) {
+                    cleanupFailure = AssertionError(
+                        "Failed to restore the automatic candidate viewport for context $TEST_CONTEXT_UID", error)
+                } finally {
+                    try {
+                        reset()
+                    } catch (error: Throwable) {
+                        val resetFailure = AssertionError(
+                            "Failed to reset candidate viewport test context $TEST_CONTEXT_UID", error)
+                        cleanupFailure = cleanupFailure?.also { it.addSuppressed(resetFailure) } ?: resetFailure
+                    }
+                }
+                cleanupFailure?.let { error ->
+                    failure?.addSuppressed(error) ?: throw error
                 }
             }
-            assertTrue(after.foldingEnabled)
-            assertEquals("开始", after.candidates.first().text)
-            val choices = listOf("▶️", "🔛").map { text -> after.candidates.first { it.text == text } }
-            assertEquals("The unfolded choices must own distinct real native IDs", 2,
-                choices.map { it.nativeIndex }.toSet().size)
-            assertEquals("Deferred choices must remain contiguous",
-                choices.first().nativeIndex + 1, choices.last().nativeIndex)
-            choices.forEach { candidate ->
-                assertTrue("The symbol must be outside the source-only page", candidate.nativeIndex > 0)
-                assertEquals(after.candidates.first().nativeIndex, candidate.symbolSourceId)
-                assertEquals(2, candidate.symbolCount)
-                assertEquals(-1, candidate.selectionActionId)
-                assertNull(candidate.actionSourceText)
-                assertFalse("A real deferred choice must have no fold marker", candidate.comment.contains("…"))
-                assertEquals(candidate.text, getCandidates(candidate.nativeIndex, 1).single().text)
-                assertTrue("A real deferred choice must have no folded-symbol action",
-                    getCandidateActions(candidate.nativeIndex).none { it.icon == FOLDED_SYMBOL_ICON })
-            }
-            assertFalse("Applying the old snapshot again must be rejected",
-                setCandidateViewportIfCurrent(before.revision, 1, intArrayOf(source.nativeIndex), -1))
-            assertEquals(after.revision, getCandidateViewportSnapshot(CANDIDATE_LIMIT).revision)
-            assertFalse("Viewport changes must retain the unfinished composition", isEmpty())
         }
     }
 

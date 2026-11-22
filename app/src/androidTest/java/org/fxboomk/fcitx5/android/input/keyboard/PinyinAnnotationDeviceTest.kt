@@ -50,10 +50,10 @@ class PinyinAnnotationDeviceTest {
         annotationMode(PINYIN, ALL)
         reloadConfig()
         assertEquals(ALL, getImConfig(PINYIN)["cfg"]["PinyinAnnotation"].value)
-        val phrase = candidates("nihao").first { it.text == "你好" }
+        val phrase = requireCandidate("nihao", "你好", ALL)
         assertTrue("All candidates lost the ordinary phrase's pinyin", phrase.comment.isNotEmpty())
         annotationMode(PINYIN, NONE)
-        assertEquals("", candidates("nihao").first { it.text == "你好" }.comment)
+        assertEquals("", requireCandidate("nihao", "你好", NONE).comment)
     }
 
     @Test
@@ -154,6 +154,16 @@ class PinyinAnnotationDeviceTest {
             sendKey(key, states = KeyStates.Virtual.states, up = true)
         }
         return getCandidates(0, CANDIDATE_LIMIT).toList()
+    }
+
+    /** Like `candidates(input).first { it.text == word }`, but a miss reports the engine state. */
+    private suspend fun FcitxAPI.requireCandidate(input: String, word: String, mode: String): CandidateWord {
+        val list = candidates(input)
+        list.firstOrNull { it.text == word }?.let { return it }
+        val message = "Missing '$word' for '$input' in annotation mode '$mode': " +
+            engineStateDiagnostics(PINYIN, list)
+        reportEngineState(message)
+        throw AssertionError(message)
     }
 
     private fun withIme(name: String, body: suspend FcitxAPI.() -> Unit) = runBlocking {

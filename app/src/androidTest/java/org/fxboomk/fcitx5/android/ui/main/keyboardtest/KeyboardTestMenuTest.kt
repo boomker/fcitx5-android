@@ -54,12 +54,11 @@ class KeyboardTestMenuTest {
     }
 
     @Test
-    fun returningToAppearanceHomeRemovesTheSubpageAction() = withMainActivity(SettingsRoute.Theme) { activity ->
-        instrumentation.waitForIdleSync()
-        onMain {
-            assertNull(toolbar(activity).menu.findItem(R.id.keyboard_test_entry))
+    fun appearanceHomeKeepsExactlyOneKeyboardTestActionAfterMenuRebuilds() =
+        withMainActivity(SettingsRoute.Theme) { activity ->
+            // The appearance home page exposes the keyboard test entry as well (a57a0a10c).
+            verifyKeyboardActionAcrossRebuilds(activity)
         }
-    }
 
     @Test
     fun buttonsAndIconsKeepsSaveThenKeyboardTestThenMoreAsIcons() =

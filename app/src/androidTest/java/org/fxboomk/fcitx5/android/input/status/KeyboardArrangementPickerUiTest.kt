@@ -52,12 +52,20 @@ import org.fxboomk.fcitx5.android.ui.main.settings.behavior.TextKeyboardLayoutEd
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.data.LayoutDataManager
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.dialog.TextKeyboardLayoutProfilePickerDialog
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.utils.LayoutJsonUtils
+import org.fxboomk.fcitx5.android.testing.RequireDefaultImeRule
 import org.junit.Assert.*
+import org.junit.ClassRule
 import org.junit.Test
 import java.io.File
 import java.util.UUID
 
 class KeyboardArrangementPickerUiTest {
+    companion object {
+        @ClassRule
+        @JvmField
+        val defaultIme = RequireDefaultImeRule()
+    }
+
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
     private val context = instrumentation.targetContext
 

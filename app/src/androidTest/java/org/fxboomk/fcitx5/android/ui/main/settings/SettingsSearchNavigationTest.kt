@@ -124,16 +124,24 @@ class SettingsSearchNavigationTest {
 
             // The preferences tab of the custom shuangpin page shows the configuration of
             // the pinyin addon, it is only indexed when that addon provides a description.
+            // Scheme input methods use the sectioned pinyin layout (sectionNavigation, with an
+            // "Other" fallback), so the preferences tab is a list of sections and every option
+            // is indexed under the section page it opens, exactly as
+            // CustomShuangpinPreferencesFragment.getConfigSectionRoute navigates. No option keeps
+            // the bare CustomShuangpin route any more.
+            val customName = CustomShuangpinSchemeStore.currentUniqueName()
             val hasDescription = fcitxConnection.runOnReady {
-                getImConfig(CustomShuangpinSchemeStore.currentUniqueName())
-                    .findByName("desc") != null
+                getImConfig(customName).findByName("desc") != null
             }
             if (hasDescription) {
                 assertTrue(
                     "no entry for the custom shuangpin preferences tab",
                     items.any {
-                        it.route == SettingsRoute.CustomShuangpin &&
-                            it.tab == CustomShuangpinFragment.TAB_PREFERENCES
+                        when (val route = it.route) {
+                            is SettingsRoute.ConfigSection -> route.uniqueName == customName && !route.isAddon
+                            is SettingsRoute.FuzzyConfig -> route.uniqueName == customName && !route.isAddon
+                            else -> false
+                        }
                     }
                 )
             }

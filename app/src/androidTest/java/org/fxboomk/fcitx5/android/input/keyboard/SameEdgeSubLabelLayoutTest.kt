@@ -102,7 +102,12 @@ class SameEdgeSubLabelLayoutTest {
                                         val room =
                                             contentHeight - main.height() - (subBottom - key.vMargin)
                                         if (room >= 2 * dp(2)) {
-                                            assertTrue(case, above >= dp(2) - 1)
+                                            // The geometry already reserves dp(2) - 1 from Paint
+                                            // bounds; allow one more pixel for the antialiased Canvas
+                                            // ink measured here, as RemainingSpaceSubLabelLayoutTest does.
+                                            val minimumInkGap = (dp(2) - 2).coerceAtLeast(0)
+                                            assertTrue("$case: above=$above min=$minimumInkGap room=$room",
+                                                above >= minimumInkGap)
                                         } else {
                                             assertTrue(case, above >= 1)
                                         }

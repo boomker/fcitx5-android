@@ -38,7 +38,9 @@ import org.fxboomk.fcitx5.android.input.wm.InputWindowManager
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.TextKeyboardLayoutProfileManagerActivity
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.data.LayoutDataManager
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.utils.TextKeyboardLayoutProfileOrder
+import org.fxboomk.fcitx5.android.testing.RequireDefaultImeRule
 import org.junit.Assert.*
+import org.junit.ClassRule
 import org.junit.Test
 import java.util.UUID
 import java.util.concurrent.CountDownLatch
@@ -46,6 +48,12 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
 
 class KeyboardLayoutProfileWindowTest {
+    companion object {
+        @ClassRule
+        @JvmField
+        val defaultIme = RequireDefaultImeRule()
+    }
+
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
     private val context = instrumentation.targetContext
 

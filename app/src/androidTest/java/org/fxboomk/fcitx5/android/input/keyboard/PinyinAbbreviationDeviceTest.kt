@@ -347,7 +347,12 @@ class PinyinAbbreviationDeviceTest {
                     try {
                         layouts.setValue(originalLayouts - name)
                         if (fresh) {
-                            File(root, "config/conf/pinyin/$name.conf").let { if (it.exists()) assertTrue(it.delete()) }
+                            // Per-IM configs are seeded from the global pinyin.conf (see
+                            // PinyinEngine::ensurePerImConfig), so deleting only the per-IM file
+                            // still inherits the device's global settings. Both files are backed
+                            // up in originalFiles and restored in the finally block.
+                            listOf(File(root, "config/conf/pinyin.conf"), File(root, "config/conf/pinyin/$name.conf"))
+                                .forEach { if (it.exists()) assertTrue(it.delete()) }
                             reloadConfig()
                         }
                         setEnabledIme((listOf("keyboard-us") + enabled + name).distinct().toTypedArray())

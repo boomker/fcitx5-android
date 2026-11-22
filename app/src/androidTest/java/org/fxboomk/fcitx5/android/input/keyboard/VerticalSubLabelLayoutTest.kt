@@ -74,12 +74,16 @@ class VerticalSubLabelLayoutTest {
         assertTrue(key.mainText.useGlyphBounds)
         assertEquals(0, (key.mainText.layoutParams as ConstraintLayout.LayoutParams).height)
         assertEquals(View.GONE, key.altText1.visibility)
+        // Since d1f167f60 the visible main glyph is centred on the key face (clamped and scaled
+        // to keep its clearance), not balanced in the space left below the label.
         val mainInk = inkBounds(key.mainText)
         assertEquals(
-            (mainInk.top - inkBounds(key.altText).bottom).toFloat(),
-            (key.getChildAt(0).height - key.vMargin - mainInk.bottom).toFloat(),
+            "Visible main glyph must stay on the key-face centre",
+            key.getChildAt(0).height / 2f,
+            (mainInk.top + mainInk.bottom) / 2f,
             2f
         )
+        assertTrue("Main glyph must clear the top label", mainInk.top - inkBounds(key.altText).bottom >= 1)
 
         ThemeManager.prefs.punctuationPosition.setValue(PunctuationPosition.None)
         layoutKey(key, heightDp = 52)
@@ -100,13 +104,15 @@ class VerticalSubLabelLayoutTest {
         assertEquals(edgeInset.toFloat(), topInk.top.toFloat(), 1f)
         assertEquals((appearanceHeight - edgeInset).toFloat(), bottomInk.bottom.toFloat(), 1f)
         // 本测试的行高在 2.4x 字号下全部等效短行（60/32/48dp → ~25/13/20dp），
-        // 只要求三个标签互不贴住（≥1px 墨迹间隙）；间距平衡由下方断言约束
+        // 只要求三个标签互不贴住（≥1px 墨迹间隙）；主标签居中于键面由下方断言约束
         assertTrue("Top label must leave room for main text: $mainInk/$topInk", mainInk.top - topInk.bottom >= 1)
         assertTrue("Bottom label must leave room for main text: $mainInk/$bottomInk", bottomInk.top - mainInk.bottom >= 1)
+        // Since d1f167f60 the main glyph is centred on the key face rather than between the two
+        // sublabels, so the gaps differ whenever the top and bottom labels have different ink heights.
         assertEquals(
-            "Visible main glyph must balance the gaps between the sublabels",
-            (mainInk.top - topInk.bottom).toFloat(),
-            (bottomInk.top - mainInk.bottom).toFloat(),
+            "Visible main glyph must stay on the key-face centre",
+            appearanceHeight / 2f,
+            (mainInk.top + mainInk.bottom) / 2f,
             2f
         )
     }

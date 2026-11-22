@@ -8,7 +8,6 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.os.SystemClock
-import android.provider.Settings
 import android.view.View
 import android.view.WindowManager
 import android.view.inspector.WindowInspector
@@ -21,23 +20,27 @@ import org.fxboomk.fcitx5.android.data.theme.ThemeManager
 import org.fxboomk.fcitx5.android.data.theme.ThemePreset
 import org.fxboomk.fcitx5.android.ui.main.MainActivity
 import org.fxboomk.fcitx5.android.ui.main.keyboardtest.KeyboardTestDialog
+import org.fxboomk.fcitx5.android.testing.RequireDefaultImeRule
 import org.junit.Assert.*
 import org.junit.Assume.assumeTrue
+import org.junit.ClassRule
 import org.junit.Test
 import java.io.File
 
-/** Requires this app enabled as an IME. Restores the selection and all values it changes. */
+/** Exercises the real IME; the class rule manages IME selection, this test restores its UI values. */
 @SdkSuppress(minSdkVersion = 31)
 class KeyboardGlassImeTest {
+    companion object {
+        @ClassRule
+        @JvmField
+        val defaultIme = RequireDefaultImeRule()
+    }
+
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
     private val context = instrumentation.targetContext
 
     @Test
     fun realImeGlassTracksKeyboardAndRestoresOpaqueBackgroundWhenBlurIsDisabled() {
-        val originalIme = Settings.Secure.getString(context.contentResolver, Settings.Secure.DEFAULT_INPUT_METHOD)
-        val testIme = context.packageName + "/" + FcitxInputMethodService::class.java.name
-        assumeTrue(context.getSystemService(android.view.inputmethod.InputMethodManager::class.java)
-            .enabledInputMethodList.any { it.id == testIme })
         val manager = context.getSystemService(WindowManager::class.java)
         assumeTrue(manager.isCrossWindowBlurEnabled)
         val prefs = ThemeManager.prefs
@@ -57,9 +60,6 @@ class KeyboardGlassImeTest {
         try {
             activity = instrumentation.startActivitySync(
                 Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) as MainActivity
-            // Selecting after instrumentation starts avoids binding the IME to the process
-            // that Android stopped when launching this test runner.
-            shell("ime set " + testIme)
             onMain {
                 prefs.followSystemDayNightTheme.setValue(false)
                 ThemeManager.setNormalModeTheme(ThemePreset.MaterialLight)
@@ -136,7 +136,6 @@ class KeyboardGlassImeTest {
                 }.commit()
                 activity?.finish()
             }
-            shell("ime set " + originalIme)
         }
     }
 

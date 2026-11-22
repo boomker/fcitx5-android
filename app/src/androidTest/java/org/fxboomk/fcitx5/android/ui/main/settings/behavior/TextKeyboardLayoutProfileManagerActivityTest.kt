@@ -23,16 +23,24 @@ import org.fxboomk.fcitx5.android.input.keyboard.ShuangpinKeyboardLayout
 import org.fxboomk.fcitx5.android.input.keyboard.ShuangpinKeyboardLayouts
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.data.LayoutDataManager
 import org.fxboomk.fcitx5.android.ui.main.settings.behavior.data.LayoutHeightPercentOverrides
+import org.fxboomk.fcitx5.android.testing.RequireDefaultImeRule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
+import org.junit.ClassRule
 import org.junit.Test
 import splitties.resources.styledColor
 import java.io.File
 import java.util.UUID
 
 class TextKeyboardLayoutProfileManagerActivityTest {
+    companion object {
+        @ClassRule
+        @JvmField
+        val defaultIme = RequireDefaultImeRule()
+    }
+
     @Test
     fun targetProfileExpandsWithoutChangingTheActiveProfileOrOtherSettings() = withProfiles { profiles, files ->
         val prefs = AppPrefs.getInstance().keyboard

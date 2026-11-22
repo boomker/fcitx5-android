@@ -53,11 +53,13 @@ import org.fxboomk.fcitx5.android.input.candidates.horizontal.HorizontalCandidat
 import org.fxboomk.fcitx5.android.input.editing.GestureEditingTestActivity
 import org.fxboomk.fcitx5.android.input.keyboard.KeyboardWindow
 import org.fxboomk.fcitx5.android.input.wm.InputWindowManager
+import org.fxboomk.fcitx5.android.testing.RequireDefaultImeRule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.ClassRule
 import org.junit.Test
 
 /** Exercises the actual candidate row, expanded adapter and click binding. */
@@ -668,7 +670,11 @@ class CandidateExpansionUiTest {
 
     private fun onMain(block: () -> Unit) = instrumentation.runOnMainSync(block)
 
-    private companion object {
-        val CHA_SYMBOLS = setOf("👎", "🍵", "❌", "❎")
+    companion object {
+        @ClassRule
+        @JvmField
+        val defaultIme = RequireDefaultImeRule()
+
+        private val CHA_SYMBOLS = setOf("👎", "🍵", "❌", "❎")
     }
 }

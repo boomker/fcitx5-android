@@ -572,6 +572,11 @@ class ShuangpinCorrectionLearningTest {
                     }
                     getOrCreate("Learning").value = if (learning) "True" else "False"
                     getOrCreate("PartialSpLength").value = "2"
+                    // Corrections carry "(pinyin)" only when the annotation option allows it; the default
+                    // became "Only rare characters" in 1625b5563, after these tests were written. The
+                    // group assertions and CandidateIdentity(text, comment) rely on the pinyin, so pin the
+                    // mode the tests were designed for.
+                    getOrCreate("PinyinAnnotation").value = "Always show"
                     getOrCreate("Fuzzy").apply {
                         subItems?.forEach { option ->
                             if (option.value == "True" || option.value == "False") option.value = "False"
@@ -645,9 +650,18 @@ class ShuangpinCorrectionLearningTest {
         }
 
         suspend fun initialCorrection(code: String = CODE): CandidateIdentity {
-            val candidates = candidates(code)
+            // Same steps as candidates(code); a failure snapshot is taken in the same block so it
+            // reflects the state that produced this list.
+            val (candidates, state) = api {
+                reset()
+                typeCode(code)
+                val list = allCandidates()
+                list to if (list.count { it.isFallback } != 1) engineStateDiagnostics(activeScheme, list) else null
+            }
             val corrections = candidates.withIndex().filter { it.value.isFallback }
-            assertEquals("Expected one default-placement correction for $activeScheme/$code: $candidates", 1, corrections.size)
+            if (state != null) reportEngineState("initialCorrection $activeScheme/$code: $state")
+            assertEquals("Expected one default-placement correction for $activeScheme/$code: ${state ?: candidates}",
+                1, corrections.size)
             val correction = corrections.single()
             assertEquals("The default correction was not at the native first-page tail",
                 minOf(4, candidates.lastIndex), correction.index)
