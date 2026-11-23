@@ -6,6 +6,8 @@ package org.fxboomk.fcitx5.android.input.keyboard
 
 import android.content.Intent
 import android.graphics.Rect
+import android.graphics.Typeface
+import android.os.Bundle
 import android.text.InputType
 import android.util.Log
 import android.view.View
@@ -17,6 +19,7 @@ import android.widget.LinearLayout
 import androidx.core.view.allViews
 import androidx.recyclerview.widget.RecyclerView
 import androidx.test.platform.app.InstrumentationRegistry
+import com.google.android.flexbox.FlexboxLayoutManager
 import java.io.File
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.NonCancellable
@@ -29,6 +32,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.serialization.json.Json
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.core.CandidateWord
 import org.fxboomk.fcitx5.android.core.CapabilityFlag
@@ -40,10 +44,14 @@ import org.fxboomk.fcitx5.android.core.KeySym
 import org.fxboomk.fcitx5.android.core.RawConfig
 import org.fxboomk.fcitx5.android.daemon.FcitxConnection
 import org.fxboomk.fcitx5.android.daemon.FcitxDaemon
+import org.fxboomk.fcitx5.android.data.pinyin.CustomShuangpinScheme
+import org.fxboomk.fcitx5.android.data.pinyin.CustomShuangpinSchemeStore
+import org.fxboomk.fcitx5.android.data.pinyin.ShuangpinLayoutKeys
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.input.FcitxInputMethodService
 import org.fxboomk.fcitx5.android.input.InputView
 import org.fxboomk.fcitx5.android.input.candidates.CandidateViewHolder
+import org.fxboomk.fcitx5.android.input.candidates.expanded.decoration.FlexboxVerticalDecoration
 import org.fxboomk.fcitx5.android.input.candidates.expanded.window.BaseExpandedCandidateWindow
 import org.fxboomk.fcitx5.android.input.candidates.floating.FloatingCandidatesMode
 import org.fxboomk.fcitx5.android.input.candidates.horizontal.HorizontalCandidateMode
@@ -51,6 +59,7 @@ import org.fxboomk.fcitx5.android.input.candidates.horizontal.HorizontalCandidat
 import org.fxboomk.fcitx5.android.input.editing.GestureEditingTestActivity
 import org.fxboomk.fcitx5.android.input.font.FontProviderApi
 import org.fxboomk.fcitx5.android.input.font.FontProviders
+import org.fxboomk.fcitx5.android.input.config.UserConfigFiles
 import org.fxboomk.fcitx5.android.input.wm.InputWindowManager
 import org.fxboomk.fcitx5.android.testing.RequireDefaultImeRule
 import org.junit.Assert.assertArrayEquals
@@ -215,13 +224,161 @@ class ShuangpinAbbreviationRankingTest {
         }
     }
 
-    private suspend fun withEditor(scene: Scene, body: suspend (UiSession) -> Unit) {
+    @Test
+    fun customShuangpinFillsWideRowAndPreservesExpandedNativeIndices() {
+        val scheme = InstrumentationRegistry.getInstrumentation().context.assets
+            .open("shuangpin/swan.json").bufferedReader().use { reader ->
+                Json.decodeFromString<CustomShuangpinScheme>(reader.readText())
+            }
+        assertEquals("swan", scheme.id)
+        assertEquals("*", scheme.zeroInitial)
+        withIsolatedLearning(customScheme = scheme) { scene ->
+            withEditor(scene, rowWidthDp = 300, fontSizeSp = 20f,
+                candidateStyle = HorizontalCandidateMode.AutoFillWidth, maxSpanCount = 6) { ui ->
+                ui.type("wm")
+                val diagnosticNative = scene.api { allCandidates() }
+                val bestText = diagnosticNative.bestAbbreviation().text
+                assertTrue("The custom wm fixture has no alternatives", diagnosticNative.any {
+                    it.isAbbreviation && !it.isBestAbbreviation
+                })
+                val stableRow = ui.awaitStableRow("custom wm alternatives fill the row; native=${diagnosticNative.take(24)}") {
+                    it.candidates.size > 2 &&
+                        it.candidates.any { candidate -> candidate.isAbbreviation && !candidate.isBestAbbreviation } &&
+                        it.candidates.any { candidate -> candidate.text == bestText && candidate.isBestAbbreviation }
+                }
+                // Applying the viewport can rebuild folded symbols and their
+                // bulk indices. Compare the displayed row against that live projection.
+                val native = scene.api { allCandidates() }
+                val best = native.bestAbbreviation()
+                val viewport = scene.api { getCandidateViewportSnapshot(native.size) }
+                assertEquals("The native projection changed after the stable row was captured", stableRow.revision, viewport.revision)
+                var firstRow = emptyList<CandidateWord>()
+                onMain {
+                    val visible = ui.visibleHolders()
+                    val adapter = ui.row.adapter as HorizontalCandidateViewAdapter
+                    assertEquals("The bound row changed while reading its native projection", stableRow,
+                        ui.boundRowSnapshot(viewport.revision))
+                    assertTrue("The final visible best no longer matches the live native identity", visible.any {
+                        it.idx == best.nativeIndex && it.text == best.text && it.candidate.isBestAbbreviation
+                    })
+                    assertEquals("The row hid a candidate after fitting it", adapter.itemCount, visible.size)
+                    firstRow = visible.map { it.candidate }
+                    assertTrue("A displayed candidate lost its native identity", visible.all {
+                        it.idx == it.candidate.nativeIndex && it.idx >= 0
+                    })
+                    val firstIndices = firstRow.map { it.nativeIndex }.toSet()
+                    val next = viewport.candidates.firstOrNull {
+                        it.nativeIndex !in firstIndices && it.symbolSourceId < 0 && !it.isDeferredFallback
+                    }
+                    val dividerWidth = (0 until ui.row.itemDecorationCount).map { ui.row.getItemDecorationAt(it) }
+                        .filterIsInstance<FlexboxVerticalDecoration>().sumOf { it.drawable.intrinsicWidth }
+                    val usedWidth = visible.sumOf {
+                        val params = it.itemView.layoutParams as FlexboxLayoutManager.LayoutParams
+                        it.itemView.width + params.leftMargin + params.rightMargin + dividerWidth
+                    }
+                    val availableWidth = ui.row.width - ui.row.paddingLeft - ui.row.paddingRight
+                    val nextWidth = next?.let { candidate ->
+                        val holder = adapter.onCreateViewHolder(ui.row, adapter.getItemViewType(0))
+                        holder.update(candidate.nativeIndex, candidate)
+                        holder.ui.text.typeface = visible.first().ui.text.typeface
+                        holder.ui.text.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, visible.first().ui.text.textSize)
+                        holder.itemView.minimumWidth = maxOf(holder.itemView.minimumWidth, visible.maxOf {
+                            (it.itemView.layoutParams as FlexboxLayoutManager.LayoutParams).minWidth
+                        })
+                        val unspecified = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+                        holder.itemView.measure(unspecified, unspecified)
+                        holder.itemView.measuredWidth + dividerWidth
+                    }
+                    val metrics = "custom wm row=${firstRow.map { it.text }}; " +
+                        "rowWidth=${ui.row.width}; usedWidth=$usedWidth; nextWidth=$nextWidth; revision=${viewport.revision}"
+                    Log.i("ShuangpinAbbreviationTest", metrics)
+                    InstrumentationRegistry.getInstrumentation().sendStatus(2, Bundle().apply {
+                        putString("stream", "\n$metrics\n")
+                    })
+                    assertTrue("The candidate row left enough room for the next ordinary candidate: " +
+                        "row=${firstRow.map { it.text }}; available=$availableWidth; used=$usedWidth; " +
+                        "next=${next?.text}; nextWidth=$nextWidth",
+                        visible.size >= 6 || nextWidth == null || usedWidth + nextWidth > availableWidth)
+                }
+                val firstIndices = firstRow.map { it.nativeIndex }.toSet()
+                val firstHidden = native.firstOrNull { it.nativeIndex !in firstIndices }?.nativeIndex ?: native.size
+                val exclusions = firstIndices.filter { it >= firstHidden }.sorted().toIntArray()
+                val remaining = scene.api {
+                    buildList {
+                        do {
+                            val page = getExpandedCandidates(firstHidden + size, CANDIDATE_LIMIT, firstHidden, exclusions)
+                            addAll(page)
+                        } while (page.size == CANDIDATE_LIMIT)
+                    }
+                }
+                // Folded symbol actions may share their source's native index.
+                // The ordinary candidate identities must still occur exactly once.
+                val baseRemaining = remaining.filter { it.selectionActionId < 0 }
+                val visited = firstRow.map { it.nativeIndex } + baseRemaining.map { it.nativeIndex }
+                assertEquals("The row/expanded boundary lost a native candidate",
+                    native.map { it.nativeIndex }.sorted(), visited.sorted())
+                assertEquals("The row/expanded boundary repeated a native candidate", visited.size, visited.distinct().size)
+                val expanded = ui.expand()
+                ui.awaitRow("expanded custom candidates") { expanded.adapter.snapshot().items.isNotEmpty() }
+                onMain {
+                    val shown = expanded.adapter.snapshot().items
+                    val identities = shown.map { it.nativeIndex to it.selectionActionId }
+                    assertEquals("The actual expanded UI started at a different native boundary",
+                        remaining.take(shown.size).map { it.nativeIndex to it.selectionActionId }, identities)
+                    assertEquals("The expanded UI repeated a candidate or folded action", identities.size, identities.distinct().size)
+                    ui.windowManager.attachWindow(KeyboardWindow)
+                }
+                ui.type("wm")
+                val selectableRow = ui.awaitStableRow("a selectable custom wm alternative after expansion") {
+                    it.candidates.any { candidate -> candidate.isAbbreviation && !candidate.isBestAbbreviation }
+                }
+                assertEquals("The native projection changed before selecting the alternative", selectableRow.revision,
+                    scene.api { getCandidateViewportSnapshot(1).revision })
+                val flow = scene.api { eventFlow }
+                var selectedText = ""
+                coroutineScope {
+                    val commit = async(start = CoroutineStart.UNDISPATCHED) {
+                        withTimeout(EVENT_TIMEOUT_MS) {
+                            flow.filterIsInstance<FcitxEvent.CommitStringEvent>().first().data.text
+                        }
+                    }
+                    onMain {
+                        assertEquals("The bound alternative changed before its click", selectableRow,
+                            ui.boundRowSnapshot(selectableRow.revision))
+                        val holder = ui.visibleHolders().first {
+                            it.candidate.isAbbreviation && !it.candidate.isBestAbbreviation
+                        }
+                        selectedText = holder.text
+                        assertEquals(holder.candidate.nativeIndex, holder.idx)
+                        assertTrue("The custom alternative did not accept its click", holder.itemView.performClick())
+                    }
+                    assertEquals(selectedText, commit.await())
+                }
+                awaitUi("the custom alternative committed to the real editor", { ui.editorDiagnostics() }) {
+                    ui.editor.text.toString() == selectedText &&
+                        BaseInputConnection.getComposingSpanStart(ui.editor.text) == -1 &&
+                        BaseInputConnection.getComposingSpanEnd(ui.editor.text) == -1
+                }
+            }
+        }
+    }
+
+    private suspend fun withEditor(
+        scene: Scene,
+        rowWidthDp: Int = 140,
+        fontSizeSp: Float = 48f,
+        candidateStyle: HorizontalCandidateMode = HorizontalCandidateMode.NeverFillWidth,
+        maxSpanCount: Int? = null,
+        body: suspend (UiSession) -> Unit,
+    ) {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val context = instrumentation.targetContext
         val prefs = AppPrefs.getInstance()
         val originalMode = prefs.candidates.mode.getValue()
         val originalStyle = prefs.keyboard.horizontalCandidateStyle.getValue()
         val originalDynamicHeight = prefs.keyboard.toolbarDynamicHeight.getValue()
+        val originalPortraitSpanCount = prefs.keyboard.expandedCandidateGridSpanCount.getValue()
+        val originalLandscapeSpanCount = prefs.keyboard.expandedCandidateGridSpanCountLandscape.getValue()
         val originalFontProvider = FontProviders.provider
         var activity: GestureEditingTestActivity? = null
         var ui: UiSession? = null
@@ -229,12 +386,16 @@ class ShuangpinAbbreviationRankingTest {
         try {
             onMain {
                 prefs.candidates.mode.setValue(FloatingCandidatesMode.InputDevice)
-                prefs.keyboard.horizontalCandidateStyle.setValue(HorizontalCandidateMode.NeverFillWidth)
+                prefs.keyboard.horizontalCandidateStyle.setValue(candidateStyle)
+                maxSpanCount?.let {
+                    prefs.keyboard.expandedCandidateGridSpanCount.setValue(it)
+                    prefs.keyboard.expandedCandidateGridSpanCountLandscape.setValue(it)
+                }
                 prefs.keyboard.toolbarDynamicHeight.setValue(true)
                 FontProviders.provider = object : FontProviderApi by originalFontProvider {
                     override fun clearCache() = Unit
                     override val fontSizeMap = originalFontProvider.fontSizeMap.toMutableMap().apply {
-                        put("cand_font_size", 48f)
+                        put("cand_font_size", fontSizeSp)
                     }
                 }
                 FontProviders.markNeedsRefresh()
@@ -263,7 +424,7 @@ class ShuangpinAbbreviationRankingTest {
                 .get(inputView) as InputWindowManager
             instrumentation.waitForIdleSync()
             scene.api {
-                activateIme(XIAOHE)
+                activateIme(scene.inputMethodName)
                 setCapFlags(CapabilityFlags(CapabilityFlag.Preedit, CapabilityFlag.ClientSideInputPanel, CapabilityFlag.Sensitive))
                 reset()
                 setCompact(false)
@@ -277,7 +438,7 @@ class ShuangpinAbbreviationRankingTest {
             }
             val originalParams = row.layoutParams as LinearLayout.LayoutParams
             ui = UiSession(scene, editor, inputView, row, windowManager, originalParams)
-            val width = (140 * context.resources.displayMetrics.density).toInt()
+            val width = (rowWidthDp * context.resources.displayMetrics.density).toInt()
             onMain {
                 row.layoutParams = LinearLayout.LayoutParams(originalParams).apply { this.width = width; weight = 0f }
                 row.requestLayout()
@@ -305,6 +466,8 @@ class ShuangpinAbbreviationRankingTest {
                     FontProviders.markNeedsRefresh()
                     prefs.keyboard.toolbarDynamicHeight.setValue(originalDynamicHeight)
                     prefs.keyboard.horizontalCandidateStyle.setValue(originalStyle)
+                    prefs.keyboard.expandedCandidateGridSpanCount.setValue(originalPortraitSpanCount)
+                    prefs.keyboard.expandedCandidateGridSpanCountLandscape.setValue(originalLandscapeSpanCount)
                     prefs.candidates.mode.setValue(originalMode)
                 }
                 instrumentation.waitForIdleSync()
@@ -312,6 +475,18 @@ class ShuangpinAbbreviationRankingTest {
             }
         }
     }
+
+    private data class CandidateRowSnapshot(
+        val revision: Long,
+        val width: Int,
+        val height: Int,
+        val padding: List<Int>,
+        val candidates: List<CandidateWord>,
+        val indices: List<Int>,
+        val bounds: List<Rect>,
+        val textSizes: List<Float>,
+        val typefaces: List<Typeface?>,
+    )
 
     private class UiSession(
         private val scene: Scene,
@@ -332,7 +507,7 @@ class ShuangpinAbbreviationRankingTest {
             }
             scene.awaitRealEditorInputMethod()
             scene.typeRealEditorCode(code)
-            awaitRow("visible narrow $code candidates") {
+            awaitRow("visible $code candidates") {
                 row.isShown && row.width in 1..(row.layoutParams.width + 2) &&
                     visibleHolders().isNotEmpty()
             }
@@ -365,10 +540,83 @@ class ShuangpinAbbreviationRankingTest {
             }
         }
 
+        fun boundRowSnapshot(revision: Long): CandidateRowSnapshot? {
+            if (!row.isShown || !row.isAttachedToWindow || row.isComputingLayout || row.width <= 0) return null
+            val adapter = row.adapter as? HorizontalCandidateViewAdapter ?: return null
+            val visible = visibleHolders()
+            if (visible.isEmpty() || visible.size != adapter.itemCount) return null
+            val candidates = adapter.candidates.toList()
+            if (visible.indices.any { index ->
+                visible[index].candidate != candidates[index] ||
+                    visible[index].idx != candidates[index].nativeIndex || visible[index].idx < 0
+            }) return null
+            return CandidateRowSnapshot(revision, row.width, row.height,
+                listOf(row.paddingLeft, row.paddingTop, row.paddingRight, row.paddingBottom),
+                candidates, visible.map { it.idx },
+                visible.map { Rect(it.itemView.left, it.itemView.top, it.itemView.right, it.itemView.bottom) },
+                visible.map { it.ui.text.textSize }, visible.map { it.ui.text.typeface })
+        }
+
+        suspend fun awaitStableRow(
+            label: String,
+            predicate: (CandidateRowSnapshot) -> Boolean,
+        ): CandidateRowSnapshot {
+            var latest: CandidateRowSnapshot? = null
+            var previous: CandidateRowSnapshot? = null
+            var consecutive = 0
+            var previousLayoutState = ""
+            val result = withTimeoutOrNull(EVENT_TIMEOUT_MS) {
+                var ready: CandidateRowSnapshot? = null
+                while (ready == null) {
+                    val revisionBefore = scene.api { getCandidateViewportSnapshot(1).revision }
+                    onMain {
+                        latest = boundRowSnapshot(revisionBefore)
+                        val layoutState = layoutDiagnostics()
+                        if (layoutState != previousLayoutState) {
+                            Log.i("ShuangpinAbbreviationTest", "custom wm layout: $layoutState; " +
+                                "bound=${visibleHolders().map { it.idx to it.candidate.text }}")
+                            previousLayoutState = layoutState
+                        }
+                    }
+                    val revisionAfter = scene.api { getCandidateViewportSnapshot(1).revision }
+                    val captured = latest
+                    if (revisionBefore > 0 && revisionBefore == revisionAfter && captured != null && predicate(captured)) {
+                        consecutive = if (captured == previous) consecutive + 1 else 1
+                        previous = captured
+                        if (consecutive >= 3) ready = captured
+                    } else {
+                        consecutive = 0
+                        previous = null
+                    }
+                    if (ready == null) delay(25)
+                }
+                ready
+            }
+            onMain {
+                assertTrue("Expected stable $label: ${layoutDiagnostics()}; latest=$latest", result != null)
+            }
+            return requireNotNull(result)
+        }
+
+        fun layoutDiagnostics(): String {
+            fun field(name: String): Any? = runCatching {
+                RecyclerView::class.java.getDeclaredField(name).apply { isAccessible = true }.get(row)
+            }.getOrElse { "unavailable:${it.javaClass.simpleName}" }
+            val adapterQueue = runCatching {
+                val helper = requireNotNull(field("mAdapterHelper"))
+                helper.javaClass.getDeclaredMethod("hasPendingUpdates").apply { isAccessible = true }.invoke(helper)
+            }.getOrElse { "unavailable:${it.javaClass.simpleName}" }
+            return "pending=${row.hasPendingAdapterUpdates()}; computingLayout=${row.isComputingLayout}; " +
+                "layoutRequested=${row.isLayoutRequested}; firstLayoutComplete=${field("mFirstLayoutComplete")}; " +
+                "dataSetChangedAfterLayout=${field("mDataSetHasChangedAfterLayout")}; adapterQueue=$adapterQueue"
+        }
+
         suspend fun awaitRow(label: String, predicate: () -> Boolean) = awaitUi(label, {
             "width=${row.width}; height=${row.height}; requestedWidth=${row.layoutParams.width}; " +
                 "visibility=${row.visibility}; shown=${row.isShown}; attached=${row.isAttachedToWindow}; " +
-                "visible=${visibleHolders().map { it.candidate }}"
+                "${layoutDiagnostics()}; " +
+                "adapter=${(row.adapter as? HorizontalCandidateViewAdapter)?.candidates?.toList()}; " +
+                "visible=${visibleHolders().map { "${it.candidate}; itemWidth=${it.itemView.width}; textSize=${it.ui.text.textSize}" }}"
         }, predicate)
 
         suspend fun expand(): BaseExpandedCandidateWindow<*> {
@@ -382,28 +630,45 @@ class ShuangpinAbbreviationRankingTest {
         }
     }
 
-    private fun withIsolatedLearning(body: suspend (Scene) -> Unit) = runBlocking {
+    private fun withIsolatedLearning(
+        customScheme: CustomShuangpinScheme? = null,
+        body: suspend (Scene) -> Unit,
+    ) = runBlocking {
         val client = "ShuangpinAbbreviationRankingTest"
         val connection = FcitxDaemon.connect(client)
         var originals: Map<File, ByteArray?>? = null
         var stopped = false
+        var originalCustomScheme: CustomShuangpinScheme? = null
+        var originalCustomEntries = emptyList<File>()
         try {
             withTimeout(READY_TIMEOUT_MS) { connection.runOnReady { assertTrue(isReady) } }
             val storage = InstrumentationRegistry.getInstrumentation().targetContext
                 .createDeviceProtectedStorageContext()
             val root = storage.getExternalFilesDir(null) ?: storage.filesDir
-            val scene = Scene(connection)
+            val scene = Scene(connection,
+                customScheme?.let { CustomShuangpinSchemeStore.uniqueNameFor(it.id) } ?: XIAOHE,
+                customScheme != null)
             // Stop first: the backup must include learning still pending in memory.
             FcitxDaemon.stopFcitx()
             stopped = true
             val configDirectory = File(root, "config/conf/pinyin")
             val learningFiles = listOf("user.history", "user.dict", "shuangpin.history",
                 "shuangpin-placement.conf").map { File(root, "data/pinyin/$it") }
+            val customFiles = if (customScheme != null) {
+                originalCustomScheme = CustomShuangpinSchemeStore.load()
+                originalCustomEntries = UserConfigFiles.inputMethodConfDir()?.listFiles().orEmpty().filter {
+                    it.isFile && ShuangpinLayoutKeys.isCustomSchemeUniqueName(it.name.removeSuffix(".conf"))
+                }
+                listOf(UserConfigFiles.customShuangpinSchemeJson(), UserConfigFiles.customShuangpinSpDat(),
+                    File(root, "data/inputmethod/${scene.inputMethodName}.conf"),
+                    File(configDirectory, "${scene.inputMethodName}.conf")) + originalCustomEntries
+            } else emptyList()
             val files = (listOf(File(root, "config/profile"), File(root, "config/conf/pinyin.conf"),
                 File(configDirectory, "pinyin.conf"), File(configDirectory, "$XIAOHE.conf")) +
-                configDirectory.listFiles().orEmpty().filter { it.isFile } + learningFiles).distinct()
+                configDirectory.listFiles().orEmpty().filter { it.isFile } + learningFiles + customFiles).distinct()
             originals = files.associateWith { it.takeIf(File::isFile)?.readBytes() }
             learningFiles.forEach { if (it.exists()) assertTrue("Could not isolate $it", it.delete()) }
+            customScheme?.let { CustomShuangpinSchemeStore.save(it).getOrThrow() }
             FcitxDaemon.startFcitx()
             stopped = false
             scene.activate()
@@ -419,13 +684,23 @@ class ShuangpinAbbreviationRankingTest {
                         } finally {
                             if (!stopped) FcitxDaemon.stopFcitx()
                             try {
-                                saved.forEach { (file, bytes) ->
-                                    if (bytes != null) {
-                                        file.parentFile!!.mkdirs()
-                                        file.writeBytes(bytes)
-                                        assertArrayEquals("Could not restore $file", bytes, file.readBytes())
-                                    } else if (file.exists()) {
-                                        assertTrue("Could not remove test-created $file", file.delete())
+                                try {
+                                    originalCustomScheme?.let { CustomShuangpinSchemeStore.save(it).getOrThrow() }
+                                } finally {
+                                    if (customScheme != null) {
+                                        UserConfigFiles.inputMethodConfDir()?.listFiles().orEmpty().filter {
+                                            it.isFile && it !in saved &&
+                                                ShuangpinLayoutKeys.isCustomSchemeUniqueName(it.name.removeSuffix(".conf"))
+                                        }.forEach { assertTrue("Could not remove temporary scheme entry $it", it.delete()) }
+                                    }
+                                    saved.forEach { (file, bytes) ->
+                                        if (bytes != null) {
+                                            file.parentFile!!.mkdirs()
+                                            file.writeBytes(bytes)
+                                            assertArrayEquals("Could not restore $file", bytes, file.readBytes())
+                                        } else if (file.exists()) {
+                                            assertTrue("Could not remove test-created $file", file.delete())
+                                        }
                                     }
                                 }
                             } finally {
@@ -444,7 +719,11 @@ class ShuangpinAbbreviationRankingTest {
         }
     }
 
-    private class Scene(private val connection: FcitxConnection) {
+    private class Scene(
+        private val connection: FcitxConnection,
+        val inputMethodName: String = XIAOHE,
+        private val customWidthFixture: Boolean = false,
+    ) {
         var usesRealEditor = false
 
         fun clientPreeditNow(): String = connection.runImmediately { clientPreeditCached.toString() }
@@ -455,7 +734,7 @@ class ShuangpinAbbreviationRankingTest {
             // per-key round trips let editor selection callbacks interleave
             // with a partially applied composing update.
             connection.runImmediately {
-                assertEquals("The real editor changed input methods before typing", XIAOHE,
+                assertEquals("The real editor changed input methods before typing", inputMethodName,
                     currentIme().uniqueName)
                 code.forEach { sendKey(it.toString(), states = KeyStates.Virtual.states) }
             }
@@ -465,14 +744,14 @@ class ShuangpinAbbreviationRankingTest {
             withTimeout(READY_TIMEOUT_MS) { connection.runOnReady(block) }
 
         suspend fun activate() = api {
-            assertTrue(availableIme().any { it.uniqueName == XIAOHE })
-            val names = (listOf("keyboard-us") + enabledIme().map { it.uniqueName } + XIAOHE).distinct()
+            assertTrue(availableIme().any { it.uniqueName == inputMethodName })
+            val names = (listOf("keyboard-us") + enabledIme().map { it.uniqueName } + inputMethodName).distinct()
             setEnabledIme(names.toTypedArray())
             activate(TEST_CONTEXT_UID, "shuangpin-abbreviation-ranking-test")
             setCapFlags(CapabilityFlags(CapabilityFlag.Preedit))
             focus()
-            activateIme(XIAOHE)
-            setImConfig(XIAOHE, getImConfig(XIAOHE)["cfg"].deepCopy().apply {
+            activateIme(inputMethodName)
+            setImConfig(inputMethodName, getImConfig(inputMethodName)["cfg"].deepCopy().apply {
                 getOrCreate("PinyinInPreedit").value = "False"
                 getOrCreate("VAsQuickphrase").value = "False"
                 getOrCreate("PreeditMode").value = "Composing pinyin"
@@ -481,28 +760,34 @@ class ShuangpinAbbreviationRankingTest {
                 getOrCreate("Prediction").value = "False"
                 getOrCreate("KeepCurrentContext").value = "False"
                 getOrCreate("Learning").value = "True"
-                getOrCreate("PartialSpLength").value = "3"
-                getOrCreate("LongWordLengthLimit").value = "4"
+                getOrCreate("PartialSpLength").value = if (customWidthFixture) "2" else "3"
+                getOrCreate("LongWordLengthLimit").value = if (customWidthFixture) "3" else "4"
                 getOrCreate("Number of sentence").value = "2"
-                getOrCreate("WordCandidateLimit").value = "15"
-                getOrCreate("ShuangpinInitialFuzzy").value = "False"
-                getOrCreate("PinyinAnnotation").value = "Always show"
+                getOrCreate("WordCandidateLimit").value = if (customWidthFixture) "22" else "15"
+                getOrCreate("ShuangpinInitialFuzzy").value = if (customWidthFixture) "True" else "False"
+                getOrCreate("PinyinAnnotation").value = if (customWidthFixture) "Only rare characters" else "Always show"
                 for (option in listOf("CloudPinyinEnabled", "SpellEnabled", "SymbolsEnabled",
                     "ChaiziEnabled", "StrokeCandidateEnabled")) getOrCreate(option).value = "False"
+                if (customWidthFixture) {
+                    getOrCreate("SymbolsEnabled").value = "True"
+                    getOrCreate("FoldSymbolCandidates").value = "True"
+                }
                 getOrCreate("Fuzzy").apply {
                     subItems?.forEach { if (it.value == "True" || it.value == "False") it.value = "False" }
-                    getOrCreate("Correction").value = "None"
+                    if (customWidthFixture) getOrCreate("V_U").value = "True"
+                    getOrCreate("Correction").value = if (customWidthFixture) "QWERTY" else "None"
                 }
             })
             // Re-enter after setting the per-IM overlay so both the live
             // context and the runtime spell/abbreviation options are explicit.
             activateIme("keyboard-us")
-            activateIme(XIAOHE)
-            assertEquals("The test context did not activate Xiaohe", XIAOHE, currentIme().uniqueName)
-            val effective = getImConfig(XIAOHE)["cfg"]
+            activateIme(inputMethodName)
+            assertEquals("The test context did not activate its input method", inputMethodName, currentIme().uniqueName)
+            val effective = getImConfig(inputMethodName)["cfg"]
             assertEquals("The effective configuration still enables English spell candidates", "False",
                 effective["SpellEnabled"].value)
-            assertEquals("The test abbreviation threshold was not applied", "3", effective["PartialSpLength"].value)
+            assertEquals("The test abbreviation threshold was not applied", if (customWidthFixture) "2" else "3",
+                effective["PartialSpLength"].value)
             assertEquals("The test must permit user learning", "True", effective["Learning"].value)
             reset()
             setCompact(false)
@@ -519,12 +804,12 @@ class ShuangpinAbbreviationRankingTest {
                 while (stablePasses < 3) {
                     InstrumentationRegistry.getInstrumentation().waitForIdleSync()
                     val matches = api {
-                        if (currentIme().uniqueName != XIAOHE) activateIme(XIAOHE)
+                        if (currentIme().uniqueName != inputMethodName) activateIme(inputMethodName)
                         val current = currentIme().uniqueName
                         val cached = inputMethodEntryCached.uniqueName
                         observed = "native=$current; cached=$cached; empty=${isEmpty()}"
                         assertTrue("The real editor gained input before setup settled: $observed", isEmpty())
-                        current == XIAOHE && cached == XIAOHE
+                        current == inputMethodName && cached == inputMethodName
                     }
                     stablePasses = if (matches) stablePasses + 1 else 0
                     delay(25)
@@ -543,17 +828,17 @@ class ShuangpinAbbreviationRankingTest {
                 setCapFlags(CapabilityFlags(CapabilityFlag.Preedit))
                 focus()
                 activateIme("keyboard-us")
-                activateIme(XIAOHE)
+                activateIme(inputMethodName)
             }
-            assertEquals("The active input method changed before typing $code", XIAOHE, currentIme().uniqueName)
+            assertEquals("The active input method changed before typing $code", inputMethodName, currentIme().uniqueName)
             assertEquals("English spell candidates must be disabled for the Chinese ranking test", "False",
-                getImConfig(XIAOHE)["cfg"]["SpellEnabled"].value)
+                getImConfig(inputMethodName)["cfg"]["SpellEnabled"].value)
             val trace = mutableListOf<String>()
             suspend fun record(stage: String) {
                 val observed = "$stage: ${diagnostics()}"
                 trace += observed
                 Log.i("ShuangpinAbbreviationTest", observed)
-                assertEquals("The active input method changed while typing $code; $trace", XIAOHE,
+                assertEquals("The active input method changed while typing $code; $trace", inputMethodName,
                     currentIme().uniqueName)
             }
             reset()

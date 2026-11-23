@@ -144,11 +144,11 @@ internal fun nativeCandidatesAfterConsumedFallbacks(
     isInitialRow: Boolean = indexOffset == 0,
 ): Array<CandidateWord> {
     if (isInitialRow) {
-        if (candidates.none { it.isDeferredFallback || it.isAbbreviation && !it.isBestAbbreviation }) return candidates
+        if (candidates.none { it.isDeferredFallback }) return candidates
         return candidates.mapIndexedNotNull { index, candidate ->
             val nativeIndex = candidate.nativeIndex.takeIf { it >= 0 } ?: (indexOffset + index)
             candidate.copy(nativeIndex = nativeIndex).takeUnless {
-                it.isDeferredFallback || it.isAbbreviation && !it.isBestAbbreviation
+                it.isDeferredFallback
             }
         }.toTypedArray()
     }

@@ -30,13 +30,13 @@ class AbbreviationCandidateRowTest {
     @Test
     fun `natural best abbreviation keeps its score order`() {
         val source = words(best = 1)
-        assertEquals(listOf(0, 1, 3), row(source).map { it.nativeIndex })
-        assertEquals(1, row(source).count { it.isAbbreviation })
+        assertEquals(listOf(0, 1, 2), row(source).map { it.nativeIndex })
+        assertEquals(1, row(source).count { it.isBestAbbreviation })
     }
 
     @Test
     fun `naturally leading best abbreviation is not moved to the last slot`() {
-        assertEquals(listOf(0, 1, 3), row(words(best = 0)).map { it.nativeIndex })
+        assertEquals(listOf(0, 1, 2), row(words(best = 0)).map { it.nativeIndex })
     }
 
     @Test
@@ -47,10 +47,48 @@ class AbbreviationCandidateRowTest {
     }
 
     @Test
-    fun `wide homepage contains only the best abbreviation`() {
+    fun `wide homepage fills available slots with ranked abbreviation alternatives`() {
         val source = words()
         val actual = row(source, width = 1000, slots = 20)
-        assertEquals(listOf(0, 1, 3, 4, 5, 6, 7, 9), actual.map { it.nativeIndex })
+        assertEquals(source.toList(), actual.toList())
+        assertEquals(1, actual.count { it.isBestAbbreviation })
+        assertEquals(3, actual.count { it.isAbbreviation })
+    }
+
+    @Test
+    fun `two key abbreviations fill the remaining width after the best and correction`() {
+        val source = arrayOf("我们", "前", "雾霾", "完美", "外面", "外贸", "闻名", "网民")
+            .mapIndexed { index, text ->
+                CandidateWord("", text, "", nativeIndex = index,
+                    isAbbreviation = index != 1, isBestAbbreviation = index == 0,
+                    isFallback = index == 1)
+            }.toTypedArray()
+
+        val actual = row(source, width = 300, slots = 6)
+
+        assertEquals(source.take(6), actual.toList())
+        assertTrue(actual.first().isBestAbbreviation)
+        assertTrue(actual[1].isFallback)
+        assertEquals(5, actual.count { it.isAbbreviation })
+        val continuation = nativeCandidateContinuation(0, actual, emptySet())
+        val later = nativeCandidatesAfterConsumedFallbacks(
+            source.drop(continuation.nextOffset).toTypedArray(), continuation.nextOffset,
+            continuation.excludedIndices, isInitialRow = false,
+        )
+        assertEquals(source.toList(), actual.toList() + later)
+    }
+
+    @Test
+    fun `a narrow two key row keeps the best and correction before alternatives`() {
+        val source = arrayOf("我们", "前", "雾霾", "完美").mapIndexed { index, text ->
+            CandidateWord("", text, "", nativeIndex = index,
+                isAbbreviation = index != 1, isBestAbbreviation = index == 0,
+                isFallback = index == 1)
+        }.toTypedArray()
+
+        val actual = row(source, width = 100, slots = 6)
+
+        assertEquals(source.take(2), actual.toList())
         assertEquals(1, actual.count { it.isAbbreviation })
     }
 
@@ -67,7 +105,7 @@ class AbbreviationCandidateRowTest {
             val visited = (first.toList() + later).map { it.nativeIndex }
             assertEquals(source.indices.toList(), visited.sorted())
             assertEquals(source.size, visited.distinct().size)
-            assertEquals(1, first.count { it.isAbbreviation })
+            assertEquals(1, first.count { it.isBestAbbreviation })
         }
     }
 

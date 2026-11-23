@@ -1,0 +1,41 @@
+{
+    "name": "天鹅双拼",
+    "id": "swan",
+    "zeroInitial": "*",
+    "initials": {
+        "zh": "v",
+        "ch": "i",
+        "sh": "u"
+    },
+    "finals": {
+        "ai": "d",
+        "an": "g",
+        "ang": "h",
+        "ao": "c",
+        "ei": "w",
+        "en": "f",
+        "eng": "f",
+        "ia": "x",
+        "ian": "m",
+        "iang": "l",
+        "iao": "n",
+        "ie": "p",
+        "in": "b",
+        "ing": "j",
+        "iong": "s",
+        "iu": "q",
+        "ong": "s",
+        "ou": "z",
+        "ua": "x",
+        "uai": "k",
+        "uan": "r",
+        "uang": "l",
+        "ue": "t",
+        "ui": "v",
+        "un": "y",
+        "uo": "o",
+        "ve": "t",
+        "v": "v"
+    },
+    "syllables": {}
+}

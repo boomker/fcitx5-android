@@ -26,7 +26,7 @@ data class CandidateWord @JvmOverloads constructor(
     val symbolSourceId: Int = -1,
     /** Complete symbol group size, including choices folded behind the visible head. */
     val symbolCount: Int = 0,
-    /** Complete ordinary shuangpin abbreviation; only its best reading belongs on the homepage. */
+    /** Complete ordinary shuangpin abbreviation; row placement prioritizes its best reading. */
     val isAbbreviation: Boolean = false,
     /** Highest-scoring abbreviation selected before native candidate truncation. */
     val isBestAbbreviation: Boolean = false,

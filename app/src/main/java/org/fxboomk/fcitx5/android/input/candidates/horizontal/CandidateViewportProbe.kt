@@ -64,7 +64,8 @@ internal fun probeCandidateViewport(
     }
 
     val incomplete = snapshot.total < 0 || words.size < snapshot.total
-    val allKnownOrdinaryFit = row.count { it.symbolSourceId < 0 } == ordinary.size
+    val eligibleOrdinary = nativeCandidatesAfterConsumedFallbacks(ordinary.toTypedArray(), 0, emptySet())
+    val allKnownOrdinaryFit = row.count { it.symbolSourceId < 0 } == eligibleOrdinary.size
     // Snapshots may append a deep best abbreviation after the requested prefix.
     // Only the contiguous native prefix can reveal an unseen adjacent symbol head.
     var prefixLength = 0

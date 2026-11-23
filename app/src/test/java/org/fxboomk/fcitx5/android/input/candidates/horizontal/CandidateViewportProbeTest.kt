@@ -174,6 +174,19 @@ class CandidateViewportProbeTest {
     }
 
     @Test
+    fun deferredCandidatesDoNotStopFetchingWhileTheVisibleRowHasRoom() {
+        val input = snapshot(
+            word(0, "首项"), word(1, "延后纠错").copy(isDeferredFallback = true),
+            word(100, "最佳简拼").copy(isAbbreviation = true, isBestAbbreviation = true), total = 140,
+        )
+
+        val result = abbreviationProbe(input, width = 300, slots = 6)
+
+        assertArrayEquals(intArrayOf(0, 100), result.firstPageIndices)
+        assertTrue("A deferred candidate does not consume the remaining row width", result.needsMoreCandidates)
+    }
+
+    @Test
     fun anAppendedBestDoesNotHideAnActualPrefixCutThroughFoldedSymbols() {
         val input = snapshot(
             word(0, "首项"), word(1, "符号", 0, 2),
