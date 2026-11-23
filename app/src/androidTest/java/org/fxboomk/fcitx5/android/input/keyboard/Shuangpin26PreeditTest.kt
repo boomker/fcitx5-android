@@ -19,6 +19,7 @@ import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
 import org.fxboomk.fcitx5.android.core.CapabilityFlag
 import org.fxboomk.fcitx5.android.core.CapabilityFlags
+import org.fxboomk.fcitx5.android.core.CandidateWord
 import org.fxboomk.fcitx5.android.core.FcitxAPI
 import org.fxboomk.fcitx5.android.core.FcitxEvent
 import org.fxboomk.fcitx5.android.core.KeyStates
@@ -54,6 +55,64 @@ class Shuangpin26PreeditTest {
             assertEquals("Unexpected compact abbreviation for $code", present,
                 getCandidates(0, CANDIDATE_LIMIT).any { it.text == expected })
         }
+    }
+
+    @Test
+    fun invalidPairOffersAbbreviationsAndOnlyMatchingSingleCharacters() = withIme(isolateCorrection = true) {
+        setImConfig(XIAOHE, getImConfig(XIAOHE)["cfg"].deepCopy().apply {
+            getOrCreate("PartialSpLength").value = "2"
+            getOrCreate("PinyinAnnotation").value = "Always show"
+            getOrCreate("SymbolsEnabled").value = "False"
+        })
+        typeCode("qo")
+        awaitCode("qo")
+        awaitPanel("all qo correction readings") {
+            it.tabs.filter { action -> action.id >= 0 }.map { action -> action.text }
+                .containsAll(listOf("qi", "qie", "wo"))
+        }
+        val candidates = allCandidates()
+        val best = candidates.single { it.isBestAbbreviation }
+        assertTrue("The best qo abbreviation lost its classification", best.isAbbreviation)
+        assertTrue("qo did not offer a vowel-initial abbreviation",
+            candidates.any { it.isAbbreviation && it.text in listOf("求偶", "奇偶", "群殴", "千欧") })
+        val singles = candidates.filter { Character.codePointCount(it.text, 0, it.text.length) == 1 }
+        assertTrue("Matched correction singles were still limited to the recovery pool", singles.size > 3)
+        assertEquals("A qo single character had a reading outside its pending syllables",
+            setOf("(qi)", "(qie)", "(wo)"), singles.map { it.comment }.toSet())
+        assertFalse("qo still offered unrelated q-prefix characters",
+            singles.any { it.text in listOf("全", "去", "前", "钱", "却") })
+        selectAndAssertCommit(best.nativeIndex.takeIf { it >= 0 } ?: candidates.indexOf(best), best.text)
+    }
+
+    @Test
+    fun invalidPairAfterAConfirmedSelectedPrefixKeepsItsReadingsAndAbbreviation() = withIme(isolateCorrection = true) {
+        setImConfig(XIAOHE, getImConfig(XIAOHE)["cfg"].deepCopy().apply {
+            getOrCreate("PartialSpLength").value = "2"
+            getOrCreate("PinyinAnnotation").value = "Always show"
+            getOrCreate("SymbolsEnabled").value = "False"
+        })
+        typeCode("niqo")
+        awaitCode("niqo")
+        pickSyllable("ni")
+        val before = allCandidates()
+        val prefix = before.first { it.text == "你" }
+        assertTrue("The confirmed prefix could not be selected",
+            select(prefix.nativeIndex.takeIf { it >= 0 } ?: before.indexOf(prefix)))
+        awaitCode("你qo")
+        val remaining = allCandidates()
+        assertEquals("The consumed ni confirmation hid the remaining best abbreviation", 1,
+            remaining.count { it.isBestAbbreviation })
+        val singles = remaining.filter { Character.codePointCount(it.text, 0, it.text.length) == 1 }
+        assertEquals("The consumed ni confirmation restored unrelated q-prefix readings",
+            setOf("(qi)", "(qie)", "(wo)"), singles.map { it.comment }.toSet())
+        pickSyllable("qi")
+        awaitCode("你qo")
+        val confirmed = allCandidates()
+        val matching = confirmed.filter { Character.codePointCount(it.text, 0, it.text.length) == 1 }
+        assertTrue("Confirming qi lost its single-character candidates", matching.isNotEmpty())
+        assertTrue("Confirming qi retained a different reading", matching.all { it.comment == "(qi)" })
+        val single = matching.first()
+        selectAndAssertCommit(single.nativeIndex.takeIf { it >= 0 } ?: confirmed.indexOf(single), "你${single.text}")
     }
 
     @Test
@@ -411,6 +470,15 @@ class Shuangpin26PreeditTest {
                 }
             }
         }
+    }
+
+    private suspend fun FcitxAPI.allCandidates(): List<CandidateWord> {
+        val result = mutableListOf<CandidateWord>()
+        do {
+            val page = getCandidates(result.size, CANDIDATE_LIMIT)
+            result.addAll(page)
+        } while (page.size == CANDIDATE_LIMIT)
+        return result
     }
 
     private suspend fun FcitxAPI.selectAndAssertCommit(index: Int, expected: String) = coroutineScope {
