@@ -795,6 +795,7 @@
     <string name="candidate_card_copied">Details copied</string>
     <string name="pin_candidate">Pin candidate</string>
     <string name="candidate_card_character_reading">%1$s  %2$s</string>
+    <string name="candidate_card_pinyin">Pinyin %1$s</string>
     <string name="candidate_card_wubi_code">Wubi code %1$s</string>
     <string name="candidate_card_unicode">Unicode %1$s · %2$s</string>
     <string name="candidate_card_unicode_cjk">Basic block</string>

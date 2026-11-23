@@ -33,12 +33,15 @@ internal class CandidateInfoPopup(
     private fun dp(value: Int) = (value * density).toInt().coerceAtLeast(1)
 
     private val detailRows = card.characters.map(::characterRow)
+    private val readingRow = card.phraseReading?.let {
+        if (card.wubiCode == null) it else ctx.getString(R.string.candidate_card_pinyin, it)
+    }
     private val wubiRow = card.wubiCode?.let {
         ctx.getString(R.string.candidate_card_wubi_code, it.ifEmpty { "—" })
     }
     private val exportText = buildList {
         add(card.text)
-        card.phraseReading?.let(::add)
+        readingRow?.let(::add)
         wubiRow?.let(::add)
         detailRows.forEach { row ->
             for (index in 0 until row.childCount) {
@@ -60,7 +63,7 @@ internal class CandidateInfoPopup(
                 setTextColor(theme.genericActiveForegroundColor)
             }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
 
-            card.phraseReading?.let { reading ->
+            readingRow?.let { reading ->
                 addView(TextView(ctx).apply {
                     text = reading
                     textSize = 18f
@@ -154,7 +157,7 @@ internal class CandidateInfoPopup(
         orientation = LinearLayout.VERTICAL
         setPadding(dp(4), dp(6), dp(4), dp(6))
         addView(TextView(ctx).apply {
-            text = if (reading == null) character else ctx.getString(
+            text = if (reading == null || card.text == character) character else ctx.getString(
                 R.string.candidate_card_character_reading,
                 character,
                 reading

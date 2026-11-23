@@ -529,7 +529,8 @@
     <string name="candidate_card_copied">已複製候選詳細</string>
     <string name="pin_candidate">置頂該候選</string>
     <string name="candidate_card_character_reading">%1$s  %2$s</string>
-    <string name="candidate_card_wubi_code">五筆編碼 %1$s</string>
+    <string name="candidate_card_pinyin">拼音 %1$s</string>
+    <string name="candidate_card_wubi_code">五筆 %1$s</string>
     <string name="candidate_card_unicode">統一碼 %1$s · %2$s</string>
     <string name="candidate_card_unicode_cjk">基本區</string>
     <string name="candidate_card_unicode_extension">擴展 %1$s 區</string>

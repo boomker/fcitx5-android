@@ -369,6 +369,7 @@
     <string name="candidate_card_copied">Сведения скопированы</string>
     <string name="pin_candidate">Закрепить кандидата</string>
     <string name="candidate_card_character_reading">%1$s  %2$s</string>
+    <string name="candidate_card_pinyin">Пиньинь %1$s</string>
     <string name="candidate_card_wubi_code">Код Уби %1$s</string>
     <string name="candidate_card_unicode">Юникод %1$s · %2$s</string>
     <string name="candidate_card_unicode_cjk">Основной блок</string>

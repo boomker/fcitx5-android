@@ -271,6 +271,7 @@ class CandidateSymbolPopupTest {
     @Test
     fun polyphonicSingleReadingsAndWubiCodesAreIncludedInFullCopyAndCommit() {
         for ((candidate, codes) in listOf(
+            "行" to emptyList(),
             "行" to listOf("tfhh", "tfhh"),
             "你好" to listOf("wqvb", "wqiy", "vbg"),
         )) {
@@ -300,11 +301,25 @@ class CandidateSymbolPopupTest {
                         val visibleRows = scroll.allViews.filterIsInstance<TextView>()
                             .map { it.text.toString() }.toList()
                         assertEquals(candidate, visibleRows[0])
-                        assertEquals(card.phraseReading, visibleRows[1])
-                        assertEquals(context.getString(R.string.candidate_card_wubi_code, codes[0]), visibleRows[2])
+                        val expectedReading = if (codes.isEmpty()) card.phraseReading else
+                            context.getString(R.string.candidate_card_pinyin, card.phraseReading)
+                        assertEquals(expectedReading, visibleRows[1])
+                        if (codes.isNotEmpty()) {
+                            assertEquals(context.getString(R.string.candidate_card_wubi_code, codes[0]), visibleRows[2])
+                        }
                         if (candidate == "行") {
-                            assertEquals(setOf("háng", "xíng"), visibleRows[1].split(" / ").toSet())
+                            val readings = requireNotNull(card.phraseReading).split(" / ")
+                            assertEquals(setOf("háng", "xíng"), readings.toSet())
+                            assertEquals(candidate, visibleRows[if (codes.isEmpty()) 2 else 3])
+                            readings.forEach { reading ->
+                                assertEquals(reading, 1, visibleRows.count { reading in it })
+                            }
                         } else {
+                            card.characters.forEach { detail ->
+                                assertTrue(visibleRows.contains(context.getString(
+                                    R.string.candidate_card_character_reading, detail.character, detail.reading
+                                )))
+                            }
                             for (code in codes.drop(1)) {
                                 assertTrue(visibleRows.contains(context.getString(R.string.candidate_card_wubi_code, code)))
                             }

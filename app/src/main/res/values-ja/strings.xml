@@ -783,6 +783,7 @@
     <string name="candidate_card_copied">詳細をコピーしました</string>
     <string name="pin_candidate">候補を固定</string>
     <string name="candidate_card_character_reading">%1$s  %2$s</string>
+    <string name="candidate_card_pinyin">ピンイン %1$s</string>
     <string name="candidate_card_wubi_code">五筆コード %1$s</string>
     <string name="candidate_card_unicode">Unicode %1$s · %2$s</string>
     <string name="candidate_card_unicode_cjk">基本ブロック</string>

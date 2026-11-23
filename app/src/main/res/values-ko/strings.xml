@@ -779,6 +779,7 @@
     <string name="candidate_card_copied">상세 정보를 복사했습니다</string>
     <string name="pin_candidate">후보 고정</string>
     <string name="candidate_card_character_reading">%1$s  %2$s</string>
+    <string name="candidate_card_pinyin">병음 %1$s</string>
     <string name="candidate_card_wubi_code">우비 코드 %1$s</string>
     <string name="candidate_card_unicode">유니코드 %1$s · %2$s</string>
     <string name="candidate_card_unicode_cjk">기본 영역</string>

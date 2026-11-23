@@ -623,7 +623,8 @@
     <string name="candidate_card_copied">已复制候选详细</string>
     <string name="pin_candidate">置顶该候选</string>
     <string name="candidate_card_character_reading">%1$s  %2$s</string>
-    <string name="candidate_card_wubi_code">五笔编码 %1$s</string>
+    <string name="candidate_card_pinyin">拼音 %1$s</string>
+    <string name="candidate_card_wubi_code">五笔 %1$s</string>
     <string name="candidate_card_unicode">统一码 %1$s · %2$s</string>
     <string name="candidate_card_unicode_cjk">基本区</string>
     <string name="candidate_card_unicode_extension">扩展 %1$s 区</string>

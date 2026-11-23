@@ -786,6 +786,7 @@
     <string name="candidate_card_copied">Details kopiert</string>
     <string name="pin_candidate">Kandidat anheften</string>
     <string name="candidate_card_character_reading">%1$s  %2$s</string>
+    <string name="candidate_card_pinyin">Pinyin %1$s</string>
     <string name="candidate_card_wubi_code">Wubi-Code %1$s</string>
     <string name="candidate_card_unicode">Unicode %1$s · %2$s</string>
     <string name="candidate_card_unicode_cjk">Grundblock</string>
