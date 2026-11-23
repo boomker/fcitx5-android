@@ -105,7 +105,10 @@ class SettingsSearchPreference(context: Context) : Preference(context) {
     }
 
     private fun bindSearchView(searchView: SearchView) {
-        searchView.setQuery(query, false)
+        // Rebinding after a results update must preserve the editor's composing spans.
+        if (searchView.query.toString() != query) {
+            searchView.setQuery(query, false)
+        }
         searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String?): Boolean {
                 onQueryChanged?.invoke(query.orEmpty())
