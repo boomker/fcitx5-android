@@ -12,13 +12,14 @@ This fork mainly strengthens two areas:
 
 ## Recent Updates
 
-The following summarizes the 54 commits from November 11 through November 19, 2026, grouped by theme (merge commits excluded):
+The following summarizes the 76 commits from November 11 through November 22, 2026, grouped by theme (merge commits excluded):
 
 - Shuangpin correction and fallback candidates:
   - Added Shuangpin neighbor-key correction: codes that cannot be matched generate up to three correction candidates ordered by preference from adjacent-key relationships, with learning, forgetting, and reset interfaces, without changing the input code, fuzzy options, or the shared dictionary.
-  - Correction candidates default to a fallback slot at the end of the first page and start learning once selected; repeated selection promotes them onto the first page, while a manual reset can move them to a later page or behind all valid candidates in two stages.
+  - The default correction recovery hint is prioritized in the second visible slot of the horizontal candidate bar and starts learning once selected; learned correction candidates rise gradually while a valid candidate keeps the leading position, and a manual reset can move them to a later page or behind all valid candidates in two stages.
   - Learning and reset are isolated per Shuangpin scheme and raw code, and survive engine restarts; the "Forget" candidate action adjusts later correction placement based on whether the item is on the first page.
-  - Native candidates gained fallback and deferred-fallback markers; the horizontal candidate bar reserves a complete first-page slot for the default fallback candidate, deferred fallbacks only appear on later pages, and the expanded page skips items already shown on the first page while preserving native indexes.
+  - The horizontal candidate bar reserves the second slot for the default correction recovery hint; the best abbreviated-input candidate keeps its engine ranking when naturally visible, or gets a reserved trailing slot otherwise. Both can appear together, with width limits for essential candidates at large font sizes to keep them visible on the first page.
+  - Native candidates support fallback, deferred-fallback, and best-abbreviation markers; deferred fallbacks only appear on later pages, and the expanded page skips items already shown on the first page while preserving native indexes.
   - Digit swipes, long-press digits, and direct text commits all map visible order to native candidate indexes, so first-page fallback candidates can be selected correctly; with no candidates the digit is still committed, and modifier keys do not intercept.
   - When only deferred fallback candidates exist, the horizontal bar keeps an expand entry on the otherwise empty first page so the full candidate list remains reachable.
 
@@ -29,10 +30,16 @@ The following summarizes the 54 commits from November 11 through November 19, 20
   - Long codes now use a single-line scrollable viewport that follows the caret horizontally and can be dragged back; unselected and unavailable accessibility states plus both lowercase display modes are covered.
   - Both 26-key and 18-key compact Shuangpin layouts now support syllable selection through the strip (previously only the compact layout did).
   - Fuzzy correction is disabled on the compact keyboard, and composing-state overrides now depend on whether a preedit exists; abbreviation matching uses a 0 (off) or 2–4 length threshold, a single key always counts as completion, and the separate "partial Shuangpin matching" switch was removed.
+  - A new fuzzy-initial matching switch allows `z/zh`, `c/ch`, and `s/sh` matches in abbreviated Shuangpin input; it is disabled in the settings UI for the 18-key layout while retaining the saved value, and can be adjusted after switching back to 26 keys.
+  - Lowercase letters selected from an 18-key long-press popup now use literal input: any existing composition finishes first, then letters appear unchanged in a separate preedit buffer with the syllable strip temporarily hidden. The buffer supports appending, caret editing, Esc to clear, and Return or punctuation to commit.
 
 - Candidates and input behavior:
   - Candidates are reordered and capped on the first page by type (single characters, phrases, English, emoji), so phrases, rare English, and runs of emoji no longer crowd the front; two-code Shuangpin keeps this syllable's single characters first and shows at most one emoji.
   - Digit selection now shares one path across regular digit keys, the numpad, and direct text commits, and emoji folded into a candidate action no longer take a digit index.
+  - A new emoji-folding switch groups related emoji/symbols into one candidate with an action to expand the rest; turning it off shows each item separately.
+  - Pinyin settings gained candidate pronunciation annotations: Off / Rare characters only / Always / Automatic, defaulting to rare characters only, with readings shown in candidate comments.
+  - Choosing "Candidate details" from a candidate's long-press menu opens a character card with word and per-character readings, multiple readings for single characters, radicals/stroke counts, decomposition and component readings, stroke order, and Unicode code points/blocks. Wubi input adds word and per-character codes; the complete details can be copied or committed, with fields shown according to bundled data coverage.
+  - Candidate display and selection share the current state, and stale candidate actions are guarded to reduce wrong selections during fast typing or state changes; deactivation events from an old input context no longer affect the current focus.
   - Return syncs the locally highlighted candidate to the engine before committing; on 26-key Shuangpin a plain Return now commits the raw keys, compact/grouped Shuangpin keeps committing the highlighted candidate, and Shift+Return controls the separator.
   - An unfinished final syllable and explicitly confirmed syllable boundaries always offer completion candidates, regardless of the abbreviation switch or threshold; appending a letter turns it into an interior abbreviation, deleting restores terminal completion, and match offsets stay absolute after a prefix is selected.
   - The expanded candidate bar's Return key now follows the key icon theme instead of the Gboard override.
@@ -51,7 +58,8 @@ The following summarizes the 54 commits from November 11 through November 19, 20
 - Build and dependencies:
   - ONNX Runtime Android was upgraded to 1.32.0 and ONNX Runtime GenAI Android to 0.20.0-f5a.1; a weekly version-check workflow was added.
   - The GenAI prebuilt is now published from a verified in-repo AAR that checks SHA-256, both ABIs, and 16 KB LOAD alignment of `libmat.so`; `rebuild_mat.py` gained an offline `--verify` mode that needs no NDK/CMake.
-  - Synced the fcitx5, libime, and fcitx5-chinese-addons submodules to the Shuangpin correction, fallback-candidate, and terminal-syllable completion implementation.
+  - Synced the fcitx5, libime, and fcitx5-chinese-addons submodules to the Shuangpin correction, best abbreviated-input candidates, pronunciation annotations, and terminal-syllable completion implementation; the fcitx5 submodule now points to a maintained fork.
+  - Added device regression tests for pronunciation annotations, gradual correction learning, best-abbreviation ranking, candidate actions, and character cards, with stronger isolation of input methods and input state between tests.
 
 ## Highlights
 
@@ -103,8 +111,12 @@ If your workflow is “copy on desktop, input on phone” or “copy on phone, r
 - Built-in Chinese input supports Pinyin, Shuangpin, and Wubi; Wubi is the only bundled table-based input method.
 - Wubi has its own settings page with grouped options for commit behavior, candidate sorting, phrase learning, code hints, and keys/symbols.
 - Editable custom Shuangpin schemes support independent mapping editing, explicit syllable overrides, renaming, and separate input-method settings and layouts per scheme; "Zhongwenzhixing" is no longer listed and legacy configs migrate to Ziranma.
-- Shuangpin supports neighbor-key correction candidates: codes that cannot be matched produce up to three candidates ordered by preference, placed in a fallback slot at the end of the first page; selecting one starts learning and promotes it, while a two-stage manual reset moves it later. Learning is isolated per scheme and raw code and survives engine restarts.
+- Shuangpin supports neighbor-key correction candidates: codes that cannot be matched produce up to three candidates ordered by preference, with the default recovery hint prioritized in the second slot of the horizontal candidate bar. Selection starts learning and gradually raises ranking while a valid candidate keeps the leading position; a two-stage manual reset moves corrections later. Learning is isolated per scheme and raw code and survives engine restarts.
+- The horizontal candidate bar preserves the best abbreviated-input candidate: it keeps its original rank when naturally visible, or appears at the end of the first page otherwise, alongside any correction recovery hint. Essential candidates have width limits at large font sizes, and digit selection still follows visible order.
+- Shuangpin abbreviation matching supports a length threshold and a separate fuzzy-initial matching switch; the switch is disabled in the settings UI for 18 keys, retaining its value for use after switching back to 26 keys.
 - Both 26-key and 18-key compact Shuangpin layouts support confirming syllables in order from the preedit syllable strip, with an expandable panel from the third syllable and caret-following horizontal scrolling for long codes.
+- Pinyin candidates support four pronunciation annotation modes, defaulting to rare characters only; related emoji/symbols can be folded and expanded for selection.
+- Choose "Candidate details" from a candidate's long-press menu to view a character card with word and character readings, radicals/stroke counts, decomposition, component readings, stroke order, and Unicode information where bundled data is available. Wubi input also shows word and per-character codes, and the complete details can be copied or committed.
 - Digit swipes, long presses, and direct text commits select candidates in visible order, folded emoji do not consume an index, and first-page fallback candidates are selectable; the Forget action uses first-page context to adjust correction placement.
 - RIME plugin support remains available for custom schemas, dictionaries, and advanced configuration.
 - Prediction, suggestion, and language-model related capabilities from libime and the Chinese plugin stack are preserved.
@@ -133,6 +145,7 @@ If your workflow is “copy on desktop, input on phone” or “copy on phone, r
 - A standalone "Keyboard layout management" page centralizes all layouts (set-as-default, move-up ordering, collapse, CRUD, and QR import/share), while the layout editor focuses on content editing with a live preview and is reachable via deep links from the manager; ordering and collapse state are persisted.
 - Shuangpin schemes are managed as children of a "Shuangpin" parent layout, with parent-node collapsing, child inheritance, and copy-on-first-edit; the active layout chain shows "profile - Shuangpin - scheme".
 - The 18-key Shuangpin layout supports custom editing, live preview, and free letter-group regrouping, with uppercase hints, sublabels, and up/down swipe actions per group key; custom schemes show `l;` only when their mapping uses a semicolon, and group presets plus swipe symbols use a grid picker dialog.
+- Lowercase letters from an 18-key long-press popup use literal input in an editable preedit buffer, committed with Return or punctuation; the syllable strip stays hidden during literal input. See the [18-key Shuangpin guide (Chinese)](./SHUANGPIN_18_KEYS.md) for layout and input details.
 - Text keyboard layouts and popup presets can be shared via QR codes.
 - Shared data can be imported either by camera scanning or from a file.
 - QR images can be previewed before sharing so you can verify the content first.
@@ -207,7 +220,7 @@ If your workflow is “copy on desktop, input on phone” or “copy on phone, r
 - A brief-answer output mode was added; answers can be committed from the floating window or the expanded candidate area, and JS apps support sliders, auto-height multiline input, and resettable settings.
 - The Translate purpose supports target languages (Auto / Simplified or Traditional Chinese / English, Japanese, Korean, French, German, Spanish, Russian); the legacy Chinese-to-English purpose migrates to Translate + English.
 - Voice input supports both AIDL providers and JS voice plugins, ordered by preference; releasing hold-to-talk now finishes the session correctly and waits for the final recognition result.
-- The plugin list shows bundled and imported plugins with renaming, voice-tag grouping, uninstalling bundled plugins (they stay gone across upgrades), and override upgrades when importing the same ID.
+- The plugin list shows bundled and imported plugins with read-only names; the details page centralizes tags and source import/export. Plugins support voice-tag grouping, uninstalling bundled plugins (they stay gone across upgrades), and override upgrades when importing the same ID.
 
 ### 10. Symbol panel and floating keyboard
 
@@ -244,8 +257,8 @@ If the main app is already installed, you can also download and install the late
 
 ### Requirements
 
-- Android SDK Platform / Build-Tools 36
-- Android NDK 28
+- Android SDK Platform 36 / Build-Tools 36.1.0
+- Android NDK 28.0.13004108
 - CMake 3.31.6
 - `extra-cmake-modules`
 - `gettext`
