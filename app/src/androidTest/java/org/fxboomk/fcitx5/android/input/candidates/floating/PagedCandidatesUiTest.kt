@@ -9,6 +9,7 @@ import android.view.View
 import android.view.View.MeasureSpec
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.core.view.allViews
 import androidx.test.platform.app.InstrumentationRegistry
 import org.fxboomk.fcitx5.android.core.CandidateWord
 import org.fxboomk.fcitx5.android.core.FcitxEvent.PagedCandidateEvent.Data
@@ -225,8 +226,12 @@ class PagedCandidatesUiTest {
 
     private fun word(number: Int, text: String) = CandidateWord("$number. ", text, "")
 
-    private fun candidateText(ui: PagedCandidatesUi, index: Int): String =
-        ((ui.root.getChildAt(index) as ViewGroup).getChildAt(0) as TextView).text.toString()
+    private fun candidateText(ui: PagedCandidatesUi, index: Int): String {
+        val item = ui.root.getChildAt(index) as ViewGroup
+        val candidate = item.tag as LabeledCandidateItemUi
+        return item.allViews.filterIsInstance<TextView>()
+            .single { it !== candidate.pinyinText }.text.toString()
+    }
 
     private fun layout(ui: PagedCandidatesUi) {
         ui.root.measure(

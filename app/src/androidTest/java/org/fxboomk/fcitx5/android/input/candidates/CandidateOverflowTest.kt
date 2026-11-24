@@ -7,7 +7,6 @@ package org.fxboomk.fcitx5.android.input.candidates
 import android.annotation.SuppressLint
 import android.graphics.Typeface
 import android.os.SystemClock
-import android.util.TypedValue
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
@@ -37,12 +36,12 @@ class CandidateOverflowTest {
             ui.text.width,
         )
         assertEquals(24f, ui.text.textSize, EPSILON)
-        assertEquals(viewport.paddingLeft, ui.text.left)
+        assertEquals(viewport.paddingLeft, column(ui).left + ui.text.left)
         assertTrue("Exercise nonzero viewport padding", viewport.paddingRight > 0)
         assertAtTail(ui)
         assertEquals(
             (viewport.width - viewport.paddingRight).toFloat(),
-            ui.text.right + ui.text.translationX,
+            column(ui).left + ui.text.right + column(ui).translationX,
             EPSILON,
         )
     }
@@ -58,9 +57,9 @@ class CandidateOverflowTest {
 
         val distance = maxOffset(ui) + touchSlop(ui) + 16f
         drag(ui, distance)
-        assertEquals(0f, ui.text.translationX, EPSILON)
+        assertEquals(0f, column(ui).translationX, EPSILON)
         drag(ui, distance) // Outward drag while already at the head.
-        assertEquals(0f, ui.text.translationX, EPSILON)
+        assertEquals(0f, column(ui).translationX, EPSILON)
         drag(ui, -distance)
         assertAtTail(ui)
         drag(ui, -distance) // Outward drag while already at the tail.
@@ -76,10 +75,10 @@ class CandidateOverflowTest {
         val time = SystemClock.uptimeMillis()
         val primaryX = 40f + touchSlop(ui) + 32f
         val secondaryX = ui.root.width - 24f
-        val initialTranslation = ui.text.translationX
+        val initialTranslation = column(ui).translationX
         multiTouch(ui, MotionEvent.ACTION_DOWN, time, 0, 0 to 40f)
         multiTouch(ui, MotionEvent.ACTION_MOVE, time, 16, 0 to primaryX)
-        val dragTranslation = ui.text.translationX
+        val dragTranslation = column(ui).translationX
         assertTrue("Horizontal dragging must have started", dragTranslation > initialTranslation)
         assertTrue("Keep enough headroom to detect a ten-pixel move", dragTranslation < -10f)
         assertTrue("Pointers must be widely separated", secondaryX - primaryX > 100f)
@@ -89,20 +88,20 @@ class CandidateOverflowTest {
             MotionEvent.ACTION_POINTER_DOWN or (1 shl MotionEvent.ACTION_POINTER_INDEX_SHIFT),
             time, 32, 0 to primaryX, 7 to secondaryX,
         )
-        assertEquals(dragTranslation, ui.text.translationX, EPSILON)
+        assertEquals(dragTranslation, column(ui).translationX, EPSILON)
         // Pointer 0 lifts; pointer ID 7 becomes index 0 without moving on screen.
         multiTouch(ui, MotionEvent.ACTION_POINTER_UP, time, 48, 0 to primaryX, 7 to secondaryX)
-        assertEquals("Handoff must not change the offset", dragTranslation, ui.text.translationX, EPSILON)
+        assertEquals("Handoff must not change the offset", dragTranslation, column(ui).translationX, EPSILON)
 
         multiTouch(ui, MotionEvent.ACTION_MOVE, time, 64, 7 to secondaryX + 10f)
         assertEquals(
             "Only the remaining pointer's ten-pixel movement should scroll",
             dragTranslation + 10f,
-            ui.text.translationX,
+            column(ui).translationX,
             EPSILON,
         )
         multiTouch(ui, MotionEvent.ACTION_UP, time, 80, 7 to secondaryX + 10f)
-        assertEquals(dragTranslation + 10f, ui.text.translationX, EPSILON)
+        assertEquals(dragTranslation + 10f, column(ui).translationX, EPSILON)
         assertEquals(0, clicks)
     }
 
@@ -110,13 +109,13 @@ class CandidateOverflowTest {
     fun identicalRelayoutPreservesManualOffset() = onMain {
         val ui = candidate()
         drag(ui, maxOffset(ui) / 2f)
-        val manualOffset = ui.text.translationX
+        val manualOffset = column(ui).translationX
         assertTrue(manualOffset < 0f && manualOffset > -maxOffset(ui))
 
         layout(ui)
         layout(ui)
 
-        assertEquals(manualOffset, ui.text.translationX, EPSILON)
+        assertEquals(manualOffset, column(ui).translationX, EPSILON)
     }
 
     @Test
@@ -138,7 +137,7 @@ class CandidateOverflowTest {
         val ui = candidate(text = original)
         drag(ui, maxOffset(ui) / 2f)
         val oldWidth = ui.text.width
-        assertTrue(ui.text.translationX > -maxOffset(ui))
+        assertTrue(column(ui).translationX > -maxOffset(ui))
 
         // Letters do not guarantee a fixed width: the platform "monospace"
         // font is proportional on some devices, so the replacement text is
@@ -173,17 +172,17 @@ class CandidateOverflowTest {
     @Test
     fun shorterTextClearsTranslationAndFitsInsideViewport() = onMain {
         val ui = candidate()
-        assertTrue(ui.text.translationX < 0f)
+        assertTrue(column(ui).translationX < 0f)
         ui.updateCandidate(word("ok"))
         layout(ui)
 
         val viewport = viewport(ui)
         assertEquals(0f, maxOffset(ui), EPSILON)
-        assertEquals(0f, ui.text.translationX, EPSILON)
-        assertTrue(ui.text.left >= viewport.paddingLeft)
-        assertTrue(ui.text.right <= viewport.width - viewport.paddingRight)
+        assertEquals(0f, column(ui).translationX, EPSILON)
+        assertTrue(column(ui).left + ui.text.left >= viewport.paddingLeft)
+        assertTrue(column(ui).left + ui.text.right <= viewport.width - viewport.paddingRight)
         drag(ui, touchSlop(ui) + 16f)
-        assertEquals(0f, ui.text.translationX, EPSILON)
+        assertEquals(0f, column(ui).translationX, EPSILON)
     }
 
     @Test
@@ -195,9 +194,9 @@ class CandidateOverflowTest {
         assertEquals(AutoScaleTextView.Mode.Proportional, ui.text.scaleMode)
         assertTrue(ui.text.paint.measureText(LONG_TEXT) > available)
         assertTrue(ui.text.width <= available)
-        assertEquals(0f, ui.text.translationX, EPSILON)
+        assertEquals(0f, column(ui).translationX, EPSILON)
         drag(ui, touchSlop(ui) + 16f)
-        assertEquals(0f, ui.text.translationX, EPSILON)
+        assertEquals(0f, column(ui).translationX, EPSILON)
     }
 
     @Test
@@ -215,7 +214,7 @@ class CandidateOverflowTest {
         assertTrue(maxOffset(holder.ui) > 0f)
         assertAtTail(holder.ui)
         drag(holder.ui, maxOffset(holder.ui) + touchSlop(holder.ui) + 16f)
-        assertEquals(0f, holder.ui.text.translationX, EPSILON)
+        assertEquals(0f, column(holder.ui).translationX, EPSILON)
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -234,7 +233,7 @@ class CandidateOverflowTest {
         drag(ui, maxOffset(ui) + touchSlop(ui) + 16f)
 
         assertEquals(listOf(MotionEvent.ACTION_DOWN, MotionEvent.ACTION_CANCEL), actions)
-        assertEquals(0f, ui.text.translationX, EPSILON)
+        assertEquals(0f, column(ui).translationX, EPSILON)
         assertEquals(0, clicks)
     }
 
@@ -244,14 +243,14 @@ class CandidateOverflowTest {
         var clicks = 0
         ui.root.setOnClickListener { clicks++ }
         drag(ui, maxOffset(ui) / 2f, endAction = MotionEvent.ACTION_CANCEL)
-        val cancelledOffset = ui.text.translationX
+        val cancelledOffset = column(ui).translationX
         assertTrue(cancelledOffset < 0f && cancelledOffset > -maxOffset(ui))
         assertEquals(0, clicks)
         assertFalse(ui.root.isPressed)
 
         tap(ui)
         assertEquals("A new tap must not inherit the cancelled drag", 1, clicks)
-        assertEquals(cancelledOffset, ui.text.translationX, EPSILON)
+        assertEquals(cancelledOffset, column(ui).translationX, EPSILON)
         drag(ui, -maxOffset(ui))
         assertAtTail(ui)
         assertEquals(1, clicks)
@@ -320,13 +319,14 @@ class CandidateOverflowTest {
 
     private fun configureText(ui: CandidateItemUi) {
         ui.text.typeface = Typeface.MONOSPACE
-        ui.text.setTextSize(TypedValue.COMPLEX_UNIT_PX, 24f)
+        ui.setFontScale(24f / ui.text.textSize)
         ui.root.longPressEnabled = false
     }
 
     private fun layout(ui: CandidateItemUi, width: Int = WIDTH) {
         // Force a real layout pass even when all bounds are identical.
         ui.text.forceLayout()
+        column(ui).forceLayout()
         viewport(ui).forceLayout()
         ui.root.forceLayout()
         ui.root.measure(
@@ -338,14 +338,16 @@ class CandidateOverflowTest {
 
     private fun viewport(ui: CandidateItemUi) = ui.root.getChildAt(0) as FrameLayout
 
+    private fun column(ui: CandidateItemUi) = viewport(ui).getChildAt(0)
+
     private fun maxOffset(ui: CandidateItemUi): Float {
         val viewport = viewport(ui)
-        return (ui.text.width - (viewport.width - viewport.paddingLeft - viewport.paddingRight))
+        return (column(ui).width - (viewport.width - viewport.paddingLeft - viewport.paddingRight))
             .coerceAtLeast(0).toFloat()
     }
 
     private fun assertAtTail(ui: CandidateItemUi) {
-        assertEquals("Text should follow the tail", -maxOffset(ui), ui.text.translationX, EPSILON)
+        assertEquals("Text should follow the tail", -maxOffset(ui), column(ui).translationX, EPSILON)
     }
 
     private fun touchSlop(ui: CandidateItemUi) =

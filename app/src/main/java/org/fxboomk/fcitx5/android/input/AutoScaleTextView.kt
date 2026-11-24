@@ -424,4 +424,12 @@ class AutoScaleTextView @JvmOverloads constructor(
     override fun getBaseline(): Int {
         return glyphPlacement?.baseline?.roundToInt() ?: paddingTop + baselineY.roundToInt()
     }
+
+    /** Baseline for a parent aligning candidate cells during measurement, before layout. */
+    internal fun measuredBaseline(): Int {
+        if (::text.isInitialized && measuredHeight > 0) {
+            calculateTransform(measuredWidth, measuredHeight)
+        }
+        return baselineY.roundToInt()
+    }
 }

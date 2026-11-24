@@ -23,12 +23,34 @@ import splitties.views.setPaddingDp
 class FlexboxExpandedCandidateWindow :
     BaseExpandedCandidateWindow<FlexboxExpandedCandidateWindow>() {
 
+    private var candidateRecyclerView: RecyclerView? = null
+    private var hasTopPinyinAnnotations = false
+
+    private fun refreshCandidateAlignment() {
+        val recycler = candidateRecyclerView ?: return
+        // Page updates can arrive while RecyclerView is dispatching layout.
+        // Use the latest snapshot after that pass rather than changing its
+        // LayoutManager from an item bind.
+        recycler.post {
+            if (candidateRecyclerView !== recycler) return@post
+            val hasTopPinyin = adapter.snapshot().items.any { it.topPinyinAnnotation != null }
+            val annotationStateChanged = hasTopPinyinAnnotations != hasTopPinyin
+            hasTopPinyinAnnotations = hasTopPinyin
+            val alignment = if (hasTopPinyin) {
+                AlignItems.STRETCH
+            } else AlignItems.FLEX_START
+            if (layoutManager.alignItems != alignment) layoutManager.alignItems = alignment
+            if (annotationStateChanged) adapter.notifyItemRangeChanged(0, adapter.itemCount)
+        }
+    }
+
     override val adapter by lazy {
         object : PagingCandidateViewAdapter(theme) {
             override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CandidateViewHolder {
                 return super.onCreateViewHolder(parent, viewType).apply {
                     itemView.apply {
                         minimumWidth = dp(40)
+                        minimumHeight = dp(40)
                         setPaddingDp(10, 0, 10, 0)
                         layoutParams = FlexboxLayoutManager.LayoutParams(wrapContent, dp(40))
                             .apply { flexGrow = 1f }
@@ -38,6 +60,16 @@ class FlexboxExpandedCandidateWindow :
 
             override fun onBindViewHolder(holder: CandidateViewHolder, position: Int) {
                 super.onBindViewHolder(holder, position)
+                val height = if (hasTopPinyinAnnotations || holder.candidate.topPinyinAnnotation != null) {
+                    holder.itemView.wrapContent
+                } else {
+                    holder.itemView.dp(40)
+                }
+                val params = holder.itemView.layoutParams
+                if (params.height != height) {
+                    params.height = height
+                    holder.itemView.layoutParams = params
+                }
                 bindCandidateUiViewHolder(holder)
             }
 
@@ -45,7 +77,7 @@ class FlexboxExpandedCandidateWindow :
                 recycleCandidateViewHolder(holder)
                 super.onViewRecycled(holder)
             }
-        }
+        }.also { it.addOnPagesUpdatedListener(::refreshCandidateAlignment) }
     }
 
     override val layoutManager by lazy {
@@ -68,6 +100,7 @@ class FlexboxExpandedCandidateWindow :
             onLongFormClick = { inputView.toggleAiLongFormMode() },
         ).apply {
             recyclerView.apply {
+                candidateRecyclerView = this
                 adapter = this@FlexboxExpandedCandidateWindow.adapter
                 layoutManager = this@FlexboxExpandedCandidateWindow.layoutManager
                 addItemDecoration(FlexboxHorizontalDecoration(dividerDrawable))
@@ -80,6 +113,7 @@ class FlexboxExpandedCandidateWindow :
                         }
                     }
                 })
+                refreshCandidateAlignment()
             }
         }
 

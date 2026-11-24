@@ -5,6 +5,7 @@ package org.fxboomk.fcitx5.android.input.candidates
 
 import android.content.Intent
 import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.Rect
 import android.os.SystemClock
 import android.text.InputType
@@ -20,6 +21,8 @@ import android.widget.TextView
 import androidx.core.view.allViews
 import androidx.recyclerview.widget.RecyclerView
 import androidx.test.platform.app.InstrumentationRegistry
+import com.google.android.flexbox.AlignItems
+import com.google.android.flexbox.FlexboxLayoutManager
 import java.io.File
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlinx.coroutines.CoroutineScope
@@ -40,11 +43,14 @@ import org.fxboomk.fcitx5.android.core.RawConfig
 import org.fxboomk.fcitx5.android.daemon.FcitxConnection
 import org.fxboomk.fcitx5.android.daemon.FcitxDaemon
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
+import org.fxboomk.fcitx5.android.data.theme.ThemeManager
+import org.fxboomk.fcitx5.android.input.AutoScaleTextView
 import org.fxboomk.fcitx5.android.input.BaseInputView
 import org.fxboomk.fcitx5.android.input.CandidatesView
 import org.fxboomk.fcitx5.android.input.FcitxInputMethodService
 import org.fxboomk.fcitx5.android.input.InputView
 import org.fxboomk.fcitx5.android.input.candidates.expanded.window.BaseExpandedCandidateWindow
+import org.fxboomk.fcitx5.android.input.candidates.expanded.ExpandedCandidateStyle
 import org.fxboomk.fcitx5.android.input.candidates.floating.FloatingCandidatesMode
 import org.fxboomk.fcitx5.android.input.candidates.floating.LabeledCandidateItemUi
 import org.fxboomk.fcitx5.android.input.candidates.floating.PagedCandidatesUi
@@ -66,6 +72,147 @@ import org.junit.Test
 class CandidateExpansionUiTest {
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
     private val context = instrumentation.targetContext
+
+    @Test
+    fun topPinyinAlignsActualHorizontalAndFlexboxRowsWithDynamicHeightDisabled() {
+        val prefs = AppPrefs.getInstance()
+        val height = ThemeManager.prefs.toolbarHeight
+        val dynamicHeight = prefs.keyboard.toolbarDynamicHeight
+        val mode = prefs.candidates.mode
+        val expandedStyle = prefs.keyboard.expandedCandidateStyle
+        val originals = listOf(height, dynamicHeight, mode, expandedStyle)
+            .associateWith { it.sharedPreferences.all[it.key] }
+        try {
+            onMain {
+                height.setValue(24)
+                dynamicHeight.setValue(false)
+                mode.setValue(FloatingCandidatesMode.Disabled)
+                expandedStyle.setValue(ExpandedCandidateStyle.Flexbox)
+            }
+            instrumentation.waitForIdleSync()
+            withEditor { session ->
+                session.connection.runImmediately {
+                    setImConfig("pinyin", RawConfig().apply {
+                        getOrCreate("PinyinAnnotation").value = "Automatic"
+                        getOrCreate("PinyinAnnotationPlacement").value = "Top"
+                    })
+                }
+                session.type("xing")
+                await("actual mixed candidate row with top pinyin", diagnostics = { session.rowDiagnostics() }) {
+                    val holders = session.visibleHolders()
+                    holders.any { it.candidate.topPinyinAnnotation != null } &&
+                        holders.any { it.candidate.topPinyinAnnotation == null } &&
+                        session.row.height > 24 * context.resources.displayMetrics.density
+                }
+                onMain {
+                    val holders = session.visibleHolders()
+                    assertCandidateBodiesAligned(session.row, holders)
+                    holders.filter { it.candidate.topPinyinAnnotation != null }.forEach { holder ->
+                        assertEquals(holder.candidate.topPinyinAnnotation, holder.ui.pinyinText.text.toString())
+                        assertTrue(holder.ui.pinyinText.renderedGlyphBounds().top >= -1f)
+                    }
+                    captureCandidateView(session.row, "pinyin-aligned-horizontal-row.png")
+                }
+
+                val expanded = session.expand()
+                lateinit var recycler: RecyclerView
+                onMain {
+                    recycler = session.inputView.allViews.filterIsInstance<RecyclerView>()
+                        .first { it.adapter === expanded.adapter }
+                }
+                fun mixedRow(): List<CandidateViewHolder> {
+                    val holders = (0 until recycler.childCount).mapNotNull {
+                        recycler.getChildViewHolder(recycler.getChildAt(it)) as? CandidateViewHolder
+                    }
+                    return holders.filter { it.candidate.topPinyinAnnotation != null }.firstNotNullOfOrNull { top ->
+                        holders.filter {
+                            it.itemView.top < top.itemView.bottom && it.itemView.bottom > top.itemView.top
+                        }.takeIf { row -> row.any { it.candidate.topPinyinAnnotation == null } }
+                    }.orEmpty()
+                }
+                await("actual mixed expanded Flexbox row") {
+                    (recycler.layoutManager as? FlexboxLayoutManager)?.alignItems == AlignItems.STRETCH &&
+                        !recycler.isLayoutRequested &&
+                        mixedRow().size >= 2
+                }
+                onMain {
+                    captureCandidateView(recycler, "pinyin-aligned-expanded-flexbox.png")
+                    assertCandidateBodiesAligned(recycler, mixedRow())
+                    for (index in 0 until recycler.childCount) {
+                        val holder = recycler.getChildViewHolder(recycler.getChildAt(index)) as? CandidateViewHolder
+                        holder?.ui?.setFontScale(2f)
+                    }
+                }
+                instrumentation.waitForIdleSync()
+                await("large-font mixed expanded Flexbox row") {
+                    !recycler.isLayoutRequested && mixedRow().size >= 2
+                }
+                onMain {
+                    assertCandidateBodiesAligned(recycler, mixedRow())
+                    session.wm.attachWindow(KeyboardWindow)
+                }
+                session.connection.runImmediately {
+                    setImConfig("pinyin", RawConfig().apply { getOrCreate("PinyinAnnotationPlacement").value = "Right" })
+                }
+                session.type("xing")
+                await("restored fixed row height after leaving top placement", diagnostics = { session.rowDiagnostics() }) {
+                    session.visibleHolders().none { it.candidate.topPinyinAnnotation != null } &&
+                        kotlin.math.abs(session.row.height - 24 * context.resources.displayMetrics.density) <= 1f
+                }
+            }
+        } finally {
+            onMain {
+                originals.forEach { (preference, original) ->
+                    val editor = preference.sharedPreferences.edit()
+                    when (original) {
+                        null -> editor.remove(preference.key)
+                        is Int -> editor.putInt(preference.key, original)
+                        is Boolean -> editor.putBoolean(preference.key, original)
+                        is String -> editor.putString(preference.key, original)
+                        else -> error("Unexpected preference type for ${preference.key}")
+                    }
+                    assertTrue("Restore ${preference.key}", editor.commit())
+                }
+            }
+        }
+    }
+
+    private fun assertCandidateBodiesAligned(root: ViewGroup, holders: List<CandidateViewHolder>) {
+        assertTrue("The test needs a mixed row", holders.size >= 2)
+        fun baseline(text: AutoScaleTextView): Int {
+            val origin = Rect()
+            root.offsetDescendantRectToMyCoords(text, origin)
+            return origin.top + text.measuredBaseline()
+        }
+        val expectedSize = holders.first().ui.text.textSize
+        val expectedBaseline = baseline(holders.first().ui.text)
+        val expectedHeight = holders.first().itemView.height
+        val expectedTop = holders.first().itemView.top
+        holders.forEach {
+            assertEquals("${it.text} must share the row height", expectedHeight.toFloat(),
+                it.itemView.height.toFloat(), 1f)
+            assertEquals("${it.text} must start in the same row", expectedTop.toFloat(),
+                it.itemView.top.toFloat(), 1f)
+            assertEquals("${it.text} must keep the row font size", expectedSize, it.ui.text.textSize, 0.01f)
+            assertEquals("${it.text} must keep the row body baseline", expectedBaseline.toFloat(),
+                baseline(it.ui.text).toFloat(), 1f)
+            assertEquals("${it.text} must not shrink its body", 1f, it.ui.text.textScaleX, 0.01f)
+            val origin = Rect()
+            it.ui.root.offsetDescendantRectToMyCoords(it.ui.text, origin)
+            val ink = it.ui.text.renderedGlyphBounds()
+            assertTrue("${it.text} body must fit vertically inside its candidate: $ink, origin=$origin",
+                origin.top + ink.top >= -1f && origin.top + ink.bottom <= it.itemView.height + 1f)
+        }
+    }
+
+    private fun captureCandidateView(view: View, filename: String) {
+        val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+        view.draw(Canvas(bitmap))
+        File(context.cacheDir, filename).outputStream().use {
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)
+        }
+        bitmap.recycle()
+    }
 
     @Test
     fun hiddenSourceEmojisRenderTogetherAndTapTheMappedChoice() = withEditor { session ->
@@ -311,7 +458,9 @@ class CandidateExpansionUiTest {
             val item = root.getChildAt(position) as ViewGroup
             assertTrue("The floating candidate must be visible", item.isShown)
             assertTrue("The floating candidate must retain a real native ID", candidate.nativeIndex >= 0)
-            val label = item.getChildAt(0) as TextView
+            val candidateUi = item.tag as LabeledCandidateItemUi
+            val label = item.allViews.filterIsInstance<TextView>()
+                .single { it !== candidateUi.pinyinText }
             assertEquals(candidate.label + candidate.textWithComment(), label.text.toString())
         }
     }
@@ -391,6 +540,7 @@ class CandidateExpansionUiTest {
             await("input method view") {
                 runningService()?.let { it.isInputViewShown && it.currentInputEditorInfo?.fieldId == editor.id } == true
             }
+            instrumentation.waitForIdleSync()
             val activeService = requireNotNull(runningService()).also { service = it }
             val inputView = requireNotNull(activeService.inputView)
             val wm = windowManager(activeService)

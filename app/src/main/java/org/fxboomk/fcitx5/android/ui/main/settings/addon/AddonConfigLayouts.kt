@@ -115,6 +115,7 @@ private object PinyinConfigLayout {
                 "StrokeCandidateEnabled",
                 "ExtBEnabled",
                 "PinyinAnnotation",
+                "PinyinAnnotationPlacement",
                 "PageSize",
                 "WordCandidateLimit",
                 "Number of sentence",
@@ -300,7 +301,8 @@ private object PinyinConfigLayout {
                     "PartialSpLength" to R.string.pinyin_config_partial_sp_length,
                     "ShuangpinInitialFuzzy" to R.string.pinyin_config_shuangpin_initial_fuzzy,
                     "FoldSymbolCandidates" to R.string.pinyin_config_fold_symbols,
-                    "PinyinAnnotation" to R.string.pinyin_config_annotation
+                    "PinyinAnnotation" to R.string.pinyin_config_annotation,
+                    "PinyinAnnotationPlacement" to R.string.pinyin_config_annotation_placement
                 ),
             summaryOverrides = mapOf(
                 "PreeditCursorPositionAtBeginning" to

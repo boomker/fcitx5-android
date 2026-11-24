@@ -21,6 +21,7 @@ import org.fxboomk.fcitx5.android.daemon.FcitxDaemon
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -41,7 +42,67 @@ class PinyinAnnotationDeviceTest {
                     assertEquals("仅多音字", labels[2])
                     assertEquals("所有单字", labels[3])
                 }
+                val placement = requireNotNull(getImConfig(name)["desc"]
+                    .findRecursively("PinyinAnnotationPlacement"))
+                assertEquals(RIGHT, placement["DefaultValue"].value)
+                assertEquals(listOf(TOP, RIGHT), placement["Enum"].subItems.orEmpty().map { it.value })
+                val placementLabels = placement["EnumI18n"].subItems.orEmpty().map { it.value }
+                assertEquals(listOf(TOP, RIGHT).map { translate(it, TRANSLATION_DOMAIN) }, placementLabels)
+                if (placementLabels[0] == "顶部") assertEquals("右侧", placementLabels[1])
             }
+        }
+    }
+
+    @Test
+    fun placementPersistsAndReachesOrdinaryViewportAndExpandedCandidates() = withIme(PINYIN) {
+        annotationMode(PINYIN, ALL)
+        annotationPlacement(PINYIN, TOP)
+        reloadConfig()
+        assertEquals(TOP, getImConfig(PINYIN)["cfg"]["PinyinAnnotationPlacement"].value)
+        val top = candidates("ni")
+        val single = top.first { it.text == "你" }
+        assertEquals("(nǐ)", single.comment)
+        assertTrue(single.isPinyinAnnotationOnTop)
+        assertTrue("Unannotated candidates acquired a top annotation",
+            top.filter { it.comment.isEmpty() }.none { it.isPinyinAnnotationOnTop })
+        val viewport = getCandidateViewportSnapshot(512).candidates.first { it.text == "你" }
+        assertTrue("The viewport lost the top annotation metadata", viewport.isPinyinAnnotationOnTop)
+        val expanded = getExpandedCandidates(0, 512, 0).first { it.text == "你" }
+        assertTrue("Expanded candidates lost the top annotation metadata", expanded.isPinyinAnnotationOnTop)
+        assertFalse(requireCandidate("nihao", "你好", ALL).isPinyinAnnotationOnTop)
+
+        annotationPlacement(PINYIN, RIGHT)
+        reloadConfig()
+        assertEquals(RIGHT, getImConfig(PINYIN)["cfg"]["PinyinAnnotationPlacement"].value)
+        val right = candidates("ni")
+        assertEquals("Placement changes reordered candidates", top.map { it.text }, right.map { it.text })
+        assertTrue("Right-side placement retained top metadata", right.none { it.isPinyinAnnotationOnTop })
+        assertEquals("(nǐ)", right.first { it.text == "你" }.comment)
+    }
+
+    @Test
+    fun placementMetadataIncludesStrokeAndCorrectionPinyin() = runBlocking {
+        withIme(PINYIN) {
+            annotationMode(PINYIN, ALL, stroke = true)
+            annotationPlacement(PINYIN, TOP)
+            val stroke = requireCandidate("ppp", "彡", ALL)
+            assertTrue("Stroke pinyin lost top-placement metadata", stroke.isPinyinAnnotationOnTop)
+            assertTrue(stroke.comment in setOf("(shān)", "(xiǎn)"))
+        }
+        withIme(XIAOHE) {
+            annotationMode(XIAOHE, ALL)
+            annotationPlacement(XIAOHE, TOP)
+            val corrections = candidates("fm").filter { it.isFallback || it.isDeferredFallback }
+            assertTrue(corrections.isNotEmpty())
+            val singles = corrections.filter { it.text.codePointCount(0, it.text.length) == 1 }
+            assertTrue(singles.isNotEmpty())
+            assertTrue("Correction pinyin lost top-placement metadata", singles.all { it.isPinyinAnnotationOnTop })
+            assertTrue("Correction phrases acquired top annotation metadata",
+                corrections.filter { it.text.codePointCount(0, it.text.length) != 1 }
+                    .none { it.isPinyinAnnotationOnTop })
+            annotationMode(XIAOHE, NONE)
+            assertTrue("Hidden correction pinyin retained top metadata",
+                candidates("fm").none { it.isPinyinAnnotationOnTop })
         }
     }
 
@@ -203,6 +264,14 @@ class PinyinAnnotationDeviceTest {
         assertEquals(mode, getImConfig(name)["cfg"]["PinyinAnnotation"].value)
     }
 
+    private suspend fun FcitxAPI.annotationPlacement(name: String, placement: String) {
+        reset()
+        val config = getImConfig(name)["cfg"].deepCopy()
+        config.getOrCreate("PinyinAnnotationPlacement").value = placement
+        setImConfig(name, config)
+        assertEquals(placement, getImConfig(name)["cfg"]["PinyinAnnotationPlacement"].value)
+    }
+
     private suspend fun FcitxAPI.candidates(input: String): List<CandidateWord> {
         reset()
         for (key in input) {
@@ -309,6 +378,8 @@ class PinyinAnnotationDeviceTest {
         const val RARE = "Only rare characters"
         const val ALL = "Always show"
         const val AUTO = "Automatic"
+        const val TOP = "Top"
+        const val RIGHT = "Right"
         const val TRANSLATION_DOMAIN = "fcitx5-chinese-addons"
         const val TEST_CONTEXT = -260119
         const val CANDIDATE_LIMIT = 4096

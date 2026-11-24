@@ -148,6 +148,21 @@ class HorizontalCandidateComponentTest {
     }
 
     @Test
+    fun `same text ai suggestion retains its single line width beside top pinyin`() {
+        val placement = placeAiCandidatesInRow(
+            nativeCandidates = arrayOf("你 (nǐ)"),
+            aiSuggestions = listOf("你 (nǐ)"),
+            availableWidth = 100,
+            dividerWidth = 0,
+            maxCandidateCount = Int.MAX_VALUE,
+            measureAiCandidateWidth = { 80 },
+        ) { 40 }
+
+        assertEquals(listOf("你 (nǐ)"), placement.candidates.toList())
+        assertEquals(0, placement.visibleAiCount)
+    }
+
+    @Test
     fun `appends ai suggestions until the next whole suggestion would overflow`() {
         val placement = placeAiCandidatesInRow(
             nativeCandidates = arrayOf("native"),

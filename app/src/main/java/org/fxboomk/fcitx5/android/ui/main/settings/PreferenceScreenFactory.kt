@@ -69,6 +69,10 @@ object PreferenceScreenFactory {
     ): PreferenceScreen {
         val context = preferenceManager.context
         val screen = preferenceManager.createPreferenceScreen(context)
+        val refreshAndSave = {
+            updatePinyinAnnotationPlacementPreference(screen)
+            save()
+        }
         val cfg = raw["cfg"]
         val desc = raw["desc"]
         val store = FcitxRawConfigStore(cfg, layout.booleanAliases())
@@ -88,12 +92,12 @@ object PreferenceScreenFactory {
                     custom,
                     childLayout,
                     FcitxRawConfigStore(customConfig, childLayout.booleanAliases()),
-                    save
+                    refreshAndSave
                 )
             }
         } else if (layout == null) {
             topLevelDesc.values.forEach {
-                general(context, fragmentManager, cfg.findByName(it.name), screen, it, store, save)
+                general(context, fragmentManager, cfg.findByName(it.name), screen, it, store, refreshAndSave)
             }
         } else if (layout.sectionNavigation && sectionIndex == null && onSectionClick != null) {
             renderSectionLinks(context, screen, topLevelDesc.values, layout, onSectionClick)
@@ -107,7 +111,7 @@ object PreferenceScreenFactory {
                 layout,
                 sectionIndex,
                 store,
-                save
+                refreshAndSave
             )
         } else {
             renderSections(
@@ -118,10 +122,17 @@ object PreferenceScreenFactory {
                 topLevelDesc.values,
                 layout,
                 store,
-                save
+                refreshAndSave
             )
         }
+        updatePinyinAnnotationPlacementPreference(screen)
         return screen
+    }
+
+    private fun updatePinyinAnnotationPlacementPreference(screen: PreferenceScreen) {
+        val annotation = screen.findPreference<ListPreference>("PinyinAnnotation") ?: return
+        val placement = screen.findPreference<Preference>("PinyinAnnotationPlacement") ?: return
+        placement.isEnabled = annotation.value != "Do not show"
     }
 
     private fun renderSectionLinks(

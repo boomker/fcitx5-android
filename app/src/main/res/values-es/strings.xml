@@ -1105,6 +1105,7 @@
     <string name="pinyin_config_extension_b">Conjunto de extensión B</string>
     <string name="pinyin_config_annotation">Pinyin en candidatos</string>
     <string name="pinyin_config_annotation_summary">Elige cuándo mostrar pinyin en los comentarios de los candidatos.</string>
+    <string name="pinyin_config_annotation_placement">Posición de la anotación pinyin</string>
     <string name="pinyin_config_page_size">Tamaño de página</string>
     <string name="pinyin_config_phrase_limit">Límite de frases</string>
     <string name="pinyin_config_sentence_count">Número de frases</string>

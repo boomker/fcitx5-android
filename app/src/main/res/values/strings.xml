@@ -1219,6 +1219,7 @@
     <string name="pinyin_config_extension_b">Extension B set</string>
     <string name="pinyin_config_annotation">Candidate pinyin annotation</string>
     <string name="pinyin_config_annotation_summary">Choose when candidate comments include pinyin.</string>
+    <string name="pinyin_config_annotation_placement">Pinyin annotation placement</string>
     <string name="pinyin_config_page_size">Page size</string>
     <string name="pinyin_config_phrase_limit">Phrase limit</string>
     <string name="pinyin_config_sentence_count">Sentence count</string>

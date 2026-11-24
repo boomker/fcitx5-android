@@ -557,7 +557,8 @@ class CandidateSymbolPopupTest {
             ).forEach { (candidate, expected) ->
                 candidateUi.updateCandidate(candidate)
                 floatingUi.update(candidate, active = false)
-                val floatingLabel = floatingUi.root.getChildAt(0) as TextView
+                val floatingLabel = floatingUi.root.allViews.filterIsInstance<TextView>()
+                    .single { it !== floatingUi.pinyinText }
                 assertEquals(expected, candidateUi.text.text.toString())
                 assertEquals(expected, floatingLabel.text.toString())
                 assertTrue("Floating TextView must retain foreground spans", floatingLabel.text is Spanned)

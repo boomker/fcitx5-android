@@ -9,11 +9,15 @@ import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.widget.TextView
+import android.view.View
+import android.view.Gravity
 import androidx.core.text.buildSpannedString
 import androidx.core.text.color
 import org.fxboomk.fcitx5.android.core.CandidateWord
 import org.fxboomk.fcitx5.android.data.theme.Theme
 import org.fxboomk.fcitx5.android.input.keyboard.CustomGestureView
+import org.fxboomk.fcitx5.android.input.candidates.CandidateAnnotationLayout
+import org.fxboomk.fcitx5.android.input.AutoScaleTextView
 import splitties.views.dsl.core.Ui
 import splitties.views.dsl.core.add
 import splitties.views.dsl.core.lParams
@@ -33,9 +37,26 @@ class LabeledCandidateItemUi(
         setupTextView(this)
     }
 
-    override val root = view(::CustomGestureView) {
+    private val initialTextGravity = textView.gravity
+
+    val pinyinText = view(::AutoScaleTextView) {
+        isSingleLine = true
+        gravity = Gravity.CENTER
+        scaleMode = AutoScaleTextView.Mode.Proportional
+        typeface = textView.typeface
+        visibility = View.GONE
+        setPadding(textView.paddingLeft, 0, textView.paddingRight, 0)
+    }
+
+    private val textColumn = CandidateAnnotationLayout(ctx, textView, pinyinText)
+
+    override val root = view({ context ->
+        object : CustomGestureView(context) {
+            override fun getBaseline(): Int = paddingTop + textColumn.baseline
+        }
+    }) {
         longPressFeedbackEnabled = false
-        add(textView, lParams(wrapContent, matchParent))
+        add(textColumn, lParams(wrapContent, matchParent))
     }
 
     private val highlightDrawable = GradientDrawable().apply {
@@ -48,6 +69,17 @@ class LabeledCandidateItemUi(
         val labelFg = if (active) activeFg else theme.candidateLabelColor
         val fg = if (active) activeFg else theme.candidateTextColor
         val altFg = if (active) activeFg else theme.candidateCommentColor
+        val topPinyin = candidate.topPinyinAnnotation
+        textView.gravity = if (topPinyin != null) {
+            (initialTextGravity and Gravity.VERTICAL_GRAVITY_MASK.inv()) or Gravity.CENTER_VERTICAL
+        } else {
+            initialTextGravity
+        }
+        pinyinText.text = topPinyin.orEmpty()
+        pinyinText.visibility = if (topPinyin == null) View.GONE else View.VISIBLE
+        pinyinText.setTextColor(if (active) {
+            CandidateAnnotationLayout.highlightTextColor(theme.genericActiveBackgroundColor, theme.keyboardColor)
+        } else altFg)
         textView.text = buildSpannedString {
             color(labelFg) {
                 append(candidate.label)
@@ -55,7 +87,7 @@ class LabeledCandidateItemUi(
             color(fg) {
                 append(candidate.text)
             }
-            if (candidate.comment.isNotBlank()) {
+            if (topPinyin == null && candidate.comment.isNotBlank()) {
                 if (candidate.spaceBetweenComment) {
                     append(" ")
                 }

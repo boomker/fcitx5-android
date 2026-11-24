@@ -125,6 +125,7 @@ public:
     int symbolCount = 0;
     bool isAbbreviation = false;
     bool isBestAbbreviation = false;
+    bool isPinyinAnnotationOnTop = false;
 
     explicit CandidateEntity(std::string label, std::string text, std::string comment) :
             label(std::move(label)),

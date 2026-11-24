@@ -1106,6 +1106,7 @@
     <string name="pinyin_config_extension_b">확장 B 집합</string>
     <string name="pinyin_config_annotation">후보 병음 표기</string>
     <string name="pinyin_config_annotation_summary">후보 주석에 병음을 표시할 시점을 선택합니다.</string>
+    <string name="pinyin_config_annotation_placement">병음 표기 위치</string>
     <string name="pinyin_config_page_size">페이지 크기</string>
     <string name="pinyin_config_phrase_limit">구문 제한</string>
     <string name="pinyin_config_sentence_count">문장 수</string>

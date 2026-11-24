@@ -171,6 +171,7 @@ internal fun placeAiCandidatesInRow(
     availableWidth: Int,
     dividerWidth: Int,
     maxCandidateCount: Int,
+    measureAiCandidateWidth: ((String) -> Int)? = null,
     measureCandidateWidth: (String) -> Int,
 ): AiCandidateRowPlacement {
     if (aiSuggestions.isEmpty()) {
@@ -186,7 +187,7 @@ internal fun placeAiCandidatesInRow(
     var visibleAiCount = 0
     for (suggestion in aiSuggestions) {
         if (candidateCount >= safeMaxCandidateCount) break
-        val occupiedWidth = measureCandidateWidth(suggestion) + safeDividerWidth
+        val occupiedWidth = (measureAiCandidateWidth ?: measureCandidateWidth)(suggestion) + safeDividerWidth
         if (usedWidth + occupiedWidth > safeAvailableWidth) break
         usedWidth += occupiedWidth
         candidateCount++
@@ -287,6 +288,7 @@ class HorizontalCandidateComponent :
     private var nativeCandidateSnapshot = NativeCandidateSnapshot()
     private data class ViewportGeometry(
         val width: Int,
+        val height: Int,
         val availableWidth: Int,
         val spanCount: Int,
         val style: HorizontalCandidateMode,
@@ -583,13 +585,12 @@ class HorizontalCandidateComponent :
     private fun candidateFetchBatchSize(): Int = max(maxSpanCountPref.getValue() * 3, 24)
 
     /**
-     * Height (dp) needed to wrap a single candidate row with the current font size
-     * and inline scale; text content does not affect a single-line height.
+     * Height (dp) needed for a candidate, including its optional pinyin line.
      */
-    private fun measuredCandidateRowHeightDp(): Int {
+    private fun measuredCandidateRowHeightDp(candidate: CandidateWord): Int {
         measurementCandidateUi.apply {
             setFontScale(if (inlineMode) INLINE_CANDIDATE_FONT_SCALE else 1f)
-            updateCandidate(CandidateWord("", "测", "", false))
+            updateCandidate(candidate)
             applyConfiguredTypeface()
             root.measure(
                 MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED),
@@ -602,11 +603,16 @@ class HorizontalCandidateComponent :
 
     /**
      * Report the height the candidate row requires so the toolbar can grow when the
-     * dynamic height setting is on; resets to the configured height when empty.
+     * dynamic height setting is on or a candidate has top pinyin; clears the
+     * requirement when empty and the forced height when top pinyin disappears.
      */
     private fun syncDynamicBarHeight(candidates: Array<CandidateWord>) {
-        val required = if (candidates.isNotEmpty()) measuredCandidateRowHeightDp() else 0
-        bar.setCandidateRequiredHeight(required)
+        val topPinyin = candidates.firstOrNull { it.topPinyinAnnotation != null }
+        val required = if (candidates.isNotEmpty()) {
+            val sample = topPinyin ?: CandidateWord("", "测", "", false)
+            measuredCandidateRowHeightDp(sample)
+        } else 0
+        bar.setCandidateRequiredHeight(required, force = topPinyin != null)
     }
 
     private fun measuredCandidateTextWidth(candidate: String, layoutMinWidth: Int): Int {
@@ -624,7 +630,20 @@ class HorizontalCandidateComponent :
     }
 
     private fun measuredCandidateWidth(candidate: CandidateWord, layoutMinWidth: Int): Int {
-        return measuredCandidateTextWidth(candidate.textWithComment(), layoutMinWidth)
+        if (candidate.topPinyinAnnotation == null) {
+            return measuredCandidateTextWidth(candidate.textWithComment(), layoutMinWidth)
+        }
+        measurementCandidateUi.apply {
+            root.minimumWidth = max(context.dp(40), layoutMinWidth)
+            setFontScale(if (inlineMode) INLINE_CANDIDATE_FONT_SCALE else 1f)
+            updateCandidate(candidate)
+            applyConfiguredTypeface()
+            root.measure(
+                MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED),
+                MeasureSpec.makeMeasureSpec(view.height, if (view.height > 0) MeasureSpec.EXACTLY else MeasureSpec.UNSPECIFIED),
+            )
+        }
+        return measurementCandidateUi.root.measuredWidth
     }
 
     private fun singleRowCount(candidates: Array<CandidateWord>): Int {
@@ -706,7 +725,7 @@ class HorizontalCandidateComponent :
         measurementCandidateUi.setFontScale(if (inlineMode) INLINE_CANDIDATE_FONT_SCALE else 1f)
         measurementCandidateUi.applyConfiguredTypeface()
         return ViewportGeometry(
-            view.width, (view.width - view.paddingLeft - view.paddingRight).coerceAtLeast(1),
+            view.width, view.height, (view.width - view.paddingLeft - view.paddingRight).coerceAtLeast(1),
             maxSpanCountPref.getValue().coerceAtLeast(1), fillStyle, inlineMode,
             measurementCandidateUi.text.textSize, measurementCandidateUi.text.typeface,
         )
@@ -831,14 +850,17 @@ class HorizontalCandidateComponent :
             NeverFillWidth -> Int.MAX_VALUE
             AutoFillWidth, AlwaysFillWidth -> maxSpanCount
         }
+        val topPinyinWidths = nativeCandidates.filter { it.topPinyinAnnotation != null }
+            .associate { it.textWithComment() to measuredCandidateWidth(it, layoutMinWidth) }
         val placement = placeAiCandidatesInRow(
             nativeCandidates = nativeCandidates.map { it.textWithComment() }.toTypedArray(),
             aiSuggestions = suggestions,
             availableWidth = availableWidth,
             dividerWidth = dividerDrawable.intrinsicWidth,
             maxCandidateCount = maxCandidateCount,
+            measureAiCandidateWidth = { measuredCandidateTextWidth(it, layoutMinWidth) },
         ) {
-            measuredCandidateTextWidth(it, layoutMinWidth)
+            topPinyinWidths[it] ?: measuredCandidateTextWidth(it, layoutMinWidth)
         }
         return CandidateWordRowPlacement(
             candidates = nativeCandidates + aiSuggestions.take(placement.visibleAiCount)

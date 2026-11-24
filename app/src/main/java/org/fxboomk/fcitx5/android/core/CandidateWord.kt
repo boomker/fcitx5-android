@@ -30,7 +30,14 @@ data class CandidateWord @JvmOverloads constructor(
     val isAbbreviation: Boolean = false,
     /** Highest-scoring abbreviation selected before native candidate truncation. */
     val isBestAbbreviation: Boolean = false,
+    /** Native pinyin annotation belongs above the candidate instead of beside it. */
+    val isPinyinAnnotationOnTop: Boolean = false,
 ) {
+    val topPinyinAnnotation: String?
+        get() = if (isPinyinAnnotationOnTop && displayComment == null) {
+            comment.removeSurrounding("(", ")").takeIf { it.isNotBlank() }
+        } else null
+
     fun textWithComment(): String {
         val visibleComment = displayComment ?: comment
         return buildString {

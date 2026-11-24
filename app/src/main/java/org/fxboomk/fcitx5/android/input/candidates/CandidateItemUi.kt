@@ -57,6 +57,14 @@ class CandidateItemUi(
         setTextColor(theme.candidateTextColor)
     }
 
+    val pinyinText = view(::AutoScaleTextView) {
+        scaleMode = AutoScaleTextView.Mode.Proportional
+        isSingleLine = true
+        gravity = gravityCenter
+        visibility = View.GONE
+        setTextColor(theme.candidateCommentColor)
+    }
+
     init {
         applyConfiguredTypeface()
     }
@@ -80,6 +88,7 @@ class CandidateItemUi(
     private var currentCandidate = CandidateWord.Empty
     private var isActive = false
     private var hasFirstCandidateStyle = false
+    private var firstCandidateBackgroundColor: Int? = null
     private var indexLabelNumber: Int? = null
 
     private val activeForegroundColor: Int
@@ -123,12 +132,15 @@ class CandidateItemUi(
         if (text.typeface !== resolved) {
             text.typeface = resolved
         }
+        pinyinText.typeface = resolved
     }
 
     fun setFontScale(scale: Float) {
-        text.setTextSize(
-            android.util.TypedValue.COMPLEX_UNIT_SP,
-            (configuredFontSize * scale).coerceAtLeast(1f)
+        textColumn.setTextSizePx(
+            android.util.TypedValue.applyDimension(
+                android.util.TypedValue.COMPLEX_UNIT_SP,
+                (configuredFontSize * scale).coerceAtLeast(1f), ctx.resources.displayMetrics,
+            )
         )
     }
 
@@ -148,6 +160,7 @@ class CandidateItemUi(
             pressColor = pressColor,
         )
         hasFirstCandidateStyle = true
+        firstCandidateBackgroundColor = bgColor
         renderCandidate()
     }
 
@@ -157,6 +170,7 @@ class CandidateItemUi(
         root.background = normalBackground
         content.background = null
         hasFirstCandidateStyle = false
+        firstCandidateBackgroundColor = null
         renderCandidate()
     }
 
@@ -200,11 +214,20 @@ class CandidateItemUi(
         renderIndexLabelColor()
         text.setTextColor(fg)
         val comment = currentCandidate.displayComment ?: currentCandidate.comment
+        val topPinyin = currentCandidate.topPinyinAnnotation
+        pinyinText.text = topPinyin.orEmpty()
+        pinyinText.visibility = if (topPinyin == null) View.GONE else View.VISIBLE
+        pinyinText.setTextColor(if (highlighted) {
+            val background = if (isActive) theme.genericActiveBackgroundColor else {
+                firstCandidateBackgroundColor ?: theme.genericActiveBackgroundColor
+            }
+            CandidateAnnotationLayout.highlightTextColor(background, theme.keyboardColor)
+        } else altFg)
         text.text = buildSpannedString {
             color(fg) {
                 append(currentCandidate.text)
             }
-            if (comment.isNotBlank()) {
+            if (topPinyin == null && comment.isNotBlank()) {
                 if (currentCandidate.spaceBetweenComment) {
                     append(" ")
                 }
@@ -215,9 +238,11 @@ class CandidateItemUi(
         }
     }
 
+    private val textColumn = CandidateAnnotationLayout(ctx, text, pinyinText)
+
     private val content = view(::CandidateOverflowViewport) {
         isDuplicateParentStateEnabled = true
-        add(text, lParams(wrapContent, matchParent) {
+        add(textColumn, lParams(wrapContent, matchParent) {
             gravity = gravityCenter
         })
     }
@@ -231,6 +256,16 @@ class CandidateItemUi(
     }
 
     private val candidateRoot = view(::ScrollableCandidateGestureView) {
+        baselineProvider = {
+            // At a natural height, FrameLayout can keep a MATCH_PARENT child
+            // smaller than its minimum height. Account for both centered
+            // ancestors before layout, when Flexbox asks for the body baseline.
+            val contentTop = paddingTop +
+                (measuredHeight - paddingTop - paddingBottom - content.measuredHeight) / 2
+            val columnTop = content.paddingTop +
+                (content.measuredHeight - content.paddingTop - content.paddingBottom - textColumn.measuredHeight) / 2
+            contentTop + columnTop + textColumn.baseline
+        }
         background = normalBackground
         longPressFeedbackEnabled = false
         add(content, lParams(wrapContent, matchParent) {
@@ -316,6 +351,9 @@ private class CandidateOverflowViewport(context: Context) : FrameLayout(context)
 private class ScrollableCandidateGestureView(context: Context) : CustomGestureView(context) {
 
     var scrollableViewport: CandidateOverflowViewport? = null
+    var baselineProvider: (() -> Int)? = null
+
+    override fun getBaseline(): Int = baselineProvider?.invoke() ?: super.getBaseline()
 
     private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
     private var activePointerId = MotionEvent.INVALID_POINTER_ID

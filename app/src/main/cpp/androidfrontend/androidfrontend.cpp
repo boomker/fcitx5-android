@@ -25,6 +25,8 @@ FCITX_ADDON_DECLARE_FUNCTION(PinyinEngine, candidateViewportPolicyEnabled,
                              bool(fcitx::InputContext *))
 FCITX_ADDON_DECLARE_FUNCTION(PinyinEngine, candidateViewportGeneration,
                              std::uint64_t(fcitx::InputContext *))
+FCITX_ADDON_DECLARE_FUNCTION(PinyinEngine, candidatePinyinAnnotationOnTop,
+                             bool(const fcitx::CandidateWord *))
 FCITX_ADDON_DECLARE_FUNCTION(PinyinEngine, setCandidateViewport,
                              bool(fcitx::InputContext *, int,
                                   const std::vector<const fcitx::CandidateWord *> &,
@@ -80,6 +82,7 @@ bool isReturnKey(const Key &key) {
 
 class AndroidInputContext : public InputContextV2 {
     std::int64_t candidateRevision_ = 0;
+    bool pinyinAnnotationPlacementApiMissing_ = false;
     std::weak_ptr<CandidateList> revisionCandidateList_;
     std::uint64_t viewportGeneration_ = 0;
     std::weak_ptr<CandidateList> viewportCandidateList_;
@@ -657,6 +660,23 @@ private:
                                       filterString(candidate.comment()), candidate.spaceBetweenComment(), candidate.isFallback(), candidate.isDeferredFallback());
         entity.isAbbreviation = candidate.isAbbreviation();
         entity.isBestAbbreviation = candidate.isBestAbbreviation();
+        if (auto *addon = pinyinAnnotationPlacementApiMissing_
+                              ? nullptr
+                              : candidateViewportAddon()) {
+            try {
+                entity.isPinyinAnnotationOnTop =
+                    addon->call<IPinyinEngine::candidatePinyinAnnotationOnTop>(&candidate);
+            } catch (const std::runtime_error &error) {
+                // Older optional Pinyin addons keep the existing right-side presentation.
+                if (std::string_view(error.what()) !=
+                    IPinyinEngine::candidatePinyinAnnotationOnTop::Name::data()) {
+                    throw;
+                }
+                pinyinAnnotationPlacementApiMissing_ = true;
+                FCITX_WARN() << "Pinyin addon does not provide candidatePinyinAnnotationOnTop; "
+                                "keeping pinyin annotations on the right.";
+            }
+        }
         return entity;
     }
 

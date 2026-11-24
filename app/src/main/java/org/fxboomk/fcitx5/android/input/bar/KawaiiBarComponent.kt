@@ -196,6 +196,7 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
 
     // Reported by HorizontalCandidateComponent; 0 means the configured height is enough
     private var candidateRequiredHeightDp = 0
+    private var forceCandidateRequiredHeight = false
 
     @Keep
     private val onClipboardUpdateListener =
@@ -835,11 +836,11 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
         get() = toolbarHeightPref.getValue().coerceIn(MIN_TOOLBAR_HEIGHT, MAX_TOOLBAR_HEIGHT)
 
     /**
-     * Height (dp) of the horizontal candidate row. With dynamic height enabled it
-     * grows to wrap candidates whose font is larger than the configured height.
+     * Height (dp) of the horizontal candidate row. Top pinyin and dynamic height
+     * can grow it beyond the configured height to retain the candidate font size.
      */
     val candidateRowHeightDp: Int
-        get() = if (toolbarDynamicHeight) {
+        get() = if (toolbarDynamicHeight || forceCandidateRequiredHeight) {
             maxOf(toolbarHeightDp, candidateRequiredHeightDp)
         } else {
             toolbarHeightDp
@@ -847,12 +848,13 @@ class KawaiiBarComponent : UniqueViewComponent<KawaiiBarComponent, FrameLayout>(
 
     /**
      * Required height (dp) of the candidate row as measured by
-     * [HorizontalCandidateComponent]; honored only when dynamic height is on.
+     * [HorizontalCandidateComponent]. Top pinyin needs room even at a fixed bar height.
      */
-    fun setCandidateRequiredHeight(heightDp: Int) {
-        if (heightDp == candidateRequiredHeightDp) return
+    fun setCandidateRequiredHeight(heightDp: Int, force: Boolean = false) {
+        if (heightDp == candidateRequiredHeightDp && force == forceCandidateRequiredHeight) return
         val previousRowHeight = candidateRowHeightDp
         candidateRequiredHeightDp = heightDp
+        forceCandidateRequiredHeight = force
         // Keep the measured requirement even when dynamic height is disabled,
         // but do not resize the keyboard for an unchanged visible row height.
         if (candidateRowHeightDp != previousRowHeight) {

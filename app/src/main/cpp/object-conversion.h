@@ -198,7 +198,8 @@ jobject candidateEntityToObject(JNIEnv *env, const CandidateEntity &c) {
                               c.symbolSourceId,
                               c.symbolCount,
                               c.isAbbreviation,
-                              c.isBestAbbreviation
+                              c.isBestAbbreviation,
+                              c.isPinyinAnnotationOnTop
     );
     return obj;
 }
