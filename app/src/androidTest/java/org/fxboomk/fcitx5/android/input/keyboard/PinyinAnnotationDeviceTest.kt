@@ -32,52 +32,89 @@ class PinyinAnnotationDeviceTest {
             withIme(name) {
                 val option = requireNotNull(getImConfig(name)["desc"].findRecursively("PinyinAnnotation"))
                 assertEquals(RARE, option["DefaultValue"].value)
-                assertEquals(listOf(NONE, RARE, ALL, AUTO), option["Enum"].subItems.orEmpty().map { it.value })
+                assertEquals(listOf(NONE, RARE, AUTO, ALL), option["Enum"].subItems.orEmpty().map { it.value })
                 val labels = option["EnumI18n"].subItems.orEmpty().map { it.value }
                 Log.i("PinyinAnnotationTest", "$name annotation labels: $labels")
-                assertEquals(listOf(NONE, RARE, ALL, AUTO)
+                assertEquals(listOf(NONE, RARE, "Only polyphonic characters", "All single characters")
                     .map { translate(it, TRANSLATION_DOMAIN) }, labels)
                 if (labels[1] == "仅生僻字") {
-                    assertEquals("所有候选", labels[2])
-                    assertEquals("自动判定", labels[3])
+                    assertEquals("仅多音字", labels[2])
+                    assertEquals("所有单字", labels[3])
                 }
             }
         }
     }
 
     @Test
-    fun legacyAllCandidatesValuePersistsAndAnnotatesAnOrdinaryPhrase() = withIme(PINYIN) {
+    fun legacyAllCandidatesValuePersistsAndOnlyAnnotatesSingleCharacters() = withIme(PINYIN) {
         annotationMode(PINYIN, ALL)
         reloadConfig()
         assertEquals(ALL, getImConfig(PINYIN)["cfg"]["PinyinAnnotation"].value)
         val phrase = requireCandidate("nihao", "你好", ALL)
-        assertTrue("All candidates lost the ordinary phrase's pinyin", phrase.comment.isNotEmpty())
+        assertEquals("All single characters must not annotate phrases", "", phrase.comment)
+        assertEquals("(nǐ)", requireCandidate("ni", "你", ALL).comment)
         annotationMode(PINYIN, NONE)
         assertEquals("", requireCandidate("nihao", "你好", NONE).comment)
+        assertEquals("", requireCandidate("ni", "你", NONE).comment)
     }
 
     @Test
-    fun automaticOnlyAnnotatesLaterMembersOfAnOrdinarySameTextGroup() = withIme(PINYIN) {
+    fun allSingleCharactersUseOneMatchingReadingWithTone() = withIme(PINYIN) {
+        annotationMode(PINYIN, ALL)
+        for ((input, word, expected) in listOf(
+            Triple("ni", "你", "(nǐ)"),
+            Triple("lv", "吕", "(lǚ)"),
+            Triple("xing", "行", "(xíng)"),
+            Triple("hang", "行", "(háng)"),
+            Triple("hao", "好", "(hǎo)"),
+            Triple("bo", "薄", "(bó)"),
+            Triple("de", "得", "(de)"),
+            Triple("de", "的", "(de)"),
+            Triple("zhong", "重", "(zhòng)"),
+            Triple("chong", "重", "(chóng)"),
+        )) {
+            assertEquals("Wrong single-character reading for $input/$word", expected,
+                requireCandidate(input, word, ALL).comment)
+        }
+        assertEquals("", requireCandidate("nihao", "你好", ALL).comment)
+    }
+
+    @Test
+    fun legacyAutomaticValueOnlyAnnotatesTheOtherPolyphonicReading() = withIme(PINYIN) {
         annotationMode(PINYIN, AUTO)
         reloadConfig()
         assertEquals(AUTO, getImConfig(PINYIN)["cfg"]["PinyinAnnotation"].value)
-        val (input, automatic) = listOf("d", "de", "di", "s", "shi", "c", "chang", "zhong", "n")
-            .firstNotNullOfOrNull { input ->
-                val choices = candidates(input)
-                if (choices.groupingBy { it.text }.eachCount().any { it.value > 1 }) input to choices else null
-            } ?: error("The packaged dictionary did not produce an ordinary same-text candidate group")
-        val seen = mutableSetOf<String>()
-        for (candidate in automatic) {
-            val laterMember = !seen.add(candidate.text)
-            assertEquals("Automatic annotation for $input/${candidate.text}: $automatic",
-                laterMember, candidate.comment.isNotEmpty())
+        for ((input, expected) in listOf("xing" to "(háng)", "hang" to "(xíng)")) {
+            val polyphonic = candidates(input)
+            val matching = polyphonic.filter { it.text == "行" }
+            assertTrue("The packaged dictionary lacks $input/行", matching.isNotEmpty())
+            assertTrue("Only polyphonic characters must annotate every matching candidate",
+                matching.all { it.comment == expected })
+            annotationMode(PINYIN, ALL)
+            assertEquals("Changing annotation mode reordered candidates for $input",
+                polyphonic.map { it.text }, candidates(input).map { it.text })
+            annotationMode(PINYIN, AUTO)
         }
-        annotationMode(PINYIN, ALL)
-        val all = candidates(input)
-        assertEquals("Changing annotation mode reordered candidates", automatic.map { it.text }, all.map { it.text })
-        val repeatedText = automatic.groupingBy { it.text }.eachCount().entries.first { it.value > 1 }.key
-        assertTrue("All candidates must annotate the first member of a same-text group",
-            all.first { it.text == repeatedText }.comment.isNotEmpty())
+        assertEquals("Monophonic characters must not have an annotation", "",
+            requireCandidate("ni", "你", AUTO).comment)
+        assertEquals("Only polyphonic characters must not annotate phrases", "",
+            requireCandidate("nihao", "你好", AUTO).comment)
+    }
+
+    @Test
+    fun polyphonicCharactersUseTheMostCommonOtherReadingIncludingToneDifferences() = withIme(PINYIN) {
+        annotationMode(PINYIN, AUTO)
+        for ((input, word, expected) in listOf(
+            Triple("hao", "好", "(hào)"),
+            Triple("de", "得", "(dé)"),
+            Triple("de", "的", "(dì)"),
+            Triple("le", "乐", "(yuè)"),
+            Triple("zhong", "重", "(chóng)"),
+            Triple("chong", "重", "(zhòng)"),
+        )) {
+            assertEquals("Wrong alternative reading for $input/$word", expected,
+                requireCandidate(input, word, AUTO).comment)
+        }
     }
 
     @Test
@@ -96,7 +133,7 @@ class PinyinAnnotationDeviceTest {
     }
 
     @Test
-    fun automaticPreservesStrokePinyinAndRareDoesNotAnnotateNormativeStrokeCharacters() = withIme(PINYIN) {
+    fun strokeCandidatesRespectSingleCharacterAndPolyphonicModes() = withIme(PINYIN) {
         val comments = mutableMapOf<String, String>()
         for (mode in listOf(ALL, AUTO, RARE, NONE)) {
             annotationMode(PINYIN, mode, stroke = true)
@@ -104,32 +141,51 @@ class PinyinAnnotationDeviceTest {
             assertTrue("The packaged stroke dictionary lacks 彡", stroke != null)
             comments[mode] = stroke!!.comment
         }
-        assertTrue("Automatic lost the original stroke pinyin", comments.getValue(AUTO).isNotEmpty())
-        assertEquals(comments.getValue(ALL), comments.getValue(AUTO))
+        for (mode in listOf(ALL, AUTO, RARE)) {
+            assertTrue("Stroke annotation for 彡 must contain one reading in $mode",
+                comments.getValue(mode) in setOf("(shān)", "(xiǎn)"))
+        }
         assertEquals("The outside-table stroke character 彡 lost its pinyin",
             comments.getValue(ALL), comments.getValue(RARE))
         assertEquals("", comments.getValue(NONE))
-        annotationMode(PINYIN, RARE, stroke = true)
-        val normative = candidates("hhh").firstOrNull { it.text == "三" }
-        assertTrue("The packaged stroke dictionary lacks 三", normative != null)
-        assertEquals("A normative stroke character was classified as rare", "", normative!!.comment)
+        for (mode in listOf(RARE, AUTO, ALL)) {
+            annotationMode(PINYIN, mode, stroke = true)
+            val normative = requireCandidate("hhh", "三", mode)
+            assertEquals("Wrong stroke annotation for monophonic 三 in $mode",
+                if (mode == ALL) "(sān)" else "", normative.comment)
+        }
     }
 
     @Test
-    fun automaticPreservesShuangpinCorrectionPinyin() = withIme(XIAOHE) {
+    fun shuangpinCorrectionsRespectAnnotationModesWithoutChangingOrder() = withIme(XIAOHE) {
         annotationMode(XIAOHE, ALL)
         val all = candidates("fm")
         val corrections = all.filter { it.isFallback || it.isDeferredFallback }
         assertTrue("The real xiaohe engine did not produce a correction group for fm", corrections.isNotEmpty())
-        assertTrue("All candidates lost correction pinyin", corrections.all { it.comment.isNotEmpty() })
+        val singleCorrections = corrections.filter { it.text.codePointCount(0, it.text.length) == 1 }
+        assertTrue("The real xiaohe correction group contains no single characters", singleCorrections.isNotEmpty())
+        for (correction in corrections) {
+            if (correction.text.codePointCount(0, correction.text.length) == 1) {
+                assertTrue("All single characters lost correction pinyin for ${correction.text}",
+                    correction.comment.isNotEmpty())
+                assertTrue("A correction must display only one reading: $correction",
+                    correction.comment.none { it == '\'' || it.isWhitespace() })
+            } else {
+                assertEquals("All single characters annotated a correction phrase", "", correction.comment)
+            }
+        }
 
         annotationMode(XIAOHE, AUTO)
         val automatic = candidates("fm")
-        assertEquals("Automatic changed the correction group", corrections.map { it.text },
-            automatic.filter { it.isFallback || it.isDeferredFallback }.map { it.text })
-        for (correction in corrections) {
-            assertEquals("Automatic changed correction pinyin for ${correction.text}", correction.comment,
-                automatic.first { it.text == correction.text }.comment)
+        val polyphonicCorrections = automatic.filter { it.isFallback || it.isDeferredFallback }
+        assertEquals("Only polyphonic characters changed the correction group", corrections.map { it.text },
+            polyphonicCorrections.map { it.text })
+        for (correction in polyphonicCorrections) {
+            if (correction.text.codePointCount(0, correction.text.length) != 1) {
+                assertEquals("Only polyphonic characters annotated a correction phrase", "", correction.comment)
+            }
+            assertTrue("A polyphonic correction must display only one reading: $correction",
+                correction.comment.none { it == '\'' || it.isWhitespace() })
         }
 
         annotationMode(XIAOHE, NONE)
