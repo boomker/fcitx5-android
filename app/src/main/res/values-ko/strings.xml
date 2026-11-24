@@ -298,9 +298,9 @@
     <string name="text_keyboard_layout_manage_reset_base_confirm">삭제 후 레이아웃 %1$s이(가) 기본 26키 레이아웃으로 재설정됩니다.</string>
     <string name="text_keyboard_layout_manage_show_uncustomized">맞춤설정하지 않은 상위 입력기 레이아웃 표시</string>
     <string name="text_keyboard_layout_manage_hide_uncustomized">맞춤설정하지 않은 상위 입력기 레이아웃 숨기기</string>
-    <string name="text_keyboard_layout_manage_reset_type_message">%1$s 레이아웃의 재설정 방법 선택</string>
-    <string name="text_keyboard_layout_manage_reset_option_inherit">상위 입력기 레이아웃 상속</string>
-    <string name="text_keyboard_layout_manage_reset_option_factory">출고 시 26키 레이아웃으로 재설정</string>
+    <string name="text_keyboard_layout_manage_reset_type_message">레이아웃 재설정 방법 선택:</string>
+    <string name="text_keyboard_layout_manage_reset_option_inherit">상위 레이아웃 상속</string>
+    <string name="text_keyboard_layout_manage_reset_option_factory">출고 시 설정 복원</string>
     <string name="text_keyboard_layout_manage_sub_reset_inherit">재설정됨: %1$s 레이아웃이 이제 상위 입력기 레이아웃을 상속합니다</string>
     <string name="text_keyboard_layout_manage_move_up">위로 이동</string>
     <string name="text_keyboard_layout_manage_delete">삭제</string>

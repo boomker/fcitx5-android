@@ -320,9 +320,9 @@
     <string name="text_keyboard_layout_manage_reset_base_confirm">El diseño %1$s se restablecerá al diseño predeterminado de 26 teclas después de eliminarlo.</string>
     <string name="text_keyboard_layout_manage_show_uncustomized">Mostrar diseños del método de entrada padre sin personalizar</string>
     <string name="text_keyboard_layout_manage_hide_uncustomized">Ocultar diseños del método de entrada padre sin personalizar</string>
-    <string name="text_keyboard_layout_manage_reset_type_message">Elegir cómo restablecer el diseño %1$s</string>
-    <string name="text_keyboard_layout_manage_reset_option_inherit">Heredar el diseño del método de entrada padre</string>
-    <string name="text_keyboard_layout_manage_reset_option_factory">Restablecer al diseño de fábrica de 26 teclas</string>
+    <string name="text_keyboard_layout_manage_reset_type_message">Elegir cómo restablecer el diseño:</string>
+    <string name="text_keyboard_layout_manage_reset_option_inherit">Heredar del padre</string>
+    <string name="text_keyboard_layout_manage_reset_option_factory">Restaurar valores de fábrica</string>
     <string name="text_keyboard_layout_manage_sub_reset_inherit">Restablecido: %1$s ahora hereda el diseño del método de entrada padre</string>
     <string name="text_keyboard_layout_manage_move_up">Mover arriba</string>
     <string name="text_keyboard_layout_manage_delete">Eliminar</string>

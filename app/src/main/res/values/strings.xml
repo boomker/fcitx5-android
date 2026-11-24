@@ -881,9 +881,9 @@
     <string name="text_keyboard_layout_manage_reset_base_confirm">Layout %1$s will be reset to the default 26-key layout after deletion.</string>
     <string name="text_keyboard_layout_manage_show_uncustomized">Show uncustomized parent input method layouts</string>
     <string name="text_keyboard_layout_manage_hide_uncustomized">Hide uncustomized parent input method layouts</string>
-    <string name="text_keyboard_layout_manage_reset_type_message">Choose how to reset layout %1$s</string>
-    <string name="text_keyboard_layout_manage_reset_option_inherit">Inherit parent input method layout</string>
-    <string name="text_keyboard_layout_manage_reset_option_factory">Reset to factory 26-key layout</string>
+    <string name="text_keyboard_layout_manage_reset_type_message">Choose how to reset the layout:</string>
+    <string name="text_keyboard_layout_manage_reset_option_inherit">Inherit parent</string>
+    <string name="text_keyboard_layout_manage_reset_option_factory">Restore factory defaults</string>
     <string name="text_keyboard_layout_manage_sub_reset_inherit">Reset: %1$s now inherits the parent input method layout</string>
     <string name="text_keyboard_layout_manage_move_up">Move up</string>
     <string name="text_keyboard_layout_manage_delete">Delete</string>

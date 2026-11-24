@@ -395,9 +395,9 @@
     <string name="text_keyboard_layout_manage_reset_base_confirm">Layout %1$s wird nach dem Löschen auf das standardmäßige 26-Tasten-Layout zurückgesetzt.</string>
     <string name="text_keyboard_layout_manage_show_uncustomized">Nicht angepasste Layouts der übergeordneten Eingabemethode anzeigen</string>
     <string name="text_keyboard_layout_manage_hide_uncustomized">Nicht angepasste Layouts der übergeordneten Eingabemethode ausblenden</string>
-    <string name="text_keyboard_layout_manage_reset_type_message">Auswählen, wie Layout %1$s zurückgesetzt werden soll</string>
-    <string name="text_keyboard_layout_manage_reset_option_inherit">Layout der übergeordneten Eingabemethode übernehmen</string>
-    <string name="text_keyboard_layout_manage_reset_option_factory">Auf das werkseitige 26-Tasten-Layout zurücksetzen</string>
+    <string name="text_keyboard_layout_manage_reset_type_message">Zurücksetzen des Layouts auswählen:</string>
+    <string name="text_keyboard_layout_manage_reset_option_inherit">Übergeordnetes Layout übernehmen</string>
+    <string name="text_keyboard_layout_manage_reset_option_factory">Werkseinstellungen wiederherstellen</string>
     <string name="text_keyboard_layout_manage_sub_reset_inherit">Zurückgesetzt: %1$s übernimmt jetzt das Layout der übergeordneten Eingabemethode</string>
     <string name="text_keyboard_layout_manage_move_up">Nach oben</string>
     <string name="text_keyboard_layout_manage_delete">Löschen</string>

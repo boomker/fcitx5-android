@@ -709,9 +709,9 @@
     <string name="text_keyboard_layout_manage_reset_base_confirm">布局「%1$s」删除后将复位为默认的 26 键布局。</string>
     <string name="text_keyboard_layout_manage_show_uncustomized">显示未定制父级输入法布局</string>
     <string name="text_keyboard_layout_manage_hide_uncustomized">隐藏未定制父级输入法布局</string>
-    <string name="text_keyboard_layout_manage_reset_type_message">请选择布局「%1$s」的重置方式</string>
-    <string name="text_keyboard_layout_manage_reset_option_inherit">继承父级输入法布局</string>
-    <string name="text_keyboard_layout_manage_reset_option_factory">重置为出厂 26 键布局</string>
+    <string name="text_keyboard_layout_manage_reset_type_message">请选择布局重置方式：</string>
+    <string name="text_keyboard_layout_manage_reset_option_inherit">继承父级</string>
+    <string name="text_keyboard_layout_manage_reset_option_factory">恢复出厂</string>
     <string name="text_keyboard_layout_manage_sub_reset_inherit">已重置为继承父级输入法布局：%1$s</string>
     <string name="text_keyboard_layout_manage_move_up">上移</string>
     <string name="text_keyboard_layout_manage_delete">删除</string>

@@ -701,9 +701,9 @@
     <string name="text_keyboard_layout_manage_reset_base_confirm">刪除後，佈局 %1$s 將重設為預設的 26 鍵佈局。</string>
     <string name="text_keyboard_layout_manage_show_uncustomized">顯示未自訂父層輸入法佈局</string>
     <string name="text_keyboard_layout_manage_hide_uncustomized">隱藏未自訂父層輸入法佈局</string>
-    <string name="text_keyboard_layout_manage_reset_type_message">請選擇佈局 %1$s 的重設方式</string>
-    <string name="text_keyboard_layout_manage_reset_option_inherit">繼承父層輸入法佈局</string>
-    <string name="text_keyboard_layout_manage_reset_option_factory">重設為出廠 26 鍵佈局</string>
+    <string name="text_keyboard_layout_manage_reset_type_message">請選擇佈局重設方式：</string>
+    <string name="text_keyboard_layout_manage_reset_option_inherit">繼承父層</string>
+    <string name="text_keyboard_layout_manage_reset_option_factory">恢復出廠</string>
     <string name="text_keyboard_layout_manage_sub_reset_inherit">已重設為繼承父層輸入法佈局：%1$s</string>
     <string name="text_keyboard_layout_manage_move_up">上移</string>
     <string name="text_keyboard_layout_manage_delete">刪除</string>

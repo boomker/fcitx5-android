@@ -1089,16 +1089,17 @@ class TextKeyboardLayoutProfileManagerActivity : AppCompatActivity() {
         )
         if (row.kind == ChildLayoutKind.SHUANGPIN) {
             val fullLabel = getString(R.string.shuangpin_keyboard_layout_full)
+            val compactLabel = getString(R.string.shuangpin_keyboard_layout_compact18)
+            options += "$compactLabel: ${options[0]}"
+            options += "$compactLabel: ${options[1]}"
             options[0] = "$fullLabel: ${options[0]}"
             options[1] = "$fullLabel: ${options[1]}"
-            options += getString(R.string.shuangpin_layout_restore_inherited)
-            options += getString(R.string.shuangpin_layout_restore_default)
         }
         var checkedOption = 0
         AlertDialog.Builder(this)
             // 注意：本机 DialogInterface 同时设置 message 与单选列表时列表不渲染，
-            // 因此将上下文并入标题，仅用 setSingleChoiceItems 呈现选项。
-            .setTitle(getString(R.string.text_keyboard_layout_manage_reset_type_message, row.displayName))
+            // 因此仅用标题与 setSingleChoiceItems 呈现选项。
+            .setTitle(R.string.text_keyboard_layout_manage_reset_type_message)
             .setSingleChoiceItems(options.toTypedArray(), checkedOption) { _, which -> checkedOption = which }
             .setPositiveButton(android.R.string.ok) { _, _ ->
                 when (checkedOption) {

@@ -583,9 +583,9 @@
     <string name="text_keyboard_layout_manage_reset_base_confirm">После удаления раскладка %1$s будет сброшена до стандартной раскладки с 26 клавишами.</string>
     <string name="text_keyboard_layout_manage_show_uncustomized">Показать ненастроенные раскладки родительского метода ввода</string>
     <string name="text_keyboard_layout_manage_hide_uncustomized">Скрыть ненастроенные раскладки родительского метода ввода</string>
-    <string name="text_keyboard_layout_manage_reset_type_message">Выберите способ сброса раскладки %1$s</string>
-    <string name="text_keyboard_layout_manage_reset_option_inherit">Наследовать раскладку родительского метода ввода</string>
-    <string name="text_keyboard_layout_manage_reset_option_factory">Сбросить до заводской раскладки с 26 клавишами</string>
+    <string name="text_keyboard_layout_manage_reset_type_message">Выберите способ сброса раскладки:</string>
+    <string name="text_keyboard_layout_manage_reset_option_inherit">Наследовать от родителя</string>
+    <string name="text_keyboard_layout_manage_reset_option_factory">Восстановить заводские настройки</string>
     <string name="text_keyboard_layout_manage_sub_reset_inherit">Сброшено: %1$s теперь наследует раскладку родительского метода ввода</string>
     <string name="text_keyboard_layout_manage_move_up">Переместить вверх</string>
     <string name="text_keyboard_layout_manage_delete">Удалить</string>

@@ -504,9 +504,9 @@
     <string name="text_keyboard_layout_manage_reset_base_confirm">削除すると、レイアウト %1$s はデフォルトの26キー・レイアウトにリセットされます。</string>
     <string name="text_keyboard_layout_manage_show_uncustomized">未カスタマイズの親入力メソッドのレイアウトを表示</string>
     <string name="text_keyboard_layout_manage_hide_uncustomized">未カスタマイズの親入力メソッドのレイアウトを非表示</string>
-    <string name="text_keyboard_layout_manage_reset_type_message">レイアウト %1$s のリセット方法を選択</string>
-    <string name="text_keyboard_layout_manage_reset_option_inherit">親入力メソッドのレイアウトを継承</string>
-    <string name="text_keyboard_layout_manage_reset_option_factory">工場出荷時の26キーレイアウトにリセット</string>
+    <string name="text_keyboard_layout_manage_reset_type_message">レイアウトのリセット方法を選択：</string>
+    <string name="text_keyboard_layout_manage_reset_option_inherit">親から継承</string>
+    <string name="text_keyboard_layout_manage_reset_option_factory">工場出荷時に戻す</string>
     <string name="text_keyboard_layout_manage_sub_reset_inherit">リセット完了：%1$s は親入力メソッドのレイアウトを継承するようになりました</string>
     <string name="text_keyboard_layout_manage_move_up">上へ移動</string>
     <string name="text_keyboard_layout_manage_delete">削除</string>
