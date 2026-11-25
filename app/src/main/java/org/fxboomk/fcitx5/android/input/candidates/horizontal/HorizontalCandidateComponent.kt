@@ -33,6 +33,7 @@ import kotlinx.coroutines.yield
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.core.CapabilityFlags
 import org.fxboomk.fcitx5.android.core.CandidateWord
+import org.fxboomk.fcitx5.android.core.InputMethodEntry
 import org.fxboomk.fcitx5.android.core.FcitxEvent
 import org.fxboomk.fcitx5.android.core.FcitxKeyMapping
 import org.fxboomk.fcitx5.android.core.KeyStates
@@ -40,12 +41,14 @@ import org.fxboomk.fcitx5.android.core.KeySym
 import org.fxboomk.fcitx5.android.core.FcitxEvent.PagedCandidateEvent
 import org.fxboomk.fcitx5.android.daemon.launchOnReady
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
+import org.fxboomk.fcitx5.android.data.prefs.CandidateBarHeightSettings
 import org.fxboomk.fcitx5.android.data.prefs.ManagedPreference
 import org.fxboomk.fcitx5.android.input.bar.KawaiiBarComponent
 import org.fxboomk.fcitx5.android.input.bar.hasVisibleCandidateContent
 import org.fxboomk.fcitx5.android.input.broadcast.InputBroadcastReceiver
 import org.fxboomk.fcitx5.android.input.broadcast.PreeditEmptyStateComponent
 import org.fxboomk.fcitx5.android.input.candidates.CandidateItemUi
+import org.fxboomk.fcitx5.android.input.font.FontProviders
 import org.fxboomk.fcitx5.android.input.candidates.CandidateViewHolder
 import org.fxboomk.fcitx5.android.input.candidates.isCandidateVisibleToUser
 import org.fxboomk.fcitx5.android.input.candidates.floating.FloatingCandidatesMode
@@ -63,7 +66,6 @@ import org.fxboomk.fcitx5.android.input.predict.LlmPrefs
 import org.mechdancer.dependency.manager.must
 import splitties.dimensions.dp
 import java.util.ArrayDeque
-import kotlin.math.ceil
 import kotlin.math.max
 
 internal const val HORIZONTAL_CANDIDATE_OUTER_PADDING_DP = 4
@@ -214,11 +216,11 @@ class HorizontalCandidateComponent :
     private val fillStyle by AppPrefs.getInstance().keyboard.horizontalCandidateStyle
     private val toolbarDynamicHeightPref = AppPrefs.getInstance().keyboard.toolbarDynamicHeight
 
-    // Grow the bar to fit candidates when the dynamic toolbar height is on
+    // Recalculate only configured metrics, never the current candidate contents.
     @Keep
     private val onDynamicHeightChangeListener =
         ManagedPreference.OnChangeListener<Boolean> { _, _ ->
-            syncDynamicBarHeight(adapter.candidates)
+            syncDynamicBarHeight()
         }
 
     init {
@@ -242,6 +244,7 @@ class HorizontalCandidateComponent :
     fun setInlineMode(inline: Boolean) {
         if (inlineMode == inline) return
         inlineMode = inline
+        syncDynamicBarHeight()
         adapter.notifyDataSetChanged()
     }
 
@@ -295,6 +298,7 @@ class HorizontalCandidateComponent :
         val inline: Boolean,
         val textSize: Float,
         val typeface: Any?,
+        val fontGeneration: Long,
     )
     private var viewportProbeJob: Job? = null
     private var viewportProbeVersion = 0L
@@ -584,42 +588,27 @@ class HorizontalCandidateComponent :
 
     private fun candidateFetchBatchSize(): Int = max(maxSpanCountPref.getValue() * 3, 24)
 
-    /**
-     * Height (dp) needed for a candidate, including its optional pinyin line.
-     */
-    private fun measuredCandidateRowHeightDp(candidate: CandidateWord): Int {
-        measurementCandidateUi.apply {
-            setFontScale(if (inlineMode) INLINE_CANDIDATE_FONT_SCALE else 1f)
-            updateCandidate(candidate)
-            applyConfiguredTypeface()
-            root.measure(
-                MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED),
-                MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED)
-            )
-        }
-        val density = context.resources.displayMetrics.density
-        return ceil(measurementCandidateUi.root.measuredHeight / density).toInt()
-    }
+    private val adaptiveBarHeight by lazy { AdaptiveCandidateBarHeight(context, theme) }
 
     /**
-     * Report the height the candidate row requires so the toolbar can grow when the
-     * dynamic height setting is on or a candidate has top pinyin; clears the
-     * requirement when empty and the forced height when top pinyin disappears.
+     * Use the scheme's configured annotation layout even before it has candidates.
+     * Rare annotations, paging and committing must not move the keyboard.
      */
-    private fun syncDynamicBarHeight(candidates: Array<CandidateWord>) {
-        val topPinyin = candidates.firstOrNull { it.topPinyinAnnotation != null }
-        val required = if (candidates.isNotEmpty()) {
-            val sample = topPinyin ?: CandidateWord("", "测", "", false)
-            measuredCandidateRowHeightDp(sample)
-        } else 0
-        bar.setCandidateRequiredHeight(required, force = topPinyin != null)
+    private fun syncDynamicBarHeight() {
+        bar.setCandidateRequiredHeight(
+            adaptiveBarHeight.heightDp(CandidateBarHeightSettings.annotationOnTop, inlineMode)
+        )
+    }
+
+    override fun onImeUpdate(ime: InputMethodEntry) {
+        syncDynamicBarHeight()
     }
 
     private fun measuredCandidateTextWidth(candidate: String, layoutMinWidth: Int): Int {
         measurementCandidateUi.apply {
             root.minimumWidth = max(context.dp(40), layoutMinWidth)
-            setFontScale(if (inlineMode) INLINE_CANDIDATE_FONT_SCALE else 1f)
-            updateCandidate(CandidateWord("", candidate, "", false))
+            updateForMeasurement(CandidateWord("", candidate, "", false),
+                if (inlineMode) INLINE_CANDIDATE_FONT_SCALE else 1f)
             applyConfiguredTypeface()
             root.measure(
                 MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED),
@@ -630,13 +619,12 @@ class HorizontalCandidateComponent :
     }
 
     private fun measuredCandidateWidth(candidate: CandidateWord, layoutMinWidth: Int): Int {
-        if (candidate.topPinyinAnnotation == null) {
-            return measuredCandidateTextWidth(candidate.textWithComment(), layoutMinWidth)
+        if (candidate.topPinyinAnnotation == null && (candidate.displayComment ?: candidate.comment).isBlank()) {
+            return measuredCandidateTextWidth(candidate.text, layoutMinWidth)
         }
         measurementCandidateUi.apply {
             root.minimumWidth = max(context.dp(40), layoutMinWidth)
-            setFontScale(if (inlineMode) INLINE_CANDIDATE_FONT_SCALE else 1f)
-            updateCandidate(candidate)
+            updateForMeasurement(candidate, if (inlineMode) INLINE_CANDIDATE_FONT_SCALE else 1f)
             applyConfiguredTypeface()
             root.measure(
                 MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED),
@@ -728,6 +716,7 @@ class HorizontalCandidateComponent :
             view.width, view.height, (view.width - view.paddingLeft - view.paddingRight).coerceAtLeast(1),
             maxSpanCountPref.getValue().coerceAtLeast(1), fillStyle, inlineMode,
             measurementCandidateUi.text.textSize, measurementCandidateUi.text.typeface,
+            FontProviders.fontGeneration,
         )
     }
 
@@ -1138,6 +1127,7 @@ class HorizontalCandidateComponent :
     private var lastRenderedAvailableWidth = Int.MIN_VALUE
     private var lastRenderedMaxSpanCount = Int.MIN_VALUE
     private var lastRenderedFillStyle: HorizontalCandidateMode? = null
+    private var lastRenderedFontGeneration = -1L
 
     private fun updateCandidates(
         candidates: Array<CandidateWord>,
@@ -1153,6 +1143,7 @@ class HorizontalCandidateComponent :
             lastRenderedAvailableWidth == view.width &&
             lastRenderedMaxSpanCount == maxSpanCount &&
             lastRenderedFillStyle == fillStyle &&
+            lastRenderedFontGeneration == FontProviders.fontGeneration &&
             lastRenderedCandidates.contentEquals(candidates)
         ) {
             // A deferred-only engine list can change while the visible row stays empty.
@@ -1168,6 +1159,7 @@ class HorizontalCandidateComponent :
         lastRenderedAvailableWidth = view.width
         lastRenderedMaxSpanCount = maxSpanCount
         lastRenderedFillStyle = fillStyle
+        lastRenderedFontGeneration = FontProviders.fontGeneration
         lastRenderedCandidates = candidates
         val sizing = resolveHorizontalCandidateLayoutSizing(
             fillStyle = fillStyle,
@@ -1187,7 +1179,7 @@ class HorizontalCandidateComponent :
             indexOffset,
         )
         bar.syncCandidateBarState(candidateEmpty = !hasVisibleCandidateContent(candidates))
-        syncDynamicBarHeight(candidates)
+        syncDynamicBarHeight()
         if (candidates.isEmpty()) {
             refreshExpanded()
         }
@@ -1351,6 +1343,7 @@ class HorizontalCandidateComponent :
     }
 
     override fun onStartInput(info: EditorInfo, capFlags: CapabilityFlags, restarting: Boolean) {
+        syncDynamicBarHeight()
         firstPageCandidates.clear()
         clearNativeCandidateFlow()
         resetRowWindowState()

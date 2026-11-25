@@ -13,10 +13,12 @@ import android.view.View
 import android.view.Gravity
 import androidx.core.text.buildSpannedString
 import androidx.core.text.color
+import androidx.core.text.inSpans
 import org.fxboomk.fcitx5.android.core.CandidateWord
 import org.fxboomk.fcitx5.android.data.theme.Theme
 import org.fxboomk.fcitx5.android.input.keyboard.CustomGestureView
 import org.fxboomk.fcitx5.android.input.candidates.CandidateAnnotationLayout
+import org.fxboomk.fcitx5.android.input.candidates.CandidateAnnotationStyle
 import org.fxboomk.fcitx5.android.input.AutoScaleTextView
 import splitties.views.dsl.core.Ui
 import splitties.views.dsl.core.add
@@ -43,7 +45,7 @@ class LabeledCandidateItemUi(
         isSingleLine = true
         gravity = Gravity.CENTER
         scaleMode = AutoScaleTextView.Mode.Proportional
-        typeface = textView.typeface
+        typeface = CandidateAnnotationStyle.typeface()
         visibility = View.GONE
         setPadding(textView.paddingLeft, 0, textView.paddingRight, 0)
     }
@@ -65,6 +67,11 @@ class LabeledCandidateItemUi(
     }
 
     fun update(candidate: CandidateWord, active: Boolean) {
+        pinyinText.typeface = CandidateAnnotationStyle.typeface()
+        pinyinText.setTextSize(
+            android.util.TypedValue.COMPLEX_UNIT_PX,
+            CandidateAnnotationStyle.textSizePx(ctx, textView.textSize),
+        )
         val activeFg = if (theme.isDark) Color.BLACK else Color.WHITE
         val labelFg = if (active) activeFg else theme.candidateLabelColor
         val fg = if (active) activeFg else theme.candidateTextColor
@@ -92,7 +99,9 @@ class LabeledCandidateItemUi(
                     append(" ")
                 }
                 color(altFg) {
-                    append(candidate.comment)
+                    inSpans(CandidateAnnotationStyle.span(ctx, textView.textSize)) {
+                        append(candidate.comment)
+                    }
                 }
             }
         }

@@ -7,8 +7,13 @@
 package org.fxboomk.fcitx5.android.input.candidates
 
 import android.content.Context
+import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.PixelFormat
+import android.graphics.Rect
 import android.graphics.Typeface
+import android.graphics.drawable.Drawable
+import android.graphics.drawable.DrawableWrapper
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.StateListDrawable
 import android.view.Gravity
@@ -21,6 +26,7 @@ import androidx.annotation.ColorInt
 import androidx.core.graphics.ColorUtils
 import androidx.core.text.buildSpannedString
 import androidx.core.text.color
+import androidx.core.text.inSpans
 import org.fxboomk.fcitx5.android.core.CandidateWord
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.data.theme.Theme
@@ -37,12 +43,27 @@ import splitties.views.dsl.core.wrapContent
 import splitties.views.gravityCenter
 import splitties.dimensions.dp
 import kotlin.math.abs
+import kotlin.math.ceil
+import kotlin.math.floor
 
 class CandidateItemUi(
     override val ctx: Context,
     val theme: Theme,
     private val font: Typeface? = null
 ) : Ui {
+
+    private data class RenderState(
+        val candidate: CandidateWord,
+        val active: Boolean,
+        val firstCandidateStyled: Boolean,
+        val firstCandidateBackgroundColor: Int?,
+        val foreground: Int,
+        val commentForeground: Int,
+        val bodyTypeface: Typeface,
+        val bodyTextSize: Float,
+        val fontScale: Float,
+        val fontGeneration: Long,
+    )
 
     // Re-resolve on access (FontProviders caches) so dynamic bar-height measurement
     // tracks fontset edits without recreating this Ui
@@ -63,10 +84,6 @@ class CandidateItemUi(
         gravity = gravityCenter
         visibility = View.GONE
         setTextColor(theme.candidateCommentColor)
-    }
-
-    init {
-        applyConfiguredTypeface()
     }
 
     private val highlightRadius: Float
@@ -90,6 +107,19 @@ class CandidateItemUi(
     private var hasFirstCandidateStyle = false
     private var firstCandidateBackgroundColor: Int? = null
     private var indexLabelNumber: Int? = null
+    private var fontScale = 1f
+    private var lastRenderState: RenderState? = null
+    private var resolvedBodyFontGeneration = -1L
+    private var resolvedBodyTypeface: Typeface? = null
+    private var horizontalHighlightPadding: Int? = null
+    private val horizontalNormalBackground by lazy { bodyHighlightBackground(normalBackground) }
+    private val horizontalActiveBackground by lazy { bodyHighlightBackground(activeBackground) }
+
+    private fun bodyTextSizePx(scale: Float = fontScale): Float = android.util.TypedValue.applyDimension(
+        android.util.TypedValue.COMPLEX_UNIT_SP,
+        (configuredFontSize * scale).coerceAtLeast(1f),
+        ctx.resources.displayMetrics,
+    )
 
     private val activeForegroundColor: Int
         get() = if (theme.isDark) Color.BLACK else Color.WHITE
@@ -113,7 +143,7 @@ class CandidateItemUi(
     private fun renderIndexLabelColor() {
         val highlighted = isActive || hasFirstCandidateStyle
         indexLabel.setTextColor(
-            if (highlighted) {
+            if (highlighted && horizontalHighlightPadding == null) {
                 ColorUtils.setAlphaComponent(activeForegroundColor, 190)
             } else {
                 theme.candidateCommentColor
@@ -128,20 +158,35 @@ class CandidateItemUi(
     }
 
     fun applyConfiguredTypeface(fontOverride: Typeface? = font) {
-        val resolved = fontOverride ?: FontProviders.resolveTypeface("cand_font", text.typeface)
-        if (text.typeface !== resolved) {
-            text.typeface = resolved
-        }
-        pinyinText.typeface = resolved
+        configureTypography(fontOverride)
+        renderCandidate()
     }
 
     fun setFontScale(scale: Float) {
-        textColumn.setTextSizePx(
-            android.util.TypedValue.applyDimension(
-                android.util.TypedValue.COMPLEX_UNIT_SP,
-                (configuredFontSize * scale).coerceAtLeast(1f), ctx.resources.displayMetrics,
-            )
-        )
+        fontScale = scale
+        configureTypography(font)
+        renderCandidate()
+    }
+
+    internal fun updateForMeasurement(candidate: CandidateWord, scale: Float) {
+        if (currentCandidate != candidate) content.followTextUpdate()
+        currentCandidate = candidate
+        fontScale = scale
+        configureTypography(font)
+        renderCandidate()
+    }
+
+    private fun configureTypography(fontOverride: Typeface?) {
+        val resolved = fontOverride ?: run {
+            val generation = FontProviders.fontGeneration
+            resolvedBodyTypeface?.takeIf { resolvedBodyFontGeneration == generation }
+                ?: FontProviders.resolveTypeface("cand_font", text.typeface).also {
+                    resolvedBodyTypeface = it
+                    resolvedBodyFontGeneration = generation
+                }
+        }
+        if (text.typeface !== resolved) text.typeface = resolved
+        textColumn.setTextSizePx(bodyTextSizePx(), annotationScale = fontScale)
     }
 
     fun applyFirstCandidateStyle(
@@ -151,14 +196,14 @@ class CandidateItemUi(
     ) {
         updateHighlightRadius()
         pressedBackground.setColor(pressColor)
-        root.background = normalBackground
-        content.background = firstCandidateDrawable(
+        root.background = candidateBackground()
+        content.background = bodyHighlightBackground(firstCandidateDrawable(
             bgColor = bgColor,
             strokeColor = strokeColor,
             cornerRadius = highlightRadius,
             strokeWidth = 1,
             pressColor = pressColor,
-        )
+        ), inContent = true)
         hasFirstCandidateStyle = true
         firstCandidateBackgroundColor = bgColor
         renderCandidate()
@@ -167,7 +212,7 @@ class CandidateItemUi(
     fun resetToDefaultBackground(@ColorInt pressColor: Int) {
         updateHighlightRadius()
         pressedBackground.setColor(pressColor)
-        root.background = normalBackground
+        root.background = candidateBackground()
         content.background = null
         hasFirstCandidateStyle = false
         firstCandidateBackgroundColor = null
@@ -179,8 +224,57 @@ class CandidateItemUi(
         highlightPadding: Int,
         verticalPadding: Int,
     ) {
+        horizontalHighlightPadding = highlightPadding
         root.setPadding(outerPadding, verticalPadding, outerPadding, verticalPadding)
         content.setPadding(highlightPadding, 0, highlightPadding, 0)
+        // Detach the old drawable before its callback is owned by the wrapper.
+        root.background = null
+        root.background = candidateBackground(isActive)
+        lastRenderState = null
+        renderCandidate()
+    }
+
+    private fun candidateBackground(active: Boolean = false): Drawable =
+        if (horizontalHighlightPadding != null) {
+            if (active) horizontalActiveBackground else horizontalNormalBackground
+        } else {
+            if (active) activeBackground else normalBackground
+        }
+
+    /** Bound only the painted background; candidate measurement and hit targets stay full-height. */
+    private fun bodyHighlightBackground(background: Drawable, inContent: Boolean = false): Drawable {
+        if (horizontalHighlightPadding == null) return background
+        return object : DrawableWrapper(background) {
+            override fun draw(canvas: Canvas) {
+                val ink = text.renderedInkBounds()
+                if (ink.isEmpty) return
+                ink.offset(text.x + textColumn.x, text.y + textColumn.y)
+                // Use the same padding on every side, reducing it together when the
+                // row is short or a top annotation needs the space immediately above.
+                var padding = minOf(horizontalHighlightPadding!!.toFloat(),
+                    ink.top, content.height - ink.bottom).coerceAtLeast(0f)
+                if (pinyinText.visibility == View.VISIBLE) {
+                    val pinyinBottom = pinyinText.renderedGlyphBounds().bottom + pinyinText.y + textColumn.y
+                    padding = minOf(padding, (ink.top - pinyinBottom - ctx.dp(1)).coerceAtLeast(0f))
+                }
+                ink.inset(-padding, -padding)
+                if (!ink.intersect(0f, 0f, content.width.toFloat(), content.height.toFloat())) return
+                if (!inContent) ink.offset(content.x, content.y)
+                background.setBounds(floor(ink.left).toInt(), floor(ink.top).toInt(),
+                    ceil(ink.right).toInt(), ceil(ink.bottom).toInt())
+                background.draw(canvas)
+            }
+
+            override fun getPadding(padding: Rect): Boolean {
+                padding.setEmpty()
+                return false
+            }
+
+            override fun getCurrent(): Drawable = background.current
+
+            @Suppress("DEPRECATION")
+            override fun getOpacity(): Int = PixelFormat.TRANSLUCENT
+        }
     }
 
     /** Preserve full-width text; the viewport follows updates and supports horizontal dragging. */
@@ -196,7 +290,7 @@ class CandidateItemUi(
         renderCandidate()
         text.background = null
         content.background = null
-        root.background = if (active) activeBackground else normalBackground
+        root.background = candidateBackground(active)
     }
 
     fun updateCandidate(candidate: CandidateWord) {
@@ -212,12 +306,20 @@ class CandidateItemUi(
         val fg = if (highlighted) activeForegroundColor else theme.candidateTextColor
         val altFg = if (highlighted) activeForegroundColor else theme.candidateCommentColor
         renderIndexLabelColor()
+        val renderState = RenderState(
+            currentCandidate, isActive, hasFirstCandidateStyle, firstCandidateBackgroundColor,
+            fg, altFg, text.typeface, text.textSize, fontScale, FontProviders.fontGeneration,
+        )
+        if (lastRenderState == renderState) return
+        lastRenderState = renderState
         text.setTextColor(fg)
         val comment = currentCandidate.displayComment ?: currentCandidate.comment
         val topPinyin = currentCandidate.topPinyinAnnotation
         pinyinText.text = topPinyin.orEmpty()
         pinyinText.visibility = if (topPinyin == null) View.GONE else View.VISIBLE
-        pinyinText.setTextColor(if (highlighted) {
+        pinyinText.setTextColor(if (horizontalHighlightPadding != null) {
+            theme.candidateCommentColor
+        } else if (highlighted) {
             val background = if (isActive) theme.genericActiveBackgroundColor else {
                 firstCandidateBackgroundColor ?: theme.genericActiveBackgroundColor
             }
@@ -232,10 +334,14 @@ class CandidateItemUi(
                     append(" ")
                 }
                 color(altFg) {
-                    append(comment)
+                    inSpans(CandidateAnnotationStyle.span(ctx, text.textSize, fontScale)) {
+                        append(comment)
+                    }
                 }
             }
         }
+        content.invalidate()
+        root.invalidate()
     }
 
     private val textColumn = CandidateAnnotationLayout(ctx, text, pinyinText)
@@ -278,6 +384,10 @@ class CandidateItemUi(
     }
 
     override val root: CustomGestureView = candidateRoot
+
+    init {
+        applyConfiguredTypeface()
+    }
 }
 
 private class CandidateOverflowViewport(context: Context) : FrameLayout(context) {
@@ -312,6 +422,8 @@ private class CandidateOverflowViewport(context: Context) : FrameLayout(context)
         val child = getChildAt(0) ?: return
         followEnd = false
         child.translationX = -(-child.translationX + distance).coerceIn(0f, maxScroll)
+        invalidate()
+        (parent as? View)?.invalidate()
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -345,6 +457,8 @@ private class CandidateOverflowViewport(context: Context) : FrameLayout(context)
         followEnd = false
         previousContentWidth = contentWidth
         previousTextWidth = child.width
+        invalidate()
+        (parent as? View)?.invalidate()
     }
 }
 

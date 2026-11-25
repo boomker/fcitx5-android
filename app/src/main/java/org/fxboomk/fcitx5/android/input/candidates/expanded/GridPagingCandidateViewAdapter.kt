@@ -9,10 +9,12 @@ import android.graphics.Paint
 import android.graphics.Rect
 import android.util.LruCache
 import android.view.ViewGroup
+import android.view.View.MeasureSpec
 import androidx.recyclerview.widget.GridLayoutManager
 import org.fxboomk.fcitx5.android.data.theme.Theme
 import org.fxboomk.fcitx5.android.input.candidates.CandidateViewHolder
-import org.fxboomk.fcitx5.android.input.candidates.CandidateAnnotationLayout
+import org.fxboomk.fcitx5.android.input.candidates.CandidateAnnotationStyle
+import org.fxboomk.fcitx5.android.input.font.FontProviders
 import kotlin.math.max
 import splitties.dimensions.dp
 import splitties.views.dsl.core.matchParent
@@ -30,17 +32,39 @@ abstract class GridPagingCandidateViewAdapter(theme: Theme) : PagingCandidateVie
         private val cachedPaint = Paint().apply { textSize = TEXT_SIZE }
         private val cachedRect = Rect()
         override fun create(key: String): Float {
-            cachedPaint.getTextBounds(key, 0, key.length, cachedRect)
+            val annotation = key.startsWith("annotation:")
+            val text = key.substringAfter(':')
+            cachedPaint.typeface = FontProviders.resolveTypeface(
+                if (annotation) CandidateAnnotationStyle.FONT_KEY else "cand_font"
+            )
+            cachedPaint.getTextBounds(text, 0, text.length, cachedRect)
             return cachedRect.width() / TEXT_SIZE
         }
     }
+    private var measuredFontGeneration = -1L
 
     fun measureWidth(position: Int): Float {
         val candidate = getItem(position) ?: return 0f
-        val pinyin = candidate.topPinyinAnnotation
-        return if (pinyin == null) measuredWidths[candidate.textWithComment()] else {
-            max(measuredWidths[candidate.text], measuredWidths[pinyin] * CandidateAnnotationLayout.PINYIN_SCALE)
+        if (measuredFontGeneration != FontProviders.fontGeneration) {
+            measuredWidths.evictAll()
+            measuredFontGeneration = FontProviders.fontGeneration
         }
+        val bodyWidth = measuredWidths["body:${candidate.text}"]
+        val bodyFontSize = FontProviders.getFontSize("cand_font", 20f).coerceAtLeast(1f)
+        val annotationRatio = CandidateAnnotationStyle.fontSizeSp(bodyFontSize) / bodyFontSize
+        val pinyin = candidate.topPinyinAnnotation
+        if (pinyin != null) {
+            return max(bodyWidth, measuredWidths["annotation:$pinyin"] * annotationRatio)
+        }
+        val comment = candidate.displayComment ?: candidate.comment
+        if (comment.isBlank()) return bodyWidth
+        val spaceWidth = if (candidate.spaceBetweenComment) {
+            Paint().apply {
+                textSize = TEXT_SIZE
+                typeface = FontProviders.resolveTypeface("cand_font")
+            }.measureText(" ") / TEXT_SIZE
+        } else 0f
+        return bodyWidth + spaceWidth + measuredWidths["annotation:$comment"] * annotationRatio
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CandidateViewHolder {
@@ -54,7 +78,16 @@ abstract class GridPagingCandidateViewAdapter(theme: Theme) : PagingCandidateVie
 
     override fun onBindViewHolder(holder: CandidateViewHolder, position: Int) {
         super.onBindViewHolder(holder, position)
-        val height = if (holder.candidate.topPinyinAnnotation != null) holder.itemView.wrapContent else holder.itemView.dp(40)
+        val candidate = holder.candidate
+        val hasAnnotation = (candidate.displayComment ?: candidate.comment).isNotBlank()
+        if (hasAnnotation) {
+            val unspecified = MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED)
+            holder.itemView.measure(unspecified, unspecified)
+        }
+        val height = if (candidate.topPinyinAnnotation != null ||
+            (hasAnnotation && holder.itemView.measuredHeight > holder.itemView.dp(40))) {
+            holder.itemView.wrapContent
+        } else holder.itemView.dp(40)
         val params = holder.itemView.layoutParams
         if (params.height != height) {
             params.height = height

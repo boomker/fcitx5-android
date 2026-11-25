@@ -11,11 +11,12 @@ import android.view.View
 import android.widget.FrameLayout
 import android.widget.TextView
 import org.fxboomk.fcitx5.android.input.AutoScaleTextView
+import org.fxboomk.fcitx5.android.input.font.FontProviders
 import kotlin.math.max
 import kotlin.math.ceil
 import kotlin.math.floor
 
-/** One candidate column: an optional smaller pinyin line above its normal text. */
+/** One candidate column: an optional pinyin line above its normal text. */
 @SuppressLint("ViewConstructor") // Existing renderer-owned text views are supplied; this is never inflated from XML.
 internal class CandidateAnnotationLayout(
     context: Context,
@@ -23,6 +24,8 @@ internal class CandidateAnnotationLayout(
     private val pinyinText: TextView,
 ) : FrameLayout(context) {
     private var configuredTextSize = mainText.textSize
+    private var annotationScale = 1f
+    private var configuredFontGeneration = FontProviders.fontGeneration
     private val pinyinGap = context.resources.displayMetrics.density
 
     init {
@@ -30,22 +33,33 @@ internal class CandidateAnnotationLayout(
         addView(pinyinText, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT, Gravity.CENTER))
     }
 
-    fun setTextSizePx(size: Float) {
+    fun setTextSizePx(size: Float, annotationScale: Float = 1f) {
+        val fontGeneration = FontProviders.fontGeneration
+        if (configuredTextSize == size && this.annotationScale == annotationScale &&
+            configuredFontGeneration == fontGeneration
+        ) return
         configuredTextSize = size
+        this.annotationScale = annotationScale
+        configuredFontGeneration = fontGeneration
         applyTextSizes()
         requestLayout()
     }
 
     private fun applyTextSizes() {
         val mainSize = configuredTextSize
-        val pinyinSize = mainSize * PINYIN_SCALE
         if (mainText.textSize != mainSize) {
             mainText.setTextSize(TypedValue.COMPLEX_UNIT_PX, mainSize)
             mainText.requestLayout()
         }
+        if (pinyinText.visibility == View.GONE) return
+        val pinyinSize = CandidateAnnotationStyle.textSizePx(context, mainSize, annotationScale)
         if (pinyinText.textSize != pinyinSize) {
             pinyinText.setTextSize(TypedValue.COMPLEX_UNIT_PX, pinyinSize)
             pinyinText.requestLayout()
+        }
+        val pinyinTypeface = CandidateAnnotationStyle.typeface()
+        if (pinyinText.typeface !== pinyinTypeface) {
+            pinyinText.typeface = pinyinTypeface
         }
     }
 
@@ -107,8 +121,6 @@ internal class CandidateAnnotationLayout(
     }
 
     companion object {
-        const val PINYIN_SCALE = 0.55f
-
         fun highlightTextColor(background: Int, surface: Int): Int {
             val opaque = ColorUtils.compositeColors(background, ColorUtils.setAlphaComponent(surface, 255))
             return if (ColorUtils.calculateContrast(Color.BLACK, opaque) >=

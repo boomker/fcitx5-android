@@ -9,6 +9,8 @@ import android.graphics.Canvas
 import android.graphics.Rect
 import android.os.SystemClock
 import android.text.InputType
+import android.text.TextPaint
+import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.BaseInputConnection
@@ -19,6 +21,7 @@ import android.widget.LinearLayout
 import android.widget.PopupMenu
 import android.widget.TextView
 import androidx.core.view.allViews
+import androidx.core.view.children
 import androidx.recyclerview.widget.RecyclerView
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.android.flexbox.AlignItems
@@ -43,12 +46,16 @@ import org.fxboomk.fcitx5.android.core.RawConfig
 import org.fxboomk.fcitx5.android.daemon.FcitxConnection
 import org.fxboomk.fcitx5.android.daemon.FcitxDaemon
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
+import org.fxboomk.fcitx5.android.data.prefs.CandidateBarHeightSettings
 import org.fxboomk.fcitx5.android.data.theme.ThemeManager
 import org.fxboomk.fcitx5.android.input.AutoScaleTextView
 import org.fxboomk.fcitx5.android.input.BaseInputView
 import org.fxboomk.fcitx5.android.input.CandidatesView
 import org.fxboomk.fcitx5.android.input.FcitxInputMethodService
 import org.fxboomk.fcitx5.android.input.InputView
+import org.fxboomk.fcitx5.android.input.bar.KawaiiBarComponent
+import org.fxboomk.fcitx5.android.input.bar.ui.IdleUi
+import org.fxboomk.fcitx5.android.input.bar.ui.ToolButton
 import org.fxboomk.fcitx5.android.input.candidates.expanded.window.BaseExpandedCandidateWindow
 import org.fxboomk.fcitx5.android.input.candidates.expanded.ExpandedCandidateStyle
 import org.fxboomk.fcitx5.android.input.candidates.floating.FloatingCandidatesMode
@@ -56,7 +63,10 @@ import org.fxboomk.fcitx5.android.input.candidates.floating.LabeledCandidateItem
 import org.fxboomk.fcitx5.android.input.candidates.floating.PagedCandidatesUi
 import org.fxboomk.fcitx5.android.input.candidates.floating.PaginationUi
 import org.fxboomk.fcitx5.android.input.candidates.horizontal.HorizontalCandidateViewAdapter
+import org.fxboomk.fcitx5.android.input.candidates.horizontal.HorizontalCandidateComponent
 import org.fxboomk.fcitx5.android.input.editing.GestureEditingTestActivity
+import org.fxboomk.fcitx5.android.input.font.FontProviderApi
+import org.fxboomk.fcitx5.android.input.font.FontProviders
 import org.fxboomk.fcitx5.android.input.keyboard.KeyboardWindow
 import org.fxboomk.fcitx5.android.input.wm.InputWindowManager
 import org.fxboomk.fcitx5.android.testing.RequireDefaultImeRule
@@ -67,11 +77,326 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.ClassRule
 import org.junit.Test
+import splitties.dimensions.dp
 
 /** Exercises the actual candidate row, expanded adapter and click binding. */
 class CandidateExpansionUiTest {
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
     private val context = instrumentation.targetContext
+
+    @Test
+    fun candidateHeightUpdatesReuseUnchangedFontMetricsDuringTyping() {
+        val prefs = AppPrefs.getInstance()
+        val dynamicHeight = prefs.keyboard.toolbarDynamicHeight
+        val height = ThemeManager.prefs.toolbarHeight
+        val profiles = prefs.internal.candidateBarHeightProfiles
+        val originals = listOf(dynamicHeight, height, profiles)
+            .associateWith { it.sharedPreferences.all[it.key] }
+        try {
+            withEditor { session ->
+                session.type("ni")
+                val component = InputView::class.java.getDeclaredField("horizontalCandidate").apply {
+                    isAccessible = true
+                }.get(session.inputView) as HorizontalCandidateComponent
+                val updateHeight = HorizontalCandidateComponent::class.java.getDeclaredMethod(
+                    "syncDynamicBarHeight",
+                ).apply { isAccessible = true }
+                for (dynamic in listOf(false, true)) {
+                    onMain { dynamicHeight.setValue(dynamic) }
+                    instrumentation.waitForIdleSync()
+                    repeat(3) { sample ->
+                        val samples = LongArray(16)
+                        onMain {
+                            repeat(4) { updateHeight.invoke(component) }
+                            samples.indices.forEach { index ->
+                                val started = System.nanoTime()
+                                updateHeight.invoke(component)
+                                samples[index] = System.nanoTime() - started
+                            }
+                        }
+                        samples.sort()
+                        Log.i("CandidatePerf", "CANDIDATE_HEIGHT_PERF dynamic=$dynamic sample=$sample " +
+                            "medianUs=${samples[samples.size / 2] / 1000} " +
+                            "p95Us=${samples[samples.size * 95 / 100] / 1000}")
+                    }
+                }
+            }
+        } finally {
+            onMain {
+                originals.forEach { (preference, original) ->
+                    val editor = preference.sharedPreferences.edit()
+                    when (original) {
+                        null -> editor.remove(preference.key)
+                        is Int -> editor.putInt(preference.key, original)
+                        is Boolean -> editor.putBoolean(preference.key, original)
+                        is String -> editor.putString(preference.key, original)
+                        else -> error("Unexpected stored preference $original")
+                    }
+                    assertTrue(editor.commit())
+                }
+            }
+        }
+    }
+
+    @Test
+    fun largeBodyWithCappedRightPinyinExpandsTheActualDynamicCandidateBarWithoutClipping() {
+        val prefs = AppPrefs.getInstance()
+        val height = ThemeManager.prefs.toolbarHeight
+        val dynamicHeight = prefs.keyboard.toolbarDynamicHeight
+        val mode = prefs.candidates.mode
+        val profiles = prefs.internal.candidateBarHeightProfiles
+        val originals = listOf(height, dynamicHeight, mode, profiles)
+            .associateWith { it.sharedPreferences.all[it.key] }
+        val originalFontProvider = FontProviders.provider
+        try {
+            onMain {
+                mode.setValue(FloatingCandidatesMode.Disabled)
+                FontProviders.provider = object : FontProviderApi by originalFontProvider {
+                    override fun clearCache() = Unit
+                    override val fontSizeMap = originalFontProvider.fontSizeMap.toMutableMap().apply {
+                        put("cand_font_size", 72f)
+                        put("cand_comment_font_size", 72f)
+                    }
+                }
+                // Assigning the provider already invalidates caches and bumps the generation.
+                // Consume any refresh queued by an earlier run so onStartInputView() does not
+                // replace the InputView while this test holds a reference to its row.
+                FontProviders.checkAndClearRefreshFlag()
+            }
+            instrumentation.waitForIdleSync()
+            // Changing toolbarHeight is a theme preference change, which makes the service
+            // post an InputView replacement. Use a fresh editor session per height so the
+            // row inspected below belongs to the InputView that is actually attached.
+            for (toolbarHeight in listOf(24, 40)) {
+                onMain { height.setValue(toolbarHeight) }
+                instrumentation.waitForIdleSync()
+                withEditor(prepare = { connection ->
+                    connection.runImmediately {
+                        setImConfig("pinyin", RawConfig().apply {
+                            getOrCreate("PinyinAnnotation").value = "Always show"
+                            getOrCreate("PinyinAnnotationPlacement").value = "Right"
+                        })
+                        CandidateBarHeightSettings.refresh(this)
+                    }
+                    onMain {
+                        height.setValue(toolbarHeight)
+                        dynamicHeight.setValue(true)
+                    }
+                    instrumentation.waitForIdleSync()
+                }) { session ->
+                    session.type("ni")
+                    await("dynamic height for 72sp body with capped right pinyin at ${toolbarHeight}dp", diagnostics = {
+                        "height=${session.row.height}, ${session.rowDiagnostics()}"
+                    }) {
+                        session.visibleHolders().any { it.hasRightAnnotation() } &&
+                            session.row.height > toolbarHeight * context.resources.displayMetrics.density + 1f &&
+                            !session.row.isLayoutRequested
+                    }
+                    onMain {
+                        val holder = session.visibleHolders().first { it.hasRightAnnotation() }
+                        assertEquals("The candidate must retain right-side pinyin", holder.candidate.textWithComment(),
+                            holder.ui.text.text.toString())
+                        assertEquals(View.GONE, holder.ui.pinyinText.visibility)
+                        val annotationPaint = TextPaint().apply {
+                            textSize = holder.ui.text.textSize
+                            typeface = holder.ui.text.typeface
+                        }
+                        CandidateAnnotationStyle.span(context, holder.ui.text.textSize)
+                            .updateMeasureState(annotationPaint)
+                        assertTrue("Annotation size must not exceed half the body size",
+                            annotationPaint.textSize <= holder.ui.text.textSize / 2f + 0.01f)
+                        assertEquals("Dynamic height must preserve full-size candidate drawing",
+                            AutoScaleTextView.Mode.None, holder.ui.text.scaleMode)
+                        assertEquals("The large annotation must fit without shrinking",
+                            1f, holder.ui.text.textScaleX, 0.01f)
+                        val origin = Rect()
+                        holder.ui.root.offsetDescendantRectToMyCoords(holder.ui.text, origin)
+                        val ink = holder.ui.text.renderedGlyphBounds()
+                        assertTrue("Right-side pinyin must fit vertically in its actual candidate: $ink, origin=$origin",
+                            origin.top + ink.top >= -1f &&
+                                origin.top + ink.bottom <= holder.itemView.height + 1f)
+                        assertTrue("Right-side pinyin must fit horizontally in its actual candidate: $ink, origin=$origin",
+                            origin.left + ink.left >= -1f &&
+                                origin.left + ink.right <= holder.itemView.width + 1f)
+                    }
+                }
+            }
+        } finally {
+            onMain {
+                FontProviders.provider = originalFontProvider
+                FontProviders.markNeedsRefresh()
+                originals.forEach { (preference, original) ->
+                    val editor = preference.sharedPreferences.edit()
+                    when (original) {
+                        null -> editor.remove(preference.key)
+                        is Int -> editor.putInt(preference.key, original)
+                        is Boolean -> editor.putBoolean(preference.key, original)
+                        is String -> editor.putString(preference.key, original)
+                        else -> error("Unexpected preference type for ${preference.key}")
+                    }
+                    assertTrue("Restore ${preference.key}", editor.commit())
+                }
+            }
+        }
+    }
+
+    @Test
+    fun topAdaptiveHeightStaysStableAcrossIdleCandidatesPagingCommitAndReset() {
+        val prefs = AppPrefs.getInstance()
+        val dynamicHeight = prefs.keyboard.toolbarDynamicHeight
+        val height = ThemeManager.prefs.toolbarHeight
+        val mode = prefs.candidates.mode
+        val profiles = prefs.internal.candidateBarHeightProfiles
+        // Restore JSON last: restoring the proxy preferences can capture a profile.
+        val originals = listOf(dynamicHeight, height, mode, profiles)
+            .associateWith { it.sharedPreferences.all[it.key] }
+        try {
+            onMain { mode.setValue(FloatingCandidatesMode.Disabled) }
+            withEditor { session ->
+                fun configureAnnotation(value: String) {
+                    session.connection.runImmediately {
+                        setImConfig("pinyin", RawConfig().apply {
+                            getOrCreate("PinyinAnnotation").value = value
+                            getOrCreate("PinyinAnnotationPlacement").value = "Top"
+                        })
+                        CandidateBarHeightSettings.refresh(this)
+                    }
+                    onMain { dynamicHeight.setValue(true) }
+                    instrumentation.waitForIdleSync()
+                }
+                configureAnnotation("Only rare characters")
+                val bar = InputView::class.java.getDeclaredField("kawaiiBar").apply {
+                    isAccessible = true
+                }.get(session.inputView) as KawaiiBarComponent
+                val idleUi = KawaiiBarComponent::class.java.getDeclaredField("_idleUi").apply {
+                    isAccessible = true
+                }.get(bar) as IdleUi
+                var toolbarGeometryChecks = 0
+                val adapter = session.row.adapter as HorizontalCandidateViewAdapter
+                fun awaitIdle() {
+                    await("empty actual candidate bar", diagnostics = { session.rowDiagnostics() }) {
+                        adapter.candidates.isEmpty() && session.connection.runImmediately {
+                            inputPanelCached.preedit.isEmpty() && clientPreeditCached.isEmpty()
+                        } && bar.view.isShown && bar.view.height > 0 && !bar.view.isLayoutRequested
+                    }
+                }
+                session.connection.runImmediately { reset() }
+                awaitIdle()
+                var expectedHeight = 0
+                onMain {
+                    assertTrue("Top placement must reserve its annotation line while idle",
+                        CandidateBarHeightSettings.annotationOnTop)
+                    expectedHeight = bar.view.height
+                }
+                fun assertStableHeight(state: String) {
+                    instrumentation.waitForIdleSync()
+                    await("settled top bar after $state", diagnostics = {
+                        "bar=" + bar.view.height + ", expected=$expectedHeight, " + session.rowDiagnostics()
+                    }) {
+                        !bar.view.isLayoutRequested &&
+                            (!session.row.isShown || !session.row.isLayoutRequested)
+                    }
+                    onMain {
+                        assertTrue("The same actual InputView must remain attached after $state",
+                            session.inputView === session.inputView.service.inputView)
+                        assertEquals("Top adaptive bar height must stay stable after $state",
+                            expectedHeight, bar.view.height)
+                        if (idleUi.root.isShown && idleUi.currentState == IdleUi.State.Toolbar) {
+                            val rowHeight = idleUi.root.height
+                            val edgeWidth = context.dp(40)
+                            val iconSize = context.dp(20)
+                            assertEquals(edgeWidth, idleUi.menuButton.width)
+                            assertEquals(edgeWidth, idleUi.hideKeyboardButton.width)
+                            assertEquals(0, idleUi.menuButton.left)
+                            assertEquals((idleUi.hideKeyboardButton.parent as View).width,
+                                idleUi.hideKeyboardButton.right)
+                            val buttons = listOf(idleUi.menuButton, idleUi.hideKeyboardButton) +
+                                idleUi.buttonsUi.root.children.filterIsInstance<ToolButton>().toList()
+                            buttons.forEach { button ->
+                                assertEquals(rowHeight, button.height)
+                                assertEquals(iconSize, button.image.width)
+                                assertEquals(iconSize, button.image.height)
+                                assertEquals(button.width / 2f,
+                                    button.image.left + button.image.width / 2f, 1f)
+                                assertEquals(rowHeight / 2f,
+                                    button.image.top + button.image.height / 2f, 1f)
+                            }
+                            toolbarGeometryChecks++
+                        }
+                    }
+                }
+                assertStableHeight("idle")
+                session.type("ni")
+                await("ordinary candidate without annotation", diagnostics = { session.rowDiagnostics() }) {
+                    session.visibleHolders().any { it.text == "你" && it.candidate.topPinyinAnnotation == null }
+                }
+                assertStableHeight("ordinary candidates")
+
+                configureAnnotation("Always show")
+                session.type("ni")
+                await("actual annotated candidate", diagnostics = { session.rowDiagnostics() }) {
+                    session.visibleHolders().any { it.candidate.topPinyinAnnotation != null }
+                }
+                assertStableHeight("annotated candidates with the same Top structure")
+                var beforePage = emptyList<Int>()
+                onMain { beforePage = session.visibleHolders().map { it.candidate.nativeIndex } }
+                session.connection.runImmediately { offsetCandidatePage(1) }
+                await("actual second candidate page", diagnostics = { session.rowDiagnostics() }) {
+                    val indices = session.visibleHolders().map { it.candidate.nativeIndex }
+                    indices.isNotEmpty() && indices != beforePage
+                }
+                assertStableHeight("paging")
+                val component = InputView::class.java.getDeclaredField("horizontalCandidate").apply {
+                    isAccessible = true
+                }.get(session.inputView) as HorizontalCandidateComponent
+                val applyingViewport = HorizontalCandidateComponent::class.java.getDeclaredField("viewportApplying").apply {
+                    isAccessible = true
+                }
+                await("candidate ready for actual commit", diagnostics = { session.rowDiagnostics() }) {
+                    !applyingViewport.getBoolean(component) && !session.row.hasPendingAdapterUpdates() &&
+                        !session.row.isLayoutRequested && !session.row.isComputingLayout &&
+                        session.visibleHolders().any {
+                            it.bindingAdapterPosition in adapter.candidates.indices &&
+                                it.candidate == adapter.candidates[it.bindingAdapterPosition] && it.idx >= 0
+                        }
+                }
+                lateinit var candidate: CandidateViewHolder
+                onMain {
+                    candidate = session.visibleHolders().first {
+                        it.bindingAdapterPosition in adapter.candidates.indices &&
+                            it.candidate == adapter.candidates[it.bindingAdapterPosition] && it.idx >= 0
+                    }
+                }
+                session.connection.runImmediately {
+                    assertFalse("The paged candidate must still belong to an active composition", isEmpty())
+                }
+                session.expectCommit(candidate.text, candidate.itemView)
+                awaitIdle()
+                assertStableHeight("commit and cleared candidates")
+                session.type("xing")
+                assertStableHeight("another composition")
+                session.connection.runImmediately { reset() }
+                awaitIdle()
+                assertStableHeight("reset and cleared candidates")
+                assertTrue("Verify visible toolbar geometry at idle, after commit and after reset",
+                    toolbarGeometryChecks >= 3)
+            }
+        } finally {
+            onMain {
+                originals.forEach { (preference, original) ->
+                    val editor = preference.sharedPreferences.edit()
+                    when (original) {
+                        null -> editor.remove(preference.key)
+                        is Int -> editor.putInt(preference.key, original)
+                        is Boolean -> editor.putBoolean(preference.key, original)
+                        is String -> editor.putString(preference.key, original)
+                        else -> error("Unexpected stored preference $original")
+                    }
+                    assertTrue(editor.commit())
+                }
+            }
+        }
+    }
 
     @Test
     fun topPinyinAlignsActualHorizontalAndFlexboxRowsWithDynamicHeightDisabled() {
@@ -80,14 +405,18 @@ class CandidateExpansionUiTest {
         val dynamicHeight = prefs.keyboard.toolbarDynamicHeight
         val mode = prefs.candidates.mode
         val expandedStyle = prefs.keyboard.expandedCandidateStyle
-        val originals = listOf(height, dynamicHeight, mode, expandedStyle)
+        val profiles = prefs.internal.candidateBarHeightProfiles
+        val originals = listOf(height, dynamicHeight, mode, expandedStyle, profiles)
             .associateWith { it.sharedPreferences.all[it.key] }
+        val manualHeight = KawaiiBarComponent.MAX_TOOLBAR_HEIGHT
         try {
             onMain {
-                height.setValue(24)
+                // Reserve enough manual space for both lines while adaptation remains off.
+                height.setValue(manualHeight)
                 dynamicHeight.setValue(false)
                 mode.setValue(FloatingCandidatesMode.Disabled)
                 expandedStyle.setValue(ExpandedCandidateStyle.Flexbox)
+                profiles.setValue("")
             }
             instrumentation.waitForIdleSync()
             withEditor { session ->
@@ -96,16 +425,19 @@ class CandidateExpansionUiTest {
                         getOrCreate("PinyinAnnotation").value = "Automatic"
                         getOrCreate("PinyinAnnotationPlacement").value = "Top"
                     })
+                    CandidateBarHeightSettings.refresh(this)
                 }
+                onMain { dynamicHeight.setValue(false) }
                 session.type("xing")
                 await("actual mixed candidate row with top pinyin", diagnostics = { session.rowDiagnostics() }) {
                     val holders = session.visibleHolders()
                     holders.any { it.candidate.topPinyinAnnotation != null } &&
                         holders.any { it.candidate.topPinyinAnnotation == null } &&
-                        session.row.height > 24 * context.resources.displayMetrics.density
+                        kotlin.math.abs(session.row.height - manualHeight * context.resources.displayMetrics.density) <= 1f
                 }
                 onMain {
                     val holders = session.visibleHolders()
+                    assertFalse("Top placement must respect disabled adaptive height", dynamicHeight.getValue())
                     assertCandidateBodiesAligned(session.row, holders)
                     holders.filter { it.candidate.topPinyinAnnotation != null }.forEach { holder ->
                         assertEquals(holder.candidate.topPinyinAnnotation, holder.ui.pinyinText.text.toString())
@@ -153,11 +485,13 @@ class CandidateExpansionUiTest {
                 }
                 session.connection.runImmediately {
                     setImConfig("pinyin", RawConfig().apply { getOrCreate("PinyinAnnotationPlacement").value = "Right" })
+                    CandidateBarHeightSettings.refresh(this)
                 }
+                onMain { dynamicHeight.setValue(false) }
                 session.type("xing")
                 await("restored fixed row height after leaving top placement", diagnostics = { session.rowDiagnostics() }) {
                     session.visibleHolders().none { it.candidate.topPinyinAnnotation != null } &&
-                        kotlin.math.abs(session.row.height - 24 * context.resources.displayMetrics.density) <= 1f
+                        kotlin.math.abs(session.row.height - manualHeight * context.resources.displayMetrics.density) <= 1f
                 }
             }
         } finally {
@@ -230,7 +564,8 @@ class CandidateExpansionUiTest {
             assertEquals(alternative.candidate.nativeIndex, alternative.idx)
         }
         session.capture("emoji-expansion-ui.png")
-        session.expectCommit("❎", alternative.itemView)
+        // Screenshot capture can yield while Paging replaces a bound holder.
+        session.expectCommit("❎", session.expandedHolder(expanded, "❎").itemView)
     }
 
     @Test
@@ -461,7 +796,11 @@ class CandidateExpansionUiTest {
             val candidateUi = item.tag as LabeledCandidateItemUi
             val label = item.allViews.filterIsInstance<TextView>()
                 .single { it !== candidateUi.pinyinText }
-            assertEquals(candidate.label + candidate.textWithComment(), label.text.toString())
+            val topPinyin = candidate.topPinyinAnnotation
+            val body = if (topPinyin == null) candidate.textWithComment() else candidate.text
+            assertEquals(candidate.label + body, label.text.toString())
+            assertEquals(if (topPinyin == null) View.GONE else View.VISIBLE, candidateUi.pinyinText.visibility)
+            assertEquals(topPinyin.orEmpty(), candidateUi.pinyinText.text.toString())
         }
     }
 
@@ -500,7 +839,7 @@ class CandidateExpansionUiTest {
         }
     }
 
-    private fun withEditor(body: (UiSession) -> Unit) {
+    private fun withEditor(prepare: (FcitxConnection) -> Unit = {}, body: (UiSession) -> Unit) {
         val connectionName = "CandidateExpansionUiTest"
         val connection = FcitxDaemon.connect(connectionName)
         val storage = context.createDeviceProtectedStorageContext()
@@ -542,8 +881,6 @@ class CandidateExpansionUiTest {
             }
             instrumentation.waitForIdleSync()
             val activeService = requireNotNull(runningService()).also { service = it }
-            val inputView = requireNotNull(activeService.inputView)
-            val wm = windowManager(activeService)
             originalIme = connection.runImmediately { currentIme().uniqueName }
             originalEnabled = connection.runImmediately { enabledIme().map { it.uniqueName }.toTypedArray() }
             connection.runImmediately {
@@ -562,6 +899,12 @@ class CandidateExpansionUiTest {
                 reset()
             }
             await("full pinyin") { connection.runImmediately { inputMethodEntryCached.uniqueName } == "pinyin" }
+            prepare(connection)
+            // Scheme activation and preparation can change toolbarHeight, which posts
+            // a theme-driven InputView replacement. Capture the final attached view.
+            instrumentation.waitForIdleSync()
+            val inputView = requireNotNull(activeService.inputView)
+            val wm = windowManager(activeService)
             lateinit var row: RecyclerView
             onMain {
                 wm.attachWindow(KeyboardWindow)
@@ -788,7 +1131,8 @@ class CandidateExpansionUiTest {
 
         fun rowDiagnostics(): String =
             "width=${row.width}, measured=${row.measuredWidth}, shown=${row.isShown}, children=${row.childCount}, " +
-                "layoutWidth=${row.layoutParams?.width}, visible=${visibleTexts()}"
+                "layoutWidth=${row.layoutParams?.width}, layoutRequested=${row.isLayoutRequested}, " +
+                "visible=${visibleTexts()}"
 
         private fun editorDiagnostics(): String =
             "text=${editor.text}, selection=${editor.selectionStart}..${editor.selectionEnd}, " +
@@ -819,6 +1163,11 @@ class CandidateExpansionUiTest {
     }
 
     private fun onMain(block: () -> Unit) = instrumentation.runOnMainSync(block)
+
+    /** A candidate whose pinyin annotation is drawn beside the text, not above it. */
+    private fun CandidateViewHolder.hasRightAnnotation(): Boolean =
+        (candidate.displayComment ?: candidate.comment).isNotBlank() &&
+            candidate.topPinyinAnnotation == null
 
     companion object {
         @ClassRule

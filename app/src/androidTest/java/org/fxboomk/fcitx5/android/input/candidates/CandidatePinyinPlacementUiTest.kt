@@ -9,6 +9,8 @@ import android.graphics.RectF
 import android.graphics.Typeface
 import android.os.SystemClock
 import android.text.Spanned
+import android.text.TextPaint
+import android.text.style.MetricAffectingSpan
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
@@ -27,6 +29,8 @@ import org.fxboomk.fcitx5.android.core.CandidateWord
 import org.fxboomk.fcitx5.android.core.FcitxEvent
 import org.fxboomk.fcitx5.android.data.theme.ThemePreset
 import org.fxboomk.fcitx5.android.input.AutoScaleTextView
+import org.fxboomk.fcitx5.android.input.font.FontProviderApi
+import org.fxboomk.fcitx5.android.input.font.FontProviders
 import org.fxboomk.fcitx5.android.input.candidates.floating.LabeledCandidateItemUi
 import org.fxboomk.fcitx5.android.input.candidates.floating.FloatingCandidatesOrientation
 import org.fxboomk.fcitx5.android.input.candidates.floating.PagedCandidatesUi
@@ -35,14 +39,356 @@ import org.fxboomk.fcitx5.android.input.candidates.horizontal.HorizontalCandidat
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.math.roundToInt
+import kotlin.math.ceil
 
 /** Verify the two-line presentation without changing the user's saved IME settings. */
 class CandidatePinyinPlacementUiTest {
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
     private val context = instrumentation.targetContext
+    private val annotationTypeface by lazy {
+        Typeface.createFromFile("/system/fonts/DroidSansMono.ttf")
+    }
+    private val replacementAnnotationTypeface by lazy {
+        Typeface.createFromFile("/system/fonts/NotoSerif-Regular.ttf")
+    }
+
+    @Test
+    fun topAndRightPinyinUseTheirOwnFontAndSizeAtEveryCandidateScale() = onMain {
+        withFontConfiguration(bodySize = 24f, annotationSize = 32f) {
+            for (scale in listOf(1f, 1.5f)) {
+                val candidate = word("你", "(iiiiWW)")
+                val top = CandidateItemUi(context, ThemePreset.MaterialLight)
+                val right = CandidateItemUi(context, ThemePreset.MaterialLight)
+                top.updateCandidate(candidate.copy(isPinyinAnnotationOnTop = true))
+                right.updateCandidate(candidate)
+                top.setFontScale(scale)
+                right.setFontScale(scale)
+                naturalLayout(top.root)
+                naturalLayout(right.root)
+
+                val bodySize = sp(24f * scale)
+                val annotationSize = sp(12f * scale)
+                assertEquals(bodySize, top.text.textSize, 0.01f)
+                assertEquals(bodySize, right.text.textSize, 0.01f)
+                assertSame(Typeface.SERIF, top.text.typeface)
+                assertSame(Typeface.SERIF, right.text.typeface)
+                assertEquals(annotationSize, top.pinyinText.textSize, 0.01f)
+                assertSame(annotationTypeface, top.pinyinText.typeface)
+                assertRightAnnotationWidth(right, candidate, annotationTypeface, annotationSize)
+                assertPinyinAboveMain(top.root, top.pinyinText, top.text)
+                assertGlyphsInside(top.root, top.pinyinText)
+            }
+        }
+    }
+
+    @Test
+    fun missingAnnotationSizeUsesItsOwnDefaultInsteadOfTheBodySize() = onMain {
+        withFontConfiguration(bodySize = 48f, annotationSize = null) {
+            val candidate = word("你", "(iiiiWW)")
+            val ui = CandidateItemUi(context, ThemePreset.MaterialLight)
+            ui.updateCandidate(candidate.copy(isPinyinAnnotationOnTop = true))
+            naturalLayout(ui.root)
+            assertEquals(sp(48f), ui.text.textSize, 0.01f)
+            assertEquals(sp(11f), ui.pinyinText.textSize, 0.01f)
+
+            ui.updateCandidate(candidate)
+            naturalLayout(ui.root)
+            assertEquals(sp(48f), ui.text.textSize, 0.01f)
+            assertRightAnnotationWidth(ui, candidate, annotationTypeface, sp(11f))
+        }
+    }
+
+    @Test
+    fun missingAnnotationSizeIsCappedForSmallCandidateBodies() = onMain {
+        withFontConfiguration(bodySize = 8f, annotationSize = null) {
+            val candidate = word("你", "(nǐ)")
+            val ui = CandidateItemUi(context, ThemePreset.MaterialLight)
+            for (scale in listOf(0.72f, 1f, 1.5f)) {
+                ui.setFontScale(scale)
+                ui.updateCandidate(candidate.copy(isPinyinAnnotationOnTop = true))
+                naturalLayout(ui.root)
+                assertEquals(ui.text.textSize / 2f, ui.pinyinText.textSize, 0.01f)
+                ui.updateCandidate(candidate)
+                naturalLayout(ui.root)
+                assertRightAnnotationWidth(ui, candidate, annotationTypeface, ui.text.textSize / 2f)
+            }
+        }
+    }
+
+    @Test
+    fun reusedCandidatesReapplyTheCapWhenBodySizeIncreasesOrDecreases() = onMain {
+        withFontConfiguration(bodySize = 20f, annotationSize = 5f) { provider ->
+            val candidates = arrayOf(word("你", "(iiiiWW)", top = true), word("我", "(iiiiWW)"))
+            val adapter = HorizontalCandidateViewAdapter(ThemePreset.MaterialLight)
+            val parent = LinearLayout(context)
+            adapter.updateCandidates(candidates, candidates.size)
+            val holders = candidates.indices.map { adapter.onCreateViewHolder(parent, 0) }
+            for ((bodySize, requestedSize, expectedSize) in listOf(
+                Triple(20f, 5f, 5f),
+                Triple(48f, 32f, 24f),
+                Triple(8f, 32f, 4f),
+            )) {
+                provider.fontSizeMap["cand_font_size"] = bodySize
+                provider.fontSizeMap["cand_comment_font_size"] = requestedSize
+                FontProviders.markNeedsRefresh()
+                adapter.updateCandidates(candidates, candidates.size)
+                holders.forEachIndexed { index, holder ->
+                    adapter.onBindViewHolder(holder, index)
+                    naturalLayout(holder.ui.root)
+                    assertEquals(sp(bodySize), holder.ui.text.textSize, 0.01f)
+                }
+                assertEquals(sp(expectedSize), holders[0].ui.pinyinText.textSize, 0.01f)
+                assertRightAnnotationWidth(holders[1].ui, candidates[1], annotationTypeface, sp(expectedSize))
+            }
+        }
+    }
+
+    @Test
+    fun floatingAnnotationsUseTheSameIndependentStyleWithoutRestylingTheLabel() = onMain {
+        withFontConfiguration(bodySize = 24f, annotationSize = 32f) {
+            val ui = LabeledCandidateItemUi(
+                context, ThemePreset.MaterialLight,
+                setupTextView = {
+                    textSize = 24f
+                    typeface = Typeface.SERIF
+                    setSingleLine()
+                    gravity = Gravity.TOP or Gravity.START
+                },
+                highlightRadius = 4f,
+            )
+            val main = ui.root.allViews.filterIsInstance<TextView>().single { it !== ui.pinyinText }
+            val candidate = word("你", "(iiiiWW)", top = true).copy(label = "1. ")
+            ui.update(candidate, active = false)
+            naturalLayout(ui.root)
+            assertSame(annotationTypeface, ui.pinyinText.typeface)
+            assertEquals(sp(12f), ui.pinyinText.textSize, 0.01f)
+            assertEquals("1. 你", main.text.toString())
+
+            ui.update(candidate.copy(isPinyinAnnotationOnTop = false), active = false)
+            naturalLayout(ui.root)
+            assertEquals("1. 你 (iiiiWW)", main.text.toString())
+            val text = main.text as Spanned
+            val spans = text.getSpans(0, text.length, MetricAffectingSpan::class.java)
+            assertEquals("Only the pinyin comment should carry the independent font", 1, spans.size)
+            val span = spans.single()
+            assertEquals("The label and candidate body must remain outside the annotation span",
+                "1. 你 ".length, text.getSpanStart(span))
+            assertEquals(text.length, text.getSpanEnd(span))
+            val annotationPaint = TextPaint(main.paint)
+            span.updateMeasureState(annotationPaint)
+            assertSame(annotationTypeface, annotationPaint.typeface)
+            assertEquals(sp(12f), annotationPaint.textSize, 0.01f)
+            assertSame(Typeface.SERIF, main.typeface)
+            assertEquals(sp(24f), main.textSize, 0.01f)
+        }
+    }
+
+    @Test
+    fun rebindingIdenticalCandidatesRefreshesTopAndRightAnnotationFonts() = onMain {
+        withFontConfiguration(bodySize = 24f, annotationSize = 6f) { provider ->
+            val candidates = arrayOf(word("你", "(iiiiWW)", top = true), word("我", "(iiiiWW)"))
+            val adapter = HorizontalCandidateViewAdapter(ThemePreset.MaterialLight)
+            val parent = LinearLayout(context)
+            adapter.updateCandidates(candidates, candidates.size)
+            val holders = candidates.indices.map { position ->
+                adapter.onCreateViewHolder(parent, 0).also {
+                    adapter.onBindViewHolder(it, position)
+                    naturalLayout(it.ui.root)
+                }
+            }
+            assertEquals(sp(6f), holders[0].ui.pinyinText.textSize, 0.01f)
+            assertRightAnnotationWidth(holders[1].ui, candidates[1], annotationTypeface, sp(6f))
+
+            provider.fontSizeMap["cand_comment_font_size"] = 9f
+            FontProviders.markNeedsRefresh()
+            adapter.updateCandidates(candidates, candidates.size)
+            holders.forEachIndexed { position, holder ->
+                adapter.onBindViewHolder(holder, position)
+                naturalLayout(holder.ui.root)
+                assertEquals(sp(24f), holder.ui.text.textSize, 0.01f)
+            }
+            assertSame(annotationTypeface, holders[0].ui.pinyinText.typeface)
+            assertEquals("Changing only the annotation size must refresh the top line", sp(9f),
+                holders[0].ui.pinyinText.textSize, 0.01f)
+            assertRightAnnotationWidth(holders[1].ui, candidates[1], annotationTypeface, sp(9f))
+
+            provider.fontTypefaceMap["cand_comment_font"] = replacementAnnotationTypeface
+            provider.fontSizeMap["cand_comment_font_size"] = 32f
+            FontProviders.markNeedsRefresh()
+            adapter.updateCandidates(candidates, candidates.size)
+            holders.forEachIndexed { position, holder ->
+                adapter.onBindViewHolder(holder, position)
+                naturalLayout(holder.ui.root)
+                assertSame(Typeface.SERIF, holder.ui.text.typeface)
+                assertEquals(sp(24f), holder.ui.text.textSize, 0.01f)
+            }
+            assertSame(replacementAnnotationTypeface, holders[0].ui.pinyinText.typeface)
+            assertEquals(sp(12f), holders[0].ui.pinyinText.textSize, 0.01f)
+            assertRightAnnotationWidth(holders[1].ui, candidates[1], replacementAnnotationTypeface, sp(12f))
+        }
+    }
+
+    @Test
+    fun cappedTopAnnotationsFitNarrowCandidatesWithoutChangingBodySize() = onMain {
+        withFontConfiguration(bodySize = 16f, annotationSize = 40f) {
+            val ui = CandidateItemUi(context, ThemePreset.MaterialLight)
+            ui.updateCandidate(word("床", "(chuáng)", top = true))
+            for (scale in listOf(1f, 2f)) {
+                ui.setFontScale(scale)
+                for (width in listOf(48, 72)) {
+                    layoutWithNaturalHeight(ui.root, width, minimumHeightDp = 40)
+                    assertEquals(sp(16f * scale), ui.text.textSize, 0.01f)
+                    assertEquals(sp(8f * scale), ui.pinyinText.textSize, 0.01f)
+                    assertPinyinAboveMain(ui.root, ui.pinyinText, ui.text)
+                    assertGlyphsInside(ui.root, ui.pinyinText)
+                    assertGlyphsInside(ui.root, ui.text)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun gridCappedAnnotationsFitLargeBodyRowsAndInvalidateWidthCacheWhenFontsChange() {
+        withFontConfiguration(bodySize = 60f, annotationSize = 72f) { provider ->
+            lateinit var recycler: RecyclerView
+            lateinit var adapter: GridPagingCandidateViewAdapter
+            lateinit var owner: TestLifecycleOwner
+            val candidate = word("你", "(iii)")
+            onMain {
+                owner = TestLifecycleOwner(Lifecycle.State.RESUMED)
+                adapter = object : GridPagingCandidateViewAdapter(ThemePreset.MaterialLight) {}
+                recycler = RecyclerView(context).apply {
+                    layoutManager = GridLayoutManager(context, 1)
+                    itemAnimator = null
+                    this.adapter = adapter
+                }
+                adapter.submitData(owner.lifecycle, PagingData.from(listOf(candidate)))
+            }
+            try {
+                await("large right annotation bound in Grid") {
+                    layoutPixels(recycler, width = dp(360), height = dp(300))
+                    adapter.itemCount == 1 &&
+                        recycler.findViewHolderForAdapterPosition(0) is CandidateViewHolder
+                }
+                onMain {
+                    val holder = recycler.findViewHolderForAdapterPosition(0) as CandidateViewHolder
+                    assertEquals(candidate.textWithComment(), holder.ui.text.text.toString())
+                    assertEquals(View.GONE, holder.ui.pinyinText.visibility)
+                    assertTrue("A 60sp body must grow the expanded Grid row",
+                        holder.itemView.height > dp(40))
+                    assertEquals(ViewGroup.LayoutParams.WRAP_CONTENT, holder.itemView.layoutParams.height)
+                    assertEquals("Grid must retain the configured candidate body size", sp(60f),
+                        holder.ui.text.textSize, 0.01f)
+                    assertRightAnnotationWidth(holder.ui, candidate, annotationTypeface, sp(30f))
+                    assertEquals("Grid must allocate enough space to avoid shrinking the large annotation",
+                        1f, holder.ui.text.textScaleX, 0.01f)
+                    assertGlyphsInside(holder.ui.root, holder.ui.text)
+
+                    val monospaceWidth = adapter.measureWidth(0)
+                    provider.fontTypefaceMap["cand_comment_font"] = replacementAnnotationTypeface
+                    FontProviders.markNeedsRefresh()
+                    val sansWidth = adapter.measureWidth(0)
+                    assertTrue("Changing only the annotation typeface must invalidate its measured-width cache",
+                        kotlin.math.abs(monospaceWidth - sansWidth) > 0.01f)
+
+                    provider.fontSizeMap["cand_comment_font_size"] = 12f
+                    FontProviders.markNeedsRefresh()
+                    assertTrue("Changing only the annotation size must update the expanded candidate width",
+                        adapter.measureWidth(0) < sansWidth)
+                }
+            } finally {
+                onMain {
+                    recycler.adapter = null
+                    owner.currentState = Lifecycle.State.DESTROYED
+                }
+            }
+        }
+    }
+
+    @Test
+    fun identicalFloatingPagesRebindAnnotationStylesOnlyWhenFontGenerationChanges() = onMain {
+        withFontConfiguration(bodySize = 24f, annotationSize = 6f) { provider ->
+            val candidates = arrayOf(
+                word("你", "(nǐ)", top = true).copy(label = "1. "),
+                word("我", "(wǒ)").copy(label = "2. "),
+            )
+            val data = FcitxEvent.PagedCandidateEvent.Data(candidates, 0,
+                FcitxEvent.PagedCandidateEvent.LayoutHint.NotSet, false, false)
+            var bindings = 0
+            val ui = PagedCandidatesUi(
+                ctx = context,
+                theme = ThemePreset.MaterialLight,
+                setupTextView = {
+                    textSize = 24f
+                    typeface = Typeface.SERIF
+                    setSingleLine()
+                    gravity = Gravity.TOP or Gravity.START
+                },
+                onCandidateClick = {},
+                onCandidateAction = { _, _, _ -> },
+                onBindCandidateGesture = { _, _, _ -> bindings++ },
+                onUnbindCandidateGesture = {},
+                onPrevPage = {},
+                onNextPage = {},
+                highlightRadius = 4f,
+            )
+            ui.update(data, FloatingCandidatesOrientation.Horizontal, dp(360))
+            naturalLayout(ui.root)
+            val items = candidates.indices.map { ui.root.getChildAt(it).tag as LabeledCandidateItemUi }
+            assertEquals(2, bindings)
+            assertSame(annotationTypeface, items[0].pinyinText.typeface)
+            assertEquals(sp(6f), items[0].pinyinText.textSize, 0.01f)
+
+            ui.update(data, FloatingCandidatesOrientation.Horizontal, dp(360))
+            assertEquals("Unchanged data and fonts must preserve the existing bindings", 2, bindings)
+
+            provider.fontSizeMap["cand_comment_font_size"] = 9f
+            FontProviders.markNeedsRefresh()
+            ui.update(data, FloatingCandidatesOrientation.Horizontal, dp(360))
+            naturalLayout(ui.root)
+            assertEquals("Changing only the annotation size must rebind the identical page", 4, bindings)
+            assertSame(annotationTypeface, items[0].pinyinText.typeface)
+            assertEquals(sp(9f), items[0].pinyinText.textSize, 0.01f)
+            val sizeOnlyMain = items[1].root.allViews.filterIsInstance<TextView>()
+                .single { it !== items[1].pinyinText }
+            val sizeOnlyText = sizeOnlyMain.text as Spanned
+            val sizeOnlyPaint = TextPaint(sizeOnlyMain.paint)
+            sizeOnlyText.getSpans(0, sizeOnlyText.length, MetricAffectingSpan::class.java).single()
+                .updateMeasureState(sizeOnlyPaint)
+            assertSame(annotationTypeface, sizeOnlyPaint.typeface)
+            assertEquals(sp(9f), sizeOnlyPaint.textSize, 0.01f)
+
+            provider.fontTypefaceMap["cand_comment_font"] = replacementAnnotationTypeface
+            provider.fontSizeMap["cand_comment_font_size"] = 32f
+            FontProviders.markNeedsRefresh()
+            ui.update(data, FloatingCandidatesOrientation.Horizontal, dp(360))
+            naturalLayout(ui.root)
+            assertEquals("A font generation change must rebind an otherwise identical page", 6, bindings)
+            items.forEachIndexed { index, item ->
+                assertSame("Font refresh should reuse the existing floating candidate", item,
+                    ui.root.getChildAt(index).tag)
+                val main = item.root.allViews.filterIsInstance<TextView>().single { it !== item.pinyinText }
+                assertSame(Typeface.SERIF, main.typeface)
+                assertEquals(sp(24f), main.textSize, 0.01f)
+            }
+            assertSame(replacementAnnotationTypeface, items[0].pinyinText.typeface)
+            assertEquals(sp(12f), items[0].pinyinText.textSize, 0.01f)
+            val rightMain = items[1].root.allViews.filterIsInstance<TextView>()
+                .single { it !== items[1].pinyinText }
+            val text = rightMain.text as Spanned
+            val span = text.getSpans(0, text.length, MetricAffectingSpan::class.java).single()
+            val annotationPaint = TextPaint(rightMain.paint)
+            span.updateMeasureState(annotationPaint)
+            assertSame(replacementAnnotationTypeface, annotationPaint.typeface)
+            assertEquals(sp(12f), annotationPaint.textSize, 0.01f)
+            assertEquals("2. 我 (wǒ)", text.toString())
+            assertEquals("2. 我 ".length, text.getSpanStart(span))
+        }
+    }
 
     @Test
     fun defaultRightPlacementRetainsTheOriginalBracketedComment() = onMain {
@@ -438,6 +784,58 @@ class CandidatePinyinPlacementUiTest {
         word("我们", ""),
         word("拟", "(nǐ)", top = true),
     )
+
+    private fun withFontConfiguration(
+        bodySize: Float,
+        annotationSize: Float?,
+        block: (FontProviderApi) -> Unit,
+    ) {
+        val originalProvider = FontProviders.provider
+        val fixturePaint = TextPaint().apply { textSize = 20f; typeface = annotationTypeface }
+        val monoWidth = fixturePaint.measureText("iiiiWW")
+        fixturePaint.typeface = replacementAnnotationTypeface
+        assertTrue("The actual annotation font fixtures must have different glyph advances",
+            kotlin.math.abs(monoWidth - fixturePaint.measureText("iiiiWW")) > 0.1f)
+        val provider = object : FontProviderApi {
+            override fun clearCache() = Unit
+            override val fontTypefaceMap = mutableMapOf<String, Typeface?>(
+                "cand_font" to Typeface.SERIF,
+                "cand_comment_font" to annotationTypeface,
+            )
+            override val fontSizeMap = mutableMapOf("cand_font_size" to bodySize).apply {
+                annotationSize?.let { put("cand_comment_font_size", it) }
+            }
+        }
+        try {
+            FontProviders.provider = provider
+            FontProviders.markNeedsRefresh()
+            block(provider)
+        } finally {
+            FontProviders.provider = originalProvider
+            FontProviders.markNeedsRefresh()
+        }
+    }
+
+    private fun assertRightAnnotationWidth(
+        ui: CandidateItemUi,
+        candidate: CandidateWord,
+        annotationTypeface: Typeface,
+        annotationSize: Float,
+    ) {
+        val annotationPaint = TextPaint(ui.text.paint).apply {
+            typeface = annotationTypeface
+            textSize = annotationSize
+        }
+        val body = candidate.text + if (candidate.spaceBetweenComment) " " else ""
+        val expectedWidth = ceil(
+            ui.text.paint.measureText(body) + annotationPaint.measureText(candidate.comment),
+        ).toInt() + ui.text.paddingLeft + ui.text.paddingRight
+        assertEquals("Right-side pinyin must be measured with its own typeface and size",
+            expectedWidth.toFloat(), ui.text.measuredWidth.toFloat(), 1f)
+    }
+
+    private fun sp(value: Float) =
+        TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, value, context.resources.displayMetrics)
 
     private fun word(text: String, comment: String, top: Boolean = false) =
         CandidateWord("", text, comment, isPinyinAnnotationOnTop = top)

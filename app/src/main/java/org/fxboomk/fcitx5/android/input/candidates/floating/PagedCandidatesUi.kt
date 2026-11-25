@@ -21,6 +21,7 @@ import org.fxboomk.fcitx5.android.core.FcitxEvent
 import org.fxboomk.fcitx5.android.core.FcitxEvent.PagedCandidateEvent.LayoutHint
 import org.fxboomk.fcitx5.android.data.theme.Theme
 import org.fxboomk.fcitx5.android.input.keyboard.CustomGestureView
+import org.fxboomk.fcitx5.android.input.font.FontProviders
 import splitties.views.dsl.core.Ui
 
 /**
@@ -44,6 +45,7 @@ class PagedCandidatesUi(
 
     private var data = FcitxEvent.PagedCandidateEvent.Data.Empty
     private var activeIndex = -1
+    private var fontGeneration = -1L
 
     private var isVertical = false
     private var windowAboveCursor = false
@@ -82,11 +84,13 @@ class PagedCandidatesUi(
         }
         val newActiveIndex = activeIndexOverride ?: data.cursorIndex
         // Skip update if nothing changed to avoid unnecessary rebind/redraw.
-        if (this.data == data && this.isVertical == newIsVertical && this.activeIndex == newActiveIndex) return
+        if (this.data == data && this.isVertical == newIsVertical && this.activeIndex == newActiveIndex &&
+            fontGeneration == FontProviders.fontGeneration) return
 
         this.data = data
         this.isVertical = newIsVertical
         this.activeIndex = newActiveIndex
+        fontGeneration = FontProviders.fontGeneration
         updateFlexDirection()
         root.alignItems = if (isVertical) AlignItems.STRETCH else AlignItems.BASELINE
         reconcileChildren()

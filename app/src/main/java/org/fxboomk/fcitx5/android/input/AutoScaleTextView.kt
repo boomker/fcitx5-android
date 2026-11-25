@@ -10,11 +10,13 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.RectF
+import android.text.Layout
 import android.text.SpannableString
 import android.text.Spanned
 import android.text.StaticLayout
 import android.text.TextPaint
 import android.text.style.ForegroundColorSpan
+import android.text.style.MetricAffectingSpan
 import android.util.AttributeSet
 import android.view.Gravity
 import android.widget.TextView
@@ -88,9 +90,12 @@ class AutoScaleTextView @JvmOverloads constructor(
     private lateinit var text: String
 
     private data class ForegroundSpan(val start: Int, val end: Int, val color: Int, val flags: Int)
+    private data class MetricSpan(val start: Int, val end: Int, val span: MetricAffectingSpan, val flags: Int)
 
     private lateinit var foregroundSpans: List<ForegroundSpan>
+    private lateinit var metricSpans: List<MetricSpan>
     private var styledLayout: StaticLayout? = null
+    private var styledInkBounds: RectF? = null
 
     private var needsMeasureText = true
     private val fontMetrics = Paint.FontMetrics()
@@ -144,28 +149,78 @@ class AutoScaleTextView @JvmOverloads constructor(
     }
 
     override fun setTextSize(unit: Int, size: Float) {
+        val previousSize = textSize
         super.setTextSize(unit, size)
         needsMeasureText = true
         needsCalculateTransform = true
         styledLayout = null
+        styledInkBounds = null
+        if (textSize != previousSize) {
+            requestLayout()
+            invalidate()
+        }
     }
 
     override fun setTypeface(tf: Typeface?) {
+        val previousTypeface = typeface
         super.setTypeface(tf)
         needsMeasureText = true
         needsCalculateTransform = true
         styledLayout = null
+        styledInkBounds = null
+        if (typeface !== previousTypeface) {
+            requestLayout()
+            invalidate()
+        }
     }
 
     internal fun renderedGlyphBounds(): RectF {
         calculateTransform(width, height)
         val ink = Rect()
-        paint.getTextBounds(text, 0, text.length, ink)
+        if (metricSpans.isEmpty()) {
+            paint.getTextBounds(text, 0, text.length, ink)
+        } else {
+            ink.set(textBounds)
+        }
         return RectF(
             baselineX + ink.left * textScaleX + scrollX,
             baselineY + ink.top * textScaleY + scrollY,
             baselineX + ink.right * textScaleX + scrollX,
             baselineY + ink.bottom * textScaleY + scrollY
+        )
+    }
+
+    /** Painted ink only, including styled runs, without changing the view's layout metrics. */
+    internal fun renderedInkBounds(): RectF {
+        if (metricSpans.isEmpty()) return renderedGlyphBounds()
+        calculateTransform(width, height)
+        val ink = styledInkBounds ?: run {
+            val layout = foregroundLayout(paint)
+            val boundaries = (listOf(0, text.length) + metricSpans.flatMap { listOf(it.start, it.end) })
+                .distinct().sorted()
+            val runPaint = TextPaint(paint)
+            val runBounds = Rect()
+            val result = RectF()
+            boundaries.zipWithNext().forEach { (start, end) ->
+                runPaint.set(paint)
+                runPaint.baselineShift = 0
+                metricSpans.filter { it.start < end && it.end > start }.forEach {
+                    it.span.updateMeasureState(runPaint)
+                }
+                runPaint.getTextBounds(text, start, end, runBounds)
+                if (!runBounds.isEmpty) {
+                    val x = min(layout.getPrimaryHorizontal(start), layout.getPrimaryHorizontal(end)) -
+                        layout.getLineLeft(0)
+                    result.union(RectF(runBounds).apply { offset(x, runPaint.baselineShift.toFloat()) })
+                }
+            }
+            result.also { styledInkBounds = it }
+        }
+        return RectF(
+            baselineX + ink.left * textScaleX + scrollX,
+            baselineY + ink.top * textScaleY + scrollY,
+            baselineX + ink.right * textScaleX + scrollX,
+            baselineY + ink.bottom * textScaleY + scrollY,
         )
     }
 
@@ -205,30 +260,47 @@ class AutoScaleTextView @JvmOverloads constructor(
                 }
             }
         }.orEmpty()
+        val metrics = (charSequence as? Spanned)?.let { source ->
+            source.getSpans(0, source.length, MetricAffectingSpan::class.java).mapNotNull { span ->
+                val start = source.getSpanStart(span).coerceAtLeast(0)
+                val end = source.getSpanEnd(span).coerceAtMost(source.length)
+                if (start < end) MetricSpan(start, end, span, source.getSpanFlags(span)) else null
+            }
+        }.orEmpty()
         val colorsChanged = !::foregroundSpans.isInitialized || foregroundSpans != colors
-        if (textChanged) {
+        // Metric spans can be mutable. Re-setting them must refresh measurements even
+        // when the characters and span instances are unchanged.
+        val metricsChanged = !::metricSpans.isInitialized || metrics.isNotEmpty() || metricSpans != metrics
+        if (textChanged || metricsChanged) {
+            styledInkBounds = null
             needsMeasureText = true
             needsCalculateTransform = true
             text = charSequence?.toString() ?: ""
             requestLayout()
         }
-        if (textChanged || colorsChanged) {
+        if (textChanged || colorsChanged || metricsChanged) {
             foregroundSpans = colors
+            metricSpans = metrics
             styledLayout = null
             invalidate()
         }
     }
 
     private fun foregroundLayout(paint: Paint): StaticLayout = styledLayout ?: run {
-        // Copy only foreground colors; the existing font and glyph measurement stay authoritative.
         val formatted = SpannableString(text).apply {
             foregroundSpans.forEach { span ->
                 setSpan(ForegroundColorSpan(span.color), span.start, span.end, span.flags)
             }
+            metricSpans.forEach { span ->
+                setSpan(span.span, span.start, span.end, span.flags)
+            }
+        }
+        val width = if (metricSpans.isEmpty()) paint.measureText(text) else {
+            Layout.getDesiredWidth(formatted, TextPaint(paint))
         }
         StaticLayout.Builder.obtain(
             formatted, 0, formatted.length, TextPaint(paint),
-            ceil(paint.measureText(text)).toInt().coerceAtLeast(1)
+            ceil(width).toInt().coerceAtLeast(1)
         ).setIncludePad(false).setMaxLines(1).build().also { styledLayout = it }
     }
 
@@ -263,7 +335,9 @@ class AutoScaleTextView @JvmOverloads constructor(
             val paint = paint
             paint.getFontMetrics(fontMetrics)
             val codePointCount = Character.codePointCount(text, 0, text.length)
-            if (codePointCount == 1 || useGlyphBounds) {
+            if (metricSpans.isNotEmpty()) {
+                measureStyledText(paint)
+            } else if (codePointCount == 1 || useGlyphBounds) {
                 // use actual text bounds when there is only one "character",
                 // eg. full-width punctuation
                 paint.getTextBounds(text, 0, text.length, textBounds)
@@ -278,6 +352,49 @@ class AutoScaleTextView @JvmOverloads constructor(
             needsMeasureText = false
         }
         return textBounds
+    }
+
+    private fun measureStyledText(paint: Paint) {
+        val layout = foregroundLayout(paint)
+        val boundaries = (listOf(0, text.length) + metricSpans.flatMap { listOf(it.start, it.end) })
+            .distinct().sorted()
+        val runPaint = TextPaint(paint)
+        val runMetrics = Paint.FontMetrics()
+        val runBounds = Rect()
+        val glyphBounds = RectF()
+        boundaries.zipWithNext().forEachIndexed { index, (start, end) ->
+            runPaint.set(paint)
+            runPaint.baselineShift = 0
+            metricSpans.filter { it.start < end && it.end > start }.forEach {
+                it.span.updateMeasureState(runPaint)
+            }
+            runPaint.getFontMetrics(runMetrics)
+            val shift = runPaint.baselineShift.toFloat()
+            if (index == 0) {
+                fontMetrics.top = runMetrics.top + shift
+                fontMetrics.bottom = runMetrics.bottom + shift
+                fontMetrics.ascent = runMetrics.ascent + shift
+                fontMetrics.descent = runMetrics.descent + shift
+            } else {
+                fontMetrics.top = min(fontMetrics.top, runMetrics.top + shift)
+                fontMetrics.bottom = max(fontMetrics.bottom, runMetrics.bottom + shift)
+                fontMetrics.ascent = min(fontMetrics.ascent, runMetrics.ascent + shift)
+                fontMetrics.descent = max(fontMetrics.descent, runMetrics.descent + shift)
+            }
+            if (useGlyphBounds) {
+                runPaint.getTextBounds(text, start, end, runBounds)
+                val x = min(layout.getPrimaryHorizontal(start), layout.getPrimaryHorizontal(end)) -
+                    layout.getLineLeft(0)
+                glyphBounds.union(RectF(runBounds).apply { offset(x, shift) })
+            }
+        }
+        if (useGlyphBounds) {
+            textBounds.set(floor(glyphBounds.left).toInt(), floor(glyphBounds.top).toInt(),
+                ceil(glyphBounds.right).toInt(), ceil(glyphBounds.bottom).toInt())
+        } else {
+            textBounds.set(0, floor(fontMetrics.top).toInt(), ceil(layout.getLineWidth(0)).toInt(),
+                ceil(fontMetrics.bottom).toInt())
+        }
     }
 
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
@@ -405,7 +522,7 @@ class AutoScaleTextView @JvmOverloads constructor(
             translate(scrollX.toFloat(), scrollY.toFloat())
             translate(baselineX, baselineY)
             scale(textScaleX, textScaleY)
-            if (foregroundSpans.isEmpty() || wholeForeground != null) {
+            if (metricSpans.isEmpty() && (foregroundSpans.isEmpty() || wholeForeground != null)) {
                 drawText(text, 0f, 0f, paint)
             } else {
                 val layout = foregroundLayout(paint)
