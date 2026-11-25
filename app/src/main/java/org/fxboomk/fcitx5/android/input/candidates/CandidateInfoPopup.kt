@@ -5,6 +5,7 @@
 
 package org.fxboomk.fcitx5.android.input.candidates
 
+import android.annotation.SuppressLint
 import android.graphics.Color
 import android.graphics.Rect
 import android.graphics.drawable.ColorDrawable
@@ -118,6 +119,8 @@ internal class CandidateInfoPopup(
 
     val isShowing: Boolean get() = window.isShowing
 
+    // Offsets use physical screen coordinates, so LEFT is intentional in both LTR and RTL.
+    @SuppressLint("RtlHardcoded")
     fun show() {
         if (!anchor.isAttachedToWindow) return
         val frame = Rect().also(anchor::getWindowVisibleDisplayFrame)
