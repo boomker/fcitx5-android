@@ -646,7 +646,8 @@
     <string name="follow_system_day_night_theme">Seguir tema día/noche del sistema</string>
     <string name="follow_system_day_night_theme_summary">Sobrescribir seleccion manual de tema</string>
     <string name="fontset_editor_hint">Toque cada elemento para elegir una o mas fuentes del directorio fonts. Varias fuentes se usan como respaldo en orden.</string>
-    <string name="fontset_entry_candidate">Fuente de candidatos</string>
+    <string name="fontset_entry_candidate">Fuente del texto principal de candidatos</string>
+    <string name="fontset_entry_candidate_annotation">Fuente de anotaciones de candidatos</string>
     <string name="fontset_entry_font">Fuente base</string>
     <string name="fontset_entry_key_alt">Fuente secundaria de tecla</string>
     <string name="fontset_entry_key_main">Fuente principal de tecla</string>
@@ -818,8 +819,8 @@
     <string name="theme_message_follow_system_day_night_mode_enabled">No se puede cambiar el tema manualmente mientras este activado "Seguir tema día/noche del sistema".</string>
     <string name="toolbar_num_row_on_password">Mostrar fila numerica en la barra de herramientas al ingresar contrasena</string>
     <string name="toolbar_height">Altura de la barra de herramientas</string>
-    <string name="toolbar_dynamic_height">Altura dinamica de la barra</string>
-    <string name="toolbar_dynamic_height_summary">Aumenta automaticamente la altura para contener completamente los candidatos cuando la fuente de estos es demasiado grande para la barra de candidatos</string>
+    <string name="toolbar_dynamic_height">Altura adaptable de la barra de herramientas</string>
+    <string name="toolbar_dynamic_height_summary">Calcula una altura fija según las fuentes y la posición de las anotaciones pinyin del esquema actual. Al desactivarla, se restaura la altura manual.</string>
     <string name="unimplemented_type">⛔ Tipo no implementado</string>
     <string name="user_data_imported">Los datos de usuario de %1$s se importaron, reiniciando…</string>
     <string name="vivo_keypress_workaround">Corregir problema de pulsaciones en Vivo</string>
@@ -876,7 +877,7 @@
     <string name="theme_other_style_summary">Edición de texto %1$d dp · Portapapeles %2$d dp</string>
     <string name="toggle_day_night_theme">Cambio de tema</string>
     <string name="gboard_style_side_keys">Teclas laterales estilo Gboard</string>
-    <string name="navbar_border">Habilitar borde de barra de herramientas</string>
+    <string name="navbar_border">Borde de la barra de herramientas</string>
     <string name="space_swipe_vertical_behavior">Acción al deslizar verticalmente en la barra espaciadora</string>
     <string name="space_swipe_vertical_behavior_arrow_keys">Mover el resaltado palabra por palabra</string>
     <string name="space_swipe_vertical_behavior_candidate_rows">Cambiar filas de candidatos</string>

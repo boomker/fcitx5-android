@@ -228,7 +228,7 @@
     <string name="follow_system_day_night_theme">跟随系统明暗模式</string>
     <string name="follow_system_day_night_theme_summary">开启后，根据系统明暗模式随机选择已勾选的明暗主题</string>
     <string name="gboard_style_side_keys">Gboard 风格侧边按键</string>
-    <string name="navbar_border">启用工具栏边框</string>
+    <string name="navbar_border">工具栏边框</string>
     <string name="light_mode_theme">亮色模式主题</string>
     <string name="light_mode_theme_summary">选择多个主题并在切换时轮询</string>
     <string name="dark_mode_theme">暗色模式主题</string>
@@ -343,8 +343,8 @@
     <string name="notification_permission_title">没有通知权限</string>
     <string name="toolbar_num_row_on_password">输入密码时在工具栏上显示数字行</string>
     <string name="toolbar_height">工具栏高度</string>
-    <string name="toolbar_dynamic_height">工具栏动态高度</string>
-    <string name="toolbar_dynamic_height_summary">当候选项字号过大、候选栏无法正常包裹显示时，自动增大高度以完整容纳候选词</string>
+    <string name="toolbar_dynamic_height">工具栏自适应高度</string>
+    <string name="toolbar_dynamic_height_summary">根据当前输入方案的字体和拼音标注布局计算固定高度，关闭后恢复手动设定的高度</string>
     <string name="space_long_press_behavior">空格键长按行为</string>
     <string name="space_behavior_none">无</string>
     <string name="space_behavior_enumerate">轮换输入法</string>
@@ -531,7 +531,8 @@
     <string name="fontset_entry_font">基础字体</string>
     <string name="fontset_entry_key_main">按键主字体</string>
     <string name="fontset_entry_key_alt">按键副字体</string>
-    <string name="fontset_entry_candidate">候选字体</string>
+    <string name="fontset_entry_candidate">候选正文字体</string>
+    <string name="fontset_entry_candidate_annotation">候选注解字体</string>
     <string name="fontset_entry_popup_key">弹出按键字体</string>
     <string name="fontset_entry_preedit">预编辑字体</string>
     <string name="fontset_entry_button_icon">按钮图标字体</string>

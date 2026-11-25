@@ -231,8 +231,8 @@
     <string name="notification_permission_title">Нет разрешения на уведомление</string>
     <string name="toolbar_num_row_on_password">Показывать строку с цифрами на панели инструментов при вводе пароля</string>
     <string name="toolbar_height">Высота панели инструментов</string>
-    <string name="toolbar_dynamic_height">Динамическая высота панели</string>
-    <string name="toolbar_dynamic_height_summary">Автоматически увеличивать высоту строки кандидатов, чтобы полностью вместить кандидатов, если крупный шрифт не помещается</string>
+    <string name="toolbar_dynamic_height">Адаптивная высота панели инструментов</string>
+    <string name="toolbar_dynamic_height_summary">Рассчитывает фиксированную высоту по шрифтам и расположению пиньиня текущей схемы ввода. При отключении восстанавливается заданная вручную высота.</string>
     <string name="space_long_press_behavior">Поведение при длительном нажатии клавиши пробела</string>
     <string name="space_behavior_none">Нет</string>
     <string name="space_behavior_enumerate">Перечислить методы ввода</string>
@@ -803,7 +803,8 @@
     <string name="fontset_font_not_set">Не задан</string>
     <string name="edit_text_keyboard_layout_summary">Редактировать общую раскладку клавиатуры (GeneralKeyboardLayout.json)</string>
     <string name="fontset_editor_hint">Нажмите на каждый элемент, чтобы выбрать один или несколько шрифтов из каталога fonts. Несколько шрифтов будут использоваться как резервные в указанном порядке.</string>
-    <string name="fontset_entry_candidate">Шрифт кандидатов</string>
+    <string name="fontset_entry_candidate">Шрифт основного текста кандидатов</string>
+    <string name="fontset_entry_candidate_annotation">Шрифт аннотаций кандидатов</string>
     <string name="fontset_entry_font">Базовый шрифт</string>
     <string name="fontset_entry_key_alt">Вторичный шрифт клавиш</string>
     <string name="fontset_entry_key_main">Основной шрифт клавиш</string>
@@ -876,7 +877,7 @@
     <string name="theme_other_style_summary">Редактирование текста %1$d dp · Буфер обмена %2$d dp</string>
     <string name="toggle_day_night_theme">Переключение темы</string>
     <string name="gboard_style_side_keys">Боковые клавиши в стиле Gboard</string>
-    <string name="navbar_border">Включить рамку панели инструментов</string>
+    <string name="navbar_border">Рамка панели инструментов</string>
     <string name="space_swipe_vertical_behavior">Действие при вертикальном свайпе по пробелу</string>
     <string name="space_swipe_vertical_behavior_arrow_keys">Перемещать выделение по словам</string>
     <string name="space_swipe_vertical_behavior_candidate_rows">Переключать строки кандидатов</string>

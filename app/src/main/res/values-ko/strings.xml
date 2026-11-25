@@ -637,7 +637,8 @@
     <string name="follow_system_day_night_theme_summary">수동 테마 선택 덮어쓰기</string>
     <string name="following_system_settings">시스템 설정 따르기</string>
     <string name="fontset_editor_hint">각 항목을 눌러 fonts 디렉터리에서 하나 이상의 글꼴을 선택하세요. 여러 글꼴은 순서대로 대체 글꼴로 사용됩니다.</string>
-    <string name="fontset_entry_candidate">후보 글꼴</string>
+    <string name="fontset_entry_candidate">후보 본문 글꼴</string>
+    <string name="fontset_entry_candidate_annotation">후보 주석 글꼴</string>
     <string name="fontset_entry_font">기본 글꼴</string>
     <string name="fontset_entry_key_alt">보조 키 글꼴</string>
     <string name="fontset_entry_key_main">주 키 글꼴</string>
@@ -817,8 +818,8 @@
     <string name="theme_name_empty">테마 이름은 비워 둘 수 없습니다</string>
     <string name="toolbar_num_row_on_password">비밀번호 입력 시 툴바에 숫자 행 표시</string>
     <string name="toolbar_height">도구 모음 높이</string>
-    <string name="toolbar_dynamic_height">도구 모음 동적 높이</string>
-    <string name="toolbar_dynamic_height_summary">후보 글꼴이 너무 커서 후보 바에 맞지 않을 때 후보를 완전히 표시할 수 있도록 높이를 자동으로 늘립니다</string>
+    <string name="toolbar_dynamic_height">도구 모음 높이 자동 조정</string>
+    <string name="toolbar_dynamic_height_summary">현재 입력 방식의 글꼴과 병음 주석 배치에 맞춰 고정 높이를 계산합니다. 끄면 수동으로 설정한 높이로 돌아갑니다.</string>
     <string name="user_data_imported">%1$s의 사용자 데이터를 가져왔습니다. 재시작 중…</string>
     <string name="vivo_keypress_workaround">Vivo 키 입력 문제 수정</string>
     <string name="whether_reset_switch_preference">이 설정을 기본값으로 초기화하시겠습니까?</string>
@@ -875,7 +876,7 @@
     <string name="theme_other_style_summary">텍스트 편집 %1$d dp · 클립보드 %2$d dp</string>
     <string name="toggle_day_night_theme">테마 전환</string>
     <string name="gboard_style_side_keys">Gboard 스타일 사이드 키</string>
-    <string name="navbar_border">도구 모음 테두리 활성화</string>
+    <string name="navbar_border">도구 모음 테두리</string>
     <string name="light_mode_theme_summary">선택한 여러 테마를 전환할 때 순환</string>
     <string name="dark_mode_theme_summary">선택한 여러 테마를 전환할 때 순환</string>
     <string name="space_swipe_vertical_behavior">스페이스 키 상하 스와이프 동작</string>

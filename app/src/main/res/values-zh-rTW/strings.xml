@@ -264,8 +264,8 @@
     <string name="notification_permission_title">沒有通知權限</string>
     <string name="toolbar_num_row_on_password">輸入密碼時在工具欄上顯示數字列</string>
     <string name="toolbar_height">工具欄高度</string>
-    <string name="toolbar_dynamic_height">工具欄動態高度</string>
-    <string name="toolbar_dynamic_height_summary">當候選項字號過大、候選欄無法正常包裹顯示時，自動增大高度以完整容納候選詞</string>
+    <string name="toolbar_dynamic_height">工具列自適應高度</string>
+    <string name="toolbar_dynamic_height_summary">根據目前輸入方案的字型和拼音標註配置計算固定高度，關閉後恢復手動設定的高度</string>
     <string name="space_long_press_behavior">空格鍵長按行為</string>
     <string name="space_behavior_none">無</string>
     <string name="space_behavior_enumerate">輪換輸入法</string>
@@ -680,7 +680,8 @@
     <string name="fontset_entry_font">基礎字體</string>
     <string name="fontset_entry_key_main">按鍵主字體</string>
     <string name="fontset_entry_key_alt">按鍵備用字體</string>
-    <string name="fontset_entry_candidate">候選詞字體</string>
+    <string name="fontset_entry_candidate">候選正文字體</string>
+    <string name="fontset_entry_candidate_annotation">候選註解字體</string>
     <string name="fontset_entry_popup_key">彈出按鍵字體</string>
     <string name="fontset_entry_preedit">預編輯字體</string>
     <string name="key_border_stroke">按鍵邊框描邊</string>
@@ -953,7 +954,7 @@
     <string name="update_download_ready">已下載 %1$s，準備安裝</string>
     <string name="toggle_day_night_theme">主題切換</string>
     <string name="gboard_style_side_keys">Gboard 風格側邊按鍵</string>
-    <string name="navbar_border">啟用工具欄邊框</string>
+    <string name="navbar_border">工具欄邊框</string>
     <string name="manage_plugins">管理外掛</string>
     <string name="manage_plugins_hint">選取一或多個外掛，然後直接執行下方管理操作。</string>
     <string name="uninstall_plugin">卸載外掛</string>

@@ -688,7 +688,8 @@
     <string name="follow_system_day_night_theme">Systemweiten Tag-/Nachtmodus folgen</string>
     <string name="follow_system_day_night_theme_summary">Manuelle Theme-Auswahl überschreiben</string>
     <string name="fontset_editor_hint">Tippen Sie auf jeden Eintrag, um eine oder mehrere Schriftarten aus dem Verzeichnis fonts auszuwählen. Mehrere Schriftarten werden der Reihe nach als Fallback verwendet.</string>
-    <string name="fontset_entry_candidate">Kandidaten-Schriftart</string>
+    <string name="fontset_entry_candidate">Schriftart für Kandidatentext</string>
+    <string name="fontset_entry_candidate_annotation">Anmerkungsschriftart für Kandidaten</string>
     <string name="fontset_entry_font">Basis-Schriftart</string>
     <string name="fontset_entry_key_alt">Sekundäre Tastenschriftart</string>
     <string name="fontset_entry_key_main">Primäre Tastenschriftart</string>
@@ -816,8 +817,8 @@
     <string name="theme_migrated">Theme wurde auf die aktuelle Version migriert</string>
     <string name="toolbar_num_row_on_password">In der Werkzeugleiste bei Passwortfeldern Zahlenreihe anzeigen</string>
     <string name="toolbar_height">Höhe der Werkzeugleiste</string>
-    <string name="toolbar_dynamic_height">Dynamische Leistenhöhe</string>
-    <string name="toolbar_dynamic_height_summary">Erhöht die Höhe der Kandidatenleiste automatisch, damit Kandidaten bei großer Schriftart vollständig hineinpassen</string>
+    <string name="toolbar_dynamic_height">Adaptive Höhe der Werkzeugleiste</string>
+    <string name="toolbar_dynamic_height_summary">Berechnet eine feste Höhe anhand der Schriftarten und Pinyin-Anordnung des aktuellen Eingabeschemas. Ausschalten stellt die manuelle Höhe wieder her.</string>
     <string name="remove_from_favorites">Aus Favoriten entfernen</string>
     <string name="user_data_imported">Benutzerdaten aus %1$s wurden importiert, Neustart läuft…</string>
     <string name="vivo_keypress_workaround">Vivo-Tastenproblem beheben</string>
@@ -874,7 +875,7 @@
     <string name="theme_other_style_summary">Textbearbeitung %1$d dp · Zwischenablage %2$d dp</string>
     <string name="toggle_day_night_theme">Themenwechsel</string>
     <string name="gboard_style_side_keys">Seitliche Tasten im Gboard-Stil</string>
-    <string name="navbar_border">Werkzeugleistenrand aktivieren</string>
+    <string name="navbar_border">Werkzeugleistenrand</string>
     <string name="space_swipe_vertical_behavior">Verhalten beim vertikalen Wischen auf der Leertaste</string>
     <string name="space_swipe_vertical_behavior_arrow_keys">Markierung wortweise verschieben</string>
     <string name="space_swipe_vertical_behavior_candidate_rows">Kandidatenzeilen wechseln</string>
