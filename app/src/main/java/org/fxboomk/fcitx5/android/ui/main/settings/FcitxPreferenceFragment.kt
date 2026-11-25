@@ -21,6 +21,7 @@ import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.core.FcitxAPI
 import org.fxboomk.fcitx5.android.core.RawConfig
 import org.fxboomk.fcitx5.android.daemon.FcitxConnection
+import org.fxboomk.fcitx5.android.data.prefs.CandidateBarHeightSettings
 import org.fxboomk.fcitx5.android.ui.common.PaddingPreferenceFragment
 import org.fxboomk.fcitx5.android.ui.common.withLoadingDialog
 import org.fxboomk.fcitx5.android.ui.main.MainViewModel
@@ -81,6 +82,7 @@ abstract class FcitxPreferenceFragment : PaddingPreferenceFragment() {
             fcitx.runOnReady {
                 saveConfig(this, raw["cfg"])
                 PreeditStyleResolver.applyActive(this)
+                CandidateBarHeightSettings.refresh(this)
             }
         }
     }

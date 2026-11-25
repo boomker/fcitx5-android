@@ -18,6 +18,7 @@ import org.fxboomk.fcitx5.android.input.action.ButtonAction
 import org.fxboomk.fcitx5.android.input.voice.VoiceInputProviderManager
 import org.fxboomk.fcitx5.android.input.bar.KawaiiBarComponent
 import org.fxboomk.fcitx5.android.input.bar.ui.ToolButton
+import org.fxboomk.fcitx5.android.input.bar.ui.applyToolbarIconSize
 import org.fxboomk.fcitx5.android.input.config.ButtonsLayoutConfig
 import org.fxboomk.fcitx5.android.input.config.ButtonIconSpec
 import org.fxboomk.fcitx5.android.input.config.ConfigurableButton
@@ -221,11 +222,10 @@ class ButtonsBarUi(
                 idleIcon
             }
             val button = ToolButton(ctx, iconRes, theme).apply {
+                applyToolbarIconSize()
                 applyIcon(this, idleIcon)
                 contentDescription = config.label ?: getDefaultLabel(config.id)
                 tag = config.id
-                // Ensure button always fills KawaiiBar height
-                minimumHeight = ctx.dp(KawaiiBarComponent.configuredHeightDp())
                 layoutParams = RecyclerView.LayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT,
                     ViewGroup.LayoutParams.MATCH_PARENT

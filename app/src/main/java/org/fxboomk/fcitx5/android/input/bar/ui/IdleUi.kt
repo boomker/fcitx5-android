@@ -89,6 +89,7 @@ class IdleUi(
         ),
         theme
     ).apply {
+        applyToolbarIconSize()
         contentDescription = ctx.getString(R.string.status_area)
         when {
             ButtonIconSpec.glyph(menuButtonConfig?.icon) != null ->
@@ -99,7 +100,9 @@ class IdleUi(
         }
     }
 
-    val hideKeyboardButton = ToolButton(ctx, R.drawable.ic_keyboard_hide_24, theme)
+    val hideKeyboardButton = ToolButton(ctx, R.drawable.ic_keyboard_hide_24, theme).apply {
+        applyToolbarIconSize()
+    }
 
     val buttonsUi = ButtonsBarUi(ctx, theme, buttonsConfig.filter { it.id != "more" })
 
@@ -136,6 +139,7 @@ class IdleUi(
      * status strip instead. Its click listener is installed by [KawaiiBarComponent].
      */
     val voiceInputFinishButton = ToolButton(ctx, ToolbarVoiceInputPolicy.finishButtonIcon(), theme).apply {
+        applyToolbarIconSize()
         contentDescription = ctx.getString(R.string.voice_input_finish)
     }
 
@@ -151,7 +155,7 @@ class IdleUi(
         }
         add(
             voiceInputFinishButton,
-            lParams(ctx.dp(KawaiiBarComponent.configuredHeightDp()), matchParent)
+            lParams(ctx.dp(TOOLBAR_BUTTON_WIDTH_DP), matchParent)
         )
     }
 
@@ -221,12 +225,12 @@ class IdleUi(
     }
 
     private val idleBody = constraintLayout {
-        val size = dp(KawaiiBarComponent.configuredHeightDp())
-        add(menuButton, lParams(size, size) {
+        val buttonWidth = dp(TOOLBAR_BUTTON_WIDTH_DP)
+        add(menuButton, lParams(buttonWidth, matchParent) {
             startOfParent()
             centerVertically()
         })
-        add(hideKeyboardButton, lParams(size, size) {
+        add(hideKeyboardButton, lParams(buttonWidth, matchParent) {
             endOfParent()
             centerVertically()
         })
@@ -243,22 +247,22 @@ class IdleUi(
     }
 
     /**
-     * Keep the fixed menu / hide-keyboard buttons as tall as the toolbar when the
-     * toolbar height setting changes at runtime.
+     * Fill the toolbar height without scaling icons or changing horizontal edge spacing.
      */
     fun applyBarHeight(heightDp: Int) {
-        val size = ctx.dp(heightDp)
+        val buttonWidth = ctx.dp(TOOLBAR_BUTTON_WIDTH_DP)
+        val buttonHeight = ctx.dp(heightDp)
         menuButton.updateLayoutParams {
-            width = size
-            height = size
+            width = buttonWidth
+            height = buttonHeight
         }
         hideKeyboardButton.updateLayoutParams {
-            width = size
-            height = size
+            width = buttonWidth
+            height = buttonHeight
         }
         voiceInputFinishButton.updateLayoutParams {
-            width = size
-            height = size
+            width = buttonWidth
+            height = buttonHeight
         }
     }
 

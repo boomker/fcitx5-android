@@ -14,7 +14,7 @@ class CandidateBarHeightTest {
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
 
     @Test
-    fun fixedHeightDoesNotNotifyAndRetainsRequirementForDynamicHeight() = withPreferences(false) { bar ->
+    fun manualHeightIgnoresMeasuredTopAnnotationUntilAdaptationIsEnabled() = withPreferences(false) { bar ->
         var notifications = 0
         bar.onBarHeightChanged = { notifications++ }
         bar.setCandidateRequiredHeight(60)
@@ -22,7 +22,7 @@ class CandidateBarHeightTest {
         assertEquals(0, notifications)
 
         AppPrefs.getInstance().keyboard.toolbarDynamicHeight.setValue(true)
-        assertEquals("Enabling dynamic height must use the latest requirement", 60, bar.candidateRowHeightDp)
+        assertEquals("Enabling adaptation must use the configured candidate requirement", 60, bar.candidateRowHeightDp)
         AppPrefs.getInstance().keyboard.toolbarDynamicHeight.setValue(false)
         bar.setCandidateRequiredHeight(0)
         assertEquals(40, bar.candidateRowHeightDp)
@@ -30,40 +30,60 @@ class CandidateBarHeightTest {
     }
 
     @Test
-    fun candidatesWithinConfiguredHeightDoNotNotifyOnEntryUpdateOrExit() = withPreferences(true) { bar ->
-        var notifications = 0
-        bar.onBarHeightChanged = { notifications++ }
-        for (required in listOf(0, 30, 30, 40, 25, 0)) {
-            bar.setCandidateRequiredHeight(required)
-            assertEquals(40, bar.candidateRowHeightDp)
+    fun adaptationCanUseLessThanManualHeightAndDisablingRestoresTheManualValue() =
+        withPreferences(true, manualHeight = 72) { bar ->
+            bar.setCandidateRequiredHeight(48)
+            assertEquals(48, bar.candidateRowHeightDp)
+            assertEquals("Calculated height must not overwrite the saved manual height",
+                72, ThemeManager.prefs.toolbarHeight.getValue())
+
+            AppPrefs.getInstance().keyboard.toolbarDynamicHeight.setValue(false)
+            assertEquals(72, bar.candidateRowHeightDp)
+            AppPrefs.getInstance().keyboard.toolbarDynamicHeight.setValue(true)
+            assertEquals(48, bar.candidateRowHeightDp)
         }
-        assertEquals(0, notifications)
+
+    @Test
+    fun anUnmeasuredAdaptiveBarUsesTheSavedManualHeight() = withPreferences(true, manualHeight = 72) { bar ->
+        assertEquals(72, bar.candidateRowHeightDp)
+        assertEquals(72, ThemeManager.prefs.toolbarHeight.getValue())
     }
 
     @Test
-    fun oversizedCandidatesNotifyOnlyForActualGrowthAndShrink() = withPreferences(true) { bar ->
+    fun repeatedConfiguredMeasurementsNotifyOnlyWhenTheComputedHeightChanges() = withPreferences(true) { bar ->
         val heights = mutableListOf<Int>()
         bar.onBarHeightChanged = { heights += bar.candidateRowHeightDp }
-        for (required in listOf(0, 60, 60, 65, 30, 0)) {
+        for (required in listOf(48, 48, 60, 60, 48)) {
             bar.setCandidateRequiredHeight(required)
         }
-        assertEquals(listOf(60, 65, 40), heights)
-        assertEquals(40, bar.candidateRowHeightDp)
+        assertEquals(listOf(48, 60, 48), heights)
+        assertEquals(48, bar.candidateRowHeightDp)
     }
 
-    private fun withPreferences(dynamic: Boolean, block: (KawaiiBarComponent) -> Unit) {
+    private fun withPreferences(dynamic: Boolean, manualHeight: Int = 40, block: (KawaiiBarComponent) -> Unit) {
         instrumentation.runOnMainSync {
             val height = ThemeManager.prefs.toolbarHeight
             val dynamicHeight = AppPrefs.getInstance().keyboard.toolbarDynamicHeight
-            val originalHeight = height.getValue()
-            val originalDynamicHeight = dynamicHeight.getValue()
+            val profiles = AppPrefs.getInstance().internal.candidateBarHeightProfiles
+            val originals = listOf(height, dynamicHeight, profiles)
+                .associateWith { it.sharedPreferences.all[it.key] }
             try {
-                height.setValue(40)
+                height.setValue(manualHeight)
                 dynamicHeight.setValue(dynamic)
                 block(KawaiiBarComponent())
             } finally {
-                height.setValue(originalHeight)
-                dynamicHeight.setValue(originalDynamicHeight)
+                // Restore the profile storage last, after listeners observe restored proxy values.
+                originals.forEach { (preference, original) ->
+                    val editor = preference.sharedPreferences.edit()
+                    when (original) {
+                        null -> editor.remove(preference.key)
+                        is Int -> editor.putInt(preference.key, original)
+                        is Boolean -> editor.putBoolean(preference.key, original)
+                        is String -> editor.putString(preference.key, original)
+                        else -> error("Unexpected preference type for ${preference.key}")
+                    }
+                    editor.commit()
+                }
             }
         }
     }

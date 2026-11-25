@@ -57,6 +57,7 @@ import org.fxboomk.fcitx5.android.data.clipboard.ClipboardManager
 import org.fxboomk.fcitx5.android.data.clipboard.ClipboardSearchCategory
 import org.fxboomk.fcitx5.android.data.clipboard.clipboardSearchCommitText
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
+import org.fxboomk.fcitx5.android.data.prefs.CandidateBarHeightSettings
 import org.fxboomk.fcitx5.android.data.prefs.SplitKeyboardStateManager
 import org.fxboomk.fcitx5.android.data.prefs.ManagedPreferenceProvider
 import org.fxboomk.fcitx5.android.data.theme.Theme
@@ -122,6 +123,7 @@ import org.fxboomk.fcitx5.android.input.wm.InputWindowManager
 import org.fxboomk.fcitx5.android.utils.unset
 import org.fxboomk.fcitx5.android.utils.windowManager
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -450,6 +452,7 @@ class InputView(
 
     private val blurUpdateScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var blurUpdateJob: Job? = null
+    private var candidateHeightRefreshJob: Job? = null
     private var blurUpdateGeneration = 0
 
     private fun updateBlurMaskThemeData() {
@@ -3385,6 +3388,8 @@ class InputView(
      * called when [InputView] is about to show, or restart
      */
     fun startInput(info: EditorInfo, capFlags: CapabilityFlags, restarting: Boolean = false) {
+        CandidateBarHeightSettings.apply(fcitx.runImmediately { inputMethodEntryCached })
+        refreshCandidateBarHeightSettings()
         if (clipboardSearchActive) closeClipboardSearch()
         // Don't hide the adjusting overlay if drag is in progress
         if (!ButtonsAdjustingWindow.isDragInProgress) {
@@ -3450,7 +3455,9 @@ class InputView(
 
             is FcitxEvent.IMChangeEvent -> {
                 PreeditStyleResolver.apply(it.data)
+                CandidateBarHeightSettings.apply(it.data)
                 broadcaster.onImeUpdate(it.data)
+                refreshCandidateBarHeightSettings()
                 // Rime 输入方案（子模式）切换会改变专属布局高度，
                 // 广播只刷新键位行不重算窗口高度，这里按需补一次刷新
                 updateKeyboardHeightIfChanged()
@@ -3462,6 +3469,19 @@ class InputView(
             }
 
             else -> {}
+        }
+    }
+
+    private fun refreshCandidateBarHeightSettings() {
+        candidateHeightRefreshJob?.cancel()
+        candidateHeightRefreshJob = service.lifecycleScope.launch {
+            try {
+                fcitx.runOnReady { CandidateBarHeightSettings.refresh(this) }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                Timber.w(error, "Unable to refresh candidate bar height settings")
+            }
         }
     }
 
@@ -3745,10 +3765,10 @@ class InputView(
     internal fun updateCompositionAreaStyle() {
         // The bar height was fixed at construction time; re-apply it so switching to/from
         // the inline candidate bar takes effect without recreating InputView
+        kawaiiBar.updateCompositionAreaStyle()
         kawaiiBar.view.updateLayoutParams<LayoutParams> {
             height = dp(kawaiiBar.barHeight)
         }
-        kawaiiBar.updateCompositionAreaStyle()
         setPreeditVisibility(shouldDisplayStandalonePreedit)
         updateKeyboardSize()
         requestLayout()
@@ -3932,6 +3952,7 @@ class InputView(
     }
 
     override fun onDetachedFromWindow() {
+        candidateHeightRefreshJob?.cancel()
         glassWindow?.dispose()
         glassWindow = null
         removeCallbacks(floatingMoveHandleAutoHideRunnable)

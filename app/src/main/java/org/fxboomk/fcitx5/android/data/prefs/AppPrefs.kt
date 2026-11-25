@@ -91,6 +91,7 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
         val lastShareReceiveDirectory = string("last_share_receive_directory", "")
         val lastShareReceiveDirectoryRemembered = bool("last_share_receive_directory_remembered", false)
         val preeditStyleScopes = stringSet("preedit_style_scopes", emptySet())
+        val candidateBarHeightProfiles = string("candidate_bar_height_profiles", "")
 
         init {
             // 旧版本只持久化 floating_keyboard_enabled；新版拆出浮动模式开关后，
@@ -796,7 +797,8 @@ class AppPrefs(private val sharedPreferences: SharedPreferences) {
                 internal.floatingKeyboardXLandscape,
                 internal.floatingKeyboardYLandscape,
                 internal.oneHandOnRightPortrait,
-                internal.oneHandOnRightLandscape
+                internal.oneHandOnRightLandscape,
+                internal.candidateBarHeightProfiles
             ).forEach {
                 it.putValueTo(this@edit)
             }

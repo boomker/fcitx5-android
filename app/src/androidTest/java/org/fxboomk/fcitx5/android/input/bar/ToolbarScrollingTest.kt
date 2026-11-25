@@ -6,6 +6,7 @@ package org.fxboomk.fcitx5.android.input.bar
 
 import android.content.Intent
 import android.graphics.Rect
+import android.graphics.RectF
 import android.os.SystemClock
 import android.view.MotionEvent
 import android.view.View
@@ -13,6 +14,7 @@ import android.widget.FrameLayout
 import androidx.core.view.children
 import androidx.recyclerview.widget.RecyclerView
 import androidx.test.platform.app.InstrumentationRegistry
+import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
 import org.fxboomk.fcitx5.android.data.theme.ThemeManager
 import org.fxboomk.fcitx5.android.data.theme.ThemePreset
 import org.fxboomk.fcitx5.android.input.bar.ui.IdleUi
@@ -65,6 +67,54 @@ class ToolbarScrollingTest {
     @Test
     fun buttonsDistributeEvenlyWhenTheyFit() = withToolbar(3) { session ->
         onMain { assertEvenDistribution(session, 3) }
+    }
+
+    @Test
+    fun adaptiveHeightKeepsScrollingIconsUniformAndEdgeSpacingStable() = withToolbar(12) { session ->
+        for (height in listOf(64, 24, 112, 40)) {
+            onMain { session.ui.applyBarHeight(height) }
+            session.resize(340, height)
+            onMain {
+                assertToolbarIconSizes(session, height)
+                val ui = session.ui
+                val start = iconBounds(ui.menuButton)
+                val end = iconBounds(ui.hideKeyboardButton)
+                val edgeGap = session.activity.dp(10).toFloat()
+                assertEquals(edgeGap, ui.menuButton.left + start.left, 1f)
+                assertEquals(edgeGap, ui.root.width - ui.hideKeyboardButton.left - end.right, 1f)
+                ui.buttonsUi.root.scrollBy(session.activity.dp(2000), 0)
+                assertToolbarIconSizes(session, height)
+            }
+            onMain { session.ui.showVoiceStatus() }
+            session.layout()
+            onMain {
+                try {
+                    val finish = session.ui.voiceInputFinishButton
+                    assertEquals(session.activity.dp(40), finish.width)
+                    assertEquals(session.activity.dp(height), finish.height)
+                    val icon = iconBounds(finish)
+                    assertEquals(session.activity.dp(20).toFloat(), icon.width(), 1f)
+                    assertEquals(session.activity.dp(20).toFloat(), icon.height(), 1f)
+                    assertEquals(finish.width / 2f, icon.centerX(), 1f)
+                    assertEquals(finish.height / 2f, icon.centerY(), 1f)
+                } finally {
+                    session.ui.hideVoiceStatus()
+                }
+            }
+            session.layout()
+        }
+    }
+
+    @Test
+    fun adaptiveHeightKeepsEvenlyDistributedIconsTheSameSize() = withToolbar(3) { session ->
+        for (height in listOf(24, 64, 112, 40)) {
+            onMain { session.ui.applyBarHeight(height) }
+            session.resize(340, height)
+            onMain {
+                assertEvenDistribution(session, 3)
+                assertToolbarIconSizes(session, height)
+            }
+        }
     }
 
     @Test
@@ -219,6 +269,33 @@ class ToolbarScrollingTest {
 
     private fun bounds(view: View) = Rect(view.left, view.top, view.right, view.bottom)
 
+    private fun iconBounds(button: ToolButton): RectF {
+        val image = button.image
+        val drawable = requireNotNull(image.drawable)
+        return RectF(0f, 0f, drawable.intrinsicWidth.toFloat(), drawable.intrinsicHeight.toFloat()).apply {
+            image.imageMatrix.mapRect(this)
+            offset((image.left + image.paddingLeft).toFloat(), (image.top + image.paddingTop).toFloat())
+        }
+    }
+
+    private fun assertToolbarIconSizes(session: Session, heightDp: Int) {
+        val ui = session.ui
+        val height = session.activity.dp(heightDp)
+        val iconSize = session.activity.dp(20).toFloat()
+        val allButtons = listOf(ui.menuButton, ui.hideKeyboardButton) +
+            ui.buttonsUi.root.children.filterIsInstance<ToolButton>().toList()
+        assertEquals(session.activity.dp(40), ui.menuButton.width)
+        assertEquals(session.activity.dp(40), ui.hideKeyboardButton.width)
+        allButtons.forEach { button ->
+            assertEquals("Every button must fit the actual toolbar height", height, button.height)
+            val icon = iconBounds(button)
+            assertEquals("Icon width at ${heightDp}dp toolbar height", iconSize, icon.width(), 1f)
+            assertEquals("Icon height at ${heightDp}dp toolbar height", iconSize, icon.height(), 1f)
+            assertEquals(button.width / 2f, icon.centerX(), 1f)
+            assertEquals(height / 2f, icon.centerY(), 1f)
+        }
+    }
+
     private fun assertFullyVisible(list: RecyclerView, position: Int) {
         val button = requireNotNull(list.findViewHolderForAdapterPosition(position)) {
             "Button $position must be attached at the scroll endpoint"
@@ -264,11 +341,14 @@ class ToolbarScrollingTest {
             Intent(instrumentation.targetContext, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         ) as MainActivity
         var session: Session? = null
-        var originalHeight = 0
+        val height = ThemeManager.prefs.toolbarHeight
+        val keyboard = AppPrefs.getInstance().keyboard
+        val profiles = AppPrefs.getInstance().internal.candidateBarHeightProfiles
+        val originals = listOf(height, keyboard.toolbarDynamicHeight, profiles)
+            .associateWith { it.sharedPreferences.all[it.key] }
         try {
             onMain {
-                originalHeight = ThemeManager.prefs.toolbarHeight.getValue()
-                ThemeManager.prefs.toolbarHeight.setValue(40)
+                height.setValue(40)
                 session = Session(activity, count)
                 activity.setContentView(FrameLayout(activity).apply {
                     addView(requireNotNull(session).ui.root, FrameLayout.LayoutParams(activity.dp(340), activity.dp(40)))
@@ -282,7 +362,17 @@ class ToolbarScrollingTest {
         } finally {
             onMain {
                 session?.ui?.dispose()
-                ThemeManager.prefs.toolbarHeight.setValue(originalHeight)
+                originals.forEach { (preference, original) ->
+                    val editor = preference.sharedPreferences.edit()
+                    when (original) {
+                        null -> editor.remove(preference.key)
+                        is Int -> editor.putInt(preference.key, original)
+                        is Boolean -> editor.putBoolean(preference.key, original)
+                        is String -> editor.putString(preference.key, original)
+                        else -> error("Unexpected preference value $original")
+                    }
+                    assertTrue(editor.commit())
+                }
                 activity.finish()
             }
         }
@@ -299,6 +389,7 @@ class ToolbarScrollingTest {
         var buttonClicks = 0
         var buttonLongClicks = 0
         private var widthDp = 340
+        private var heightDp = 40
 
         init {
             buttons(12).forEach { button ->
@@ -310,10 +401,14 @@ class ToolbarScrollingTest {
             }
         }
 
-        fun resize(widthDp: Int) {
+        fun resize(widthDp: Int, heightDp: Int = this.heightDp) {
             this.widthDp = widthDp
+            this.heightDp = heightDp
             onMain {
-                ui.root.layoutParams = ui.root.layoutParams.apply { width = activity.dp(widthDp) }
+                ui.root.layoutParams = ui.root.layoutParams.apply {
+                    width = activity.dp(widthDp)
+                    height = activity.dp(heightDp)
+                }
             }
             layout()
         }
@@ -322,7 +417,7 @@ class ToolbarScrollingTest {
             repeat(2) {
                 onMain {
                     val width = activity.dp(widthDp)
-                    val height = activity.dp(40)
+                    val height = activity.dp(heightDp)
                     ui.root.measure(
                         View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
                         View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY)

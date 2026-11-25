@@ -39,13 +39,18 @@ import org.fxboomk.fcitx5.android.daemon.FcitxConnection
 import org.fxboomk.fcitx5.android.daemon.FcitxDaemon
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
+import org.fxboomk.fcitx5.android.data.prefs.CandidateBarHeightSettings
 import org.fxboomk.fcitx5.android.data.prefs.ManagedPreference
 import org.fxboomk.fcitx5.android.data.theme.Theme
 import org.fxboomk.fcitx5.android.data.theme.ThemeManager
 import org.fxboomk.fcitx5.android.input.KeyboardSurfaceLayout
 import org.fxboomk.fcitx5.android.input.bar.KawaiiBarComponent
 import org.fxboomk.fcitx5.android.input.bar.ui.ToolButton
+import org.fxboomk.fcitx5.android.input.bar.ui.TOOLBAR_BUTTON_WIDTH_DP
+import org.fxboomk.fcitx5.android.input.bar.ui.applyToolbarIconSize
 import org.fxboomk.fcitx5.android.input.bar.ui.idle.ButtonsBarUi
+import org.fxboomk.fcitx5.android.input.candidates.floating.FloatingCandidatesMode
+import org.fxboomk.fcitx5.android.input.candidates.horizontal.AdaptiveCandidateBarHeight
 import org.fxboomk.fcitx5.android.input.config.ButtonIconSpec
 import org.fxboomk.fcitx5.android.input.config.ButtonsLayoutConfig
 import org.fxboomk.fcitx5.android.input.config.ConfigProviders
@@ -54,6 +59,7 @@ import org.fxboomk.fcitx5.android.input.keyboard.KeyView
 import org.fxboomk.fcitx5.android.input.keyboard.TextKeyboard
 import org.fxboomk.fcitx5.android.input.keyboard.keyboardHeightPercentOverride
 import org.fxboomk.fcitx5.android.input.keyboard.resolveTextKeyboardLayout
+import org.fxboomk.fcitx5.android.input.preedit.CompositionAreaStyle
 import org.fxboomk.fcitx5.android.ui.main.settings.preview.PreviewInputMethodEntry
 import org.fxboomk.fcitx5.android.utils.BitmapBlurUtil
 import org.fxboomk.fcitx5.android.utils.DarkenColorFilter
@@ -74,6 +80,7 @@ import splitties.views.dsl.constraintlayout.endOfParent
 import splitties.views.dsl.constraintlayout.lParams
 import splitties.views.dsl.constraintlayout.matchConstraints
 import splitties.views.dsl.constraintlayout.startOfParent
+import splitties.views.dsl.core.matchParent
 import splitties.views.dsl.constraintlayout.topOfParent
 import splitties.views.dsl.core.Ui
 import splitties.views.dsl.core.add
@@ -137,28 +144,18 @@ class KeyboardPreviewUi(
     private val navbarBorder = ThemeManager.prefs.navbarBorder
     private val navbarRadius = ThemeManager.prefs.navbarRadius
     private val toolbarHeightPref = ThemeManager.prefs.toolbarHeight
+    private val adaptiveHeightPref = keyboardPrefs.toolbarDynamicHeight
+    private val compositionAreaStylePref = keyboardPrefs.compositionAreaStyle
+    private val candidateModePref = AppPrefs.getInstance().candidates.mode
+    private val heightProfilesPref = AppPrefs.getInstance().internal.candidateBarHeightProfiles
+    private val adaptiveBarHeight = AdaptiveCandidateBarHeight(ctx, theme)
     private val keyBorder by ThemeManager.prefs.keyBorder
 
     private val previewChromeChangeListener = ManagedPreference.OnChangeListener<Any> { _, _ ->
         recalculateSize()
     }
 
-    // Reflect toolbar height changes in the preview immediately for user feedback
-    private val toolbarHeightChangeListener = ManagedPreference.OnChangeListener<Int> { _, _ ->
-        val newHeight = ctx.dp(KawaiiBarComponent.configuredHeightDp())
-        if (newHeight == barHeight) return@OnChangeListener
-        barHeight = newHeight
-        fakeKawaiiBar.updateLayoutParams<ConstraintLayout.LayoutParams> {
-            height = newHeight
-        }
-        previewMenuButton?.updateLayoutParams {
-            width = newHeight
-            height = newHeight
-        }
-        previewHideButton?.updateLayoutParams {
-            width = newHeight
-            height = newHeight
-        }
+    private val toolbarHeightChangeListener = ManagedPreference.OnChangeListener<Any> { _, _ ->
         recalculateSize()
     }
 
@@ -171,7 +168,7 @@ class KeyboardPreviewUi(
 
     private var previewMenuButton: ToolButton? = null
     private var previewHideButton: ToolButton? = null
-    private var barHeight = ctx.dp(KawaiiBarComponent.configuredHeightDp())
+    private var barHeight = resolveToolbarHeight()
     private var fakeKawaiiBar = buildToolbarPreview(theme)
     private val fakeNavbarView = view(::View)
 
@@ -469,6 +466,10 @@ class KeyboardPreviewUi(
             navbarBorder.registerOnChangeListener(previewChromeChangeListener)
             navbarRadius.registerOnChangeListener(previewChromeChangeListener)
             toolbarHeightPref.registerOnChangeListener(toolbarHeightChangeListener)
+            adaptiveHeightPref.registerOnChangeListener(toolbarHeightChangeListener)
+            compositionAreaStylePref.registerOnChangeListener(toolbarHeightChangeListener)
+            candidateModePref.registerOnChangeListener(toolbarHeightChangeListener)
+            heightProfilesPref.registerOnChangeListener(toolbarHeightChangeListener)
         }
 
         override fun onConfigurationChanged(newConfig: Configuration?) {
@@ -479,6 +480,10 @@ class KeyboardPreviewUi(
             navbarBorder.unregisterOnChangeListener(previewChromeChangeListener)
             navbarRadius.unregisterOnChangeListener(previewChromeChangeListener)
             toolbarHeightPref.unregisterOnChangeListener(toolbarHeightChangeListener)
+            adaptiveHeightPref.unregisterOnChangeListener(toolbarHeightChangeListener)
+            compositionAreaStylePref.unregisterOnChangeListener(toolbarHeightChangeListener)
+            candidateModePref.unregisterOnChangeListener(toolbarHeightChangeListener)
+            heightProfilesPref.unregisterOnChangeListener(toolbarHeightChangeListener)
             detachPreviewFcitx()
             super.onDetachedFromWindow()
         }
@@ -502,6 +507,7 @@ class KeyboardPreviewUi(
             R.drawable.ic_baseline_apps_24
         )
         val menuButton = ToolButton(ctx, menuButtonIcon, theme).apply {
+            applyToolbarIconSize()
             when {
                 ButtonIconSpec.glyph(menuButtonConfig.icon) != null ->
                     setIconText(ButtonIconSpec.glyph(menuButtonConfig.icon)!!)
@@ -516,6 +522,7 @@ class KeyboardPreviewUi(
             ButtonIconSpec.drawableResource(ctx, hideConfig.icon, R.drawable.ic_keyboard_hide_24),
             theme
         ).apply {
+            applyToolbarIconSize()
             ButtonIconSpec.glyph(hideConfig.icon)?.let(::setIconText)
             if (ButtonIconSpec.svg(hideConfig.icon) != null) {
                 ButtonIconSpec.drawable(ctx, hideConfig.icon, R.drawable.ic_keyboard_hide_24)
@@ -529,12 +536,12 @@ class KeyboardPreviewUi(
         return ctx.constraintLayout {
             id = View.generateViewId()
             backgroundColor = resolveBarBackgroundColor(theme)
-            val buttonSize = ctx.dp(KawaiiBarComponent.configuredHeightDp())
-            add(menuButton, lParams(buttonSize, buttonSize) {
+            val buttonWidth = ctx.dp(TOOLBAR_BUTTON_WIDTH_DP)
+            add(menuButton, lParams(buttonWidth, matchParent) {
                 startOfParent()
                 centerVertically()
             })
-            add(hideButton, lParams(buttonSize, buttonSize) {
+            add(hideButton, lParams(buttonWidth, matchParent) {
                 endOfParent()
                 centerVertically()
             })
@@ -655,7 +662,30 @@ class KeyboardPreviewUi(
         recalculateSize()
     }
 
+    private fun resolveToolbarHeight(): Int {
+        val heightDp = if (adaptiveHeightPref.getValue()) {
+            val inlineMode = compositionAreaStylePref.getValue() == CompositionAreaStyle.InlineCandidateBar &&
+                candidateModePref.getValue() != FloatingCandidatesMode.Always
+            adaptiveBarHeight.heightDp(CandidateBarHeightSettings.annotationOnTop, inlineMode)
+        } else {
+            KawaiiBarComponent.configuredHeightDp()
+        }
+        return ctx.dp(heightDp)
+    }
+
     fun recalculateSize() {
+        barHeight = resolveToolbarHeight()
+        fakeKawaiiBar.updateLayoutParams<ConstraintLayout.LayoutParams> {
+            height = barHeight
+        }
+        previewMenuButton?.updateLayoutParams {
+            width = ctx.dp(TOOLBAR_BUTTON_WIDTH_DP)
+            height = barHeight
+        }
+        previewHideButton?.updateLayoutParams {
+            width = ctx.dp(TOOLBAR_BUTTON_WIDTH_DP)
+            height = barHeight
+        }
         val (baseW, baseH) = keyboardWindowAspectRatio()
         val scale = sizeScale.coerceIn(0.35f, 1f)
         keyboardWidth = (baseW * scale).toInt().coerceAtLeast(1)

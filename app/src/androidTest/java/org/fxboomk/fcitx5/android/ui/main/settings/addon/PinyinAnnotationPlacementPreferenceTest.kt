@@ -18,6 +18,8 @@ import androidx.test.platform.app.InstrumentationRegistry
 import java.util.concurrent.FutureTask
 import java.util.concurrent.atomic.AtomicInteger
 import org.fxboomk.fcitx5.android.core.RawConfig
+import org.fxboomk.fcitx5.android.data.prefs.AppPrefs
+import org.fxboomk.fcitx5.android.data.theme.ThemeManager
 import org.fxboomk.fcitx5.android.ui.common.preference.resetToDefault
 import org.fxboomk.fcitx5.android.ui.main.MainActivity
 import org.fxboomk.fcitx5.android.ui.main.settings.PreferenceScreenFactory
@@ -118,6 +120,29 @@ class PinyinAnnotationPlacementPreferenceTest {
             assertTrue(fixture.placement.isEnabled)
             assertEquals(TOP, fixture.placement.value)
             assertEquals(3, fixture.saves.get())
+        }
+    }
+
+    @Test
+    fun editingPlacementDoesNotChangeTheActiveSchemeHeightBeforeNativeSave() = withHost { activity ->
+        val dynamicHeight = AppPrefs.getInstance().keyboard.toolbarDynamicHeight
+        for (scope in Scope.entries) {
+            onMain { dynamicHeight.setValue(false) }
+            val fixture = onMain { fixture(activity, scope, RARE, RIGHT) }
+            onMain { assertFalse(dynamicHeight.getValue()) }
+
+            change(fixture.placement, TOP)
+            onMain { assertFalse(dynamicHeight.getValue()) }
+
+            onMain { dynamicHeight.setValue(false) }
+            change(fixture.annotation, POLYPHONIC)
+            onMain { assertFalse(dynamicHeight.getValue()) }
+            change(fixture.placement, RIGHT)
+            onMain { assertFalse(dynamicHeight.getValue()) }
+
+            change(fixture.placement, TOP)
+            change(fixture.placement, RIGHT)
+            onMain { assertFalse(dynamicHeight.getValue()) }
         }
     }
 
@@ -226,6 +251,12 @@ class PinyinAnnotationPlacementPreferenceTest {
     }
 
     private fun withHost(block: (FragmentActivity) -> Unit) {
+        val dynamicHeight = AppPrefs.getInstance().keyboard.toolbarDynamicHeight
+        val savedDynamicHeight = dynamicHeight.sharedPreferences.all[dynamicHeight.key] as Boolean?
+        val manualHeight = ThemeManager.prefs.toolbarHeight
+        val savedManualHeight = manualHeight.sharedPreferences.all[manualHeight.key] as Int?
+        val profiles = AppPrefs.getInstance().internal.candidateBarHeightProfiles
+        val savedProfiles = profiles.sharedPreferences.all[profiles.key] as String?
         val activity = instrumentation.startActivitySync(
             Intent(instrumentation.targetContext, MainActivity::class.java)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
@@ -233,7 +264,19 @@ class PinyinAnnotationPlacementPreferenceTest {
         try {
             block(activity)
         } finally {
-            onMain { activity.finish() }
+            onMain {
+                activity.finish()
+                val editor = dynamicHeight.sharedPreferences.edit()
+                if (savedDynamicHeight == null) editor.remove(dynamicHeight.key)
+                else editor.putBoolean(dynamicHeight.key, savedDynamicHeight)
+                if (savedManualHeight == null) editor.remove(manualHeight.key)
+                else editor.putInt(manualHeight.key, savedManualHeight)
+                assertTrue(editor.commit())
+                val profileEditor = profiles.sharedPreferences.edit()
+                if (savedProfiles == null) profileEditor.remove(profiles.key)
+                else profileEditor.putString(profiles.key, savedProfiles)
+                assertTrue(profileEditor.commit())
+            }
             instrumentation.waitForIdleSync()
         }
     }
