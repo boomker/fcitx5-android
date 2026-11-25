@@ -19,6 +19,7 @@ class DefaultFontProvider : FontProviderApi {
 
     @Volatile
     private var cachedFontConfig: FontConfig? = null
+    private var fontConfigLoaded = false
     private val cachedFontTypefaceMap = mutableMapOf<String, Typeface?>()
     private val cachedTypefaceByPaths = mutableMapOf<List<String>, Typeface?>()
     @Volatile
@@ -29,6 +30,7 @@ class DefaultFontProvider : FontProviderApi {
     @Synchronized
     override fun clearCache() {
         cachedFontConfig = null
+        fontConfigLoaded = false
         cachedFontTypefaceMap.clear()
         cachedTypefaceByPaths.clear()
         cachedFontSizeMap = null
@@ -90,10 +92,13 @@ class DefaultFontProvider : FontProviderApi {
     }
 
     private fun loadFontConfigLocked(): FontConfig? {
-        cachedFontConfig?.let { return it }
-        val snapshot = ConfigProviders.readFontsetPathMapSnapshot().getOrNull() ?: return null
-        val fontsDir = snapshot.file?.parentFile ?: return null
-        return FontConfig(snapshot.value, fontsDir).also { cachedFontConfig = it }
+        if (fontConfigLoaded) return cachedFontConfig
+        val snapshot = ConfigProviders.readFontsetPathMapSnapshot().getOrNull()
+        val fontsDir = snapshot?.file?.parentFile
+        val config = if (snapshot != null && fontsDir != null) FontConfig(snapshot.value, fontsDir) else null
+        cachedFontConfig = config
+        fontConfigLoaded = true
+        return config
     }
 
     private fun loadTypefaceLocked(key: String, config: FontConfig): Typeface? {
@@ -157,10 +162,11 @@ class DefaultFontProvider : FontProviderApi {
             cachedFontSizeMap = runCatching {
                 snapshot.value
                     .filterKeys { it.endsWith("_size") }
-                    .mapValues { (_, values) ->
+                    .mapValues { (key, values) ->
                         runCatching {
+                            val minSize = if (key == "cand_comment_font_size") 1f else 8f
                             values.firstOrNull()?.trim()
-                                ?.toFloatOrNull()?.coerceIn(8f, 72f)
+                                ?.toFloatOrNull()?.coerceIn(minSize, 72f)
                         }.getOrNull()
                     }
                     .filterValues { it != null }

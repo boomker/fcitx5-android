@@ -36,6 +36,7 @@ import androidx.recyclerview.widget.RecyclerView
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.ui.main.keyboardtest.KeyboardTestMenu
 import org.fxboomk.fcitx5.android.input.AutoScaleTextView
+import org.fxboomk.fcitx5.android.input.candidates.CandidateAnnotationStyle
 import org.fxboomk.fcitx5.android.input.font.FontProviders
 import splitties.dimensions.dp
 import splitties.resources.styledColor
@@ -84,6 +85,12 @@ class FontsetEditorActivity : AppCompatActivity() {
             FontEntry("key_main_font", R.string.fontset_entry_key_main, getString(R.string.fontset_sample_main), 23f),
             FontEntry("key_alt_font", R.string.fontset_entry_key_alt, getString(R.string.fontset_sample_alt), 10.67f),
             FontEntry("cand_font", R.string.fontset_entry_candidate, getString(R.string.fontset_sample_candidate), 20f),
+            FontEntry(
+                CandidateAnnotationStyle.FONT_KEY,
+                R.string.fontset_entry_candidate_annotation,
+                "nǐ hǎo · zhōng wén",
+                CandidateAnnotationStyle.DEFAULT_FONT_SIZE
+            ),
             FontEntry("popup_key_font", R.string.fontset_entry_popup_key, getString(R.string.fontset_sample_popup), 18f),
             FontEntry("preedit_font", R.string.fontset_entry_preedit, getString(R.string.fontset_sample_preedit), 18f),
             FontEntry(
@@ -213,10 +220,31 @@ class FontsetEditorActivity : AppCompatActivity() {
             originalFonts[entry.key] = selectedFonts[entry.key].orEmpty().toList()
             // Load font size if exists (independent from font path)
             val sizeKey = "${entry.key}_size"
-            selectedFontSizes[entry.key] = parsed[sizeKey]?.firstOrNull()?.toFloatOrNull()
-                ?.coerceIn(8f, 72f) ?: entry.defaultFontSize
+            val size = parsed[sizeKey]?.firstOrNull()?.toFloatOrNull() ?: entry.defaultFontSize
+            selectedFontSizes[entry.key] = constrainFontSize(entry, size)
             originalFontSizes[entry.key] = selectedFontSizes[entry.key] ?: entry.defaultFontSize
         }
+    }
+
+    private fun fontSizeLimits(entry: FontEntry): Pair<Float, Float> =
+        if (entry.key == CandidateAnnotationStyle.FONT_KEY) {
+            val bodySize = selectedFontSizes["cand_font"] ?: 20f
+            1f to CandidateAnnotationStyle.maxFontSizeSp(bodySize).coerceAtMost(72f)
+        } else {
+            8f to 72f
+        }
+
+    private fun constrainFontSize(entry: FontEntry, size: Float): Float {
+        val (minSize, maxSize) = fontSizeLimits(entry)
+        return size.coerceIn(minSize, maxSize)
+    }
+
+    private fun clampCandidateAnnotationSize() {
+        val entry = entries.first { it.key == CandidateAnnotationStyle.FONT_KEY }
+        selectedFontSizes[entry.key] = constrainFontSize(
+            entry,
+            selectedFontSizes[entry.key] ?: entry.defaultFontSize,
+        )
     }
 
     private fun hasChanges(): Boolean = entries.any { entry ->
@@ -511,9 +539,8 @@ class FontsetEditorActivity : AppCompatActivity() {
     }
 
     private fun openFontSizeEditor(entry: FontEntry) {
-        val currentSize = selectedFontSizes[entry.key] ?: entry.defaultFontSize
-        val minSize = 8f
-        val maxSize = 72f
+        val (minSize, maxSize) = fontSizeLimits(entry)
+        val currentSize = constrainFontSize(entry, selectedFontSizes[entry.key] ?: entry.defaultFontSize)
         
         val container = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -570,18 +597,21 @@ class FontsetEditorActivity : AppCompatActivity() {
             .setView(container)
             .setPositiveButton(android.R.string.ok) { _, _ ->
                 val newSize = minSize + seekBar.progress
-                selectedFontSizes[entry.key] = newSize.coerceIn(minSize, maxSize)
+                selectedFontSizes[entry.key] = constrainFontSize(entry, newSize)
+                if (entry.key == "cand_font") clampCandidateAnnotationSize()
                 refreshRows()
             }
             .setNegativeButton(android.R.string.cancel, null)
             .setNeutralButton(R.string.reset) { _, _ ->
-                selectedFontSizes[entry.key] = entry.defaultFontSize
+                selectedFontSizes[entry.key] = constrainFontSize(entry, entry.defaultFontSize)
+                if (entry.key == "cand_font") clampCandidateAnnotationSize()
                 refreshRows()
             }
             .show()
     }
 
     private fun saveFontset() {
+        clampCandidateAnnotationSize()
         // Build font size map (save all font sizes, not just when fonts are set)
         val fontSizeMap = entries
             .associate { entry ->

@@ -123,9 +123,10 @@ object FontProviders {
         // overriding specific defaults (e.g., key_main_font=23sp, key_alt_font=10.67sp)
         val specificSize = sizeMap["${key}_size"]
         val size = sizeMap[key]
+        val minSize = if (key == "cand_comment_font") 1f else 8f
         val resolved = when {
-            specificSize != null && specificSize in 8f..72f -> specificSize
-            size != null && size in 8f..72f -> size
+            specificSize != null && specificSize in minSize..72f -> specificSize
+            size != null && size in minSize..72f -> size
             else -> default
         }
         synchronized(fontSizeResultCache) {
