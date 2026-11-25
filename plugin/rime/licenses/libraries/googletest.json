@@ -1,0 +1,11 @@
+{
+    "uniqueId": "google/googletest",
+    "artifactVersion": "1.18.0",
+    "description": "GoogleTest - Google Testing and Mocking Framework",
+    "name": "google/googletest",
+    "website": "https://github.com/google/googletest",
+    "tag": "native",
+    "licenses": [
+        "BSD-3-Clause"
+    ]
+}

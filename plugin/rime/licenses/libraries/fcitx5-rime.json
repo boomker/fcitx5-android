@@ -1,5 +1,5 @@
 {
-    "uniqueId": "fcitx/fcitx5-rime",
+    "uniqueId": "boomker/fcitx5-rime",
     "artifactVersion": "5.1.17",
     "description": "Rime Wrapper for Fcitx",
     "name": "fcitx/fcitx5-rime",
