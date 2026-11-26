@@ -35,6 +35,32 @@ import org.junit.Test
 /** Verify the shipped JNI formatter, display option and ordered native syllable confirmations. */
 class Shuangpin18PreeditTest {
     @Test
+    fun compactCommaAndPeriodStillCommitTheirPunctuation() = withIme(XIAOHE) {
+        for ((key, expected) in
+            listOf(
+                "comma" to setOf(",", "，"),
+                "period" to setOf(".", "。"),
+            )
+        ) {
+            reset()
+            coroutineScope {
+                val commit = async(start = CoroutineStart.UNDISPATCHED) {
+                    withTimeout(EVENT_TIMEOUT_MS) {
+                        eventFlow
+                            .filterIsInstance<FcitxEvent.CommitStringEvent>()
+                            .first()
+                            .data.text
+                    }
+                }
+                press(key)
+                val text = commit.await()
+                assertTrue("$key committed unexpected text: $text", text in expected)
+                awaitPreedit("")
+            }
+        }
+    }
+
+    @Test
     fun defaultPreeditUsesTheDecodedOrdinaryShuangpinKeys() = withIme(XIAOHE) {
         grouped("nihc")
         awaitPreedit("ni hc")

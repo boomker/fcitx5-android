@@ -11,6 +11,7 @@
 #include <fcitx/inputmethodgroup.h>
 #include <fcitx/inputmethodmanager.h>
 #include <string>
+#include <string_view>
 #include <vector>
 #include "../../../../../lib/fcitx5-chinese-addons/src/main/cpp/fcitx5-chinese-addons/im/pinyin/pinyinconfigmigration.h"
 
@@ -75,12 +76,17 @@ int main() {
     AndroidFrontend frontend(&instance);
     std::vector<std::string> commits;
     int forwardedKeys = 0;
+    KeySym lastForwardedKey{};
     frontend.setCommitStringCallback(
         [&commits](const std::string &text, int, bool) {
           commits.push_back(text);
         });
-    frontend.setKeyEventCallback([&forwardedKeys](int, uint32_t, uint32_t, bool,
-                                                  int) { ++forwardedKeys; });
+    frontend.setKeyEventCallback(
+        [&forwardedKeys, &lastForwardedKey](int sym, uint32_t, uint32_t, bool,
+                                            int) {
+          ++forwardedKeys;
+          lastForwardedKey = static_cast<KeySym>(sym);
+        });
     frontend.activateInputContext(18, "compact-shuangpin-host-test");
     auto *ic = frontend.activeInputContext();
     FCITX_ASSERT(ic);
@@ -479,12 +485,89 @@ int main() {
         FCITX_ASSERT(ic->inputPanel().clientPreedit().empty());
       }
     }
-    FCITX_ASSERT(forwardedKeys == 0);
+
+    // Normal punctuation symbols share their Unicode values with the exact
+    // projection aliases for k and m. In compact mode they must still reach
+    // punctuation handling, rather than becoming another preedit letter.
+    config.setValueByPath("ShuangpinProfile", "Xiaohe");
+    instance.inputMethodEngine(ic)->setConfigForInputMethod(
+        *instance.inputMethodEntry(ic), config);
+    frontend.resetInputContext();
+    const auto commitSuffix = [&commits](size_t first) {
+      std::string result;
+      for (size_t index = first; index < commits.size(); ++index) {
+        result += commits[index];
+      }
+      return result;
+    };
+    const auto sendPunctuation =
+        [&frontend, ic, &sendCompact, &commits, &forwardedKeys,
+         &lastForwardedKey](KeySym sym) {
+      frontend.resetInputContext();
+      sendCompact(static_cast<KeySym>(0x0200e101));
+      const auto firstCommit = commits.size();
+      const auto firstForwarded = forwardedKeys;
+      frontend.keyEvent(Key(sym, KeyState::Virtual), false, 0);
+      FCITX_ASSERT(ic->inputPanel().clientPreedit().empty())
+          << ic->inputPanel().clientPreedit().toString();
+      FCITX_ASSERT(commits.size() == firstCommit);
+      FCITX_ASSERT(forwardedKeys == firstForwarded + 1);
+      FCITX_ASSERT(lastForwardedKey == sym) << lastForwardedKey;
+    };
+    sendPunctuation(FcitxKey_comma);
+    sendPunctuation(FcitxKey_period);
+
+    const auto typeGrouped = [&sendCompact](const std::string &input) {
+      constexpr std::array<std::string_view, 18> groups = {
+          "q",  "we", "rt", "y", "u", "io", "p", "a",
+          "sd", "fg", "h",  "jk", "l;", "z", "xc", "v",
+          "bn", "m"};
+      for (const char letter : input) {
+        const auto group = std::find_if(
+            groups.begin(), groups.end(), [letter](std::string_view letters) {
+              return letters.find(letter) != letters.npos;
+            });
+        FCITX_ASSERT(group != groups.end());
+        sendCompact(static_cast<KeySym>(
+            0x0200e000 + std::distance(groups.begin(), group)));
+      }
+    };
+    const auto assertCompositionPunctuation =
+        [&frontend, ic, &sendCompact, &typeGrouped, &exactLetter, &commits,
+         &commitSuffix, &forwardedKeys, &lastForwardedKey](
+            const std::string &input, bool grouped, KeySym punctuation) {
+          frontend.resetInputContext();
+          sendCompact(static_cast<KeySym>(0x0200e101));
+          if (grouped) {
+            typeGrouped(input);
+          } else {
+            for (const char letter : input) exactLetter(letter);
+          }
+          FCITX_ASSERT(!ic->inputPanel().clientPreedit().empty());
+          const auto candidates = frontend.getCandidates(0, 256);
+          FCITX_ASSERT(!candidates.empty());
+          const auto selected = candidates.front().text;
+          const auto first = commits.size();
+          const auto firstForwarded = forwardedKeys;
+          frontend.keyEvent(Key(punctuation, KeyState::Virtual), false, 0);
+          FCITX_ASSERT(ic->inputPanel().clientPreedit().empty())
+              << ic->inputPanel().clientPreedit().toString();
+          FCITX_ASSERT(commitSuffix(first) == selected) << commitSuffix(first);
+          FCITX_ASSERT(forwardedKeys == firstForwarded + 1);
+          FCITX_ASSERT(lastForwardedKey == punctuation) << lastForwardedKey;
+        };
+    // The first case exercises grouped input. The exact ke/ma codes contain
+    // the letters whose private projection aliases are comma and period.
+    assertCompositionPunctuation("ni", true, FcitxKey_comma);
+    assertCompositionPunctuation("ke", false, FcitxKey_comma);
+    assertCompositionPunctuation("ma", false, FcitxKey_period);
+    FCITX_ASSERT(forwardedKeys == 5);
     instance.setCurrentInputMethod(ic, "keyboard-us", true);
 
     // Ordinary application input still reaches the frontend callback.
     frontend.keyEvent(Key(FcitxKey_x, KeyState::Virtual), false, 0);
-    FCITX_ASSERT(forwardedKeys == 1);
+    FCITX_ASSERT(forwardedKeys == 6);
+    FCITX_ASSERT(lastForwardedKey == FcitxKey_x);
     delete ic;
     instance.exit();
   });
