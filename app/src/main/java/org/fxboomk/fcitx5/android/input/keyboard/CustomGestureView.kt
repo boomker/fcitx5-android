@@ -249,6 +249,8 @@ open class CustomGestureView(ctx: Context) : FrameLayout(ctx) {
                 return true
             }
             MotionEvent.ACTION_CANCEL -> {
+                // A cancellation must not dispatch release-triggered input.
+                gestureConsumed = true
                 dispatchGestureEvent(GestureType.Up, event.x, event.y)
                 cancelGestures()
                 return true

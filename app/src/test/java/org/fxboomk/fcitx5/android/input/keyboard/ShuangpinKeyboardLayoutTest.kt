@@ -200,6 +200,22 @@ class ShuangpinKeyboardLayoutTest {
     }
 
     @Test
+    fun exactSwipeProtocolIsSeparateFromGroupedAndEnglishLiteralInput() {
+        for ((offset, letter) in ('a'..'z').withIndex()) {
+            val action = requireNotNull(Shuangpin18Keys.exactAction(letter.toString()))
+            assertEquals(0x0200E500 + offset, action.sym.sym)
+            assertEquals(letter.toString(), Shuangpin18Keys.exactLetter(action.sym))
+            assertTrue(action.states.has(KeyState.Virtual))
+            assertFalse(action.states.has(KeyState.Shift))
+            assertFalse(Shuangpin18Keys.isGroupAction(action.sym))
+            assertNull(Shuangpin18Keys.exactLetter(requireNotNull(Shuangpin18Keys.literalAction(letter.toString())).sym))
+        }
+        for (text in listOf("", "we", "W", ";", "中")) {
+            assertNull(Shuangpin18Keys.exactAction(text))
+        }
+    }
+
+    @Test
     fun groupedRowsKeepSourceProportions() {
         val rows = Shuangpin18Keys.layout(showLangSwitch = true, semicolon = true)
         assertEquals(listOf(7, 6, 7, 6), rows.map { it.size })

@@ -67,6 +67,7 @@ internal object Shuangpin18Keys {
     private const val CONFIG_CHARACTER_BASE = 0x0200E210
     private const val REPRESENTATIVE_KEYSYM_BASE = 0x0200E300
     private const val LITERAL_KEYSYM_BASE = 0x0200E400
+    private const val EXACT_KEYSYM_BASE = 0x0200E500
     private const val GROUP_CHARACTERS = "abcdefghijklmnopqrstuvwxyz;"
 
     val groups = listOf(
@@ -161,6 +162,16 @@ internal object Shuangpin18Keys {
         }
         return virtualAction(LITERAL_KEYSYM_BASE + offset)
     }
+
+    /** A swiped letter constrains one grouped code position without starting English input. */
+    fun exactAction(text: String): KeyAction.SymAction? {
+        val letter = text.singleOrNull()?.takeIf { it in 'a'..'z' } ?: return null
+        return virtualAction(EXACT_KEYSYM_BASE + (letter - 'a'))
+    }
+
+    fun exactLetter(sym: KeySym): String? =
+        (sym.sym - EXACT_KEYSYM_BASE).takeIf { it in 0 until 26 }
+            ?.let { ('a' + it).toString() }
 
     fun modeAction(compact: Boolean): KeyAction.SymAction = KeyAction.SymAction(
         KeySym(MODE_KEYSYM_BASE + if (compact) 1 else 0), KeyStates.Virtual

@@ -749,7 +749,8 @@ void AndroidFrontend::keyEvent(const Key &key, bool isRelease, const int timesta
     const bool compactKey = (sym >= 0x0200e000 && sym <= 0x0200e011) ||
                             sym == 0x0200e100 || sym == 0x0200e101 ||
                             (sym >= 0x0200e200 && sym <= 0x0200e2ff) ||
-                            (sym >= 0x0200e300 && sym <= 0x0200e31a);
+                            (sym >= 0x0200e300 && sym <= 0x0200e31a) ||
+                            (sym >= 0x0200e500 && sym <= 0x0200e519);
     if (compactKey) {
         // Check the actual native IM, since Kotlin's IM update can be queued
         // behind a key. Protocol keys never fall through as application input.

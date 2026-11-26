@@ -44,6 +44,76 @@ class Shuangpin18CapsTest {
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
 
     @Test
+    fun physicalHorizontalGroupSwipesOutputOneExactLetterEvenWithUppercaseLabels() = withKeyboard { scene ->
+        onMain {
+            for (uppercaseLabels in listOf(false, true)) {
+                AppPrefs.getInstance().keyboard.keepLettersUppercase.setValue(uppercaseLabels)
+                scene.keyboard.onInputMethodUpdate(entry(XIAOHE, "pinyin"))
+                layout(scene.keyboard)
+                for ((direction, letter) in listOf(-1 to "w", 1 to "e")) {
+                    val key = textKey(scene.keyboard, if (uppercaseLabels) "WE" else "we")
+                    scene.actions.clear()
+                    val now = SystemClock.uptimeMillis()
+                    val startX = key.width / 2f
+                    val y = key.height / 2f
+                    listOf(MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE, MotionEvent.ACTION_UP)
+                        .forEachIndexed { index, action ->
+                            val x = startX + if (index == 0) 0f else direction * key.swipeThresholdX * 1.5f
+                            val event = MotionEvent.obtain(now, now + index * 16L, action, x, y, 0)
+                            try {
+                                assertTrue(key.onTouchEvent(event))
+                            } finally {
+                                event.recycle()
+                            }
+                        }
+                    val exact = scene.actions.filterIsInstance<KeyAction.SymAction>()
+                        .filter { Shuangpin18Keys.exactLetter(it.sym) != null }
+                    assertEquals(listOf(Shuangpin18Keys.exactAction(letter)), exact)
+                    assertFalse(scene.actions.any { it is KeyAction.SymAction && Shuangpin18Keys.isGroupAction(it.sym) })
+                    assertFalse(scene.actions.any { it is KeyAction.FcitxKeyAction || it is KeyAction.CommitAction })
+                }
+            }
+        }
+    }
+
+    @Test
+    fun cancelledHorizontalGroupMotionDoesNotOutputAndTheNextTapStillWorks() = withKeyboard { scene ->
+        onMain {
+            val key = textKey(scene.keyboard, "we")
+            scene.actions.clear()
+            val now = SystemClock.uptimeMillis()
+            val startX = key.width / 2f
+            val y = key.height / 2f
+            listOf(MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE, MotionEvent.ACTION_CANCEL)
+                .forEachIndexed { index, action ->
+                    val x = startX + if (index == 0) 0f else key.swipeThresholdX * 1.5f
+                    val event = MotionEvent.obtain(now, now + index * 16L, action, x, y, 0)
+                    try {
+                        assertTrue(key.onTouchEvent(event))
+                    } finally {
+                        event.recycle()
+                    }
+                }
+            assertTrue(scene.actions.isEmpty())
+            tap(key)
+            assertEquals(Shuangpin18Keys.action("we"), scene.actions.last())
+        }
+    }
+
+    @Test
+    fun exactLettersFollowActualCapsStateAndConsumeOneShotCaps() = withKeyboard { scene ->
+        onMain {
+            tap(caps(scene.keyboard))
+            layout(scene.keyboard)
+            scene.actions.clear()
+            dispatchAction(scene.keyboard, requireNotNull(Shuangpin18Keys.exactAction("w")), KeyActionListener.Source.Keyboard)
+            assertUppercaseW(scene.actions)
+            layout(scene.keyboard)
+            assertCompact(scene.keyboard)
+        }
+    }
+
+    @Test
     fun compactPopupLettersUseLiteralProtocolForBothCases() = withKeyboard { scene ->
         onMain {
             for ((group, letter) in listOf("io" to "i", "io" to "o", "jk" to "j",

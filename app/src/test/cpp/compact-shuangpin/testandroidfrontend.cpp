@@ -198,7 +198,124 @@ int main() {
     FCITX_ASSERT(syllables().empty());
     frontend.resetInputContext();
 
+    // Directional letters constrain one physical-key position without
+    // switching profiles, starting English, or committing the earlier input.
+    const auto exactLetter = [&sendCompact](char letter) {
+      sendCompact(static_cast<KeySym>(0x0200e500 + letter - 'a'));
+    };
+    const auto hasCandidate = [&frontend](const std::string &text) {
+      const auto all = frontend.getCandidates(0, 256);
+      return std::any_of(all.begin(), all.end(), [&text](const auto &candidate) {
+        return candidate.text == text;
+      });
+    };
+    exactLetter('n');
+    FCITX_ASSERT(ic->inputPanel().clientPreedit().toString() == "n");
+    sendCompact(static_cast<KeySym>(0x0200e005)); // IO
+    FCITX_ASSERT(hasCandidate("你"));
+    FCITX_ASSERT(!hasCandidate("比"));
+    FCITX_ASSERT(ic->inputPanel().clientPreedit().toString() == "ni");
+    frontend.keyEvent(Key(FcitxKey_Left, KeyState::Virtual), false, 0);
+    frontend.keyEvent(Key(FcitxKey_BackSpace, KeyState::Virtual), false, 0);
+    exactLetter('b');
+    frontend.keyEvent(Key(FcitxKey_End, KeyState::Virtual), false, 0);
+    FCITX_ASSERT(hasCandidate("比"));
+    FCITX_ASSERT(!hasCandidate("你"));
+    FCITX_ASSERT(ic->inputPanel().clientPreedit().toString() == "bi");
+    frontend.resetInputContext();
+    sendCompact(static_cast<KeySym>(0x0200e010)); // BN
+    exactLetter('i');
+    FCITX_ASSERT(hasCandidate("比"));
+    FCITX_ASSERT(hasCandidate("你"));
+    frontend.keyEvent(Key(FcitxKey_BackSpace, KeyState::Virtual), false, 0);
+    exactLetter('o');
+    FCITX_ASSERT(hasCandidate("波"));
+    FCITX_ASSERT(!hasCandidate("你"));
+    frontend.resetInputContext();
+    exactLetter('n');
+    sendCompact(static_cast<KeySym>(0x0200e005)); // IO
+    exactLetter('h');
+    sendCompact(static_cast<KeySym>(0x0200e00e)); // XC
+    FCITX_ASSERT(hasCandidate("你好"));
+    FCITX_ASSERT(commits == std::vector<std::string>{"你好"});
+    frontend.resetInputContext();
+    sendCompact(static_cast<KeySym>(0x0200e010)); // BN
+    sendCompact(static_cast<KeySym>(0x0200e005)); // IO
+    confirm("ni");
+    exactLetter('h');
+    sendCompact(static_cast<KeySym>(0x0200e00e)); // XC
+    FCITX_ASSERT(hasCandidate("你好"));
+    FCITX_ASSERT(ic->inputPanel().clientPreedit().toString().starts_with("ni "));
+    FCITX_ASSERT(commits == std::vector<std::string>{"你好"});
+    frontend.resetInputContext();
+    // A pending English prefix continues in English when the layout returns
+    // to compact and receives the same lowercase directional protocol.
+    frontend.keyEvent(Key(FcitxKey_W, KeyState::Virtual), false, 0);
+    exactLetter('i');
+    exactLetter('l');
+    exactLetter('l');
+    FCITX_ASSERT(ic->inputPanel().clientPreedit().toString() == "Will");
+    FCITX_ASSERT(commits == std::vector<std::string>{"你好"});
+    frontend.resetInputContext();
+
+    // Popup English may follow a composing-code prefix. Its group metadata
+    // describes only the English suffix, not absolute buffer positions.
+    // Deleting the popup letter and then its prefix must not erase past that
+    // shorter metadata vector or leave the original prefix on screen.
+    for (const bool exactPrefix : {false, true}) {
+      if (exactPrefix) {
+        exactLetter('n');
+      } else {
+        sendCompact(static_cast<KeySym>(0x0200e010)); // BN
+      }
+      sendCompact(static_cast<KeySym>(0x0200e005)); // IO
+      const char popupLetter = exactPrefix ? 'w' : 'W';
+      const auto popupOffset = exactPrefix ? 'w' - 'a' : 26 + 'W' - 'A';
+      sendCompact(static_cast<KeySym>(0x0200e400 + popupOffset));
+      auto expected = ic->inputPanel().clientPreedit().toString();
+      FCITX_ASSERT(expected.size() > 1 && expected.back() == popupLetter);
+      while (!expected.empty()) {
+        expected.pop_back();
+        frontend.keyEvent(Key(FcitxKey_BackSpace, KeyState::Virtual), false, 0);
+        FCITX_ASSERT(ic->inputPanel().clientPreedit().toString() == expected)
+            << "exactPrefix=" << exactPrefix << ": "
+            << ic->inputPanel().clientPreedit().toString();
+        FCITX_ASSERT(commits == std::vector<std::string>{"你好"});
+      }
+      frontend.resetInputContext();
+    }
+
+    // Every directional letter is editable even when this scheme cannot
+    // start a Chinese syllable with it (notably Xiaohe i/u/v).
+    for (const auto *profile : {"Xiaohe", "MS", "Ziranma", "ABC", "Ziguang",
+                                "Zhongwenzhixing", "PinyinJiajia", "GB Standard"}) {
+      config.setValueByPath("ShuangpinProfile", profile);
+      instance.inputMethodEngine(ic)->setConfigForInputMethod(
+          *instance.inputMethodEntry(ic), config);
+      FCITX_ASSERT(currentConfig().get("ShuangpinProfile")->value() == profile)
+          << "Expected " << profile << ", observed "
+          << currentConfig().get("ShuangpinProfile")->value();
+      frontend.resetInputContext();
+      sendCompact(static_cast<KeySym>(0x0200e101));
+      for (char letter = 'a'; letter <= 'z'; ++letter) {
+        exactLetter(letter);
+        FCITX_ASSERT(ic->inputPanel().clientPreedit().toString() ==
+                     std::string(1, letter)) << profile << ": " << letter;
+        frontend.keyEvent(Key(FcitxKey_BackSpace, KeyState::Virtual), false, 0);
+        FCITX_ASSERT(ic->inputPanel().clientPreedit().empty());
+        FCITX_ASSERT(commits == std::vector<std::string>{"你好"});
+        frontend.resetInputContext();
+      }
+    }
+    config.setValueByPath("ShuangpinProfile", "Xiaohe");
+    instance.inputMethodEngine(ic)->setConfigForInputMethod(
+        *instance.inputMethodEntry(ic), config);
+    frontend.resetInputContext();
+
     std::vector<KeySym> compactProtocol;
+    for (int index = 0; index < 26; ++index) {
+      compactProtocol.push_back(static_cast<KeySym>(0x0200e500 + index));
+    }
     for (int index = 0; index < 18; ++index) {
       compactProtocol.push_back(static_cast<KeySym>(0x0200e000 + index));
     }
@@ -330,6 +447,36 @@ int main() {
         expectedCommits.push_back(fullPinyin ? "bihua" : "bihx");
         FCITX_ASSERT(commits == expectedCommits) << commits;
         FCITX_ASSERT(!frontend.setCandidateCursor(0));
+      }
+    }
+    // Raw Return must restore exact letters even when no complete pair
+    // can be decoded; internal projection aliases must never be committed.
+    for (const auto &text : {std::string("ni"), std::string("wp")}) {
+      frontend.resetInputContext();
+      sendCompact(static_cast<KeySym>(0x0200e101));
+      for (char letter : text) exactLetter(letter);
+      FCITX_ASSERT(commits == expectedCommits);
+      frontend.keyEvent(Key(FcitxKey_Return, KeyState::Virtual), false, 0);
+      expectedCommits.push_back(text);
+      FCITX_ASSERT(commits == expectedCommits) << commits;
+    }
+    config.setValueByPath("PinyinInPreedit", "False");
+    for (const auto *profile : {"Xiaohe", "MS", "Ziranma", "ABC", "Ziguang",
+                                "Zhongwenzhixing", "PinyinJiajia", "GB Standard"}) {
+      config.setValueByPath("ShuangpinProfile", profile);
+      instance.inputMethodEngine(ic)->setConfigForInputMethod(
+          *instance.inputMethodEntry(ic), config);
+      frontend.resetInputContext();
+      sendCompact(static_cast<KeySym>(0x0200e101));
+      for (char letter = 'a'; letter <= 'z'; ++letter) {
+        exactLetter(letter);
+        FCITX_ASSERT(ic->inputPanel().clientPreedit().toString() ==
+                     std::string(1, letter)) << profile << ": " << letter;
+        FCITX_ASSERT(commits == expectedCommits);
+        frontend.keyEvent(Key(FcitxKey_Return, KeyState::Virtual), false, 0);
+        expectedCommits.emplace_back(1, letter);
+        FCITX_ASSERT(commits == expectedCommits) << profile << ": " << letter;
+        FCITX_ASSERT(ic->inputPanel().clientPreedit().empty());
       }
     }
     FCITX_ASSERT(forwardedKeys == 0);

@@ -802,7 +802,7 @@ abstract class BaseKeyboard(
                 onGestureListener = onGestureListener
             )
             applyAppearance(this, activeAppearance)
-            applyBehaviorPopupBindings(this, baseline, activeDef.behaviors, activeDef.popup)
+            applyBehaviorPopupBindings(this, baseline, activeDef)
             if (def is BackspaceKey) {
                 this.onRepeatStartListener = { v ->
                     showBackspaceClearPopup(v)
@@ -840,7 +840,7 @@ abstract class BaseKeyboard(
 
         // First, rebind behaviors on existing views so taps during transition already use new actions.
         updates.forEach { u ->
-            applyBehaviorPopupBindings(u.item.keyView, u.item.baseline, u.activeDef.behaviors, u.activeDef.popup)
+                applyBehaviorPopupBindings(u.item.keyView, u.item.baseline, u.activeDef)
         }
 
         val recreateList = updates.filter { it.needsRecreate }
@@ -860,7 +860,7 @@ abstract class BaseKeyboard(
 
         updates.forEach { u ->
             applyAppearance(u.item.keyView, u.activeAppearance)
-            applyBehaviorPopupBindings(u.item.keyView, u.item.baseline, u.activeDef.behaviors, u.activeDef.popup)
+                applyBehaviorPopupBindings(u.item.keyView, u.item.baseline, u.activeDef)
         }
     }
 
@@ -1288,9 +1288,10 @@ abstract class BaseKeyboard(
     private fun applyBehaviorPopupBindings(
         view: KeyView,
         baseline: GestureBaseline,
-        behaviors: Set<KeyDef.Behavior>,
-        popup: Array<KeyDef.Popup>?
+        definition: KeyDef
     ) {
+        val behaviors = definition.behaviors
+        val popup = definition.popup
         view.setOnClickListener(null)
         view.setOnLongClickListener(null)
         view.repeatEnabled = false
@@ -1419,6 +1420,48 @@ abstract class BaseKeyboard(
                 }
             }
         }
+        val letters = (definition as? ShuangpinGroupKey)?.groupId
+            ?.takeIf { it.length == 2 && it.all { letter -> letter in 'a'..'z' } }
+        if (letters != null) {
+            view.swipeEnabled = true
+            view.swipeThresholdX = inputSwipeThreshold
+            val oldOnGestureListener = view.onGestureListener ?: OnGestureListener.Empty
+            var startX = 0f
+            var startY = 0f
+            var axis: SwipeAxis? = null
+            view.onGestureListener = OnGestureListener { currentView, event ->
+                when (event.type) {
+                    GestureType.Down -> {
+                        startX = event.x
+                        startY = event.y
+                        axis = null
+                    }
+                    GestureType.Move -> if (axis == null && (event.countX != 0 || event.countY != 0)) {
+                        axis = if ((event.x - startX).absoluteValue > (event.y - startY).absoluteValue) {
+                            SwipeAxis.X
+                        } else SwipeAxis.Y
+                    }
+                    GestureType.Up -> Unit
+                }
+                if (axis == SwipeAxis.X) {
+                    val letter = letters[if (event.totalX < 0) 0 else 1].toString()
+                    when (event.type) {
+                        GestureType.Move -> if (popupOnKeyPress && event.totalX != 0) {
+                            onPopupAction(PopupAction.PreviewUpdateAction(view.id, letter))
+                        }
+                        GestureType.Up -> {
+                            onPopupAction(PopupAction.DismissAction(view.id))
+                            if (!event.consumed && event.totalX != 0) {
+                                Shuangpin18Keys.exactAction(letter)?.let { onAction(it) }
+                            }
+                            return@OnGestureListener true
+                        }
+                        else -> Unit
+                    }
+                    false
+                } else oldOnGestureListener.onGesture(currentView, event)
+            }
+        }
         val hasLongPressKeyboard = popup?.any { it is KeyDef.Popup.LongPressKeyboard } == true
         popup?.forEach {
             when (it) {
@@ -1535,6 +1578,7 @@ abstract class BaseKeyboard(
                 }
             }
         }
+
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {

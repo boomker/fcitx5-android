@@ -15,6 +15,8 @@ import org.fxboomk.fcitx5.android.data.theme.ThemePrefs.PunctuationPosition
 import org.fxboomk.fcitx5.android.data.theme.ThemePreset
 import org.fxboomk.fcitx5.android.input.keyboard.CustomGestureView.Event
 import org.fxboomk.fcitx5.android.input.keyboard.CustomGestureView.GestureType
+import org.fxboomk.fcitx5.android.input.popup.PopupAction
+import org.fxboomk.fcitx5.android.input.popup.PopupActionListener
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -61,6 +63,121 @@ class DirectionalSwipeBehaviorTest {
                 ))
                 assertSwipes(keyboard, up, down)
             }
+        }
+    }
+
+    @Test
+    fun groupedHorizontalSwipesUseTheGroupOrderRegardlessOfLabelsOrSymbolPreferences() = withPreferences {
+        SwipeSymbolDirection.entries.forEach { direction ->
+            AppPrefs.getInstance().keyboard.swipeSymbolDirection.setValue(direction)
+            listOf(PunctuationPosition.Top, PunctuationPosition.Bottom, PunctuationPosition.None).forEach { position ->
+                ThemeManager.prefs.punctuationPosition.setValue(position)
+                val groups = Shuangpin18Keys.groups.filter { it.length == 2 && it.all(Char::isLetter) } + "wq"
+                groups.forEach { group ->
+                    val keyboard = createKeyboard(ShuangpinGroupKey(
+                        groupId = group, punctuation = "", configuredDisplayText = "自定义",
+                    ))
+                    listOf(-2 to group.first(), 2 to group.last()).forEach { (totalX, letter) ->
+                        keyboard.actions.clear()
+                        assertTrue(swipe(keyboard.key, totalX = totalX, totalY = 0))
+                        assertEquals(listOf(Shuangpin18Keys.exactAction(letter.toString())), keyboard.actions)
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun groupedSwipesLockTheirInitialAxisAndKeepVerticalMacros() = withPreferences {
+        val up = macro("up")
+        val down = macro("down")
+        val keyboard = createKeyboard(ShuangpinGroupKey("we", swipeUp = up, swipeDown = down))
+        assertTrue(swipePath(keyboard.key, -2 to 0, -2 to -4))
+        assertEquals(listOf(Shuangpin18Keys.exactAction("w")), keyboard.actions)
+        keyboard.actions.clear()
+        assertTrue(swipePath(keyboard.key, 0 to -2, 3 to -2))
+        assertEquals(listOf(up), keyboard.actions)
+        assertSwipes(keyboard, up, down)
+    }
+
+    @Test
+    fun groupedHorizontalSwipesSurviveCompositionRebindingWithoutRepeating() = withPreferences {
+        val keyboard = createKeyboard(ShuangpinGroupKey("bn").apply {
+            composeOverride = ShuangpinGroupKey("we")
+        })
+        listOf(false, true, false, true).forEach { composing ->
+            keyboard.onCompositionStateChanged(composing)
+            layout(keyboard)
+            keyboard.actions.clear()
+            assertTrue(swipe(keyboard.key, totalX = 3, totalY = 1))
+            assertEquals(listOf(Shuangpin18Keys.exactAction(if (composing) "e" else "n")), keyboard.actions)
+        }
+    }
+
+    @Test
+    fun singleLettersSemicolonAndLargerGroupsKeepTheirExistingHorizontalBehavior() = withPreferences {
+        listOf("q", "l;", "wer").forEach { group ->
+            val keyboard = createKeyboard(ShuangpinGroupKey(group))
+            swipe(keyboard.key, totalX = -2, totalY = 0)
+            assertTrue(keyboard.actions.isEmpty())
+        }
+    }
+
+    @Test
+    fun consumedHorizontalGroupSwipeDoesNotOutputALetter() = withPreferences {
+        val keyboard = createKeyboard(ShuangpinGroupKey("we"))
+        val key = keyboard.key
+        val listener = requireNotNull(key.onGestureListener)
+        listener.onGesture(key, Event(GestureType.Down, false, 0f, 0f, 0, 0, 0, 0))
+        listener.onGesture(key, Event(GestureType.Move, false, key.swipeThresholdX * 2, 0f, 2, 0, 2, 0))
+        listener.onGesture(key, Event(GestureType.Up, true, key.swipeThresholdX * 2, 0f, 0, 0, 2, 0))
+        assertTrue(keyboard.actions.isEmpty())
+    }
+
+    @Test
+    fun groupedLongPressPopupKeepsHorizontalSlideSelectionAheadOfExactLetters() = withPreferences {
+        for (direction in listOf(-1, 1)) {
+            val keyboard = createKeyboard(ShuangpinGroupKey("we"))
+            val selected = KeyAction.FcitxKeyAction(if (direction < 0) "W" else "E")
+            var popupVisible = false
+            var focusChanges = 0
+            var triggers = 0
+            keyboard.popupActionListener = PopupActionListener { action ->
+                when (action) {
+                    is PopupAction.ShowKeyboardAction -> popupVisible = true
+                    is PopupAction.ChangeFocusAction -> {
+                        if (popupVisible) {
+                            focusChanges++
+                            action.outResult = true
+                        }
+                    }
+                    is PopupAction.TriggerAction -> if (popupVisible) {
+                        triggers++
+                        action.outAction = selected
+                    }
+                    is PopupAction.DismissAction -> popupVisible = false
+                    else -> Unit
+                }
+            }
+            val key = keyboard.key
+            val listener = requireNotNull(key.onGestureListener)
+            val x = key.width / 2f
+            val y = key.height / 2f
+            val delta = direction * key.swipeThresholdX * 2
+            listener.onGesture(key, Event(GestureType.Down, false, x, y, 0, 0, 0, 0))
+            key.performLongClick()
+            assertTrue("The grouped long-press popup did not open", popupVisible)
+            val consumed = listener.onGesture(
+                key, Event(GestureType.Move, false, x + delta, y, direction * 2, 0, direction * 2, 0)
+            )
+            assertTrue("The open popup did not consume the horizontal focus change", consumed)
+            assertTrue(listener.onGesture(
+                key, Event(GestureType.Up, consumed, x + delta, y, 0, 0, direction * 2, 0)
+            ))
+            assertEquals(1, focusChanges)
+            assertEquals(1, triggers)
+            assertEquals(listOf(selected), keyboard.actions)
+            assertTrue("Selecting the popup item did not dismiss it", !popupVisible)
         }
     }
 

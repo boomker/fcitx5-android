@@ -43,6 +43,65 @@ class Shuangpin18PreeditTest {
     }
 
     @Test
+    fun exactSwipeLettersStayChineseAndMixWithGroupTapsWithoutCommitting() = withIme(XIAOHE) {
+        for (exactFirst in listOf(true, false)) {
+            reset()
+            mode(true)
+            coroutineScope {
+                val commit = async(start = CoroutineStart.UNDISPATCHED) {
+                    eventFlow.filterIsInstance<FcitxEvent.CommitStringEvent>().first()
+                }
+                try {
+                    if (exactFirst) {
+                        exact("n")
+                        grouped("i")
+                    } else {
+                        grouped("n")
+                        exact("i")
+                    }
+                    pickSyllable("ni")
+                    exact("h")
+                    grouped("c")
+                    pickSyllable("hao")
+                    awaitPreedit("ni hc")
+                    assertEquals("你好", getCandidates(0, CANDIDATE_LIMIT).first().text)
+                    assertFalse("Mixing a swiped letter and group tap committed the composition", commit.isCompleted)
+                } finally {
+                    commit.cancel()
+                }
+            }
+        }
+    }
+
+    @Test
+    fun everyLowercaseExactLetterCanStartAnEditablePreedit() = withIme(XIAOHE) {
+        for (letter in 'a'..'z') {
+            reset()
+            mode(true)
+            exact(letter.toString())
+            awaitPreedit(letter.toString())
+            assertEquals(1, clientPreeditCached.cursor)
+            press("BackSpace")
+            awaitPreedit("")
+        }
+    }
+
+    @Test
+    fun allExactLowercaseLettersRemainChineseShuangpinCodes() = withIme(XIAOHE) {
+        "nihc".forEach { exact(it.toString()) }
+        awaitPreedit("ni hc")
+        assertEquals("你好", getCandidates(0, CANDIDATE_LIMIT).first().text)
+    }
+
+    @Test
+    fun uppercaseStartStillKeepsSubsequentExactLettersInEnglish() = withIme(XIAOHE) {
+        press("W", shift = true)
+        "ill".forEach { exact(it.toString()) }
+        awaitPreedit("Will")
+        assertTrue(getCandidates(0, CANDIDATE_LIMIT).any { it.text == "Will" })
+    }
+
+    @Test
     fun completePinyinAppearsOnlyWhenItsOptionIsEnabled() = withIme(XIAOHE, completePinyin = true) {
         grouped("nihc")
         awaitPreedit("ni hao")
@@ -412,6 +471,97 @@ class Shuangpin18PreeditTest {
         }
 
     @Test
+    fun exactLowercasePrefixAndPopupLetterHaveNoSpacesAndBackspaceToEmpty() = withIme(XIAOHE) {
+        exact("n")
+        exact("i")
+        awaitPreedit("ni")
+        coroutineScope {
+            val commit = async(start = CoroutineStart.UNDISPATCHED) {
+                withTimeout(EVENT_TIMEOUT_MS) {
+                    eventFlow.filterIsInstance<FcitxEvent.CommitStringEvent>().first()
+                }
+            }
+            literal("w")
+            awaitPreedit("niw")
+            assertEquals(3, clientPreeditCached.cursor)
+            val candidates = getCandidates(0, CANDIDATE_LIMIT)
+            assertTrue("The unspaced literal English candidate is missing", candidates.any { it.text == "niw" })
+            assertTrue("English candidates contain artificial spaces: ${candidates.map { it.text }}",
+                candidates.none { candidate -> candidate.text.any(Char::isWhitespace) })
+            for (expected in listOf("ni", "n", "")) {
+                press("BackSpace")
+                awaitPreedit(expected)
+                assertEquals(expected.length, clientPreeditCached.cursor)
+            }
+            assertFalse("Deleting a popup English buffer committed its original exact prefix", commit.isCompleted)
+            commit.cancel()
+        }
+    }
+
+    @Test
+    fun mixedExactAndGroupedPrefixAndPopupLetterHaveNoSpacesAndBackspaceToEmpty() = withIme(XIAOHE) {
+        exact("n")
+        grouped("i")
+        awaitPreedit("a mixed exact/grouped syllable") { it == "ni" || it == "no" }
+        coroutineScope {
+            val commit = async(start = CoroutineStart.UNDISPATCHED) {
+                withTimeout(EVENT_TIMEOUT_MS) {
+                    eventFlow.filterIsInstance<FcitxEvent.CommitStringEvent>().first()
+                }
+            }
+            literal("w")
+            // The grouped IO key remains ambiguous; only the exact n and popup w are fixed.
+            awaitPreedit("three unspaced English letters preserving the mixed prefix") {
+                it.length == 3 && it.first() == 'n' && it[1] in "io" && it.last() == 'w'
+            }
+            assertEquals(3, clientPreeditCached.cursor)
+            val candidates = getCandidates(0, CANDIDATE_LIMIT)
+            assertTrue("The mixed prefix has no literal English candidate: ${candidates.map { it.text }}",
+                candidates.any { it.text.length == 3 && it.text.first() == 'n' &&
+                    it.text[1] in "io" && it.text.last() == 'w' })
+            assertTrue("English candidates contain artificial spaces: ${candidates.map { it.text }}",
+                candidates.none { candidate -> candidate.text.any(Char::isWhitespace) })
+            press("BackSpace")
+            awaitPreedit("the unspaced mixed prefix after deleting popup w") { it == "ni" || it == "no" }
+            assertEquals(2, clientPreeditCached.cursor)
+            press("BackSpace")
+            awaitPreedit("n")
+            assertEquals(1, clientPreeditCached.cursor)
+            press("BackSpace")
+            awaitPreedit("")
+            assertEquals(0, clientPreeditCached.cursor)
+            assertFalse("Deleting a popup English buffer committed its mixed prefix", commit.isCompleted)
+            commit.cancel()
+        }
+    }
+
+    @Test
+    fun deletingUppercasePopupPreservesAnEditableExactPrefix() = withIme(XIAOHE) {
+        exact("n")
+        exact("i")
+        awaitPreedit("ni")
+        coroutineScope {
+            val commit = async(start = CoroutineStart.UNDISPATCHED) {
+                withTimeout(EVENT_TIMEOUT_MS) {
+                    eventFlow.filterIsInstance<FcitxEvent.CommitStringEvent>().first()
+                }
+            }
+            literal("W")
+            awaitPreedit("niW")
+            assertEquals(3, clientPreeditCached.cursor)
+            assertTrue("The mixed-case literal English candidate is missing",
+                getCandidates(0, CANDIDATE_LIMIT).any { it.text == "niW" })
+            for (expected in listOf("ni", "n", "")) {
+                press("BackSpace")
+                awaitPreedit(expected)
+                assertEquals(expected.length, clientPreeditCached.cursor)
+            }
+            assertFalse("Deleting an uppercase popup committed the preserved lowercase prefix", commit.isCompleted)
+            commit.cancel()
+        }
+    }
+
+    @Test
     fun popupLowercasePreservesGroupedCompositionAndItsCursor() = withIme(XIAOHE) {
         grouped("nihc")
         pickSyllable("ni")
@@ -426,14 +576,14 @@ class Shuangpin18PreeditTest {
                 }
             }
             literal("i")
-            awaitPreedit("B Ii H X")
-            assertEquals(4, clientPreeditCached.cursor)
+            awaitPreedit("BIiHX")
+            assertEquals(3, clientPreeditCached.cursor)
             assertFalse("A popup letter committed the grouped candidate", commit.isCompleted)
             press("BackSpace")
-            awaitPreedit("B I H X")
-            assertEquals(3, clientPreeditCached.cursor)
+            awaitPreedit("BIHX")
+            assertEquals(2, clientPreeditCached.cursor)
             press("Return")
-            assertEquals("B I H X", commit.await())
+            assertEquals("BIHX", commit.await())
         }
     }
 
@@ -467,6 +617,47 @@ class Shuangpin18PreeditTest {
         }
 
     @Test
+    fun selectedChinesePrefixAndPopupEnglishUseCharacterOffsetsAcrossTheirBoundary() =
+        withIme(XIAOHE, completePinyin = true) {
+            "nihc".forEach { press(it.toString()) }
+            awaitPreedit("ni hao")
+            val index = getCandidates(0, CANDIDATE_LIMIT).indexOfFirst { it.text == "你" }
+            assertTrue("Partial candidate 你 is missing", index >= 0)
+            assertTrue("Partial selection was rejected", select(index))
+            awaitPreedit("你hao")
+            coroutineScope {
+                val commit = async(start = CoroutineStart.UNDISPATCHED) {
+                    withTimeout(EVENT_TIMEOUT_MS) {
+                        eventFlow.filterIsInstance<FcitxEvent.CommitStringEvent>().first()
+                    }
+                }
+                literal("w")
+                awaitPreedit("你hcw")
+                assertEquals(4, clientPreeditCached.cursor)
+                moveCursor(2)
+                awaitClient("cursor inside the English suffix after a UTF-8 Chinese prefix") { it.cursor == 2 }
+                literal("I")
+                awaitPreedit("你hIcw")
+                assertEquals(3, clientPreeditCached.cursor)
+                for ((expected, cursor) in listOf("你hcw" to 2, "你cw" to 1, "cw" to 0)) {
+                    press("BackSpace")
+                    awaitPreedit(expected)
+                    assertEquals(cursor, clientPreeditCached.cursor)
+                }
+                moveCursor(2)
+                awaitClient("cursor at the preserved English suffix end") { it.cursor == 2 }
+                press("BackSpace")
+                awaitPreedit("c")
+                assertEquals(1, clientPreeditCached.cursor)
+                press("BackSpace")
+                awaitPreedit("")
+                assertEquals(0, clientPreeditCached.cursor)
+                assertFalse("Editing across the Chinese/English boundary committed text", commit.isCompleted)
+                commit.cancel()
+            }
+        }
+
+    @Test
     fun popupUppercasePreservesGroupedCompositionInsteadOfCommittingItsCandidate() =
         withIme(XIAOHE) {
             grouped("nihc")
@@ -480,11 +671,11 @@ class Shuangpin18PreeditTest {
                     }
                 }
                 literal("W")
-                awaitPreedit("B I H XW")
-                assertEquals(8, clientPreeditCached.cursor)
+                awaitPreedit("BIHXW")
+                assertEquals(5, clientPreeditCached.cursor)
                 assertFalse("An uppercase popup committed the grouped candidate", commit.isCompleted)
                 press("Return")
-                assertEquals("B I H XW", commit.await())
+                assertEquals("BIHXW", commit.await())
             }
         }
 
@@ -912,6 +1103,12 @@ class Shuangpin18PreeditTest {
         val sym = KeySym(if (compact) 0x0200E101 else 0x0200E100)
         sendKey(sym, KeyStates.Virtual)
         sendKey(sym, KeyStates.Virtual, up = true)
+    }
+
+    private suspend fun FcitxAPI.exact(text: String) {
+        val action = requireNotNull(Shuangpin18Keys.exactAction(text))
+        sendKey(action.sym, action.states)
+        sendKey(action.sym, action.states, up = true)
     }
 
     private suspend fun FcitxAPI.literal(text: String) {

@@ -642,6 +642,18 @@ class TextKeyboard private constructor(
         ) return
         var transformed = action
         when (action) {
+            is KeyAction.SymAction -> {
+                val letter = Shuangpin18Keys.exactLetter(action.sym)
+                if (letter != null && isDisplayCapsOn()) {
+                    transformed = KeyAction.FcitxKeyAction(
+                        letter.uppercase(),
+                        states = if (capsState == CapsState.None) {
+                            KeyStates(KeyState.Virtual, KeyState.CapsLock)
+                        } else virtualUppercaseKeyStates(),
+                    )
+                    if (capsState == CapsState.Once) switchCapsState()
+                }
+            }
             is KeyAction.FcitxKeyAction -> when (source) {
                 KeyActionListener.Source.Keyboard -> {
                     when (capsState) {

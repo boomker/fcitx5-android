@@ -301,10 +301,10 @@ int main() {
     for (int index : {16, 5, 10, 14})
       press(static_cast<KeySym>(0x0200e000 + index));
     press(static_cast<KeySym>(0x0200e400 + 26 + ('W' - 'A')));
-    FCITX_ASSERT(ic->inputPanel().clientPreedit().toString() == "B I H XW");
+    FCITX_ASSERT(ic->inputPanel().clientPreedit().toString() == "BIHXW");
     FCITX_ASSERT(commits.empty());
     press(FcitxKey_Return);
-    FCITX_ASSERT(commits == std::vector<std::string>{"B I H XW"}) << commits;
+    FCITX_ASSERT(commits == std::vector<std::string>{"BIHXW"}) << commits;
     commits.clear();
 
     // Exercise actual compact-key events, including a word whose matching
@@ -319,6 +319,49 @@ int main() {
                              : letter - 'a';
       press(static_cast<KeySym>(0x0200e400 + offset));
     };
+    const auto exactLetter = [&press](char letter) {
+      press(static_cast<KeySym>(0x0200e500 + letter - 'a'));
+    };
+    // Swiped letters remain exact when a popup starts English composition.
+    // Presentation separators must not become part of preedit or candidates.
+    for (const bool ambiguous : {false, true}) {
+      frontend.resetInputContext();
+      press(static_cast<KeySym>(0x0200e101));
+      exactLetter('w');
+      if (ambiguous) {
+        groupKey(5); // IO
+      } else {
+        exactLetter('i');
+      }
+      popupLetter('l');
+      FCITX_ASSERT(ic->inputPanel().clientPreedit().toString() == "wil")
+          << ic->inputPanel().clientPreedit().toString();
+      const auto candidates = frontend.getCandidates(0, 256);
+      FCITX_ASSERT(!candidates.empty());
+      FCITX_ASSERT(std::all_of(candidates.begin(), candidates.end(),
+                               [](const auto &candidate) {
+                                 return candidate.text.find(' ') == std::string::npos;
+                               }));
+      FCITX_ASSERT(std::any_of(candidates.begin(), candidates.end(),
+                               [](const auto &candidate) {
+                                 return candidate.text == "will";
+                               }));
+      while (!ic->inputPanel().clientPreedit().empty()) {
+        press(FcitxKey_BackSpace);
+        FCITX_ASSERT(commits.empty());
+      }
+    }
+    frontend.resetInputContext();
+    exactLetter('n');
+    exactLetter('i');
+    popupLetter('w');
+    assertEnglish("niw");
+    for (const auto *remaining : {"ni", "n", ""}) {
+      press(FcitxKey_BackSpace);
+      FCITX_ASSERT(ic->inputPanel().clientPreedit().toString() == remaining);
+      FCITX_ASSERT(commits.empty());
+    }
+
     for (const auto &prefix : {std::string("h"), std::string("he"),
                                std::string("yo"), std::string("YO"),
                                std::string("W"), std::string("Wi")}) {
@@ -361,6 +404,34 @@ int main() {
       FCITX_ASSERT(instance.inputMethodEntry(ic)->uniqueName() == "shuangpin");
       return index;
     };
+    // Inserting both a group and a popup inside an English suffix must use
+    // suffix-relative positions; deleting into its prefix must update both.
+    frontend.resetInputContext();
+    for (int index : {16, 5, 10, 14})
+      groupKey(index);
+    popupLetter('W');
+    type("ill");
+    assertEnglish("BIHXWill");
+    frontend.repositionCursor(6);
+    press(FcitxKey_BackSpace);
+    groupKey(1); // WE replaces i, resolving the suffix as Well
+    highlightEnglish("BIHXWell", 8);
+    frontend.repositionCursor(6);
+    press(FcitxKey_Delete);
+    popupLetter('l');
+    highlightEnglish("BIHXWell", 8);
+    press(FcitxKey_Home);
+    press(FcitxKey_Delete);
+    highlightEnglish("IHXWell", 7);
+    frontend.repositionCursor(5);
+    frontend.keyEvent(Key(FcitxKey_BackSpace, KeyState::Ctrl), false, 0);
+    FCITX_ASSERT(ic->inputPanel().clientPreedit().toString() == "ll");
+    press(FcitxKey_End);
+    press(FcitxKey_BackSpace);
+    press(FcitxKey_BackSpace);
+    FCITX_ASSERT(ic->inputPanel().clientPreedit().empty());
+    FCITX_ASSERT(commits.empty());
+
     frontend.resetInputContext();
     press(FcitxKey_W);
     groupKey(5);  // IO
