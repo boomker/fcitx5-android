@@ -681,6 +681,7 @@ class TextKeyboard private constructor(
                         !layoutState.useUppercaseLayout && !action.up &&
                         action.states == KeyStates.Virtual
                     ) {
+                        // Both letter cases must preserve the current composition.
                         transformed = Shuangpin18Keys.literalAction(action.act) ?: action
                     }
                     if (capsState == CapsState.Once) {

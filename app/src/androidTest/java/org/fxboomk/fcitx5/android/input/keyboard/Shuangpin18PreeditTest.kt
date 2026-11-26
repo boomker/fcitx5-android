@@ -321,8 +321,8 @@ class Shuangpin18PreeditTest {
                             literal(letter.toString())
                             awaitPreedit(input.take(index + 1))
                             assertEquals(index + 1, clientPreeditCached.cursor)
-                            assertTrue("Literal lowercase offered Chinese candidates",
-                                getCandidates(0, CANDIDATE_LIMIT).isEmpty())
+                            assertTrue("Literal candidates unexpectedly have annotations",
+                                getCandidates(0, CANDIDATE_LIMIT).all { it.comment.isEmpty() })
                             assertFalse("A popup letter committed before Enter", commit.isCompleted)
                         }
                         press(enter)
@@ -373,24 +373,24 @@ class Shuangpin18PreeditTest {
     }
 
     @Test
-    fun popupLowercaseFinishesOrdinaryCompositionBeforeStartingItsOwnBuffer() =
+    fun popupLowercasePreservesOrdinaryCompositionUntilExplicitCommit() =
         withIme(XIAOHE, completePinyin = true) {
             for (partiallySelected in listOf(false, true)) {
                 reset()
                 mode(true)
-                val oldCommit = if (partiallySelected) {
+                val preserved = if (partiallySelected) {
                     "nihc".forEach { press(it.toString()) }
                     awaitPreedit("ni hao")
                     val index = getCandidates(0, CANDIDATE_LIMIT).indexOfFirst { it.text == "你" }
                     assertTrue("Partial candidate 你 is missing", index >= 0)
                     assertTrue("Partial selection was rejected", select(index))
                     awaitPreedit("你hao")
-                    "你" + getCandidates(0, CANDIDATE_LIMIT).first().text
+                    "你hc"
                 } else {
                     press("j")
                     press("y")
                     awaitPreedit("jun")
-                    getCandidates(0, CANDIDATE_LIMIT).first().text
+                    "jy"
                 }
                 coroutineScope {
                     val commit = async(start = CoroutineStart.UNDISPATCHED) {
@@ -399,25 +399,282 @@ class Shuangpin18PreeditTest {
                         }
                     }
                     literal("i")
-                    assertEquals("The old composition was not finished before literal input",
-                        oldCommit, commit.await())
-                }
-                awaitPreedit("i")
-                assertTrue(getCandidates(0, CANDIDATE_LIMIT).isEmpty())
-                coroutineScope {
-                    val commit = async(start = CoroutineStart.UNDISPATCHED) {
-                        withTimeout(EVENT_TIMEOUT_MS) {
-                            eventFlow.filterIsInstance<FcitxEvent.CommitStringEvent>().first().data.text
-                        }
-                    }
+                    awaitPreedit(preserved + "i")
+                    assertFalse("A popup letter committed the previous composition", commit.isCompleted)
+                    assertTrue(getCandidates(0, CANDIDATE_LIMIT).all { it.comment.isEmpty() })
                     press("Return")
-                    assertEquals("i", commit.await())
+                    assertEquals(preserved + "i", commit.await())
                 }
                 awaitPreedit("")
-                assertTrue("The old composition returned after literal commit",
+                assertTrue("The old composition returned after explicit commit",
                     getCandidates(0, CANDIDATE_LIMIT).isEmpty())
             }
         }
+
+    @Test
+    fun popupLowercasePreservesGroupedCompositionAndItsCursor() = withIme(XIAOHE) {
+        grouped("nihc")
+        pickSyllable("ni")
+        pickSyllable("hua")
+        awaitPreedit("ni hx")
+        moveCursor(2)
+        awaitClient("cursor after the first grouped pair") { it.cursor == 2 }
+        coroutineScope {
+            val commit = async(start = CoroutineStart.UNDISPATCHED) {
+                withTimeout(EVENT_TIMEOUT_MS) {
+                    eventFlow.filterIsInstance<FcitxEvent.CommitStringEvent>().first().data.text
+                }
+            }
+            literal("i")
+            awaitPreedit("B Ii H X")
+            assertEquals(4, clientPreeditCached.cursor)
+            assertFalse("A popup letter committed the grouped candidate", commit.isCompleted)
+            press("BackSpace")
+            awaitPreedit("B I H X")
+            assertEquals(3, clientPreeditCached.cursor)
+            press("Return")
+            assertEquals("B I H X", commit.await())
+        }
+    }
+
+    @Test
+    fun popupLowercasePreservesSelectedChineseAndAnInteriorCursor() =
+        withIme(XIAOHE, completePinyin = true) {
+            "nihc".forEach { press(it.toString()) }
+            awaitPreedit("ni hao")
+            val index = getCandidates(0, CANDIDATE_LIMIT).indexOfFirst { it.text == "你" }
+            assertTrue("Partial candidate 你 is missing", index >= 0)
+            assertTrue("Partial selection was rejected", select(index))
+            awaitPreedit("你hao")
+            moveCursor(1)
+            awaitClient("cursor after the selected Chinese prefix") { it.cursor == 1 }
+            coroutineScope {
+                val commit = async(start = CoroutineStart.UNDISPATCHED) {
+                    withTimeout(EVENT_TIMEOUT_MS) {
+                        eventFlow.filterIsInstance<FcitxEvent.CommitStringEvent>().first().data.text
+                    }
+                }
+                literal("i")
+                awaitPreedit("你ihc")
+                assertEquals(2, clientPreeditCached.cursor)
+                assertFalse("A popup letter committed the selected Chinese prefix", commit.isCompleted)
+                press("BackSpace")
+                awaitPreedit("你hc")
+                assertEquals(1, clientPreeditCached.cursor)
+                press("Return")
+                assertEquals("你hc", commit.await())
+            }
+        }
+
+    @Test
+    fun popupUppercasePreservesGroupedCompositionInsteadOfCommittingItsCandidate() =
+        withIme(XIAOHE) {
+            grouped("nihc")
+            pickSyllable("ni")
+            pickSyllable("hua")
+            awaitPreedit("ni hx")
+            coroutineScope {
+                val commit = async(start = CoroutineStart.UNDISPATCHED) {
+                    withTimeout(EVENT_TIMEOUT_MS) {
+                        eventFlow.filterIsInstance<FcitxEvent.CommitStringEvent>().first().data.text
+                    }
+                }
+                literal("W")
+                awaitPreedit("B I H XW")
+                assertEquals(8, clientPreeditCached.cursor)
+                assertFalse("An uppercase popup committed the grouped candidate", commit.isCompleted)
+                press("Return")
+                assertEquals("B I H XW", commit.await())
+            }
+        }
+
+    @Test
+    fun popupLowercaseContinuesUppercaseEnglishUntilASymbolCommitsIt() =
+        withIme(XIAOHE, completePinyin = true) {
+            press("W")
+            awaitPreedit("W")
+            coroutineScope {
+                val commit = async(start = CoroutineStart.UNDISPATCHED) {
+                    withTimeout(EVENT_TIMEOUT_MS) {
+                        eventFlow.filterIsInstance<FcitxEvent.CommitStringEvent>().first().data.text
+                    }
+                }
+                "ill".forEach { literal(it.toString()) }
+                awaitPreedit("Will")
+                assertFalse("A popup letter committed the uppercase word", commit.isCompleted)
+                val index = getCandidates(0, CANDIDATE_LIMIT).indexOfFirst { it.text == "Will" }
+                assertTrue("The literal English candidate is missing", index >= 0)
+                assertTrue("Highlighting the English candidate failed", setCandidateCursor(index))
+                press("period")
+                assertEquals("Will", commit.await())
+            }
+            awaitPreedit("")
+        }
+
+    @Test
+    fun lowercaseYThenPopupOStaysLowercaseAndOffersEnglishCompletion() =
+        withIme(XIAOHE, completePinyin = true) {
+            coroutineScope {
+                val commit = async(start = CoroutineStart.UNDISPATCHED) {
+                    withTimeout(EVENT_TIMEOUT_MS) {
+                        eventFlow.filterIsInstance<FcitxEvent.CommitStringEvent>().first().data.text
+                    }
+                }
+                // Long-pressing `io` consumes the group press; only the chosen
+                // popup letter is delivered as a literal input event.
+                grouped("y")
+                literal("o")
+                awaitPreedit("yo")
+                assertFalse("Selecting popup o committed the composition early", commit.isCompleted)
+
+                val candidates = getCandidates(0, CANDIDATE_LIMIT)
+                val completionIndex = candidates.indexOfFirst {
+                    it.text.startsWith("yo") && it.text.length > 2
+                }
+                assertTrue("No lowercase English completion was offered for yo: ${candidates.map { it.text }}",
+                    completionIndex >= 0)
+                val completion = candidates[completionIndex].text
+                assertTrue("Highlighting the English completion failed",
+                    setCandidateCursor(completionIndex))
+                awaitPreedit("yo")
+                assertFalse("Highlighting an English completion committed it early", commit.isCompleted)
+                assertTrue("Selecting the English completion failed", select(completionIndex))
+                assertEquals(completion, commit.await())
+            }
+            awaitPreedit("")
+        }
+
+    @Test
+    fun uppercaseEnglishLearnsChineseAsANextWordPrediction() =
+        withIme(XIAOHE, allowLearning = true) {
+            "DNA".forEach { literal(it.toString()) }
+            awaitPreedit("DNA")
+            val firstCompletions = getCandidates(0, CANDIDATE_LIMIT)
+            assertFalse("A Chinese prediction appeared as an English completion",
+                firstCompletions.any { it.text == "检测" })
+            val firstDna = firstCompletions.indexOfFirst { it.text == "DNA" }
+            assertTrue("The DNA candidate is missing", firstDna >= 0)
+            coroutineScope {
+                val commit = async(start = CoroutineStart.UNDISPATCHED) {
+                    withTimeout(EVENT_TIMEOUT_MS) {
+                        eventFlow.filterIsInstance<FcitxEvent.CommitStringEvent>()
+                            .first().data.text
+                    }
+                }
+                assertTrue(select(firstDna))
+                assertEquals("DNA", commit.await())
+            }
+            awaitPreedit("")
+
+            // Use full-pinyin key events to select a regular Chinese candidate.
+            mode(false)
+            "jiance".forEach { press(it.toString()) }
+            val chinese = getCandidates(0, CANDIDATE_LIMIT)
+            val detection = chinese.indexOfFirst { it.text == "检测" }
+            assertTrue("The Chinese candidate 检测 is missing: " + chinese.map { it.text },
+                detection >= 0)
+            coroutineScope {
+                val commit = async(start = CoroutineStart.UNDISPATCHED) {
+                    withTimeout(EVENT_TIMEOUT_MS) {
+                        eventFlow.filterIsInstance<FcitxEvent.CommitStringEvent>()
+                            .first().data.text
+                    }
+                }
+                assertTrue(select(detection))
+                assertEquals("检测", commit.await())
+            }
+
+            mode(true)
+            "DNA".forEach { literal(it.toString()) }
+            awaitPreedit("DNA")
+            val completions = getCandidates(0, CANDIDATE_LIMIT)
+            assertFalse("The learned word leaked into English completions",
+                completions.any { it.text == "检测" })
+            val dna = completions.indexOfFirst { it.text == "DNA" }
+            assertTrue("The DNA candidate is missing after learning", dna >= 0)
+            coroutineScope {
+                val commit = async(start = CoroutineStart.UNDISPATCHED) {
+                    withTimeout(EVENT_TIMEOUT_MS) {
+                        eventFlow.filterIsInstance<FcitxEvent.CommitStringEvent>()
+                            .first().data.text
+                    }
+                }
+                assertTrue(select(dna))
+                assertEquals("DNA", commit.await())
+            }
+            awaitPreedit("")
+            assertTrue("检测 did not appear in the prediction list after DNA",
+                getCandidates(0, CANDIDATE_LIMIT).any { it.text == "检测" })
+        }
+
+    @Test
+    fun popupLettersInEitherCaseStartEnglishPredictionsFromTheirLiteralPrefix() =
+        withIme(XIAOHE, completePinyin = true) {
+            for (prefix in listOf("h", "he", "yo", "Yo", "W", "Wi")) {
+                reset()
+                mode(true)
+                coroutineScope {
+                    val commit = async(start = CoroutineStart.UNDISPATCHED) {
+                        withTimeout(EVENT_TIMEOUT_MS) {
+                            eventFlow.filterIsInstance<FcitxEvent.CommitStringEvent>()
+                                .first().data.text
+                        }
+                    }
+                    prefix.forEach { literal(it.toString()) }
+                    awaitPreedit(prefix)
+                    val candidates = getCandidates(0, CANDIDATE_LIMIT)
+                    assertTrue("No English completion for popup prefix $prefix: ${candidates.map { it.text }}",
+                        candidates.any { it.text.length > prefix.length && it.text.startsWith(prefix) })
+                    assertFalse("Popup letters committed their prefix $prefix", commit.isCompleted)
+                    commit.cancel()
+                    reset()
+                }
+            }
+            awaitPreedit("")
+        }
+
+    @Test
+    fun uppercaseEnglishUsesActualGroupedKeysAndCompletionWithoutChangingIme() {
+        for (completePinyin in listOf(false, true)) {
+            withIme(XIAOHE, completePinyin = completePinyin) {
+                // These use the same private grouped keysyms as the 18-key UI,
+                // including e and o from the second position in their groups.
+                for ((word, groups, exactPopup) in listOf(
+                    Triple("Will", "ill", ""),
+                    Triple("Hello", "ello", ""),
+                    Triple("Will", "ll", "i"),
+                    Triple("Will", "il", ""),
+                )) {
+                    reset()
+                    mode(true)
+                    press(word.first().toString())
+                    awaitPreedit(word.first().toString())
+                    coroutineScope {
+                        val commit = async(start = CoroutineStart.UNDISPATCHED) {
+                            withTimeout(EVENT_TIMEOUT_MS) {
+                                eventFlow.filterIsInstance<FcitxEvent.CommitStringEvent>().first().data.text
+                            }
+                        }
+                        exactPopup.forEach { literal(it.toString()) }
+                        grouped(groups)
+                        val candidates = getCandidates(0, CANDIDATE_LIMIT)
+                        val index = candidates.indexOfFirst { it.text == word }
+                        assertTrue("The grouped English candidate $word is missing", index >= 0)
+                        assertFalse("A grouped or popup letter committed the English prefix", commit.isCompleted)
+                        assertEquals("Grouped English changed the active IM", XIAOHE, currentIme().uniqueName)
+                        assertTrue("Highlighting $word failed", setCandidateCursor(index))
+                        awaitPreedit(word.take(1 + exactPopup.length + groups.length))
+                        assertTrue("Selecting $word failed", select(index))
+                        assertEquals(word, commit.await())
+                    }
+                    awaitPreedit("")
+                    grouped("nihc")
+                    awaitPreedit(if (completePinyin) "ni hao" else "ni hc")
+                    assertEquals("你好", getCandidates(0, CANDIDATE_LIMIT).first().text)
+                }
+            }
+        }
+    }
 
     @Test
     fun repeatedCompactLayoutNotificationsKeepPopupLowercaseInPreedit() = withIme(XIAOHE) {
@@ -436,7 +693,8 @@ class Shuangpin18PreeditTest {
             }
             mode(true)
             awaitPreedit("i")
-            assertTrue(getCandidates(0, CANDIDATE_LIMIT).isEmpty())
+            assertTrue("Popup i did not offer an English prediction",
+                getCandidates(0, CANDIDATE_LIMIT).any { it.text.startsWith("i", ignoreCase = true) })
             assertFalse("A repeated compact-layout notification committed the literal buffer", commit.isCompleted)
             literal("o")
             awaitPreedit("io")
@@ -522,11 +780,38 @@ class Shuangpin18PreeditTest {
     private fun withIme(
         uniqueName: String,
         completePinyin: Boolean = false,
+        allowLearning: Boolean = false,
         body: suspend FcitxAPI.() -> Unit,
     ) = runBlocking {
         val clientName = "Shuangpin18PreeditTest-$uniqueName"
         val connection = FcitxDaemon.connect(clientName)
+        var isolatedLearningFiles: Map<File, ByteArray?>? = null
         try {
+            if (allowLearning) {
+                withTimeout(READY_TIMEOUT_MS) {
+                    connection.runOnReady { assertTrue(isReady) }
+                }
+                val app = InstrumentationRegistry.getInstrumentation().targetContext
+                    .createDeviceProtectedStorageContext()
+                val root = app.getExternalFilesDir(null) ?: app.filesDir
+                val historyFile = File(root, "data/pinyin/user.history")
+                val customPhraseFile = File(root, "data/pinyin/customphrase")
+                FcitxDaemon.stopFcitx()
+                try {
+                    isolatedLearningFiles = listOf(historyFile, customPhraseFile)
+                        .associateWith { it.takeIf(File::isFile)?.readBytes() }
+                    if (historyFile.exists()) {
+                        assertTrue("Could not isolate ${historyFile.name}", historyFile.delete())
+                    }
+                    // Keep the Chinese candidate used by the learning test while
+                    // removing user custom phrases that could make it an English
+                    // completion for DNA before any learning takes place.
+                    customPhraseFile.parentFile!!.mkdirs()
+                    customPhraseFile.writeText("jiance,1=检测\n")
+                } finally {
+                    FcitxDaemon.startFcitx()
+                }
+            }
             withTimeout(READY_TIMEOUT_MS) {
                 connection.runOnReady {
                     val originalEnabled = enabledIme().map { it.uniqueName }
@@ -546,7 +831,10 @@ class Shuangpin18PreeditTest {
                     try {
                         if (names != originalEnabled) setEnabledIme(names.toTypedArray())
                         activate(TEST_CONTEXT_UID, "shuangpin-preedit-device-test")
-                        setCapFlags(CapabilityFlags(CapabilityFlag.Preedit, CapabilityFlag.Sensitive))
+                        setCapFlags(
+                            if (allowLearning) CapabilityFlags(CapabilityFlag.Preedit)
+                            else CapabilityFlags(CapabilityFlag.Preedit, CapabilityFlag.Sensitive),
+                        )
                         focus()
                         activateIme(uniqueName)
                         assertEquals(uniqueName, currentIme().uniqueName)
@@ -554,6 +842,10 @@ class Shuangpin18PreeditTest {
                             getOrCreate("PinyinInPreedit").value = if (completePinyin) "True" else "False"
                             getOrCreate("PreeditMode").value = "Composing pinyin"
                             getOrCreate("PreeditCursorPositionAtBeginning").value = "False"
+                            if (allowLearning) {
+                                getOrCreate("Learning").value = "True"
+                                getOrCreate("Prediction").value = "True"
+                            }
                         }
                         setImConfig(uniqueName, config)
                         assertEquals("The complete-pinyin option was not applied",
@@ -585,6 +877,21 @@ class Shuangpin18PreeditTest {
             }
         } finally {
             FcitxDaemon.disconnect(clientName)
+            isolatedLearningFiles?.let { files ->
+                FcitxDaemon.stopFcitx()
+                try {
+                    files.forEach { (file, bytes) ->
+                        if (bytes != null) {
+                            file.parentFile!!.mkdirs()
+                            file.writeBytes(bytes)
+                        } else if (file.exists()) {
+                            assertTrue("Could not remove test-created ${file.name}", file.delete())
+                        }
+                    }
+                } finally {
+                    FcitxDaemon.startFcitx()
+                }
+            }
         }
     }
 

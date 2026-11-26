@@ -44,20 +44,22 @@ class Shuangpin18CapsTest {
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
 
     @Test
-    fun compactPopupLowercaseUsesLiteralProtocolOnlyForPopupLetters() = withKeyboard { scene ->
+    fun compactPopupLettersUseLiteralProtocolForBothCases() = withKeyboard { scene ->
         onMain {
             for ((group, letter) in listOf("io" to "i", "io" to "o", "jk" to "j",
-                "y" to "y", "v" to "v")) {
+                "y" to "y", "v" to "v", "io" to "I", "io" to "O", "jk" to "J")) {
                 val action = selectPopupAction(scene, group, KeyAction.FcitxKeyAction(letter))
-                assertTrue("A lowercase popup did not use the literal protocol", action is KeyAction.SymAction)
+                assertTrue("A popup letter did not use the literal protocol", action is KeyAction.SymAction)
                 action as KeyAction.SymAction
-                assertEquals(0x0200E400 + (letter.single() - 'a'), action.sym.sym)
+                val offset = if (letter.single().isUpperCase()) 26 + (letter.single() - 'A')
+                    else letter.single() - 'a'
+                assertEquals(0x0200E400 + offset, action.sym.sym)
                 assertTrue(action.states.has(KeyState.Virtual))
                 assertFalse(action.states.has(KeyState.Shift))
                 assertFalse(action.states.has(KeyState.CapsLock))
                 assertFalse(scene.actions.any { it is KeyAction.CommitAction })
             }
-            for (text in listOf("I", "6")) {
+            for (text in listOf("6", "!", "ü", "io", "🙂")) {
                 val action = KeyAction.FcitxKeyAction(text)
                 assertEquals(action, selectPopupAction(scene, "io", action))
             }

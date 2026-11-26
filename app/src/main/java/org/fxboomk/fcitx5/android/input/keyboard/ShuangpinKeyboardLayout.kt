@@ -152,10 +152,15 @@ internal object Shuangpin18Keys {
     private fun virtualAction(sym: Int) = KeyAction.SymAction(KeySym(sym), KeyStates.Virtual)
 
     /** Popup letters compose literally instead of being decoded as shuangpin. */
-    fun literalAction(text: String): KeyAction.SymAction? =
-        text.singleOrNull()?.takeIf { it in 'a'..'z' }?.let {
-            virtualAction(LITERAL_KEYSYM_BASE + (it - 'a'))
+    fun literalAction(text: String): KeyAction.SymAction? {
+        val letter = text.singleOrNull() ?: return null
+        val offset = when (letter) {
+            in 'a'..'z' -> letter - 'a'
+            in 'A'..'Z' -> 26 + (letter - 'A')
+            else -> return null
         }
+        return virtualAction(LITERAL_KEYSYM_BASE + offset)
+    }
 
     fun modeAction(compact: Boolean): KeyAction.SymAction = KeyAction.SymAction(
         KeySym(MODE_KEYSYM_BASE + if (compact) 1 else 0), KeyStates.Virtual

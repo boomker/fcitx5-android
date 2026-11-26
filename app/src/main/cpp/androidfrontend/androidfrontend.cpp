@@ -27,6 +27,8 @@ FCITX_ADDON_DECLARE_FUNCTION(PinyinEngine, candidateViewportGeneration,
                              std::uint64_t(fcitx::InputContext *))
 FCITX_ADDON_DECLARE_FUNCTION(PinyinEngine, candidatePinyinAnnotationOnTop,
                              bool(const fcitx::CandidateWord *))
+FCITX_ADDON_DECLARE_FUNCTION(PinyinEngine, refreshCandidatePreedit,
+                             void(fcitx::InputContext *))
 FCITX_ADDON_DECLARE_FUNCTION(PinyinEngine, setCandidateViewport,
                              bool(fcitx::InputContext *, int,
                                   const std::vector<const fcitx::CandidateWord *> &,
@@ -852,8 +854,19 @@ bool AndroidFrontend::setCandidateCursor(int idx) {
     } catch (const std::invalid_argument &) {
         return false;
     }
-    // The following key consumes this cursor. Publishing an intermediate UI
-    // update would reset Android's local highlight before that key commits it.
+    if (auto *addon = activeIC_->candidateViewportAddon()) {
+        try {
+            addon->call<IPinyinEngine::refreshCandidatePreedit>(activeIC_);
+            // Publish only composing text. Candidate UI would reset Android's
+            // local highlight and change the revision before the next key.
+            activeIC_->updateInputPanel();
+        } catch (const std::runtime_error &error) {
+            if (std::string_view(error.what()) !=
+                IPinyinEngine::refreshCandidatePreedit::Name::data()) {
+                throw;
+            }
+        }
+    }
     return true;
 }
 

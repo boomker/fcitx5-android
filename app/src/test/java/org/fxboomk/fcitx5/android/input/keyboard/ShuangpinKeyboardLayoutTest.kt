@@ -186,6 +186,20 @@ class ShuangpinKeyboardLayoutTest {
     }
 
     @Test
+    fun popupLiteralProtocolPreservesAsciiLetterCaseAndRejectsOtherText() {
+        for ((offset, letter) in (('a'..'z') + ('A'..'Z')).withIndex()) {
+            val action = requireNotNull(Shuangpin18Keys.literalAction(letter.toString()))
+            assertEquals(0x0200E400 + offset, action.sym.sym)
+            assertTrue(action.states.has(KeyState.Virtual))
+            assertFalse(action.states.has(KeyState.Shift))
+            assertFalse(action.states.has(KeyState.CapsLock))
+        }
+        for (text in listOf("", "io", "ü", "中", "🙂", "6", "!")) {
+            assertNull(Shuangpin18Keys.literalAction(text))
+        }
+    }
+
+    @Test
     fun groupedRowsKeepSourceProportions() {
         val rows = Shuangpin18Keys.layout(showLangSwitch = true, semicolon = true)
         assertEquals(listOf(7, 6, 7, 6), rows.map { it.size })
