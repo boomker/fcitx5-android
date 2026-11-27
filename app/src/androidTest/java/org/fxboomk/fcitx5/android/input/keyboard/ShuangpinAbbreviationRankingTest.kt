@@ -225,6 +225,144 @@ class ShuangpinAbbreviationRankingTest {
     }
 
     @Test
+    fun customShuangpinKeepsRareEnglishOffAutomaticFloatingFirstPage() {
+        val scheme = InstrumentationRegistry.getInstrumentation().context.assets
+            .open("shuangpin/swan.json").bufferedReader().use { reader ->
+                Json.decodeFromString<CustomShuangpinScheme>(reader.readText())
+            }
+        withIsolatedLearning(customScheme = scheme) { scene ->
+            scene.api {
+                setImConfig(scene.inputMethodName, getImConfig(scene.inputMethodName)["cfg"].deepCopy().apply {
+                    getOrCreate("SpellEnabled").value = "True"
+                    getOrCreate("PageSize").value = "6"
+                })
+                activateIme("keyboard-us")
+                activateIme(scene.inputMethodName)
+                reset()
+                for (chr in "yw") {
+                    sendKey(chr, states = KeyStates.Virtual.states)
+                    sendKey(chr, states = KeyStates.Virtual.states, up = true)
+                }
+                assertTrue("The real English dictionary must provide the regression candidate",
+                    allCandidates().any { it.text == "ywca" })
+
+                // A horizontal row supplies explicit native IDs; floating mode
+                // must restore the automatic policy without promoting rare English.
+                val measured = getCandidateViewportSnapshot(CANDIDATE_LIMIT)
+                assertTrue("The custom scheme must use native viewport paging", measured.foldingEnabled)
+                val firstRow = measured.candidates.filter { it.symbolSourceId < 0 && it.text != "ywca" }
+                    .take(2).map { it.nativeIndex }.toIntArray()
+                assertEquals(2, firstRow.size)
+                assertTrue(setCandidateViewportIfCurrent(measured.revision, 2, firstRow, -1))
+                val floating = getCandidateViewportSnapshot(CANDIDATE_LIMIT)
+                assertTrue(setCandidateViewportIfCurrent(floating.revision, 0, intArrayOf(), -2))
+
+                suspend fun currentPage(): FcitxEvent.PagedCandidateEvent.Data = coroutineScope {
+                    val next = async(start = CoroutineStart.UNDISPATCHED) {
+                        withTimeout(EVENT_TIMEOUT_MS) {
+                            eventFlow.filterIsInstance<FcitxEvent.PagedCandidateEvent>().first().data
+                        }
+                    }
+                    setCandidatePagingMode(1)
+                    next.await()
+                }
+
+                val native = allCandidates()
+                val rareEnglish = native.single { it.text == "ywca" }
+                var page = currentPage()
+                assertFalse("Automatic floating mode did not return to page one", page.hasPrev)
+                assertTrue("The floating first page must contain ordinary Chinese choices", page.candidates.isNotEmpty())
+                assertTrue("Rare English was promoted into the floating first page: ${page.candidates.toList()}",
+                    page.candidates.none { it.text == "ywca" })
+                assertEquals("The automatic first page lost its default highlight", 0, page.cursorIndex)
+                val visited = mutableSetOf<Int>()
+                while (true) {
+                    assertTrue("A floating page exceeded the configured capacity", page.candidates.size <= 6)
+                    page.candidates.forEach { candidate ->
+                        assertTrue("Floating paging repeated a native candidate: $candidate", visited.add(candidate.nativeIndex))
+                    }
+                    if (!page.hasNext) break
+                    offsetCandidatePage(1)
+                    page = currentPage()
+                    assertTrue("A later floating page lost its continuation state", page.hasPrev)
+                }
+                assertEquals("Floating paging dropped or invented a native candidate",
+                    native.map { it.nativeIndex }.toSet(), visited)
+                assertTrue("Rare English must remain selectable on later pages", rareEnglish.nativeIndex in visited)
+            }
+        }
+    }
+
+    @Test
+    fun customShuangpinKeepsRareCompletionOffAutomaticFloatingFirstPage() {
+        val scheme = InstrumentationRegistry.getInstrumentation().context.assets
+            .open("shuangpin/swan.json").bufferedReader().use { reader ->
+                Json.decodeFromString<CustomShuangpinScheme>(reader.readText())
+            }
+        for (symbols in listOf(false, true)) {
+            withIsolatedLearning(customScheme = scheme) { scene ->
+                scene.api {
+                    setImConfig(scene.inputMethodName, getImConfig(scene.inputMethodName)["cfg"].deepCopy().apply {
+                        getOrCreate("PageSize").value = "6"
+                        getOrCreate("LongWordLengthLimit").value = "3"
+                        getOrCreate("SymbolsEnabled").value = if (symbols) "True" else "False"
+                    })
+                }
+                val initial = scene.candidates("wsm")
+                assertEquals("为什么", initial.bestAbbreviation().text)
+                assertTrue("The real Chinese dictionary must provide the regression completion",
+                    initial.any { it.text == "威斯敏斯特" })
+                scene.api {
+                    val measured = getCandidateViewportSnapshot(CANDIDATE_LIMIT)
+                    assertTrue("Abbreviation paging must remain enabled with symbols=$symbols", measured.foldingEnabled)
+                    val firstRow = measured.candidates.filter { it.symbolSourceId < 0 && it.text != "威斯敏斯特" }
+                        .take(2).map { it.nativeIndex }.toIntArray()
+                    assertEquals(2, firstRow.size)
+                    assertTrue(setCandidateViewportIfCurrent(measured.revision, 2, firstRow, -1))
+                    val floating = getCandidateViewportSnapshot(CANDIDATE_LIMIT)
+                    assertTrue(setCandidateViewportIfCurrent(floating.revision, 0, intArrayOf(), -2))
+
+                    suspend fun currentPage(): FcitxEvent.PagedCandidateEvent.Data = coroutineScope {
+                        val next = async(start = CoroutineStart.UNDISPATCHED) {
+                            withTimeout(EVENT_TIMEOUT_MS) {
+                                eventFlow.filterIsInstance<FcitxEvent.PagedCandidateEvent>().first().data
+                            }
+                        }
+                        setCandidatePagingMode(1)
+                        next.await()
+                    }
+
+                    val native = allCandidates()
+                    val rareCompletion = native.single { it.text == "威斯敏斯特" }
+                    val best = native.bestAbbreviation()
+                    var page = currentPage()
+                    assertFalse("Automatic floating mode did not return to page one", page.hasPrev)
+                    assertTrue("The best abbreviation left the floating first page with symbols=$symbols",
+                        page.candidates.any { it.nativeIndex == best.nativeIndex && it.isBestAbbreviation })
+                    assertTrue("Rare completion was promoted into the floating first page: ${page.candidates.toList()}",
+                        page.candidates.none { it.text == rareCompletion.text })
+                    assertEquals("The automatic first page lost its default highlight", 0, page.cursorIndex)
+                    val visited = mutableSetOf<Int>()
+                    while (true) {
+                        assertTrue("A floating page exceeded the configured capacity", page.candidates.size <= 6)
+                        page.candidates.forEach { candidate ->
+                            assertTrue("Floating paging repeated a native candidate: $candidate", visited.add(candidate.nativeIndex))
+                        }
+                        if (!page.hasNext) break
+                        offsetCandidatePage(1)
+                        page = currentPage()
+                        assertTrue("A later floating page lost its continuation state", page.hasPrev)
+                    }
+                    assertEquals("Floating paging dropped or invented a native candidate",
+                        native.map { it.nativeIndex }.toSet(), visited)
+                    assertTrue("Rare completion must remain available on later pages", rareCompletion.nativeIndex in visited)
+                }
+                scene.choose("威斯敏斯特")
+            }
+        }
+    }
+
+    @Test
     fun customShuangpinFillsWideRowAndPreservesExpandedNativeIndices() {
         val scheme = InstrumentationRegistry.getInstrumentation().context.assets
             .open("shuangpin/swan.json").bufferedReader().use { reader ->
