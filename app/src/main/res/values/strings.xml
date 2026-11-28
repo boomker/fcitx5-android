@@ -1223,6 +1223,12 @@
     <string name="pinyin_config_annotation">Pinyin annotation target</string>
     <string name="pinyin_config_annotation_summary">Choose when candidate comments include pinyin.</string>
     <string name="pinyin_config_annotation_placement">Pinyin annotation placement</string>
+    <string name="pinyin_config_annotation_option_none">Do not show</string>
+    <string name="pinyin_config_annotation_option_rare">Only rare characters</string>
+    <string name="pinyin_config_annotation_option_polyphonic">Only polyphonic characters</string>
+    <string name="pinyin_config_annotation_option_single_character">All single characters</string>
+    <string name="pinyin_config_annotation_placement_top">Top</string>
+    <string name="pinyin_config_annotation_placement_right">Right</string>
     <string name="pinyin_config_page_size">Page size</string>
     <string name="pinyin_config_phrase_limit">Phrase limit</string>
     <string name="pinyin_config_sentence_count">Full-sentence candidate count</string>

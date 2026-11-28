@@ -2,6 +2,7 @@
 package org.fxboomk.fcitx5.android.ui.main.settings.addon
 
 import android.content.Intent
+import android.content.res.Configuration
 import android.view.ContextThemeWrapper
 import android.view.LayoutInflater
 import android.view.View
@@ -15,6 +16,7 @@ import androidx.preference.PreferenceManager
 import androidx.preference.PreferenceScreen
 import androidx.preference.PreferenceViewHolder
 import androidx.test.platform.app.InstrumentationRegistry
+import java.util.Locale
 import java.util.concurrent.FutureTask
 import java.util.concurrent.atomic.AtomicInteger
 import org.fxboomk.fcitx5.android.core.RawConfig
@@ -50,6 +52,28 @@ class PinyinAnnotationPlacementPreferenceTest {
                     assertEquals(0, fixture.saves.get())
                 }
             }
+        }
+    }
+
+    @Test
+    fun annotationOptionsUseEnglishResourcesInsteadOfNativeChineseLabels() = withHost { activity ->
+        val fixture = onMain {
+            fixture(activity, Scope.GLOBAL_ADDON, RARE, TOP, Locale.ENGLISH)
+        }
+        onMain {
+            assertEquals("Pinyin annotation target", fixture.annotation.title)
+            assertEquals("Only rare characters", fixture.annotation.summary)
+            assertEquals(
+                listOf(
+                    "Do not show",
+                    "Only rare characters",
+                    "Only polyphonic characters",
+                    "All single characters"
+                ),
+                fixture.annotation.entries.toList()
+            )
+            assertEquals("Pinyin annotation placement", fixture.placement.title)
+            assertEquals(listOf("Top", "Right"), fixture.placement.entries.toList())
         }
     }
 
@@ -183,8 +207,20 @@ class PinyinAnnotationPlacementPreferenceTest {
         val dialogs: AtomicInteger,
     )
 
-    private fun fixture(activity: FragmentActivity, scope: Scope, mode: String, placement: String): Fixture {
-        val context = ContextThemeWrapper(activity, androidx.appcompat.R.style.Theme_AppCompat)
+    private fun fixture(
+        activity: FragmentActivity,
+        scope: Scope,
+        mode: String,
+        placement: String,
+        locale: Locale? = null
+    ): Fixture {
+        val baseContext = locale?.let {
+            val configuration = Configuration(activity.resources.configuration).apply {
+                setLocale(it)
+            }
+            activity.createConfigurationContext(configuration)
+        } ?: activity
+        val context = ContextThemeWrapper(baseContext, androidx.appcompat.R.style.Theme_AppCompat)
         val manager = PreferenceManager(context)
         val raw = raw(mode, placement)
         val saves = AtomicInteger()
@@ -213,17 +249,31 @@ class PinyinAnnotationPlacementPreferenceTest {
     private fun raw(mode: String, placement: String) = RawConfig(subItems = arrayOf(
         RawConfig("cfg", subItems = arrayOf(RawConfig(ANNOTATION, mode), RawConfig(PLACEMENT, placement))),
         RawConfig("desc", subItems = arrayOf(RawConfig("PinyinEngineConfig", subItems = arrayOf(
-            enumDescriptor(ANNOTATION, RARE, listOf(NONE, RARE, POLYPHONIC, ALL)),
-            enumDescriptor(PLACEMENT, RIGHT, listOf(TOP, RIGHT)),
+            enumDescriptor(
+                ANNOTATION, RARE, listOf(NONE, RARE, POLYPHONIC, ALL),
+                listOf("不显示", "仅生僻字", "仅多音字", "所有单字")
+            ),
+            enumDescriptor(PLACEMENT, RIGHT, listOf(TOP, RIGHT), listOf("顶部", "右侧")),
         )))),
     ))
 
-    private fun enumDescriptor(name: String, default: String, values: List<String>) = RawConfig(
+    private fun enumDescriptor(
+        name: String,
+        default: String,
+        values: List<String>,
+        localizedLabels: List<String>
+    ) = RawConfig(
         name, subItems = arrayOf(
             RawConfig("Type", "Enum"),
             RawConfig("Description", name),
             RawConfig("DefaultValue", default),
             RawConfig("Enum", subItems = values.mapIndexed { index, value -> RawConfig(index.toString(), value) }.toTypedArray()),
+            RawConfig(
+                "EnumI18n",
+                subItems = localizedLabels.mapIndexed { index, value ->
+                    RawConfig(index.toString(), value)
+                }.toTypedArray()
+            ),
         ),
     )
 

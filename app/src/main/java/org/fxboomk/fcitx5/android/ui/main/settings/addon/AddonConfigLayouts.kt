@@ -293,6 +293,8 @@ private object PinyinConfigLayout {
 
     fun get(context: Context): ConfigLayout {
         val shortTitles = useShortTitles(context)
+        val englishAnnotationOptions =
+            context.resources.configuration.locales[0].language == Locale.ENGLISH.language
         return ConfigLayout(
             sections = sections,
             sectionNavigation = true,
@@ -316,10 +318,25 @@ private object PinyinConfigLayout {
                 "LongWordLengthLimit" to R.string.pinyin_config_long_word_hint_summary,
                 "LongWordCandidateLimit" to R.string.pinyin_config_long_word_hint_max_count_summary
             ),
-            entryTitleOverrides = if (shortTitles) {
+            entryTitleOverrides = (if (shortTitles) {
                 mapOf(
                     "SwitchInputMethodBehavior" to mapOf(
                         "Commit current preedit" to R.string.pinyin_config_commit_preedit
+                    )
+                )
+            } else {
+                emptyMap()
+            }) + if (englishAnnotationOptions) {
+                mapOf(
+                    "PinyinAnnotation" to mapOf(
+                        "Do not show" to R.string.pinyin_config_annotation_option_none,
+                        "Only rare characters" to R.string.pinyin_config_annotation_option_rare,
+                        "Automatic" to R.string.pinyin_config_annotation_option_polyphonic,
+                        "Always show" to R.string.pinyin_config_annotation_option_single_character
+                    ),
+                    "PinyinAnnotationPlacement" to mapOf(
+                        "Top" to R.string.pinyin_config_annotation_placement_top,
+                        "Right" to R.string.pinyin_config_annotation_placement_right
                     )
                 )
             } else {
