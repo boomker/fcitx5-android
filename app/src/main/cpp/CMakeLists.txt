@@ -24,6 +24,11 @@ find_package(LibIMETable MODULE)
 find_package(fcitx5-lua REQUIRED CONFIG)
 find_package(fcitx5-chinese-addons REQUIRED CONFIG)
 
+# libintl-lite is linked by Fcitx5::Utils; find it directly so its header is
+# available to native-lib for refreshing message catalogs on locale changes.
+set(LibIntl_DIR "${PREBUILT_DIR}/libintl-lite/${ANDROID_ABI}/lib/cmake")
+find_package(LibIntl REQUIRED CONFIG)
+
 include("${FCITX_INSTALL_CMAKECONFIG_DIR}/Fcitx5Utils/Fcitx5CompilerSettings.cmake")
 
 add_subdirectory(po)
@@ -50,6 +55,7 @@ add_library(native-lib SHARED
 target_link_libraries(native-lib
         log
         libuv::uv_a
+        LibIntl::LibIntl
         Fcitx5::Utils
         Fcitx5::Config
         Fcitx5::Core

@@ -16,6 +16,8 @@
 
 #include <android/log.h>
 
+#include <libintl.h>
+
 #include <uv.h>
 
 #include <fcitx/instance.h>
@@ -857,15 +859,23 @@ Java_org_fxboomk_fcitx5_android_core_Fcitx_startupFcitx(
     setenv("LUA_CPATH", lua_cpath.c_str(), 1);
 
     const char *locale_dir_char = locale_dir.c_str();
-    fcitx::registerDomain("fcitx5", locale_dir_char);
-    fcitx::registerDomain("fcitx5-lua", locale_dir_char);
-    fcitx::registerDomain("fcitx5-chinese-addons", locale_dir_char);
-    fcitx::registerDomain("fcitx5-android", locale_dir_char);
+    const char *domains[] = {
+        "fcitx5",
+        "fcitx5-lua",
+        "fcitx5-chinese-addons",
+        "fcitx5-android",
+    };
+    for (const auto *domain : domains) {
+        bindtextdomain(domain, locale_dir_char);
+        fcitx::registerDomain(domain, locale_dir_char);
+    }
 
     const int extDomainsSize = env->GetArrayLength(extDomains);
     for (int i = 0; i < extDomainsSize; i++) {
         auto domain = JRef<jstring>(env, env->GetObjectArrayElement(extDomains, i));
-        fcitx::registerDomain(CString(env, domain), locale_dir_char);
+        const auto domainName = *CString(env, domain);
+        bindtextdomain(domainName, locale_dir_char);
+        fcitx::registerDomain(domainName, locale_dir_char);
     }
 
     auto candidateListCallback = [](const std::vector<CandidateEntity> &candidates, const int total) {
