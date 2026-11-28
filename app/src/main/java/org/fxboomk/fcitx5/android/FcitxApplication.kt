@@ -15,7 +15,6 @@ import android.content.res.Resources
 import android.os.Build
 import android.os.Bundle
 import android.os.Process
-import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import androidx.preference.PreferenceManager
@@ -67,11 +66,9 @@ class FcitxApplication : Application() {
         val newLocale = Locales.fcitxLocale
         val previousLocale = fcitxLocale
         fcitxLocale = newLocale
-        Log.d("LocaleDebug", "refresh previous=$previousLocale new=$newLocale")
         if (previousLocale != null && previousLocale != newLocale) {
             coroutineScope.launch(Dispatchers.IO) {
                 val ready = FcitxDaemon.isRunning()
-                Log.d("LocaleDebug", "changed previous=$previousLocale new=$newLocale ready=$ready")
                 if (ready) FcitxDaemon.restartFcitx()
             }
         }
@@ -191,7 +188,6 @@ class FcitxApplication : Application() {
         refreshFcitxLocale(resources.configuration)
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
             override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
-                Log.d("LocaleDebug", "activity=${activity.javaClass.simpleName} locales=${activity.resources.configuration.locales}")
                 refreshAppLocaleContext(activity.resources.configuration)
             }
 
@@ -219,7 +215,6 @@ class FcitxApplication : Application() {
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
-        Log.d("LocaleDebug", "application configuration locales=${newConfig.locales}")
         refreshAppLocaleContext(newConfig)
         ThemeManager.onSystemPlatteChange(newConfig)
     }
