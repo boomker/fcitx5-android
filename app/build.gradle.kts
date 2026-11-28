@@ -77,6 +77,12 @@ android {
         @Suppress("UnstableApiUsage")
         generateLocaleConfig = true
     }
+
+    bundle {
+        language {
+            enableSplit = false
+        }
+    }
 }
 
 fcitxComponent {

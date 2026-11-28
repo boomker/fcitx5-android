@@ -798,6 +798,10 @@ Java_org_fxboomk_fcitx5_android_core_Fcitx_startupFcitx(
         FCITX_ERROR() << "Fcitx is already running!";
         return;
     }
+    // Fcitx can restart without terminating the Android process. libintl-lite
+    // keeps loaded catalogs process-wide, so drop the previous locale's
+    // catalogs before setting the locale for this instance.
+    closeAllLoadedMessageCatalogs();
     FCITX_INFO() << "Starting...";
 
     auto locale_ = CString(env, locale);

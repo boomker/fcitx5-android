@@ -5,6 +5,7 @@
 package org.fxboomk.fcitx5.android.utils
 
 import android.content.res.Configuration
+import java.util.Locale
 
 object Locales {
 
@@ -18,10 +19,22 @@ object Locales {
         private set
 
     fun onLocaleChange(configuration: Configuration) {
-        val locales = LinkedHashSet<String>()
         val localeList = configuration.locales
-        for (i in 0..<localeList.size()) {
-            val it = localeList[i]
+        val locales = localeTags(List(localeList.size()) { localeList[it] })
+        languageWithCountry = locales.firstOrNull() ?: ""
+        language = languageWithCountry.substringBefore('_')
+        fcitxLocale = locales.joinToString(":")
+    }
+
+    internal fun localeTags(systemLocales: List<Locale>): List<String> {
+        val locales = LinkedHashSet<String>()
+        for ((index, it) in systemLocales.withIndex()) {
+            // Fcitx uses its source strings as the English translation. Avoid a regional
+            // locale fallback chain that can select another system language instead.
+            if (index == 0 && it.language == "en") {
+                locales.add("en")
+                break
+            }
             locales.add("${it.language}_${it.country}")
             // fcitx5 only has zh_CN for simplified Chinese and zh_TW for traditional
             if (it.language == "zh") {
@@ -32,13 +45,8 @@ object Locales {
                 }
             }
             locales.add("${it.language}")
-            // since there is not an `en.mo` file, `en` must be the only locale
-            // in order to use default English translation
-            if (i == 0 && it.language == "en") break
         }
-        languageWithCountry = locales.firstOrNull() ?: ""
-        language = languageWithCountry.substringBefore('_')
-        fcitxLocale = locales.joinToString(":")
+        return locales.toList()
     }
 
 }
