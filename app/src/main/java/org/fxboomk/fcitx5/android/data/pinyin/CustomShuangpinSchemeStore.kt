@@ -4,10 +4,12 @@
  */
 package org.fxboomk.fcitx5.android.data.pinyin
 
+import android.content.Context
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
+import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.input.config.UserConfigFiles
 import java.io.File
 
@@ -64,7 +66,10 @@ Configurable=True
         return CustomShuangpinSchemeCodec.defaultScheme()
     }
 
-    fun displayName(): String = load().name.ifBlank { CustomShuangpinSchemeCodec.DEFAULT_NAME }
+    fun displayName(context: Context): String = localizedCustomShuangpinName(
+        load().name,
+        context.getString(R.string.custom_shuangpin)
+    )
 
     /** 当前方案使用的输入法 uniqueName（由方案 id 派生）。 */
     fun currentUniqueName(): String = uniqueNameFor(load().id)
@@ -300,3 +305,7 @@ Configurable=True
         json.decodeFromString<CustomShuangpinScheme>(file.readText())
     }.getOrNull()
 }
+
+internal fun localizedCustomShuangpinName(name: String, localizedDefaultName: String): String =
+    name.takeIf { it.isNotBlank() && it != CustomShuangpinSchemeCodec.DEFAULT_NAME }
+        ?: localizedDefaultName

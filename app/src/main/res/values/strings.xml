@@ -408,79 +408,79 @@
     <string name="llm_enable_summary">Use LLM-generated prediction candidates.</string>
     <string name="llm_auto_predict">Enable automatic predictions</string>
     <string name="llm_auto_predict_summary">Automatically request predictions after committing a candidate. When off, predictions can only be requested manually with the AI Candidates toolbar button.</string>
-    <string name="llm_local_model_not_configured" translatable="false">No local model configured</string>
-    <string name="llm_local_model_source_imported" translatable="false">Imported manually</string>
-    <string name="llm_local_model_source_downloaded" translatable="false">Downloaded by the app</string>
-    <string name="llm_local_model_status_summary" translatable="false">%1$s\nSource: %2$s · Size: %3$s</string>
-    <string name="llm_local_model_compatibility_compatible" translatable="false">Runtime check: passed</string>
-    <string name="llm_local_model_compatibility_incompatible" translatable="false">Runtime check: failed</string>
-    <string name="llm_local_model_compatibility_incompatible_detailed" translatable="false">Runtime check: failed (%1$s)</string>
-    <string name="llm_local_model_compatibility_skipped" translatable="false">Runtime check: import-time checks are not supported on this device</string>
-    <string name="llm_local_model_compatibility_unknown" translatable="false">Check status: no runtime check has been performed</string>
-    <string name="llm_local_model_incompatible" translatable="false">The model file is incompatible with the current local runtime: %1$s</string>
-    <string name="llm_local_model_url" translatable="false">Local model download URL</string>
-    <string name="llm_local_model_url_required" translatable="false">Enter the model download URL first</string>
-    <string name="llm_local_model_import" translatable="false">Download and import model</string>
-    <string name="llm_local_model_import_merged_summary" translatable="false">Import a recommended model or local model file, or download and import one from a custom URL</string>
-    <string name="llm_local_model_import_recommended_title" translatable="false">1. Import a remote model</string>
-    <string name="llm_local_model_import_recommended_summary" translatable="false">Choose a recommended model; it will be downloaded and imported after confirmation</string>
-    <string name="llm_local_model_import_recommended_action" translatable="false">Choose a recommended model</string>
-    <string name="llm_local_model_import_local_title" translatable="false">2. Import a local model</string>
-    <string name="llm_local_model_import_local_summary" translatable="false">Choose and import a downloaded model file from another folder on this device</string>
-    <string name="llm_local_model_import_local_action" translatable="false">Choose a local model file</string>
-    <string name="llm_local_model_import_custom_title" translatable="false">3. Custom download URL</string>
-    <string name="llm_local_model_import_custom_summary" translatable="false">Enter a model download URL; the model will be downloaded and imported after confirmation</string>
-    <string name="llm_local_model_import_custom_action" translatable="false">Enter download URL</string>
-    <string name="llm_local_model_cleared" translatable="false">Local model removed</string>
-    <string name="llm_local_model_reloaded" translatable="false">Model reloaded and runtime check refreshed</string>
-    <string name="llm_local_model_download_success" translatable="false">Model downloaded: %1$s</string>
-    <string name="llm_local_model_import_success" translatable="false">Model imported: %1$s</string>
-    <string name="llm_local_model_upgrade_success" translatable="false">Current model updated from the remote source: %1$s</string>
-    <string name="llm_local_model_upgrade_unavailable" translatable="false">No remote upgrade is available for the current model. Import it again.</string>
-    <string name="llm_local_model_manage_upgrade" translatable="false">Upgrade</string>
-    <string name="llm_local_model_manage_reimport" translatable="false">Reimport</string>
-    <string name="llm_local_model_manage_delete" translatable="false">Delete</string>
-    <string name="llm_local_model_manage_reload" translatable="false">Reload</string>
-    <string name="llm_local_model_delete_confirm" translatable="false">Delete model %1$s?</string>
-    <string name="llm_model_test" translatable="false">Test model text generation</string>
-    <string name="llm_model_test_summary" translatable="false">Test text generation with the current runtime mode and view a summarized result</string>
-    <string name="llm_local_model_smoke_result" translatable="false">Model text generation test result</string>
-    <string name="llm_local_model_smoke_persona_label" translatable="false">Persona used: %1$s</string>
-    <string name="llm_local_model_smoke_prompt_label" translatable="false">Entered prefix: %1$s</string>
-    <string name="llm_local_model_smoke_stage_label" translatable="false">Status: %1$s</string>
-    <string name="llm_local_model_smoke_suggestions_label" translatable="false">Model suggestions:</string>
-    <string name="llm_local_model_smoke_model_label" translatable="false">Model name and ID: %1$s</string>
-    <string name="llm_local_model_smoke_usage_label" translatable="false">Request usage: input %1$s tokens, output %2$s tokens, total %3$s tokens</string>
-    <string name="llm_local_model_smoke_error_label" translatable="false">Additional details: %1$s</string>
-    <string name="llm_result_empty_value" translatable="false">None</string>
-    <string name="llm_result_stage_complete" translatable="false">Complete</string>
-    <string name="llm_result_stage_complete_empty" translatable="false">Complete, but no suggestions are available</string>
-    <string name="llm_result_stage_timeout" translatable="false">Timed out</string>
-    <string name="llm_result_stage_permission_denied" translatable="false">Permission denied</string>
-    <string name="llm_result_stage_runtime_unavailable" translatable="false">Runtime unavailable</string>
-    <string name="llm_result_stage_bundle_missing" translatable="false">Model bundle missing</string>
-    <string name="llm_result_stage_auth_failed" translatable="false">Authentication failed</string>
-    <string name="llm_result_stage_request_failed" translatable="false">Request failed</string>
-    <string name="llm_local_model_runtime_unavailable" translatable="false">The Android version on this device does not support the local GenAI runtime</string>
-    <string name="llm_model_test_remote_unavailable" translatable="false">Remote model configuration is incomplete; text generation cannot be tested</string>
-    <string name="ai_clip_title" translatable="false">AI Candidates</string>
-    <string name="ai_clip_collapse" translatable="false">Collapse AI Candidates panel</string>
-    <string name="ai_clip_question_answer" translatable="false">Q&amp;A</string>
-    <string name="ai_clip_persona" translatable="false">Persona</string>
-    <string name="ai_clip_translate" translatable="false">Translate</string>
-    <string name="ai_clip_long_form" translatable="false">Polish</string>
-    <string name="ai_clip_suggestions_loading" translatable="false">Generating suggestions…</string>
-    <string name="ai_clip_answer_loading" translatable="false">Generating answer…</string>
-    <string name="ai_clip_translate_loading" translatable="false">Translating…</string>
-    <string name="ai_clip_long_form_loading" translatable="false">Generating polished text…</string>
-    <string name="ai_clip_error_quota" translatable="false">The model service balance is too low or the account has an unpaid balance. Check the account and try again.</string>
-    <string name="ai_clip_error_authentication" translatable="false">Model service authentication failed. Check the API key.</string>
-    <string name="ai_clip_error_rate_limit" translatable="false">Too many requests to the model service. Try again later.</string>
-    <string name="ai_clip_error_service" translatable="false">The model service is temporarily unavailable. Try again later.</string>
-    <string name="ai_clip_error_network" translatable="false">Could not connect to the model service. Check the network and try again.</string>
-    <string name="ai_clip_error_invalid_response" translatable="false">The model service returned an invalid response. Try again later.</string>
-    <string name="ai_clip_error_generic" translatable="false">Model prediction failed. Try again later.</string>
-    <string name="ai_clip_error_next_endpoint" translatable="false">The next request will use the next enabled endpoint.</string>
+    <string name="llm_local_model_not_configured">No local model configured</string>
+    <string name="llm_local_model_source_imported">Imported manually</string>
+    <string name="llm_local_model_source_downloaded">Downloaded by the app</string>
+    <string name="llm_local_model_status_summary">%1$s\nSource: %2$s · Size: %3$s</string>
+    <string name="llm_local_model_compatibility_compatible">Runtime check: passed</string>
+    <string name="llm_local_model_compatibility_incompatible">Runtime check: failed</string>
+    <string name="llm_local_model_compatibility_incompatible_detailed">Runtime check: failed (%1$s)</string>
+    <string name="llm_local_model_compatibility_skipped">Runtime check: import-time checks are not supported on this device</string>
+    <string name="llm_local_model_compatibility_unknown">Check status: no runtime check has been performed</string>
+    <string name="llm_local_model_incompatible">The model file is incompatible with the current local runtime: %1$s</string>
+    <string name="llm_local_model_url">Local model download URL</string>
+    <string name="llm_local_model_url_required">Enter the model download URL first</string>
+    <string name="llm_local_model_import">Download and import model</string>
+    <string name="llm_local_model_import_merged_summary">Import a recommended model or local model file, or download and import one from a custom URL</string>
+    <string name="llm_local_model_import_recommended_title">1. Import a remote model</string>
+    <string name="llm_local_model_import_recommended_summary">Choose a recommended model; it will be downloaded and imported after confirmation</string>
+    <string name="llm_local_model_import_recommended_action">Choose a recommended model</string>
+    <string name="llm_local_model_import_local_title">2. Import a local model</string>
+    <string name="llm_local_model_import_local_summary">Choose and import a downloaded model file from another folder on this device</string>
+    <string name="llm_local_model_import_local_action">Choose a local model file</string>
+    <string name="llm_local_model_import_custom_title">3. Custom download URL</string>
+    <string name="llm_local_model_import_custom_summary">Enter a model download URL; the model will be downloaded and imported after confirmation</string>
+    <string name="llm_local_model_import_custom_action">Enter download URL</string>
+    <string name="llm_local_model_cleared">Local model removed</string>
+    <string name="llm_local_model_reloaded">Model reloaded and runtime check refreshed</string>
+    <string name="llm_local_model_download_success">Model downloaded: %1$s</string>
+    <string name="llm_local_model_import_success">Model imported: %1$s</string>
+    <string name="llm_local_model_upgrade_success">Current model updated from the remote source: %1$s</string>
+    <string name="llm_local_model_upgrade_unavailable">No remote upgrade is available for the current model. Import it again.</string>
+    <string name="llm_local_model_manage_upgrade">Upgrade</string>
+    <string name="llm_local_model_manage_reimport">Reimport</string>
+    <string name="llm_local_model_manage_delete">Delete</string>
+    <string name="llm_local_model_manage_reload">Reload</string>
+    <string name="llm_local_model_delete_confirm">Delete model %1$s?</string>
+    <string name="llm_model_test">Test model text generation</string>
+    <string name="llm_model_test_summary">Test text generation with the current runtime mode and view a summarized result</string>
+    <string name="llm_local_model_smoke_result">Model text generation test result</string>
+    <string name="llm_local_model_smoke_persona_label">Persona used: %1$s</string>
+    <string name="llm_local_model_smoke_prompt_label">Entered prefix: %1$s</string>
+    <string name="llm_local_model_smoke_stage_label">Status: %1$s</string>
+    <string name="llm_local_model_smoke_suggestions_label">Model suggestions:</string>
+    <string name="llm_local_model_smoke_model_label">Model name and ID: %1$s</string>
+    <string name="llm_local_model_smoke_usage_label">Request usage: input %1$s tokens, output %2$s tokens, total %3$s tokens</string>
+    <string name="llm_local_model_smoke_error_label">Additional details: %1$s</string>
+    <string name="llm_result_empty_value">None</string>
+    <string name="llm_result_stage_complete">Complete</string>
+    <string name="llm_result_stage_complete_empty">Complete, but no suggestions are available</string>
+    <string name="llm_result_stage_timeout">Timed out</string>
+    <string name="llm_result_stage_permission_denied">Permission denied</string>
+    <string name="llm_result_stage_runtime_unavailable">Runtime unavailable</string>
+    <string name="llm_result_stage_bundle_missing">Model bundle missing</string>
+    <string name="llm_result_stage_auth_failed">Authentication failed</string>
+    <string name="llm_result_stage_request_failed">Request failed</string>
+    <string name="llm_local_model_runtime_unavailable">The Android version on this device does not support the local GenAI runtime</string>
+    <string name="llm_model_test_remote_unavailable">Remote model configuration is incomplete; text generation cannot be tested</string>
+    <string name="ai_clip_title">AI Candidates</string>
+    <string name="ai_clip_collapse">Collapse AI Candidates panel</string>
+    <string name="ai_clip_question_answer">Q&amp;A</string>
+    <string name="ai_clip_persona">Persona</string>
+    <string name="ai_clip_translate">Translate</string>
+    <string name="ai_clip_long_form">Polish</string>
+    <string name="ai_clip_suggestions_loading">Generating suggestions…</string>
+    <string name="ai_clip_answer_loading">Generating answer…</string>
+    <string name="ai_clip_translate_loading">Translating…</string>
+    <string name="ai_clip_long_form_loading">Generating polished text…</string>
+    <string name="ai_clip_error_quota">The model service balance is too low or the account has an unpaid balance. Check the account and try again.</string>
+    <string name="ai_clip_error_authentication">Model service authentication failed. Check the API key.</string>
+    <string name="ai_clip_error_rate_limit">Too many requests to the model service. Try again later.</string>
+    <string name="ai_clip_error_service">The model service is temporarily unavailable. Try again later.</string>
+    <string name="ai_clip_error_network">Could not connect to the model service. Check the network and try again.</string>
+    <string name="ai_clip_error_invalid_response">The model service returned an invalid response. Try again later.</string>
+    <string name="ai_clip_error_generic">Model prediction failed. Try again later.</string>
+    <string name="ai_clip_error_next_endpoint">The next request will use the next enabled endpoint.</string>
     <string name="llm_provider">Model provider</string>
     <string name="llm_provider_local_ai">Local</string>
     <string name="llm_provider_custom">Custom</string>
@@ -488,61 +488,61 @@
     <string name="llm_provider_gemini" translatable="false">Google</string>
     <string name="llm_provider_anthropic" translatable="false">Anthropic</string>
     <string name="llm_provider_deepseek" translatable="false">DeepSeek</string>
-    <string name="llm_provider_zhipu" translatable="false">BigModel (Zhipu)</string>
+    <string name="llm_provider_zhipu">BigModel (Zhipu)</string>
     <string name="llm_provider_minimax" translatable="false">MiniMax CN</string>
     <string name="llm_provider_moonshot" translatable="false">Moonshot</string>
-    <string name="llm_api_url" translatable="false">API URLs</string>
-    <string name="llm_api_url_none_enabled_summary" translatable="false">%1$d URLs (none enabled)</string>
-    <string name="llm_api_url_multiple_enabled_summary" translatable="false">%1$d URLs enabled; automatic failover is in order</string>
-    <string name="llm_api_url_multiline_hint" translatable="false">Enter one URL per line. When multiple URLs are enabled, failover proceeds in order.</string>
-    <string name="llm_api_url_endpoint_key_hint" translatable="false">API key for this domain</string>
-    <string name="llm_api_url_backup_key_hint" translatable="false">Enable sharing the primary key below</string>
-    <string name="llm_api_url_backup_key_shared_hint" translatable="false">If empty, the primary endpoint key is used</string>
-    <string name="llm_share_primary_api_key" translatable="false">Share primary endpoint key</string>
-    <string name="llm_endpoint_model_hint" translatable="false">Model name for this domain</string>
-    <string name="llm_endpoint_delete" translatable="false">Delete</string>
-    <string name="llm_endpoint_none_hint" translatable="false">Add a URL under API URLs first</string>
-    <string name="llm_api_key_count_summary" translatable="false">%1$d keys configured</string>
-    <string name="llm_api_url_default_hint" translatable="false">If empty, the provider default URL is used: %1$s</string>
-    <string name="llm_api_url_default_summary" translatable="false">Use the default URL if empty: %1$s</string>
-    <string name="llm_chat_api_enabled" translatable="false">Chat API</string>
-    <string name="llm_model" translatable="false">Model name</string>
-    <string name="llm_model_status" translatable="false">Model name and tier</string>
-    <string name="llm_model_summary_line" translatable="false">Model: %1$s</string>
-    <string name="llm_thinking_effort_summary_line" translatable="false">Tier: %1$s</string>
-    <string name="llm_model_summary_none" translatable="false">Not configured</string>
+    <string name="llm_api_url">API URLs</string>
+    <string name="llm_api_url_none_enabled_summary">%1$d URLs (none enabled)</string>
+    <string name="llm_api_url_multiple_enabled_summary">%1$d URLs enabled; automatic failover is in order</string>
+    <string name="llm_api_url_multiline_hint">Enter one URL per line. When multiple URLs are enabled, failover proceeds in order.</string>
+    <string name="llm_api_url_endpoint_key_hint">API key for this domain</string>
+    <string name="llm_api_url_backup_key_hint">Enable sharing the primary key below</string>
+    <string name="llm_api_url_backup_key_shared_hint">If empty, the primary endpoint key is used</string>
+    <string name="llm_share_primary_api_key">Share primary endpoint key</string>
+    <string name="llm_endpoint_model_hint">Model name for this domain</string>
+    <string name="llm_endpoint_delete">Delete</string>
+    <string name="llm_endpoint_none_hint">Add a URL under API URLs first</string>
+    <string name="llm_api_key_count_summary">%1$d keys configured</string>
+    <string name="llm_api_url_default_hint">If empty, the provider default URL is used: %1$s</string>
+    <string name="llm_api_url_default_summary">Use the default URL if empty: %1$s</string>
+    <string name="llm_chat_api_enabled">Chat API</string>
+    <string name="llm_model">Model name</string>
+    <string name="llm_model_status">Model name and tier</string>
+    <string name="llm_model_summary_line">Model: %1$s</string>
+    <string name="llm_thinking_effort_summary_line">Tier: %1$s</string>
+    <string name="llm_model_summary_none">Not configured</string>
     <string name="llm_model_status_remote_ready">Status: remote model available</string>
     <string name="llm_model_status_remote_unavailable">Status: remote model unavailable</string>
     <string name="llm_model_status_remote_missing_name">Status: model name not entered</string>
-    <string name="llm_model_status_local_ready" translatable="false">Status: local model available</string>
-    <string name="llm_model_status_local_unavailable" translatable="false">Status: local model unavailable</string>
-    <string name="llm_model_status_local_unavailable_detailed" translatable="false">Status: local model unavailable (%1$s)</string>
-    <string name="llm_model_status_local_pending" translatable="false">Status: local model pending check</string>
-    <string name="llm_model_select" translatable="false">Select model</string>
-    <string name="llm_model_fetching" translatable="false">Fetching model list remotely…</string>
-    <string name="llm_model_fetch_success" translatable="false">Retrieved %1$d models. Tap one to select it.</string>
-    <string name="llm_model_fetch_empty" translatable="false">No model list received. Enter a model name manually.</string>
-    <string name="llm_model_fetch_failed" translatable="false">Failed to retrieve model list: %1$s</string>
-    <string name="llm_model_group_prefix" translatable="false">Provider: %1$s</string>
-    <string name="llm_model_group_empty" translatable="false">Empty</string>
-    <string name="llm_fetch_models" translatable="false">Fetch model list</string>
-    <string name="llm_api_key" translatable="false">API key</string>
-    <string name="llm_test_connectivity" translatable="false">Check connectivity</string>
-    <string name="llm_connectivity_checking" translatable="false">Checking service connectivity…</string>
-    <string name="llm_connectivity_success" translatable="false">Connected successfully; found %1$d models.\n%2$s</string>
-    <string name="llm_connectivity_failed" translatable="false">Connectivity check failed: %1$s</string>
+    <string name="llm_model_status_local_ready">Status: local model available</string>
+    <string name="llm_model_status_local_unavailable">Status: local model unavailable</string>
+    <string name="llm_model_status_local_unavailable_detailed">Status: local model unavailable (%1$s)</string>
+    <string name="llm_model_status_local_pending">Status: local model pending check</string>
+    <string name="llm_model_select">Select model</string>
+    <string name="llm_model_fetching">Fetching model list remotely…</string>
+    <string name="llm_model_fetch_success">Retrieved %1$d models. Tap one to select it.</string>
+    <string name="llm_model_fetch_empty">No model list received. Enter a model name manually.</string>
+    <string name="llm_model_fetch_failed">Failed to retrieve model list: %1$s</string>
+    <string name="llm_model_group_prefix">Provider: %1$s</string>
+    <string name="llm_model_group_empty">Empty</string>
+    <string name="llm_fetch_models">Fetch model list</string>
+    <string name="llm_api_key">API key</string>
+    <string name="llm_test_connectivity">Check connectivity</string>
+    <string name="llm_connectivity_checking">Checking service connectivity…</string>
+    <string name="llm_connectivity_success">Connected successfully; found %1$d models.\n%2$s</string>
+    <string name="llm_connectivity_failed">Connectivity check failed: %1$s</string>
     <string name="llm_sample_count">Number of samples</string>
-    <string name="llm_max_prediction_candidates" translatable="false">Maximum prediction candidates</string>
+    <string name="llm_max_prediction_candidates">Maximum prediction candidates</string>
     <string name="llm_prediction_display_mode">Prediction display mode</string>
     <string name="llm_prediction_display_mode_floating_window">Separate floating window</string>
     <string name="llm_prediction_display_mode_candidate_expanded">Expanded candidate area</string>
-    <string name="llm_thinking_effort" translatable="false">Reasoning effort</string>
-    <string name="llm_quick_settings" translatable="false">AI Candidates quick settings</string>
-    <string name="llm_thinking_effort_off" translatable="false">None</string>
-    <string name="llm_thinking_effort_low" translatable="false">Low</string>
-    <string name="llm_thinking_effort_medium" translatable="false">Medium</string>
-    <string name="llm_thinking_effort_high" translatable="false">High</string>
-    <string name="llm_thinking_effort_max" translatable="false">Maximum</string>
+    <string name="llm_thinking_effort">Reasoning effort</string>
+    <string name="llm_quick_settings">AI Candidates quick settings</string>
+    <string name="llm_thinking_effort_off">None</string>
+    <string name="llm_thinking_effort_low">Low</string>
+    <string name="llm_thinking_effort_medium">Medium</string>
+    <string name="llm_thinking_effort_high">High</string>
+    <string name="llm_thinking_effort_max">Maximum</string>
     <string name="llm_max_output_tokens">Maximum output tokens</string>
     <string name="llm_max_output_tokens_summary">%1$d. This value is sent with each LLM request and roughly controls response length. Higher values usually allow longer responses, but do not impose a hard limit on displayed characters.</string>
     <string name="llm_max_context_chars">Maximum context characters</string>

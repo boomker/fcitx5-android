@@ -483,7 +483,7 @@ class TextKeyboardLayoutProfileManagerActivity : AppCompatActivity() {
             return getString(R.string.text_keyboard_layout_manage_shuangpin)
         }
         if (CustomShuangpinSchemeStore.isCustomScheme(baseLayout)) {
-            return CustomShuangpinSchemeStore.displayName()
+            return CustomShuangpinSchemeStore.displayName(this)
         }
         val ime = allAvailableImes.firstOrNull { it.uniqueName == baseLayout || it.displayName == baseLayout }
             ?: allImes.firstOrNull { it.uniqueName == baseLayout || it.displayName == baseLayout }

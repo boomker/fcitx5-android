@@ -47,8 +47,9 @@ class InputMethodListFragment : ProgressFragment(), OnItemChangedListener<InputM
     private fun showRenameSchemeDialog() {
         val context = requireContext()
         val scheme = CustomShuangpinSchemeStore.load()
+        val displayedName = CustomShuangpinSchemeStore.displayName(context)
         val nameInput = EditText(context).apply {
-            setText(scheme.name)
+            setText(displayedName)
             setSingleLine()
             setPadding(context.dp(20), context.dp(8), context.dp(20), context.dp(8))
         }
@@ -74,7 +75,8 @@ class InputMethodListFragment : ProgressFragment(), OnItemChangedListener<InputM
             .setNegativeButton(android.R.string.cancel, null)
             .show()
             .onPositiveButtonClick {
-                val name = nameInput.text.toString().trim()
+                val enteredName = nameInput.text.toString().trim()
+                val name = if (enteredName == displayedName) scheme.name else enteredName
                 val id = idInput.text.toString().trim().lowercase()
                 when {
                     !CustomShuangpinSchemeCodec.isValidName(name) -> {
@@ -160,7 +162,7 @@ class InputMethodListFragment : ProgressFragment(), OnItemChangedListener<InputM
             },
             show = { entry ->
                 if (CustomShuangpinSchemeStore.isCustomScheme(entry.uniqueName)) {
-                    CustomShuangpinSchemeStore.displayName()
+                    CustomShuangpinSchemeStore.displayName(requireContext())
                 } else {
                     entry.displayName
                 }

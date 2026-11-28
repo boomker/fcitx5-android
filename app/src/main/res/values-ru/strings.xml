@@ -1109,6 +1109,12 @@
     <string name="pinyin_config_annotation">Объект аннотации пиньинем</string>
     <string name="pinyin_config_annotation_summary">Выберите, когда показывать пиньинь в комментариях к кандидатам.</string>
     <string name="pinyin_config_annotation_placement">Расположение пиньиня</string>
+    <string name="pinyin_config_annotation_option_none">Не показывать</string>
+    <string name="pinyin_config_annotation_option_rare">Только редкие иероглифы</string>
+    <string name="pinyin_config_annotation_option_polyphonic">Только иероглифы с несколькими чтениями</string>
+    <string name="pinyin_config_annotation_option_single_character">Все односимвольные кандидаты</string>
+    <string name="pinyin_config_annotation_placement_top">Сверху</string>
+    <string name="pinyin_config_annotation_placement_right">Справа</string>
     <string name="pinyin_config_page_size">Размер страницы</string>
     <string name="pinyin_config_phrase_limit">Ограничение фраз</string>
     <string name="pinyin_config_sentence_count">Количество кандидатов полных предложений</string>

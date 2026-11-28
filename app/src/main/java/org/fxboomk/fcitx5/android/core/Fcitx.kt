@@ -35,7 +35,11 @@ import java.util.concurrent.CopyOnWriteArrayList
 
 private fun decorateInputMethod(entry: InputMethodEntry): InputMethodEntry =
     if (CustomShuangpinSchemeStore.isCustomScheme(entry.uniqueName)) {
-        entry.copy(name = CustomShuangpinSchemeStore.displayName())
+        entry.copy(
+            name = CustomShuangpinSchemeStore.displayName(
+                FcitxApplication.getInstance().appLocaleContext
+            )
+        )
     } else {
         entry
     }

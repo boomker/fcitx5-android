@@ -154,7 +154,7 @@ class SettingsSearchNavigationTest {
             withActivity { activity ->
                 val mainFragment = mainFragment(activity)
                 val query = context.getString(R.string.custom_shuangpin_initials)
-                val displayName = CustomShuangpinSchemeStore.displayName()
+                val displayName = CustomShuangpinSchemeStore.displayName(activity)
 
                 onMain {
                     val placeholder = mainFragment.listView

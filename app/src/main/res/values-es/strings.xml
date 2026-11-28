@@ -1109,6 +1109,12 @@
     <string name="pinyin_config_annotation">Objetivo de anotación pinyin</string>
     <string name="pinyin_config_annotation_summary">Elige cuándo mostrar pinyin en los comentarios de los candidatos.</string>
     <string name="pinyin_config_annotation_placement">Posición de la anotación pinyin</string>
+    <string name="pinyin_config_annotation_option_none">No mostrar</string>
+    <string name="pinyin_config_annotation_option_rare">Solo caracteres poco frecuentes</string>
+    <string name="pinyin_config_annotation_option_polyphonic">Solo caracteres polifónicos</string>
+    <string name="pinyin_config_annotation_option_single_character">Todos los caracteres individuales</string>
+    <string name="pinyin_config_annotation_placement_top">Arriba</string>
+    <string name="pinyin_config_annotation_placement_right">A la derecha</string>
     <string name="pinyin_config_page_size">Tamaño de página</string>
     <string name="pinyin_config_phrase_limit">Límite de frases</string>
     <string name="pinyin_config_sentence_count">Cantidad de candidatos de frase completa</string>

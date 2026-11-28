@@ -24,6 +24,21 @@ class CustomShuangpinSchemeCodecTest {
     }
 
     @Test
+    fun defaultSchemeDisplayNameUsesLocalizedFallbackWithoutChangingStoredName() {
+        val scheme = CustomShuangpinSchemeCodec.defaultScheme()
+
+        assertEquals(
+            "Custom Shuangpin",
+            localizedCustomShuangpinName(scheme.name, "Custom Shuangpin")
+        )
+        assertEquals(CustomShuangpinSchemeCodec.DEFAULT_NAME, scheme.name)
+        assertEquals(
+            "My Shuangpin",
+            localizedCustomShuangpinName("My Shuangpin", "Custom Shuangpin")
+        )
+    }
+
+    @Test
     fun generatedSpDatContainsNameAndMappings() {
         val scheme = CustomShuangpinScheme(name = "我的双拼", zeroInitial = "o*")
             .copy(

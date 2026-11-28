@@ -1102,6 +1102,12 @@
     <string name="pinyin_config_annotation">拼音标注对象</string>
     <string name="pinyin_config_annotation_summary">设置何时在候选注释中显示拼音。</string>
     <string name="pinyin_config_annotation_placement">拼音标注放置</string>
+    <string name="pinyin_config_annotation_option_none">不显示</string>
+    <string name="pinyin_config_annotation_option_rare">仅生僻字</string>
+    <string name="pinyin_config_annotation_option_polyphonic">仅多音字</string>
+    <string name="pinyin_config_annotation_option_single_character">所有单字</string>
+    <string name="pinyin_config_annotation_placement_top">顶部</string>
+    <string name="pinyin_config_annotation_placement_right">右侧</string>
     <string name="pinyin_config_page_size">每页候选数</string>
     <string name="pinyin_config_phrase_limit">词组候选数</string>
     <string name="pinyin_config_sentence_count">整句候选数</string>

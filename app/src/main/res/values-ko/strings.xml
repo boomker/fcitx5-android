@@ -1110,6 +1110,12 @@
     <string name="pinyin_config_annotation">병음 주석 대상</string>
     <string name="pinyin_config_annotation_summary">후보 주석에 병음을 표시할 시점을 선택합니다.</string>
     <string name="pinyin_config_annotation_placement">병음 표기 위치</string>
+    <string name="pinyin_config_annotation_option_none">표시 안 함</string>
+    <string name="pinyin_config_annotation_option_rare">희귀 문자만</string>
+    <string name="pinyin_config_annotation_option_polyphonic">다중 발음 문자만</string>
+    <string name="pinyin_config_annotation_option_single_character">모든 단일 문자</string>
+    <string name="pinyin_config_annotation_placement_top">위쪽</string>
+    <string name="pinyin_config_annotation_placement_right">오른쪽</string>
     <string name="pinyin_config_page_size">페이지 크기</string>
     <string name="pinyin_config_phrase_limit">구문 제한</string>
     <string name="pinyin_config_sentence_count">전체 문장 후보 수</string>

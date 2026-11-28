@@ -361,7 +361,7 @@ object SettingsSearchIndex {
                 if (CustomShuangpinSchemeStore.isCustomScheme(ime.uniqueName)) {
                     add(
                         SettingsSearchResult(
-                            title = CustomShuangpinSchemeStore.displayName(),
+                            title = CustomShuangpinSchemeStore.displayName(context),
                             path = listOf(context.getString(R.string.input_methods)),
                             route = SettingsRoute.CustomShuangpin,
                             summary = context.getString(R.string.custom_shuangpin)
@@ -371,7 +371,7 @@ object SettingsSearchIndex {
                     addAll(
                         rawConfigItems(
                             context,
-                            CustomShuangpinSchemeStore.displayName(),
+                            CustomShuangpinSchemeStore.displayName(context),
                             SettingsRoute.CustomShuangpin,
                             fcitx.getImConfig(ime.uniqueName),
                             tab = CustomShuangpinFragment.TAB_PREFERENCES,
@@ -425,7 +425,7 @@ object SettingsSearchIndex {
         val scheme = CustomShuangpinSchemeStore.load()
         return buildCustomShuangpinMappingItems(
             CustomShuangpinMappingLabels(
-                pageTitle = CustomShuangpinSchemeStore.displayName(),
+                pageTitle = CustomShuangpinSchemeStore.displayName(context),
                 tabTitle = context.getString(R.string.custom_shuangpin_tab_mapping),
                 zeroInitialTitle = context.getString(R.string.custom_shuangpin_zero_initial),
                 initialsTitle = context.getString(R.string.custom_shuangpin_initials),

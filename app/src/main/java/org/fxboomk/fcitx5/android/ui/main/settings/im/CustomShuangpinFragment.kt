@@ -56,7 +56,7 @@ class CustomShuangpinFragment : Fragment() {
 
     override fun onStart() {
         super.onStart()
-        viewModel.setToolbarTitle(CustomShuangpinSchemeStore.displayName())
+        viewModel.setToolbarTitle(CustomShuangpinSchemeStore.displayName(requireContext()))
     }
 
     /**

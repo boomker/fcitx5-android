@@ -50,7 +50,7 @@ class CustomShuangpinMappingFragment : PaddingPreferenceFragment() {
 
     override fun onStart() {
         super.onStart()
-        viewModel.setToolbarTitle(CustomShuangpinSchemeStore.displayName())
+        viewModel.setToolbarTitle(CustomShuangpinSchemeStore.displayName(requireContext()))
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
