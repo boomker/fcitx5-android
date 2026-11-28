@@ -5,7 +5,6 @@ import okhttp3.OkHttpClient
 import org.fxboomk.fcitx5.android.input.plugin.js.JsPluginCatalog
 import org.fxboomk.fcitx5.android.input.voice.VoiceInputProviderRegistry
 import org.fxboomk.fcitx5.android.utils.appContext
-import java.util.Locale
 import java.util.concurrent.TimeUnit
 
 /** Adapts voice-capable JS plugins to the in-process voice provider registry. */
@@ -53,7 +52,7 @@ internal object JsVoiceProviders {
                 scriptSource = { JsPluginCatalog.readScript(spec) },
                 declaredHosts = spec.hosts,
                 declaredSampleRate = spec.sampleRate,
-                locale = Locale.getDefault().toLanguageTag(),
+                locale = org.fxboomk.fcitx5.android.utils.AppLanguage.currentLocaleTag(appContext),
                 http = http,
             )
             VoiceInputProviderRegistry.register(

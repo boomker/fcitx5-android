@@ -70,9 +70,9 @@ class MainActivity : AppCompatActivity() {
             windowInsets
         }
         setContentView(binding.root)
+        binding.toolbar.setTitleCentered(true)
         setSupportActionBar(binding.toolbar)
-        // always show toolbar back arrow icon
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.setDisplayHomeAsUpEnabled(false)
         addMenuProvider(GlobalMenuProvider())
         navController = binding.navHostFragment.getFragment<NavHostFragment>().navController
         navController.graph = SettingsRoute.createGraph(navController)
@@ -91,6 +91,9 @@ class MainActivity : AppCompatActivity() {
         }
         navController.addOnDestinationChangedListener { _, dest, _ ->
             dest.label?.let { viewModel.setToolbarTitle(it.toString()) }
+            val isHome = navController.previousBackStackEntry == null
+            binding.toolbar.setTitleCentered(isHome)
+            supportActionBar?.setDisplayHomeAsUpEnabled(!isHome)
             if (dest.hasRoute<SettingsRoute.ThemeList>()) {
                 viewModel.disableToolbarShadow()
             } else {

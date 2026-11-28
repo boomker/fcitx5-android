@@ -5,18 +5,24 @@
 package org.fxboomk.fcitx5.android
 
 import android.app.Application
+import android.app.Activity
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.res.Configuration
+import android.content.res.Resources
 import android.os.Build
+import android.os.Bundle
 import android.os.Process
+import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import androidx.preference.PreferenceManager
 import kotlinx.coroutines.CoroutineName
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
 import org.fxboomk.fcitx5.android.daemon.FcitxDaemon
 import org.fxboomk.fcitx5.android.data.clipboard.ClipboardManager
@@ -27,6 +33,7 @@ import org.fxboomk.fcitx5.android.data.theme.ThemeManager
 import org.fxboomk.fcitx5.android.input.font.FontProviders
 import org.fxboomk.fcitx5.android.ui.main.LogActivity
 import org.fxboomk.fcitx5.android.utils.AppUtil
+import org.fxboomk.fcitx5.android.utils.AppLanguage
 import org.fxboomk.fcitx5.android.utils.Locales
 import org.fxboomk.fcitx5.android.utils.setupForest
 import org.fxboomk.fcitx5.android.utils.startActivity
@@ -35,6 +42,44 @@ import timber.log.Timber
 import kotlin.system.exitProcess
 
 class FcitxApplication : Application() {
+
+    @Volatile
+    private var localizedApplicationContext: Context? = null
+
+    @Volatile
+    private var fcitxLocale: String? = null
+
+    val appLocaleContext: Context
+        get() = localizedApplicationContext ?: applicationContext
+
+    override fun getResources(): Resources =
+        localizedApplicationContext?.resources ?: super.getResources()
+
+    fun refreshAppLocaleContext(configuration: Configuration? = null) {
+        localizedApplicationContext = configuration?.let {
+            org.fxboomk.fcitx5.android.utils.AppLanguage.wrap(applicationContext, it)
+        } ?: org.fxboomk.fcitx5.android.utils.AppLanguage.wrap(applicationContext)
+        configuration?.let(::refreshFcitxLocale)
+    }
+
+    private fun refreshFcitxLocale(configuration: Configuration) {
+        Locales.onLocaleChange(AppLanguage.configurationFor(this, configuration))
+        val newLocale = Locales.fcitxLocale
+        val previousLocale = fcitxLocale
+        fcitxLocale = newLocale
+        Log.d("LocaleDebug", "refresh previous=$previousLocale new=$newLocale")
+        if (previousLocale != null && previousLocale != newLocale) {
+            coroutineScope.launch(Dispatchers.IO) {
+                val ready = FcitxDaemon.isRunning()
+                Log.d("LocaleDebug", "changed previous=$previousLocale new=$newLocale ready=$ready")
+                if (ready) FcitxDaemon.restartFcitx()
+            }
+        }
+    }
+
+    override fun attachBaseContext(base: Context) {
+        super.attachBaseContext(org.fxboomk.fcitx5.android.utils.AppLanguage.wrap(base))
+    }
 
     val coroutineScope = MainScope() + CoroutineName("FcitxApplication")
 
@@ -82,6 +127,7 @@ class FcitxApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        org.fxboomk.fcitx5.android.utils.AppLanguage.initialize(this)
         if (!userManager.isUserUnlocked) {
             isDirectBootMode = true
             registerReceiver(unlockReceiver, IntentFilter(Intent.ACTION_USER_UNLOCKED))
@@ -121,6 +167,7 @@ class FcitxApplication : Application() {
         }
 
         instance = this
+        refreshAppLocaleContext()
         // we don't have AppPrefs available yet
         val sharedPrefs = PreferenceManager.getDefaultSharedPreferences(ctx)
         Timber.setupForest(verbose = sharedPrefs.getBoolean("verbose_log", false))
@@ -141,7 +188,20 @@ class FcitxApplication : Application() {
         ClipboardManager.init(ctx)
         ThemeManager.init(resources.configuration)
         FontProviders.preloadFontsAsync()
-        Locales.onLocaleChange(resources.configuration)
+        refreshFcitxLocale(resources.configuration)
+        registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
+            override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
+                Log.d("LocaleDebug", "activity=${activity.javaClass.simpleName} locales=${activity.resources.configuration.locales}")
+                refreshAppLocaleContext(activity.resources.configuration)
+            }
+
+            override fun onActivityStarted(activity: Activity) = Unit
+            override fun onActivityResumed(activity: Activity) = Unit
+            override fun onActivityPaused(activity: Activity) = Unit
+            override fun onActivityStopped(activity: Activity) = Unit
+            override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) = Unit
+            override fun onActivityDestroyed(activity: Activity) = Unit
+        })
         registerReceiver(shutdownReceiver, IntentFilter(Intent.ACTION_SHUTDOWN))
         if (!isDirectBootMode) {
             AppPrefs.getInstance().syncToDeviceEncryptedStorage()
@@ -159,8 +219,9 @@ class FcitxApplication : Application() {
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
+        Log.d("LocaleDebug", "application configuration locales=${newConfig.locales}")
+        refreshAppLocaleContext(newConfig)
         ThemeManager.onSystemPlatteChange(newConfig)
-        Locales.onLocaleChange(newConfig)
     }
 
     companion object {

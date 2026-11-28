@@ -155,6 +155,44 @@ internal fun shouldSyncPinyinCandidateForReturn(
 
 class FcitxInputMethodService : LifecycleInputMethodService() {
 
+    private lateinit var originalBaseContext: Context
+    private var localizedBaseContext: Context? = null
+
+    private val appLanguageChangedReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            if (intent.action != org.fxboomk.fcitx5.android.utils.AppLanguage.ACTION_LANGUAGE_CHANGED) return
+            localizedBaseContext = org.fxboomk.fcitx5.android.utils.AppLanguage.wrap(originalBaseContext)
+            if (this@FcitxInputMethodService::lastKnownConfig.isInitialized) {
+                lastKnownConfig = resources.configuration
+            }
+            refreshInputViewsForAppLanguage()
+        }
+    }
+
+    private fun refreshInputViewsForAppLanguage() {
+        if (!this::contentView.isInitialized) return
+        if (!canApplyPendingThemeNow()) {
+            pendingThemeUpdate = ThemeManager.activeTheme
+            return
+        }
+        contentView.post {
+            if (!canApplyPendingThemeNow()) {
+                pendingThemeUpdate = ThemeManager.activeTheme
+                return@post
+            }
+            replaceInputViews(ThemeManager.activeTheme)
+            inputView?.syncImeFromCache()
+        }
+    }
+
+    override fun attachBaseContext(newBase: Context) {
+        originalBaseContext = newBase
+        localizedBaseContext = org.fxboomk.fcitx5.android.utils.AppLanguage.wrap(newBase)
+        super.attachBaseContext(localizedBaseContext!!)
+    }
+
+    override fun getResources() = localizedBaseContext?.resources ?: super.getResources()
+
     internal lateinit var fcitx: FcitxConnection
 
     private var jobs = Channel<Job>(capacity = Channel.UNLIMITED)
@@ -1045,6 +1083,12 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
             BuildConfig.APPLICATION_ID + ".permission.PLUGIN", null,
             ContextCompat.RECEIVER_EXPORTED
         )
+        ContextCompat.registerReceiver(
+            this,
+            appLanguageChangedReceiver,
+            IntentFilter(org.fxboomk.fcitx5.android.utils.AppLanguage.ACTION_LANGUAGE_CHANGED),
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             postFcitxJob {
                 SubtypeManager.syncWith(enabledIme())
@@ -1802,6 +1846,10 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
     private lateinit var lastKnownConfig: Configuration
 
     override fun onConfigurationChanged(newConfig: Configuration) {
+        localizedBaseContext = org.fxboomk.fcitx5.android.utils.AppLanguage.wrap(
+            originalBaseContext,
+            newConfig
+        )
         /**
          * skip keyboard|keyboardHidden changes, because we have [inputDeviceManager]
          * skip uiMode (system light/dark mode) changes, because we have [onThemeChangeListener]
@@ -2848,6 +2896,8 @@ class FcitxInputMethodService : LifecycleInputMethodService() {
         ThemeManager.removeOnChangedListener(onThemeChangeListener)
         runCatching { unregisterReceiver(voiceInputCommitReceiver) }
             .onFailure { Timber.w(it, "unregister voice receiver") }
+        runCatching { unregisterReceiver(appLanguageChangedReceiver) }
+            .onFailure { Timber.w(it, "unregister language receiver") }
         super.onDestroy()
         // Fcitx might be used in super.onDestroy()
         FcitxDaemon.disconnect(javaClass.name)

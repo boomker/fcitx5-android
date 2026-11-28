@@ -22,6 +22,8 @@
     <string name="app_name">白鳥入力法</string>
     <string name="app_name_release">白鳥入力法</string>
     <string name="app_name_debug">白鳥入力法 (デバッグ)</string>
+    <string name="language">言語</string>
+    <string name="language_follow_system">システムに従う</string>
     <string name="save">保存</string>
     <string name="input_methods">インプットメソッド</string>
     <string name="addons">アドオン</string>
@@ -961,6 +963,127 @@
     <string name="llm_persona_custom_name_description">%1$s。下でさらに詳しいペルソナ説明を追加できます。</string>
     <string name="llm_persona_current_label">現在の選択</string>
     <string name="llm_persona_delete_confirm">ペルソナ「%1$s」を削除しますか？</string>
+    <string name="llm_local_model_not_configured" translatable="false">ローカルモデル未設定</string>
+    <string name="llm_local_model_source_imported" translatable="false">手動インポート</string>
+    <string name="llm_local_model_source_downloaded" translatable="false">アプリでダウンロード</string>
+    <string name="llm_local_model_status_summary" translatable="false">%1$s
+出典：%2$s · サイズ：%3$s</string>
+    <string name="llm_local_model_compatibility_compatible" translatable="false">ランタイム事前チェック：合格</string>
+    <string name="llm_local_model_compatibility_incompatible" translatable="false">ランタイム事前チェック：不合格</string>
+    <string name="llm_local_model_compatibility_incompatible_detailed" translatable="false">ランタイム事前チェック：不合格（%1$s）</string>
+    <string name="llm_local_model_compatibility_skipped" translatable="false">ランタイム事前チェック：この端末ではインポート時の検査に非対応</string>
+    <string name="llm_local_model_compatibility_unknown" translatable="false">チェック状態：ランタイム事前チェックの記録なし</string>
+    <string name="llm_local_model_incompatible" translatable="false">モデルファイルは現在のローカルランタイムと互換性がありません：%1$s</string>
+    <string name="llm_local_model_url" translatable="false">ローカルモデルのダウンロードURL</string>
+    <string name="llm_local_model_url_required" translatable="false">モデルのダウンロードURLを入力してください</string>
+    <string name="llm_local_model_import" translatable="false">モデルのダウンロードとインポート</string>
+    <string name="llm_local_model_import_merged_summary" translatable="false">推奨モデル、ローカルモデルファイル、またはカスタムURLからモデルをダウンロードしてインポート</string>
+    <string name="llm_local_model_import_recommended_title" translatable="false">1. リモートモデルをインポート</string>
+    <string name="llm_local_model_import_recommended_summary" translatable="false">推奨モデルを選択し、確認後に自動ダウンロードしてインポート</string>
+    <string name="llm_local_model_import_recommended_action" translatable="false">推奨モデルを選択</string>
+    <string name="llm_local_model_import_local_title" translatable="false">2. ローカルモデルをインポート</string>
+    <string name="llm_local_model_import_local_summary" translatable="false">端末内の別の場所からダウンロード済みモデルを選択してインポート</string>
+    <string name="llm_local_model_import_local_action" translatable="false">ローカルモデルファイルを選択</string>
+    <string name="llm_local_model_import_custom_title" translatable="false">3. カスタムダウンロードURL</string>
+    <string name="llm_local_model_import_custom_summary" translatable="false">モデルのダウンロードURLを入力し、確認後にダウンロードしてインポート</string>
+    <string name="llm_local_model_import_custom_action" translatable="false">ダウンロードURLを入力</string>
+    <string name="llm_local_model_cleared" translatable="false">ローカルモデルを削除しました</string>
+    <string name="llm_local_model_reloaded" translatable="false">現在のモデルを再読み込みし、事前チェック状態を更新しました</string>
+    <string name="llm_local_model_download_success" translatable="false">モデルのダウンロード完了：%1$s</string>
+    <string name="llm_local_model_import_success" translatable="false">モデルのインポート完了：%1$s</string>
+    <string name="llm_local_model_upgrade_success" translatable="false">リモートから現在のモデルを更新しました：%1$s</string>
+    <string name="llm_local_model_upgrade_unavailable" translatable="false">現在のモデルに利用可能なリモート更新元がありません。再度インポートしてください</string>
+    <string name="llm_local_model_manage_upgrade" translatable="false">アップグレード</string>
+    <string name="llm_local_model_manage_reimport" translatable="false">再インポート</string>
+    <string name="llm_local_model_manage_delete" translatable="false">削除</string>
+    <string name="llm_local_model_manage_reload" translatable="false">再読み込み</string>
+    <string name="llm_local_model_delete_confirm" translatable="false">モデル「%1$s」を削除しますか？</string>
+    <string name="llm_model_test" translatable="false">モデルのテキスト生成をテスト</string>
+    <string name="llm_model_test_summary" translatable="false">現在の実行方式でモデルのテキスト生成をテストし、要約結果を確認します</string>
+    <string name="llm_local_model_smoke_result" translatable="false">モデルテキスト生成テスト結果</string>
+    <string name="llm_local_model_smoke_persona_label" translatable="false">使用するペルソナ：%1$s</string>
+    <string name="llm_local_model_smoke_prompt_label" translatable="false">入力済みプレフィックス：%1$s</string>
+    <string name="llm_local_model_smoke_stage_label" translatable="false">状態：%1$s</string>
+    <string name="llm_local_model_smoke_suggestions_label" translatable="false">モデルの提案：</string>
+    <string name="llm_local_model_smoke_model_label" translatable="false">モデル名とID：%1$s</string>
+    <string name="llm_local_model_smoke_usage_label" translatable="false">リクエスト使用量：入力 %1$s Token、出力 %2$s Token、合計 %3$s Token</string>
+    <string name="llm_local_model_smoke_error_label" translatable="false">補足：%1$s</string>
+    <string name="llm_result_empty_value" translatable="false">なし</string>
+    <string name="llm_result_stage_complete" translatable="false">完了</string>
+    <string name="llm_result_stage_complete_empty" translatable="false">完了しましたが、提案はありません</string>
+    <string name="llm_result_stage_timeout" translatable="false">タイムアウト</string>
+    <string name="llm_result_stage_permission_denied" translatable="false">権限が拒否されました</string>
+    <string name="llm_result_stage_runtime_unavailable" translatable="false">ランタイムを利用できません</string>
+    <string name="llm_result_stage_bundle_missing" translatable="false">モデルパッケージがありません</string>
+    <string name="llm_result_stage_auth_failed" translatable="false">認証に失敗しました</string>
+    <string name="llm_result_stage_request_failed" translatable="false">リクエストに失敗しました</string>
+    <string name="llm_local_model_runtime_unavailable" translatable="false">この端末のOSバージョンはローカルGenAIランタイムに対応していません</string>
+    <string name="llm_model_test_remote_unavailable" translatable="false">リモートモデルの設定が未完了のため、テキスト生成をテストできません</string>
+    <string name="ai_clip_title" translatable="false">AI候補</string>
+    <string name="ai_clip_collapse" translatable="false">AI候補パネルを閉じる</string>
+    <string name="ai_clip_question_answer" translatable="false">質問応答</string>
+    <string name="ai_clip_persona" translatable="false">ペルソナ</string>
+    <string name="ai_clip_translate" translatable="false">翻訳</string>
+    <string name="ai_clip_long_form" translatable="false">推敲</string>
+    <string name="ai_clip_suggestions_loading" translatable="false">候補を生成中…</string>
+    <string name="ai_clip_answer_loading" translatable="false">回答を生成中…</string>
+    <string name="ai_clip_translate_loading" translatable="false">翻訳中…</string>
+    <string name="ai_clip_long_form_loading" translatable="false">推敲内容を生成中…</string>
+    <string name="ai_clip_error_quota" translatable="false">モデルサービスの残高不足または料金未払いです。アカウントを確認して再試行してください</string>
+    <string name="ai_clip_error_authentication" translatable="false">モデルサービスの認証に失敗しました。APIキーを確認してください</string>
+    <string name="ai_clip_error_rate_limit" translatable="false">モデルサービスへのリクエストが多すぎます。しばらくしてから再試行してください</string>
+    <string name="ai_clip_error_service" translatable="false">モデルサービスは一時的に利用できません。しばらくしてから再試行してください</string>
+    <string name="ai_clip_error_network" translatable="false">モデルサービスに接続できません。ネットワークを確認してください</string>
+    <string name="ai_clip_error_invalid_response" translatable="false">モデルサービスから無効な応答が返されました。再試行してください</string>
+    <string name="ai_clip_error_generic" translatable="false">モデル予測に失敗しました。再試行してください</string>
+    <string name="ai_clip_error_next_endpoint" translatable="false">次のリクエストでは次の有効なエンドポイントに切り替えます</string>
+    <string name="llm_provider_zhipu" translatable="false">BigModel</string>
+    <string name="llm_api_url" translatable="false">APIアドレス</string>
+    <string name="llm_api_url_none_enabled_summary" translatable="false">%1$d件のアドレス（すべて無効）</string>
+    <string name="llm_api_url_multiple_enabled_summary" translatable="false">%1$d件のアドレスが有効。順番に自動フェイルオーバーします</string>
+    <string name="llm_api_url_multiline_hint" translatable="false">1行に1つのアドレスを入力。複数選択時は順番に自動フェイルオーバーします。</string>
+    <string name="llm_api_url_endpoint_key_hint" translatable="false">このドメインのAPIキー</string>
+    <string name="llm_api_url_backup_key_hint" translatable="false">下の共有メインキーを有効にしてください</string>
+    <string name="llm_api_url_backup_key_shared_hint" translatable="false">空欄の場合はメインエンドポイントのキーを使用</string>
+    <string name="llm_share_primary_api_key" translatable="false">メインエンドポイントのキーを共有</string>
+    <string name="llm_endpoint_model_hint" translatable="false">このドメインのモデル名</string>
+    <string name="llm_endpoint_delete" translatable="false">削除</string>
+    <string name="llm_endpoint_none_hint" translatable="false">先に「APIアドレス」でアドレスを追加してください</string>
+    <string name="llm_api_key_count_summary" translatable="false">%1$d個のキーを設定済み</string>
+    <string name="llm_api_url_default_hint" translatable="false">空欄の場合はプロバイダーのデフォルトアドレスを使用：%1$s</string>
+    <string name="llm_api_url_default_summary" translatable="false">空欄の場合はデフォルトアドレスを使用：%1$s</string>
+    <string name="llm_chat_api_enabled" translatable="false">チャットAPI</string>
+    <string name="llm_model" translatable="false">モデル名</string>
+    <string name="llm_model_status" translatable="false">モデル名とレベル</string>
+    <string name="llm_model_summary_line" translatable="false">モデル：%1$s</string>
+    <string name="llm_thinking_effort_summary_line" translatable="false">レベル：%1$s</string>
+    <string name="llm_model_summary_none" translatable="false">未設定</string>
+    <string name="llm_model_status_local_ready" translatable="false">状態：ローカルモデルを利用可能</string>
+    <string name="llm_model_status_local_unavailable" translatable="false">状態：ローカルモデルを利用できません</string>
+    <string name="llm_model_status_local_unavailable_detailed" translatable="false">状態：ローカルモデルを利用できません（%1$s）</string>
+    <string name="llm_model_status_local_pending" translatable="false">状態：ローカルモデルを確認待ち</string>
+    <string name="llm_model_select" translatable="false">モデルを選択</string>
+    <string name="llm_model_fetching" translatable="false">モデル一覧を取得中…</string>
+    <string name="llm_model_fetch_success" translatable="false">%1$d個のモデルを取得しました。タップして選択できます。</string>
+    <string name="llm_model_fetch_empty" translatable="false">モデル一覧を取得できませんでした。モデル名を手動で入力してください。</string>
+    <string name="llm_model_fetch_failed" translatable="false">モデル一覧の取得に失敗：%1$s</string>
+    <string name="llm_model_group_prefix" translatable="false">モデルプロバイダー：%1$s</string>
+    <string name="llm_model_group_empty" translatable="false">空</string>
+    <string name="llm_fetch_models" translatable="false">モデル一覧を取得</string>
+    <string name="llm_api_key" translatable="false">APIキー</string>
+    <string name="llm_test_connectivity" translatable="false">接続テスト</string>
+    <string name="llm_connectivity_checking" translatable="false">サービス接続を確認中…</string>
+    <string name="llm_connectivity_success" translatable="false">接続成功。%1$d個のモデルを検出しました。
+%2$s</string>
+    <string name="llm_connectivity_failed" translatable="false">接続テストに失敗：%1$s</string>
+    <string name="llm_max_prediction_candidates" translatable="false">予測候補の最大数</string>
+    <string name="llm_thinking_effort" translatable="false">思考レベル</string>
+    <string name="llm_quick_settings" translatable="false">AI候補のクイック設定</string>
+    <string name="llm_thinking_effort_off" translatable="false">なし</string>
+    <string name="llm_thinking_effort_low" translatable="false">低</string>
+    <string name="llm_thinking_effort_medium" translatable="false">中</string>
+    <string name="llm_thinking_effort_high" translatable="false">高</string>
+    <string name="llm_thinking_effort_max" translatable="false">最大</string>
     <string name="share_receive_target_not_supported">共有内容は対応しているテーマ、Popup、レイアウトのデータではありません。</string>
     <string name="share_receive_overwrite_title">インポートによりデータが上書きされます</string>
     <string name="share_receive_popup_overwrite_message">この共有 Popup プリセットをインポートすると、現在の Popup プリセットが置き換えられます。続行しますか？</string>

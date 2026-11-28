@@ -24,6 +24,10 @@ import org.fxboomk.fcitx5.android.utils.str
 
 class ClipboardEditActivity : Activity() {
 
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(org.fxboomk.fcitx5.android.utils.AppLanguage.wrap(newBase))
+    }
+
     private val scope: CoroutineScope = MainScope()
 
     private lateinit var editText: EditText

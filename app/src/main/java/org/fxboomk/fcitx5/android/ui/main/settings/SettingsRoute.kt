@@ -109,6 +109,9 @@ sealed class SettingsRoute : Parcelable {
     data object Theme : SettingsRoute()
 
     @Serializable
+    data object Language : SettingsRoute()
+
+    @Serializable
     data object ThemeList : SettingsRoute()
 
     @Serializable
@@ -298,6 +301,9 @@ sealed class SettingsRoute : Parcelable {
 
             fragment<ThemeAppearanceFragment, Theme> {
                 label = ctx.getString(R.string.theme_appearance)
+            }
+            fragment<LanguageFragment, Language> {
+                label = ctx.getString(R.string.language)
             }
             fragment<ThemeFragment, ThemeList> {
                 label = ctx.getString(R.string.keyboard_theme)

@@ -4,7 +4,6 @@ package org.fxboomk.fcitx5.android.input.plugin.js
 import org.fxboomk.fcitx5.android.R
 import org.fxboomk.fcitx5.android.utils.appContext
 import java.io.File
-import java.util.Locale
 
 /** Shared catalog of bundled and imported plugins, independent of capability execution. */
 internal object JsPluginCatalog {
@@ -222,7 +221,10 @@ internal object JsPluginCatalog {
     }
 
     /** 读取插件声明的设置项；设置页与会话共用这一份声明。 */
-    suspend fun describe(pluginId: String, locale: String = Locale.getDefault().toLanguageTag()): List<JsPluginField> {
+    suspend fun describe(
+        pluginId: String,
+        locale: String = org.fxboomk.fcitx5.android.utils.AppLanguage.currentLocaleTag(appContext)
+    ): List<JsPluginField> {
         val spec = specOf(pluginId) ?: return emptyList()
         return JsScript.describe(readScript(spec), locale)
     }

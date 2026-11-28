@@ -27,7 +27,6 @@ import org.fxboomk.fcitx5.android.input.FcitxInputMethodService
 import org.fxboomk.fcitx5.android.ui.main.settings.plugin.js.JsPluginSettingsActivity
 import org.fxboomk.fcitx5.android.utils.appContext
 import org.fxboomk.fcitx5.android.utils.toast
-import java.util.Locale
 
 /** App capabilities share plugin source/settings, but never enter the voice provider registry. */
 internal object JsAppHost {
@@ -76,7 +75,7 @@ internal object JsAppHost {
         val token = service.editorSession.capture()
         val connection = service.applicationInputConnection
         val scope = CoroutineScope(service.lifecycleScope.coroutineContext + SupervisorJob(service.lifecycleScope.coroutineContext[Job]))
-        val locale = Locale.getDefault().toLanguageTag()
+        val locale = org.fxboomk.fcitx5.android.utils.AppLanguage.currentLocaleTag(service)
         var js: QuickJs? = null
         @Volatile var closed = false
         var working = false

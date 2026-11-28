@@ -22,6 +22,8 @@
     <string name="app_name">Swan Input Method</string>
     <string name="app_name_release">Swan Input Method</string>
     <string name="app_name_debug">Swan Input Method (Debug)</string>
+    <string name="language">Language</string>
+    <string name="language_follow_system">Follow system</string>
     <string name="save">Save</string>
     <string name="input_methods">Input Methods</string>
     <string name="addons">Addons</string>
@@ -362,9 +364,9 @@
     <string name="space_key_label_mode_default">Default</string>
     <string name="space_key_label_mode_compact_when_submode">Compact when submode is active</string>
     <string name="space_key_label_mode_submode_only">Submode only</string>
-    <string name="prediction_space_behavior">预测时空格键行为</string>
-    <string name="prediction_space_behavior_commit_space">上屏空格字符</string>
-    <string name="prediction_space_behavior_commit_prediction">提交高亮预测项</string>
+    <string name="prediction_space_behavior">Space key behavior during prediction</string>
+    <string name="prediction_space_behavior_commit_space">Insert a space</string>
+    <string name="prediction_space_behavior_commit_prediction">Commit the highlighted prediction</string>
     <string name="prediction_backspace_behavior">Backspace behavior during prediction</string>
     <string name="prediction_backspace_behavior_delete_text">Delete text before cursor</string>
     <string name="prediction_backspace_behavior_clear_prediction_candidates">Clear prediction candidates</string>
@@ -402,170 +404,170 @@
     <string name="delete_theme">Delete Theme</string>
     <string name="delete_theme_msg">Do you really want to delete theme \"%1$s\"?</string>
     <string name="capture_heap_dump">Capture heap dump</string>
-    <string name="llm_enable">启用 LLM 预测</string>
-    <string name="llm_enable_summary">使用 LLM 提供预测候选。</string>
-    <string name="llm_auto_predict">启用自动预测</string>
-    <string name="llm_auto_predict_summary">候选字词上屏后自动触发预测；关闭后仅可通过工具栏的 AI 候选按钮手动触发。</string>
-    <string name="llm_local_model_not_configured" translatable="false">未配置本地模型</string>
-    <string name="llm_local_model_source_imported" translatable="false">手动导入</string>
-    <string name="llm_local_model_source_downloaded" translatable="false">应用下载</string>
-    <string name="llm_local_model_status_summary" translatable="false">%1$s\n来源：%2$s · 大小：%3$s</string>
-    <string name="llm_local_model_compatibility_compatible" translatable="false">运行时预检：已通过</string>
-    <string name="llm_local_model_compatibility_incompatible" translatable="false">运行时预检：未通过</string>
-    <string name="llm_local_model_compatibility_incompatible_detailed" translatable="false">运行时预检：未通过（%1$s）</string>
-    <string name="llm_local_model_compatibility_skipped" translatable="false">运行时预检：当前设备不支持导入时检查</string>
-    <string name="llm_local_model_compatibility_unknown" translatable="false">检查状态：尚无运行时预检记录</string>
-    <string name="llm_local_model_incompatible" translatable="false">模型文件与当前本地运行时不兼容：%1$s</string>
-    <string name="llm_local_model_url" translatable="false">本地模型下载地址</string>
-    <string name="llm_local_model_url_required" translatable="false">请先填写模型下载地址</string>
-    <string name="llm_local_model_import" translatable="false">下载与导入模型</string>
-    <string name="llm_local_model_import_merged_summary" translatable="false">导入推荐模型、本地模型文件，或通过自定义 URL 下载并导入</string>
-    <string name="llm_local_model_import_recommended_title" translatable="false">1. 导入远端模型</string>
-    <string name="llm_local_model_import_recommended_summary" translatable="false">提供推荐模型，确认后自动下载并导入</string>
-    <string name="llm_local_model_import_recommended_action" translatable="false">选择推荐模型</string>
-    <string name="llm_local_model_import_local_title" translatable="false">2. 导入本地模型</string>
-    <string name="llm_local_model_import_local_summary" translatable="false">从设备其他目录选择已下载模型文件并导入</string>
-    <string name="llm_local_model_import_local_action" translatable="false">选择本地模型文件</string>
-    <string name="llm_local_model_import_custom_title" translatable="false">3. 自定义下载 URL</string>
-    <string name="llm_local_model_import_custom_summary" translatable="false">填写模型下载地址，确认后下载并导入</string>
-    <string name="llm_local_model_import_custom_action" translatable="false">输入下载 URL</string>
-    <string name="llm_local_model_cleared" translatable="false">已清除本地模型</string>
-    <string name="llm_local_model_reloaded" translatable="false">已重载并刷新当前模型的预检状态</string>
-    <string name="llm_local_model_download_success" translatable="false">模型下载完成：%1$s</string>
-    <string name="llm_local_model_import_success" translatable="false">模型导入完成：%1$s</string>
-    <string name="llm_local_model_upgrade_success" translatable="false">已从远端更新当前模型：%1$s</string>
-    <string name="llm_local_model_upgrade_unavailable" translatable="false">当前模型没有可用的远端升级来源，请重新导入</string>
-    <string name="llm_local_model_manage_upgrade" translatable="false">升级</string>
-    <string name="llm_local_model_manage_reimport" translatable="false">重新导入</string>
-    <string name="llm_local_model_manage_delete" translatable="false">删除</string>
-    <string name="llm_local_model_manage_reload" translatable="false">重载</string>
-    <string name="llm_local_model_delete_confirm" translatable="false">确认删除模型“%1$s”吗？</string>
-    <string name="llm_model_test" translatable="false">测试模型文本生成</string>
-    <string name="llm_model_test_summary" translatable="false">按当前运行方式测试模型文本生成能力，并查看归纳后的结果摘要</string>
-    <string name="llm_local_model_smoke_result" translatable="false">模型文本生成测试结果</string>
-    <string name="llm_local_model_smoke_persona_label" translatable="false">所用人设: %1$s</string>
-    <string name="llm_local_model_smoke_prompt_label" translatable="false">已输入前缀: %1$s</string>
-    <string name="llm_local_model_smoke_stage_label" translatable="false">状态: %1$s</string>
-    <string name="llm_local_model_smoke_suggestions_label" translatable="false">模型建议内容:</string>
-    <string name="llm_local_model_smoke_model_label" translatable="false">模型名称与ID: %1$s</string>
-    <string name="llm_local_model_smoke_usage_label" translatable="false">请求用量统计: 输入 %1$s Token, 输出 %2$s Token, 总计 %3$s Token</string>
-    <string name="llm_local_model_smoke_error_label" translatable="false">补充说明: %1$s</string>
-    <string name="llm_result_empty_value" translatable="false">暂无</string>
-    <string name="llm_result_stage_complete" translatable="false">完成</string>
-    <string name="llm_result_stage_complete_empty" translatable="false">完成，但暂无建议</string>
-    <string name="llm_result_stage_timeout" translatable="false">超时</string>
-    <string name="llm_result_stage_permission_denied" translatable="false">权限拒绝</string>
-    <string name="llm_result_stage_runtime_unavailable" translatable="false">运行时不可用</string>
-    <string name="llm_result_stage_bundle_missing" translatable="false">模型包缺失</string>
-    <string name="llm_result_stage_auth_failed" translatable="false">鉴权失败</string>
-    <string name="llm_result_stage_request_failed" translatable="false">请求失败</string>
-    <string name="llm_local_model_runtime_unavailable" translatable="false">当前设备系统版本不支持本地 GenAI 运行时</string>
-    <string name="llm_model_test_remote_unavailable" translatable="false">当前远端模型配置未完成，无法测试文本生成</string>
-    <string name="ai_clip_title" translatable="false">AI 候选</string>
-    <string name="ai_clip_collapse" translatable="false">收起 AI 候选面板</string>
-    <string name="ai_clip_question_answer" translatable="false">问答</string>
-    <string name="ai_clip_persona" translatable="false">人设</string>
-    <string name="ai_clip_translate" translatable="false">翻译</string>
-    <string name="ai_clip_long_form" translatable="false">润色</string>
-    <string name="ai_clip_suggestions_loading" translatable="false">正在生成候选…</string>
-    <string name="ai_clip_answer_loading" translatable="false">正在生成回答…</string>
-    <string name="ai_clip_translate_loading" translatable="false">正在翻译…</string>
-    <string name="ai_clip_long_form_loading" translatable="false">正在生成润色内容…</string>
-    <string name="ai_clip_error_quota" translatable="false">模型服务余额不足或已欠费，请检查账户后重试</string>
-    <string name="ai_clip_error_authentication" translatable="false">模型服务认证失败，请检查 API 密钥</string>
-    <string name="ai_clip_error_rate_limit" translatable="false">模型服务请求过于频繁，请稍后重试</string>
-    <string name="ai_clip_error_service" translatable="false">模型服务暂时不可用，请稍后重试</string>
-    <string name="ai_clip_error_network" translatable="false">无法连接模型服务，请检查网络后重试</string>
-    <string name="ai_clip_error_invalid_response" translatable="false">模型服务返回了无效结果，请稍后重试</string>
-    <string name="ai_clip_error_generic" translatable="false">模型预测失败，请稍后重试</string>
-    <string name="ai_clip_error_next_endpoint" translatable="false">下次请求将切换到下一个已启用端点</string>
-    <string name="llm_provider">模型服务商</string>
-    <string name="llm_provider_local_ai">本地</string>
-    <string name="llm_provider_custom">自定义</string>
+    <string name="llm_enable">Enable LLM predictions</string>
+    <string name="llm_enable_summary">Use LLM-generated prediction candidates.</string>
+    <string name="llm_auto_predict">Enable automatic predictions</string>
+    <string name="llm_auto_predict_summary">Automatically request predictions after committing a candidate. When off, predictions can only be requested manually with the AI Candidates toolbar button.</string>
+    <string name="llm_local_model_not_configured" translatable="false">No local model configured</string>
+    <string name="llm_local_model_source_imported" translatable="false">Imported manually</string>
+    <string name="llm_local_model_source_downloaded" translatable="false">Downloaded by the app</string>
+    <string name="llm_local_model_status_summary" translatable="false">%1$s\nSource: %2$s · Size: %3$s</string>
+    <string name="llm_local_model_compatibility_compatible" translatable="false">Runtime check: passed</string>
+    <string name="llm_local_model_compatibility_incompatible" translatable="false">Runtime check: failed</string>
+    <string name="llm_local_model_compatibility_incompatible_detailed" translatable="false">Runtime check: failed (%1$s)</string>
+    <string name="llm_local_model_compatibility_skipped" translatable="false">Runtime check: import-time checks are not supported on this device</string>
+    <string name="llm_local_model_compatibility_unknown" translatable="false">Check status: no runtime check has been performed</string>
+    <string name="llm_local_model_incompatible" translatable="false">The model file is incompatible with the current local runtime: %1$s</string>
+    <string name="llm_local_model_url" translatable="false">Local model download URL</string>
+    <string name="llm_local_model_url_required" translatable="false">Enter the model download URL first</string>
+    <string name="llm_local_model_import" translatable="false">Download and import model</string>
+    <string name="llm_local_model_import_merged_summary" translatable="false">Import a recommended model or local model file, or download and import one from a custom URL</string>
+    <string name="llm_local_model_import_recommended_title" translatable="false">1. Import a remote model</string>
+    <string name="llm_local_model_import_recommended_summary" translatable="false">Choose a recommended model; it will be downloaded and imported after confirmation</string>
+    <string name="llm_local_model_import_recommended_action" translatable="false">Choose a recommended model</string>
+    <string name="llm_local_model_import_local_title" translatable="false">2. Import a local model</string>
+    <string name="llm_local_model_import_local_summary" translatable="false">Choose and import a downloaded model file from another folder on this device</string>
+    <string name="llm_local_model_import_local_action" translatable="false">Choose a local model file</string>
+    <string name="llm_local_model_import_custom_title" translatable="false">3. Custom download URL</string>
+    <string name="llm_local_model_import_custom_summary" translatable="false">Enter a model download URL; the model will be downloaded and imported after confirmation</string>
+    <string name="llm_local_model_import_custom_action" translatable="false">Enter download URL</string>
+    <string name="llm_local_model_cleared" translatable="false">Local model removed</string>
+    <string name="llm_local_model_reloaded" translatable="false">Model reloaded and runtime check refreshed</string>
+    <string name="llm_local_model_download_success" translatable="false">Model downloaded: %1$s</string>
+    <string name="llm_local_model_import_success" translatable="false">Model imported: %1$s</string>
+    <string name="llm_local_model_upgrade_success" translatable="false">Current model updated from the remote source: %1$s</string>
+    <string name="llm_local_model_upgrade_unavailable" translatable="false">No remote upgrade is available for the current model. Import it again.</string>
+    <string name="llm_local_model_manage_upgrade" translatable="false">Upgrade</string>
+    <string name="llm_local_model_manage_reimport" translatable="false">Reimport</string>
+    <string name="llm_local_model_manage_delete" translatable="false">Delete</string>
+    <string name="llm_local_model_manage_reload" translatable="false">Reload</string>
+    <string name="llm_local_model_delete_confirm" translatable="false">Delete model %1$s?</string>
+    <string name="llm_model_test" translatable="false">Test model text generation</string>
+    <string name="llm_model_test_summary" translatable="false">Test text generation with the current runtime mode and view a summarized result</string>
+    <string name="llm_local_model_smoke_result" translatable="false">Model text generation test result</string>
+    <string name="llm_local_model_smoke_persona_label" translatable="false">Persona used: %1$s</string>
+    <string name="llm_local_model_smoke_prompt_label" translatable="false">Entered prefix: %1$s</string>
+    <string name="llm_local_model_smoke_stage_label" translatable="false">Status: %1$s</string>
+    <string name="llm_local_model_smoke_suggestions_label" translatable="false">Model suggestions:</string>
+    <string name="llm_local_model_smoke_model_label" translatable="false">Model name and ID: %1$s</string>
+    <string name="llm_local_model_smoke_usage_label" translatable="false">Request usage: input %1$s tokens, output %2$s tokens, total %3$s tokens</string>
+    <string name="llm_local_model_smoke_error_label" translatable="false">Additional details: %1$s</string>
+    <string name="llm_result_empty_value" translatable="false">None</string>
+    <string name="llm_result_stage_complete" translatable="false">Complete</string>
+    <string name="llm_result_stage_complete_empty" translatable="false">Complete, but no suggestions are available</string>
+    <string name="llm_result_stage_timeout" translatable="false">Timed out</string>
+    <string name="llm_result_stage_permission_denied" translatable="false">Permission denied</string>
+    <string name="llm_result_stage_runtime_unavailable" translatable="false">Runtime unavailable</string>
+    <string name="llm_result_stage_bundle_missing" translatable="false">Model bundle missing</string>
+    <string name="llm_result_stage_auth_failed" translatable="false">Authentication failed</string>
+    <string name="llm_result_stage_request_failed" translatable="false">Request failed</string>
+    <string name="llm_local_model_runtime_unavailable" translatable="false">The Android version on this device does not support the local GenAI runtime</string>
+    <string name="llm_model_test_remote_unavailable" translatable="false">Remote model configuration is incomplete; text generation cannot be tested</string>
+    <string name="ai_clip_title" translatable="false">AI Candidates</string>
+    <string name="ai_clip_collapse" translatable="false">Collapse AI Candidates panel</string>
+    <string name="ai_clip_question_answer" translatable="false">Q&amp;A</string>
+    <string name="ai_clip_persona" translatable="false">Persona</string>
+    <string name="ai_clip_translate" translatable="false">Translate</string>
+    <string name="ai_clip_long_form" translatable="false">Polish</string>
+    <string name="ai_clip_suggestions_loading" translatable="false">Generating suggestions…</string>
+    <string name="ai_clip_answer_loading" translatable="false">Generating answer…</string>
+    <string name="ai_clip_translate_loading" translatable="false">Translating…</string>
+    <string name="ai_clip_long_form_loading" translatable="false">Generating polished text…</string>
+    <string name="ai_clip_error_quota" translatable="false">The model service balance is too low or the account has an unpaid balance. Check the account and try again.</string>
+    <string name="ai_clip_error_authentication" translatable="false">Model service authentication failed. Check the API key.</string>
+    <string name="ai_clip_error_rate_limit" translatable="false">Too many requests to the model service. Try again later.</string>
+    <string name="ai_clip_error_service" translatable="false">The model service is temporarily unavailable. Try again later.</string>
+    <string name="ai_clip_error_network" translatable="false">Could not connect to the model service. Check the network and try again.</string>
+    <string name="ai_clip_error_invalid_response" translatable="false">The model service returned an invalid response. Try again later.</string>
+    <string name="ai_clip_error_generic" translatable="false">Model prediction failed. Try again later.</string>
+    <string name="ai_clip_error_next_endpoint" translatable="false">The next request will use the next enabled endpoint.</string>
+    <string name="llm_provider">Model provider</string>
+    <string name="llm_provider_local_ai">Local</string>
+    <string name="llm_provider_custom">Custom</string>
     <string name="llm_provider_openai" translatable="false">OpenAI</string>
     <string name="llm_provider_gemini" translatable="false">Google</string>
     <string name="llm_provider_anthropic" translatable="false">Anthropic</string>
     <string name="llm_provider_deepseek" translatable="false">DeepSeek</string>
-    <string name="llm_provider_zhipu" translatable="false">BigModel(智谱)</string>
+    <string name="llm_provider_zhipu" translatable="false">BigModel (Zhipu)</string>
     <string name="llm_provider_minimax" translatable="false">MiniMax CN</string>
     <string name="llm_provider_moonshot" translatable="false">Moonshot</string>
-    <string name="llm_api_url" translatable="false">API 地址</string>
-    <string name="llm_api_url_none_enabled_summary" translatable="false">%1$d 个地址（均未启用）</string>
-    <string name="llm_api_url_multiple_enabled_summary" translatable="false">%1$d 个地址已启用，按顺序自动故障转移</string>
-    <string name="llm_api_url_multiline_hint" translatable="false">每行一个地址；勾选多个时按顺序自动故障转移。</string>
-    <string name="llm_api_url_endpoint_key_hint" translatable="false">该域名的 API 密钥</string>
-    <string name="llm_api_url_backup_key_hint" translatable="false">需开启下方共享主密钥</string>
-    <string name="llm_api_url_backup_key_shared_hint" translatable="false">留空时使用主端点密钥</string>
-    <string name="llm_share_primary_api_key" translatable="false">共享主端点密钥</string>
-    <string name="llm_endpoint_model_hint" translatable="false">该域名的模型名称</string>
-    <string name="llm_endpoint_delete" translatable="false">删除</string>
-    <string name="llm_endpoint_none_hint" translatable="false">请先在「API 地址」中添加地址</string>
-    <string name="llm_api_key_count_summary" translatable="false">配置了 %1$d 个密钥</string>
-    <string name="llm_api_url_default_hint" translatable="false">留空时将使用服务商默认地址：%1$s</string>
-    <string name="llm_api_url_default_summary" translatable="false">留空时使用默认地址：%1$s</string>
-    <string name="llm_chat_api_enabled" translatable="false">聊天对话接口</string>
-    <string name="llm_model" translatable="false">模型名称</string>
-    <string name="llm_model_status" translatable="false">模型名称与档位</string>
-    <string name="llm_model_summary_line" translatable="false">模型：%1$s</string>
-    <string name="llm_thinking_effort_summary_line" translatable="false">档位：%1$s</string>
-    <string name="llm_model_summary_none" translatable="false">未配置</string>
-    <string name="llm_model_status_remote_ready">状态：远端模型可用</string>
-    <string name="llm_model_status_remote_unavailable">状态：远端模型不可用</string>
-    <string name="llm_model_status_remote_missing_name">状态：未填写模型名称</string>
-    <string name="llm_model_status_local_ready" translatable="false">状态：本地模型可用</string>
-    <string name="llm_model_status_local_unavailable" translatable="false">状态：本地模型不可用</string>
-    <string name="llm_model_status_local_unavailable_detailed" translatable="false">状态：本地模型不可用（%1$s）</string>
-    <string name="llm_model_status_local_pending" translatable="false">状态：本地模型待检查</string>
-    <string name="llm_model_select" translatable="false">选择模型</string>
-    <string name="llm_model_fetching" translatable="false">正在远程拉取模型列表…</string>
-    <string name="llm_model_fetch_success" translatable="false">已获取 %1$d 个模型，可点按选择。</string>
-    <string name="llm_model_fetch_empty" translatable="false">未获取到模型列表，请手动填写模型名称。</string>
-    <string name="llm_model_fetch_failed" translatable="false">模型列表获取失败：%1$s</string>
-    <string name="llm_model_group_prefix" translatable="false">模型服务商：%1$s</string>
-    <string name="llm_model_group_empty" translatable="false">空</string>
-    <string name="llm_fetch_models" translatable="false">拉取模型列表</string>
-    <string name="llm_api_key" translatable="false">API 密钥</string>
-    <string name="llm_test_connectivity" translatable="false">连通性检测</string>
-    <string name="llm_connectivity_checking" translatable="false">正在检测服务连通性…</string>
-    <string name="llm_connectivity_success" translatable="false">连接成功，发现 %1$d 个模型。\n%2$s</string>
-    <string name="llm_connectivity_failed" translatable="false">连通性检测失败：%1$s</string>
-    <string name="llm_sample_count">采样次数</string>
-    <string name="llm_max_prediction_candidates" translatable="false">最多预测候选数</string>
-    <string name="llm_prediction_display_mode">预测项显示方式</string>
-    <string name="llm_prediction_display_mode_floating_window">独立悬浮窗</string>
-    <string name="llm_prediction_display_mode_candidate_expanded">候选展开区</string>
-    <string name="llm_thinking_effort" translatable="false">思考档位</string>
-    <string name="llm_quick_settings" translatable="false">AI 候选快捷设置</string>
-    <string name="llm_thinking_effort_off" translatable="false">无</string>
-    <string name="llm_thinking_effort_low" translatable="false">低</string>
-    <string name="llm_thinking_effort_medium" translatable="false">中</string>
-    <string name="llm_thinking_effort_high" translatable="false">高</string>
-    <string name="llm_thinking_effort_max" translatable="false">极致</string>
-    <string name="llm_max_output_tokens">最大输出词元数</string>
-    <string name="llm_max_output_tokens_summary">%1$d。该参数会随请求发送给 LLM，可理解为本次回答的大致长度：数值越大，通常能生成更长内容，但不是最终显示字数的硬性上限。</string>
-    <string name="llm_max_context_chars">最大上下文字数</string>
-    <string name="llm_settings_title">智能预测</string>
-    <string name="llm_advanced">高级</string>
-    <string name="llm_advanced_summary">配置人设与口吻，以及采样与上下文等高级参数。</string>
-    <string name="llm_persona_style">人设与口吻</string>
-    <string name="llm_sample_count_summary">当前为 %1$d 次。数值越大，系统会多试几种说法，再挑更合适的结果。</string>
-    <string name="llm_max_context_chars_summary">当前为 %1$d 字。数值越大，系统参考的前文越多，但响应可能稍慢一点。</string>
-    <string name="llm_custom_persona">默认人设</string>
-    <string name="llm_custom_persona_summary">你可以更详细地描述你想设定的人设与口吻。</string>
-    <string name="llm_persona_custom_short">默认人设</string>
-    <string name="llm_persona_custom_summary">默认人设，不预设任何描述。</string>
-    <string name="llm_persona_social_star">社交达人</string>
-    <string name="llm_persona_social_star_description">情商在线，幽默风趣的社交达人</string>
-    <string name="llm_persona_workplace_elite">职场精英</string>
-    <string name="llm_persona_workplace_elite_description">大厂满嘴职场话术的产品经理</string>
-    <string name="llm_social_star_persona">社交达人人设</string>
-    <string name="llm_workplace_elite_persona">职场精英人设</string>
-    <string name="llm_persona_suffix">人设</string>
-    <string name="llm_persona_add">新增人设</string>
-    <string name="llm_persona_name_hint">输入新的人设名称</string>
-    <string name="llm_persona_custom_name_description">%1$s。在下方还可以补充更详细的人设描述。</string>
-    <string name="llm_persona_current_label">当前已选</string>
-    <string name="llm_persona_delete_confirm">删除人设“%1$s”？</string>
+    <string name="llm_api_url" translatable="false">API URLs</string>
+    <string name="llm_api_url_none_enabled_summary" translatable="false">%1$d URLs (none enabled)</string>
+    <string name="llm_api_url_multiple_enabled_summary" translatable="false">%1$d URLs enabled; automatic failover is in order</string>
+    <string name="llm_api_url_multiline_hint" translatable="false">Enter one URL per line. When multiple URLs are enabled, failover proceeds in order.</string>
+    <string name="llm_api_url_endpoint_key_hint" translatable="false">API key for this domain</string>
+    <string name="llm_api_url_backup_key_hint" translatable="false">Enable sharing the primary key below</string>
+    <string name="llm_api_url_backup_key_shared_hint" translatable="false">If empty, the primary endpoint key is used</string>
+    <string name="llm_share_primary_api_key" translatable="false">Share primary endpoint key</string>
+    <string name="llm_endpoint_model_hint" translatable="false">Model name for this domain</string>
+    <string name="llm_endpoint_delete" translatable="false">Delete</string>
+    <string name="llm_endpoint_none_hint" translatable="false">Add a URL under API URLs first</string>
+    <string name="llm_api_key_count_summary" translatable="false">%1$d keys configured</string>
+    <string name="llm_api_url_default_hint" translatable="false">If empty, the provider default URL is used: %1$s</string>
+    <string name="llm_api_url_default_summary" translatable="false">Use the default URL if empty: %1$s</string>
+    <string name="llm_chat_api_enabled" translatable="false">Chat API</string>
+    <string name="llm_model" translatable="false">Model name</string>
+    <string name="llm_model_status" translatable="false">Model name and tier</string>
+    <string name="llm_model_summary_line" translatable="false">Model: %1$s</string>
+    <string name="llm_thinking_effort_summary_line" translatable="false">Tier: %1$s</string>
+    <string name="llm_model_summary_none" translatable="false">Not configured</string>
+    <string name="llm_model_status_remote_ready">Status: remote model available</string>
+    <string name="llm_model_status_remote_unavailable">Status: remote model unavailable</string>
+    <string name="llm_model_status_remote_missing_name">Status: model name not entered</string>
+    <string name="llm_model_status_local_ready" translatable="false">Status: local model available</string>
+    <string name="llm_model_status_local_unavailable" translatable="false">Status: local model unavailable</string>
+    <string name="llm_model_status_local_unavailable_detailed" translatable="false">Status: local model unavailable (%1$s)</string>
+    <string name="llm_model_status_local_pending" translatable="false">Status: local model pending check</string>
+    <string name="llm_model_select" translatable="false">Select model</string>
+    <string name="llm_model_fetching" translatable="false">Fetching model list remotely…</string>
+    <string name="llm_model_fetch_success" translatable="false">Retrieved %1$d models. Tap one to select it.</string>
+    <string name="llm_model_fetch_empty" translatable="false">No model list received. Enter a model name manually.</string>
+    <string name="llm_model_fetch_failed" translatable="false">Failed to retrieve model list: %1$s</string>
+    <string name="llm_model_group_prefix" translatable="false">Provider: %1$s</string>
+    <string name="llm_model_group_empty" translatable="false">Empty</string>
+    <string name="llm_fetch_models" translatable="false">Fetch model list</string>
+    <string name="llm_api_key" translatable="false">API key</string>
+    <string name="llm_test_connectivity" translatable="false">Check connectivity</string>
+    <string name="llm_connectivity_checking" translatable="false">Checking service connectivity…</string>
+    <string name="llm_connectivity_success" translatable="false">Connected successfully; found %1$d models.\n%2$s</string>
+    <string name="llm_connectivity_failed" translatable="false">Connectivity check failed: %1$s</string>
+    <string name="llm_sample_count">Number of samples</string>
+    <string name="llm_max_prediction_candidates" translatable="false">Maximum prediction candidates</string>
+    <string name="llm_prediction_display_mode">Prediction display mode</string>
+    <string name="llm_prediction_display_mode_floating_window">Separate floating window</string>
+    <string name="llm_prediction_display_mode_candidate_expanded">Expanded candidate area</string>
+    <string name="llm_thinking_effort" translatable="false">Reasoning effort</string>
+    <string name="llm_quick_settings" translatable="false">AI Candidates quick settings</string>
+    <string name="llm_thinking_effort_off" translatable="false">None</string>
+    <string name="llm_thinking_effort_low" translatable="false">Low</string>
+    <string name="llm_thinking_effort_medium" translatable="false">Medium</string>
+    <string name="llm_thinking_effort_high" translatable="false">High</string>
+    <string name="llm_thinking_effort_max" translatable="false">Maximum</string>
+    <string name="llm_max_output_tokens">Maximum output tokens</string>
+    <string name="llm_max_output_tokens_summary">%1$d. This value is sent with each LLM request and roughly controls response length. Higher values usually allow longer responses, but do not impose a hard limit on displayed characters.</string>
+    <string name="llm_max_context_chars">Maximum context characters</string>
+    <string name="llm_settings_title">Smart Prediction</string>
+    <string name="llm_advanced">Advanced</string>
+    <string name="llm_advanced_summary">Configure personas and tone, along with advanced sampling and context settings.</string>
+    <string name="llm_persona_style">Persona and tone</string>
+    <string name="llm_sample_count_summary">Currently %1$d. Higher values let the system try more phrasings before choosing a suitable result.</string>
+    <string name="llm_max_context_chars_summary">Currently %1$d characters. Higher values include more preceding text as context, but may make responses slightly slower.</string>
+    <string name="llm_custom_persona">Default persona</string>
+    <string name="llm_custom_persona_summary">Describe the persona and tone you want in more detail.</string>
+    <string name="llm_persona_custom_short">Default persona</string>
+    <string name="llm_persona_custom_summary">Default persona, with no description preset.</string>
+    <string name="llm_persona_social_star">Social butterfly</string>
+    <string name="llm_persona_social_star_description">A socially savvy, witty, and charming conversationalist</string>
+    <string name="llm_persona_workplace_elite">Workplace professional</string>
+    <string name="llm_persona_workplace_elite_description">A product manager at a large tech company, full of workplace jargon</string>
+    <string name="llm_social_star_persona">Social butterfly persona</string>
+    <string name="llm_workplace_elite_persona">Workplace professional persona</string>
+    <string name="llm_persona_suffix">Persona</string>
+    <string name="llm_persona_add">Add persona</string>
+    <string name="llm_persona_name_hint">Enter a new persona name</string>
+    <string name="llm_persona_custom_name_description">%1$s. You can add a more detailed persona description below.</string>
+    <string name="llm_persona_current_label">Currently selected</string>
+    <string name="llm_persona_delete_confirm">Delete persona %1$s?</string>
     <string name="plugins">Plugins</string>
     <string name="manage_plugins">Manage Plugins</string>
     <string name="manage_plugins_hint">Select one or more plugins, then choose a management action below.</string>
@@ -926,7 +928,7 @@
     <string name="text_keyboard_layout_file_deleted">Deleted profile: %1$s</string>
     <string name="text_keyboard_layout_file_delete_failed">Failed to delete layout file</string>
     <string name="text_keyboard_layout_file_name">Layout file name: </string>
-    <string name="text_keyboard_layout_file_name_hint">e.g., 个人布局, gaming, work</string>
+    <string name="text_keyboard_layout_file_name_hint">e.g., personal layout, gaming, work</string>
     <string name="text_keyboard_layout_file_name_invalid">Invalid profile name (cannot contain \\ / : * ? " &lt; &gt; |)</string>
     <string name="text_keyboard_layout_file_copy_current">Copy current file content</string>
     <string name="text_keyboard_layout_file_already_exists">Layout file already exists</string>

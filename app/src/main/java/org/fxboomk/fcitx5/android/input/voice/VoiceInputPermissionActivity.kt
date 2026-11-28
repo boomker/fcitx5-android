@@ -10,6 +10,10 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 
 class VoiceInputPermissionActivity : Activity() {
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(org.fxboomk.fcitx5.android.utils.AppLanguage.wrap(newBase))
+    }
+
     private var resultDelivered = false
 
     override fun onCreate(savedInstanceState: Bundle?) {

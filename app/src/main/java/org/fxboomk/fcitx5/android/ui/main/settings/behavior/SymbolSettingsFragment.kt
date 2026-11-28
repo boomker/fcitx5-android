@@ -29,7 +29,6 @@ import org.fxboomk.fcitx5.android.utils.queryFileName
 import org.fxboomk.fcitx5.android.utils.toast
 import timber.log.Timber
 import java.io.File
-import java.util.Locale
 
 /**
  * 「表情和符号」设置页。
@@ -137,6 +136,7 @@ class SymbolSettingsFragment : ManagedPreferenceFragment(AppPrefs.getInstance().
     private fun importCatalog(type: SymbolCatalogType, uri: Uri) {
         // 在后台线程不碰 Fragment 上下文（可能已 detach），统一用应用上下文
         val resolver = appContext.contentResolver
+        val locale = org.fxboomk.fcitx5.android.utils.AppLanguage.currentLocaleTag(requireContext())
         val displayName = runCatching { resolver.queryFileName(uri) }.getOrNull()
         lifecycleScope.launch {
             val result = withContext(Dispatchers.IO) {
@@ -147,7 +147,10 @@ class SymbolSettingsFragment : ManagedPreferenceFragment(AppPrefs.getInstance().
                     // 与加载路径一致：先剥掉 // 行注释再校验
                     val stripped = UserJsonConfigStore.stripLineComments(text)
                     // 先做一次解析校验，避免把坏文件装进去让面板变空
-                    val parsed = SymbolCatalogs.parse(stripped, Locale.getDefault().toLanguageTag())
+                    val parsed = SymbolCatalogs.parse(
+                        stripped,
+                        locale
+                    )
                     require(parsed.groups.isNotEmpty()) { "no usable group" }
                     val name = resolveImportName(type, displayName)
                     val dest = UserConfigFiles.symbolCatalogFile(type.subDir, name)

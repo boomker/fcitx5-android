@@ -29,6 +29,10 @@ import org.fxboomk.fcitx5.android.utils.notificationManager
 
 class SetupActivity : FragmentActivity() {
 
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(org.fxboomk.fcitx5.android.utils.AppLanguage.wrap(newBase))
+    }
+
     private lateinit var viewPager: ViewPager2
 
     private lateinit var skipButton: Button

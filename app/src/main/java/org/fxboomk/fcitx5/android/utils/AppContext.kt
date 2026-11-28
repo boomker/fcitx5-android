@@ -9,4 +9,4 @@ import android.content.Context
 import org.fxboomk.fcitx5.android.FcitxApplication
 
 val appContext: Context
-    get() = FcitxApplication.getInstance().applicationContext
+    get() = FcitxApplication.getInstance().appLocaleContext

@@ -321,6 +321,7 @@ object SettingsSearchIndex {
             addPage(context, R.string.addons, SettingsRoute.AddonList)
             addPage(context, R.string.input_methods, SettingsRoute.InputMethodList)
             addPage(context, R.string.theme_appearance, SettingsRoute.Theme)
+            addPage(context, R.string.language, SettingsRoute.Language)
             addPage(context, R.string.virtual_keyboard, SettingsRoute.VirtualKeyboard)
             addPage(context, R.string.emoji_and_symbols, SettingsRoute.Symbol)
             addPage(context, R.string.llm_settings_title, SettingsRoute.Llm)

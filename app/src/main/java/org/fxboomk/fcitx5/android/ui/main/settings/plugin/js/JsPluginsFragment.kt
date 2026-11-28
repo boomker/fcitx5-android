@@ -23,7 +23,6 @@ import org.fxboomk.fcitx5.android.input.plugin.js.JsPluginStore
 import org.fxboomk.fcitx5.android.input.plugin.js.JsPluginCatalog
 import org.fxboomk.fcitx5.android.ui.common.PaddingPreferenceFragment
 import java.io.ByteArrayOutputStream
-import java.util.Locale
 
 /** Hosts the JS file picker opened from the plugin page or the upgrade action. */
 class JsPluginsFragment : PaddingPreferenceFragment() {
@@ -64,11 +63,12 @@ class JsPluginsFragment : PaddingPreferenceFragment() {
                 disabledBuiltInIds = JsPluginStore.disabledBuiltInIds(),
                 upgradingPluginId = expectedId,
             )
+            val locale = org.fxboomk.fcitx5.android.utils.AppLanguage.currentLocaleTag(requireContext())
             val result = withContext(Dispatchers.IO) {
                 runCatching {
                     JsPluginImporter.inspect(
                         script = script,
-                        locale = Locale.getDefault().toLanguageTag(),
+                        locale = locale,
                         builtInIds = availableBuiltInIds,
                         importedIds = JsPluginStore.importedIds() +
                             listOfNotNull(expectedId?.removePrefix(JsPluginMeta.PROVIDER_ID_PREFIX)),

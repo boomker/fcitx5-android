@@ -21,6 +21,7 @@ import org.fxboomk.fcitx5.android.ui.main.settings.SettingsSearchPreference
 import org.fxboomk.fcitx5.android.ui.main.settings.SettingsSearchResult
 import org.fxboomk.fcitx5.android.ui.main.settings.SettingsRoute
 import org.fxboomk.fcitx5.android.ui.main.settings.sortedForSettingsSearch
+import org.fxboomk.fcitx5.android.utils.AppLanguage
 import org.fxboomk.fcitx5.android.utils.addCategory
 import org.fxboomk.fcitx5.android.utils.addPreference
 import org.fxboomk.fcitx5.android.utils.navigateWithAnim
@@ -168,6 +169,7 @@ class MainFragment : PaddingPreferenceFragment() {
                     R.drawable.ic_baseline_info_24,
                     SettingsRoute.About
                 )
+                addPreference(AppLanguage.preference(requireContext()))
             }
         }
     }
