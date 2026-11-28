@@ -119,7 +119,8 @@ private object PinyinConfigLayout {
                 "PageSize",
                 "WordCandidateLimit",
                 "Number of sentence",
-                "LongWordLengthLimit"
+                "LongWordLengthLimit",
+                "LongWordCandidateLimit"
             )
         ),
         ConfigLayout.Section(
@@ -200,6 +201,7 @@ private object PinyinConfigLayout {
         "WordCandidateLimit" to R.string.pinyin_config_phrase_limit,
         "Number of sentence" to R.string.pinyin_config_sentence_count,
         "LongWordLengthLimit" to R.string.pinyin_config_long_word_hint,
+        "LongWordCandidateLimit" to R.string.pinyin_config_long_word_hint_max_count,
         "Prediction" to R.string.pinyin_config_prediction,
         "KeepCurrentContext" to R.string.pinyin_config_keep_context,
         "Learning" to R.string.pinyin_config_learning,
@@ -310,7 +312,9 @@ private object PinyinConfigLayout {
                 "PartialSpLength" to R.string.pinyin_config_partial_sp_length_summary,
                 "ShuangpinInitialFuzzy" to R.string.pinyin_config_shuangpin_initial_fuzzy_summary,
                 "FoldSymbolCandidates" to R.string.pinyin_config_fold_symbols_summary,
-                "PinyinAnnotation" to R.string.pinyin_config_annotation_summary
+                "PinyinAnnotation" to R.string.pinyin_config_annotation_summary,
+                "LongWordLengthLimit" to R.string.pinyin_config_long_word_hint_summary,
+                "LongWordCandidateLimit" to R.string.pinyin_config_long_word_hint_max_count_summary
             ),
             entryTitleOverrides = if (shortTitles) {
                 mapOf(
